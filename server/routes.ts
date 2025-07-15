@@ -4,6 +4,98 @@ import { storage } from "./storage";
 import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnosticSessionSchema } from "@shared/schema";
 import { z } from "zod";
 
+// AI Helper Functions
+function calculateTextSimilarity(text1: string, text2: string): number {
+  // Simple Jaccard similarity for text comparison
+  const words1 = new Set(text1.split(/\s+/).filter(w => w.length > 2));
+  const words2 = new Set(text2.split(/\s+/).filter(w => w.length > 2));
+  
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  
+  return union.size > 0 ? intersection.size / union.size : 0;
+}
+
+function calculateRiskLevel(case_: any, currentUrgency: string): string {
+  const urgencyScores = { low: 1, medium: 2, high: 3 };
+  const caseUrgency = urgencyScores[case_.urgency as keyof typeof urgencyScores] || 2;
+  const currentScore = urgencyScores[currentUrgency as keyof typeof urgencyScores] || 2;
+  
+  const avgScore = (caseUrgency + currentScore) / 2;
+  
+  if (avgScore >= 2.5) return "Élevé";
+  if (avgScore >= 1.5) return "Moyen";
+  return "Faible";
+}
+
+function estimateRepairCost(duration: number = 60, equipmentType: string): string {
+  const baseCostPerHour = 85; // €/hour
+  const equipmentMultipliers = {
+    moteur: 1.2,
+    pompe: 1.0,
+    compresseur: 1.5,
+    convoyeur: 0.8,
+    variateur: 1.3,
+    capteur: 0.7,
+    automate: 1.8,
+    autre: 1.0
+  };
+  
+  const multiplier = equipmentMultipliers[equipmentType as keyof typeof equipmentMultipliers] || 1.0;
+  const estimatedCost = Math.round((duration / 60) * baseCostPerHour * multiplier);
+  
+  return `${estimatedCost}€`;
+}
+
+function generateAIInsights(case_: any, symptomScore: number, textSimilarity: number): string {
+  const insights = [];
+  
+  if (symptomScore > 0.7) {
+    insights.push("Symptômes très similaires détectés");
+  }
+  
+  if (textSimilarity > 0.5) {
+    insights.push("Description correspondante trouvée");
+  }
+  
+  if (case_.resolved && case_.confidence && case_.confidence > 0.85) {
+    insights.push("Solution validée avec succès");
+  }
+  
+  if (case_.duration && case_.duration < 60) {
+    insights.push("Réparation rapide probable");
+  }
+  
+  return insights.length > 0 ? insights.join(" • ") : "Analyse basée sur l'historique";
+}
+
+function generatePredictiveTips(equipmentType: string, diagnosis: string): string[] {
+  const tips: { [key: string]: string[] } = {
+    moteur: [
+      "Vérifier l'alignement tous les 6 mois",
+      "Contrôler la température de fonctionnement",
+      "Surveiller les vibrations régulièrement"
+    ],
+    pompe: [
+      "Contrôler l'étanchéité mensuellement", 
+      "Vérifier la pression d'aspiration",
+      "Surveiller le débit et les fuites"
+    ],
+    compresseur: [
+      "Vérifier le niveau d'huile hebdomadairement",
+      "Contrôler les filtres à air",
+      "Surveiller la pression de service"
+    ],
+    convoyeur: [
+      "Vérifier la tension des bandes",
+      "Contrôler l'alignement des rouleaux",
+      "Lubrifier les roulements régulièrement"
+    ]
+  };
+  
+  return tips[equipmentType] || ["Effectuer une maintenance préventive régulière"];
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Diagnostic endpoint - analyze symptoms and return suggestions
@@ -20,20 +112,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         symptoms: data.symptomsChecked || []
       });
       
-      // Calculate diagnostic suggestions with confidence scores
+      // Enhanced AI-powered diagnostic algorithm
       const suggestions = similarCases.map(case_ => {
+        // Symptom matching with weighted scoring
         const symptomMatches = (data.symptomsChecked || []).filter(symptom => 
           (case_.symptomsChecked || []).includes(symptom)
         ).length;
         
-        const totalSymptoms = Math.max((data.symptomsChecked || []).length, 1);
-        const matchScore = symptomMatches / totalSymptoms;
+        // Text similarity analysis for symptom description
+        const textSimilarity = calculateTextSimilarity(
+          data.symptoms.toLowerCase(), 
+          case_.symptoms.toLowerCase()
+        );
         
-        // Adjust confidence based on match score and historical confidence
+        // Equipment type exact match bonus
+        const equipmentBonus = case_.equipmentType === data.equipmentType ? 0.2 : 0;
+        
+        // Zone/location context similarity
+        const locationBonus = case_.zone === data.zone ? 0.1 : 0;
+        
+        // Urgency level matching
+        const urgencyBonus = case_.urgency === data.urgency ? 0.1 : 0;
+        
+        // Calculate comprehensive match score
+        const totalSymptoms = Math.max((data.symptomsChecked || []).length, 1);
+        const symptomScore = symptomMatches / totalSymptoms;
+        
+        // Weighted confidence calculation (ML-inspired)
+        const baseConfidence = case_.confidence || 0.5;
         const adjustedConfidence = Math.min(
-          (case_.confidence || 0.5) * (0.5 + matchScore * 0.5), 
+          baseConfidence * (
+            0.4 * symptomScore + 
+            0.3 * textSimilarity + 
+            0.2 * equipmentBonus + 
+            0.05 * locationBonus + 
+            0.05 * urgencyBonus
+          ), 
           0.99
         );
+        
+        // Risk assessment based on urgency and historical data
+        const riskLevel = calculateRiskLevel(case_, data.urgency);
+        
+        // Cost estimation based on duration and equipment type
+        const costEstimate = estimateRepairCost(case_.duration, case_.equipmentType);
         
         return {
           diagnosis: case_.diagnosis,
@@ -41,11 +163,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           confidence: Math.round(adjustedConfidence * 100),
           matchingCases: 1,
           caseId: case_.id,
-          duration: case_.duration
+          duration: case_.duration,
+          riskLevel,
+          costEstimate,
+          aiInsights: generateAIInsights(case_, symptomScore, textSimilarity)
         };
       })
+      .filter(suggestion => suggestion.confidence > 20) // Filter low confidence
       .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 3); // Return top 3 suggestions
+      .slice(0, 4); // Return top 4 suggestions
+      
+      // Add predictive maintenance recommendations if confidence is high
+      if (suggestions.length > 0 && suggestions[0].confidence > 80) {
+        suggestions[0].predictiveTips = generatePredictiveTips(
+          data.equipmentType, 
+          suggestions[0].diagnosis
+        );
+      }
       
       // Update session with results
       await storage.updateDiagnosticSession(session.id, {

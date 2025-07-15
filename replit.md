@@ -7,6 +7,19 @@ SMDiagFix is a full-stack web application designed to assist industrial technici
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+User requested improvements based on provided database and enhanced specifications document.
+
+## Recent Changes (July 2025)
+
+✓ Enhanced AI diagnostic engine with advanced pattern matching algorithms
+✓ Added intelligent confidence scoring based on multiple factors
+✓ Implemented risk assessment and cost estimation features  
+✓ Added AI insights and predictive maintenance recommendations
+✓ Enhanced diagnostic results display with detailed metrics
+✓ Added CSV and Excel export functionality for maintenance history
+✓ Expanded sample database with 8 comprehensive industrial cases
+✓ Fixed translation duplicate key warnings
+✓ Improved diagnostic suggestion algorithm with text similarity analysis
 
 ## System Architecture
 
@@ -32,17 +45,30 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Components
 
-### Diagnostic Engine
-- Symptom-based equipment analysis
-- Confidence scoring algorithm based on historical cases
-- Equipment type and symptom matching
-- Suggestion ranking system
+### Enhanced AI Diagnostic Engine
+- Advanced symptom-based equipment analysis with text similarity matching
+- Multi-factor confidence scoring algorithm (symptoms, text, equipment type, location, urgency)
+- Intelligent pattern recognition using Jaccard similarity for text analysis
+- Risk level assessment based on urgency and historical patterns
+- Cost estimation with equipment-specific multipliers
+- AI insights generation based on matching criteria
+- Predictive maintenance recommendations for high-confidence diagnoses
+- Equipment type and symptom matching with weighted scoring
 
-### User Interface Components
+### Enhanced User Interface Components
 1. **Diagnostic Form**: Captures equipment details, symptoms, and urgency levels
-2. **Diagnostic Results**: Displays AI-generated suggestions with confidence scores
+2. **Advanced Diagnostic Results**: 
+   - AI-generated suggestions with enhanced confidence scoring
+   - Risk level indicators with color-coded displays
+   - Cost estimates for repair procedures
+   - AI insights and analysis explanations
+   - Predictive maintenance recommendations
+   - Enhanced visual metrics display
 3. **Repair Guidance**: Step-by-step repair procedures with progress tracking
-4. **Maintenance History**: Historical view of diagnostic sessions and repairs
+4. **Enhanced Maintenance History**: 
+   - Historical view with advanced filtering
+   - CSV and Excel export functionality
+   - Comprehensive data export with all diagnostic details
 5. **Case Reporting**: Incident reporting system for new issues
 
 ### Storage Layer
@@ -50,14 +76,24 @@ Preferred communication style: Simple, everyday language.
 - Memory storage implementation for development
 - Ready for PostgreSQL integration with existing schema
 
-## Data Flow
+## Enhanced Data Flow
 
-1. **Diagnostic Request**: User submits equipment symptoms via diagnostic form
-2. **Analysis**: Backend searches similar historical cases and calculates confidence scores
-3. **Suggestion Generation**: System returns ranked diagnostic suggestions
-4. **Repair Guidance**: Users can initiate guided repair procedures
-5. **Progress Tracking**: Real-time tracking of repair step completion
-6. **Case Storage**: All sessions and procedures are stored for future reference
+1. **Diagnostic Request**: User submits equipment details, symptoms, and context via diagnostic form
+2. **Advanced AI Analysis**: 
+   - Multi-factor pattern matching algorithm
+   - Text similarity analysis using Jaccard coefficients
+   - Equipment type and location context matching
+   - Urgency level correlation analysis
+3. **Intelligent Suggestion Generation**: 
+   - Weighted confidence scoring with multiple criteria
+   - Risk level assessment and cost estimation
+   - AI insights generation explaining matching logic
+   - Predictive maintenance recommendations
+4. **Enhanced Results Display**: Rich diagnostic suggestions with detailed metrics
+5. **Repair Guidance**: Users can initiate guided repair procedures with safety warnings
+6. **Progress Tracking**: Real-time tracking of repair step completion
+7. **Data Export**: CSV/Excel export functionality for maintenance records
+8. **Case Storage**: All sessions and procedures stored with comprehensive metadata
 
 ## External Dependencies
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { History, Search, Download, Filter } from "lucide-react";
+import { History, Search, Download, Filter, FileText, Table } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 
 export function MaintenanceHistory() {
   const { language } = useLanguage();
+  const { toast } = useToast();
   const [filters, setFilters] = useState({
     search: "",
     equipmentType: "",
@@ -77,6 +79,111 @@ export function MaintenanceHistory() {
     { value: "in_progress", label: t("pending", language) },
     { value: "failed", label: t("failed", language) },
   ];
+
+  // Export functions
+  const exportToCSV = () => {
+    if (!sessions || sessions.length === 0) {
+      toast({
+        title: "Aucune donnée",
+        description: "Aucune donnée à exporter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = [
+      "Date",
+      "Equipment Type", 
+      "Equipment ID",
+      "Zone",
+      "Symptoms",
+      "Diagnosis",
+      "Solution",
+      "Duration (min)",
+      "Status",
+      "Urgency"
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...sessions.map(session => [
+        formatDate(session.createdAt),
+        session.equipmentType || "",
+        session.equipmentId || "",
+        session.zone || "",
+        `"${session.symptoms?.replace(/"/g, '""') || ""}"`,
+        `"${session.diagnosis?.replace(/"/g, '""') || ""}"`,
+        `"${session.solution?.replace(/"/g, '""') || ""}"`,
+        session.duration || "",
+        session.resolved ? "completed" : "pending",
+        session.urgency || ""
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `maintenance_history_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+
+    toast({
+      title: t("dataExported", language),
+      description: "CSV file downloaded successfully",
+    });
+  };
+
+  const exportToExcel = () => {
+    if (!sessions || sessions.length === 0) {
+      toast({
+        title: "Aucune donnée",
+        description: "Aucune donnée à exporter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create HTML table for Excel
+    const headers = [
+      "Date", "Type d'équipement", "ID Équipement", "Zone", 
+      "Symptômes", "Diagnostic", "Solution", "Durée (min)", 
+      "Statut", "Urgence"
+    ];
+
+    const tableHTML = `
+      <table border="1">
+        <thead>
+          <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${sessions.map(session => `
+            <tr>
+              <td>${formatDate(session.createdAt)}</td>
+              <td>${session.equipmentType || ""}</td>
+              <td>${session.equipmentId || ""}</td>
+              <td>${session.zone || ""}</td>
+              <td>${session.symptoms || ""}</td>
+              <td>${session.diagnosis || ""}</td>
+              <td>${session.solution || ""}</td>
+              <td>${session.duration || ""}</td>
+              <td>${session.resolved ? "Terminé" : "En cours"}</td>
+              <td>${session.urgency || ""}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `maintenance_history_${new Date().toISOString().split('T')[0]}.xls`;
+    link.click();
+
+    toast({
+      title: t("dataExported", language),
+      description: "Excel file downloaded successfully",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -162,10 +269,26 @@ export function MaintenanceHistory() {
               <History className="text-carbon-blue" />
               <span>{t("maintenanceHistory", language)}</span>
             </CardTitle>
-            <Button variant="ghost" className="text-carbon-blue text-sm font-medium hover:underline">
-              <Download className="w-4 h-4 mr-2" />
-              {t("export", language)}
-            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportToCSV}
+                className="text-carbon-blue border-carbon-blue hover:bg-carbon-blue hover:text-white"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {t("exportCSV", language)}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={exportToExcel}
+                className="text-carbon-green border-carbon-green hover:bg-carbon-green hover:text-white"
+              >
+                <Table className="w-4 h-4 mr-2" />
+                {t("exportExcel", language)}
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -183,7 +306,7 @@ export function MaintenanceHistory() {
                   {t("symptoms", language)}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-carbon-gray-70 uppercase tracking-wider">
-                  {t("diagnostic", language)}
+                  {t("diagnosisResult", language)}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-carbon-gray-70 uppercase tracking-wider">
                   {t("status", language)}

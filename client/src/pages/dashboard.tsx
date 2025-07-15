@@ -22,6 +22,10 @@ interface DiagnosticSuggestion {
   matchingCases: number;
   caseId: number;
   duration?: number;
+  riskLevel?: string;
+  costEstimate?: string;
+  aiInsights?: string;
+  predictiveTips?: string[];
 }
 
 export default function Dashboard() {
