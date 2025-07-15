@@ -13,7 +13,7 @@ import {
   diagnosticSessions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, or, and, desc } from "drizzle-orm";
+import { eq, ilike, or, and, desc, arrayContains, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Maintenance Cases
@@ -390,10 +390,7 @@ export class DatabaseStorage implements IStorage {
 
     if (query.symptoms && query.symptoms.length > 0) {
       const symptomConditions = query.symptoms.map(symptom => 
-        or(
-          ilike(maintenanceCases.symptoms, `%${symptom}%`),
-          ilike(maintenanceCases.symptomsChecked, `%${symptom}%`)
-        )
+        ilike(maintenanceCases.symptoms, `%${symptom}%`)
       );
       whereConditions.push(or(...symptomConditions));
     }
