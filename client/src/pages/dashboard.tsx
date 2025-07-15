@@ -43,8 +43,7 @@ export default function Dashboard() {
     mutationFn: async (data: any) => {
       return apiRequest("POST", "/api/diagnostic", data);
     },
-    onSuccess: (response: any) => {
-      const result = response.json();
+    onSuccess: (result: any) => {
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
       toast({

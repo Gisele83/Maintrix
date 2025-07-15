@@ -106,11 +106,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create diagnostic session
       const session = await storage.createDiagnosticSession(data);
       
-      // Search for similar cases based on equipment type and symptoms
-      const similarCases = await storage.searchMaintenanceCases({
+      // First try to find cases with exact equipment type match
+      let similarCases = await storage.searchMaintenanceCases({
         equipmentType: data.equipmentType,
         symptoms: data.symptomsChecked || []
       });
+      
+      // If no cases found, get all cases for broader matching
+      if (similarCases.length === 0) {
+        similarCases = await storage.getMaintenanceCases();
+      }
       
       // Enhanced AI-powered diagnostic algorithm
       const suggestions = similarCases.map(case_ => {
@@ -169,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           aiInsights: generateAIInsights(case_, symptomScore, textSimilarity)
         };
       })
-      .filter(suggestion => suggestion.confidence > 20) // Filter low confidence
+      .filter(suggestion => suggestion.confidence > 5) // Very permissive filter
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 4); // Return top 4 suggestions
       
