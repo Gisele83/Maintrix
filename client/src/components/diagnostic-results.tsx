@@ -1,4 +1,4 @@
-import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap } from "lucide-react";
+import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,13 @@ interface DiagnosticSuggestion {
   costEstimate?: string;
   aiInsights?: string;
   predictiveTips?: string[];
+  // Advanced ML fields
+  advancedML?: boolean;
+  anomalyDetected?: boolean;
+  anomalyScore?: number;
+  failureRisk?: number;
+  patternMatch?: any;
+  maintenanceRecommendation?: any;
 }
 
 interface DiagnosticResultsProps {
@@ -106,12 +113,20 @@ export function DiagnosticResults({
       </CardHeader>
       
       <CardContent className="p-6">
-        <div className="space-y-4">
+        <div className="space-y-6">
           {suggestions.map((suggestion, index) => (
-            <div key={index} className="border border-carbon-gray-20 rounded-lg p-5 hover:shadow-lg transition-all duration-200 bg-white">
+            <div key={index} className="border border-carbon-gray-20 rounded-lg p-6 hover:shadow-lg transition-all duration-200 bg-white">
               {/* Header with diagnosis and confidence */}
-              <div className="flex items-start justify-between mb-3">
-                <h4 className="font-semibold text-carbon-gray-90 text-lg">{suggestion.diagnosis}</h4>
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <h4 className="font-semibold text-carbon-gray-90 text-lg">{suggestion.diagnosis}</h4>
+                  {suggestion.advancedML && (
+                    <Badge variant="secondary" className="bg-carbon-blue text-white text-xs">
+                      <Brain className="w-3 h-3 mr-1" />
+                      ML Avancé
+                    </Badge>
+                  )}
+                </div>
                 <Badge 
                   className={`${getConfidenceColor(suggestion.confidence)} ${getConfidenceTextColor(suggestion.confidence)} text-xs px-3 py-1 rounded-full font-medium`}
                 >
@@ -119,8 +134,47 @@ export function DiagnosticResults({
                 </Badge>
               </div>
 
+              {/* Advanced ML Metrics */}
+              {suggestion.advancedML && (
+                <div className="bg-gradient-to-r from-carbon-blue/10 to-purple-100 p-4 rounded-lg border border-carbon-blue/20 mb-4">
+                  <h5 className="font-semibold text-carbon-gray-90 mb-3 flex items-center">
+                    <Brain className="w-4 h-4 mr-2 text-carbon-blue" />
+                    Métriques ML Avancées
+                  </h5>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {suggestion.anomalyDetected && (
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                        <span className="text-red-700 font-medium">Anomalie détectée</span>
+                      </div>
+                    )}
+                    {suggestion.failureRisk && (
+                      <div className="flex items-center space-x-2">
+                        <Activity className="w-4 h-4 text-orange-500" />
+                        <span>Risque de panne: {Math.round(suggestion.failureRisk * 100)}%</span>
+                      </div>
+                    )}
+                    {suggestion.patternMatch && (
+                      <div className="flex items-center space-x-2">
+                        <TrendingUp className="w-4 h-4 text-blue-500" />
+                        <span>Correspondance: {Math.round(suggestion.patternMatch.match_score * 100)}%</span>
+                      </div>
+                    )}
+                    {suggestion.maintenanceRecommendation && (
+                      <div className="flex items-center space-x-2">
+                        <Shield className="w-4 h-4 text-green-500" />
+                        <span>Maintenance: {suggestion.maintenanceRecommendation.next_maintenance_days} jours</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Solution */}
-              <p className="text-sm text-carbon-gray-70 mb-4 leading-relaxed">{suggestion.solution}</p>
+              <div className="mb-4">
+                <h5 className="font-semibold text-carbon-gray-90 mb-2">Solution recommandée</h5>
+                <p className="text-sm text-carbon-gray-70 bg-carbon-gray-10 p-3 rounded-md leading-relaxed">{suggestion.solution}</p>
+              </div>
 
               {/* AI Insights */}
               {suggestion.aiInsights && (
@@ -193,38 +247,25 @@ export function DiagnosticResults({
               )}
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-carbon-gray-20">
-                <span className="text-xs text-carbon-gray-50">
-                  {t("basedOnCases", language)} {suggestion.matchingCases} {t("cases", language)}
-                </span>
-                <button 
-                  className="text-carbon-blue text-sm font-medium hover:underline flex items-center space-x-1"
+              <div className="flex space-x-3 pt-4 border-t border-carbon-gray-20">
+                <Button
                   onClick={() => onStartRepair(suggestion.caseId)}
+                  className="flex-1 bg-carbon-blue text-white hover:bg-blue-700 transition-colors"
                 >
-                  <span>{t("viewProcedure", language)}</span>
-                </button>
+                  <Wrench className="w-4 h-4 mr-2" />
+                  Commencer la réparation
+                </Button>
+                <Button
+                  onClick={() => onSaveDiagnostic(suggestion)}
+                  variant="outline"
+                  className="border-carbon-gray-30 text-carbon-gray-90 hover:bg-carbon-gray-10"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Sauvegarder
+                </Button>
               </div>
             </div>
           ))}
-          
-          {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4 border-t border-carbon-gray-20">
-            <Button 
-              className="flex-1 bg-carbon-green text-white hover:bg-green-700 transition-colors duration-200 font-medium"
-              onClick={() => suggestions.length > 0 && onStartRepair(suggestions[0].caseId)}
-            >
-              <Wrench className="w-4 h-4 mr-2" />
-              {t("startRepair", language)}
-            </Button>
-            <Button 
-              variant="outline"
-              className="flex-1 border-carbon-gray-20 text-carbon-gray-90 hover:bg-carbon-gray-10 transition-colors duration-200 font-medium"
-              onClick={() => suggestions.length > 0 && onSaveDiagnostic(suggestions[0])}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {t("saveDiagnostic", language)}
-            </Button>
-          </div>
         </div>
       </CardContent>
     </Card>

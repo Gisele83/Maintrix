@@ -390,6 +390,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Train advanced ML models endpoint
+  app.post("/api/train-advanced-ml", async (req, res) => {
+    try {
+      console.log("Starting advanced ML model training...");
+      
+      const scriptPath = path.join(process.cwd(), 'server', 'advanced_ml_features.py');
+      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
+        cwd: process.cwd(),
+        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      
+      childProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      childProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      childProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(output.trim());
+            res.json(result);
+          } catch (e) {
+            res.status(500).json({ success: false, message: "Invalid response from advanced ML training" });
+          }
+        } else {
+          console.error('Advanced ML training error:', errorOutput);
+          res.status(500).json({ 
+            success: false, 
+            message: "Erreur lors de l'entraînement ML avancé",
+            error: errorOutput 
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Advanced ML training error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erreur lors de l'entraînement ML avancé",
+        error: error.message 
+      });
+    }
+  });
+
+  // Advanced ML diagnostic endpoint
+  app.post("/api/diagnostic-advanced-ml", async (req, res) => {
+    try {
+      const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
+      
+      console.log("Starting advanced ML diagnostic...");
+      
+      const scriptPath = path.join(process.cwd(), 'server', 'advanced_ml_features.py');
+      const args = [
+        'predict',
+        equipmentType || 'unknown',
+        symptoms || '',
+        (symptomsChecked || []).join(','),
+        urgency || 'medium',
+        zone || 'unknown',
+        sector || 'unknown',
+        equipmentId || 'unknown'
+      ];
+      
+      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} ${args.join(' ')}`], {
+        cwd: process.cwd(),
+        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      
+      childProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      childProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      childProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const advancedResult = JSON.parse(output.trim());
+            
+            if (advancedResult.error) {
+              console.log("Advanced ML failed, falling back to standard ML");
+              res.redirect(307, '/api/diagnostic-ml');
+              return;
+            }
+            
+            // Create comprehensive response combining advanced ML with standard analysis
+            const response = {
+              sessionId: Date.now(),
+              suggestions: [{
+                diagnosis: advancedResult.neural_network_prediction || "Diagnostic ML avancé",
+                solution: `Solution avancée ML pour: ${advancedResult.neural_network_prediction}`,
+                confidence: Math.round(advancedResult.neural_network_confidence * 100),
+                matchingCases: 1,
+                caseId: 2000 + Math.floor(Math.random() * 1000),
+                duration: Math.round(advancedResult.pattern_match?.typical_duration || 60),
+                riskLevel: advancedResult.failure_risk_score > 0.7 ? "Élevé" : 
+                          advancedResult.failure_risk_score > 0.4 ? "Moyen" : "Faible",
+                costEstimate: `${Math.round((advancedResult.pattern_match?.typical_duration || 60) * 1.7)}€`,
+                aiInsights: advancedResult.advanced_insights,
+                mlPrediction: true,
+                advancedML: true,
+                anomalyDetected: advancedResult.anomaly_detected,
+                anomalyScore: advancedResult.anomaly_score,
+                failureRisk: advancedResult.failure_risk_score,
+                patternMatch: advancedResult.pattern_match,
+                maintenanceRecommendation: advancedResult.maintenance_recommendation,
+                predictiveTips: [
+                  `Maintenance prédictive: ${advancedResult.maintenance_recommendation?.recommendation || 'Surveillance continue'}`,
+                  `Niveau de risque: ${advancedResult.failure_prediction === 'failure' ? 'Panne probable' : 'Fonctionnement normal'}`,
+                  `Score d'anomalie: ${advancedResult.anomaly_detected ? 'Comportement inhabituel détecté' : 'Comportement normal'}`
+                ]
+              }],
+              mlEnabled: true,
+              advancedML: true,
+              modelAccuracy: "advanced_trained",
+              advancedMetrics: {
+                neural_network_confidence: advancedResult.neural_network_confidence,
+                failure_risk_score: advancedResult.failure_risk_score,
+                anomaly_score: advancedResult.anomaly_score,
+                pattern_match_score: advancedResult.pattern_match?.match_score || 0
+              }
+            };
+            
+            res.json(response);
+            
+          } catch (e) {
+            console.error("Error parsing advanced ML response:", e);
+            res.redirect(307, '/api/diagnostic-ml');
+          }
+        } else {
+          console.error('Advanced ML diagnostic error:', errorOutput);
+          res.redirect(307, '/api/diagnostic-ml');
+        }
+      });
+      
+    } catch (error) {
+      console.error("Advanced ML diagnostic error:", error);
+      res.redirect(307, '/api/diagnostic-ml');
+    }
+  });
+
   // Get maintenance history
   app.get("/api/history", async (req, res) => {
     try {

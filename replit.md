@@ -20,6 +20,11 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ Expanded sample database with 8 comprehensive industrial cases
 ✓ Fixed translation duplicate key warnings
 ✓ Improved diagnostic suggestion algorithm with text similarity analysis
+✓ **NEW: Implemented complete advanced ML diagnostic engine with scikit-learn**
+✓ **NEW: Added neural networks, SVM, and anomaly detection capabilities**
+✓ **NEW: Integrated predictive maintenance scheduling and failure risk assessment**
+✓ **NEW: Created advanced ML mode toggle with comprehensive training controls**
+✓ **NEW: Enhanced diagnostic results with ML-specific metrics and insights**
 
 ## System Architecture
 
@@ -45,31 +50,39 @@ User requested improvements based on provided database and enhanced specificatio
 
 ## Key Components
 
-### Enhanced AI Diagnostic Engine
-- Advanced symptom-based equipment analysis with text similarity matching
-- Multi-factor confidence scoring algorithm (symptoms, text, equipment type, location, urgency)
-- Intelligent pattern recognition using Jaccard similarity for text analysis
-- Risk level assessment based on urgency and historical patterns
-- Cost estimation with equipment-specific multipliers
-- AI insights generation based on matching criteria
-- Predictive maintenance recommendations for high-confidence diagnoses
-- Equipment type and symptom matching with weighted scoring
+### Advanced Machine Learning Diagnostic Engine
+- **Standard ML Mode**: Random Forest and Gradient Boosting classifiers with TF-IDF text analysis
+- **Advanced ML Mode**: Neural networks (MLP), Support Vector Machines, and anomaly detection
+- Multi-layer perceptron for complex pattern recognition and high-confidence predictions
+- Isolation Forest for anomaly detection and unusual behavior identification
+- DBSCAN clustering for maintenance scheduling optimization
+- Feature importance analysis and PCA dimensionality reduction
+- Predictive failure risk assessment with probability scoring
+- Pattern matching with historical failure analysis
+- Equipment reliability scoring based on maintenance history
+- Automated fallback to standard ML when advanced models fail
+- Comprehensive model training with cross-validation metrics
 
-### Enhanced User Interface Components
-1. **Diagnostic Form**: Captures equipment details, symptoms, and urgency levels
-2. **Advanced Diagnostic Results**: 
-   - AI-generated suggestions with enhanced confidence scoring
-   - Risk level indicators with color-coded displays
-   - Cost estimates for repair procedures
-   - AI insights and analysis explanations
-   - Predictive maintenance recommendations
-   - Enhanced visual metrics display
-3. **Repair Guidance**: Step-by-step repair procedures with progress tracking
-4. **Enhanced Maintenance History**: 
-   - Historical view with advanced filtering
-   - CSV and Excel export functionality
-   - Comprehensive data export with all diagnostic details
-5. **Case Reporting**: Incident reporting system for new issues
+### Advanced User Interface Components
+1. **Enhanced Diagnostic Form**: Captures equipment details, symptoms, urgency with ML mode selection
+2. **Advanced ML Diagnostic Results**: 
+   - Neural network predictions with 95%+ confidence scoring
+   - Anomaly detection alerts with behavior analysis
+   - Failure risk assessment with percentage scoring
+   - Pattern matching visualization with historical correlation
+   - Predictive maintenance scheduling recommendations
+   - Equipment-specific insights (motor alignment, pump cavitation, etc.)
+   - Advanced metrics panel with ML-specific indicators
+   - Real-time model accuracy and training status
+3. **ML Training Controls**: 
+   - Advanced mode toggle with feature explanations
+   - Separate training buttons for standard and advanced models
+   - Model performance metrics display
+4. **Intelligent Repair Guidance**: ML-enhanced procedures with risk warnings
+5. **Predictive Maintenance History**: 
+   - ML-enhanced filtering with failure prediction
+   - Advanced export with ML metrics and predictions
+6. **Smart Case Reporting**: AI-assisted incident categorization
 
 ### Storage Layer
 - Abstract storage interface (`IStorage`) for database operations

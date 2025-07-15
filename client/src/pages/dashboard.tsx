@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain } from "lucide-react";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
@@ -8,6 +8,7 @@ import { RepairGuidance } from "@/components/repair-guidance";
 import { MaintenanceHistory } from "@/components/maintenance-history";
 import { CaseReporting } from "@/components/case-reporting";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";
@@ -37,11 +38,13 @@ export default function Dashboard() {
   const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticSuggestion[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [advancedMode, setAdvancedMode] = useState(false);
 
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/diagnostic-ml", data);
+      const endpoint = advancedMode ? "/api/diagnostic-advanced-ml" : "/api/diagnostic-ml";
+      const response = await apiRequest("POST", endpoint, data);
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -49,10 +52,10 @@ export default function Dashboard() {
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
-      const mlIndicator = result.mlEnabled ? " (ML Enhanced)" : "";
+      const mlType = result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
       toast({
         title: t("success", language),
-        description: `Diagnostic terminé${mlIndicator} - ${result.suggestions?.length || 0} suggestions trouvées`,
+        description: `Diagnostic terminé${mlType} - ${result.suggestions?.length || 0} suggestions trouvées`,
       });
     },
     onError: () => {
@@ -81,6 +84,27 @@ export default function Dashboard() {
       toast({
         title: "Training Error",
         description: "Erreur lors de l'entraînement du modèle ML",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Train advanced ML models mutation
+  const trainAdvancedMLMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/train-advanced-ml", {});
+      return await response.json();
+    },
+    onSuccess: (result: any) => {
+      toast({
+        title: "Advanced ML Training",
+        description: result.message || "Modèles ML avancés entraînés avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Advanced Training Error",
+        description: "Erreur lors de l'entraînement des modèles ML avancés",
         variant: "destructive",
       });
     },
@@ -165,10 +189,64 @@ export default function Dashboard() {
         {/* Diagnostic Section */}
         {activeTab === "diagnostic" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <DiagnosticForm 
-              onSubmit={handleDiagnosticSubmit} 
-              isLoading={isAnalyzing}
-            />
+            <div className="space-y-6">
+              <DiagnosticForm 
+                onSubmit={handleDiagnosticSubmit} 
+                isLoading={isAnalyzing}
+              />
+              
+              {/* Advanced Mode Toggle */}
+              <Card className="border border-carbon-gray-20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <Brain className="h-5 w-5 text-carbon-blue" />
+                      <label className="text-sm font-medium text-carbon-gray-90">
+                        Mode ML Avancé
+                      </label>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={advancedMode}
+                        onChange={(e) => setAdvancedMode(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-carbon-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-carbon-blue"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-carbon-gray-70 mb-3">
+                    {advancedMode 
+                      ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
+                      : "Mode ML standard avec Random Forest et Gradient Boosting"
+                    }
+                  </p>
+
+                  {/* ML Training Controls */}
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => trainMLMutation.mutate()}
+                      disabled={trainMLMutation.isPending}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {trainMLMutation.isPending ? "Entraînement..." : "Entraîner ML Standard"}
+                    </Button>
+                    <Button
+                      onClick={() => trainAdvancedMLMutation.mutate()}
+                      disabled={trainAdvancedMLMutation.isPending}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                    >
+                      {trainAdvancedMLMutation.isPending ? "Entraînement..." : "Entraîner ML Avancé"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <DiagnosticResults
               suggestions={diagnosticResults}
               isLoading={isAnalyzing}
