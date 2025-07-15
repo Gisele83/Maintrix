@@ -6,8 +6,14 @@ import {
   ReportedCase,
   InsertReportedCase,
   DiagnosticSession,
-  InsertDiagnosticSession 
+  InsertDiagnosticSession,
+  maintenanceCases,
+  repairProcedures,
+  reportedCases,
+  diagnosticSessions
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, ilike, or, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Maintenance Cases
@@ -356,4 +362,132 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  async getMaintenanceCases(): Promise<MaintenanceCase[]> {
+    return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
+  }
+
+  async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
+    const [case_] = await db.select().from(maintenanceCases).where(eq(maintenanceCases.id, id));
+    return case_ || undefined;
+  }
+
+  async createMaintenanceCase(data: InsertMaintenanceCase): Promise<MaintenanceCase> {
+    const [case_] = await db
+      .insert(maintenanceCases)
+      .values(data)
+      .returning();
+    return case_;
+  }
+
+  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]> {
+    let whereConditions = [];
+
+    if (query.equipmentType) {
+      whereConditions.push(eq(maintenanceCases.equipmentType, query.equipmentType));
+    }
+
+    if (query.symptoms && query.symptoms.length > 0) {
+      const symptomConditions = query.symptoms.map(symptom => 
+        or(
+          ilike(maintenanceCases.symptoms, `%${symptom}%`),
+          ilike(maintenanceCases.symptomsChecked, `%${symptom}%`)
+        )
+      );
+      whereConditions.push(or(...symptomConditions));
+    }
+
+    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+    return await db
+      .select()
+      .from(maintenanceCases)
+      .where(whereClause)
+      .orderBy(desc(maintenanceCases.createdAt));
+  }
+
+  // Repair Procedures
+  async getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]> {
+    return await db
+      .select()
+      .from(repairProcedures)
+      .where(eq(repairProcedures.caseId, caseId))
+      .orderBy(repairProcedures.stepNumber);
+  }
+
+  async createRepairProcedure(data: InsertRepairProcedure): Promise<RepairProcedure> {
+    const [procedure] = await db
+      .insert(repairProcedures)
+      .values(data)
+      .returning();
+    return procedure;
+  }
+
+  async updateRepairProcedureCompletion(id: number, completed: boolean): Promise<RepairProcedure> {
+    const [procedure] = await db
+      .update(repairProcedures)
+      .set({ isCompleted: completed })
+      .where(eq(repairProcedures.id, id))
+      .returning();
+    
+    if (!procedure) {
+      throw new Error(`Repair procedure with id ${id} not found`);
+    }
+    return procedure;
+  }
+
+  // Reported Cases
+  async getReportedCases(): Promise<ReportedCase[]> {
+    return await db.select().from(reportedCases).orderBy(desc(reportedCases.createdAt));
+  }
+
+  async createReportedCase(data: InsertReportedCase): Promise<ReportedCase> {
+    const [reportedCase] = await db
+      .insert(reportedCases)
+      .values({ ...data, status: "pending" })
+      .returning();
+    return reportedCase;
+  }
+
+  async updateReportedCaseStatus(id: number, status: string): Promise<ReportedCase> {
+    const [reportedCase] = await db
+      .update(reportedCases)
+      .set({ status })
+      .where(eq(reportedCases.id, id))
+      .returning();
+    
+    if (!reportedCase) {
+      throw new Error(`Reported case with id ${id} not found`);
+    }
+    return reportedCase;
+  }
+
+  // Diagnostic Sessions
+  async getDiagnosticSessions(): Promise<DiagnosticSession[]> {
+    return await db.select().from(diagnosticSessions).orderBy(desc(diagnosticSessions.createdAt));
+  }
+
+  async createDiagnosticSession(data: InsertDiagnosticSession): Promise<DiagnosticSession> {
+    const [session] = await db
+      .insert(diagnosticSessions)
+      .values({ ...data, status: "pending" })
+      .returning();
+    return session;
+  }
+
+  async updateDiagnosticSession(id: number, updates: Partial<DiagnosticSession>): Promise<DiagnosticSession> {
+    const [session] = await db
+      .update(diagnosticSessions)
+      .set(updates)
+      .where(eq(diagnosticSessions.id, id))
+      .returning();
+    
+    if (!session) {
+      throw new Error(`Diagnostic session with id ${id} not found`);
+    }
+    return session;
+  }
+}
+
+export const storage = new DatabaseStorage();
