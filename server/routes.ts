@@ -3,6 +3,50 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnosticSessionSchema } from "@shared/schema";
 import { z } from "zod";
+import { spawn } from "child_process";
+import path from "path";
+
+// ML Helper Functions
+async function callMLEngine(command: string, args: string[] = []): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const scriptPath = path.join(process.cwd(), 'server', 'ml_diagnostic_engine.py');
+    const allArgs = ['python3', scriptPath, command, ...args];
+    
+    const childProcess = spawn('bash', ['-c', allArgs.join(' ')], {
+      cwd: process.cwd(),
+      env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+    });
+    
+    let output = '';
+    let errorOutput = '';
+    
+    childProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    childProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    childProcess.on('close', (code) => {
+      if (code === 0) {
+        try {
+          const result = JSON.parse(output.trim());
+          resolve(result);
+        } catch (e) {
+          resolve({ error: 'Invalid JSON response from ML engine' });
+        }
+      } else {
+        console.error('ML Engine Error:', errorOutput);
+        reject(new Error(`ML engine failed with code ${code}: ${errorOutput}`));
+      }
+    });
+    
+    childProcess.on('error', (error) => {
+      reject(new Error(`Failed to start ML engine: ${error.message}`));
+    });
+  });
+}
 
 // AI Helper Functions
 function calculateTextSimilarity(text1: string, text2: string): number {
@@ -98,7 +142,75 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Diagnostic endpoint - analyze symptoms and return suggestions
+  // ML Diagnostic endpoint - enhanced with machine learning
+  app.post("/api/diagnostic-ml", async (req, res) => {
+    try {
+      const data = insertDiagnosticSessionSchema.parse(req.body);
+      
+      // Create diagnostic session
+      const session = await storage.createDiagnosticSession(data);
+      
+      // Call ML engine for prediction
+      const mlArgs = [
+        data.equipmentType,
+        data.symptoms,
+        (data.symptomsChecked || []).join(','),
+        data.urgency,
+        data.zone || 'unknown',
+        data.sector || 'unknown'
+      ];
+      
+      try {
+        const mlResult = await callMLEngine('predict', mlArgs);
+        
+        if (mlResult.error) {
+          console.warn('ML prediction failed, falling back to rule-based system:', mlResult.error);
+          // Fall back to traditional diagnostic
+          return res.redirect(307, '/api/diagnostic');
+        }
+        
+        // Transform ML results to match expected format
+        const suggestions = mlResult.predictions?.map((pred: any, index: number) => ({
+          diagnosis: pred.diagnosis,
+          solution: `Solution ML pour: ${pred.diagnosis}`, // We'll need to enhance this
+          confidence: Math.round(pred.confidence * 100),
+          matchingCases: 1,
+          caseId: 1000 + index, // Temporary ID for ML predictions
+          duration: 60,
+          riskLevel: pred.confidence > 0.8 ? "Faible" : pred.confidence > 0.6 ? "Moyen" : "Élevé",
+          costEstimate: estimateRepairCost(60, data.equipmentType),
+          aiInsights: `ML Analysis: ${mlResult.ml_insights || 'Analyse basée sur machine learning'}`,
+          mlPrediction: true,
+          anomalyScore: pred.anomaly_score
+        })) || [];
+        
+        // Update session with ML results
+        await storage.updateDiagnosticSession(session.id, {
+          results: JSON.stringify(suggestions),
+          status: "completed"
+        });
+        
+        res.json({
+          sessionId: session.id,
+          suggestions,
+          mlEnabled: true,
+          modelAccuracy: mlResult.model_accuracy,
+          featureImportance: mlResult.feature_importance
+        });
+        
+      } catch (mlError) {
+        console.warn('ML engine failed, falling back to rule-based system:', mlError);
+        // Fall back to traditional diagnostic approach
+        return res.redirect(307, '/api/diagnostic');
+      }
+      
+    } catch (error) {
+      console.error("ML Diagnostic error:", error);
+      res.status(400).json({ message: "Invalid ML diagnostic request" });
+    }
+  });
+
+  // Traditional diagnostic endpoint - analyze symptoms and return suggestions
   app.post("/api/diagnostic", async (req, res) => {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
@@ -238,6 +350,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all maintenance cases for ML training
+  app.get("/api/maintenance-cases", async (req, res) => {
+    try {
+      const cases = await storage.getMaintenanceCases();
+      res.json(cases);
+    } catch (error) {
+      console.error("Error fetching maintenance cases:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance cases" });
+    }
+  });
+
+  // Train ML model endpoint
+  app.post("/api/train-ml", async (req, res) => {
+    try {
+      console.log("Starting ML model training...");
+      const result = await callMLEngine('train');
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: "Modèle ML entraîné avec succès",
+          details: result.message 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Échec de l'entraînement du modèle ML",
+          error: result.message 
+        });
+      }
+    } catch (error) {
+      console.error("ML training error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erreur lors de l'entraînement ML",
+        error: error.message 
+      });
+    }
+  });
+
   // Get maintenance history
   app.get("/api/history", async (req, res) => {
     try {

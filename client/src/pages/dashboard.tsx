@@ -38,19 +38,21 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
 
-  // Submit diagnostic form
+  // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/diagnostic", data);
+      const response = await apiRequest("POST", "/api/diagnostic-ml", data);
+      return await response.json();
     },
     onSuccess: (result: any) => {
-      console.log("Diagnostic API response:", result);
+      console.log("ML Diagnostic API response:", result);
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
+      const mlIndicator = result.mlEnabled ? " (ML Enhanced)" : "";
       toast({
         title: t("success", language),
-        description: `Diagnostic terminé - ${result.suggestions?.length || 0} suggestions trouvées`,
+        description: `Diagnostic terminé${mlIndicator} - ${result.suggestions?.length || 0} suggestions trouvées`,
       });
     },
     onError: () => {
@@ -58,6 +60,27 @@ export default function Dashboard() {
       toast({
         title: t("error", language),
         description: "Erreur lors du diagnostic",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Train ML model mutation
+  const trainMLMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/train-ml", {});
+      return await response.json();
+    },
+    onSuccess: (result: any) => {
+      toast({
+        title: "ML Model Training",
+        description: result.message || "Modèle ML entraîné avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Training Error",
+        description: "Erreur lors de l'entraînement du modèle ML",
         variant: "destructive",
       });
     },
