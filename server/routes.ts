@@ -542,6 +542,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Train ensemble ML models endpoint
+  app.post("/api/train-ensemble-ml", async (req, res) => {
+    try {
+      console.log("Starting ensemble ML model training...");
+      
+      const scriptPath = path.join(process.cwd(), 'server', 'ml_ensemble_engine.py');
+      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
+        cwd: process.cwd(),
+        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      
+      childProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      childProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      childProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const result = JSON.parse(output.trim());
+            res.json(result);
+          } catch (e) {
+            res.status(500).json({ success: false, message: "Invalid response from ensemble ML training" });
+          }
+        } else {
+          console.error('Ensemble ML training error:', errorOutput);
+          res.status(500).json({ 
+            success: false, 
+            message: "Erreur lors de l'entraînement ML ensemble",
+            error: errorOutput 
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Ensemble ML training error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erreur lors de l'entraînement ML ensemble",
+        error: error.message 
+      });
+    }
+  });
+
+  // Ensemble ML diagnostic endpoint
+  app.post("/api/diagnostic-ensemble-ml", async (req, res) => {
+    try {
+      const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
+      
+      console.log("Starting ensemble ML diagnostic...");
+      
+      const scriptPath = path.join(process.cwd(), 'server', 'ml_ensemble_engine.py');
+      const args = [
+        'predict',
+        equipmentType || 'unknown',
+        symptoms || '',
+        (symptomsChecked || []).join(','),
+        urgency || 'medium',
+        zone || 'unknown',
+        sector || 'unknown',
+        equipmentId || 'unknown'
+      ];
+      
+      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} ${args.join(' ')}`], {
+        cwd: process.cwd(),
+        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      
+      childProcess.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+      
+      childProcess.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+      
+      childProcess.on('close', (code) => {
+        if (code === 0) {
+          try {
+            const ensembleResult = JSON.parse(output.trim());
+            
+            if (ensembleResult.error) {
+              console.log("Ensemble ML failed, falling back to advanced ML");
+              res.redirect(307, '/api/diagnostic-advanced-ml');
+              return;
+            }
+            
+            // Create comprehensive response with ensemble ML results
+            const response = {
+              sessionId: Date.now(),
+              suggestions: [{
+                diagnosis: ensembleResult.ensemble_prediction || "Diagnostic Ensemble ML",
+                solution: `Solution optimisée par ensemble ML pour: ${ensembleResult.ensemble_prediction}`,
+                confidence: Math.round(ensembleResult.ensemble_confidence * 100),
+                matchingCases: ensembleResult.model_agreement || 1,
+                caseId: 3000 + Math.floor(Math.random() * 1000),
+                duration: Math.round(60 + ensembleResult.risk_assessment?.complexity_score * 30 || 60),
+                riskLevel: ensembleResult.risk_assessment?.urgency_level > 2.5 ? "Élevé" : 
+                          ensembleResult.risk_assessment?.urgency_level > 1.5 ? "Moyen" : "Faible",
+                costEstimate: `${Math.round((60 + ensembleResult.risk_assessment?.complexity_score * 30) * 1.8)}€`,
+                aiInsights: `🧠 Ensemble ML: ${Object.keys(ensembleResult.individual_predictions || {}).length} modèles consultés • 🎯 Confiance: ${Math.round(ensembleResult.ensemble_confidence * 100)}% • 🤖 Accord des modèles: ${ensembleResult.model_agreement}/9 • ⚡ Complexité: ${Math.round(ensembleResult.risk_assessment?.complexity_score * 100 || 50)}%`,
+                mlPrediction: true,
+                ensembleML: true,
+                ensembleAgreement: ensembleResult.model_agreement,
+                individualPredictions: ensembleResult.individual_predictions,
+                riskAssessment: ensembleResult.risk_assessment,
+                predictiveTips: [
+                  `Ensemble ML: ${Object.keys(ensembleResult.individual_predictions || {}).length} algorithmes convergent vers ce diagnostic`,
+                  `Accord des modèles: ${ensembleResult.model_agreement}/9 modèles en consensus`,
+                  `Score de risque: ${Math.round(ensembleResult.risk_assessment?.risk_factor * 100 || 50)}% - ${ensembleResult.risk_assessment?.urgency_level > 2 ? 'Action rapide recommandée' : 'Surveillance standard'}`
+                ]
+              }],
+              mlEnabled: true,
+              ensembleML: true,
+              modelAccuracy: "ensemble_trained",
+              ensembleMetrics: {
+                ensemble_confidence: ensembleResult.ensemble_confidence,
+                model_agreement: ensembleResult.model_agreement,
+                feature_vector_size: ensembleResult.feature_vector_size,
+                risk_factor: ensembleResult.risk_assessment?.risk_factor || 0,
+                individual_models: Object.keys(ensembleResult.individual_predictions || {}).length
+              }
+            };
+            
+            res.json(response);
+            
+          } catch (e) {
+            console.error("Error parsing ensemble ML response:", e);
+            res.redirect(307, '/api/diagnostic-advanced-ml');
+          }
+        } else {
+          console.error('Ensemble ML diagnostic error:', errorOutput);
+          res.redirect(307, '/api/diagnostic-advanced-ml');
+        }
+      });
+      
+    } catch (error) {
+      console.error("Ensemble ML diagnostic error:", error);
+      res.redirect(307, '/api/diagnostic-advanced-ml');
+    }
+  });
+
   // Get maintenance history
   app.get("/api/history", async (req, res) => {
     try {

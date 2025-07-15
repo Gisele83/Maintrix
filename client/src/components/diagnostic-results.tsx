@@ -1,4 +1,4 @@
-import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield } from "lucide-react";
+import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,11 @@ interface DiagnosticSuggestion {
   failureRisk?: number;
   patternMatch?: any;
   maintenanceRecommendation?: any;
+  // Ensemble ML fields
+  ensembleML?: boolean;
+  ensembleAgreement?: number;
+  individualPredictions?: any;
+  riskAssessment?: any;
 }
 
 interface DiagnosticResultsProps {
@@ -227,6 +232,59 @@ export function DiagnosticResults({
                   <div className="text-xs text-carbon-gray-70">{suggestion.matchingCases}</div>
                 </div>
               </div>
+
+              {/* Ensemble ML Metrics */}
+              {suggestion.ensembleML && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <GitBranch className="text-purple-600 w-4 h-4" />
+                    <span className="text-sm font-medium text-purple-800">Ensemble ML - Analyse Multi-Modèles</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="text-center p-2 bg-purple-100 rounded">
+                      <div className="text-xs font-medium text-purple-900">Accord des modèles</div>
+                      <div className="text-sm font-bold text-purple-700">
+                        {suggestion.ensembleAgreement || 0}/9
+                      </div>
+                    </div>
+                    {suggestion.riskAssessment && (
+                      <div className="text-center p-2 bg-purple-100 rounded">
+                        <div className="text-xs font-medium text-purple-900">Facteur de risque</div>
+                        <div className="text-sm font-bold text-purple-700">
+                          {Math.round((suggestion.riskAssessment.risk_factor || 0) * 100)}%
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Individual Model Predictions */}
+                  {suggestion.individualPredictions && Object.keys(suggestion.individualPredictions).length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-purple-800 mb-2">
+                        Prédictions des 9 algorithmes ML:
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 max-h-32 overflow-y-auto">
+                        {Object.entries(suggestion.individualPredictions).map(([model, pred]: [string, any]) => (
+                          <div key={model} className="flex justify-between items-center text-xs p-1 bg-purple-100 rounded">
+                            <span className="text-purple-700 capitalize font-medium">
+                              {model.replace('_', ' ')}
+                            </span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-purple-900 truncate max-w-20 text-right">
+                                {pred.prediction}
+                              </span>
+                              <span className="text-purple-600 font-bold min-w-8 text-right">
+                                {Math.round(pred.confidence * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Predictive Maintenance Tips */}
               {suggestion.predictiveTips && suggestion.predictiveTips.length > 0 && (

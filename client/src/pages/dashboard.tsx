@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
@@ -39,11 +39,17 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [ensembleMode, setEnsembleMode] = useState(false);
 
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
     mutationFn: async (data: any) => {
-      const endpoint = advancedMode ? "/api/diagnostic-advanced-ml" : "/api/diagnostic-ml";
+      let endpoint = "/api/diagnostic-ml";
+      if (ensembleMode) {
+        endpoint = "/api/diagnostic-ensemble-ml";
+      } else if (advancedMode) {
+        endpoint = "/api/diagnostic-advanced-ml";
+      }
       const response = await apiRequest("POST", endpoint, data);
       return await response.json();
     },
@@ -52,7 +58,7 @@ export default function Dashboard() {
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
-      const mlType = result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
+      const mlType = result.ensembleML ? " (Ensemble ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
       toast({
         title: t("success", language),
         description: `Diagnostic terminé${mlType} - ${result.suggestions?.length || 0} suggestions trouvées`,
@@ -105,6 +111,27 @@ export default function Dashboard() {
       toast({
         title: "Advanced Training Error",
         description: "Erreur lors de l'entraînement des modèles ML avancés",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Train ensemble ML models mutation
+  const trainEnsembleMLMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/train-ensemble-ml", {});
+      return await response.json();
+    },
+    onSuccess: (result: any) => {
+      toast({
+        title: "Ensemble ML Training",
+        description: result.message || "Modèles ML ensemble entraînés avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Ensemble Training Error",
+        description: "Erreur lors de l'entraînement des modèles ML ensemble",
         variant: "destructive",
       });
     },
@@ -222,8 +249,38 @@ export default function Dashboard() {
                     }
                   </p>
 
+                  {/* Ensemble Mode Toggle */}
+                  <div className="flex items-center justify-between mb-3 pt-3 border-t border-carbon-gray-20">
+                    <div className="flex items-center space-x-2">
+                      <GitBranch className="h-4 w-4 text-carbon-green" />
+                      <label className="text-sm font-medium text-carbon-gray-90">
+                        Mode ML Ensemble
+                      </label>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ensembleMode}
+                        onChange={(e) => {
+                          setEnsembleMode(e.target.checked);
+                          if (e.target.checked) setAdvancedMode(false);
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-carbon-green/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-carbon-green"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-carbon-gray-70 mb-3">
+                    {ensembleMode 
+                      ? "Combine 9 algorithmes ML (RF, SVM, Neural Networks, etc.) pour une précision maximale"
+                      : advancedMode 
+                        ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
+                        : "Mode ML standard avec Random Forest et Gradient Boosting"
+                    }
+                  </p>
+
                   {/* ML Training Controls */}
-                  <div className="flex space-x-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       onClick={() => trainMLMutation.mutate()}
                       disabled={trainMLMutation.isPending}
@@ -231,7 +288,7 @@ export default function Dashboard() {
                       size="sm"
                       className="text-xs"
                     >
-                      {trainMLMutation.isPending ? "Entraînement..." : "Entraîner ML Standard"}
+                      {trainMLMutation.isPending ? "Entraînement..." : "ML Standard"}
                     </Button>
                     <Button
                       onClick={() => trainAdvancedMLMutation.mutate()}
@@ -240,8 +297,29 @@ export default function Dashboard() {
                       size="sm"
                       className="text-xs"
                     >
-                      {trainAdvancedMLMutation.isPending ? "Entraînement..." : "Entraîner ML Avancé"}
+                      {trainAdvancedMLMutation.isPending ? "Entraînement..." : "ML Avancé"}
                     </Button>
+                    {ensembleMode && (
+                      <Button
+                        onClick={() => trainEnsembleMLMutation.mutate()}
+                        disabled={trainEnsembleMLMutation.isPending}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs col-span-2"
+                      >
+                        {trainEnsembleMLMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Entraînement Ensemble...
+                          </>
+                        ) : (
+                          <>
+                            <GitBranch className="w-3 h-3 mr-1" />
+                            Entraîner ML Ensemble
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
