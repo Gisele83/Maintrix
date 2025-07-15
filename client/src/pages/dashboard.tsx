@@ -44,11 +44,13 @@ export default function Dashboard() {
       return apiRequest("POST", "/api/diagnostic", data);
     },
     onSuccess: (result: any) => {
+      console.log("Diagnostic API response:", result);
+      console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
       toast({
         title: t("success", language),
-        description: "Diagnostic terminé avec succès",
+        description: `Diagnostic terminé - ${result.suggestions?.length || 0} suggestions trouvées`,
       });
     },
     onError: () => {

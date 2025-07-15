@@ -32,6 +32,8 @@ export function DiagnosticResults({
   onSaveDiagnostic 
 }: DiagnosticResultsProps) {
   const { language } = useLanguage();
+  
+  console.log("DiagnosticResults props:", { suggestions, isLoading, suggestionsLength: suggestions.length });
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 85) return "bg-carbon-green";
