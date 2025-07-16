@@ -487,10 +487,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           {/* Detailed Symptoms Description */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-              {t("symptomsObservedRequired", language)}
+              {language === "fr" ? "Symptômes observés *" : "Observed symptoms *"}
             </Label>
             <Textarea
-              placeholder={t("symptomsPlaceholder", language)}
+              placeholder={language === "fr" ? "Décrivez en détail les symptômes et le contexte de la panne..." : "Describe in detail the symptoms and context of the failure..."}
               rows={4}
               {...form.register("symptoms")}
               className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
@@ -505,7 +505,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           {/* Urgency Level */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-              {t("urgencyLevel", language)}
+              {language === "fr" ? "Niveau d'urgence" : "Urgency level"}
             </Label>
             <RadioGroup
               defaultValue="medium"
@@ -515,19 +515,19 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="low" id="low" className="text-carbon-green" />
                 <Label htmlFor="low" className="text-sm text-carbon-green font-medium">
-                  {t("urgencyLow", language)}
+                  {language === "fr" ? "Faible" : "Low"}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="medium" id="medium" className="text-carbon-orange" />
                 <Label htmlFor="medium" className="text-sm text-carbon-orange font-medium">
-                  {t("urgencyMedium", language)}
+                  {language === "fr" ? "Moyen" : "Medium"}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="high" id="high" className="text-carbon-red" />
                 <Label htmlFor="high" className="text-sm text-carbon-red font-medium">
-                  {t("urgencyHigh", language)}
+                  {language === "fr" ? "Élevé" : "High"}
                 </Label>
               </div>
             </RadioGroup>
@@ -540,7 +540,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             className="w-full bg-carbon-blue text-white hover:bg-blue-700 focus:ring-carbon-blue transition-colors duration-200 font-medium"
           >
             <Search className="w-4 h-4 mr-2" />
-            {isLoading ? t("analyzing", language) : t("analyzeAndDiagnose", language)}
+            {isLoading ? (language === "fr" ? "Analyse en cours..." : "Analyzing...") : (language === "fr" ? "Analyser et obtenir un diagnostic" : "Analyze and get diagnosis")}
           </Button>
         </form>
       </CardContent>
