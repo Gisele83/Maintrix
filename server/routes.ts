@@ -433,6 +433,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create diagnostic session
       const session = await storage.createDiagnosticSession(data);
       
+      // Pré-analyse sémantique pour décider de la stratégie
+      const symptoms = data.symptoms.toLowerCase();
+      const hasCommonTerms = ['chauffe', 'bruit', 'fuite', 'vibration', 'arrêt', 'lent', 'rapide'].some(term => symptoms.includes(term));
+      
+      // Si termes communs détectés, essayer d'abord l'algorithme sémantique
+      if (hasCommonTerms) {
+        try {
+          // Récupérer les cas de maintenance pour analyse sémantique
+          const cases = await storage.getMaintenanceCases();
+          const semanticSuggestions = [];
+          
+          for (const case_ of cases) {
+            const caseSymptoms = `${case_.symptoms} ${case_.symptomsChecked?.join(' ') || ''}`;
+            const userSymptoms = `${data.symptoms} ${(data.symptomsChecked || []).join(' ')}`;
+            
+            // Analyse sémantique
+            const semanticSimilarity = calculateSemanticSimilarity(userSymptoms, caseSymptoms);
+            const contextualScore = calculateContextualScore(
+              data.equipmentType, case_.equipmentType,
+              data.zone || '', case_.zone || ''
+            );
+            
+            // Score global pour priorité sémantique
+            const totalScore = (semanticSimilarity * 0.6) + (contextualScore * 0.4);
+            
+            if (totalScore > 0.4) { // Seuil pour correspondance sémantique forte
+              const confidence = Math.min(Math.round(totalScore * 100) + 15, 95); // Bonus confiance
+              
+              semanticSuggestions.push({
+                diagnosis: case_.diagnosis,
+                solution: generateContextualSolution(case_.diagnosis, case_.equipmentType, data.zone, data.sector),
+                confidence,
+                matchingCases: 1,
+                caseId: case_.id,
+                duration: case_.duration,
+                riskLevel: calculateRiskLevel(case_, data.urgency),
+                costEstimate: estimateRepairCost(case_.duration, case_.equipmentType),
+                aiInsights: generateAdvancedAIInsights(case_, semanticSimilarity, 0.5, contextualScore),
+                semanticMatch: true,
+                predictiveTips: generatePredictiveTips(case_.equipmentType, case_.diagnosis)
+              });
+            }
+          }
+          
+          // Si correspondances sémantiques trouvées, les retourner
+          if (semanticSuggestions.length > 0) {
+            const sortedSuggestions = semanticSuggestions
+              .sort((a, b) => b.confidence - a.confidence)
+              .slice(0, 3);
+            
+            await storage.updateDiagnosticSession(session.id, {
+              results: JSON.stringify(sortedSuggestions),
+              status: "completed"
+            });
+            
+            return res.json({
+              sessionId: session.id,
+              suggestions: sortedSuggestions,
+              mlEnabled: false,
+              modelAccuracy: "semantic_analysis",
+              semanticBoost: true
+            });
+          }
+        } catch (semanticError) {
+          console.log('Semantic analysis failed, falling back to ML:', semanticError.message);
+        }
+      }
+      
       // Call ML engine for prediction
       const mlArgs = [
         data.equipmentType,
