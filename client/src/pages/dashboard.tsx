@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -8,6 +8,7 @@ import { DiagnosticResults } from "@/components/diagnostic-results";
 import { RepairGuidance } from "@/components/repair-guidance";
 import { MaintenanceHistory } from "@/components/maintenance-history";
 import { CaseReporting } from "@/components/case-reporting";
+import { DataImport } from "@/components/data-import";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
@@ -15,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 
-type Tab = "diagnostic" | "repair" | "history" | "reporting";
+type Tab = "diagnostic" | "repair" | "history" | "reporting" | "import";
 
 interface DiagnosticSuggestion {
   diagnosis: string;
@@ -202,6 +203,11 @@ export default function Dashboard() {
       id: "reporting" as Tab,
       label: t("reporting", language),
       icon: Bug,
+    },
+    {
+      id: "import" as Tab,
+      label: "Importation",
+      icon: Upload,
     },
   ];
 
@@ -495,6 +501,9 @@ export default function Dashboard() {
 
         {/* Reporting Section */}
         {activeTab === "reporting" && <CaseReporting />}
+
+        {/* Data Import Section */}
+        {activeTab === "import" && <DataImport />}
       </main>
 
       {/* Footer */}

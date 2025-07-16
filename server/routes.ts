@@ -1268,6 +1268,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Data Import/Export routes
+  app.get('/api/templates/maintenance-csv', (req, res) => {
+    const { dataImporter } = require('./data-import');
+    const template = dataImporter.generateMaintenanceTemplate();
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="template_maintenance.csv"');
+    res.send(template);
+  });
+
+  app.get('/api/templates/reported-cases-csv', (req, res) => {
+    const { dataImporter } = require('./data-import');
+    const template = dataImporter.generateReportedCasesTemplate();
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="template_cas_signales.csv"');
+    res.send(template);
+  });
+
+  app.post('/api/import/maintenance-csv', async (req, res) => {
+    try {
+      const { csvContent } = req.body;
+      
+      if (!csvContent) {
+        return res.status(400).json({ error: 'Contenu CSV requis' });
+      }
+
+      const { dataImporter } = require('./data-import');
+      const results = await dataImporter.importMaintenanceCasesFromCSV(csvContent);
+      
+      res.json({
+        message: `Importation terminée: ${results.success} cas importés`,
+        success: results.success,
+        errors: results.errors,
+        hasErrors: results.errors.length > 0
+      });
+    } catch (error) {
+      console.error('Erreur importation CSV:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de l\'importation',
+        details: error.message 
+      });
+    }
+  });
+
+  app.post('/api/import/reported-cases-csv', async (req, res) => {
+    try {
+      const { csvContent } = req.body;
+      
+      if (!csvContent) {
+        return res.status(400).json({ error: 'Contenu CSV requis' });
+      }
+
+      const { dataImporter } = require('./data-import');
+      const results = await dataImporter.importReportedCasesFromCSV(csvContent);
+      
+      res.json({
+        message: `Importation terminée: ${results.success} cas signalés importés`,
+        success: results.success,
+        errors: results.errors,
+        hasErrors: results.errors.length > 0
+      });
+    } catch (error) {
+      console.error('Erreur importation CSV cas signalés:', error);
+      res.status(500).json({ 
+        error: 'Erreur lors de l\'importation',
+        details: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
