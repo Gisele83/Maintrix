@@ -370,7 +370,44 @@ function generateContextualSolution(diagnosis: string, equipmentType: string, zo
       "moteur": "Diagnostic électrique complet, test d'isolement et vérification des connexions",
       "automate": "Contrôler les entrées/sorties, vérifier l'alimentation et les câblages",
       "variateur": "Test des paramètres, vérification des signaux et calibrage",
+      "convertisseur": "Diagnostic des modules de puissance, test des thyristors et vérification du refroidissement",
+      "onduleur": "Test des batteries, vérification de l'onduleur et contrôle du bypass",
+      "redresseur": "Contrôle du pont de diodes, test des condensateurs et vérification de la régulation",
+      "carte_electronique": "Diagnostic des composants, test des soudures et vérification du firmware",
+      "alimentation": "Test de la régulation, contrôle de l'isolation et vérification des découplages",
+      "capteur": "Calibrage du capteur, test des signaux et vérification de l'environnement",
       "default": "Diagnostic électrique approfondi et réparation"
+    },
+    "Défaillance IGBT": {
+      "variateur": "Remplacer les modules IGBT, tester les drivers de grille et vérifier le refroidissement",
+      "convertisseur": "Changer les IGBT défaillants, contrôler les circuits de commande",
+      "default": "Remplacement des modules IGBT avec test complet"
+    },
+    "Défaut thyristor": {
+      "convertisseur": "Remplacer les thyristors défaillants, vérifier les circuits de gâchette",
+      "redresseur": "Changer les thyristors, contrôler la commutation et le refroidissement",
+      "default": "Remplacement des thyristors avec test de commutation"
+    },
+    "Défaillance batterie": {
+      "onduleur": "Remplacer les batteries, tester le chargeur et contrôler la température",
+      "default": "Remplacement des batteries avec test de capacité"
+    },
+    "Dérive capteur": {
+      "capteur": "Recalibrer le capteur, vérifier l'environnement et les connexions",
+      "automate": "Contrôler les entrées analogiques, recalibrer si nécessaire",
+      "default": "Recalibrage du capteur avec vérification complète"
+    },
+    "Condensateur sec": {
+      "carte_electronique": "Remplacer les condensateurs électrolytiques, tester les circuits",
+      "alimentation": "Changer les condensateurs de filtrage, vérifier l'ondulation",
+      "redresseur": "Remplacer les condensateurs de lissage, contrôler la tension",
+      "default": "Remplacement des condensateurs avec test complet"
+    },
+    "Surchauffe composant": {
+      "carte_electronique": "Identifier le composant en surchauffe, améliorer le refroidissement",
+      "alimentation": "Contrôler la ventilation, vérifier la charge et les dissipateurs",
+      "variateur": "Nettoyer les filtres, vérifier les ventilateurs et la charge",
+      "default": "Diagnostic thermique et amélioration du refroidissement"
     }
   };
   

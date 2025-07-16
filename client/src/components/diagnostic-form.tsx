@@ -56,6 +56,11 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
     { value: "variateur", label: t("variableSpeedDrive", language) },
     { value: "capteur", label: t("sensorInstrumentation", language) },
     { value: "automate", label: t("plc", language) },
+    { value: "convertisseur", label: "Convertisseur de puissance" },
+    { value: "onduleur", label: "Onduleur/UPS" },
+    { value: "redresseur", label: "Redresseur" },
+    { value: "carte_electronique", label: "Carte électronique" },
+    { value: "alimentation", label: "Alimentation électronique" },
     { value: "autre", label: t("other", language) },
   ];
 
@@ -139,17 +144,22 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
         { id: "speed_variation", label: "Variation vitesse", category: "performance", priority: "low" },
       ],
 
-      // Variateur de vitesse
+      // Variateur de vitesse / Convertisseur de puissance
       variateur: [
         { id: "drive_overheating", label: "Surchauffe variateur", category: "thermal", priority: "high" },
-        { id: "fault_code", label: "Code défaut", category: "control", priority: "high" },
-        { id: "output_voltage_error", label: "Erreur tension sortie", category: "electrical", priority: "high" },
-        { id: "communication_fault", label: "Défaut communication", category: "control", priority: "medium" },
-        { id: "fan_failure", label: "Défaut ventilateur", category: "thermal", priority: "medium" },
-        { id: "parameter_drift", label: "Dérive paramètres", category: "control", priority: "medium" },
-        { id: "dc_bus_error", label: "Erreur bus DC", category: "electrical", priority: "medium" },
-        { id: "ground_fault", label: "Défaut masse", category: "electrical", priority: "low" },
-        { id: "display_issues", label: "Problème affichage", category: "control", priority: "low" },
+        { id: "igbt_failure", label: "Défaillance IGBT", category: "electrical", priority: "high" },
+        { id: "dc_bus_overvoltage", label: "Surtension bus DC", category: "electrical", priority: "high" },
+        { id: "overcurrent_trip", label: "Déclenchement surintensité", category: "electrical", priority: "high" },
+        { id: "gate_driver_fault", label: "Défaut driver de grille", category: "electrical", priority: "high" },
+        { id: "capacitor_aging", label: "Vieillissement condensateurs", category: "electrical", priority: "medium" },
+        { id: "switching_frequency_noise", label: "Bruit fréquence découpage", category: "electrical", priority: "medium" },
+        { id: "thermal_protection", label: "Protection thermique activée", category: "thermal", priority: "medium" },
+        { id: "encoder_feedback_error", label: "Erreur retour codeur", category: "control", priority: "medium" },
+        { id: "communication_timeout", label: "Timeout communication", category: "control", priority: "medium" },
+        { id: "parameter_corruption", label: "Corruption paramètres", category: "control", priority: "medium" },
+        { id: "power_stage_asymmetry", label: "Asymétrie étage puissance", category: "electrical", priority: "low" },
+        { id: "cooling_fan_noise", label: "Bruit ventilateur", category: "mechanical", priority: "low" },
+        { id: "display_flicker", label: "Scintillement affichage", category: "control", priority: "low" },
       ],
 
       // Capteur/Instrumentation
@@ -157,12 +167,17 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
         { id: "sensor_drift", label: "Dérive capteur", category: "control", priority: "high" },
         { id: "signal_loss", label: "Perte signal", category: "control", priority: "high" },
         { id: "calibration_error", label: "Erreur étalonnage", category: "control", priority: "high" },
+        { id: "analog_output_error", label: "Erreur sortie analogique", category: "electrical", priority: "high" },
+        { id: "digital_communication_fault", label: "Défaut communication digitale", category: "control", priority: "high" },
+        { id: "sensor_overrange", label: "Dépassement gamme mesure", category: "control", priority: "medium" },
+        { id: "temperature_drift", label: "Dérive thermique", category: "thermal", priority: "medium" },
         { id: "wiring_issues", label: "Problème câblage", category: "electrical", priority: "medium" },
-        { id: "interference", label: "Interférences", category: "electrical", priority: "medium" },
+        { id: "interference_emi", label: "Interférences EMI/RFI", category: "electrical", priority: "medium" },
         { id: "sensor_contamination", label: "Contamination capteur", category: "environmental", priority: "medium" },
-        { id: "power_supply_fault", label: "Défaut alimentation", category: "electrical", priority: "medium" },
-        { id: "mounting_problems", label: "Problème fixation", category: "mechanical", priority: "low" },
-        { id: "temperature_compensation", label: "Compensation température", category: "control", priority: "low" },
+        { id: "power_supply_noise", label: "Bruit alimentation", category: "electrical", priority: "medium" },
+        { id: "linearization_error", label: "Erreur linéarisation", category: "control", priority: "low" },
+        { id: "mounting_vibration", label: "Vibrations fixation", category: "mechanical", priority: "low" },
+        { id: "humidity_ingress", label: "Infiltration humidité", category: "environmental", priority: "low" },
       ],
 
       // Automate (PLC)
@@ -176,6 +191,79 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
         { id: "program_corruption", label: "Corruption programme", category: "control", priority: "medium" },
         { id: "battery_low", label: "Pile faible", category: "electrical", priority: "low" },
         { id: "fieldbus_error", label: "Erreur bus terrain", category: "control", priority: "low" },
+      ],
+
+      // Convertisseur de puissance
+      convertisseur: [
+        { id: "power_module_failure", label: "Défaillance module puissance", category: "electrical", priority: "high" },
+        { id: "thyristor_scr_fault", label: "Défaut thyristor/SCR", category: "electrical", priority: "high" },
+        { id: "commutation_failure", label: "Défaut commutation", category: "electrical", priority: "high" },
+        { id: "ac_dc_imbalance", label: "Déséquilibre AC/DC", category: "electrical", priority: "high" },
+        { id: "reactive_power_issue", label: "Problème puissance réactive", category: "electrical", priority: "medium" },
+        { id: "harmonic_distortion", label: "Distorsion harmonique", category: "electrical", priority: "medium" },
+        { id: "snubber_circuit_fault", label: "Défaut circuit écrêteur", category: "electrical", priority: "medium" },
+        { id: "transformer_saturation", label: "Saturation transformateur", category: "electrical", priority: "medium" },
+        { id: "cooling_system_fault", label: "Défaut système refroidissement", category: "thermal", priority: "low" },
+        { id: "control_board_error", label: "Erreur carte contrôle", category: "control", priority: "low" },
+      ],
+
+      // Onduleur/UPS
+      onduleur: [
+        { id: "battery_failure", label: "Défaillance batterie", category: "electrical", priority: "high" },
+        { id: "inverter_fault", label: "Défaut onduleur", category: "electrical", priority: "high" },
+        { id: "bypass_activation", label: "Activation bypass", category: "electrical", priority: "high" },
+        { id: "output_voltage_regulation", label: "Régulation tension sortie", category: "electrical", priority: "high" },
+        { id: "frequency_drift", label: "Dérive fréquence", category: "electrical", priority: "medium" },
+        { id: "charger_malfunction", label: "Dysfonctionnement chargeur", category: "electrical", priority: "medium" },
+        { id: "static_switch_fault", label: "Défaut commutateur statique", category: "electrical", priority: "medium" },
+        { id: "battery_temperature_high", label: "Température batterie élevée", category: "thermal", priority: "medium" },
+        { id: "autonomy_reduced", label: "Autonomie réduite", category: "performance", priority: "low" },
+        { id: "alarm_monitoring", label: "Alarme surveillance", category: "control", priority: "low" },
+      ],
+
+      // Redresseur
+      redresseur: [
+        { id: "diode_failure", label: "Défaillance diode", category: "electrical", priority: "high" },
+        { id: "rectifier_bridge_fault", label: "Défaut pont redresseur", category: "electrical", priority: "high" },
+        { id: "filter_capacitor_aging", label: "Vieillissement condensateur filtrage", category: "electrical", priority: "high" },
+        { id: "regulation_error", label: "Erreur régulation", category: "electrical", priority: "high" },
+        { id: "ripple_voltage_high", label: "Ondulation tension élevée", category: "electrical", priority: "medium" },
+        { id: "transformer_heating", label: "Échauffement transformateur", category: "thermal", priority: "medium" },
+        { id: "protection_tripping", label: "Déclenchement protections", category: "electrical", priority: "medium" },
+        { id: "power_factor_low", label: "Facteur puissance faible", category: "electrical", priority: "medium" },
+        { id: "cooling_ventilation", label: "Refroidissement/ventilation", category: "thermal", priority: "low" },
+        { id: "connection_oxidation", label: "Oxydation connexions", category: "environmental", priority: "low" },
+      ],
+
+      // Carte électronique
+      carte_electronique: [
+        { id: "component_failure", label: "Défaillance composant", category: "electrical", priority: "high" },
+        { id: "solder_joint_crack", label: "Fissure soudure", category: "mechanical", priority: "high" },
+        { id: "electrolytic_capacitor_dry", label: "Condensateur électrolytique sec", category: "electrical", priority: "high" },
+        { id: "microcontroller_lockup", label: "Blocage microcontrôleur", category: "control", priority: "high" },
+        { id: "crystal_oscillator_drift", label: "Dérive oscillateur quartz", category: "electrical", priority: "medium" },
+        { id: "pcb_trace_corrosion", label: "Corrosion piste PCB", category: "environmental", priority: "medium" },
+        { id: "component_overheating", label: "Surchauffe composant", category: "thermal", priority: "medium" },
+        { id: "esd_damage", label: "Dommage ESD", category: "electrical", priority: "medium" },
+        { id: "firmware_corruption", label: "Corruption firmware", category: "control", priority: "medium" },
+        { id: "connector_wear", label: "Usure connecteur", category: "mechanical", priority: "low" },
+        { id: "led_indicator_fault", label: "Défaut LED indicateur", category: "control", priority: "low" },
+        { id: "conformal_coating_damage", label: "Dommage vernis protection", category: "environmental", priority: "low" },
+      ],
+
+      // Alimentation électronique
+      alimentation: [
+        { id: "switching_regulator_fault", label: "Défaut régulateur à découpage", category: "electrical", priority: "high" },
+        { id: "output_voltage_drift", label: "Dérive tension sortie", category: "electrical", priority: "high" },
+        { id: "current_limiting_active", label: "Limitation courant active", category: "electrical", priority: "high" },
+        { id: "thermal_shutdown", label: "Arrêt thermique", category: "thermal", priority: "high" },
+        { id: "input_filter_failure", label: "Défaillance filtre entrée", category: "electrical", priority: "medium" },
+        { id: "switching_noise", label: "Bruit de commutation", category: "electrical", priority: "medium" },
+        { id: "isolation_breakdown", label: "Claquage isolation", category: "electrical", priority: "medium" },
+        { id: "feedback_loop_instability", label: "Instabilité boucle retour", category: "control", priority: "medium" },
+        { id: "power_good_signal_fault", label: "Défaut signal Power Good", category: "control", priority: "low" },
+        { id: "standby_power_high", label: "Consommation veille élevée", category: "performance", priority: "low" },
+        { id: "electromagnetic_interference", label: "Interférences électromagnétiques", category: "electrical", priority: "low" },
       ],
 
       // Autre équipement (symptômes génériques)

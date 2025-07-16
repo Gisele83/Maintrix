@@ -45,6 +45,10 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **ENHANCED: Advanced semantic symptom analysis with synonym dictionary**
 ✓ **IMPROVED: Diagnostic algorithm now understands variations in symptom descriptions**
 ✓ **ADDED: Contextual scoring combines equipment type, zone, and semantic similarity**
+✓ **NEW: Dynamic symptoms based on equipment type with priority classification**
+✓ **EXPANDED: Added 13 equipment types including power electronics (converters, UPS, rectifiers)**
+✓ **DETAILED: Specific failure modes for electronic systems and power conversion equipment**
+✓ **ORGANIZED: Symptoms categorized by priority (critical, medium, minor) with color coding**
 
 ## System Architecture
 
