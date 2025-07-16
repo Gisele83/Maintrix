@@ -3,60 +3,72 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(215, 25%, 15%);
+  --muted: hsl(210, 15%, 95%);
+  --muted-foreground: hsl(215, 10%, 45%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --popover-foreground: hsl(215, 25%, 15%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
+  --card-foreground: hsl(215, 25%, 15%);
+  --border: hsl(215, 10%, 88%);
+  --input: hsl(215, 10%, 88%);
+  --primary: hsl(214, 78%, 51%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 15%, 95%);
+  --secondary-foreground: hsl(215, 25%, 15%);
+  --accent: hsl(210, 15%, 95%);
+  --accent-foreground: hsl(215, 25%, 15%);
+  --destructive: hsl(4, 79%, 55%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(214, 78%, 51%);
+  --radius: 0.75rem;
   
-  /* Industrial color scheme */
-  --carbon-blue: hsl(207, 100%, 52%);
-  --carbon-gray-90: hsl(0, 0%, 22%);
-  --carbon-gray-70: hsl(0, 0%, 32%);
-  --carbon-gray-50: hsl(0, 0%, 55%);
-  --carbon-gray-20: hsl(0, 0%, 88%);
-  --carbon-gray-10: hsl(0, 0%, 96%);
-  --carbon-green: hsl(141, 71%, 31%);
-  --carbon-red: hsl(5, 85%, 49%);
-  --carbon-orange: hsl(21, 100%, 58%);
+  /* Modern professional color scheme */
+  --carbon-blue: hsl(214, 78%, 51%);
+  --carbon-blue-light: hsl(214, 78%, 96%);
+  --carbon-gray-90: hsl(215, 25%, 15%);
+  --carbon-gray-70: hsl(215, 15%, 35%);
+  --carbon-gray-50: hsl(215, 10%, 55%);
+  --carbon-gray-20: hsl(215, 10%, 88%);
+  --carbon-gray-10: hsl(210, 20%, 96%);
+  --carbon-green: hsl(142, 76%, 36%);
+  --carbon-green-light: hsl(142, 76%, 96%);
+  --carbon-red: hsl(4, 79%, 55%);
+  --carbon-red-light: hsl(4, 79%, 96%);
+  --carbon-orange: hsl(27, 96%, 61%);
+  --carbon-orange-light: hsl(27, 96%, 96%);
+  --carbon-purple: hsl(258, 90%, 66%);
+  --carbon-purple-light: hsl(258, 90%, 96%);
+  --carbon-yellow: hsl(41, 100%, 55%);
+  --carbon-yellow-light: hsl(41, 100%, 96%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
+  --background: hsl(215, 28%, 9%);
   --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
+  --muted: hsl(215, 25%, 15%);
+  --muted-foreground: hsl(215, 10%, 65%);
+  --popover: hsl(215, 25%, 12%);
   --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
+  --card: hsl(215, 25%, 12%);
   --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(240, 3.7%, 15.9%);
+  --border: hsl(215, 20%, 20%);
+  --input: hsl(215, 20%, 20%);
+  --primary: hsl(214, 78%, 58%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(215, 25%, 15%);
   --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
+  --accent: hsl(215, 25%, 15%);
   --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+  --destructive: hsl(4, 79%, 65%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --ring: hsl(214, 78%, 58%);
+  --radius: 0.75rem;
+  
+  /* Dark mode color adjustments */
+  --carbon-gray-10: hsl(215, 25%, 15%);
+  --carbon-gray-20: hsl(215, 20%, 20%);
 }
 
 @layer base {
@@ -66,7 +78,46 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Inter', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-variation-settings: normal;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+  }
+
+  .dark .glass-effect {
+    background-color: rgba(18, 18, 18, 0.85);
+  }
+
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(45deg, var(--carbon-blue), var(--carbon-purple), var(--carbon-blue));
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   }
 }
 

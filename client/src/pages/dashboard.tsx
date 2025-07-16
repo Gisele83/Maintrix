@@ -206,40 +206,60 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-carbon-gray-90">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Header />
       
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b border-carbon-gray-20 sticky top-16 z-40">
+      {/* Modern Hero Section */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+              <Brain className="w-4 h-4" />
+              <span>Assistant de Diagnostic IA</span>
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              SMDiagFix
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Plateforme avancée de diagnostic et maintenance industrielle propulsée par l'intelligence artificielle
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Modern Navigation Tabs */}
+      <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              
-              return (
-                <Button
-                  key={tab.id}
-                  variant="ghost"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 border-b-2 transition-all duration-200 whitespace-nowrap ${
-                    isActive
-                      ? "border-carbon-blue text-carbon-blue font-medium"
-                      : "border-transparent text-carbon-gray-70 hover:text-carbon-gray-90 hover:border-carbon-gray-20"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </Button>
-              );
-            })}
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-1 overflow-x-auto">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                
+                return (
+                  <Button
+                    key={tab.id}
+                    variant={isActive ? "default" : "ghost"}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center space-x-2 px-6 py-3 transition-all duration-300 whitespace-nowrap ${
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "hover:bg-muted/50"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
             
             {/* User Profiles Link */}
-            <div className="ml-auto flex items-center">
-              <Link href="/profiles">
-                <Button variant="outline" className="flex items-center space-x-2">
+            <div className="flex items-center">
+              <Link href="/user-profiles">
+                <Button variant="outline" className="flex items-center space-x-2 hover:bg-primary/10 hover:border-primary/20">
                   <Users className="w-4 h-4" />
-                  <span>Profils</span>
+                  <span className="hidden sm:inline">Profils</span>
                 </Button>
               </Link>
             </div>
@@ -247,27 +267,40 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Diagnostic Section */}
         {activeTab === "diagnostic" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <DiagnosticForm 
-                onSubmit={handleDiagnosticSubmit} 
-                isLoading={isAnalyzing}
-              />
+            <div className="space-y-8">
+              <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm card-hover">
+                <CardContent className="p-8">
+                  <DiagnosticForm 
+                    onSubmit={handleDiagnosticSubmit} 
+                    isLoading={isAnalyzing}
+                  />
+                </CardContent>
+              </Card>
               
-              {/* Advanced Mode Toggle */}
-              <Card className="border border-carbon-gray-20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <Brain className="h-5 w-5 text-carbon-blue" />
-                      <label className="text-sm font-medium text-carbon-gray-90">
-                        Mode ML Avancé
-                      </label>
+              {/* Advanced ML Configuration */}
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10 card-hover">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Brain className="h-6 w-6 text-primary" />
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <div>
+                      <h3 className="font-semibold text-lg">Configuration ML</h3>
+                      <p className="text-sm text-muted-foreground">Options avancées d'intelligence artificielle</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm font-medium">
+                          Mode ML Avancé
+                        </label>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={advancedMode}
@@ -280,10 +313,10 @@ export default function Dashboard() {
                         }}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-carbon-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-carbon-blue"></div>
-                    </label>
-                  </div>
-                  <p className="text-xs text-carbon-gray-70 mb-3">
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      </label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
                     {advancedMode 
                       ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
                       : "Mode ML standard avec Random Forest et Gradient Boosting"
@@ -291,10 +324,10 @@ export default function Dashboard() {
                   </p>
                   
                   {/* Enhanced ML Mode Toggle */}
-                  <div className="flex items-center justify-between mb-3 pt-3 border-t border-carbon-gray-20">
+                  <div className="flex items-center justify-between mb-3 pt-3 border-t">
                     <div className="flex items-center space-x-2">
                       <Brain className="h-5 w-5 text-purple-600" />
-                      <label className="text-sm font-medium text-carbon-gray-90">
+                      <label className="text-sm font-medium">
                         Mode Enhanced ML
                       </label>
                     </div>
@@ -417,6 +450,7 @@ export default function Dashboard() {
                       </Button>
                     )}
                   </div>
+                </div>
                 </CardContent>
               </Card>
             </div>
