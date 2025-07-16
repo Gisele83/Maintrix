@@ -444,15 +444,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/repair/:caseId", async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
-      const procedures = await storage.getRepairProceduresByCaseId(caseId);
-      const maintenanceCase = await storage.getMaintenanceCaseById(caseId);
       
-      if (!maintenanceCase) {
-        return res.status(404).json({ message: "Case not found" });
+      // First try to get existing procedures
+      let procedures = await storage.getRepairProceduresByCaseId(caseId);
+      
+      // If no procedures exist, generate default ones
+      if (procedures.length === 0) {
+        const defaultProcedures = [
+          {
+            caseId: caseId,
+            stepNumber: 1,
+            description: "Sécuriser la zone de travail et couper l'alimentation",
+            estimatedDuration: 10,
+            completed: false,
+            safetyWarning: "⚠️ ATTENTION: Couper l'alimentation électrique avant toute intervention"
+          },
+          {
+            caseId: caseId,
+            stepNumber: 2,
+            description: "Diagnostiquer et identifier la source du problème",
+            estimatedDuration: 20,
+            completed: false,
+            safetyWarning: "Utiliser des équipements de protection individuelle"
+          },
+          {
+            caseId: caseId,
+            stepNumber: 3,
+            description: "Effectuer la réparation ou le remplacement nécessaire",
+            estimatedDuration: 30,
+            completed: false,
+            safetyWarning: "Vérifier la compatibilité des pièces de rechange"
+          },
+          {
+            caseId: caseId,
+            stepNumber: 4,
+            description: "Tester le fonctionnement et remettre en service",
+            estimatedDuration: 15,
+            completed: false,
+            safetyWarning: "Effectuer tous les tests de sécurité avant remise en service"
+          }
+        ];
+        
+        // Create default procedures in storage
+        for (const proc of defaultProcedures) {
+          await storage.createRepairProcedure(proc);
+        }
+        
+        // Fetch the newly created procedures
+        procedures = await storage.getRepairProceduresByCaseId(caseId);
+      }
+
+      // Try to get maintenance case details, but proceed even if not found
+      let maintenanceCase = null;
+      try {
+        maintenanceCase = await storage.getMaintenanceCaseById(caseId);
+      } catch (error) {
+        console.log(`No maintenance case found for ID ${caseId}, proceeding with procedures only`);
       }
       
       res.json({
-        case: maintenanceCase,
+        case: maintenanceCase || {
+          id: caseId,
+          equipmentType: "Équipement",
+          symptoms: "Diagnostic à partir du système ML",
+          solution: "Procédures de réparation générées automatiquement"
+        },
         procedures
       });
     } catch (error) {
