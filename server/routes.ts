@@ -454,34 +454,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             caseId: caseId,
             stepNumber: 1,
+            title: "Sécurisation",
+            titleEn: "Safety",
             description: "Sécuriser la zone de travail et couper l'alimentation",
-            estimatedDuration: 10,
-            completed: false,
-            safetyWarning: "⚠️ ATTENTION: Couper l'alimentation électrique avant toute intervention"
+            descriptionEn: "Secure work area and cut power supply",
+            estimatedTime: 10,
+            isCompleted: false,
+            safetyWarning: "⚠️ ATTENTION: Couper l'alimentation électrique avant toute intervention",
+            safetyWarningEn: "⚠️ WARNING: Cut electrical power before any intervention",
+            toolsRequired: ["Cadenas de consignation", "Testeur de tension"],
+            toolsRequiredEn: ["Lockout padlocks", "Voltage tester"]
           },
           {
             caseId: caseId,
             stepNumber: 2,
+            title: "Diagnostic",
+            titleEn: "Diagnosis", 
             description: "Diagnostiquer et identifier la source du problème",
-            estimatedDuration: 20,
-            completed: false,
-            safetyWarning: "Utiliser des équipements de protection individuelle"
+            descriptionEn: "Diagnose and identify the source of the problem",
+            estimatedTime: 20,
+            isCompleted: false,
+            safetyWarning: "Utiliser des équipements de protection individuelle",
+            safetyWarningEn: "Use personal protective equipment",
+            toolsRequired: ["Multimètre", "Lunettes de sécurité"],
+            toolsRequiredEn: ["Multimeter", "Safety glasses"]
           },
           {
             caseId: caseId,
             stepNumber: 3,
+            title: "Réparation",
+            titleEn: "Repair",
             description: "Effectuer la réparation ou le remplacement nécessaire",
-            estimatedDuration: 30,
-            completed: false,
-            safetyWarning: "Vérifier la compatibilité des pièces de rechange"
+            descriptionEn: "Perform necessary repair or replacement",
+            estimatedTime: 30,
+            isCompleted: false,
+            safetyWarning: "Vérifier la compatibilité des pièces de rechange",
+            safetyWarningEn: "Check compatibility of spare parts",
+            toolsRequired: ["Outils standards", "Pièces de rechange"],
+            toolsRequiredEn: ["Standard tools", "Spare parts"]
           },
           {
             caseId: caseId,
             stepNumber: 4,
+            title: "Test et remise en service",
+            titleEn: "Test and restart",
             description: "Tester le fonctionnement et remettre en service",
-            estimatedDuration: 15,
-            completed: false,
-            safetyWarning: "Effectuer tous les tests de sécurité avant remise en service"
+            descriptionEn: "Test operation and restart service",
+            estimatedTime: 15,
+            isCompleted: false,
+            safetyWarning: "Effectuer tous les tests de sécurité avant remise en service",
+            safetyWarningEn: "Perform all safety tests before restart",
+            toolsRequired: ["Testeur de fonctionnement", "Check-list"],
+            toolsRequiredEn: ["Function tester", "Checklist"]
           }
         ];
         
