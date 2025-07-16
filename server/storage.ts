@@ -9,11 +9,23 @@ import {
   InsertDiagnosticSession,
   UserProfile,
   InsertUserProfile,
+  FeedbackSession,
+  InsertFeedbackSession,
+  LearningMetrics,
+  InsertLearningMetrics,
+  ModelPerformance,
+  InsertModelPerformance,
+  AdaptiveLearning,
+  InsertAdaptiveLearning,
   maintenanceCases,
   repairProcedures,
   reportedCases,
   diagnosticSessions,
-  userProfiles
+  userProfiles,
+  feedbackSessions,
+  learningMetrics,
+  modelPerformance,
+  adaptiveLearning
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, ilike, or, and, desc, arrayContains, sql } from "drizzle-orm";
@@ -47,6 +59,25 @@ export interface IStorage {
   createUserProfile(data: InsertUserProfile): Promise<UserProfile>;
   updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile>;
   deleteUserProfile(id: number): Promise<boolean>;
+
+  // Continuous Learning System
+  createFeedbackSession(data: InsertFeedbackSession): Promise<FeedbackSession>;
+  getFeedbackSessions(): Promise<FeedbackSession[]>;
+  getFeedbackBySessionId(sessionId: number): Promise<FeedbackSession | undefined>;
+  
+  // Learning Metrics
+  getLearningMetrics(): Promise<LearningMetrics[]>;
+  getLearningMetricsByEquipment(equipmentType: string): Promise<LearningMetrics[]>;
+  updateLearningMetrics(equipmentType: string, symptomPattern: string, wasSuccessful: boolean): Promise<void>;
+  
+  // Model Performance Tracking
+  getModelPerformance(): Promise<ModelPerformance[]>;
+  updateModelPerformance(data: InsertModelPerformance): Promise<ModelPerformance>;
+  
+  // Adaptive Learning
+  getAdaptiveLearning(): Promise<AdaptiveLearning[]>;
+  getAdaptiveLearningByEquipment(equipmentType: string): Promise<AdaptiveLearning | undefined>;
+  updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -55,6 +86,10 @@ export class MemStorage implements IStorage {
   private reportedCases: Map<number, ReportedCase>;
   private diagnosticSessions: Map<number, DiagnosticSession>;
   private userProfiles: Map<number, UserProfile>;
+  private feedbackSessions: Map<number, FeedbackSession>;
+  private learningMetrics: Map<string, LearningMetrics>;
+  private modelPerformance: Map<string, ModelPerformance>;
+  private adaptiveLearning: Map<string, AdaptiveLearning>;
   private currentId: number;
 
   constructor() {
@@ -63,9 +98,14 @@ export class MemStorage implements IStorage {
     this.reportedCases = new Map();
     this.diagnosticSessions = new Map();
     this.userProfiles = new Map();
+    this.feedbackSessions = new Map();
+    this.learningMetrics = new Map();
+    this.modelPerformance = new Map();
+    this.adaptiveLearning = new Map();
     this.currentId = 1;
     this.initializeData();
     this.initializeUserProfiles();
+    this.initializeLearningSystem();
   }
 
   private initializeData() {
@@ -794,4 +834,190 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class MemStorageWithLearning extends MemStorage {
+  // Initialize Learning System
+  private initializeLearningSystem() {
+    // Initialize learning metrics for each equipment type
+    const equipmentTypes = ["moteur", "pompe", "compresseur", "convoyeur", "variateur", "capteur", 
+                           "sts", "rtg", "grue_mobile", "reach_stacker", "straddle_carrier", "spreader"];
+    
+    equipmentTypes.forEach(equipmentType => {
+      // Learning metrics
+      const metrics: LearningMetrics = {
+        id: this.currentId++,
+        equipmentType,
+        symptomPattern: "general",
+        successRate: 0.75, // Start with 75% baseline
+        avgConfidence: 0.80,
+        totalCases: 0,
+        successfulCases: 0,
+        lastUpdated: new Date(),
+        improvementSuggestions: []
+      };
+      this.learningMetrics.set(`${equipmentType}_general`, metrics);
+
+      // Adaptive learning
+      const adaptive: AdaptiveLearning = {
+        id: this.currentId++,
+        equipmentType,
+        symptomKeywords: this.getInitialKeywords(equipmentType),
+        commonFailures: this.getCommonFailures(equipmentType),
+        seasonalPatterns: {},
+        zoneSpecificIssues: {},
+        learningWeight: 1.0,
+        confidenceAdjustment: 0,
+        lastUpdate: new Date()
+      };
+      this.adaptiveLearning.set(equipmentType, adaptive);
+    });
+  }
+
+  private getInitialKeywords(equipmentType: string): any {
+    const keywords = {
+      "moteur": ["vibration", "bruit", "surchauffe", "roulement", "alignement"],
+      "pompe": ["cavitation", "joint", "étanchéité", "débit", "pression"],
+      "sts": ["trolley", "câble", "spreader", "rail", "collision"],
+      "rtg": ["pneumatique", "diesel", "hydraulique", "twist-lock"],
+      "grue_mobile": ["stabilisateur", "flèche", "charge", "orientation"],
+      "reach_stacker": ["mât", "hydraulique", "transmission", "refroidissement"],
+      "straddle_carrier": ["jambe", "direction", "guide", "hydraulique"],
+      "spreader": ["twist-lock", "châssis", "télescopage", "vérin"]
+    };
+    return keywords[equipmentType] || ["général", "panne", "défaut"];
+  }
+
+  private getCommonFailures(equipmentType: string): any {
+    const failures = {
+      "moteur": ["roulement usé", "désalignement", "surcharge thermique"],
+      "pompe": ["joint défaillant", "cavitation", "usure rotor"],
+      "sts": ["désalignement trolley", "usure câbles", "défaut spreader"],
+      "rtg": ["usure pneumatiques", "problème moteur diesel", "fuite hydraulique"],
+      "grue_mobile": ["problème stabilisateurs", "usure flèche", "surcharge"],
+      "reach_stacker": ["défaut mât", "fuite hydraulique", "surchauffe transmission"],
+      "straddle_carrier": ["problème jambes", "défaut direction", "usure guides"],
+      "spreader": ["blocage twist-locks", "défaut châssis", "problème télescopage"]
+    };
+    return failures[equipmentType] || ["panne générale"];
+  }
+
+  // Continuous Learning Methods
+  async createFeedbackSession(data: InsertFeedbackSession): Promise<FeedbackSession> {
+    const id = this.currentId++;
+    const feedback: FeedbackSession = { ...data, id, createdAt: new Date() };
+    this.feedbackSessions.set(id, feedback);
+    
+    // Auto-update learning metrics based on feedback
+    if (data.sessionId) {
+      const session = this.diagnosticSessions.get(data.sessionId);
+      if (session) {
+        await this.updateLearningMetrics(
+          session.equipmentType, 
+          session.symptoms, 
+          data.wasAccurate || false
+        );
+      }
+    }
+    
+    return feedback;
+  }
+
+  async getFeedbackSessions(): Promise<FeedbackSession[]> {
+    return Array.from(this.feedbackSessions.values());
+  }
+
+  async getFeedbackBySessionId(sessionId: number): Promise<FeedbackSession | undefined> {
+    return Array.from(this.feedbackSessions.values())
+      .find(f => f.sessionId === sessionId);
+  }
+
+  async getLearningMetrics(): Promise<LearningMetrics[]> {
+    return Array.from(this.learningMetrics.values());
+  }
+
+  async getLearningMetricsByEquipment(equipmentType: string): Promise<LearningMetrics[]> {
+    return Array.from(this.learningMetrics.values())
+      .filter(m => m.equipmentType === equipmentType);
+  }
+
+  async updateLearningMetrics(equipmentType: string, symptomPattern: string, wasSuccessful: boolean): Promise<void> {
+    const key = `${equipmentType}_general`;
+    let metrics = this.learningMetrics.get(key);
+    
+    if (!metrics) {
+      metrics = {
+        id: this.currentId++,
+        equipmentType,
+        symptomPattern: "general",
+        successRate: 0.75,
+        avgConfidence: 0.80,
+        totalCases: 0,
+        successfulCases: 0,
+        lastUpdated: new Date(),
+        improvementSuggestions: []
+      };
+    }
+
+    metrics.totalCases++;
+    if (wasSuccessful) {
+      metrics.successfulCases++;
+    }
+    
+    metrics.successRate = (metrics.successfulCases / metrics.totalCases) * 100;
+    metrics.lastUpdated = new Date();
+    
+    // Generate improvement suggestions based on performance
+    if (metrics.successRate < 70) {
+      metrics.improvementSuggestions = [
+        "Collecter plus de données historiques pour cet équipement",
+        "Améliorer la description des symptômes",
+        "Réentraîner le modèle ML avec de nouveaux cas"
+      ];
+    }
+    
+    this.learningMetrics.set(key, metrics);
+  }
+
+  async getModelPerformance(): Promise<ModelPerformance[]> {
+    return Array.from(this.modelPerformance.values());
+  }
+
+  async updateModelPerformance(data: InsertModelPerformance): Promise<ModelPerformance> {
+    const id = this.currentId++;
+    const key = `${data.modelType}_${data.equipmentType}`;
+    const performance: ModelPerformance = { ...data, id, trainingDate: new Date() };
+    this.modelPerformance.set(key, performance);
+    return performance;
+  }
+
+  async getAdaptiveLearning(): Promise<AdaptiveLearning[]> {
+    return Array.from(this.adaptiveLearning.values());
+  }
+
+  async getAdaptiveLearningByEquipment(equipmentType: string): Promise<AdaptiveLearning | undefined> {
+    return this.adaptiveLearning.get(equipmentType);
+  }
+
+  async updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void> {
+    let adaptive = this.adaptiveLearning.get(equipmentType);
+    
+    if (!adaptive) {
+      adaptive = {
+        id: this.currentId++,
+        equipmentType,
+        symptomKeywords: this.getInitialKeywords(equipmentType),
+        commonFailures: this.getCommonFailures(equipmentType),
+        seasonalPatterns: {},
+        zoneSpecificIssues: {},
+        learningWeight: 1.0,
+        confidenceAdjustment: 0,
+        lastUpdate: new Date()
+      };
+    }
+    
+    // Update with new learning data
+    Object.assign(adaptive, learningData, { lastUpdate: new Date() });
+    this.adaptiveLearning.set(equipmentType, adaptive);
+  }
+}
+
+export const storage = new MemStorageWithLearning();

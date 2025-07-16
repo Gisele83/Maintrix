@@ -1754,6 +1754,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return zones[equipmentId] || "Non défini";
   }
 
+  // Continuous Learning System Endpoints
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const feedbackData = req.body;
+      const feedback = await storage.createFeedbackSession(feedbackData);
+      res.json({ success: true, feedback });
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ error: "Failed to create feedback session" });
+    }
+  });
+
+  app.get("/api/learning-metrics", async (req, res) => {
+    try {
+      const { equipmentType } = req.query;
+      let metrics;
+      
+      if (equipmentType) {
+        metrics = await storage.getLearningMetricsByEquipment(equipmentType as string);
+      } else {
+        metrics = await storage.getLearningMetrics();
+      }
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching learning metrics:", error);
+      res.status(500).json({ error: "Failed to fetch learning metrics" });
+    }
+  });
+
+  app.get("/api/model-performance", async (req, res) => {
+    try {
+      const performance = await storage.getModelPerformance();
+      res.json(performance);
+    } catch (error) {
+      console.error("Error fetching model performance:", error);
+      res.status(500).json({ error: "Failed to fetch model performance" });
+    }
+  });
+
+  app.get("/api/adaptive-learning", async (req, res) => {
+    try {
+      const { equipmentType } = req.query;
+      let adaptive;
+      
+      if (equipmentType) {
+        adaptive = await storage.getAdaptiveLearningByEquipment(equipmentType as string);
+      } else {
+        adaptive = await storage.getAdaptiveLearning();
+      }
+      
+      res.json(adaptive);
+    } catch (error) {
+      console.error("Error fetching adaptive learning:", error);
+      res.status(500).json({ error: "Failed to fetch adaptive learning data" });
+    }
+  });
+
+  // Continuous learning analysis endpoint
+  app.get("/api/learning-analysis", async (req, res) => {
+    try {
+      const mlResult = await callMLEngine('plan', [], 'continuous_learning_engine.py');
+      res.json(mlResult || {});
+    } catch (error) {
+      console.error("Error in learning analysis:", error);
+      res.status(500).json({ error: "Failed to perform learning analysis" });
+    }
+  });
+
+  // Auto-improvement endpoint that analyzes patterns and updates ML models
+  app.post("/api/auto-improve", async (req, res) => {
+    try {
+      const { equipmentType, forceRetrain } = req.body;
+      
+      // Get learning metrics to assess current performance
+      const metrics = equipmentType 
+        ? await storage.getLearningMetricsByEquipment(equipmentType)
+        : await storage.getLearningMetrics();
+      
+      const improvements = [];
+      
+      for (const metric of metrics) {
+        if (metric.successRate < 80 || forceRetrain) {
+          // Trigger ML model retraining for poor performing equipment types
+          try {
+            const mlResult = await callMLEngine('train', [], 'enhanced_ml_diagnostic.py');
+            if (mlResult?.success) {
+              await storage.updateModelPerformance({
+                modelType: "enhanced_ml",
+                equipmentType: metric.equipmentType,
+                accuracy: mlResult.accuracy || 0.85,
+                precision: mlResult.precision || 0.82,
+                recall: mlResult.recall || 0.88,
+                f1Score: mlResult.f1_score || 0.85,
+                sampleSize: mlResult.sample_size || 100,
+                crossValidationScore: mlResult.cv_score || 0.83
+              });
+              
+              improvements.push({
+                equipmentType: metric.equipmentType,
+                action: "retrained_model",
+                newAccuracy: mlResult.accuracy,
+                improvementReason: `Low success rate: ${metric.successRate}%`
+              });
+            }
+          } catch (error) {
+            console.error(`Failed to retrain model for ${metric.equipmentType}:`, error);
+          }
+        }
+        
+        // Update adaptive learning weights based on performance
+        if (metric.successRate < 70) {
+          await storage.updateAdaptiveLearning(metric.equipmentType, {
+            learningWeight: 1.2, // Increase learning rate for poor performers
+            confidenceAdjustment: -0.1 // Decrease confidence for poor performers
+          });
+          
+          improvements.push({
+            equipmentType: metric.equipmentType,
+            action: "adjusted_learning_weights",
+            reason: `Performance below threshold: ${metric.successRate}%`
+          });
+        } else if (metric.successRate > 90) {
+          await storage.updateAdaptiveLearning(metric.equipmentType, {
+            learningWeight: 0.8, // Decrease learning rate for good performers
+            confidenceAdjustment: 0.05 // Increase confidence for good performers
+          });
+        }
+      }
+      
+      res.json({
+        success: true,
+        improvements,
+        message: `Auto-improvement completed. ${improvements.length} optimizations applied.`
+      });
+      
+    } catch (error) {
+      console.error("Error in auto-improvement:", error);
+      res.status(500).json({ error: "Failed to execute auto-improvement" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

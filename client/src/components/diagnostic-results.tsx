@@ -1,9 +1,11 @@
-import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch } from "lucide-react";
+import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
+import { FeedbackModal } from "./feedback-modal";
+import { useState } from "react";
 
 interface DiagnosticSuggestion {
   diagnosis: string;
@@ -35,15 +37,19 @@ interface DiagnosticResultsProps {
   isLoading: boolean;
   onStartRepair: (caseId: number) => void;
   onSaveDiagnostic: (suggestion: DiagnosticSuggestion) => void;
+  sessionId?: number;
 }
 
 export function DiagnosticResults({ 
   suggestions, 
   isLoading, 
   onStartRepair, 
-  onSaveDiagnostic 
+  onSaveDiagnostic,
+  sessionId 
 }: DiagnosticResultsProps) {
   const { language } = useLanguage();
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<DiagnosticSuggestion | null>(null);
   
   console.log("DiagnosticResults props:", { suggestions, isLoading, suggestionsLength: suggestions.length });
 
@@ -305,13 +311,24 @@ export function DiagnosticResults({
               )}
 
               {/* Actions */}
-              <div className="flex space-x-3 pt-4 border-t border-carbon-gray-20">
+              <div className="flex space-x-2 pt-4 border-t border-carbon-gray-20">
                 <Button
                   onClick={() => onStartRepair(suggestion.caseId)}
                   className="flex-1 bg-carbon-blue text-white hover:bg-blue-700 transition-colors"
                 >
                   <Wrench className="w-4 h-4 mr-2" />
                   Commencer la réparation
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedSuggestion(suggestion);
+                    setFeedbackModalOpen(true);
+                  }}
+                  variant="outline"
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Feedback
                 </Button>
                 <Button
                   onClick={() => onSaveDiagnostic(suggestion)}
@@ -326,6 +343,20 @@ export function DiagnosticResults({
           ))}
         </div>
       </CardContent>
+
+      {/* Feedback Modal */}
+      {selectedSuggestion && sessionId && (
+        <FeedbackModal
+          isOpen={feedbackModalOpen}
+          onClose={() => {
+            setFeedbackModalOpen(false);
+            setSelectedSuggestion(null);
+          }}
+          sessionId={sessionId}
+          diagnosis={selectedSuggestion.diagnosis}
+          solution={selectedSuggestion.solution}
+        />
+      )}
     </Card>
   );
 }

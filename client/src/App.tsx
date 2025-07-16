@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
 import Training from "@/pages/training";
+import LearningDashboard from "@/pages/learning-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/profiles" component={UserProfiles} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/training" component={Training} />
+      <Route path="/learning" component={LearningDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

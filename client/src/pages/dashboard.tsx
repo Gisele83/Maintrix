@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticSuggestion[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
   const [enhancedMode, setEnhancedMode] = useState(false);
   const [ensembleMode, setEnsembleMode] = useState(false);
@@ -62,6 +63,7 @@ export default function Dashboard() {
       console.log("ML Diagnostic API response:", result);
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
+      setCurrentSessionId(result.sessionId || null);
       setIsAnalyzing(false);
       const mlType = result.ensembleML ? " (Ensemble ML)" : result.enhancedML ? " (Enhanced ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
       toast({
@@ -260,9 +262,15 @@ export default function Dashboard() {
               })}
             </div>
             
-            {/* User Profiles Link */}
-            <div className="flex items-center">
-              <Link href="/user-profiles">
+            {/* Navigation Links */}
+            <div className="flex items-center space-x-2">
+              <Link href="/learning">
+                <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
+                  <Brain className="w-4 h-4" />
+                  <span className="hidden sm:inline">Apprentissage IA</span>
+                </Button>
+              </Link>
+              <Link href="/profiles">
                 <Button variant="outline" className="flex items-center space-x-2 hover:bg-primary/10 hover:border-primary/20">
                   <Users className="w-4 h-4" />
                   <span className="hidden sm:inline">Profils</span>
@@ -466,6 +474,7 @@ export default function Dashboard() {
               isLoading={isAnalyzing}
               onStartRepair={handleStartRepair}
               onSaveDiagnostic={handleSaveDiagnostic}
+              sessionId={currentSessionId}
             />
           </div>
         )}

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar, decimal, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -139,3 +139,62 @@ export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 
 export type EquipmentType = typeof equipmentTypes.$inferSelect;
+
+// Feedback and Learning Tables for Continuous Improvement
+export const feedbackSessions = pgTable("feedback_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").references(() => diagnosticSessions.id),
+  userFeedback: text("user_feedback"), // "helpful", "partially_helpful", "not_helpful"
+  feedbackComment: text("feedback_comment"),
+  actualSolution: text("actual_solution"), // What actually fixed the problem
+  timeToResolution: integer("time_to_resolution"), // Minutes to actually fix
+  wasAccurate: boolean("was_accurate"), // Was the diagnosis correct?
+  difficultyLevel: text("difficulty_level"), // "easy", "medium", "hard"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const learningMetrics = pgTable("learning_metrics", {
+  id: serial("id").primaryKey(),
+  equipmentType: text("equipment_type").notNull(),
+  symptomPattern: text("symptom_pattern").notNull(),
+  successRate: real("success_rate").default(0.75), // Percentage as decimal
+  avgConfidence: real("avg_confidence").default(0.80),
+  totalCases: integer("total_cases").default(0),
+  successfulCases: integer("successful_cases").default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  improvementSuggestions: jsonb("improvement_suggestions"), // AI-generated suggestions
+});
+
+export const modelPerformance = pgTable("model_performance", {
+  id: serial("id").primaryKey(),
+  modelType: text("model_type").notNull(), // "standard_ml", "advanced_ml", "ensemble_ml"
+  equipmentType: text("equipment_type").notNull(),
+  accuracy: real("accuracy").default(0),
+  precision: real("precision").default(0),
+  recall: real("recall").default(0),
+  f1Score: real("f1_score").default(0),
+  trainingDate: timestamp("training_date").defaultNow(),
+  sampleSize: integer("sample_size").default(0),
+  crossValidationScore: real("cv_score").default(0),
+});
+
+export const adaptiveLearning = pgTable("adaptive_learning", {
+  id: serial("id").primaryKey(),
+  equipmentType: text("equipment_type").notNull(),
+  symptomKeywords: jsonb("symptom_keywords"), // Most important keywords for this equipment
+  commonFailures: jsonb("common_failures"), // Frequently occurring failure patterns
+  seasonalPatterns: jsonb("seasonal_patterns"), // Time-based failure patterns
+  zoneSpecificIssues: jsonb("zone_specific_issues"), // Issues specific to certain zones
+  learningWeight: real("learning_weight").default(1.0),
+  confidenceAdjustment: real("confidence_adjustment").default(0),
+  lastUpdate: timestamp("last_update").defaultNow(),
+});
+
+export type InsertFeedbackSession = typeof feedbackSessions.$inferInsert;
+export type FeedbackSession = typeof feedbackSessions.$inferSelect;
+export type InsertLearningMetrics = typeof learningMetrics.$inferInsert;
+export type LearningMetrics = typeof learningMetrics.$inferSelect;
+export type InsertModelPerformance = typeof modelPerformance.$inferInsert;
+export type ModelPerformance = typeof modelPerformance.$inferSelect;
+export type InsertAdaptiveLearning = typeof adaptiveLearning.$inferInsert;
+export type AdaptiveLearning = typeof adaptiveLearning.$inferSelect;
