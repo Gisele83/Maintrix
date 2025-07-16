@@ -1661,6 +1661,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Equipment types export endpoint
+  app.get("/api/export/equipment-types", async (req, res) => {
+    try {
+      const equipmentTypes = [
+        { id: "moteur", name: "Moteur électrique", category: "Mécanique" },
+        { id: "pompe", name: "Pompe", category: "Hydraulique" },
+        { id: "compresseur", name: "Compresseur", category: "Pneumatique" },
+        { id: "convoyeur", name: "Convoyeur", category: "Mécanique" },
+        { id: "variateur", name: "Variateur de vitesse", category: "Électronique" },
+        { id: "capteur", name: "Capteur", category: "Instrumentation" },
+        { id: "automate", name: "Automate programmable", category: "Contrôle" },
+        { id: "convertisseur", name: "Convertisseur de puissance", category: "Électronique" },
+        { id: "onduleur", name: "Onduleur/UPS", category: "Électronique" },
+        { id: "redresseur", name: "Redresseur", category: "Électronique" },
+        { id: "carte_electronique", name: "Carte électronique", category: "Électronique" },
+        { id: "alimentation", name: "Alimentation électronique", category: "Électronique" },
+        { id: "sts", name: "Grue STS (Ship to Shore)", category: "Levage portuaire" },
+        { id: "rtg", name: "Grue RTG (Rubber Tired Gantry)", category: "Levage portuaire" },
+        { id: "grue_mobile", name: "Grue mobile portuaire", category: "Levage portuaire" },
+        { id: "reach_stacker", name: "Reach Stacker", category: "Levage portuaire" },
+        { id: "straddle_carrier", name: "Straddle Carrier", category: "Levage portuaire" },
+        { id: "spreader", name: "Spreader automatique", category: "Levage portuaire" },
+        { id: "autre", name: "Autre équipement", category: "Général" }
+      ];
+
+      // Generate CSV content
+      const csvHeader = "ID,Nom,Catégorie,Défauts typiques,Zones recommandées\n";
+      const csvContent = equipmentTypes.map(eq => {
+        const defauts = getDefautsTypiques(eq.id);
+        const zones = getZonesRecommandees(eq.id);
+        return `"${eq.id}","${eq.name}","${eq.category}","${defauts}","${zones}"`;
+      }).join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="equipment_types.csv"');
+      res.send(csvHeader + csvContent);
+    } catch (error) {
+      console.error("Error exporting equipment types:", error);
+      res.status(500).json({ message: "Erreur lors de l'export des types d'équipements" });
+    }
+  });
+
+  // Helper functions for equipment export
+  function getDefautsTypiques(equipmentId: string): string {
+    const defauts = {
+      "moteur": "Roulements, alignement, surchauffe, vibrations",
+      "pompe": "Joints, cavitation, amorçage, débit",
+      "compresseur": "Soupapes, filtres, température, pression",
+      "convoyeur": "Courroies, roulements, alignement, moteurs",
+      "variateur": "IGBT, ventilation, paramètres, harmoniques",
+      "capteur": "Étalonnage, câblage, environnement, dérive",
+      "automate": "Programmation, E/S, alimentation, modules",
+      "convertisseur": "Régulation, surchauffe, harmoniques, protection",
+      "onduleur": "Batterie, bypass, régulation tension",
+      "redresseur": "Diodes, filtrage, régulation",
+      "carte_electronique": "Composants, soudures, firmware",
+      "alimentation": "Régulation, découpage, isolation",
+      "sts": "Trolley, câbles, spreader, rails, anti-collision",
+      "rtg": "Pneumatiques, moteur diesel, hydraulique, spreader",
+      "grue_mobile": "Stabilisateurs, flèche, moment charge, orientation",
+      "reach_stacker": "Mât, hydraulique, transmission, refroidissement",
+      "straddle_carrier": "Jambes, direction, guides, hydraulique",
+      "spreader": "Twist-locks, châssis, télescopage, vérins",
+      "autre": "Variable selon équipement"
+    };
+    return defauts[equipmentId] || "Non défini";
+  }
+
+  function getZonesRecommandees(equipmentId: string): string {
+    const zones = {
+      "moteur": "Production, Atelier",
+      "pompe": "Production, Stockage, Utilités",
+      "compresseur": "Utilités, Énergie",
+      "convoyeur": "Production, Stockage",
+      "variateur": "Production, Atelier",
+      "capteur": "Production, Laboratoire",
+      "automate": "Production, Contrôle",
+      "convertisseur": "Énergie, Production",
+      "onduleur": "Énergie, Informatique",
+      "redresseur": "Énergie, Production",
+      "carte_electronique": "Contrôle, Informatique",
+      "alimentation": "Toutes zones",
+      "sts": "Extérieur, Terminal conteneurs",
+      "rtg": "Extérieur, Stockage",
+      "grue_mobile": "Extérieur, Réception",
+      "reach_stacker": "Stockage, Terminal",
+      "straddle_carrier": "Stockage, Terminal",
+      "spreader": "Production, Manutention",
+      "autre": "Variable"
+    };
+    return zones[equipmentId] || "Non défini";
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

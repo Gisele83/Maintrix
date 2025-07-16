@@ -149,6 +149,33 @@ export function DataImport() {
     }
   };
 
+  const downloadEquipmentTypes = async () => {
+    try {
+      const response = await fetch('/api/export/equipment-types');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'equipment_types.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export terminé",
+        description: "Types d'équipements exportés avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de l'export des types d'équipements",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -191,6 +218,14 @@ export function DataImport() {
               >
                 <Download className="w-4 h-4 mr-2" />
                 Template Cas Signalés
+              </Button>
+              <Button
+                onClick={() => downloadEquipmentTypes()}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Types d'Équipements
               </Button>
             </div>
           </CardContent>
