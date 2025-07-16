@@ -60,6 +60,12 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
     { value: "redresseur", label: language === "fr" ? "Redresseur" : "Rectifier" },
     { value: "carte_electronique", label: language === "fr" ? "Carte électronique" : "Electronic board" },
     { value: "alimentation", label: language === "fr" ? "Alimentation électronique" : "Power supply" },
+    { value: "sts", label: language === "fr" ? "Grue STS (Ship to Shore)" : "STS Crane (Ship to Shore)" },
+    { value: "rtg", label: language === "fr" ? "Grue RTG (Rubber Tired Gantry)" : "RTG Crane (Rubber Tired Gantry)" },
+    { value: "grue_mobile", label: language === "fr" ? "Grue mobile portuaire" : "Mobile harbor crane" },
+    { value: "reach_stacker", label: language === "fr" ? "Reach Stacker" : "Reach Stacker" },
+    { value: "straddle_carrier", label: language === "fr" ? "Straddle Carrier" : "Straddle Carrier" },
+    { value: "spreader", label: language === "fr" ? "Spreader automatique" : "Automatic spreader" },
     { value: "autre", label: language === "fr" ? "Autre" : "Other" },
   ];
 
@@ -287,6 +293,68 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
         { id: "power_good_signal_fault", label: "Défaut signal Power Good", category: "control", priority: "low" },
         { id: "standby_power_high", label: "Consommation veille élevée", category: "performance", priority: "low" },
         { id: "electromagnetic_interference", label: "Interférences électromagnétiques", category: "electrical", priority: "low" },
+      ],
+
+      // Grue STS (Ship to Shore)
+      sts: [
+        { id: "trolley_misalignment", label: "Désalignement trolley", category: "mechanical", priority: "high" },
+        { id: "hoist_rope_wear", label: "Usure câbles de levage", category: "mechanical", priority: "high" },
+        { id: "spreader_malfunction", label: "Défaillance spreader", category: "mechanical", priority: "high" },
+        { id: "gantry_rail_issue", label: "Problème rail portique", category: "mechanical", priority: "high" },
+        { id: "load_block_swing", label: "Balancement bloc charge", category: "mechanical", priority: "medium" },
+        { id: "boom_deflection", label: "Déflexion de flèche", category: "structural", priority: "medium" },
+        { id: "wind_sensor_fault", label: "Défaut capteur vent", category: "electrical", priority: "medium" },
+        { id: "anti_collision_fault", label: "Défaut anti-collision", category: "control", priority: "high" },
+      ],
+
+      // Grue RTG (Rubber Tired Gantry) 
+      rtg: [
+        { id: "tire_wear", label: "Usure pneumatiques", category: "mechanical", priority: "medium" },
+        { id: "diesel_engine_fault", label: "Défaut moteur diesel", category: "mechanical", priority: "high" },
+        { id: "hydraulic_pump_leak", label: "Fuite pompe hydraulique", category: "fluid", priority: "high" },
+        { id: "gantry_skew", label: "Dévers du portique", category: "mechanical", priority: "medium" },
+        { id: "container_detection_fault", label: "Défaut détection conteneur", category: "electrical", priority: "medium" },
+        { id: "spreader_twist_lock", label: "Blocage twist-lock spreader", category: "mechanical", priority: "high" },
+        { id: "fuel_consumption_high", label: "Consommation carburant élevée", category: "performance", priority: "medium" },
+      ],
+
+      // Grue mobile portuaire
+      grue_mobile: [
+        { id: "outrigger_malfunction", label: "Défaillance stabilisateurs", category: "mechanical", priority: "high" },
+        { id: "boom_extension_fault", label: "Défaut extension flèche", category: "mechanical", priority: "high" },
+        { id: "load_moment_warning", label: "Alerte moment de charge", category: "control", priority: "high" },
+        { id: "slewing_motor_overheat", label: "Surchauffe moteur orientation", category: "thermal", priority: "medium" },
+        { id: "winch_brake_wear", label: "Usure freins treuil", category: "mechanical", priority: "medium" },
+        { id: "cab_vibration", label: "Vibrations excessive cabine", category: "mechanical", priority: "medium" },
+      ],
+
+      // Reach Stacker
+      reach_stacker: [
+        { id: "mast_tilt_fault", label: "Défaut inclinaison mât", category: "mechanical", priority: "high" },
+        { id: "reach_hydraulic_leak", label: "Fuite circuit hydraulique portée", category: "fluid", priority: "high" },
+        { id: "container_handling_error", label: "Erreur manipulation conteneur", category: "control", priority: "medium" },
+        { id: "transmission_slip", label: "Patinage transmission", category: "mechanical", priority: "medium" },
+        { id: "tire_pressure_low", label: "Pression pneumatiques faible", category: "mechanical", priority: "medium" },
+        { id: "engine_cooling_fault", label: "Défaut refroidissement moteur", category: "thermal", priority: "high" },
+      ],
+
+      // Straddle Carrier
+      straddle_carrier: [
+        { id: "leg_alignment_issue", label: "Problème alignement jambes", category: "mechanical", priority: "high" },
+        { id: "lift_height_sensor_fault", label: "Défaut capteur hauteur levage", category: "electrical", priority: "medium" },
+        { id: "container_guide_wear", label: "Usure guides conteneur", category: "mechanical", priority: "medium" },
+        { id: "steering_drift", label: "Dérive direction", category: "mechanical", priority: "medium" },
+        { id: "hydraulic_filter_clog", label: "Colmatage filtre hydraulique", category: "fluid", priority: "medium" },
+      ],
+
+      // Spreader automatique
+      spreader: [
+        { id: "twist_lock_jam", label: "Coincement twist-lock", category: "mechanical", priority: "high" },
+        { id: "spreader_frame_crack", label: "Fissure châssis spreader", category: "structural", priority: "high" },
+        { id: "corner_guide_malfunction", label: "Défaillance guides d'angle", category: "mechanical", priority: "medium" },
+        { id: "telescopic_fault", label: "Défaut télescopage", category: "mechanical", priority: "medium" },
+        { id: "load_cell_drift", label: "Dérive cellule de charge", category: "electrical", priority: "medium" },
+        { id: "hydraulic_cylinder_leak", label: "Fuite vérin hydraulique", category: "fluid", priority: "high" },
       ],
 
       // Autre équipement (symptômes génériques)

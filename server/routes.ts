@@ -251,6 +251,12 @@ function estimateRepairCost(duration: number = 60, equipmentType: string): strin
     variateur: 1.3,
     capteur: 0.7,
     automate: 1.8,
+    sts: 2.5,              // Grue STS - très complexe
+    rtg: 2.2,              // Grue RTG - complexe
+    grue_mobile: 2.0,      // Grue mobile - complexe
+    reach_stacker: 1.8,    // Reach Stacker - complexe
+    straddle_carrier: 1.7, // Straddle Carrier - complexe
+    spreader: 1.6,         // Spreader - spécialisé
     autre: 1.0
   };
   

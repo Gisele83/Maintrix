@@ -198,6 +198,152 @@ export class MemStorage implements IStorage {
         urgency: "medium",
         confidence: 0.88,
         createdAt: new Date("2024-01-08T10:00:00Z"),
+      },
+
+      // === ÉQUIPEMENTS DE LEVAGE PORTUAIRE ===
+
+      // Grue STS (Ship to Shore) - Cas 9
+      {
+        id: 9,
+        equipmentType: "sts",
+        equipmentId: "STS-003",
+        zone: "exterieur",
+        sector: "Terminal à conteneurs",
+        symptoms: "Désalignement du trolley et balancement excessif du bloc de charge lors des opérations de levage",
+        symptomsChecked: ["trolley_misalignment", "load_block_swing"],
+        diagnosis: "Défaut d'alignement des rails du trolley et usure des guides anti-balancement",
+        solution: "1. Arrêter immédiatement les opérations. 2. Contrôler l'alignement des rails avec un théodolite. 3. Ajuster les rails et remplacer les guides anti-balancement. 4. Calibrer le système de positionnement du trolley. 5. Test complet avant remise en service.",
+        duration: 480, // 8h - intervention lourde
+        resolved: true,
+        urgency: "high",
+        confidence: 0.94,
+        createdAt: new Date("2024-01-20T06:00:00Z"),
+      },
+
+      // Grue RTG (Rubber Tired Gantry) - Cas 10
+      {
+        id: 10,
+        equipmentType: "rtg",
+        equipmentId: "RTG-012",
+        zone: "stockage",
+        sector: "Parc à conteneurs Zone A",
+        symptoms: "Moteur diesel qui cale fréquemment et consommation de carburant anormalement élevée",
+        symptomsChecked: ["diesel_engine_fault", "fuel_consumption_high"],
+        diagnosis: "Encrassement du système d'injection et filtre à air colmaté",
+        solution: "1. Nettoyer ou remplacer le filtre à air. 2. Nettoyer les injecteurs diesel. 3. Vérifier et nettoyer le circuit d'admission d'air. 4. Contrôler la qualité du carburant. 5. Réglage paramètres injection. 6. Test de performance moteur.",
+        duration: 240, // 4h
+        resolved: true,
+        urgency: "medium",
+        confidence: 0.88,
+        createdAt: new Date("2024-01-19T08:30:00Z"),
+      },
+
+      // Reach Stacker - Cas 11
+      {
+        id: 11,
+        equipmentType: "reach_stacker",
+        equipmentId: "RS-007",
+        zone: "stockage",
+        sector: "Zone stockage vides",
+        symptoms: "Défaut d'inclinaison du mât et fuite hydraulique importante au niveau du circuit de portée",
+        symptomsChecked: ["mast_tilt_fault", "reach_hydraulic_leak"],
+        diagnosis: "Vérin d'inclinaison défaillant et fuite sur flexible hydraulique haute pression",
+        solution: "1. Sécuriser la zone et abaisser complètement le mât. 2. Remplacer le vérin d'inclinaison du mât. 3. Remplacer le flexible hydraulique défaillant. 4. Purger le circuit hydraulique. 5. Calibrer les capteurs d'inclinaison. 6. Test fonctionnel complet.",
+        duration: 360, // 6h
+        resolved: true,
+        urgency: "high",
+        confidence: 0.91,
+        createdAt: new Date("2024-01-18T10:15:00Z"),
+      },
+
+      // Grue Mobile Portuaire - Cas 12
+      {
+        id: 12,
+        equipmentType: "grue_mobile",
+        equipmentId: "GMH-005",
+        zone: "reception",
+        sector: "Quai de déchargement",
+        symptoms: "Défaillance des stabilisateurs et alerte constante du système de moment de charge",
+        symptomsChecked: ["outrigger_malfunction", "load_moment_warning"],
+        diagnosis: "Capteur de pression stabilisateur défectueux et calibrage système LMI (Load Moment Indicator) incorrect",
+        solution: "1. Arrêt immédiat des opérations de levage. 2. Vérifier l'extension complète des stabilisateurs. 3. Remplacer le capteur de pression défaillant. 4. Recalibrer le système LMI avec charges d'étalonnage. 5. Test de tous les dispositifs de sécurité. 6. Formation opérateur sur nouveaux paramètres.",
+        duration: 300, // 5h
+        resolved: true,
+        urgency: "high",
+        confidence: 0.93,
+        createdAt: new Date("2024-01-17T07:45:00Z"),
+      },
+
+      // Straddle Carrier - Cas 13
+      {
+        id: 13,
+        equipmentType: "straddle_carrier",
+        equipmentId: "SC-009",
+        zone: "stockage",
+        sector: "Terminal intermodal",
+        symptoms: "Problème d'alignement des jambes et dérive en direction lors des déplacements",
+        symptomsChecked: ["leg_alignment_issue", "steering_drift"],
+        diagnosis: "Usure des articulations des jambes et déréglage du système de direction",
+        solution: "1. Immobiliser l'équipement en position sécurisée. 2. Remplacer les articulations usées des jambes. 3. Contrôler et ajuster la géométrie de direction. 4. Vérifier l'usure des pneumatiques et pression. 5. Calibrer le système de direction assistée. 6. Test de manœuvrabilité.",
+        duration: 420, // 7h
+        resolved: true,
+        urgency: "medium",
+        confidence: 0.87,
+        createdAt: new Date("2024-01-16T09:00:00Z"),
+      },
+
+      // Spreader Automatique - Cas 14
+      {
+        id: 14,
+        equipmentType: "spreader",
+        equipmentId: "SPR-004",
+        zone: "production",
+        sector: "Poste de manutention",
+        symptoms: "Coincement des twist-locks et fissure détectée sur le châssis du spreader",
+        symptomsChecked: ["twist_lock_jam", "spreader_frame_crack"],
+        diagnosis: "Usure excessive des mécanismes twist-lock et fatigue structurelle du châssis",
+        solution: "1. Mise hors service immédiate pour sécurité. 2. Démontage complet des twist-locks pour nettoyage et remplacement des pièces usées. 3. Soudure réparatrice de la fissure châssis par soudeur certifié. 4. Contrôle non destructif de la soudure. 5. Test de fonctionnement et certification. 6. Mise à jour du carnet de maintenance.",
+        duration: 600, // 10h - intervention critique
+        resolved: true,
+        urgency: "high",
+        confidence: 0.96,
+        createdAt: new Date("2024-01-15T06:30:00Z"),
+      },
+
+      // Grue STS - Cas de capteur vent - Cas 15
+      {
+        id: 15,
+        equipmentType: "sts",
+        equipmentId: "STS-001",
+        zone: "exterieur",
+        sector: "Terminal principal",
+        symptoms: "Défaut du capteur de vent et désactivation du système anti-collision",
+        symptomsChecked: ["wind_sensor_fault", "anti_collision_fault"],
+        diagnosis: "Capteur anémométrique défaillant et perte de communication système anti-collision",
+        solution: "1. Restriction des opérations par vent fort. 2. Remplacer le capteur anémométrique. 3. Vérifier le câblage du système anti-collision. 4. Tester la communication entre grues. 5. Calibrage des seuils de vent. 6. Formation équipes sécurité.",
+        duration: 180, // 3h
+        resolved: true,
+        urgency: "high",
+        confidence: 0.89,
+        createdAt: new Date("2024-01-14T14:20:00Z"),
+      },
+
+      // RTG - Cas pneumatiques et spreader - Cas 16
+      {
+        id: 16,
+        equipmentType: "rtg",
+        equipmentId: "RTG-008",
+        zone: "stockage",
+        sector: "Parc conteneurs Zone B",
+        symptoms: "Usure avancée des pneumatiques et blocage des twist-locks du spreader",
+        symptomsChecked: ["tire_wear", "spreader_twist_lock"],
+        diagnosis: "Pneumatiques en fin de vie et mécanisme twist-lock encrassé",
+        solution: "1. Immobilisation pour sécurité. 2. Remplacement des 8 pneumatiques. 3. Démontage et nettoyage complet des twist-locks. 4. Lubrification des mécanismes. 5. Vérification géométrie roues. 6. Test de manutention conteneur.",
+        duration: 480, // 8h
+        resolved: true,
+        urgency: "medium",
+        confidence: 0.92,
+        createdAt: new Date("2024-01-13T11:00:00Z"),
       }
     ];
 
@@ -254,7 +400,7 @@ export class MemStorage implements IStorage {
       this.repairProcedures.set(procedure.id, procedure);
     });
 
-    this.currentId = 10;
+    this.currentId = 20;
   }
 
   private initializeUserProfiles() {

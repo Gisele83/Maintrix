@@ -53,6 +53,10 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **ENHANCED: Expanded zones and sectors with comprehensive industrial facility options**
 ✓ **ADDED: 14 zones including energy, water treatment, compressed air, laboratory**
 ✓ **DETAILED: 18 sectors covering production lines, workshops, workstations, electrical panels**
+✓ **NEW: Added 6 port lifting equipment types with comprehensive failure cases**
+✓ **ADDED: STS cranes, RTG cranes, mobile cranes, reach stackers, straddle carriers, spreaders**
+✓ **ENHANCED: 8 detailed port equipment maintenance cases with real industrial solutions**
+✓ **SPECIALIZED: Equipment-specific symptoms for container handling and port operations**
 
 ## System Architecture
 
