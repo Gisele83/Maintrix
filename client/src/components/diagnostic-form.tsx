@@ -302,10 +302,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
       <CardHeader className="border-b border-carbon-gray-20">
         <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
           <Search className="text-carbon-blue" />
-          <span>{t("newDiagnostic", language)}</span>
+          <span>{language === "fr" ? "Nouveau Diagnostic" : "New Diagnostic"}</span>
         </CardTitle>
         <p className="text-carbon-gray-70 text-sm">
-          {t("diagnosticSubtitle", language)}
+          {language === "fr" ? "Décrivez l'équipement et les symptômes observés" : "Describe the equipment and observed symptoms"}
         </p>
       </CardHeader>
       
@@ -314,7 +314,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           {/* Equipment Type */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-              {t("equipmentTypeRequired", language)}
+              {language === "fr" ? "Type d'équipement *" : "Equipment type *"}
             </Label>
             <Select 
               value={form.watch("equipmentType") || ""} 
@@ -341,10 +341,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           {/* Equipment ID */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-              {t("equipmentId", language)}
+              {language === "fr" ? "Identifiant équipement" : "Equipment ID"}
             </Label>
             <Input
-              placeholder={t("equipmentIdPlaceholder", language)}
+              placeholder={language === "fr" ? "Ex: MOT-001, PUMP-A23..." : "Ex: MOT-001, PUMP-A23..."}
               {...form.register("equipmentId")}
               className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
             />
@@ -354,7 +354,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-                {t("zone", language)}
+                {language === "fr" ? "Zone" : "Zone"}
               </Label>
               <Select 
                 value={form.watch("zone") || ""} 
