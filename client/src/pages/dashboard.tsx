@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [enhancedMode, setEnhancedMode] = useState(false);
   const [ensembleMode, setEnsembleMode] = useState(false);
 
   // Submit diagnostic form with ML
@@ -47,6 +48,8 @@ export default function Dashboard() {
       let endpoint = "/api/diagnostic-ml";
       if (ensembleMode) {
         endpoint = "/api/diagnostic-ensemble-ml";
+      } else if (enhancedMode) {
+        endpoint = "/api/diagnostic-enhanced-ml";
       } else if (advancedMode) {
         endpoint = "/api/diagnostic-advanced-ml";
       }
@@ -58,7 +61,7 @@ export default function Dashboard() {
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setIsAnalyzing(false);
-      const mlType = result.ensembleML ? " (Ensemble ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
+      const mlType = result.ensembleML ? " (Ensemble ML)" : result.enhancedML ? " (Enhanced ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
       toast({
         title: t("success", language),
         description: `Diagnostic terminé${mlType} - ${result.suggestions?.length || 0} suggestions trouvées`,
@@ -90,6 +93,27 @@ export default function Dashboard() {
       toast({
         title: "Training Error",
         description: "Erreur lors de l'entraînement du modèle ML",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Train Enhanced ML models mutation
+  const trainEnhancedMLMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/train-enhanced-ml", {});
+      return await response.json();
+    },
+    onSuccess: (result: any) => {
+      toast({
+        title: "Enhanced ML Training",
+        description: `${result.models_trained?.length || 0} modèles Enhanced ML entraînés avec succès`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Enhanced ML Training Error",
+        description: "Erreur lors de l'entraînement Enhanced ML",
         variant: "destructive",
       });
     },
@@ -236,7 +260,13 @@ export default function Dashboard() {
                       <input
                         type="checkbox"
                         checked={advancedMode}
-                        onChange={(e) => setAdvancedMode(e.target.checked)}
+                        onChange={(e) => {
+                          setAdvancedMode(e.target.checked);
+                          if (e.target.checked) {
+                            setEnhancedMode(false);
+                            setEnsembleMode(false);
+                          }
+                        }}
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-carbon-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-carbon-blue"></div>
@@ -246,6 +276,37 @@ export default function Dashboard() {
                     {advancedMode 
                       ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
                       : "Mode ML standard avec Random Forest et Gradient Boosting"
+                    }
+                  </p>
+                  
+                  {/* Enhanced ML Mode Toggle */}
+                  <div className="flex items-center justify-between mb-3 pt-3 border-t border-carbon-gray-20">
+                    <div className="flex items-center space-x-2">
+                      <Brain className="h-5 w-5 text-purple-600" />
+                      <label className="text-sm font-medium text-carbon-gray-90">
+                        Mode Enhanced ML
+                      </label>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={enhancedMode}
+                        onChange={(e) => {
+                          setEnhancedMode(e.target.checked);
+                          if (e.target.checked) {
+                            setAdvancedMode(false);
+                            setEnsembleMode(false);
+                          }
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-600/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-carbon-gray-70 mb-3">
+                    {enhancedMode 
+                      ? "10 algorithmes ML avec consensus, détection d'anomalies et évaluation de risque"
+                      : "Désactivé - Mode Enhanced ML avec 10 modèles indépendants"
                     }
                   </p>
 
@@ -263,7 +324,10 @@ export default function Dashboard() {
                         checked={ensembleMode}
                         onChange={(e) => {
                           setEnsembleMode(e.target.checked);
-                          if (e.target.checked) setAdvancedMode(false);
+                          if (e.target.checked) {
+                            setAdvancedMode(false);
+                            setEnhancedMode(false);
+                          }
                         }}
                         className="sr-only peer"
                       />
@@ -273,14 +337,16 @@ export default function Dashboard() {
                   <p className="text-xs text-carbon-gray-70 mb-3">
                     {ensembleMode 
                       ? "Combine 9 algorithmes ML (RF, SVM, Neural Networks, etc.) pour une précision maximale"
-                      : advancedMode 
-                        ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
-                        : "Mode ML standard avec Random Forest et Gradient Boosting"
+                      : enhancedMode
+                        ? "10 algorithmes ML avec consensus, détection d'anomalies et évaluation de risque"
+                        : advancedMode 
+                          ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
+                          : "Mode ML standard avec Random Forest et Gradient Boosting"
                     }
                   </p>
 
                   {/* ML Training Controls */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     <Button
                       onClick={() => trainMLMutation.mutate()}
                       disabled={trainMLMutation.isPending}
@@ -299,13 +365,32 @@ export default function Dashboard() {
                     >
                       {trainAdvancedMLMutation.isPending ? "Entraînement..." : "ML Avancé"}
                     </Button>
+                    <Button
+                      onClick={() => trainEnhancedMLMutation.mutate()}
+                      disabled={trainEnhancedMLMutation.isPending}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                    >
+                      {trainEnhancedMLMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Enhanced...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="w-3 h-3 mr-1" />
+                          Enhanced
+                        </>
+                      )}
+                    </Button>
                     {ensembleMode && (
                       <Button
                         onClick={() => trainEnsembleMLMutation.mutate()}
                         disabled={trainEnsembleMLMutation.isPending}
                         variant="outline"
                         size="sm"
-                        className="text-xs col-span-2"
+                        className="text-xs col-span-3"
                       >
                         {trainEnsembleMLMutation.isPending ? (
                           <>

@@ -7,9 +7,9 @@ import { spawn } from "child_process";
 import path from "path";
 
 // ML Helper Functions
-async function callMLEngine(command: string, args: string[] = []): Promise<any> {
+async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'server', 'ml_diagnostic_engine.py');
+    const scriptPath = path.join(process.cwd(), 'server', scriptName);
     const allArgs = ['python3', scriptPath, command, ...args];
     
     const childProcess = spawn('bash', ['-c', allArgs.join(' ')], {
@@ -385,6 +385,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         message: "Erreur lors de l'entraînement ML",
+        error: error.message 
+      });
+    }
+  });
+
+  // Train Enhanced ML model endpoint
+  app.post("/api/train-enhanced-ml", async (req, res) => {
+    try {
+      console.log("Starting Enhanced ML model training...");
+      const result = await callMLEngine('train', [], 'enhanced_ml_diagnostic.py');
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: "Modèle ML Enhanced entraîné avec succès",
+          details: result.message,
+          models_trained: result.models_trained,
+          model_scores: result.model_scores,
+          best_model: result.best_model
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Échec de l'entraînement du modèle ML Enhanced",
+          error: result.message 
+        });
+      }
+    } catch (error) {
+      console.error("Enhanced ML training error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erreur lors de l'entraînement ML Enhanced",
         error: error.message 
       });
     }
@@ -789,6 +821,162 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Equipment types error:", error);
       res.status(500).json({ message: "Failed to get equipment types" });
+    }
+  });
+
+  // Enhanced ML diagnostic endpoint  
+  app.post("/api/diagnostic-enhanced-ml", async (req, res) => {
+    try {
+      console.log("Starting Enhanced ML diagnostic...");
+      const formData = z.object({
+        equipmentType: z.string(),
+        equipmentId: z.string().optional(),
+        zone: z.string().optional(),
+        sector: z.string().optional(),
+        symptoms: z.string(),
+        symptomsChecked: z.array(z.string()).optional(),
+        urgency: z.string(),
+        duration: z.number().optional()
+      }).parse(req.body);
+
+      // Call the Enhanced ML engine
+      const mlResult = await callMLEngine('predict', [
+        formData.equipmentType,
+        formData.symptoms,
+        JSON.stringify(formData.symptomsChecked || []),
+        formData.urgency,
+        formData.zone || "unknown",
+        formData.sector || "unknown",
+        formData.equipmentId || "unknown"
+      ], 'enhanced_ml_diagnostic.py');
+
+      let suggestions = [];
+      let mlEnabled = false;
+      let modelAccuracy = "not_trained";
+      let enhancedMetrics = {};
+
+      if (mlResult && mlResult.success) {
+        // Enhanced ML predictions available
+        mlEnabled = true;
+        modelAccuracy = "enhanced_trained";
+        
+        enhancedMetrics = {
+          total_models: mlResult.total_models || 0,
+          consensus_count: mlResult.consensus_count || 0,
+          best_confidence: mlResult.confidence || 0,
+          anomaly_score: mlResult.anomaly_score || 0,
+          risk_assessment: mlResult.risk_assessment || {},
+          feature_importance: mlResult.feature_importance || {},
+          individual_models: Object.keys(mlResult.individual_predictions || {}).length
+        };
+        
+        suggestions = [{
+          diagnosis: mlResult.prediction || "Diagnostic incertain",
+          solution: `Solution optimisée par Enhanced ML pour: ${mlResult.prediction}`,
+          confidence: Math.round((mlResult.confidence || 0) * 100),
+          matchingCases: mlResult.consensus_count || 1,
+          caseId: 4000 + Math.floor(Math.random() * 1000),
+          duration: formData.duration || 60,
+          riskLevel: mlResult.risk_assessment?.risk_level || "Moyen",
+          costEstimate: estimateRepairCost(formData.duration || 60, formData.equipmentType),
+          aiInsights: `🧠 Enhanced ML: ${mlResult.total_models} modèles • 🎯 Confiance: ${Math.round((mlResult.confidence || 0) * 100)}% • 🤖 Consensus: ${mlResult.consensus_count}/${mlResult.total_models} • ⚡ Anomalie: ${Math.round((mlResult.anomaly_score || 0) * 100)}%`,
+          mlPrediction: true,
+          enhancedML: true,
+          totalModels: mlResult.total_models,
+          consensusCount: mlResult.consensus_count,
+          individualPredictions: mlResult.individual_predictions,
+          anomalyScore: mlResult.anomaly_score,
+          riskAssessment: mlResult.risk_assessment,
+          featureImportance: mlResult.feature_importance,
+          predictiveTips: [
+            "Enhanced ML: Multiple algorithmes convergent vers ce diagnostic",
+            `Consensus des modèles: ${mlResult.consensus_count}/${mlResult.total_models}`,
+            `Score d'anomalie: ${Math.round((mlResult.anomaly_score || 0) * 100)}% - ${mlResult.anomaly_score > 0.5 ? 'Situation inhabituelle détectée' : 'Comportement normal'}`
+          ]
+        }];
+      } else {
+        // Fallback to standard ML
+        const standardMlResult = await callMLEngine('predict', [
+          formData.equipmentType,
+          formData.symptoms,
+          JSON.stringify(formData.symptomsChecked || []),
+          formData.urgency,
+          formData.zone || "unknown",
+          formData.sector || "unknown",
+          (formData.duration || 60).toString()
+        ]);
+
+        if (standardMlResult?.success && standardMlResult.predictions) {
+          mlEnabled = true;
+          modelAccuracy = "standard_fallback";
+          
+          suggestions = standardMlResult.predictions.map((pred: any, index: number) => ({
+            diagnosis: pred.diagnosis,
+            solution: `Solution ML Standard (fallback): ${pred.diagnosis}`,
+            confidence: Math.round(pred.confidence * 100),
+            matchingCases: pred.matching_cases || 1,
+            caseId: 3500 + index,
+            duration: pred.duration || formData.duration || 60,
+            riskLevel: pred.risk_level || "Moyen",
+            costEstimate: estimateRepairCost(pred.duration || 60, formData.equipmentType),
+            aiInsights: `🔄 Fallback ML: Standard • 🎯 Confiance: ${Math.round(pred.confidence * 100)}% • ⚠️ Enhanced ML indisponible`,
+            mlPrediction: true,
+            predictiveTips: generatePredictiveTips(formData.equipmentType, pred.diagnosis)
+          }));
+        } else {
+          // Final fallback to rule-based
+          modelAccuracy = "rule_based_fallback";
+          const cases = await storage.getMaintenanceCases();
+          const matchingSuggestions = cases
+            .filter(case_ => case_.equipmentType === formData.equipmentType)
+            .slice(0, 1);
+
+          suggestions = matchingSuggestions.map((case_) => ({
+            diagnosis: case_.diagnosis,
+            solution: case_.solution,
+            confidence: 50,
+            matchingCases: 1,
+            caseId: case_.id,
+            duration: case_.duration,
+            riskLevel: "Moyen",
+            costEstimate: estimateRepairCost(case_.duration, formData.equipmentType),
+            aiInsights: "⚠️ Système basé sur les règles (ML indisponible)",
+            predictiveTips: generatePredictiveTips(formData.equipmentType, case_.diagnosis)
+          }));
+        }
+      }
+
+      // Save diagnostic session
+      const sessionData = {
+        equipmentType: formData.equipmentType,
+        equipmentId: formData.equipmentId || `${formData.equipmentType.toUpperCase()}-${Date.now()}`,
+        zone: formData.zone || "unknown",
+        sector: formData.sector || "unknown",
+        symptoms: formData.symptoms,
+        symptomsChecked: formData.symptomsChecked || [],
+        urgency: formData.urgency,
+        confidence: suggestions[0]?.confidence || 0,
+        mlPrediction: mlEnabled,
+        sessionData: JSON.stringify({ suggestions, mlEnabled, modelAccuracy, enhancedMetrics })
+      };
+
+      const session = await storage.createDiagnosticSession(sessionData);
+      
+      res.json({
+        sessionId: session.id,
+        suggestions,
+        mlEnabled,
+        enhancedML: modelAccuracy === "enhanced_trained",
+        modelAccuracy,
+        enhancedMetrics
+      });
+      
+    } catch (error) {
+      console.error("Enhanced ML diagnostic error:", error);
+      res.status(400).json({ 
+        message: "Invalid enhanced ML diagnostic request",
+        error: error instanceof z.ZodError ? error.errors : error.message
+      });
     }
   });
 
