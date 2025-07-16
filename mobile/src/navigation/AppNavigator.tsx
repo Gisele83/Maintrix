@@ -4,55 +4,32 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import { DiagnosticScreen } from '../screens/DiagnosticScreen';
-import { RepairGuidanceScreen } from '../screens/RepairGuidanceScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
+import { ScannerScreen } from '../screens/ScannerScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { CameraScreen } from '../screens/CameraScreen';
-import { OfflineLibraryScreen } from '../screens/OfflineLibraryScreen';
+import { RepairGuidanceScreen } from '../screens/RepairGuidanceScreen';
+import { OfflineDataScreen } from '../screens/OfflineDataScreen';
+import { FeedbackScreen } from '../screens/FeedbackScreen';
+import { theme } from '../theme/theme';
 
-const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
+export type RootStackParamList = {
+  MainTabs: undefined;
+  RepairGuidance: { caseId: number; diagnosis: string };
+  Feedback: { sessionId: number; diagnosis: string; solution: string };
+  OfflineData: undefined;
+};
 
-function DiagnosticStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="DiagnosticMain" 
-        component={DiagnosticScreen}
-        options={{ title: 'Diagnostic' }}
-      />
-      <Stack.Screen 
-        name="Camera" 
-        component={CameraScreen}
-        options={{ title: 'Photo Équipement' }}
-      />
-      <Stack.Screen 
-        name="RepairGuidance" 
-        component={RepairGuidanceScreen}
-        options={{ title: 'Guide Réparation' }}
-      />
-    </Stack.Navigator>
-  );
-}
+export type TabParamList = {
+  Diagnostic: undefined;
+  History: undefined;
+  Scanner: undefined;
+  Settings: undefined;
+};
 
-function LibraryStack() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="OfflineLibraryMain" 
-        component={OfflineLibraryScreen}
-        options={{ title: 'Bibliothèque Hors Ligne' }}
-      />
-      <Stack.Screen 
-        name="RepairGuidanceOffline" 
-        component={RepairGuidanceScreen}
-        options={{ title: 'Guide Réparation' }}
-      />
-    </Stack.Navigator>
-  );
-}
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
-export function AppNavigator() {
+function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -63,13 +40,13 @@ export function AppNavigator() {
             case 'Diagnostic':
               iconName = 'search';
               break;
-            case 'Bibliothèque':
-              iconName = 'library-books';
-              break;
-            case 'Historique':
+            case 'History':
               iconName = 'history';
               break;
-            case 'Paramètres':
+            case 'Scanner':
+              iconName = 'qr-code-scanner';
+              break;
+            case 'Settings':
               iconName = 'settings';
               break;
             default:
@@ -78,15 +55,102 @@ export function AppNavigator() {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#1976d2',
-        tabBarInactiveTintColor: 'gray',
-        headerShown: false,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.secondary,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.outline,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        headerStyle: {
+          backgroundColor: theme.colors.primary,
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
       })}
     >
-      <Tab.Screen name="Diagnostic" component={DiagnosticStack} />
-      <Tab.Screen name="Bibliothèque" component={LibraryStack} />
-      <Tab.Screen name="Historique" component={HistoryScreen} />
-      <Tab.Screen name="Paramètres" component={SettingsScreen} />
+      <Tab.Screen 
+        name="Diagnostic" 
+        component={DiagnosticScreen}
+        options={{
+          title: 'Diagnostic',
+          headerTitle: 'SMDiagFix - Diagnostic IA',
+        }}
+      />
+      <Tab.Screen 
+        name="History" 
+        component={HistoryScreen}
+        options={{
+          title: 'Historique',
+          headerTitle: 'Historique Maintenance',
+        }}
+      />
+      <Tab.Screen 
+        name="Scanner" 
+        component={ScannerScreen}
+        options={{
+          title: 'Scanner',
+          headerTitle: 'Scanner Équipement',
+        }}
+      />
+      <Tab.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{
+          title: 'Réglages',
+          headerTitle: 'Paramètres',
+        }}
+      />
     </Tab.Navigator>
+  );
+}
+
+export function AppNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.colors.primary,
+        },
+        headerTintColor: '#ffffff',
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="MainTabs" 
+        component={MainTabs} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="RepairGuidance" 
+        component={RepairGuidanceScreen}
+        options={{
+          title: 'Guidance Réparation',
+          headerBackTitle: 'Retour',
+        }}
+      />
+      <Stack.Screen 
+        name="Feedback" 
+        component={FeedbackScreen}
+        options={{
+          title: 'Évaluation',
+          headerBackTitle: 'Retour',
+        }}
+      />
+      <Stack.Screen 
+        name="OfflineData" 
+        component={OfflineDataScreen}
+        options={{
+          title: 'Données Hors-ligne',
+          headerBackTitle: 'Retour',
+        }}
+      />
+    </Stack.Navigator>
   );
 }

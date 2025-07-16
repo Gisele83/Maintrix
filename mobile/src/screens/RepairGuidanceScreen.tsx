@@ -1,453 +1,642 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  ScrollView,
+  Text,
   StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   Alert,
-  Dimensions,
+  Animated,
 } from 'react-native';
 import {
   Card,
-  Text,
   Button,
-  Checkbox,
   ProgressBar,
-  Chip,
+  Checkbox,
   Surface,
-  Avatar,
+  Portal,
+  Modal,
+  TextInput,
+  Divider,
+  Chip,
 } from 'react-native-paper';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import * as Animatable from 'react-native-animatable';
 
-import { generateRepairSteps } from '../services/RepairGuidanceService';
-import { saveRepairProgress } from '../services/OfflineStorage';
+import { theme, spacing, typography, gradients } from '../theme/theme';
+import { useOffline } from '../context/OfflineContext';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-const { width } = Dimensions.get('window');
+type RepairGuidanceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'RepairGuidance'>;
+type RepairGuidanceScreenRouteProp = RouteProp<RootStackParamList, 'RepairGuidance'>;
 
 interface RepairStep {
   id: number;
   title: string;
   description: string;
   duration: number;
-  tools: string[];
   safety: string[];
+  tools: string[];
+  images?: string[];
+  warnings?: string[];
   completed: boolean;
-  critical: boolean;
 }
 
-export function RepairGuidanceScreen({ route, navigation }: any) {
-  const { suggestions, diagnosticData, isOffline } = route.params;
-  const [selectedSuggestion, setSelectedSuggestion] = useState(suggestions[0]);
-  const [repairSteps, setRepairSteps] = useState<RepairStep[]>([]);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+export function RepairGuidanceScreen() {
+  const navigation = useNavigation<RepairGuidanceScreenNavigationProp>();
+  const route = useRoute<RepairGuidanceScreenRouteProp>();
+  const { caseId, diagnosis } = route.params;
+  const { isOnline } = useOffline();
+
   const [currentStep, setCurrentStep] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [steps, setSteps] = useState<RepairStep[]>([]);
+  const [isStepCompleted, setIsStepCompleted] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [repairNotes, setRepairNotes] = useState('');
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const progressAnimation = new Animated.Value(0);
 
   useEffect(() => {
-    loadRepairSteps();
-  }, [selectedSuggestion]);
+    generateRepairSteps();
+    setStartTime(new Date());
+  }, [caseId, diagnosis]);
 
-  const loadRepairSteps = async () => {
-    setLoading(true);
-    try {
-      const steps = await generateRepairSteps(
-        selectedSuggestion.diagnosis,
-        diagnosticData.equipmentType,
-        isOffline
-      );
-      setRepairSteps(steps);
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de charger les étapes de réparation');
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (startTime && !isPaused) {
+      const interval = setInterval(() => {
+        setElapsedTime(Math.floor((new Date().getTime() - startTime.getTime()) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [startTime, isPaused]);
+
+  useEffect(() => {
+    const progress = steps.length > 0 ? (currentStep + 1) / steps.length : 0;
+    Animated.timing(progressAnimation, {
+      toValue: progress,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [currentStep, steps.length]);
+
+  const generateRepairSteps = () => {
+    // Generate repair steps based on diagnosis
+    const baseSteps: RepairStep[] = [
+      {
+        id: 1,
+        title: 'Préparation et Sécurité',
+        description: 'Vérifier l\'environnement de travail et préparer les outils de sécurité',
+        duration: 5,
+        safety: [
+          'Porter des EPI (casque, gants, lunettes)',
+          'Vérifier que l\'équipement est hors tension',
+          'Mettre en place la procédure de consignation',
+          'Informer l\'équipe de maintenance'
+        ],
+        tools: ['EPI complet', 'Multimètre', 'Outils de consignation'],
+        warnings: ['Ne jamais travailler sous tension', 'Respecter les distances de sécurité'],
+        completed: false,
+      },
+      {
+        id: 2,
+        title: 'Diagnostic Visuel',
+        description: 'Inspection visuelle complète de l\'équipement et identification des anomalies',
+        duration: 10,
+        safety: [
+          'Utiliser un éclairage adapté',
+          'Éviter les contacts directs',
+          'Photographier les anomalies'
+        ],
+        tools: ['Lampe torche', 'Appareil photo', 'Loupe'],
+        completed: false,
+      },
+      {
+        id: 3,
+        title: 'Tests et Mesures',
+        description: 'Effectuer les mesures électriques et mécaniques nécessaires',
+        duration: 15,
+        safety: [
+          'Utiliser des instruments calibrés',
+          'Respecter les consignes de mesure',
+          'Vérifier la continuité des masses'
+        ],
+        tools: ['Multimètre', 'Mégohmmètre', 'Pince ampèremétrique'],
+        completed: false,
+      },
+      {
+        id: 4,
+        title: 'Réparation',
+        description: 'Exécuter les actions correctives identifiées',
+        duration: 30,
+        safety: [
+          'Suivre la procédure de maintenance',
+          'Utiliser les pièces de rechange appropriées',
+          'Documenter les interventions'
+        ],
+        tools: ['Clés', 'Tournevis', 'Pièces de rechange'],
+        warnings: ['Respecter les couples de serrage', 'Vérifier l\'alignement'],
+        completed: false,
+      },
+      {
+        id: 5,
+        title: 'Tests de Fonctionnement',
+        description: 'Vérifier le bon fonctionnement après réparation',
+        duration: 10,
+        safety: [
+          'Procéder par étapes progressives',
+          'Surveiller les paramètres de fonctionnement',
+          'Être prêt à arrêter en cas d\'anomalie'
+        ],
+        tools: ['Instruments de mesure', 'Fiche de test'],
+        completed: false,
+      },
+      {
+        id: 6,
+        title: 'Finalisation',
+        description: 'Nettoyer, ranger et documenter l\'intervention',
+        duration: 5,
+        safety: [
+          'Remettre tous les dispositifs de sécurité',
+          'Nettoyer la zone de travail',
+          'Remplir le rapport d\'intervention'
+        ],
+        tools: ['Produits de nettoyage', 'Rapport d\'intervention'],
+        completed: false,
+      },
+    ];
+
+    setSteps(baseSteps);
+  };
+
+  const handleStepComplete = () => {
+    if (currentStep < steps.length) {
+      const newSteps = [...steps];
+      newSteps[currentStep].completed = true;
+      setSteps(newSteps);
+      setIsStepCompleted(true);
+      
+      setTimeout(() => {
+        setIsStepCompleted(false);
+        if (currentStep < steps.length - 1) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          handleRepairComplete();
+        }
+      }, 1000);
     }
   };
 
-  const handleStepComplete = async (stepId: number) => {
-    const newCompletedSteps = completedSteps.includes(stepId)
-      ? completedSteps.filter(id => id !== stepId)
-      : [...completedSteps, stepId];
-    
-    setCompletedSteps(newCompletedSteps);
-    
-    // Sauvegarder le progrès hors ligne
-    await saveRepairProgress({
-      sessionId: `repair_${Date.now()}`,
-      diagnosis: selectedSuggestion.diagnosis,
-      completedSteps: newCompletedSteps,
-      timestamp: new Date().toISOString(),
-    });
+  const handleRepairComplete = () => {
+    Alert.alert(
+      'Réparation Terminée',
+      'Félicitations ! La réparation a été terminée avec succès.',
+      [
+        {
+          text: 'Ajouter des Notes',
+          onPress: () => setShowNotesModal(true)
+        },
+        {
+          text: 'Terminer',
+          onPress: () => navigation.goBack()
+        }
+      ]
+    );
+  };
 
-    // Passer à l'étape suivante automatiquement
-    if (!completedSteps.includes(stepId) && stepId === currentStep) {
-      setCurrentStep(Math.min(currentStep + 1, repairSteps.length - 1));
+  const handlePreviousStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
-  const getProgressPercentage = () => {
-    return repairSteps.length > 0 ? (completedSteps.length / repairSteps.length) * 100 : 0;
+  const handleNextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
-  const estimatedTimeRemaining = () => {
-    const remainingSteps = repairSteps.filter(step => !completedSteps.includes(step.id));
-    return remainingSteps.reduce((total, step) => total + step.duration, 0);
+  const handlePauseResume = () => {
+    setIsPaused(!isPaused);
   };
 
-  if (loading) {
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getStepProgress = () => {
+    if (steps.length === 0) return 0;
+    return (currentStep + 1) / steps.length;
+  };
+
+  const currentStepData = steps[currentStep];
+
+  if (!currentStepData) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Génération du guide de réparation...</Text>
-        <ProgressBar indeterminate style={styles.loadingBar} />
+      <View style={styles.container}>
+        <LinearGradient colors={gradients.primary} style={styles.header}>
+          <Text style={styles.headerTitle}>Guidance Réparation</Text>
+          <Text style={styles.headerSubtitle}>Chargement...</Text>
+        </LinearGradient>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* En-tête du diagnostic */}
-      <Card style={styles.headerCard}>
-        <Card.Content>
-          <View style={styles.headerRow}>
-            <Avatar.Icon 
-              icon={isOffline ? "wifi-off" : "wifi"} 
-              size={40}
-              style={[styles.statusIcon, { backgroundColor: isOffline ? '#ff9800' : '#4caf50' }]}
-            />
-            <View style={styles.headerInfo}>
-              <Text style={styles.diagnosisTitle}>{selectedSuggestion.diagnosis}</Text>
-              <Text style={styles.equipmentInfo}>
-                {diagnosticData.equipmentType} • {diagnosticData.zone || 'Zone non spécifiée'}
-              </Text>
-              <View style={styles.confidenceRow}>
-                <Chip 
-                  icon="star" 
-                  style={[styles.confidenceChip, getConfidenceColor(selectedSuggestion.confidence)]}
-                >
-                  {selectedSuggestion.confidence}% confiance
-                </Chip>
-                <Chip icon="schedule" style={styles.timeChip}>
-                  ~{estimatedTimeRemaining()}min restantes
-                </Chip>
-              </View>
-            </View>
+    <View style={styles.container}>
+      <LinearGradient colors={gradients.primary} style={styles.header}>
+        <Text style={styles.headerTitle}>Guidance Réparation</Text>
+        <Text style={styles.headerSubtitle}>{diagnosis}</Text>
+        
+        <View style={styles.progressContainer}>
+          <View style={styles.progressInfo}>
+            <Text style={styles.progressText}>
+              Étape {currentStep + 1} sur {steps.length}
+            </Text>
+            <Text style={styles.timerText}>
+              {formatTime(elapsedTime)}
+            </Text>
           </View>
-        </Card.Content>
-      </Card>
+          <ProgressBar
+            progress={getStepProgress()}
+            color="#ffffff"
+            style={styles.progressBar}
+          />
+        </View>
+      </LinearGradient>
 
-      {/* Barre de progression */}
-      <Surface style={styles.progressCard}>
-        <Text style={styles.progressTitle}>
-          Progression: {completedSteps.length}/{repairSteps.length} étapes
-        </Text>
-        <ProgressBar 
-          progress={getProgressPercentage() / 100} 
-          color="#1976d2"
-          style={styles.progressBar}
-        />
-        <Text style={styles.progressText}>
-          {Math.round(getProgressPercentage())}% terminé
-        </Text>
-      </Surface>
-
-      {/* Sélection de suggestion alternative */}
-      {suggestions.length > 1 && (
-        <Card style={styles.alternativesCard}>
-          <Card.Title title="Diagnostics alternatifs" />
-          <Card.Content>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {suggestions.map((suggestion: any, index: number) => (
-                <Chip
-                  key={index}
-                  selected={selectedSuggestion === suggestion}
-                  onPress={() => setSelectedSuggestion(suggestion)}
-                  style={styles.alternativeChip}
-                >
-                  {suggestion.diagnosis} ({suggestion.confidence}%)
-                </Chip>
-              ))}
-            </ScrollView>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Étapes de réparation */}
-      {repairSteps.map((step, index) => (
-        <Card 
-          key={step.id} 
-          style={[
-            styles.stepCard,
-            completedSteps.includes(step.id) && styles.completedStepCard,
-            index === currentStep && styles.currentStepCard
-          ]}
+      <ScrollView style={styles.content}>
+        <Animatable.View
+          animation={isStepCompleted ? 'pulse' : undefined}
+          duration={1000}
         >
-          <Card.Content>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
+          <Card style={styles.stepCard}>
+            <Card.Content>
+              <View style={styles.stepHeader}>
+                <Text style={styles.stepTitle}>{currentStepData.title}</Text>
+                <Chip
+                  icon="schedule"
+                  style={styles.durationChip}
+                  textStyle={styles.durationText}
+                >
+                  {currentStepData.duration} min
+                </Chip>
               </View>
-              <View style={styles.stepInfo}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <View style={styles.stepMeta}>
-                  <Chip icon="schedule" style={styles.metaChip}>
-                    {step.duration}min
-                  </Chip>
-                  {step.critical && (
-                    <Chip icon="warning" style={styles.criticalChip}>
-                      Critique
-                    </Chip>
-                  )}
-                </View>
-              </View>
-              <Checkbox
-                status={completedSteps.includes(step.id) ? 'checked' : 'unchecked'}
-                onPress={() => handleStepComplete(step.id)}
-              />
-            </View>
-            
-            <Text style={styles.stepDescription}>{step.description}</Text>
-            
-            {/* Outils nécessaires */}
-            {step.tools.length > 0 && (
-              <View style={styles.toolsSection}>
-                <Text style={styles.sectionTitle}>Outils nécessaires:</Text>
-                <View style={styles.toolsList}>
-                  {step.tools.map((tool, toolIndex) => (
-                    <Chip key={toolIndex} icon="build" style={styles.toolChip}>
-                      {tool}
-                    </Chip>
-                  ))}
-                </View>
-              </View>
-            )}
-            
-            {/* Consignes de sécurité */}
-            {step.safety.length > 0 && (
-              <View style={styles.safetySection}>
-                <Text style={styles.sectionTitle}>⚠️ Sécurité:</Text>
-                {step.safety.map((safety, safetyIndex) => (
-                  <Text key={safetyIndex} style={styles.safetyText}>
-                    • {safety}
-                  </Text>
-                ))}
-              </View>
-            )}
-          </Card.Content>
-        </Card>
-      ))}
+              
+              <Text style={styles.stepDescription}>
+                {currentStepData.description}
+              </Text>
+            </Card.Content>
+          </Card>
+        </Animatable.View>
 
-      {/* Actions finales */}
-      <Card style={styles.actionsCard}>
-        <Card.Content>
-          <View style={styles.actionButtons}>
+        <View style={styles.actionButtons}>
+          <Button
+            mode="outlined"
+            onPress={() => setShowSafetyModal(true)}
+            style={styles.actionButton}
+            icon="security"
+          >
+            Sécurité ({currentStepData.safety.length})
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={() => setShowToolsModal(true)}
+            style={styles.actionButton}
+            icon="build"
+          >
+            Outils ({currentStepData.tools.length})
+          </Button>
+        </View>
+
+        {currentStepData.warnings && currentStepData.warnings.length > 0 && (
+          <Card style={styles.warningCard}>
+            <Card.Content>
+              <View style={styles.warningHeader}>
+                <Icon name="warning" size={24} color={theme.colors.error} />
+                <Text style={styles.warningTitle}>Attention</Text>
+              </View>
+              {currentStepData.warnings.map((warning, index) => (
+                <Text key={index} style={styles.warningText}>
+                  • {warning}
+                </Text>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
+
+        <View style={styles.navigationButtons}>
+          <Button
+            mode="outlined"
+            onPress={handlePreviousStep}
+            disabled={currentStep === 0}
+            style={styles.navButton}
+            icon="chevron-left"
+          >
+            Précédent
+          </Button>
+          
+          <Button
+            mode="contained"
+            onPress={handleStepComplete}
+            style={styles.completeButton}
+            icon="check"
+          >
+            {currentStep === steps.length - 1 ? 'Terminer' : 'Suivant'}
+          </Button>
+        </View>
+
+        <View style={styles.controls}>
+          <Button
+            mode="outlined"
+            onPress={handlePauseResume}
+            style={styles.controlButton}
+            icon={isPaused ? "play-arrow" : "pause"}
+          >
+            {isPaused ? 'Reprendre' : 'Pause'}
+          </Button>
+          
+          <Button
+            mode="outlined"
+            onPress={() => setShowNotesModal(true)}
+            style={styles.controlButton}
+            icon="note"
+          >
+            Notes
+          </Button>
+        </View>
+      </ScrollView>
+
+      {/* Safety Modal */}
+      <Portal>
+        <Modal
+          visible={showSafetyModal}
+          onDismiss={() => setShowSafetyModal(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text style={styles.modalTitle}>Consignes de Sécurité</Text>
+          <ScrollView style={styles.modalContent}>
+            {currentStepData.safety.map((item, index) => (
+              <View key={index} style={styles.safetyItem}>
+                <Icon name="check-circle" size={20} color={theme.colors.success} />
+                <Text style={styles.safetyText}>{item}</Text>
+              </View>
+            ))}
+          </ScrollView>
+          <Button
+            mode="contained"
+            onPress={() => setShowSafetyModal(false)}
+            style={styles.modalButton}
+          >
+            Compris
+          </Button>
+        </Modal>
+      </Portal>
+
+      {/* Tools Modal */}
+      <Portal>
+        <Modal
+          visible={showToolsModal}
+          onDismiss={() => setShowToolsModal(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text style={styles.modalTitle}>Outils Requis</Text>
+          <ScrollView style={styles.modalContent}>
+            {currentStepData.tools.map((tool, index) => (
+              <View key={index} style={styles.toolItem}>
+                <Checkbox status="unchecked" />
+                <Text style={styles.toolText}>{tool}</Text>
+              </View>
+            ))}
+          </ScrollView>
+          <Button
+            mode="contained"
+            onPress={() => setShowToolsModal(false)}
+            style={styles.modalButton}
+          >
+            Fermer
+          </Button>
+        </Modal>
+      </Portal>
+
+      {/* Notes Modal */}
+      <Portal>
+        <Modal
+          visible={showNotesModal}
+          onDismiss={() => setShowNotesModal(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text style={styles.modalTitle}>Notes de Réparation</Text>
+          <TextInput
+            label="Observations et commentaires"
+            value={repairNotes}
+            onChangeText={setRepairNotes}
+            multiline
+            numberOfLines={5}
+            style={styles.notesInput}
+          />
+          <View style={styles.modalButtons}>
             <Button
               mode="outlined"
-              onPress={() => navigation.goBack()}
-              icon="arrow-back"
-              style={styles.actionButton}
+              onPress={() => setShowNotesModal(false)}
+              style={styles.modalButton}
             >
-              Retour
+              Annuler
             </Button>
-            
-            {getProgressPercentage() === 100 ? (
-              <Button
-                mode="contained"
-                onPress={() => Alert.alert('Succès', 'Réparation terminée avec succès!')}
-                icon="check-circle"
-                style={styles.actionButton}
-              >
-                Terminer
-              </Button>
-            ) : (
-              <Button
-                mode="contained"
-                onPress={() => setCurrentStep(Math.min(currentStep + 1, repairSteps.length - 1))}
-                icon="arrow-forward"
-                style={styles.actionButton}
-              >
-                Étape suivante
-              </Button>
-            )}
+            <Button
+              mode="contained"
+              onPress={() => {
+                // Save notes
+                setShowNotesModal(false);
+                Alert.alert('Notes', 'Notes sauvegardées avec succès');
+              }}
+              style={styles.modalButton}
+            >
+              Sauvegarder
+            </Button>
           </View>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        </Modal>
+      </Portal>
+    </View>
   );
 }
-
-const getConfidenceColor = (confidence: number) => {
-  if (confidence >= 80) return { backgroundColor: '#4caf50' };
-  if (confidence >= 60) return { backgroundColor: '#ff9800' };
-  return { backgroundColor: '#f44336' };
-};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+    backgroundColor: theme.colors.background,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  header: {
+    padding: spacing.lg,
+    paddingTop: spacing.xl,
   },
-  loadingBar: {
-    width: 200,
-    marginTop: 16,
+  headerTitle: {
+    ...typography.h2,
+    color: '#ffffff',
+    marginBottom: spacing.xs,
   },
-  headerCard: {
-    marginBottom: 16,
+  headerSubtitle: {
+    ...typography.body1,
+    color: '#ffffff',
+    opacity: 0.9,
+    marginBottom: spacing.md,
   },
-  headerRow: {
+  progressContainer: {
+    marginTop: spacing.md,
+  },
+  progressInfo: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
-  statusIcon: {
-    marginRight: 16,
+  progressText: {
+    ...typography.body2,
+    color: '#ffffff',
   },
-  headerInfo: {
-    flex: 1,
-  },
-  diagnosisTitle: {
-    fontSize: 18,
+  timerText: {
+    ...typography.body2,
+    color: '#ffffff',
     fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  equipmentInfo: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  confidenceRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  confidenceChip: {
-    backgroundColor: '#e3f2fd',
-  },
-  timeChip: {
-    backgroundColor: '#fff3e0',
-  },
-  progressCard: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
   },
   progressBar: {
     height: 8,
     borderRadius: 4,
-    marginBottom: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
-  progressText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#666',
-  },
-  alternativesCard: {
-    marginBottom: 16,
-  },
-  alternativeChip: {
-    marginRight: 8,
-    marginBottom: 4,
+  content: {
+    flex: 1,
+    padding: spacing.md,
   },
   stepCard: {
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#e0e0e0',
-  },
-  completedStepCard: {
-    borderLeftColor: '#4caf50',
-    backgroundColor: '#f1f8e9',
-  },
-  currentStepCard: {
-    borderLeftColor: '#1976d2',
-    backgroundColor: '#e3f2fd',
+    marginBottom: spacing.md,
   },
   stepHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  stepNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#1976d2',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  stepNumberText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  stepInfo: {
-    flex: 1,
+    marginBottom: spacing.sm,
   },
   stepTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    ...typography.h3,
+    flex: 1,
+    marginRight: spacing.md,
   },
-  stepMeta: {
-    flexDirection: 'row',
-    gap: 8,
+  durationChip: {
+    backgroundColor: theme.colors.primaryContainer,
   },
-  metaChip: {
-    backgroundColor: '#e0e0e0',
-    height: 24,
-  },
-  criticalChip: {
-    backgroundColor: '#ffebee',
-    height: 24,
+  durationText: {
+    ...typography.body2,
+    color: theme.colors.primary,
   },
   stepDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  toolsSection: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  toolsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  toolChip: {
-    backgroundColor: '#e8f5e8',
-    height: 28,
-  },
-  safetySection: {
-    backgroundColor: '#fff3cd',
-    padding: 12,
-    borderRadius: 8,
-  },
-  safetyText: {
-    fontSize: 13,
-    marginBottom: 4,
-    color: '#856404',
-  },
-  actionsCard: {
-    marginBottom: 20,
+    ...typography.body1,
+    lineHeight: 24,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    marginBottom: spacing.md,
   },
   actionButton: {
     flex: 1,
+    marginHorizontal: spacing.xs,
+  },
+  warningCard: {
+    marginBottom: spacing.md,
+    backgroundColor: theme.colors.errorContainer,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  warningTitle: {
+    ...typography.h4,
+    color: theme.colors.error,
+    marginLeft: spacing.sm,
+  },
+  warningText: {
+    ...typography.body2,
+    color: theme.colors.error,
+    marginBottom: spacing.xs,
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  navButton: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  completeButton: {
+    flex: 1,
+    marginLeft: spacing.sm,
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  controlButton: {
+    flex: 1,
+    marginHorizontal: spacing.xs,
+  },
+  modalContainer: {
+    backgroundColor: theme.colors.surface,
+    margin: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: theme.roundness,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    ...typography.h3,
+    marginBottom: spacing.md,
+  },
+  modalContent: {
+    maxHeight: 400,
+    marginBottom: spacing.md,
+  },
+  modalButton: {
+    marginTop: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+  },
+  safetyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  safetyText: {
+    ...typography.body1,
+    marginLeft: spacing.sm,
+    flex: 1,
+  },
+  toolItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  toolText: {
+    ...typography.body1,
+    marginLeft: spacing.sm,
+    flex: 1,
+  },
+  notesInput: {
+    marginBottom: spacing.md,
+    minHeight: 120,
   },
 });
