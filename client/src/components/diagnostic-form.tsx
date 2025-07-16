@@ -177,7 +177,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
               {t("equipmentTypeRequired", language)}
             </Label>
-            <Select onValueChange={(value) => form.setValue("equipmentType", value)}>
+            <Select 
+              value={form.watch("equipmentType") || ""} 
+              onValueChange={(value) => form.setValue("equipmentType", value)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={t("selectEquipmentType", language)} />
               </SelectTrigger>
@@ -214,7 +217,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
                 {t("zone", language)}
               </Label>
-              <Select onValueChange={(value) => form.setValue("zone", value)}>
+              <Select 
+                value={form.watch("zone") || ""} 
+                onValueChange={(value) => form.setValue("zone", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder={t("selectZone", language)} />
                 </SelectTrigger>
@@ -231,7 +237,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
                 Ligne/Secteur
               </Label>
-              <Select onValueChange={(value) => form.setValue("sector", value)}>
+              <Select 
+                value={form.watch("sector") || ""} 
+                onValueChange={(value) => form.setValue("sector", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner ligne/secteur" />
                 </SelectTrigger>
