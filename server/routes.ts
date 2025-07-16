@@ -60,6 +60,175 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   return union.size > 0 ? intersection.size / union.size : 0;
 }
 
+function calculateSemanticSimilarity(userSymptoms: string, dbSymptoms: string): number {
+  // Dictionnaire de synonymes et termes équivalents pour l'industrie - version étendue
+  const synonymDictionary = {
+    // Bruit et vibrations
+    'bruit': ['son', 'vibration', 'grincement', 'sifflement', 'claquement', 'cognement', 'ronflement', 'vrombissement', 'bourdonnement'],
+    'vibration': ['tremblement', 'oscillation', 'secousse', 'frémissement', 'pulsation', 'battement', 'soubresaut'],
+    'grincement': ['crissement', 'frottement', 'raclement', 'grinçage', 'couinement'],
+    
+    // Température et thermique
+    'chaud': ['surchauffe', 'température élevée', 'brûlant', 'échauffement', 'chauffage excessif', 'chaleur anormale'],
+    'surchauffe': ['température excessive', 'échauffement anormal', 'trop chaud', 'thermique élevé', 'chauffe'],
+    'froid': ['température basse', 'refroidissement', 'gelé', 'glacé', 'frais', 'sous-refroidi'],
+    
+    // Mouvement et mécanique
+    'blocage': ['coincé', 'grippé', 'bloqué', 'immobilisé', 'figé', 'grippage', 'serrage', 'dur'],
+    'glissement': ['patinage', 'dérapage', 'perte adhérence', 'glisse', 'échappement'],
+    'déformation': ['torsion', 'pliage', 'gauchissement', 'voilage', 'déformé', 'tordu', 'plié'],
+    'usure': ['usé', 'détérioration', 'dégradation', 'érosion', 'abrasion', 'fatigue'],
+    'jeu': ['jeu mécanique', 'flottement', 'ballant', 'débattement', 'espace'],
+    
+    // Fluides et fuites
+    'fuite': ['écoulement', 'perte', 'coulure', 'suintement', 'égouttement', 'infiltration'],
+    'pression': ['compression', 'force', 'poussée', 'contrainte', 'charge'],
+    'débit': ['flux', 'écoulement', 'circulation', 'passage', 'transit'],
+    
+    // Électrique
+    'étincelle': ['arc électrique', 'décharge', 'court-circuit', 'amorçage', 'spark'],
+    'coupure': ['arrêt', 'interruption', 'panne', 'défaillance', 'dysfonctionnement'],
+    'courant': ['électricité', 'alimentation', 'tension', 'voltage', 'ampérage'],
+    
+    // Performance et fonctionnement
+    'lent': ['ralenti', 'vitesse réduite', 'performance dégradée', 'faible vitesse', 'retard'],
+    'rapide': ['accéléré', 'vitesse excessive', 'emballement', 'survitesse', 'trop vite'],
+    'irrégulier': ['saccadé', 'instable', 'variable', 'erratique', 'fluctuant', 'inconstant'],
+    'arrêt': ['stop', 'coupure', 'interruption', 'panne', 'immobilisation'],
+    
+    // Défauts visuels et physiques
+    'cassé': ['brisé', 'rompu', 'fracturé', 'endommagé', 'détruit'],
+    'fissuré': ['craquelé', 'fendu', 'lézardé', 'fêlé'],
+    'oxydé': ['rouillé', 'corrodé', 'oxidation', 'rouille'],
+    'sale': ['encrassé', 'souillé', 'pollué', 'contaminé', 'crasse'],
+    
+    // Alignement et positionnement
+    'désaligné': ['mal aligné', 'décentré', 'décalé', 'faux', 'désaxé'],
+    'desserré': ['lâche', 'détendu', 'relâché', 'libre', 'pas serré'],
+    
+    // Lubrification
+    'sec': ['sans lubrifiant', 'manque huile', 'non lubrifié', 'aride'],
+    'graisse': ['lubrifiant', 'huile', 'graissage', 'lubrification']
+  };
+
+  // Normalisation des textes
+  const normalizeText = (text: string): string => {
+    return text.toLowerCase()
+      .replace(/[àáâãäå]/g, 'a')
+      .replace(/[èéêë]/g, 'e')
+      .replace(/[ìíîï]/g, 'i')
+      .replace(/[òóôõö]/g, 'o')
+      .replace(/[ùúûü]/g, 'u')
+      .replace(/[ç]/g, 'c')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const userText = normalizeText(userSymptoms);
+  const dbText = normalizeText(dbSymptoms);
+  
+  // Correspondance exacte
+  if (userText.includes(dbText) || dbText.includes(userText)) {
+    return 0.9;
+  }
+
+  const userWords = userText.split(' ').filter(w => w.length > 2);
+  const dbWords = dbText.split(' ').filter(w => w.length > 2);
+  
+  let matches = 0;
+  let totalWords = Math.max(userWords.length, 1);
+
+  for (const userWord of userWords) {
+    let bestMatch = 0;
+    
+    // 1. Correspondance directe (score max)
+    if (dbWords.some(dbWord => dbWord === userWord)) {
+      bestMatch = 1.0;
+    } 
+    // 2. Correspondance par inclusion
+    else if (dbWords.some(dbWord => dbWord.includes(userWord) || userWord.includes(dbWord))) {
+      bestMatch = 0.95;
+    }
+    // 3. Correspondance par synonymes 
+    else {
+      for (const [key, synonyms] of Object.entries(synonymDictionary)) {
+        // Le mot utilisateur correspond à la clé ou à un synonyme
+        if (userWord.includes(key) || synonyms.some(syn => userWord.includes(syn))) {
+          // Vérifier si le texte DB contient la clé ou un synonyme
+          if (dbWords.some(dbWord => 
+            dbWord.includes(key) || 
+            synonyms.some(syn => dbWord.includes(syn))
+          )) {
+            bestMatch = Math.max(bestMatch, 0.85);
+          }
+        }
+        // Le contraire : le mot DB correspond à la clé, le mot utilisateur à un synonyme
+        if (dbWords.some(dbWord => dbWord.includes(key))) {
+          if (synonyms.some(syn => userWord.includes(syn))) {
+            bestMatch = Math.max(bestMatch, 0.8);
+          }
+        }
+      }
+    }
+    
+    // 4. Correspondance partielle (sous-chaînes communes)
+    if (bestMatch < 0.5) {
+      for (const dbWord of dbWords) {
+        if (userWord.length > 3 && dbWord.length > 3) {
+          const commonSubstring = findLongestCommonSubstring(userWord, dbWord);
+          if (commonSubstring.length >= 4) {
+            const partialScore = (commonSubstring.length / Math.max(userWord.length, dbWord.length)) * 0.7;
+            bestMatch = Math.max(bestMatch, partialScore);
+          }
+        }
+      }
+    }
+    
+    matches += bestMatch;
+  }
+
+  return Math.min(matches / totalWords, 1.0);
+}
+
+function findLongestCommonSubstring(str1: string, str2: string): string {
+  let longest = '';
+  for (let i = 0; i < str1.length; i++) {
+    for (let j = i + 1; j <= str1.length; j++) {
+      const substring = str1.slice(i, j);
+      if (str2.includes(substring) && substring.length > longest.length) {
+        longest = substring;
+      }
+    }
+  }
+  return longest;
+}
+
+function calculateContextualScore(userEquipment: string, dbEquipment: string, 
+                                userZone: string, dbZone: string): number {
+  let score = 0;
+  
+  // Score pour type d'équipement
+  if (userEquipment.toLowerCase() === dbEquipment.toLowerCase()) {
+    score += 0.4;
+  } else if (userEquipment.toLowerCase().includes(dbEquipment.toLowerCase()) || 
+             dbEquipment.toLowerCase().includes(userEquipment.toLowerCase())) {
+    score += 0.2;
+  }
+  
+  // Score pour zone/contexte
+  if (userZone && dbZone) {
+    if (userZone.toLowerCase() === dbZone.toLowerCase()) {
+      score += 0.2;
+    } else if (userZone.toLowerCase().includes(dbZone.toLowerCase()) || 
+               dbZone.toLowerCase().includes(userZone.toLowerCase())) {
+      score += 0.1;
+    }
+  }
+  
+  return score;
+}
+
 function calculateRiskLevel(case_: any, currentUrgency: string): string {
   const urgencyScores = { low: 1, medium: 2, high: 3 };
   const caseUrgency = urgencyScores[case_.urgency as keyof typeof urgencyScores] || 2;
@@ -89,6 +258,42 @@ function estimateRepairCost(duration: number = 60, equipmentType: string): strin
   const estimatedCost = Math.round((duration / 60) * baseCostPerHour * multiplier);
   
   return `${estimatedCost}€`;
+}
+
+function generateAdvancedAIInsights(case_: any, semanticSimilarity: number, textSimilarity: number, contextualScore: number): string {
+  const insights = [];
+  
+  // Analyse sémantique
+  if (semanticSimilarity > 0.8) {
+    insights.push(`🎯 Correspondance sémantique exceptionnelle (${Math.round(semanticSimilarity * 100)}%)`);
+  } else if (semanticSimilarity > 0.6) {
+    insights.push(`🧠 Bonne correspondance sémantique (${Math.round(semanticSimilarity * 100)}%)`);
+  } else if (semanticSimilarity > 0.4) {
+    insights.push(`🔍 Correspondance sémantique modérée (${Math.round(semanticSimilarity * 100)}%)`);
+  }
+  
+  // Analyse contextuelle
+  if (contextualScore > 0.3) {
+    insights.push(`⚙️ Contexte équipement très pertinent`);
+  } else if (contextualScore > 0.1) {
+    insights.push(`🔧 Contexte équipement pertinent`);
+  }
+  
+  // Analyse de correspondance textuelle
+  if (textSimilarity > 0.7) {
+    insights.push(`📝 Correspondance textuelle forte`);
+  } else if (textSimilarity > 0.4) {
+    insights.push(`📄 Correspondance textuelle modérée`);
+  }
+  
+  // Recommandations spécifiques
+  if (semanticSimilarity > 0.7 && contextualScore > 0.2) {
+    insights.push(`✅ Diagnostic hautement recommandé pour ce type d'équipement`);
+  } else if (semanticSimilarity > 0.5) {
+    insights.push(`💡 Diagnostic probable basé sur l'analyse sémantique`);
+  }
+  
+  return insights.length > 0 ? insights.join(' • ') : 'Analyse en cours...';
 }
 
 function generateAIInsights(case_: any, symptomScore: number, textSimilarity: number): string {
@@ -355,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         similarCases = await storage.getMaintenanceCases();
       }
       
-      // Enhanced AI-powered diagnostic algorithm
+      // Enhanced AI-powered diagnostic algorithm with semantic analysis
       const suggestions = similarCases.map(case_ => {
         // Symptom matching with weighted scoring
         const symptomMatches = (data.symptomsChecked || []).filter(symptom => 
@@ -368,11 +573,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case_.symptoms.toLowerCase()
         );
         
-        // Equipment type exact match bonus
-        const equipmentBonus = case_.equipmentType === data.equipmentType ? 0.2 : 0;
+        // Advanced semantic similarity analysis
+        const semanticSimilarity = calculateSemanticSimilarity(
+          data.symptoms, 
+          case_.symptoms
+        );
         
-        // Zone/location context similarity
-        const locationBonus = case_.zone === data.zone ? 0.1 : 0;
+        // Contextual scoring (equipment + zone)
+        const contextualScore = calculateContextualScore(
+          data.equipmentType, case_.equipmentType,
+          data.zone || '', case_.zone || ''
+        );
         
         // Urgency level matching
         const urgencyBonus = case_.urgency === data.urgency ? 0.1 : 0;
@@ -381,14 +592,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const totalSymptoms = Math.max((data.symptomsChecked || []).length, 1);
         const symptomScore = symptomMatches / totalSymptoms;
         
-        // Weighted confidence calculation (ML-inspired)
+        // Weighted confidence calculation with semantic enhancement
         const baseConfidence = case_.confidence || 0.5;
         const adjustedConfidence = Math.min(
           baseConfidence * (
-            0.4 * symptomScore + 
-            0.3 * textSimilarity + 
-            0.2 * equipmentBonus + 
-            0.05 * locationBonus + 
+            0.35 * semanticSimilarity +   // Priorité à l'analyse sémantique
+            0.25 * symptomScore + 
+            0.2 * textSimilarity + 
+            0.15 * contextualScore +
             0.05 * urgencyBonus
           ), 
           0.99
@@ -409,10 +620,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           duration: case_.duration,
           riskLevel,
           costEstimate,
-          aiInsights: generateAIInsights(case_, symptomScore, textSimilarity)
+          aiInsights: generateAdvancedAIInsights(case_, semanticSimilarity, textSimilarity, contextualScore)
         };
       })
-      .filter(suggestion => suggestion.confidence > 5) // Very permissive filter
+      .filter(suggestion => suggestion.confidence > 10) // Permissive filter with semantic boost
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 4); // Return top 4 suggestions
       

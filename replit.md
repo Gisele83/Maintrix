@@ -42,6 +42,9 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **NEW: Comprehensive documentation center with guides, videos, FAQ**
 ✓ **ADDED: Interactive training modules with progress tracking**
 ✓ **CREATED: Support section accessible via navigation with bilingual content**
+✓ **ENHANCED: Advanced semantic symptom analysis with synonym dictionary**
+✓ **IMPROVED: Diagnostic algorithm now understands variations in symptom descriptions**
+✓ **ADDED: Contextual scoring combines equipment type, zone, and semantic similarity**
 
 ## System Architecture
 
