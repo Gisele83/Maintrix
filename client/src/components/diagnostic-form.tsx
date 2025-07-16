@@ -82,68 +82,119 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
     { value: "transfert", label: "Transfert" },
   ];
 
-  const symptomOptions = [
-    // Symptômes mécaniques
-    { id: "bruit_anormal", label: t("abnormalNoise", language), category: "mechanical" },
-    { id: "vibrations", label: t("vibrations", language), category: "mechanical" },
-    { id: "vibrations_excessives", label: "Vibrations excessives", category: "mechanical" },
-    { id: "blocage_mecanique", label: "Blocage mécanique", category: "mechanical" },
-    { id: "jeu_excessif", label: "Jeu excessif", category: "mechanical" },
-    { id: "desalignement", label: "Désalignement", category: "mechanical" },
-    { id: "usure_anormale", label: "Usure anormale", category: "mechanical" },
-    { id: "roulement_defaillant", label: "Roulement défaillant", category: "mechanical" },
-    
-    // Symptômes thermiques
-    { id: "surchauffe", label: t("overheating", language), category: "thermal" },
-    { id: "temperature_elevee", label: "Température élevée", category: "thermal" },
-    { id: "points_chauds", label: "Points chauds détectés", category: "thermal" },
-    { id: "refroidissement_insuffisant", label: "Refroidissement insuffisant", category: "thermal" },
-    { id: "ventilation_defaillante", label: "Ventilation défaillante", category: "thermal" },
-    
-    // Symptômes électriques
-    { id: "panne_electrique", label: t("electricalFailure", language), category: "electrical" },
-    { id: "disjonction_frequente", label: "Disjonction fréquente", category: "electrical" },
-    { id: "tension_anormale", label: "Tension anormale", category: "electrical" },
-    { id: "intensite_elevee", label: "Intensité élevée", category: "electrical" },
-    { id: "etincelles", label: "Étincelles", category: "electrical" },
-    { id: "odeur_brule", label: "Odeur de brûlé", category: "electrical" },
-    { id: "defaut_terre", label: "Défaut de terre", category: "electrical" },
-    { id: "court_circuit", label: "Court-circuit", category: "electrical" },
-    
-    // Symptômes hydrauliques/pneumatiques
-    { id: "fuite", label: t("leak", language), category: "fluid" },
-    { id: "pression_faible", label: "Pression faible", category: "fluid" },
-    { id: "pression_instable", label: "Pression instable", category: "fluid" },
-    { id: "debit_reduit", label: "Débit réduit", category: "fluid" },
-    { id: "cavitation", label: "Cavitation", category: "fluid" },
-    { id: "amorcage_difficile", label: "Amorçage difficile", category: "fluid" },
-    { id: "perte_amorcage", label: "Perte d'amorçage", category: "fluid" },
-    { id: "claquement_valves", label: "Claquement de valves", category: "fluid" },
-    
-    // Symptômes de performance
-    { id: "performance_degradee", label: t("degradedPerformance", language), category: "performance" },
-    { id: "rendement_faible", label: "Rendement faible", category: "performance" },
-    { id: "vitesse_incorrecte", label: "Vitesse incorrecte", category: "performance" },
-    { id: "arret_intempestif", label: "Arrêt intempestif", category: "performance" },
-    { id: "demarrage_difficile", label: "Démarrage difficile", category: "performance" },
-    { id: "fonctionnement_intermittent", label: "Fonctionnement intermittent", category: "performance" },
-    { id: "perte_couple", label: "Perte de couple", category: "performance" },
-    
-    // Symptômes de commande/contrôle
-    { id: "defaut_capteur", label: "Défaut capteur", category: "control" },
-    { id: "erreur_communication", label: "Erreur de communication", category: "control" },
-    { id: "ecran_defaillant", label: "Écran défaillant", category: "control" },
-    { id: "reglage_perdu", label: "Réglage perdu", category: "control" },
-    { id: "alarme_active", label: "Alarme active", category: "control" },
-    { id: "voyant_defaut", label: "Voyant défaut", category: "control" },
-    
-    // Symptômes environnementaux
-    { id: "corrosion", label: "Corrosion", category: "environmental" },
-    { id: "encrassement", label: "Encrassement", category: "environmental" },
-    { id: "humidite_excessive", label: "Humidité excessive", category: "environmental" },
-    { id: "poussiere_excessive", label: "Poussière excessive", category: "environmental" },
-    { id: "contamination", label: "Contamination", category: "environmental" },
-  ];
+  // Symptômes spécifiques par type d'équipement
+  const getSymptomsByEquipment = (equipmentType: string) => {
+    const allSymptoms = {
+      // Moteur électrique
+      moteur: [
+        { id: "motor_overheating", label: "Surchauffe moteur", category: "thermal", priority: "high" },
+        { id: "motor_vibrations", label: "Vibrations anormales", category: "mechanical", priority: "high" },
+        { id: "bearing_noise", label: "Bruit de roulement", category: "mechanical", priority: "high" },
+        { id: "motor_humming", label: "Ronronnement sans démarrage", category: "electrical", priority: "high" },
+        { id: "insulation_defect", label: "Défaut d'isolement", category: "electrical", priority: "medium" },
+        { id: "phase_imbalance", label: "Déséquilibre des phases", category: "electrical", priority: "medium" },
+        { id: "motor_misalignment", label: "Désalignement", category: "mechanical", priority: "medium" },
+        { id: "coupling_wear", label: "Usure accouplement", category: "mechanical", priority: "medium" },
+        { id: "motor_sparks", label: "Étincelles aux balais", category: "electrical", priority: "low" },
+        { id: "cooling_fan_failure", label: "Défaut ventilation", category: "thermal", priority: "low" },
+      ],
+      
+      // Pompe hydraulique
+      pompe: [
+        { id: "pump_cavitation", label: "Cavitation", category: "fluid", priority: "high" },
+        { id: "hydraulic_leak", label: "Fuite hydraulique", category: "fluid", priority: "high" },
+        { id: "pressure_loss", label: "Perte de pression", category: "fluid", priority: "high" },
+        { id: "insufficient_flow", label: "Débit insuffisant", category: "performance", priority: "high" },
+        { id: "pump_vibrations", label: "Vibrations", category: "mechanical", priority: "medium" },
+        { id: "seal_failure", label: "Défaillance joints", category: "fluid", priority: "medium" },
+        { id: "impeller_wear", label: "Usure roue", category: "mechanical", priority: "medium" },
+        { id: "suction_problems", label: "Problème d'aspiration", category: "fluid", priority: "medium" },
+        { id: "pump_overheating", label: "Surchauffe pompe", category: "thermal", priority: "low" },
+        { id: "air_bubbles", label: "Bulles d'air", category: "fluid", priority: "low" },
+      ],
+
+      // Compresseur
+      compresseur: [
+        { id: "compressor_overheating", label: "Surchauffe compresseur", category: "thermal", priority: "high" },
+        { id: "pressure_drop", label: "Chute de pression", category: "performance", priority: "high" },
+        { id: "valve_problems", label: "Problème soupapes", category: "mechanical", priority: "high" },
+        { id: "oil_leak", label: "Fuite d'huile", category: "fluid", priority: "medium" },
+        { id: "compressor_noise", label: "Bruit excessif", category: "mechanical", priority: "medium" },
+        { id: "vibration_excessive", label: "Vibrations excessives", category: "mechanical", priority: "medium" },
+        { id: "filter_clogging", label: "Colmatage filtres", category: "fluid", priority: "medium" },
+        { id: "belt_wear", label: "Usure courroies", category: "mechanical", priority: "low" },
+        { id: "cooling_issues", label: "Problème refroidissement", category: "thermal", priority: "low" },
+      ],
+
+      // Convoyeur
+      convoyeur: [
+        { id: "belt_slippage", label: "Glissement courroie", category: "mechanical", priority: "high" },
+        { id: "belt_misalignment", label: "Désalignement bande", category: "mechanical", priority: "high" },
+        { id: "roller_seizure", label: "Grippage rouleau", category: "mechanical", priority: "high" },
+        { id: "drive_motor_issues", label: "Problème moteur d'entraînement", category: "electrical", priority: "medium" },
+        { id: "belt_wear", label: "Usure bande transporteuse", category: "mechanical", priority: "medium" },
+        { id: "tensioning_problems", label: "Problème tension", category: "mechanical", priority: "medium" },
+        { id: "bearing_failure", label: "Défaillance roulements", category: "mechanical", priority: "medium" },
+        { id: "frame_vibration", label: "Vibration châssis", category: "mechanical", priority: "low" },
+        { id: "speed_variation", label: "Variation vitesse", category: "performance", priority: "low" },
+      ],
+
+      // Variateur de vitesse
+      variateur: [
+        { id: "drive_overheating", label: "Surchauffe variateur", category: "thermal", priority: "high" },
+        { id: "fault_code", label: "Code défaut", category: "control", priority: "high" },
+        { id: "output_voltage_error", label: "Erreur tension sortie", category: "electrical", priority: "high" },
+        { id: "communication_fault", label: "Défaut communication", category: "control", priority: "medium" },
+        { id: "fan_failure", label: "Défaut ventilateur", category: "thermal", priority: "medium" },
+        { id: "parameter_drift", label: "Dérive paramètres", category: "control", priority: "medium" },
+        { id: "dc_bus_error", label: "Erreur bus DC", category: "electrical", priority: "medium" },
+        { id: "ground_fault", label: "Défaut masse", category: "electrical", priority: "low" },
+        { id: "display_issues", label: "Problème affichage", category: "control", priority: "low" },
+      ],
+
+      // Capteur/Instrumentation
+      capteur: [
+        { id: "sensor_drift", label: "Dérive capteur", category: "control", priority: "high" },
+        { id: "signal_loss", label: "Perte signal", category: "control", priority: "high" },
+        { id: "calibration_error", label: "Erreur étalonnage", category: "control", priority: "high" },
+        { id: "wiring_issues", label: "Problème câblage", category: "electrical", priority: "medium" },
+        { id: "interference", label: "Interférences", category: "electrical", priority: "medium" },
+        { id: "sensor_contamination", label: "Contamination capteur", category: "environmental", priority: "medium" },
+        { id: "power_supply_fault", label: "Défaut alimentation", category: "electrical", priority: "medium" },
+        { id: "mounting_problems", label: "Problème fixation", category: "mechanical", priority: "low" },
+        { id: "temperature_compensation", label: "Compensation température", category: "control", priority: "low" },
+      ],
+
+      // Automate (PLC)
+      automate: [
+        { id: "plc_fault", label: "Défaut automate", category: "control", priority: "high" },
+        { id: "io_module_error", label: "Erreur module E/S", category: "control", priority: "high" },
+        { id: "communication_timeout", label: "Timeout communication", category: "control", priority: "high" },
+        { id: "memory_error", label: "Erreur mémoire", category: "control", priority: "medium" },
+        { id: "watchdog_fault", label: "Défaut watchdog", category: "control", priority: "medium" },
+        { id: "power_supply_issue", label: "Problème alimentation", category: "electrical", priority: "medium" },
+        { id: "program_corruption", label: "Corruption programme", category: "control", priority: "medium" },
+        { id: "battery_low", label: "Pile faible", category: "electrical", priority: "low" },
+        { id: "fieldbus_error", label: "Erreur bus terrain", category: "control", priority: "low" },
+      ],
+
+      // Autre équipement (symptômes génériques)
+      autre: [
+        { id: "general_malfunction", label: "Dysfonctionnement général", category: "performance", priority: "high" },
+        { id: "unusual_noise", label: "Bruit inhabituel", category: "mechanical", priority: "medium" },
+        { id: "temperature_rise", label: "Élévation température", category: "thermal", priority: "medium" },
+        { id: "vibration_detected", label: "Vibrations détectées", category: "mechanical", priority: "medium" },
+        { id: "electrical_fault", label: "Défaut électrique", category: "electrical", priority: "medium" },
+        { id: "fluid_problems", label: "Problème fluide", category: "fluid", priority: "low" },
+        { id: "control_issues", label: "Problème contrôle", category: "control", priority: "low" },
+        { id: "environmental_damage", label: "Dommage environnemental", category: "environmental", priority: "low" },
+      ],
+    };
+
+    return allSymptoms[equipmentType as keyof typeof allSymptoms] || allSymptoms.autre;
+  };
+
+  const currentSymptoms = getSymptomsByEquipment(form.watch("equipmentType"));
 
   const handleSymptomChange = (symptomId: string, checked: boolean) => {
     const updated = checked 
@@ -255,180 +306,101 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             </div>
           </div>
 
-          {/* Symptoms */}
+          {/* Symptoms - Dynamic based on Equipment Type */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-3">
+              {form.watch("equipmentType") 
+                ? `Symptômes spécifiques - ${equipmentTypes.find(t => t.value === form.watch("equipmentType"))?.label || 'Équipement'}`
+                : "Sélectionnez d'abord un type d'équipement"
+              }
+            </Label>
+            
+            {form.watch("equipmentType") ? (
+              <div>
+                {/* Symptômes prioritaires */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-sm text-red-700 mb-2 flex items-center">
+                    🚨 Symptômes critiques
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {currentSymptoms.filter(s => s.priority === "high").map((symptom) => (
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-red-50 p-2 rounded border-l-4 border-red-500">
+                        <Checkbox
+                          id={symptom.id}
+                          checked={selectedSymptoms.includes(symptom.id)}
+                          onCheckedChange={(checked) => 
+                            handleSymptomChange(symptom.id, checked as boolean)
+                          }
+                          className="border-red-300 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                        />
+                        <Label htmlFor={symptom.id} className="text-sm font-medium text-red-800">
+                          {symptom.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Symptômes moyens */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-sm text-orange-700 mb-2 flex items-center">
+                    ⚠️ Symptômes moyens
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {currentSymptoms.filter(s => s.priority === "medium").map((symptom) => (
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-orange-50 p-2 rounded">
+                        <Checkbox
+                          id={symptom.id}
+                          checked={selectedSymptoms.includes(symptom.id)}
+                          onCheckedChange={(checked) => 
+                            handleSymptomChange(symptom.id, checked as boolean)
+                          }
+                          className="border-orange-300 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                        />
+                        <Label htmlFor={symptom.id} className="text-sm text-orange-800">
+                          {symptom.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Symptômes mineurs */}
+                <div>
+                  <h4 className="font-medium text-sm text-blue-700 mb-2 flex items-center">
+                    ℹ️ Symptômes mineurs
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {currentSymptoms.filter(s => s.priority === "low").map((symptom) => (
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-blue-50 p-2 rounded">
+                        <Checkbox
+                          id={symptom.id}
+                          checked={selectedSymptoms.includes(symptom.id)}
+                          onCheckedChange={(checked) => 
+                            handleSymptomChange(symptom.id, checked as boolean)
+                          }
+                          className="border-blue-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                        />
+                        <Label htmlFor={symptom.id} className="text-sm text-blue-800">
+                          {symptom.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <p className="text-gray-600">Veuillez d'abord sélectionner un type d'équipement pour voir les symptômes spécifiques</p>
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Symptoms Description */}
+          <div>
+            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
               {t("symptomsObservedRequired", language)}
             </Label>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-3">
-              {/* Mechanical Symptoms */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  ⚙️ Symptômes mécaniques
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "mechanical").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thermal Symptoms */}
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  🌡️ Symptômes thermiques
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "thermal").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Electrical Symptoms */}
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  ⚡ Symptômes électriques
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "electrical").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fluid Symptoms */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  💧 Symptômes hydrauliques/pneumatiques
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "fluid").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Performance Symptoms */}
-              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  📈 Symptômes de performance
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "performance").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Control Symptoms */}
-              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                  🎛️ Symptômes de commande/contrôle
-                </h4>
-                <div className="space-y-2">
-                  {symptomOptions.filter(s => s.category === "control").map((symptom) => (
-                    <div key={symptom.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={symptom.id}
-                        checked={selectedSymptoms.includes(symptom.id)}
-                        onCheckedChange={(checked) => 
-                          handleSymptomChange(symptom.id, checked as boolean)
-                        }
-                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                      />
-                      <Label htmlFor={symptom.id} className="text-sm">
-                        {symptom.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Environmental Symptoms - Full width */}
-            <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg mb-3">
-              <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
-                🌿 Symptômes environnementaux
-              </h4>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                {symptomOptions.filter(s => s.category === "environmental").map((symptom) => (
-                  <div key={symptom.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={symptom.id}
-                      checked={selectedSymptoms.includes(symptom.id)}
-                      onCheckedChange={(checked) => 
-                        handleSymptomChange(symptom.id, checked as boolean)
-                      }
-                      className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                    />
-                    <Label htmlFor={symptom.id} className="text-sm">
-                      {symptom.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
             <Textarea
               placeholder={t("symptomsPlaceholder", language)}
               rows={4}
