@@ -7,10 +7,13 @@ import {
   InsertReportedCase,
   DiagnosticSession,
   InsertDiagnosticSession,
+  UserProfile,
+  InsertUserProfile,
   maintenanceCases,
   repairProcedures,
   reportedCases,
-  diagnosticSessions
+  diagnosticSessions,
+  userProfiles
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, ilike, or, and, desc, arrayContains, sql } from "drizzle-orm";
@@ -36,6 +39,14 @@ export interface IStorage {
   getDiagnosticSessions(): Promise<DiagnosticSession[]>;
   createDiagnosticSession(data: InsertDiagnosticSession): Promise<DiagnosticSession>;
   updateDiagnosticSession(id: number, updates: Partial<DiagnosticSession>): Promise<DiagnosticSession>;
+
+  // User Profiles
+  getUserProfiles(): Promise<UserProfile[]>;
+  getUserProfileById(id: number): Promise<UserProfile | undefined>;
+  getUserProfileByUsername(username: string): Promise<UserProfile | undefined>;
+  createUserProfile(data: InsertUserProfile): Promise<UserProfile>;
+  updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile>;
+  deleteUserProfile(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -43,6 +54,7 @@ export class MemStorage implements IStorage {
   private repairProcedures: Map<number, RepairProcedure>;
   private reportedCases: Map<number, ReportedCase>;
   private diagnosticSessions: Map<number, DiagnosticSession>;
+  private userProfiles: Map<number, UserProfile>;
   private currentId: number;
 
   constructor() {
@@ -50,8 +62,10 @@ export class MemStorage implements IStorage {
     this.repairProcedures = new Map();
     this.reportedCases = new Map();
     this.diagnosticSessions = new Map();
+    this.userProfiles = new Map();
     this.currentId = 1;
     this.initializeData();
+    this.initializeUserProfiles();
   }
 
   private initializeData() {
@@ -243,6 +257,70 @@ export class MemStorage implements IStorage {
     this.currentId = 10;
   }
 
+  private initializeUserProfiles() {
+    // Initialize with sample user profiles for development
+    const profiles: UserProfile[] = [
+      {
+        id: 1,
+        username: "marc.dupont",
+        firstName: "Marc",
+        lastName: "Dupont",
+        email: "marc.dupont@entreprise.fr",
+        role: "supervisor",
+        department: "Maintenance",
+        phoneNumber: "+33 1 23 45 67 89",
+        preferredLanguage: "fr",
+        specializations: ["Moteurs électriques", "Systèmes hydrauliques", "Automatisation"],
+        experienceLevel: "expert",
+        isActive: true,
+        lastLogin: new Date("2024-07-15T08:30:00Z"),
+        createdAt: new Date("2024-01-15T09:00:00Z"),
+        updatedAt: new Date("2024-07-15T08:30:00Z"),
+      },
+      {
+        id: 2,
+        username: "sarah.martin",
+        firstName: "Sarah",
+        lastName: "Martin",
+        email: "sarah.martin@entreprise.fr",
+        role: "technician",
+        department: "Production",
+        phoneNumber: "+33 1 23 45 67 90",
+        preferredLanguage: "fr",
+        specializations: ["Convoyeurs", "Emballage", "Contrôle qualité"],
+        experienceLevel: "intermediate",
+        isActive: true,
+        lastLogin: new Date("2024-07-16T07:45:00Z"),
+        createdAt: new Date("2024-02-01T10:00:00Z"),
+        updatedAt: new Date("2024-07-16T07:45:00Z"),
+      },
+      {
+        id: 3,
+        username: "thomas.bernard",
+        firstName: "Thomas",
+        lastName: "Bernard",
+        email: "thomas.bernard@entreprise.fr",
+        role: "technician",
+        department: "Maintenance",
+        phoneNumber: "+33 1 23 45 67 91",
+        preferredLanguage: "fr",
+        specializations: ["Pneumatique", "Mécanique générale"],
+        experienceLevel: "beginner",
+        isActive: true,
+        lastLogin: new Date("2024-07-16T06:00:00Z"),
+        createdAt: new Date("2024-06-01T08:00:00Z"),
+        updatedAt: new Date("2024-07-16T06:00:00Z"),
+      },
+    ];
+
+    profiles.forEach(profile => {
+      this.userProfiles.set(profile.id, profile);
+    });
+
+    // Update currentId to be higher than existing IDs
+    this.currentId = Math.max(this.currentId, ...profiles.map(p => p.id)) + 1;
+  }
+
   // Maintenance Cases
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {
     return Array.from(this.maintenanceCases.values());
@@ -359,6 +437,46 @@ export class MemStorage implements IStorage {
     Object.assign(session, updates);
     this.diagnosticSessions.set(id, session);
     return session;
+  }
+
+  // User Profile Methods
+  async getUserProfiles(): Promise<UserProfile[]> {
+    return Array.from(this.userProfiles.values());
+  }
+
+  async getUserProfileById(id: number): Promise<UserProfile | undefined> {
+    return this.userProfiles.get(id);
+  }
+
+  async getUserProfileByUsername(username: string): Promise<UserProfile | undefined> {
+    return Array.from(this.userProfiles.values()).find(profile => profile.username === username);
+  }
+
+  async createUserProfile(data: InsertUserProfile): Promise<UserProfile> {
+    const id = this.currentId++;
+    const userProfile: UserProfile = {
+      ...data,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: null,
+    };
+    this.userProfiles.set(id, userProfile);
+    return userProfile;
+  }
+
+  async updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile> {
+    const existing = this.userProfiles.get(id);
+    if (!existing) {
+      throw new Error("User profile not found");
+    }
+    const updated = { ...existing, ...updates, updatedAt: new Date() };
+    this.userProfiles.set(id, updated);
+    return updated;
+  }
+
+  async deleteUserProfile(id: number): Promise<boolean> {
+    return this.userProfiles.delete(id);
   }
 }
 
@@ -484,6 +602,49 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Diagnostic session with id ${id} not found`);
     }
     return session;
+  }
+
+  // User Profile Methods for DatabaseStorage
+  async getUserProfiles(): Promise<UserProfile[]> {
+    return await db.select().from(userProfiles).orderBy(desc(userProfiles.createdAt));
+  }
+
+  async getUserProfileById(id: number): Promise<UserProfile | undefined> {
+    const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.id, id));
+    return profile || undefined;
+  }
+
+  async getUserProfileByUsername(username: string): Promise<UserProfile | undefined> {
+    const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.username, username));
+    return profile || undefined;
+  }
+
+  async createUserProfile(data: InsertUserProfile): Promise<UserProfile> {
+    const [profile] = await db
+      .insert(userProfiles)
+      .values(data)
+      .returning();
+    return profile;
+  }
+
+  async updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile> {
+    const [profile] = await db
+      .update(userProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(userProfiles.id, id))
+      .returning();
+    
+    if (!profile) {
+      throw new Error(`User profile with id ${id} not found`);
+    }
+    return profile;
+  }
+
+  async deleteUserProfile(id: number): Promise<boolean> {
+    const result = await db
+      .delete(userProfiles)
+      .where(eq(userProfiles.id, id));
+    return result.rowCount > 0;
   }
 }
 

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnosticSessionSchema } from "@shared/schema";
+import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnosticSessionSchema, insertUserProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { spawn } from "child_process";
 import path from "path";
@@ -93,24 +93,102 @@ function estimateRepairCost(duration: number = 60, equipmentType: string): strin
 
 function generateAIInsights(case_: any, symptomScore: number, textSimilarity: number): string {
   const insights = [];
+  const urgencyLevel = case_.urgency || "medium";
+  const equipmentType = case_.equipmentType || "unknown";
+  const zone = case_.zone || "unknown";
+  const sector = case_.sector || "unknown";
   
-  if (symptomScore > 0.7) {
-    insights.push("Symptômes très similaires détectés");
+  // Confidence analysis
+  if (textSimilarity > 0.8) {
+    insights.push(`🎯 Correspondance exceptionnelle (${Math.round(textSimilarity * 100)}%)`);
+  } else if (textSimilarity > 0.6) {
+    insights.push(`🔍 Bonne correspondance (${Math.round(textSimilarity * 100)}%)`);
+  } else if (textSimilarity > 0.4) {
+    insights.push(`📊 Correspondance modérée (${Math.round(textSimilarity * 100)}%)`);
+  } else {
+    insights.push(`💡 Diagnostic heuristique basé sur l'expérience`);
   }
   
-  if (textSimilarity > 0.5) {
-    insights.push("Description correspondante trouvée");
+  // Symptom analysis
+  if (symptomScore > 3) {
+    insights.push(`⚠️ Symptômes multiples détectés (${symptomScore} indicateurs)`);
+  } else if (symptomScore > 1) {
+    insights.push(`🔍 Symptômes principaux identifiés`);
   }
   
-  if (case_.resolved && case_.confidence && case_.confidence > 0.85) {
-    insights.push("Solution validée avec succès");
+  // Context information
+  if (zone !== "unknown") {
+    insights.push(`📍 Zone: ${zone}`);
   }
   
+  if (sector !== "unknown") {
+    insights.push(`🏭 Secteur: ${sector}`);
+  }
+  
+  // Urgency indicator
+  const urgencyEmoji = urgencyLevel === "high" ? "🚨" : urgencyLevel === "medium" ? "⚡" : "🔵";
+  insights.push(`${urgencyEmoji} Priorité: ${urgencyLevel}`);
+  
+  // Additional context
   if (case_.duration && case_.duration < 60) {
-    insights.push("Réparation rapide probable");
+    insights.push("⏱️ Réparation rapide probable");
+  } else if (case_.duration && case_.duration > 180) {
+    insights.push("⏳ Intervention complexe prévue");
   }
   
-  return insights.length > 0 ? insights.join(" • ") : "Analyse basée sur l'historique";
+  return insights.join(" • ");
+}
+
+function generateContextualSolution(diagnosis: string, equipmentType: string, zone: string = "unknown", sector: string = "unknown"): string {
+  const solutions: { [key: string]: { [key: string]: string } } = {
+    "Roulement défaillant": {
+      "moteur": "Remplacer le roulement défaillant, vérifier l'alignement et la lubrification",
+      "pompe": "Remplacer le roulement, contrôler l'équilibrage de la roue et l'état de l'arbre",
+      "compresseur": "Changer le roulement, vérifier la pression et les vibrations",
+      "default": "Remplacement du roulement avec inspection complète"
+    },
+    "Joint d'étanchéité usé": {
+      "pompe": "Remplacer les joints d'étanchéité, vérifier la pression et l'alignement",
+      "moteur": "Changer les joints de carter, contrôler l'étanchéité générale",
+      "default": "Remplacement des joints avec test d'étanchéité"
+    },
+    "Amorçage déficient": {
+      "pompe": "Vérifier le circuit d'aspiration, purger l'air et contrôler le clapet",
+      "compresseur": "Contrôler le système d'amorçage et les valves d'admission",
+      "default": "Diagnostic du circuit d'amorçage et réparation"
+    },
+    "Usure des balais": {
+      "moteur": "Remplacer les balais, nettoyer le collecteur et vérifier les ressorts",
+      "default": "Remplacement des balais et maintenance du collecteur"
+    },
+    "Problème électrique": {
+      "moteur": "Diagnostic électrique complet, test d'isolement et vérification des connexions",
+      "automate": "Contrôler les entrées/sorties, vérifier l'alimentation et les câblages",
+      "variateur": "Test des paramètres, vérification des signaux et calibrage",
+      "default": "Diagnostic électrique approfondi et réparation"
+    }
+  };
+  
+  const equipmentSolutions = solutions[diagnosis] || {};
+  let baseSolution = equipmentSolutions[equipmentType] || equipmentSolutions["default"] || `Intervention technique pour: ${diagnosis}`;
+  
+  // Add context based on zone and sector
+  if (zone !== "unknown") {
+    const zoneContext = {
+      "production": " - Minimiser l'arrêt de production",
+      "conditionnement": " - Coordonner avec la ligne de conditionnement", 
+      "stockage": " - Prévoir la gestion des stocks pendant l'intervention",
+      "utilites": " - Vérifier l'impact sur les services auxiliaires",
+      "maintenance": " - Utiliser l'atelier pour les réparations complexes"
+    };
+    baseSolution += zoneContext[zone] || "";
+  }
+  
+  if (sector !== "unknown" && sector.includes("ligne")) {
+    baseSolution += ` - Intervention sur ${sector.toUpperCase()}`;
+  }
+  
+  return baseSolution;
 }
 
 function generatePredictiveTips(equipmentType: string, diagnosis: string): string[] {
@@ -172,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Transform ML results to match expected format
         const suggestions = mlResult.predictions?.map((pred: any, index: number) => ({
           diagnosis: pred.diagnosis,
-          solution: `Solution ML pour: ${pred.diagnosis}`, // We'll need to enhance this
+          solution: generateContextualSolution(pred.diagnosis, data.equipmentType, data.zone, data.sector),
           confidence: Math.round(pred.confidence * 100),
           matchingCases: 1,
           caseId: 1000 + index, // Temporary ID for ML predictions
@@ -977,6 +1055,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Invalid enhanced ML diagnostic request",
         error: error instanceof z.ZodError ? error.errors : error.message
       });
+    }
+  });
+
+  // User Profile Management endpoints
+  app.get("/api/user-profiles", async (req, res) => {
+    try {
+      const profiles = await storage.getUserProfiles();
+      res.json(profiles);
+    } catch (error) {
+      console.error("Error fetching user profiles:", error);
+      res.status(500).json({ error: "Failed to fetch user profiles" });
+    }
+  });
+
+  app.get("/api/user-profiles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const profile = await storage.getUserProfileById(id);
+      if (!profile) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
+  app.post("/api/user-profiles", async (req, res) => {
+    try {
+      const data = insertUserProfileSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingProfile = await storage.getUserProfileByUsername(data.username);
+      if (existingProfile) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      
+      const profile = await storage.createUserProfile(data);
+      res.status(201).json(profile);
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Invalid profile data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create user profile" });
+      }
+    }
+  });
+
+  app.put("/api/user-profiles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      // Remove fields that shouldn't be updated directly
+      delete updates.id;
+      delete updates.createdAt;
+      
+      const profile = await storage.updateUserProfile(id, updates);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      if (error.message.includes("not found")) {
+        res.status(404).json({ error: "User profile not found" });
+      } else {
+        res.status(500).json({ error: "Failed to update user profile" });
+      }
+    }
+  });
+
+  app.delete("/api/user-profiles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteUserProfile(id);
+      if (!success) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+      res.json({ success: true, message: "User profile deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user profile:", error);
+      res.status(500).json({ error: "Failed to delete user profile" });
     }
   });
 

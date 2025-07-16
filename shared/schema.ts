@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -68,6 +68,29 @@ export const diagnosticSessions = pgTable("diagnostic_sessions", {
   selectedDiagnosis: text("selected_diagnosis"),
   status: text("status").notNull().default("pending"), // pending, in_progress, completed
   createdAt: timestamp("created_at").defaultNow(),
+  confidence: real("confidence"),
+  mlPrediction: boolean("ml_prediction").default(false),
+  sessionData: text("session_data"), // JSON string for additional session data
+  userId: integer("user_id"), // Link to user profile
+});
+
+// User profiles table
+export const userProfiles = pgTable("user_profiles", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  firstName: varchar("first_name", { length: 50 }),
+  lastName: varchar("last_name", { length: 50 }),
+  email: varchar("email", { length: 100 }).unique(),
+  role: varchar("role", { length: 30 }).default("technician"), // technician, supervisor, admin
+  department: varchar("department", { length: 50 }),
+  phoneNumber: varchar("phone_number", { length: 20 }),
+  preferredLanguage: varchar("preferred_language", { length: 5 }).default("fr"),
+  specializations: text("specializations").array(), // Areas of expertise
+  experienceLevel: varchar("experience_level", { length: 20 }).default("intermediate"), // beginner, intermediate, expert
+  isActive: boolean("is_active").default(true),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Insert schemas
@@ -92,6 +115,13 @@ export const insertDiagnosticSessionSchema = createInsertSchema(diagnosticSessio
   status: true,
 });
 
+export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLogin: true,
+});
+
 // Types
 export type MaintenanceCase = typeof maintenanceCases.$inferSelect;
 export type InsertMaintenanceCase = z.infer<typeof insertMaintenanceCaseSchema>;
@@ -104,5 +134,8 @@ export type InsertReportedCase = z.infer<typeof insertReportedCaseSchema>;
 
 export type DiagnosticSession = typeof diagnosticSessions.$inferSelect;
 export type InsertDiagnosticSession = z.infer<typeof insertDiagnosticSessionSchema>;
+
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 
 export type EquipmentType = typeof equipmentTypes.$inferSelect;

@@ -67,6 +67,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
     { value: "maintenance", label: t("maintenanceWorkshop", language) },
   ];
 
+  const sectors = [
+    { value: "ligne1", label: "Ligne 1" },
+    { value: "ligne2", label: "Ligne 2" },
+    { value: "ligne3", label: "Ligne 3" },
+    { value: "secteur_a", label: "Secteur A" },
+    { value: "secteur_b", label: "Secteur B" },
+    { value: "secteur_c", label: "Secteur C" },
+    { value: "atelier_mecanique", label: "Atelier Mécanique" },
+    { value: "atelier_electrique", label: "Atelier Électrique" },
+    { value: "reception", label: "Réception" },
+    { value: "expedition", label: "Expédition" },
+    { value: "qualite", label: "Contrôle Qualité" },
+    { value: "transfert", label: "Transfert" },
+  ];
+
   const symptomOptions = [
     { id: "bruit_anormal", label: t("abnormalNoise", language) },
     { id: "vibrations", label: t("vibrations", language) },
@@ -160,13 +175,20 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             </div>
             <div>
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
-                {t("sector", language)}
+                Ligne/Secteur
               </Label>
-              <Input
-                placeholder={t("sectorPlaceholder", language)}
-                {...form.register("sector")}
-                className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
-              />
+              <Select onValueChange={(value) => form.setValue("sector", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner ligne/secteur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sectors.map((sector) => (
+                    <SelectItem key={sector.value} value={sector.value}>
+                      {sector.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2 } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users } from "lucide-react";
+import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
@@ -232,6 +233,16 @@ export default function Dashboard() {
                 </Button>
               );
             })}
+            
+            {/* User Profiles Link */}
+            <div className="ml-auto flex items-center">
+              <Link href="/profiles">
+                <Button variant="outline" className="flex items-center space-x-2">
+                  <Users className="w-4 h-4" />
+                  <span>Profils</span>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
