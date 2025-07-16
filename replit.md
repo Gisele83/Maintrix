@@ -31,6 +31,8 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **NEW: Enhanced UI with ensemble ML metrics and model agreement display**
 ✓ **FIXED: Resolved repair section display issue - now generates automatic procedures**
 ✓ **FIXED: Corrected database schema compatibility for repair procedures**
+✓ **ENHANCED: Greatly expanded symptoms checklist with 40+ industrial-specific options**
+✓ **NEW: Organized symptoms by categories (mechanical, thermal, electrical, fluid, performance, control, environmental)**
 
 ## System Architecture
 

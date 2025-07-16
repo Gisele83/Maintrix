@@ -83,12 +83,66 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   ];
 
   const symptomOptions = [
-    { id: "bruit_anormal", label: t("abnormalNoise", language) },
-    { id: "vibrations", label: t("vibrations", language) },
-    { id: "surchauffe", label: t("overheating", language) },
-    { id: "panne_electrique", label: t("electricalFailure", language) },
-    { id: "fuite", label: t("leak", language) },
-    { id: "performance_degradee", label: t("degradedPerformance", language) },
+    // Symptômes mécaniques
+    { id: "bruit_anormal", label: t("abnormalNoise", language), category: "mechanical" },
+    { id: "vibrations", label: t("vibrations", language), category: "mechanical" },
+    { id: "vibrations_excessives", label: "Vibrations excessives", category: "mechanical" },
+    { id: "blocage_mecanique", label: "Blocage mécanique", category: "mechanical" },
+    { id: "jeu_excessif", label: "Jeu excessif", category: "mechanical" },
+    { id: "desalignement", label: "Désalignement", category: "mechanical" },
+    { id: "usure_anormale", label: "Usure anormale", category: "mechanical" },
+    { id: "roulement_defaillant", label: "Roulement défaillant", category: "mechanical" },
+    
+    // Symptômes thermiques
+    { id: "surchauffe", label: t("overheating", language), category: "thermal" },
+    { id: "temperature_elevee", label: "Température élevée", category: "thermal" },
+    { id: "points_chauds", label: "Points chauds détectés", category: "thermal" },
+    { id: "refroidissement_insuffisant", label: "Refroidissement insuffisant", category: "thermal" },
+    { id: "ventilation_defaillante", label: "Ventilation défaillante", category: "thermal" },
+    
+    // Symptômes électriques
+    { id: "panne_electrique", label: t("electricalFailure", language), category: "electrical" },
+    { id: "disjonction_frequente", label: "Disjonction fréquente", category: "electrical" },
+    { id: "tension_anormale", label: "Tension anormale", category: "electrical" },
+    { id: "intensite_elevee", label: "Intensité élevée", category: "electrical" },
+    { id: "etincelles", label: "Étincelles", category: "electrical" },
+    { id: "odeur_brule", label: "Odeur de brûlé", category: "electrical" },
+    { id: "defaut_terre", label: "Défaut de terre", category: "electrical" },
+    { id: "court_circuit", label: "Court-circuit", category: "electrical" },
+    
+    // Symptômes hydrauliques/pneumatiques
+    { id: "fuite", label: t("leak", language), category: "fluid" },
+    { id: "pression_faible", label: "Pression faible", category: "fluid" },
+    { id: "pression_instable", label: "Pression instable", category: "fluid" },
+    { id: "debit_reduit", label: "Débit réduit", category: "fluid" },
+    { id: "cavitation", label: "Cavitation", category: "fluid" },
+    { id: "amorcage_difficile", label: "Amorçage difficile", category: "fluid" },
+    { id: "perte_amorcage", label: "Perte d'amorçage", category: "fluid" },
+    { id: "claquement_valves", label: "Claquement de valves", category: "fluid" },
+    
+    // Symptômes de performance
+    { id: "performance_degradee", label: t("degradedPerformance", language), category: "performance" },
+    { id: "rendement_faible", label: "Rendement faible", category: "performance" },
+    { id: "vitesse_incorrecte", label: "Vitesse incorrecte", category: "performance" },
+    { id: "arret_intempestif", label: "Arrêt intempestif", category: "performance" },
+    { id: "demarrage_difficile", label: "Démarrage difficile", category: "performance" },
+    { id: "fonctionnement_intermittent", label: "Fonctionnement intermittent", category: "performance" },
+    { id: "perte_couple", label: "Perte de couple", category: "performance" },
+    
+    // Symptômes de commande/contrôle
+    { id: "defaut_capteur", label: "Défaut capteur", category: "control" },
+    { id: "erreur_communication", label: "Erreur de communication", category: "control" },
+    { id: "ecran_defaillant", label: "Écran défaillant", category: "control" },
+    { id: "reglage_perdu", label: "Réglage perdu", category: "control" },
+    { id: "alarme_active", label: "Alarme active", category: "control" },
+    { id: "voyant_defaut", label: "Voyant défaut", category: "control" },
+    
+    // Symptômes environnementaux
+    { id: "corrosion", label: "Corrosion", category: "environmental" },
+    { id: "encrassement", label: "Encrassement", category: "environmental" },
+    { id: "humidite_excessive", label: "Humidité excessive", category: "environmental" },
+    { id: "poussiere_excessive", label: "Poussière excessive", category: "environmental" },
+    { id: "contamination", label: "Contamination", category: "environmental" },
   ];
 
   const handleSymptomChange = (symptomId: string, checked: boolean) => {
@@ -194,25 +248,177 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
           {/* Symptoms */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+            <Label className="text-sm font-medium text-carbon-gray-90 mb-3">
               {t("symptomsObservedRequired", language)}
             </Label>
-            <div className="space-y-2 mb-3">
-              {symptomOptions.map((symptom) => (
-                <div key={symptom.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={symptom.id}
-                    checked={selectedSymptoms.includes(symptom.id)}
-                    onCheckedChange={(checked) => 
-                      handleSymptomChange(symptom.id, checked as boolean)
-                    }
-                    className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
-                  />
-                  <Label htmlFor={symptom.id} className="text-sm">
-                    {symptom.label}
-                  </Label>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-3">
+              {/* Mechanical Symptoms */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  ⚙️ Symptômes mécaniques
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "mechanical").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Thermal Symptoms */}
+              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  🌡️ Symptômes thermiques
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "thermal").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Electrical Symptoms */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  ⚡ Symptômes électriques
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "electrical").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fluid Symptoms */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  💧 Symptômes hydrauliques/pneumatiques
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "fluid").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Performance Symptoms */}
+              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  📈 Symptômes de performance
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "performance").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Control Symptoms */}
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                  🎛️ Symptômes de commande/contrôle
+                </h4>
+                <div className="space-y-2">
+                  {symptomOptions.filter(s => s.category === "control").map((symptom) => (
+                    <div key={symptom.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={symptom.id}
+                        checked={selectedSymptoms.includes(symptom.id)}
+                        onCheckedChange={(checked) => 
+                          handleSymptomChange(symptom.id, checked as boolean)
+                        }
+                        className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                      />
+                      <Label htmlFor={symptom.id} className="text-sm">
+                        {symptom.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Environmental Symptoms - Full width */}
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg mb-3">
+              <h4 className="font-medium text-sm text-carbon-gray-90 mb-2 flex items-center">
+                🌿 Symptômes environnementaux
+              </h4>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {symptomOptions.filter(s => s.category === "environmental").map((symptom) => (
+                  <div key={symptom.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={symptom.id}
+                      checked={selectedSymptoms.includes(symptom.id)}
+                      onCheckedChange={(checked) => 
+                        handleSymptomChange(symptom.id, checked as boolean)
+                      }
+                      className="border-carbon-gray-20 data-[state=checked]:bg-carbon-blue data-[state=checked]:border-carbon-blue"
+                    />
+                    <Label htmlFor={symptom.id} className="text-sm">
+                      {symptom.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
             <Textarea
               placeholder={t("symptomsPlaceholder", language)}
