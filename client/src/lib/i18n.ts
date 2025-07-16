@@ -48,6 +48,11 @@ export const translations = {
     variableSpeedDrive: "Variateur de vitesse",
     sensorInstrumentation: "Capteur/Instrumentation",
     plc: "Automate programmable",
+    powerConverter: "Convertisseur de puissance",
+    inverterUps: "Onduleur/UPS",
+    rectifier: "Redresseur",
+    electronicBoard: "Carte électronique",
+    powerSupply: "Alimentation électronique",
     other: "Autre",
     
     // Zones
@@ -218,6 +223,11 @@ export const translations = {
     variableSpeedDrive: "Variable speed drive",
     sensorInstrumentation: "Sensor/Instrumentation",
     plc: "PLC",
+    powerConverter: "Power converter",
+    inverterUps: "Inverter/UPS",
+    rectifier: "Rectifier",
+    electronicBoard: "Electronic board",
+    powerSupply: "Power supply",
     other: "Other",
     
     // Zones

@@ -56,11 +56,11 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
     { value: "variateur", label: t("variableSpeedDrive", language) },
     { value: "capteur", label: t("sensorInstrumentation", language) },
     { value: "automate", label: t("plc", language) },
-    { value: "convertisseur", label: "Convertisseur de puissance" },
-    { value: "onduleur", label: "Onduleur/UPS" },
-    { value: "redresseur", label: "Redresseur" },
-    { value: "carte_electronique", label: "Carte électronique" },
-    { value: "alimentation", label: "Alimentation électronique" },
+    { value: "convertisseur", label: t("powerConverter", language) },
+    { value: "onduleur", label: t("inverterUps", language) },
+    { value: "redresseur", label: t("rectifier", language) },
+    { value: "carte_electronique", label: t("electronicBoard", language) },
+    { value: "alimentation", label: t("powerSupply", language) },
     { value: "autre", label: t("other", language) },
   ];
 
