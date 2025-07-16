@@ -64,26 +64,50 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   ];
 
   const zones = [
-    { value: "production", label: language === "fr" ? "Production" : "Production" },
-    { value: "conditionnement", label: language === "fr" ? "Conditionnement" : "Packaging" },
-    { value: "stockage", label: language === "fr" ? "Stockage" : "Storage" },
-    { value: "utilites", label: language === "fr" ? "Utilités" : "Utilities" },
-    { value: "maintenance", label: language === "fr" ? "Atelier maintenance" : "Maintenance workshop" },
+    { value: "production", label: language === "fr" ? "Zone Production" : "Production Zone" },
+    { value: "conditionnement", label: language === "fr" ? "Zone Conditionnement" : "Packaging Zone" },
+    { value: "stockage", label: language === "fr" ? "Zone Stockage" : "Storage Zone" },
+    { value: "utilites", label: language === "fr" ? "Zone Utilités" : "Utilities Zone" },
+    { value: "maintenance", label: language === "fr" ? "Atelier Maintenance" : "Maintenance Workshop" },
+    { value: "energie", label: language === "fr" ? "Zone Énergie" : "Energy Zone" },
+    { value: "traitement_eau", label: language === "fr" ? "Traitement des Eaux" : "Water Treatment" },
+    { value: "air_comprime", label: language === "fr" ? "Air Comprimé" : "Compressed Air" },
+    { value: "reception", label: language === "fr" ? "Zone Réception" : "Reception Zone" },
+    { value: "expedition", label: language === "fr" ? "Zone Expédition" : "Shipping Zone" },
+    { value: "qualite", label: language === "fr" ? "Contrôle Qualité" : "Quality Control" },
+    { value: "laboratoire", label: language === "fr" ? "Laboratoire" : "Laboratory" },
+    { value: "bureau_etudes", label: language === "fr" ? "Bureau d'Études" : "Engineering Office" },
+    { value: "exterieur", label: language === "fr" ? "Zone Extérieure" : "Outdoor Zone" },
   ];
 
   const sectors = [
-    { value: "ligne1", label: "Ligne 1" },
-    { value: "ligne2", label: "Ligne 2" },
-    { value: "ligne3", label: "Ligne 3" },
-    { value: "secteur_a", label: "Secteur A" },
-    { value: "secteur_b", label: "Secteur B" },
-    { value: "secteur_c", label: "Secteur C" },
-    { value: "atelier_mecanique", label: "Atelier Mécanique" },
-    { value: "atelier_electrique", label: "Atelier Électrique" },
-    { value: "reception", label: "Réception" },
-    { value: "expedition", label: "Expédition" },
-    { value: "qualite", label: "Contrôle Qualité" },
-    { value: "transfert", label: "Transfert" },
+    // Lignes de production
+    { value: "ligne1", label: language === "fr" ? "Ligne Production 1" : "Production Line 1" },
+    { value: "ligne2", label: language === "fr" ? "Ligne Production 2" : "Production Line 2" },
+    { value: "ligne3", label: language === "fr" ? "Ligne Production 3" : "Production Line 3" },
+    { value: "ligne4", label: language === "fr" ? "Ligne Production 4" : "Production Line 4" },
+    
+    // Secteurs industriels
+    { value: "secteur_a", label: language === "fr" ? "Secteur A - Préparation" : "Sector A - Preparation" },
+    { value: "secteur_b", label: language === "fr" ? "Secteur B - Assemblage" : "Sector B - Assembly" },
+    { value: "secteur_c", label: language === "fr" ? "Secteur C - Finition" : "Sector C - Finishing" },
+    { value: "secteur_d", label: language === "fr" ? "Secteur D - Contrôle" : "Sector D - Control" },
+    
+    // Ateliers spécialisés
+    { value: "atelier_mecanique", label: language === "fr" ? "Atelier Mécanique" : "Mechanical Workshop" },
+    { value: "atelier_electrique", label: language === "fr" ? "Atelier Électrique" : "Electrical Workshop" },
+    { value: "atelier_soudure", label: language === "fr" ? "Atelier Soudure" : "Welding Workshop" },
+    { value: "atelier_usinage", label: language === "fr" ? "Atelier Usinage" : "Machining Workshop" },
+    
+    // Zones fonctionnelles
+    { value: "poste_1", label: language === "fr" ? "Poste de Travail 1" : "Workstation 1" },
+    { value: "poste_2", label: language === "fr" ? "Poste de Travail 2" : "Workstation 2" },
+    { value: "poste_3", label: language === "fr" ? "Poste de Travail 3" : "Workstation 3" },
+    { value: "convoyage", label: language === "fr" ? "Système Convoyage" : "Conveyor System" },
+    { value: "stockage_automatise", label: language === "fr" ? "Stockage Automatisé" : "Automated Storage" },
+    { value: "centrale_hydraulique", label: language === "fr" ? "Centrale Hydraulique" : "Hydraulic Unit" },
+    { value: "tableau_electrique", label: language === "fr" ? "Tableau Électrique Principal" : "Main Electrical Panel" },
+    { value: "transformateur", label: language === "fr" ? "Poste Transformateur" : "Transformer Station" },
   ];
 
   // Symptômes spécifiques par type d'équipement
@@ -357,7 +381,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               </Label>
               <select
                 value={form.watch("zone") || ""}
-                onChange={(e) => form.setValue("zone", e.target.value)}
+                onChange={(e) => {
+                  console.log("Zone selected:", e.target.value);
+                  form.setValue("zone", e.target.value);
+                }}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">{language === "fr" ? "Sélectionner une zone..." : "Select a zone..."}</option>
@@ -374,7 +401,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               </Label>
               <select
                 value={form.watch("sector") || ""}
-                onChange={(e) => form.setValue("sector", e.target.value)}
+                onChange={(e) => {
+                  console.log("Sector selected:", e.target.value);
+                  form.setValue("sector", e.target.value);
+                }}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="">{language === "fr" ? "Sélectionner ligne/secteur..." : "Select line/sector..."}</option>

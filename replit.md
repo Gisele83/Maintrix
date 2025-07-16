@@ -49,6 +49,10 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **EXPANDED: Added 13 equipment types including power electronics (converters, UPS, rectifiers)**
 ✓ **DETAILED: Specific failure modes for electronic systems and power conversion equipment**
 ✓ **ORGANIZED: Symptoms categorized by priority (critical, medium, minor) with color coding**
+✓ **FIXED: Resolved menu dropdown errors by replacing Radix UI Select with native HTML select**
+✓ **ENHANCED: Expanded zones and sectors with comprehensive industrial facility options**
+✓ **ADDED: 14 zones including energy, water treatment, compressed air, laboratory**
+✓ **DETAILED: 18 sectors covering production lines, workshops, workstations, electrical panels**
 
 ## System Architecture
 
