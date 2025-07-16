@@ -525,8 +525,8 @@ export default function Dashboard() {
             <div>
               <h4 className="font-medium mb-3">{t("support", language)}</h4>
               <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• {t("documentation", language)}</li>
-                <li>• {t("training", language)}</li>
+                <li>• <Link href="/documentation" className="hover:text-white transition-colors cursor-pointer">{t("documentation", language)}</Link></li>
+                <li>• <Link href="/training" className="hover:text-white transition-colors cursor-pointer">{t("training", language)}</Link></li>
                 <li>• {t("technicalContact", language)}</li>
               </ul>
             </div>
