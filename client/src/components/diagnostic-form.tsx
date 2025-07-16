@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useLanguage } from "@/hooks/use-language";
@@ -315,24 +315,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
               {language === "fr" ? "Type d'équipement *" : "Equipment type *"}
             </Label>
-            <Select 
-              value={form.watch("equipmentType") || ""} 
-              onValueChange={(value) => {
-                console.log("Equipment type selected:", value);
-                form.setValue("equipmentType", value);
+            <select
+              value={form.watch("equipmentType") || ""}
+              onChange={(e) => {
+                console.log("Equipment type selected:", e.target.value);
+                form.setValue("equipmentType", e.target.value);
               }}
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={language === "fr" ? "Sélectionner un type d'équipement..." : "Select equipment type..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {equipmentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value="">{language === "fr" ? "Sélectionner un type d'équipement..." : "Select equipment type..."}</option>
+              {equipmentTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
             {form.formState.errors.equipmentType && (
               <p className="text-carbon-red text-sm mt-1">
                 {form.formState.errors.equipmentType.message}
@@ -358,41 +355,35 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
                 {language === "fr" ? "Zone" : "Zone"}
               </Label>
-              <Select 
-                value={form.watch("zone") || ""} 
-                onValueChange={(value) => form.setValue("zone", value)}
+              <select
+                value={form.watch("zone") || ""}
+                onChange={(e) => form.setValue("zone", e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={language === "fr" ? "Sélectionner une zone..." : "Select a zone..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {zones.map((zone) => (
-                    <SelectItem key={zone.value} value={zone.value}>
-                      {zone.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">{language === "fr" ? "Sélectionner une zone..." : "Select a zone..."}</option>
+                {zones.map((zone) => (
+                  <option key={zone.value} value={zone.value}>
+                    {zone.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
                 {language === "fr" ? "Ligne/Secteur" : "Line/Sector"}
               </Label>
-              <Select 
-                value={form.watch("sector") || ""} 
-                onValueChange={(value) => form.setValue("sector", value)}
+              <select
+                value={form.watch("sector") || ""}
+                onChange={(e) => form.setValue("sector", e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={language === "fr" ? "Sélectionner ligne/secteur..." : "Select line/sector..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sectors.map((sector) => (
-                    <SelectItem key={sector.value} value={sector.value}>
-                      {sector.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">{language === "fr" ? "Sélectionner ligne/secteur..." : "Select line/sector..."}</option>
+                {sectors.map((sector) => (
+                  <option key={sector.value} value={sector.value}>
+                    {sector.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
