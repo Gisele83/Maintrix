@@ -49,19 +49,19 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   });
 
   const equipmentTypes = [
-    { value: "moteur", label: t("electricMotor", language) },
-    { value: "pompe", label: t("hydraulicPump", language) },
-    { value: "compresseur", label: t("compressor", language) },
-    { value: "convoyeur", label: t("conveyor", language) },
-    { value: "variateur", label: t("variableSpeedDrive", language) },
-    { value: "capteur", label: t("sensorInstrumentation", language) },
-    { value: "automate", label: t("plc", language) },
-    { value: "convertisseur", label: t("powerConverter", language) },
-    { value: "onduleur", label: t("inverterUps", language) },
-    { value: "redresseur", label: t("rectifier", language) },
-    { value: "carte_electronique", label: t("electronicBoard", language) },
-    { value: "alimentation", label: t("powerSupply", language) },
-    { value: "autre", label: t("other", language) },
+    { value: "moteur", label: language === "fr" ? "Moteur électrique" : "Electric motor" },
+    { value: "pompe", label: language === "fr" ? "Pompe hydraulique" : "Hydraulic pump" },
+    { value: "compresseur", label: language === "fr" ? "Compresseur" : "Compressor" },
+    { value: "convoyeur", label: language === "fr" ? "Convoyeur" : "Conveyor" },
+    { value: "variateur", label: language === "fr" ? "Variateur de vitesse" : "Variable speed drive" },
+    { value: "capteur", label: language === "fr" ? "Capteur/Instrumentation" : "Sensor/Instrumentation" },
+    { value: "automate", label: language === "fr" ? "Automate programmable" : "PLC" },
+    { value: "convertisseur", label: language === "fr" ? "Convertisseur de puissance" : "Power converter" },
+    { value: "onduleur", label: language === "fr" ? "Onduleur/UPS" : "Inverter/UPS" },
+    { value: "redresseur", label: language === "fr" ? "Redresseur" : "Rectifier" },
+    { value: "carte_electronique", label: language === "fr" ? "Carte électronique" : "Electronic board" },
+    { value: "alimentation", label: language === "fr" ? "Alimentation électronique" : "Power supply" },
+    { value: "autre", label: language === "fr" ? "Autre" : "Other" },
   ];
 
   const zones = [
