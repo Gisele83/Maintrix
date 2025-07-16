@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useLanguage } from "@/hooks/use-language";
-import { t } from "@/lib/i18n";
 
 const diagnosticSchema = z.object({
   equipmentType: z.string().min(1, "Equipment type is required"),
@@ -318,7 +317,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             </Label>
             <Select 
               value={form.watch("equipmentType") || ""} 
-              onValueChange={(value) => form.setValue("equipmentType", value)}
+              onValueChange={(value) => {
+                console.log("Equipment type selected:", value);
+                form.setValue("equipmentType", value);
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder={language === "fr" ? "Sélectionner un type d'équipement..." : "Select equipment type..."} />
@@ -398,7 +400,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-3">
               {form.watch("equipmentType") 
-                ? `Symptômes spécifiques - ${equipmentTypes.find(t => t.value === form.watch("equipmentType"))?.label || 'Équipement'}`
+                ? `Symptômes spécifiques - ${equipmentTypes.find(eq => eq.value === form.watch("equipmentType"))?.label || 'Équipement'}`
                 : "Sélectionnez d'abord un type d'équipement"
               }
             </Label>
