@@ -15,13 +15,24 @@ export function MaintenanceHistory() {
   const { toast } = useToast();
   const [filters, setFilters] = useState({
     search: "",
-    equipmentType: "",
-    period: "",
-    status: "",
+    equipmentType: "all",
+    period: "all",
+    status: "all",
   });
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ["/api/history", filters],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (filters.search) searchParams.set('search', filters.search);
+      if (filters.equipmentType && filters.equipmentType !== 'all') searchParams.set('equipmentType', filters.equipmentType);
+      if (filters.period && filters.period !== 'all') searchParams.set('period', filters.period);
+      if (filters.status && filters.status !== 'all') searchParams.set('status', filters.status);
+      
+      const response = await fetch(`/api/history?${searchParams.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch history');
+      return response.json();
+    },
   });
 
   const handleFilterChange = (key: string, value: string) => {
@@ -59,7 +70,7 @@ export function MaintenanceHistory() {
   };
 
   const equipmentTypes = [
-    { value: "", label: t("allTypes", language) },
+    { value: "all", label: t("allTypes", language) },
     { value: "moteur", label: t("electricMotor", language) },
     { value: "pompe", label: t("hydraulicPump", language) },
     { value: "compresseur", label: t("compressor", language) },
@@ -67,14 +78,14 @@ export function MaintenanceHistory() {
   ];
 
   const periods = [
-    { value: "", label: t("allPeriods", language) },
+    { value: "all", label: t("allPeriods", language) },
     { value: "7d", label: t("last7Days", language) },
     { value: "30d", label: t("last30Days", language) },
     { value: "90d", label: t("last3Months", language) },
   ];
 
   const statuses = [
-    { value: "", label: t("allStatuses", language) },
+    { value: "all", label: t("allStatuses", language) },
     { value: "completed", label: t("resolved", language) },
     { value: "in_progress", label: t("pending", language) },
     { value: "failed", label: t("failed", language) },
