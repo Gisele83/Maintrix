@@ -44,6 +44,8 @@ export default function Dashboard() {
   const [advancedMode, setAdvancedMode] = useState(false);
   const [enhancedMode, setEnhancedMode] = useState(false);
   const [ensembleMode, setEnsembleMode] = useState(false);
+  const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
+  const [cloudInsights, setCloudInsights] = useState<string>("");
 
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
@@ -64,11 +66,14 @@ export default function Dashboard() {
       console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setCurrentSessionId(result.sessionId || null);
+      setCloudSearchPerformed(result.cloudSearchPerformed || false);
+      setCloudInsights(result.cloudInsights || "");
       setIsAnalyzing(false);
       const mlType = result.ensembleML ? " (Ensemble ML)" : result.enhancedML ? " (Enhanced ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
+      const cloudNote = result.cloudSearchPerformed ? " + Recherche Cloud" : "";
       toast({
         title: t("success", language),
-        description: `Diagnostic terminé${mlType} - ${result.suggestions?.length || 0} suggestions trouvées`,
+        description: `Diagnostic terminé${mlType}${cloudNote} - ${result.suggestions?.length || 0} suggestions trouvées`,
       });
     },
     onError: () => {
@@ -475,6 +480,8 @@ export default function Dashboard() {
               onStartRepair={handleStartRepair}
               onSaveDiagnostic={handleSaveDiagnostic}
               sessionId={currentSessionId}
+              cloudSearchPerformed={cloudSearchPerformed}
+              cloudInsights={cloudInsights}
             />
           </div>
         )}

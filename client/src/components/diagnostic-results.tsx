@@ -1,4 +1,4 @@
-import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch, MessageSquare } from "lucide-react";
+import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch, MessageSquare, Cloud, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,12 @@ interface DiagnosticSuggestion {
   ensembleAgreement?: number;
   individualPredictions?: any;
   riskAssessment?: any;
+  // Cloud diagnostic fields
+  cloudSource?: boolean;
+  repairSteps?: string[];
+  safetyWarnings?: string[];
+  tools?: string[];
+  difficulty?: string;
 }
 
 interface DiagnosticResultsProps {
@@ -38,6 +44,8 @@ interface DiagnosticResultsProps {
   onStartRepair: (caseId: number) => void;
   onSaveDiagnostic: (suggestion: DiagnosticSuggestion) => void;
   sessionId?: number;
+  cloudSearchPerformed?: boolean;
+  cloudInsights?: string;
 }
 
 export function DiagnosticResults({ 
@@ -45,7 +53,9 @@ export function DiagnosticResults({
   isLoading, 
   onStartRepair, 
   onSaveDiagnostic,
-  sessionId 
+  sessionId,
+  cloudSearchPerformed,
+  cloudInsights
 }: DiagnosticResultsProps) {
   const { language } = useLanguage();
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
@@ -124,6 +134,28 @@ export function DiagnosticResults({
       </CardHeader>
       
       <CardContent className="p-6">
+        {/* Cloud Search Indicator */}
+        {cloudSearchPerformed && (
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center space-x-2 mb-2">
+              <Cloud className="text-blue-500 w-5 h-5" />
+              <span className="font-medium text-blue-800">Recherche Cloud Effectuée</span>
+              <Badge className="bg-blue-500 text-white text-xs">
+                <Globe className="w-3 h-3 mr-1" />
+                IA Cloud
+              </Badge>
+            </div>
+            <p className="text-sm text-blue-700">
+              Analyse intelligente effectuée dans le cloud pour les symptômes non reconnus dans la base locale.
+            </p>
+            {cloudInsights && (
+              <div className="mt-2 p-2 bg-blue-100/50 rounded text-xs text-blue-800">
+                <strong>Insights IA:</strong> {cloudInsights}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="space-y-6">
           {suggestions.map((suggestion, index) => (
             <div key={index} className="border border-carbon-gray-20 rounded-lg p-6 hover:shadow-lg transition-all duration-200 bg-white">
@@ -131,6 +163,12 @@ export function DiagnosticResults({
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <h4 className="font-semibold text-carbon-gray-90 text-lg">{suggestion.diagnosis}</h4>
+                  {suggestion.cloudSource && (
+                    <Badge variant="secondary" className="bg-blue-500 text-white text-xs">
+                      <Cloud className="w-3 h-3 mr-1" />
+                      Cloud IA
+                    </Badge>
+                  )}
                   {suggestion.advancedML && (
                     <Badge variant="secondary" className="bg-carbon-blue text-white text-xs">
                       <Brain className="w-3 h-3 mr-1" />

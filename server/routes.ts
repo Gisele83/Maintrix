@@ -5,6 +5,7 @@ import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnostic
 import { z } from "zod";
 import { spawn } from "child_process";
 import path from "path";
+import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -350,6 +351,20 @@ function generateAIInsights(case_: any, symptomScore: number, textSimilarity: nu
   return insights.join(" • ");
 }
 
+// Helper function to parse duration from cloud suggestions
+function parseDuration(estimatedTime: string): number {
+  // Extract numbers from strings like "2-4 heures", "30 minutes", etc.
+  const match = estimatedTime.match(/(\d+)/);
+  if (match) {
+    const num = parseInt(match[1]);
+    if (estimatedTime.toLowerCase().includes('heure')) {
+      return num * 60; // Convert hours to minutes
+    }
+    return num; // Assume minutes if no unit specified
+  }
+  return 60; // Default 1 hour
+}
+
 function generateContextualSolution(diagnosis: string, equipmentType: string, zone: string = "unknown", sector: string = "unknown"): string {
   const solutions: { [key: string]: { [key: string]: string } } = {
     "Roulement défaillant": {
@@ -652,6 +667,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cloud diagnostic endpoint - search for unknown symptoms
+  app.post("/api/cloud-diagnostic", async (req, res) => {
+    try {
+      const data = z.object({
+        equipmentType: z.string(),
+        zone: z.string().optional(),
+        sector: z.string().optional(),
+        symptoms: z.array(z.string()),
+        customSymptoms: z.string(),
+        urgency: z.string(),
+        context: z.string().optional()
+      }).parse(req.body);
+      
+      console.log("Performing cloud diagnostic for unknown symptoms...");
+      
+      const cloudRequest: CloudDiagnosticRequest = {
+        equipmentType: data.equipmentType,
+        zone: data.zone || "unknown",
+        sector: data.sector || "unknown",
+        symptoms: data.symptoms,
+        customSymptoms: data.customSymptoms,
+        urgency: data.urgency,
+        context: data.context
+      };
+      
+      const cloudResult = await performCloudDiagnostic(cloudRequest);
+      
+      // Also analyze symptom similarity for future improvements
+      if (data.customSymptoms) {
+        try {
+          const similarityResult = await analyzeSymptomSimilarity(
+            data.customSymptoms,
+            data.equipmentType
+          );
+          cloudResult.similarSymptoms = similarityResult.similarSymptoms;
+          cloudResult.suggestedKeywords = similarityResult.suggestedKeywords;
+        } catch (error) {
+          console.error("Similarity analysis error:", error);
+        }
+      }
+      
+      res.json({
+        ...cloudResult,
+        searchType: "cloud_only",
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Cloud diagnostic error:", error);
+      res.status(400).json({ 
+        message: "Erreur lors de la recherche cloud",
+        searchPerformed: false,
+        suggestions: []
+      });
+    }
+  });
+
   // Traditional diagnostic endpoint - analyze symptoms and return suggestions
   app.post("/api/diagnostic", async (req, res) => {
     try {
@@ -746,19 +818,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
       
+      // If no good suggestions found (low confidence), try cloud diagnostic
+      let finalSuggestions = suggestions;
+      let cloudSearchPerformed = false;
+      let cloudInsights = "";
+      
+      if (suggestions.length === 0 || (suggestions.length > 0 && suggestions[0].confidence < 50)) {
+        console.log("Low confidence results, trying cloud diagnostic...");
+        
+        try {
+          const cloudRequest: CloudDiagnosticRequest = {
+            equipmentType: data.equipmentType,
+            zone: data.zone || "unknown",
+            sector: data.sector || "unknown", 
+            symptoms: data.symptomsChecked || [],
+            customSymptoms: data.symptoms,
+            urgency: data.urgency,
+            context: `Zone: ${data.zone}, Secteur: ${data.sector}`
+          };
+          
+          const cloudResult = await performCloudDiagnostic(cloudRequest);
+          
+          if (cloudResult.searchPerformed && cloudResult.suggestions.length > 0) {
+            // Convert cloud suggestions to our format
+            const cloudSuggestions = cloudResult.suggestions.map(cloudSugg => ({
+              diagnosis: cloudSugg.diagnosis,
+              solution: cloudSugg.solution,
+              confidence: cloudSugg.confidence,
+              matchingCases: 0, // Cloud suggestions don't have matching cases
+              caseId: -1, // Special ID for cloud suggestions
+              duration: parseDuration(cloudSugg.estimatedTime),
+              riskLevel: cloudSugg.riskLevel,
+              costEstimate: cloudSugg.cost,
+              aiInsights: `🌐 Suggestion cloud • ${cloudSugg.source} • Confiance: ${cloudSugg.confidence}%`,
+              cloudSource: true,
+              repairSteps: cloudSugg.repairSteps,
+              safetyWarnings: cloudSugg.safetyWarnings,
+              tools: cloudSugg.tools,
+              difficulty: cloudSugg.difficulty
+            }));
+            
+            // If we had some local suggestions, combine them with cloud suggestions
+            if (suggestions.length > 0) {
+              finalSuggestions = [...cloudSuggestions, ...suggestions.slice(0, 2)].slice(0, 4);
+            } else {
+              finalSuggestions = cloudSuggestions.slice(0, 3);
+            }
+            
+            cloudSearchPerformed = true;
+            cloudInsights = cloudResult.aiInsights;
+          }
+        } catch (error) {
+          console.error("Cloud diagnostic error:", error);
+          // Continue with local suggestions if cloud fails
+        }
+      }
+      
+      // Add cloud search indicator to the session
+      const sessionResults = {
+        suggestions: finalSuggestions,
+        cloudSearchPerformed,
+        cloudInsights
+      };
+      
       // Update session with results
       await storage.updateDiagnosticSession(session.id, {
-        results: JSON.stringify(suggestions),
+        results: JSON.stringify(sessionResults),
         status: "completed"
       });
       
       res.json({
         sessionId: session.id,
-        suggestions
+        suggestions: finalSuggestions,
+        cloudSearchPerformed,
+        cloudInsights
       });
     } catch (error) {
       console.error("Diagnostic error:", error);
       res.status(400).json({ message: "Invalid diagnostic request" });
+    }
+  });
+
+  // Symptom analysis endpoint - for unknown symptom descriptions
+  app.post("/api/analyze-symptoms", async (req, res) => {
+    try {
+      const data = z.object({
+        symptom: z.string(),
+        equipmentType: z.string()
+      }).parse(req.body);
+      
+      console.log(`Analyzing unknown symptom: "${data.symptom}" for ${data.equipmentType}`);
+      
+      const result = await analyzeSymptomSimilarity(data.symptom, data.equipmentType);
+      
+      res.json({
+        ...result,
+        originalSymptom: data.symptom,
+        equipmentType: data.equipmentType,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Symptom analysis error:", error);
+      res.status(400).json({ 
+        message: "Erreur lors de l'analyse des symptômes",
+        similarSymptoms: [],
+        suggestedKeywords: [],
+        confidence: 0
+      });
+    }
+  });
+
+  // Maintenance insights endpoint
+  app.get("/api/maintenance-insights/:equipmentType", async (req, res) => {
+    try {
+      const equipmentType = req.params.equipmentType;
+      
+      // Get recent diagnostic history for this equipment type
+      const recentCases = await storage.getMaintenanceCases();
+      const equipmentCases = recentCases
+        .filter(c => c.equipmentType === equipmentType)
+        .slice(0, 10);
+      
+      const insights = await generateMaintenanceInsights(equipmentType, equipmentCases);
+      
+      res.json({
+        equipmentType,
+        ...insights,
+        totalCases: equipmentCases.length,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Maintenance insights error:", error);
+      res.status(400).json({ 
+        message: "Erreur lors de la génération des insights",
+        insights: [],
+        recommendations: [],
+        patterns: []
+      });
     }
   });
   
