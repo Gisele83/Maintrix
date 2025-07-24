@@ -17,7 +17,8 @@ import {
   Brain,
   Wrench,
   Settings,
-  BarChart
+  BarChart,
+  Factory
 } from "lucide-react";
 import { Header } from "@/components/header";
 
@@ -60,7 +61,7 @@ export default function Training() {
     {
       id: "intro-basics",
       title: "Introduction et Bases",
-      description: "Découvrez SMDiagFix et ses fonctionnalités essentielles",
+      description: "Découvrez Smart GMAO DiagFix : Diagnostic IA intégré avec gestion de maintenance complète",
       duration: "45 min",
       difficulty: "Débutant",
       progress: 100,
@@ -68,12 +69,12 @@ export default function Training() {
       lessons: 5,
       category: "Introduction",
       icon: Play,
-      skills: ["Navigation interface", "Première connexion", "Vue d'ensemble"]
+      skills: ["Navigation interface unifiée", "Première connexion", "Vue d'ensemble Diagnostic + GMAO", "Workflow intégré"]
     },
     {
       id: "diagnostic-fundamentals",
-      title: "Fondamentaux du Diagnostic",
-      description: "Maîtrisez les techniques de diagnostic de base",
+      title: "Fondamentaux du Diagnostic IA",
+      description: "Maîtrisez le diagnostic intelligent avec IA intégrée au GMAO",
       duration: "2h 30min",
       difficulty: "Débutant",
       progress: 100,
@@ -81,7 +82,20 @@ export default function Training() {
       lessons: 8,
       category: "Diagnostic",
       icon: Target,
-      skills: ["Analyse symptômes", "Identification problèmes", "Solutions recommandées"]
+      skills: ["Analyse symptômes IA", "Identification problèmes automatisée", "Intégration GMAO", "Workflow unifié"]
+    },
+    {
+      id: "gmao-integration",
+      title: "Intégration GMAO Complète",
+      description: "Du diagnostic à l'intervention : gestion complète de maintenance",
+      duration: "3h 00min",
+      difficulty: "Intermédiaire",
+      progress: 80,
+      completed: false,
+      lessons: 10,
+      category: "GMAO",
+      icon: Factory,
+      skills: ["Ordres de travail", "Planification maintenance", "Suivi interventions", "Workflow validation"]
     },
     {
       id: "advanced-ai",
@@ -140,9 +154,9 @@ export default function Training() {
   const learningPaths: LearningPath[] = [
     {
       id: "technician-path",
-      title: "Parcours Technicien",
-      description: "Formation complète pour les techniciens de maintenance",
-      modules: ["intro-basics", "diagnostic-fundamentals", "maintenance-procedures"],
+      title: "Parcours Technicien Smart GMAO",
+      description: "Formation complète technicien : Diagnostic IA + GMAO intégré",
+      modules: ["intro-basics", "diagnostic-fundamentals", "gmao-integration", "maintenance-procedures"],
       totalDuration: "6h 00min",
       targetAudience: "Techniciens de maintenance, opérateurs",
       icon: Wrench

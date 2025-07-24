@@ -1,8 +1,8 @@
-# SMDiagFix GMAO - Comprehensive Maintenance Management Platform
+# Smart GMAO DiagFix - Comprehensive Maintenance Management Platform
 
 ## Overview
 
-SMDiagFix has evolved into a complete GMAO (Computerized Maintenance Management System) platform that combines AI-powered diagnostics with comprehensive maintenance management capabilities. The system integrates advanced machine learning, IoT sensor data, enterprise systems (SAP/Maximo), and predictive maintenance to provide a unified industrial maintenance solution.
+Smart GMAO DiagFix is a complete integrated platform that seamlessly combines AI-powered diagnostics with comprehensive GMAO (Computerized Maintenance Management System) capabilities. The platform unifies intelligent diagnostic features with full-scale maintenance management in a single, cohesive solution. The system integrates advanced machine learning, IoT sensor data, enterprise systems (SAP/Maximo), and predictive maintenance to provide a unified industrial maintenance solution.
 
 ## User Preferences
 
@@ -103,6 +103,11 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **UPDATED: Work order validation workflow modified to 2-level system (Service Head → Maintenance Department Head)**
 ✓ **OPERATIONAL: Corrected validation workflow aligned with organizational structure**
 ✓ **CONFIRMED: Final validation by Maintenance Department Head enables work order execution**
+✓ **REBRANDED: Platform renamed to "Smart GMAO DiagFix" - unified Diagnostic IA + GMAO platform**
+✓ **INTEGRATED: Payment system with account-linked references (to be configured later)**
+✓ **UPDATED: Documentation and training materials to reflect integrated Diagnostic + GMAO approach**
+✓ **ENHANCED: Navigation includes payment center for subscription and account management**
+✓ **MODERNIZED: Complete platform branding to emphasize the unified maintenance management solution**
 ✓ **COMPLETED: Full-featured React Native mobile application with offline capabilities**
 ✓ **IMPLEMENTED: Complete mobile architecture with navigation, theming, and context providers**
 ✓ **ADDED: Advanced diagnostic screen with ML mode selection and comprehensive form**

@@ -65,6 +65,19 @@ export function Header() {
                 <span>Tarifs</span>
               </Button>
             </Link>
+            <Link href="/payment">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/payment" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <span>Paiement</span>
+              </Button>
+            </Link>
           </nav>
           
           <div className="flex items-center space-x-4">

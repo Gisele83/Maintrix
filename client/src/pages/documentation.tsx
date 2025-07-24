@@ -20,7 +20,8 @@ import {
   Wrench,
   Brain,
   Upload,
-  BarChart
+  BarChart,
+  Factory
 } from "lucide-react";
 import { Header } from "@/components/header";
 
@@ -58,32 +59,53 @@ export default function Documentation() {
   const guides: GuideSection[] = [
     {
       id: "getting-started",
-      title: "Premiers pas avec SMDiagFix",
-      description: "Guide d'introduction pour débuter avec la plateforme",
+      title: "Premiers pas avec Smart GMAO DiagFix",
+      description: "Guide d'introduction pour débuter avec la plateforme intégrée Diagnostic IA + GMAO",
       duration: "15 min",
       difficulty: "Débutant",
       icon: Play,
       content: [
-        "Connexion à la plateforme et interface utilisateur",
-        "Navigation dans les différents modules",
-        "Création de votre premier diagnostic",
-        "Comprendre les résultats IA",
-        "Sauvegarde et historique"
+        "Connexion à Smart GMAO DiagFix et interface unifiée",
+        "Navigation entre les modules Diagnostic IA et GMAO",
+        "Création de votre premier diagnostic avec intelligence artificielle",
+        "Intégration des diagnostics dans les ordres de travail GMAO",
+        "Gestion complète du cycle de maintenance (diagnostic → OT → intervention)",
+        "Comprendre les résultats IA et la maintenance prédictive",
+        "Sauvegarde et historique unifié diagnostic-GMAO"
       ]
     },
     {
       id: "diagnostic-advanced",
-      title: "Diagnostic Avancé",
-      description: "Maîtrisez les fonctionnalités avancées de diagnostic",
-      duration: "25 min",
+      title: "Diagnostic IA Avancé + GMAO",
+      description: "Maîtrisez l'intégration complète Diagnostic IA et GMAO",
+      duration: "35 min",
       difficulty: "Intermédiaire",
       icon: Brain,
       content: [
-        "Utilisation des modes ML avancés",
-        "Interprétation des scores de confiance",
-        "Analyse des anomalies détectées",
-        "Optimisation des diagnostics selon votre contexte",
-        "Personnalisation des symptômes"
+        "Utilisation des modes ML avancés (Ensemble, Neural Networks)",
+        "Interprétation des scores de confiance et analyses prédictives",
+        "Conversion automatique diagnostic → ordre de travail GMAO",
+        "Analyse des anomalies et maintenance prédictive",
+        "Workflow intégré diagnostic → planification → intervention",
+        "Optimisation des diagnostics selon votre contexte industriel",
+        "Personnalisation des symptômes par type d'équipement"
+      ]
+    },
+    {
+      id: "gmao-complete",
+      title: "GMAO Complet - Gestion de Maintenance",
+      description: "Maîtrisez tous les aspects de la gestion de maintenance",
+      duration: "45 min",
+      difficulty: "Intermédiaire",
+      icon: Factory,
+      content: [
+        "Gestion complète des équipements et registres d'actifs",
+        "Création et suivi des ordres de travail",
+        "Planification de la maintenance préventive",
+        "Gestion des stocks et pièces de rechange",
+        "Système de validation multi-niveaux",
+        "Intégration IoT et monitoring en temps réel",
+        "Tableaux de bord et KPIs de maintenance"
       ]
     },
     {
