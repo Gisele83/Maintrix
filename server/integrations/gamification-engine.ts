@@ -703,7 +703,7 @@ export class GamificationEngine extends EventEmitter {
   private checkExpiredChallenges(): void {
     const now = new Date();
     
-    this.activeCharlenges.forEach((challenges, userId) => {
+    this.activeChallenges.forEach((challenges, userId) => {
       const expiredChallenges = challenges.filter(challenge => {
         const timeElapsed = (now.getTime() - challenge.startTime.getTime()) / (1000 * 60); // minutes
         return timeElapsed > 120; // 2 hours timeout
