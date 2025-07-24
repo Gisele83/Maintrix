@@ -386,6 +386,27 @@ export class GMAOStorage {
     return alert;
   }
 
+  // User Profile Methods
+  async createUserProfile(profileData: InsertUserProfile): Promise<UserProfile> {
+    const [profile] = await db
+      .insert(userProfiles)
+      .values(profileData)
+      .onConflictDoUpdate({
+        target: userProfiles.id,
+        set: profileData
+      })
+      .returning();
+    return profile;
+  }
+
+  async getUserProfile(id: number): Promise<UserProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.id, id));
+    return profile;
+  }
+
   // Suppliers management
   async createSupplier(supplierData: InsertSupplier): Promise<Supplier> {
     const [supplier] = await this.db

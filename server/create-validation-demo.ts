@@ -5,6 +5,54 @@ export async function createValidationDemo() {
   try {
     console.log("Creating validation demo data...");
 
+    // First create user profiles for the demo if they don't exist
+    const demoUsers = [
+      {
+        id: 1,
+        username: "chef.service",
+        fullName: "Chef de Service",
+        email: "chef.service@company.com",
+        role: "Chef de Service Utilisateur",
+        canValidateLevel1: true,
+        canValidateLevel2: false,
+        canValidateLevel3: false
+      },
+      {
+        id: 2,
+        username: "marie.dupont",
+        fullName: "Marie Dupont",
+        email: "marie.dupont@company.com",
+        role: "Technicien Maintenance",
+        canValidateLevel1: false,
+        canValidateLevel2: false,
+        canValidateLevel3: false
+      },
+      {
+        id: 3,
+        username: "directeur.general",
+        fullName: "Directeur Général",
+        email: "directeur@company.com",
+        role: "Directeur Général",
+        canValidateLevel1: false,
+        canValidateLevel2: true,
+        canValidateLevel3: false
+      }
+    ];
+
+    // Create user profiles if they don't exist
+    for (const user of demoUsers) {
+      try {
+        const existingUser = await gmaoStorage.getUserProfile(user.id);
+        if (!existingUser) {
+          await gmaoStorage.createUserProfile(user);
+          console.log(`✓ Created user profile: ${user.fullName}`);
+        }
+      } catch (error) {
+        console.log(`Creating user profile: ${user.fullName}`);
+        await gmaoStorage.createUserProfile(user);
+      }
+    }
+
     // Create sample work orders that need validation
     const workOrder1 = await gmaoStorage.createWorkOrder({
       orderNumber: "WO-2025-001",
@@ -50,6 +98,7 @@ export async function createValidationDemo() {
       currency: "EUR",
       validationStatus: "pending",
       requestedBy: "Jean Martin",
+      documentType: "purchase_order", // Will be automatically determined by amount
       priority: "medium",
       deliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
       status: "pending"
@@ -67,6 +116,7 @@ export async function createValidationDemo() {
       currency: "EUR",
       validationStatus: "pending", 
       requestedBy: "Marie Dupont",
+      documentType: "command_letter", // Amount > 1500€
       priority: "high",
       deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
       status: "pending"
