@@ -3,7 +3,7 @@
  * Simple, working implementation for automatic parts ordering
  */
 
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { gmaoStorage } from "./gmao-storage";
 
 // Interface for automatic order results
