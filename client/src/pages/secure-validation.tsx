@@ -158,8 +158,7 @@ export default function SecureValidation() {
   const getLevelDescription = (level: number) => {
     switch (level) {
       case 1: return "Chef de Service";
-      case 2: return "Directeur Général";
-      case 3: return "Service Achats";
+      case 2: return "Chef Département Maintenance";
       default: return "Niveau inconnu";
     }
   };

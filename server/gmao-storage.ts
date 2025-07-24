@@ -1111,22 +1111,19 @@ export class GMAOStorage {
     }
 
     // Get work orders that need validation at the specified level
-    let query;
     if (validationLevel === 1) {
-      query = and(
-        eq(workOrders.validationStatus, "pending"),
-        isNull(workOrders.level1ValidatedBy)
+      // Level 1: Chef de Service - Show pending orders
+      return await db.select().from(workOrders).where(
+        eq(workOrders.validationStatus, "pending")
       );
     } else if (validationLevel === 2) {
-      query = and(
-        eq(workOrders.validationStatus, "level1_validated"),
-        isNull(workOrders.level2ValidatedBy)
+      // Level 2: Chef Département Maintenance - Show orders validated by Chef Service (final validation)
+      return await db.select().from(workOrders).where(
+        eq(workOrders.validationStatus, "level1_validated")
       );
     } else {
       throw new Error("Invalid validation level for work orders");
     }
-
-    return await this.db.select().from(workOrders).where(query);
   }
 
   async validateWorkOrder(data: {
@@ -1151,18 +1148,14 @@ export class GMAOStorage {
     
     if (data.action === "validate") {
       if (data.validationLevel === 1) {
+        // Chef de Service validation
         updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
-          validationStatus: "level1_validated",
-          level1ValidatedBy: data.validatorId,
-          level1ValidatedAt: currentDate,
-          level1ValidationNotes: data.comments
+          validationStatus: "level1_validated"
         });
       } else if (data.validationLevel === 2) {
+        // Chef Département Maintenance - Final validation
         updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
-          validationStatus: "fully_validated",
-          level2ValidatedBy: data.validatorId,
-          level2ValidatedAt: currentDate,
-          level2ValidationNotes: data.comments,
+          validationStatus: "validated",
           canExecute: true
         });
       }

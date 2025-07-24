@@ -189,10 +189,7 @@ export function registerSimpleValidationRoutes(app: Express) {
           newValidationStatus = "level1_validated";
           // Ne pas utiliser les champs avec contraintes FK pour maintenant
         } else if (validationLevel === 2) {
-          newValidationStatus = "level2_validated";
-          // Ne pas utiliser les champs avec contraintes FK pour maintenant
-        } else if (validationLevel === 3) {
-          newValidationStatus = "validated";
+          newValidationStatus = "validated"; // Final validation at level 2 (Chef Département Maintenance)
           updateData.canExecute = true; // Allow execution after final validation
         }
 
