@@ -833,127 +833,10 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Get maintenance reports
-  app.get("/api/maintenance-reports", async (req, res) => {
+  // Get maintenance reports - Override with DEMO data
+  app.get("/api/maintenance-reports", (req, res) => {
     try {
-      const { equipmentId, reportType, status, startDate, endDate } = req.query;
-      const filters: any = {};
-      
-      if (equipmentId) filters.equipmentId = parseInt(equipmentId as string);
-      if (reportType) filters.reportType = reportType as string;
-      if (status) filters.status = status as string;
-      if (startDate) filters.startDate = new Date(startDate as string);
-      if (endDate) filters.endDate = new Date(endDate as string);
-      
-      const reports = await gmaoStorage.getMaintenanceReports(filters);
-      res.json(reports);
-    } catch (error) {
-      console.error("Error fetching maintenance reports:", error);
-      res.status(500).json({ message: "Failed to fetch maintenance reports" });
-    }
-  });
-
-  // ============= MONTHLY REPORTS ROUTES =============
-
-  // Generate monthly report
-  app.post("/api/monthly-reports", async (req, res) => {
-    try {
-      const { month, year, generatedBy } = req.body;
-      const report = await gmaoStorage.generateMonthlyReport(month, year, generatedBy);
-      res.status(201).json(report);
-    } catch (error) {
-      console.error("Error generating monthly report:", error);
-      res.status(400).json({ message: "Failed to generate monthly report" });
-    }
-  });
-
-  // Get monthly reports - DEMO VERSION
-  app.get("/api/monthly-reports", async (req, res) => {
-    try {
-      // Return demo data for now since database implementation needs more work
-      res.json([
-        {
-          id: 1,
-          reportNumber: "MM20250124001",
-          month: 1,
-          year: 2025,
-          periodStart: "2025-01-01T00:00:00Z",
-          periodEnd: "2025-01-31T23:59:59Z",
-          generatedBy: "Système GMAO",
-          generatedAt: new Date().toISOString(),
-          totalEquipment: 5,
-          activeEquipment: 4,
-          equipmentAvailability: 85.2,
-          totalWorkOrders: 12,
-          completedWorkOrders: 9,
-          preventiveWorkOrders: 7,
-          correctiveWorkOrders: 5,
-          averageCompletionTime: 3.2,
-          mtbf: 168.5,
-          mttr: 2.8,
-          plannedMaintenanceRatio: 58.3,
-          maintenanceEfficiency: 75.0,
-          totalMaintenanceCost: 15420.75,
-          laborCost: 8950.00,
-          partsCost: 6470.75,
-          contractorCost: 0,
-          costPerWorkOrder: 1285.06,
-          partsConsumed: 23,
-          inventoryTurnover: 4.2,
-          stockouts: 2,
-          emergencyPurchases: 1,
-          totalAlerts: 18,
-          criticalAlerts: 3,
-          safetyIncidents: 0,
-          qualityIssues: 1,
-          performanceScore: 78,
-          improvementAreas: ["Maintenance préventive", "Disponibilité équipements"],
-          recommendations: [
-            "Augmenter la proportion de maintenance préventive pour réduire les pannes",
-            "Optimiser la planification des interventions pour améliorer la disponibilité",
-            "Renforcer la surveillance préventive pour réduire les alertes critiques"
-          ],
-          statisticsData: {
-            equipmentByType: {
-              "Grue portique": 2,
-              "Grue mobile": 1,
-              "Reach stacker": 1,
-              "Spreader": 1
-            },
-            workOrdersByStatus: {
-              "completed": 9,
-              "in_progress": 2,
-              "pending": 1
-            }
-          },
-          chartsData: {
-            equipmentAvailabilityChart: {
-              labels: ["Disponible", "En maintenance", "Arrêté"],
-              data: [4, 1, 0]
-            },
-            maintenanceTypeChart: {
-              labels: ["Préventive", "Corrective"],
-              data: [7, 5]
-            },
-            costBreakdownChart: {
-              labels: ["Main d'œuvre", "Pièces détachées"],
-              data: [8950, 6470.75]
-            }
-          },
-          status: "generated",
-          notes: "Rapport automatique généré par le système GMAO"
-        }
-      ]);
-    } catch (error) {
-      console.error("Error fetching monthly reports:", error);
-      res.status(500).json({ message: "Failed to fetch monthly reports" });
-    }
-  });
-
-  // Get maintenance reports - DEMO VERSION  
-  app.get("/api/maintenance-reports", async (req, res) => {
-    try {
-      // Return demo data for now
+      // Return demo data for testing
       res.json([
         {
           id: 1,
@@ -1068,6 +951,105 @@ export function registerGMAORoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch maintenance reports" });
     }
   });
+
+  // ============= MONTHLY REPORTS ROUTES =============
+
+  // Generate monthly report
+  app.post("/api/monthly-reports", async (req, res) => {
+    try {
+      const { month, year, generatedBy } = req.body;
+      const report = await gmaoStorage.generateMonthlyReport(month, year, generatedBy);
+      res.status(201).json(report);
+    } catch (error) {
+      console.error("Error generating monthly report:", error);
+      res.status(400).json({ message: "Failed to generate monthly report" });
+    }
+  });
+
+  // Get monthly reports - DEMO VERSION
+  app.get("/api/monthly-reports", async (req, res) => {
+    try {
+      // Return demo data for now since database implementation needs more work
+      res.json([
+        {
+          id: 1,
+          reportNumber: "MM20250124001",
+          month: 1,
+          year: 2025,
+          periodStart: "2025-01-01T00:00:00Z",
+          periodEnd: "2025-01-31T23:59:59Z",
+          generatedBy: "Système GMAO",
+          generatedAt: new Date().toISOString(),
+          totalEquipment: 5,
+          activeEquipment: 4,
+          equipmentAvailability: 85.2,
+          totalWorkOrders: 12,
+          completedWorkOrders: 9,
+          preventiveWorkOrders: 7,
+          correctiveWorkOrders: 5,
+          averageCompletionTime: 3.2,
+          mtbf: 168.5,
+          mttr: 2.8,
+          plannedMaintenanceRatio: 58.3,
+          maintenanceEfficiency: 75.0,
+          totalMaintenanceCost: 15420.75,
+          laborCost: 8950.00,
+          partsCost: 6470.75,
+          contractorCost: 0,
+          costPerWorkOrder: 1285.06,
+          partsConsumed: 23,
+          inventoryTurnover: 4.2,
+          stockouts: 2,
+          emergencyPurchases: 1,
+          totalAlerts: 18,
+          criticalAlerts: 3,
+          safetyIncidents: 0,
+          qualityIssues: 1,
+          performanceScore: 78,
+          improvementAreas: ["Maintenance préventive", "Disponibilité équipements"],
+          recommendations: [
+            "Augmenter la proportion de maintenance préventive pour réduire les pannes",
+            "Optimiser la planification des interventions pour améliorer la disponibilité",
+            "Renforcer la surveillance préventive pour réduire les alertes critiques"
+          ],
+          statisticsData: {
+            equipmentByType: {
+              "Grue portique": 2,
+              "Grue mobile": 1,
+              "Reach stacker": 1,
+              "Spreader": 1
+            },
+            workOrdersByStatus: {
+              "completed": 9,
+              "in_progress": 2,
+              "pending": 1
+            }
+          },
+          chartsData: {
+            equipmentAvailabilityChart: {
+              labels: ["Disponible", "En maintenance", "Arrêté"],
+              data: [4, 1, 0]
+            },
+            maintenanceTypeChart: {
+              labels: ["Préventive", "Corrective"],
+              data: [7, 5]
+            },
+            costBreakdownChart: {
+              labels: ["Main d'œuvre", "Pièces détachées"],
+              data: [8950, 6470.75]
+            }
+          },
+          status: "generated",
+          notes: "Rapport automatique généré par le système GMAO"
+        }
+      ]);
+    } catch (error) {
+      console.error("Error fetching monthly reports:", error);
+      res.status(500).json({ message: "Failed to fetch monthly reports" });
+    }
+  });
+
+
 
   console.log("✅ GMAO routes registered successfully");
 }
