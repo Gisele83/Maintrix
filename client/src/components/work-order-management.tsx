@@ -74,7 +74,7 @@ export function WorkOrderManagement() {
   const addWorkOrderMutation = useMutation({
     mutationFn: (data: WorkOrderFormData) => apiRequest("/api/work-orders", {
       method: "POST",
-      body: JSON.stringify(data)
+      body: data
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
@@ -98,7 +98,7 @@ export function WorkOrderManagement() {
     mutationFn: ({ id, data }: { id: number; data: Partial<WorkOrderFormData> }) => 
       apiRequest(`/api/work-orders/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data)
+        body: data
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
@@ -165,10 +165,22 @@ export function WorkOrderManagement() {
   });
 
   const onSubmit = (data: WorkOrderFormData) => {
+    // Transform form data to match API expectations
+    const transformedData = {
+      ...data,
+      equipmentId: parseInt(data.equipmentId),
+      estimatedDuration: data.estimatedDuration ? parseInt(data.estimatedDuration) : undefined,
+      scheduledStart: data.scheduledDate ? new Date(data.scheduledDate).toISOString() : undefined,
+      orderType: data.workOrderType, // Map workOrderType to orderType for API
+    };
+
+    // Remove frontend-only fields
+    const { workOrderNumber, workOrderType, scheduledDate, ...apiData } = transformedData;
+
     if (selectedWorkOrder) {
-      updateWorkOrderMutation.mutate({ id: selectedWorkOrder.id, data });
+      updateWorkOrderMutation.mutate({ id: selectedWorkOrder.id, data: apiData });
     } else {
-      addWorkOrderMutation.mutate(data);
+      addWorkOrderMutation.mutate(apiData);
     }
   };
 
