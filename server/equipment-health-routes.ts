@@ -240,11 +240,16 @@ function generatePredictions(sensorData: any[], equipment: any): any[] {
     
     if (readings.length < 5) return; // Need sufficient data
     
-    // Simple trend analysis
-    const values = readings.map(r => r.value);
+    // Simple trend analysis  
+    const values = readings.map(r => {
+      const val = parseFloat(r.value);
+      return isNaN(val) ? 0 : val;
+    });
     const trend = calculateTrend(values);
-    const currentValue = values[0];
-    const predictedValue = parseFloat((currentValue + trend * 24).toFixed(2)); // Predict 24 hours ahead
+    const trendSafe = isNaN(trend) ? 0 : trend;
+    const currentValue = values[0] || 0;
+    const prediction = currentValue + (trendSafe * 24);
+    const predictedValue = isNaN(prediction) ? currentValue : parseFloat(prediction.toFixed(2));
     
     // Calculate confidence based on data consistency
     const variance = calculateVariance(values);
@@ -263,8 +268,8 @@ function generatePredictions(sensorData: any[], equipment: any): any[] {
     
     predictions.push({
       metric: sensorType,
-      currentValue: parseFloat(currentValue.toFixed(2)),
-      predictedValue,
+      currentValue: parseFloat((currentValue || 0).toFixed(2)),
+      predictedValue,  
       confidence: Math.round(confidence),
       timeToFailure: Math.min(365, timeToFailure),
       riskLevel
