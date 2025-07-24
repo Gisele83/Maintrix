@@ -16,6 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/gmao" component={GMAODashboard} />
+      <Route path="/dashboard/gmao" component={GMAODashboard} />
       <Route path="/profiles" component={UserProfiles} />
       <Route path="/documentation" component={Documentation} />
       <Route path="/training" component={Training} />
