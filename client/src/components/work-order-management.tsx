@@ -33,15 +33,17 @@ type WorkOrderFormData = z.infer<typeof workOrderSchema>;
 
 interface WorkOrder {
   id: number;
-  workOrderNumber: string;
+  workOrderNumber?: string; // Make optional for backward compatibility
+  orderNumber?: string; // Alternative field name
   equipmentId: number;
   equipmentName?: string;
-  workOrderType: string;
+  workOrderType?: string;
+  orderType?: string; // Alternative field name
   priority: string;
   status: string;
   assignedTo?: string;
-  description: string;
-  requestedBy: string;
+  description?: string;
+  requestedBy?: string;
   scheduledDate?: string;
   estimatedDuration?: number;
   notes?: string;
@@ -155,8 +157,8 @@ export function WorkOrderManagement() {
   });
 
   const filteredWorkOrders = workOrders.filter(wo => {
-    const matchesSearch = wo.workOrderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         wo.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (wo.workOrderNumber || wo.orderNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (wo.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (wo.equipmentName && wo.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === "all" || wo.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -173,14 +175,14 @@ export function WorkOrderManagement() {
   const handleEdit = (workOrder: WorkOrder) => {
     setSelectedWorkOrder(workOrder);
     form.reset({
-      workOrderNumber: workOrder.workOrderNumber,
-      equipmentId: workOrder.equipmentId.toString(),
-      workOrderType: workOrder.workOrderType,
-      priority: workOrder.priority,
-      status: workOrder.status,
+      workOrderNumber: workOrder.workOrderNumber || workOrder.orderNumber || '',
+      equipmentId: workOrder.equipmentId?.toString() || '',
+      workOrderType: workOrder.workOrderType || workOrder.orderType || '',
+      priority: workOrder.priority || 'medium',
+      status: workOrder.status || 'pending',
       assignedTo: workOrder.assignedTo || "",
-      description: workOrder.description,
-      requestedBy: workOrder.requestedBy,
+      description: workOrder.description || '',
+      requestedBy: workOrder.requestedBy || '',
       scheduledDate: workOrder.scheduledDate || "",
       estimatedDuration: workOrder.estimatedDuration?.toString() || "",
       notes: workOrder.notes || ""
@@ -298,7 +300,7 @@ export function WorkOrderManagement() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2">
                   {getStatusIcon(wo.status)}
-                  <CardTitle className="text-lg">{wo.workOrderNumber}</CardTitle>
+                  <CardTitle className="text-lg">{wo.workOrderNumber || wo.orderNumber || `WO-${wo.id}`}</CardTitle>
                 </div>
                 <div className="flex space-x-1">
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(wo)}>
@@ -318,7 +320,7 @@ export function WorkOrderManagement() {
             <CardContent className="space-y-4">
               <div>
                 <p className="font-medium text-sm text-gray-900 mb-1">Description:</p>
-                <p className="text-sm text-gray-600 line-clamp-2">{wo.description}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">{wo.description || 'Aucune description'}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -328,11 +330,11 @@ export function WorkOrderManagement() {
                 </div>
                 <div>
                   <span className="font-medium">Type:</span>
-                  <p className="text-gray-600">{wo.workOrderType}</p>
+                  <p className="text-gray-600">{wo.workOrderType || wo.orderType || 'Non spécifié'}</p>
                 </div>
                 <div>
                   <span className="font-medium">Demandeur:</span>
-                  <p className="text-gray-600">{wo.requestedBy}</p>
+                  <p className="text-gray-600">{wo.requestedBy || 'Non spécifié'}</p>
                 </div>
                 {wo.assignedTo && (
                   <div>
