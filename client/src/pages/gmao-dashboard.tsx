@@ -5,7 +5,7 @@ import {
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
-  PieChart, DollarSign, Gauge
+  PieChart, DollarSign, Gauge, ClipboardCheck
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import { WorkOrderManagement } from "@/components/work-order-management";
 import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import { InventoryManagement } from "@/components/inventory-management";
 import { MaintenanceReports } from "@/components/maintenance-reports";
+import ValidationDashboard from "@/components/validation-dashboard";
 
 
 interface GMAODashboardData {
@@ -36,7 +37,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "validation";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -94,6 +95,11 @@ export default function GMAODashboard() {
       id: "alerts" as GMAOTab,
       label: "Alertes",
       icon: Bell,
+    },
+    {
+      id: "validation" as GMAOTab,
+      label: "Validation Multi-Niveaux",
+      icon: ClipboardCheck,
     },
   ];
 
@@ -607,6 +613,18 @@ export default function GMAODashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {activeTab === "validation" && (
+          <div className="space-y-6">
+            <ValidationDashboard
+              userId={1}
+              userRole="Superviseur"
+              validationLevel={2}
+              canValidateWorkOrders={true}
+              canValidatePurchaseOrders={true}
+            />
           </div>
         )}
       </main>

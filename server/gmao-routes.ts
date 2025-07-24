@@ -15,6 +15,7 @@ import {
   insertMonthlyReportSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { seedValidationData } from "./seed-validation-data";
 
 export function registerGMAORoutes(app: Express) {
   
@@ -1050,6 +1051,33 @@ export function registerGMAORoutes(app: Express) {
   });
 
 
+
+  // ============= VALIDATION DEMO ROUTES =============
+  
+  // Create sample validation data for testing
+  app.post("/api/seed-validation-data", async (req, res) => {
+    try {
+      const success = await seedValidationData();
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: "Données de validation créées avec succès" 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Erreur lors de la création des données de validation" 
+        });
+      }
+    } catch (error) {
+      console.error("Error seeding validation data:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Erreur lors de la création des données de validation",
+        error: error.message 
+      });
+    }
+  });
 
   console.log("✅ GMAO routes registered successfully");
 }

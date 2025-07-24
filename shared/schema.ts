@@ -74,19 +74,24 @@ export const diagnosticSessions = pgTable("diagnostic_sessions", {
   userId: integer("user_id"), // Link to user profile
 });
 
-// User profiles table
+// User profiles table - Extended with validation capabilities
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 50 }).notNull().unique(),
   firstName: varchar("first_name", { length: 50 }),
   lastName: varchar("last_name", { length: 50 }),
   email: varchar("email", { length: 100 }).unique(),
-  role: varchar("role", { length: 30 }).default("technician"), // technician, supervisor, admin
+  role: varchar("role", { length: 30 }).default("technician"), // technician, supervisor, manager, director, admin
   department: varchar("department", { length: 50 }),
   phoneNumber: varchar("phone_number", { length: 20 }),
   preferredLanguage: varchar("preferred_language", { length: 5 }).default("fr"),
   specializations: text("specializations").array(), // Areas of expertise
   experienceLevel: varchar("experience_level", { length: 20 }).default("intermediate"), // beginner, intermediate, expert
+  // VALIDATION SYSTEM FIELDS
+  validationLevel: integer("validation_level").default(0), // 0=no validation rights, 1-3=validation levels
+  canValidateWorkOrders: boolean("can_validate_work_orders").default(false),
+  canValidatePurchaseOrders: boolean("can_validate_purchase_orders").default(false),
+  maxPurchaseAmount: decimal("max_purchase_amount", { precision: 12, scale: 2 }), // Maximum amount they can approve
   isActive: boolean("is_active").default(true),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -250,6 +255,18 @@ export const workOrders = pgTable("work_orders", {
   externalCost: decimal("external_cost", { precision: 10, scale: 2 }),
   notes: text("notes"),
   completionNotes: text("completion_notes"),
+  // VALIDATION SYSTEM - 2 LEVELS FOR WORK ORDERS
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, fully_validated, rejected
+  level1ValidatedBy: integer("level1_validated_by").references(() => userProfiles.id), // Supervisor validation
+  level1ValidatedAt: timestamp("level1_validated_at"),
+  level1ValidationNotes: text("level1_validation_notes"),
+  level2ValidatedBy: integer("level2_validated_by").references(() => userProfiles.id), // Manager validation
+  level2ValidatedAt: timestamp("level2_validated_at"),
+  level2ValidationNotes: text("level2_validation_notes"),
+  rejectedBy: integer("rejected_by").references(() => userProfiles.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  canExecute: boolean("can_execute").default(false), // Only true after full validation
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -384,6 +401,23 @@ export const alertsNotifications = pgTable("alerts_notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Validation Logs table - Track all validation steps for audit
+export const validationLogs = pgTable("validation_logs", {
+  id: serial("id").primaryKey(),
+  recordType: varchar("record_type", { length: 30 }).notNull(), // work_order, purchase_order
+  recordId: integer("record_id").notNull(),
+  validationLevel: integer("validation_level").notNull(), // 1, 2, 3
+  action: varchar("action", { length: 20 }).notNull(), // validate, reject
+  validatedBy: integer("validated_by").references(() => userProfiles.id),
+  validationDate: timestamp("validation_date").defaultNow(),
+  comments: text("comments"),
+  previousStatus: varchar("previous_status", { length: 30 }),
+  newStatus: varchar("new_status", { length: 30 }),
+  metadata: jsonb("metadata"), // Additional context data
+});
+
+
+
 // Insert schemas for new tables
 export const insertEquipmentRegistrySchema = createInsertSchema(equipmentRegistry).omit({
   id: true,
@@ -439,6 +473,11 @@ export const insertAlertsNotificationsSchema = createInsertSchema(alertsNotifica
   createdAt: true,
 });
 
+export const insertValidationLogSchema = createInsertSchema(validationLogs).omit({
+  id: true,
+  validationDate: true,
+});
+
 // Types for new tables
 export type EquipmentRegistry = typeof equipmentRegistry.$inferSelect;
 export type InsertEquipmentRegistry = z.infer<typeof insertEquipmentRegistrySchema>;
@@ -469,6 +508,9 @@ export type InsertIntegrationLog = z.infer<typeof insertIntegrationLogSchema>;
 
 export type AlertsNotifications = typeof alertsNotifications.$inferSelect;
 export type InsertAlertsNotifications = z.infer<typeof insertAlertsNotificationsSchema>;
+
+export type ValidationLog = typeof validationLogs.$inferSelect;
+export type InsertValidationLog = z.infer<typeof insertValidationLogSchema>;
 
 // Suppliers/Manufacturers table
 export const suppliers = pgTable("suppliers", {
@@ -510,6 +552,23 @@ export const purchaseOrders = pgTable("purchase_orders", {
   deliveryAddress: text("delivery_address"),
   notes: text("notes"),
   terms: text("terms"),
+  // VALIDATION SYSTEM - 3 LEVELS FOR PURCHASE ORDERS
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, level2_validated, fully_validated, rejected
+  level1ValidatedBy: integer("level1_validated_by").references(() => userProfiles.id), // Requester's supervisor
+  level1ValidatedAt: timestamp("level1_validated_at"),
+  level1ValidationNotes: text("level1_validation_notes"),
+  level2ValidatedBy: integer("level2_validated_by").references(() => userProfiles.id), // Department manager
+  level2ValidatedAt: timestamp("level2_validated_at"),
+  level2ValidationNotes: text("level2_validation_notes"),
+  level3ValidatedBy: integer("level3_validated_by").references(() => userProfiles.id), // Financial approval
+  level3ValidatedAt: timestamp("level3_validated_at"),
+  level3ValidationNotes: text("level3_validation_notes"),
+  rejectedBy: integer("rejected_by").references(() => userProfiles.id),
+  rejectedAt: timestamp("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  canPrint: boolean("can_print").default(false), // Only true after full validation
+  printedBy: integer("printed_by").references(() => userProfiles.id),
+  printedAt: timestamp("printed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
