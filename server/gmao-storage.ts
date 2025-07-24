@@ -1390,12 +1390,25 @@ export class GMAOStorage {
     return updatedConfig;
   }
 
-  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number): Promise<string> {
+  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number, demoData?: any): Promise<string> {
     const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
-    const [purchaseOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
+    
+    let purchaseOrder;
+    if (demoData) {
+      // Use demo data from validation system
+      purchaseOrder = demoData;
+    } else {
+      // Try to get from real database
+      const [dbOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
+      purchaseOrder = dbOrder;
+    }
 
-    if (!config || !purchaseOrder) {
-      throw new Error("Configuration d'entreprise ou bon de commande introuvable");
+    if (!config) {
+      throw new Error("Configuration d'entreprise introuvable");
+    }
+
+    if (!purchaseOrder) {
+      throw new Error("Bon de commande introuvable");
     }
 
     // Generate HTML with company letterhead
@@ -1490,10 +1503,10 @@ export class GMAOStorage {
 </html>`;
   }
 
-  private generatePurchaseOrderContent(purchaseOrder: PurchaseOrder): string {
-    const items = typeof purchaseOrder.items === 'string' 
-      ? JSON.parse(purchaseOrder.items) 
-      : purchaseOrder.items || [];
+  private generatePurchaseOrderContent(purchaseOrder: any): string {
+    const items = Array.isArray(purchaseOrder.items) 
+      ? purchaseOrder.items 
+      : (typeof purchaseOrder.items === 'string' ? JSON.parse(purchaseOrder.items) : []);
     
     const itemsRows = items.map((item: any) => `
       <tr>

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Clock, FileText, User, Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Check, X, Clock, FileText, User, Calendar, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { ValidationDemoButton } from "./validation-demo-button";
 
@@ -429,6 +429,16 @@ export default function ValidationDashboard({
                       </div>
 
                       <div className="flex items-center gap-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`/api/purchase-orders/${purchaseOrder.id}/letterhead`, '_blank')}
+                          className="flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Voir papier en-tête
+                        </Button>
+                        
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button 
