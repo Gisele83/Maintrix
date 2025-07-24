@@ -15,7 +15,7 @@ import {
   insertMonthlyReportSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { seedValidationData } from "./seed-validation-data";
+import { createValidationDemo } from "./create-validation-demo";
 
 export function registerGMAORoutes(app: Express) {
   
@@ -1055,25 +1055,15 @@ export function registerGMAORoutes(app: Express) {
   // ============= VALIDATION DEMO ROUTES =============
   
   // Create sample validation data for testing
-  app.post("/api/seed-validation-data", async (req, res) => {
+  app.post("/api/create-validation-demo", async (req, res) => {
     try {
-      const success = await seedValidationData();
-      if (success) {
-        res.json({ 
-          success: true, 
-          message: "Données de validation créées avec succès" 
-        });
-      } else {
-        res.status(500).json({ 
-          success: false, 
-          message: "Erreur lors de la création des données de validation" 
-        });
-      }
+      const result = await createValidationDemo();
+      res.json(result);
     } catch (error) {
-      console.error("Error seeding validation data:", error);
+      console.error("Error creating validation demo:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Erreur lors de la création des données de validation",
+        message: "Erreur lors de la création des données de démonstration",
         error: error.message 
       });
     }

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Clock, FileText, User, Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { ValidationDemoButton } from "./validation-demo-button";
 
 interface WorkOrder {
   id: number;
@@ -208,6 +209,7 @@ export default function ValidationDashboard({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Système de Validation Multi-Niveaux</h2>
         <div className="flex items-center gap-2">
+          <ValidationDemoButton />
           <Badge variant="outline">Niveau {validationLevel}</Badge>
           <Badge variant="outline">{userRole}</Badge>
         </div>
