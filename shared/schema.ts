@@ -567,6 +567,210 @@ export type InsertAlertsNotifications = z.infer<typeof insertAlertsNotifications
 export type ValidationLog = typeof validationLogs.$inferSelect;
 export type InsertValidationLog = z.infer<typeof insertValidationLogSchema>;
 
+// IoT Sensor Integration Tables
+export const iotDevices = pgTable("iot_devices", {
+  id: serial("id").primaryKey(),
+  deviceId: text("device_id").notNull().unique(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  deviceType: text("device_type").notNull(), // accelerometer, thermometer, pressure_sensor, current_sensor
+  location: text("location").notNull(),
+  batteryLevel: real("battery_level"),
+  signalStrength: real("signal_strength"),
+  status: text("status").notNull().default("active"), // active, inactive, maintenance
+  installationDate: timestamp("installation_date").defaultNow(),
+  lastHeartbeat: timestamp("last_heartbeat"),
+  calibrationDate: timestamp("calibration_date"),
+  metadata: jsonb("metadata"), // Device-specific configuration
+});
+
+export const sensorThresholds = pgTable("sensor_thresholds", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").references(() => iotDevices.id),
+  metricType: text("metric_type").notNull(), // temperature, vibration, pressure, current
+  warningLevel: real("warning_level").notNull(),
+  criticalLevel: real("critical_level").notNull(),
+  unit: text("unit").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const automatedSymptomDetection = pgTable("automated_symptom_detection", {
+  id: serial("id").primaryKey(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  deviceId: integer("device_id").references(() => iotDevices.id),
+  detectedSymptom: text("detected_symptom").notNull(),
+  symptomCode: text("symptom_code").notNull(),
+  confidence: real("confidence").notNull(), // 0-1
+  sensorData: jsonb("sensor_data"), // Raw sensor readings that triggered detection
+  detectionAlgorithm: text("detection_algorithm").notNull(),
+  status: text("status").notNull().default("pending"), // pending, verified, false_positive
+  triggeredAt: timestamp("triggered_at").defaultNow(),
+  verifiedBy: integer("verified_by"), // User ID who verified
+  verifiedAt: timestamp("verified_at"),
+});
+
+export const smartNotifications = pgTable("smart_notifications", {
+  id: serial("id").primaryKey(),
+  recipientId: integer("recipient_id").notNull(), // User ID
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  notificationType: text("notification_type").notNull(), // predictive_alert, threshold_breach, maintenance_due
+  severity: text("severity").notNull(), // info, warning, critical, emergency
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  actionRequired: text("action_required"),
+  estimatedTimeToFailure: integer("estimated_time_to_failure"), // in hours
+  relatedWorkOrderId: integer("related_work_order_id").references(() => workOrders.id),
+  isRead: boolean("is_read").default(false),
+  isActioned: boolean("is_actioned").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  dismissedAt: timestamp("dismissed_at"),
+  metadata: jsonb("metadata"), // Additional notification data
+});
+
+// Gamified Maintenance Skill Progression
+export const maintenanceSkills = pgTable("maintenance_skills", {
+  id: serial("id").primaryKey(),
+  skillName: text("skill_name").notNull(),
+  skillCategory: text("skill_category").notNull(), // mechanical, electrical, hydraulic, pneumatic
+  description: text("description").notNull(),
+  maxLevel: integer("max_level").default(10),
+  experienceMultiplier: real("experience_multiplier").default(1.0),
+});
+
+export const userSkillProgress = pgTable("user_skill_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  skillId: integer("skill_id").references(() => maintenanceSkills.id),
+  currentLevel: integer("current_level").default(1),
+  experiencePoints: integer("experience_points").default(0),
+  nextLevelThreshold: integer("next_level_threshold").default(100),
+  achievementsUnlocked: text("achievements_unlocked").array(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+});
+
+export const maintenanceAchievements = pgTable("maintenance_achievements", {
+  id: serial("id").primaryKey(),
+  achievementName: text("achievement_name").notNull(),
+  description: text("description").notNull(),
+  iconUrl: text("icon_url"),
+  category: text("category").notNull(), // efficiency, quality, innovation, safety
+  pointsAwarded: integer("points_awarded").default(0),
+  requirements: jsonb("requirements"), // Conditions to unlock achievement
+  rarity: text("rarity").notNull().default("common"), // common, rare, epic, legendary
+});
+
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  achievementId: integer("achievement_id").references(() => maintenanceAchievements.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  progress: real("progress").default(1.0), // 0-1 for partial achievements
+});
+
+export const skillChallenges = pgTable("skill_challenges", {
+  id: serial("id").primaryKey(),
+  challengeName: text("challenge_name").notNull(),
+  description: text("description").notNull(),
+  skillId: integer("skill_id").references(() => maintenanceSkills.id),
+  difficultyLevel: integer("difficulty_level").notNull(), // 1-5
+  experienceReward: integer("experience_reward").default(50),
+  requirements: jsonb("requirements"), // Challenge conditions
+  timeLimit: integer("time_limit"), // in minutes
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userChallengeProgress = pgTable("user_challenge_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  challengeId: integer("challenge_id").references(() => skillChallenges.id),
+  status: text("status").notNull().default("active"), // active, completed, expired, failed
+  progress: real("progress").default(0.0), // 0-1
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  score: integer("score").default(0),
+});
+
+// Insert schemas for IoT and gamification tables
+export const insertIotDeviceSchema = createInsertSchema(iotDevices).omit({
+  id: true,
+  installationDate: true,
+});
+
+export const insertSensorThresholdSchema = createInsertSchema(sensorThresholds).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAutomatedSymptomDetectionSchema = createInsertSchema(automatedSymptomDetection).omit({
+  id: true,
+  triggeredAt: true,
+});
+
+export const insertSmartNotificationSchema = createInsertSchema(smartNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMaintenanceSkillSchema = createInsertSchema(maintenanceSkills).omit({
+  id: true,
+});
+
+export const insertUserSkillProgressSchema = createInsertSchema(userSkillProgress).omit({
+  id: true,
+  lastActivityAt: true,
+});
+
+export const insertMaintenanceAchievementSchema = createInsertSchema(maintenanceAchievements).omit({
+  id: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  unlockedAt: true,
+});
+
+export const insertSkillChallengeSchema = createInsertSchema(skillChallenges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserChallengeProgressSchema = createInsertSchema(userChallengeProgress).omit({
+  id: true,
+  startedAt: true,
+});
+
+// Types for IoT and gamification tables
+export type IotDevice = typeof iotDevices.$inferSelect;
+export type InsertIotDevice = z.infer<typeof insertIotDeviceSchema>;
+
+export type SensorThreshold = typeof sensorThresholds.$inferSelect;
+export type InsertSensorThreshold = z.infer<typeof insertSensorThresholdSchema>;
+
+export type AutomatedSymptomDetection = typeof automatedSymptomDetection.$inferSelect;
+export type InsertAutomatedSymptomDetection = z.infer<typeof insertAutomatedSymptomDetectionSchema>;
+
+export type SmartNotification = typeof smartNotifications.$inferSelect;
+export type InsertSmartNotification = z.infer<typeof insertSmartNotificationSchema>;
+
+export type MaintenanceSkill = typeof maintenanceSkills.$inferSelect;
+export type InsertMaintenanceSkill = z.infer<typeof insertMaintenanceSkillSchema>;
+
+export type UserSkillProgress = typeof userSkillProgress.$inferSelect;
+export type InsertUserSkillProgress = z.infer<typeof insertUserSkillProgressSchema>;
+
+export type MaintenanceAchievement = typeof maintenanceAchievements.$inferSelect;
+export type InsertMaintenanceAchievement = z.infer<typeof insertMaintenanceAchievementSchema>;
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export type SkillChallenge = typeof skillChallenges.$inferSelect;
+export type InsertSkillChallenge = z.infer<typeof insertSkillChallengeSchema>;
+
+export type UserChallengeProgress = typeof userChallengeProgress.$inferSelect;
+export type InsertUserChallengeProgress = z.infer<typeof insertUserChallengeProgressSchema>;
+
 // Suppliers/Manufacturers table
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),

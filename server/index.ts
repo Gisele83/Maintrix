@@ -1,6 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { advancedIoTConnector } from './integrations/advanced-iot-connector';
+import { smartNotificationEngine } from './integrations/smart-notification-engine';
+import { gamificationEngine } from './integrations/gamification-engine';
 
 const app = express();
 app.use(express.json());
@@ -37,6 +40,46 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize advanced IoT and gamification systems
+  console.log('🚀 Initializing advanced IoT and gamification systems...');
+  
+  try {
+    // Initialize IoT connector
+    await advancedIoTConnector.initialize();
+    
+    // Initialize smart notification engine
+    await smartNotificationEngine.initialize();
+    
+    // Initialize gamification engine
+    await gamificationEngine.initialize();
+    
+    // Set up event connections between systems
+    advancedIoTConnector.on('thresholdAlert', (alert) => {
+      smartNotificationEngine.processThresholdAlert(alert);
+    });
+    
+    advancedIoTConnector.on('symptomDetected', (detection) => {
+      smartNotificationEngine.processSymptomDetection(detection);
+    });
+    
+    // Set up gamification events
+    smartNotificationEngine.on('notificationCreated', (notification) => {
+      console.log(`📢 Smart notification created: ${notification.title}`);
+    });
+    
+    gamificationEngine.on('levelUp', (event) => {
+      console.log(`🎉 User ${event.userId} leveled up in skill ${event.skillId}!`);
+    });
+    
+    gamificationEngine.on('achievementUnlocked', (event) => {
+      console.log(`🏆 User ${event.userId} unlocked achievement: ${event.achievementName}!`);
+    });
+    
+    console.log('✅ Advanced IoT and gamification systems initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing advanced systems:', error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

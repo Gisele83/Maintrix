@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -58,7 +58,7 @@ export default function Dashboard() {
       } else if (advancedMode) {
         endpoint = "/api/diagnostic-advanced-ml";
       }
-      const response = await apiRequest("POST", endpoint, data);
+      const response = await apiRequest(endpoint, { method: "POST", body: JSON.stringify(data) });
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -89,7 +89,7 @@ export default function Dashboard() {
   // Train ML model mutation
   const trainMLMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/train-ml", {});
+      const response = await apiRequest("/api/train-ml", { method: "POST" });
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -110,7 +110,7 @@ export default function Dashboard() {
   // Train Enhanced ML models mutation
   const trainEnhancedMLMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/train-enhanced-ml", {});
+      const response = await apiRequest("/api/train-enhanced-ml", { method: "POST" });
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -131,7 +131,7 @@ export default function Dashboard() {
   // Train advanced ML models mutation
   const trainAdvancedMLMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/train-advanced-ml", {});
+      const response = await apiRequest("/api/train-advanced-ml", { method: "POST" });
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -152,7 +152,7 @@ export default function Dashboard() {
   // Train ensemble ML models mutation
   const trainEnsembleMLMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/train-ensemble-ml", {});
+      const response = await apiRequest("/api/train-ensemble-ml", { method: "POST" });
       return await response.json();
     },
     onSuccess: (result: any) => {
@@ -306,6 +306,12 @@ export default function Dashboard() {
                 <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
                   <Brain className="w-4 h-4" />
                   <span className="hidden sm:inline">Apprentissage IA</span>
+                </Button>
+              </Link>
+              <Link href="/iot-gamification">
+                <Button variant="outline" className="flex items-center space-x-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700">
+                  <Activity className="w-4 h-4" />
+                  <span className="hidden sm:inline">IoT & Gamification</span>
                 </Button>
               </Link>
               <Link href="/profiles">

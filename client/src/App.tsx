@@ -11,6 +11,7 @@ import Documentation from "@/pages/documentation";
 import Training from "@/pages/training";
 import LearningDashboard from "@/pages/learning-dashboard";
 import Pricing from "@/pages/pricing";
+import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/training" component={Training} />
       <Route path="/learning" component={LearningDashboard} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/iot-gamification" component={IoTGamificationDashboard} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
