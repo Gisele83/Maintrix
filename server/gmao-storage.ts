@@ -46,6 +46,7 @@ import {
 } from "@shared/schema";
 
 export class GMAOStorage {
+  private db = db;
   // Equipment Registry Methods
   async getEquipmentRegistry(): Promise<EquipmentRegistry[]> {
     return await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
@@ -378,16 +379,16 @@ export class GMAOStorage {
   }
 
   async getSuppliers(): Promise<Supplier[]> {
-    return await this.db.select().from(suppliers).where(eq(suppliers.isActive, true));
+    return await db.select().from(suppliers).where(eq(suppliers.isActive, true));
   }
 
   async getSupplierById(id: number): Promise<Supplier | undefined> {
-    const [supplier] = await this.db.select().from(suppliers).where(eq(suppliers.id, id));
+    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
     return supplier;
   }
 
   async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
-    const [supplier] = await this.db
+    const [supplier] = await db
       .update(suppliers)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(suppliers.id, id))
@@ -397,7 +398,7 @@ export class GMAOStorage {
 
   // Purchase Orders management
   async createPurchaseOrder(orderData: InsertPurchaseOrder): Promise<PurchaseOrder> {
-    const [order] = await this.db
+    const [order] = await db
       .insert(purchaseOrders)
       .values(orderData)
       .returning();
@@ -405,7 +406,7 @@ export class GMAOStorage {
   }
 
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    return await this.db.select().from(purchaseOrders);
+    return await db.select().from(purchaseOrders);
   }
 
   async getPurchaseOrderById(id: number): Promise<PurchaseOrder | undefined> {
@@ -451,7 +452,7 @@ export class GMAOStorage {
 
   // Reorder Rules management
   async createReorderRule(ruleData: InsertReorderRule): Promise<ReorderRule> {
-    const [rule] = await this.db
+    const [rule] = await db
       .insert(reorderRules)
       .values(ruleData)
       .returning();
@@ -459,11 +460,11 @@ export class GMAOStorage {
   }
 
   async getReorderRules(): Promise<ReorderRule[]> {
-    return await this.db.select().from(reorderRules).where(eq(reorderRules.isActive, true));
+    return await db.select().from(reorderRules).where(eq(reorderRules.isActive, true));
   }
 
   async getReorderRuleByPartId(sparePartId: number): Promise<ReorderRule | undefined> {
-    const [rule] = await this.db.select().from(reorderRules)
+    const [rule] = await db.select().from(reorderRules)
       .where(and(eq(reorderRules.sparePartId, sparePartId), eq(reorderRules.isActive, true)));
     return rule;
   }
@@ -561,7 +562,7 @@ export class GMAOStorage {
   // Generate purchase order number
   private async generatePurchaseOrderNumber(): Promise<string> {
     const year = new Date().getFullYear();
-    const orders = await this.db.select().from(purchaseOrders)
+    const orders = await db.select().from(purchaseOrders)
       .where(sql`EXTRACT(year FROM order_date) = ${year}`);
     
     const nextNumber = (orders.length + 1).toString().padStart(4, '0');
@@ -570,7 +571,7 @@ export class GMAOStorage {
 
   // Get parts with stock below reorder point
   async getPartsNeedingReorder(): Promise<(SparePart & { reorderRule?: ReorderRule })[]> {
-    const partsQuery = await this.db.select().from(spareParts);
+    const partsQuery = await db.select().from(spareParts);
     const results = [];
 
     for (const part of partsQuery) {
