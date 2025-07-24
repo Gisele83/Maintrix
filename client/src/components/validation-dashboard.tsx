@@ -158,6 +158,31 @@ export default function ValidationDashboard({
     }
   };
 
+  const handlePrintPurchaseOrder = async (purchaseOrderId: number) => {
+    try {
+      const response = await apiRequest(`/api/purchase-orders/${purchaseOrderId}/mark-printed`, {
+        method: "POST",
+        body: JSON.stringify({
+          printedBy: userId
+        })
+      });
+
+      toast({
+        title: "Succès",
+        description: "Bon de commande marqué comme imprimé - Processus terminé",
+      });
+
+      // Reload pending items
+      loadPendingItems();
+    } catch (error) {
+      toast({
+        title: "Erreur", 
+        description: "Erreur lors du marquage d'impression",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getPriorityBadge = (priority: string) => {
     const colors = {
       urgent: "bg-red-500 text-white",
@@ -420,11 +445,33 @@ export default function ValidationDashboard({
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-1">
                           <User className="h-4 w-4 text-gray-400" />
-                          <span>Demandeur: {purchaseOrder.requestedBy}</span>
+                          <span>Service Achat: {purchaseOrder.requestedBy}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span>{new Date(purchaseOrder.createdAt).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <h5 className="font-medium text-blue-800 mb-2">Workflow de Validation</h5>
+                        <div className="text-sm text-blue-700 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>1. Service Achat - Créé</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${validationLevel === 1 ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                            <span>2. Chef de Service Utilisateur - {validationLevel === 1 ? 'En cours' : 'En attente'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${validationLevel === 2 ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                            <span>3. Directeur Général - {validationLevel === 2 ? 'En cours' : 'En attente'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <span>4. Retour Service Achat - Impression</span>
+                          </div>
                         </div>
                       </div>
 
@@ -438,6 +485,19 @@ export default function ValidationDashboard({
                           <ExternalLink className="h-4 w-4" />
                           Voir papier en-tête
                         </Button>
+                        
+                        {/* Show Print button only for Service Achat when fully validated */}
+                        {userRole === "Service Achat" && purchaseOrder.validationStatus === "ready_for_print" && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handlePrintPurchaseOrder(purchaseOrder.id)}
+                            className="bg-purple-600 hover:bg-purple-700 flex items-center gap-1"
+                          >
+                            <FileText className="h-4 w-4" />
+                            Marquer comme imprimé
+                          </Button>
+                        )}
                         
                         <Dialog>
                           <DialogTrigger asChild>

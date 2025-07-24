@@ -575,17 +575,15 @@ export const purchaseOrders = pgTable("purchase_orders", {
   deliveryAddress: text("delivery_address"),
   notes: text("notes"),
   terms: text("terms"),
-  // VALIDATION SYSTEM - 3 LEVELS FOR PURCHASE ORDERS
-  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, level2_validated, fully_validated, rejected
-  level1ValidatedBy: integer("level1_validated_by").references(() => userProfiles.id), // Requester's supervisor
-  level1ValidatedAt: timestamp("level1_validated_at"),
-  level1ValidationNotes: text("level1_validation_notes"),
-  level2ValidatedBy: integer("level2_validated_by").references(() => userProfiles.id), // Department manager
-  level2ValidatedAt: timestamp("level2_validated_at"),
-  level2ValidationNotes: text("level2_validation_notes"),
-  level3ValidatedBy: integer("level3_validated_by").references(() => userProfiles.id), // Financial approval
-  level3ValidatedAt: timestamp("level3_validated_at"),
-  level3ValidationNotes: text("level3_validation_notes"),
+  // VALIDATION SYSTEM - 2 LEVELS POUR BONS DE COMMANDE
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, chef_service_validated, directeur_validated, ready_for_print, printed, rejected
+  chefServiceValidatedBy: integer("chef_service_validated_by").references(() => userProfiles.id), // Chef de Service Utilisateur
+  chefServiceValidatedAt: timestamp("chef_service_validated_at"),
+  chefServiceValidationNotes: text("chef_service_validation_notes"),
+  directeurValidatedBy: integer("directeur_validated_by").references(() => userProfiles.id), // Directeur Général
+  directeurValidatedAt: timestamp("directeur_validated_at"),
+  directeurValidationNotes: text("directeur_validation_notes"),
+  documentsJustificatifs: jsonb("documents_justificatifs"), // Documents joints par l'initiateur
   rejectedBy: integer("rejected_by").references(() => userProfiles.id),
   rejectedAt: timestamp("rejected_at"),
   rejectionReason: text("rejection_reason"),

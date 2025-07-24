@@ -1168,25 +1168,20 @@ export class GMAOStorage {
     
     if (data.action === "validate") {
       if (data.validationLevel === 1) {
+        // Chef de Service Utilisateur valide
         updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "level1_validated",
-          level1ValidatedBy: data.validatorId,
-          level1ValidatedAt: currentDate,
-          level1ValidationNotes: data.comments
+          validationStatus: "chef_service_validated",
+          chefServiceValidatedBy: data.validatorId,
+          chefServiceValidatedAt: currentDate,
+          chefServiceValidationNotes: data.comments
         });
       } else if (data.validationLevel === 2) {
+        // Directeur Général valide - bon prêt pour impression
         updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "level2_validated",
-          level2ValidatedBy: data.validatorId,
-          level2ValidatedAt: currentDate,
-          level2ValidationNotes: data.comments
-        });
-      } else if (data.validationLevel === 3) {
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "fully_validated",
-          level3ValidatedBy: data.validatorId,
-          level3ValidatedAt: currentDate,
-          level3ValidationNotes: data.comments,
+          validationStatus: "ready_for_print",
+          directeurValidatedBy: data.validatorId,
+          directeurValidatedAt: currentDate,
+          directeurValidationNotes: data.comments,
           canPrint: true
         });
       }
@@ -1336,24 +1331,19 @@ export class GMAOStorage {
       purchaseOrderId,
       validationStatus: purchaseOrder.validationStatus,
       canPrint: purchaseOrder.canPrint,
-      level1: {
-        validated: purchaseOrder.level1ValidatedBy !== null,
-        validatedBy: purchaseOrder.level1ValidatedBy,
-        validatedAt: purchaseOrder.level1ValidatedAt,
-        notes: purchaseOrder.level1ValidationNotes
+      chefService: {
+        validated: purchaseOrder.chefServiceValidatedBy !== null,
+        validatedBy: purchaseOrder.chefServiceValidatedBy,
+        validatedAt: purchaseOrder.chefServiceValidatedAt,
+        notes: purchaseOrder.chefServiceValidationNotes
       },
-      level2: {
-        validated: purchaseOrder.level2ValidatedBy !== null,
-        validatedBy: purchaseOrder.level2ValidatedBy,
-        validatedAt: purchaseOrder.level2ValidatedAt,
-        notes: purchaseOrder.level2ValidationNotes
+      directeur: {
+        validated: purchaseOrder.directeurValidatedBy !== null,
+        validatedBy: purchaseOrder.directeurValidatedBy,
+        validatedAt: purchaseOrder.directeurValidatedAt,
+        notes: purchaseOrder.directeurValidationNotes
       },
-      level3: {
-        validated: purchaseOrder.level3ValidatedBy !== null,
-        validatedBy: purchaseOrder.level3ValidatedBy,
-        validatedAt: purchaseOrder.level3ValidatedAt,
-        notes: purchaseOrder.level3ValidationNotes
-      },
+      documentsJustificatifs: purchaseOrder.documentsJustificatifs,
       rejection: {
         rejected: purchaseOrder.rejectedBy !== null,
         rejectedBy: purchaseOrder.rejectedBy,

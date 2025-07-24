@@ -1167,6 +1167,50 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Mark purchase order as printed (Service Achat final step)
+  app.post("/api/purchase-orders/:id/mark-printed", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const { printedBy, printedAt } = req.body;
+      
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+        validationStatus: "printed",
+        printedBy: printedBy || 1, // Service Achat user ID
+        printedAt: printedAt ? new Date(printedAt) : new Date()
+      });
+      
+      res.json({
+        success: true,
+        message: "Bon de commande marqué comme imprimé",
+        purchaseOrder: updatedOrder
+      });
+    } catch (error) {
+      console.error("Error marking purchase order as printed:", error);
+      res.status(500).json({ message: "Failed to mark purchase order as printed" });
+    }
+  });
+
+  // Add supporting documents to purchase order
+  app.post("/api/purchase-orders/:id/documents", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const { documents } = req.body;
+      
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+        documentsJustificatifs: documents
+      });
+      
+      res.json({
+        success: true,
+        message: "Documents justificatifs ajoutés",
+        purchaseOrder: updatedOrder
+      });
+    } catch (error) {
+      console.error("Error adding documents to purchase order:", error);
+      res.status(500).json({ message: "Failed to add documents to purchase order" });
+    }
+  });
+
   // Download purchase order as PDF endpoint (placeholder)
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {

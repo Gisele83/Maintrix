@@ -23,6 +23,7 @@ import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import { InventoryManagement } from "@/components/inventory-management";
 import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard";
+import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
 import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
 
 
@@ -624,10 +625,14 @@ export default function GMAODashboard() {
 
         {activeTab === "validation" && (
           <div className="space-y-6">
+            <PurchaseOrderWorkflowDemo 
+              currentUserRole="Chef de Service"
+              validationLevel={1}
+            />
             <ValidationDashboard
               userId={1}
-              userRole="Superviseur"
-              validationLevel={2}
+              userRole="Chef de Service"
+              validationLevel={1}
               canValidateWorkOrders={true}
               canValidatePurchaseOrders={true}
             />
