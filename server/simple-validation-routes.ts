@@ -42,10 +42,31 @@ export function registerSimpleValidationRoutes(app: Express) {
     res.json(demoWorkOrders);
   });
 
-  // Get pending purchase orders for validation (simplified) 
+  // Get pending purchase orders for validation (includes real orders from purchase creation)
   app.get("/api/validation/purchase-orders/pending", async (req, res) => {
-    // For demo purposes, always return demo purchase orders for validation testing
-    const demoPurchaseOrders = [
+    try {
+      // Get real purchase orders with pending validation status
+      const realPurchaseOrders = await gmaoStorage.getPurchaseOrdersByStatus("pending");
+      
+      // Convert to validation format and add demo data for testing
+      const formattedRealOrders = realPurchaseOrders.map(order => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderType: order.orderType || "Pièces de rechange",
+        description: order.notes || "Commande créée via le système",
+        supplier: "Fournisseur Standard", // Could be enhanced with supplier lookup
+        totalAmount: order.totalAmount,
+        currency: order.currency || "EUR",
+        validationStatus: order.validationStatus,
+        priority: order.priority,
+        requestedBy: order.requestedBy,
+        deliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: order.createdAt,
+        documentType: order.documentType
+      }));
+
+      // Always include demo orders for now, plus any real orders
+      const demoPurchaseOrders = [
       {
         id: 1,
         orderNumber: "PO-2025-001",
@@ -81,8 +102,15 @@ export function registerSimpleValidationRoutes(app: Express) {
         deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString()
       }
-    ];
-    res.json(demoPurchaseOrders);
+      ];
+      
+      // Return real orders + demo orders if needed
+      const allOrders = [...formattedRealOrders, ...demoPurchaseOrders];
+      res.json(allOrders);
+    } catch (error) {
+      console.error("Error fetching pending purchase orders:", error);
+      res.status(500).json({ message: "Failed to fetch pending orders" });
+    }
   });
 
   // Get validation statistics and history (simplified)
@@ -149,29 +177,56 @@ export function registerSimpleValidationRoutes(app: Express) {
     }
   });
 
-  // Validate purchase order (simplified)
+  // Validate purchase order with real database updates
   app.post("/api/validation/purchase-orders/validate", async (req, res) => {
     try {
-      const { purchaseorderId, action, validationLevel, comments } = req.body;
+      const { purchaseorderId, action, validationLevel, comments, validatorId } = req.body;
       
-      // For demo purposes, just log the validation
       if (action === "validate") {
-        let newStatus;
-        switch (validationLevel) {
-          case 1: newStatus = "level1_validated"; break;
-          case 2: newStatus = "level2_validated"; break; 
-          case 3: newStatus = "fully_validated"; break;
-          default: newStatus = "pending";
+        // Update the purchase order validation status in database
+        const updateData: any = {
+          validationStatus: validationLevel === 1 ? "level1_validated" : "level2_validated"
+        };
+
+        // Set validation fields based on level
+        if (validationLevel === 1) {
+          updateData.chefServiceValidatedBy = validatorId?.toString() || "Chef Service";
+          updateData.chefServiceValidatedAt = new Date();
+        } else if (validationLevel === 2) {
+          updateData.directeurValidatedBy = validatorId?.toString() || "Directeur Général";
+          updateData.directeurValidatedAt = new Date();
+          updateData.validationStatus = "validated";
+          updateData.canPrint = true; // Allow printing after final validation
         }
-        
-        console.log(`Purchase order ${purchaseorderId} ${action}d at level ${validationLevel}`);
+
+        if (comments) {
+          updateData.validationNotes = comments;
+        }
+
+        await gmaoStorage.updatePurchaseOrder(purchaseorderId, updateData);
         
         res.json({
           success: true,
-          message: `Bon de commande ${action === "validate" ? "validé" : "rejeté"} avec succès`
+          message: `Bon de commande validé avec succès - Niveau ${validationLevel}`
         });
       } else {
-        console.log(`Purchase order ${purchaseorderId} rejected: ${comments}`);
+        // Handle rejection
+        const updateData: any = {
+          validationStatus: "rejected",
+          rejectedBy: validatorId,
+          rejectedAt: new Date(),
+          rejectionReason: comments || "Rejet sans commentaire"
+        };
+
+        // Set specific rejection reason based on validation level
+        if (validationLevel === 1) {
+          updateData.chefServiceRejectionReason = comments;
+        } else if (validationLevel === 2) {
+          updateData.directeurRejectionReason = comments;
+        }
+
+        await gmaoStorage.updatePurchaseOrder(purchaseorderId, updateData);
+        
         res.json({
           success: true,
           message: "Bon de commande rejeté avec succès"

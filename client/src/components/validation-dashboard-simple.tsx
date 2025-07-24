@@ -127,13 +127,13 @@ export default function ValidationDashboard({
 
       await apiRequest(endpoint, {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           [`${recordType.replace("_", "")}Id`]: recordId,
           action,
           validationLevel,
           validatorId: userId,
           comments: action === "reject" ? rejectionReason : undefined // Pas de commentaire pour validation
-        })
+        }
       });
 
       toast({
