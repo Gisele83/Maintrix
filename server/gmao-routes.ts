@@ -119,12 +119,23 @@ export function registerGMAORoutes(app: Express) {
   // Create new work order
   app.post("/api/work-orders", async (req, res) => {
     try {
+      // Handle case where body might be malformed
+      if (!req.body || typeof req.body !== 'object') {
+        console.error("Invalid request body format:", req.body);
+        return res.status(400).json({ message: "Invalid request body format" });
+      }
+
       const data = insertWorkOrderSchema.parse(req.body);
       const workOrder = await gmaoStorage.createWorkOrder(data);
+      
+      console.log(`Work order created: ${workOrder.orderNumber} - ${workOrder.title}`);
       res.status(201).json(workOrder);
     } catch (error) {
       console.error("Error creating work order:", error);
-      res.status(400).json({ message: "Failed to create work order" });
+      res.status(400).json({ 
+        message: "Failed to create work order",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
