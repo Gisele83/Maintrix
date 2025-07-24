@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -23,7 +24,12 @@ import {
   BarChart3,
   TrendingUp,
   DollarSign,
-  Calendar as CalendarDays
+  Calendar as CalendarDays,
+  PieChart,
+  Activity,
+  Target,
+  Zap,
+  AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -112,6 +118,9 @@ export function MaintenanceReports() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isGeneratingMonthly, setIsGeneratingMonthly] = useState(false);
+  const [selectedMonthlyReport, setSelectedMonthlyReport] = useState<MonthlyReport | null>(null);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showChartsModal, setShowChartsModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -130,10 +139,12 @@ export function MaintenanceReports() {
   // Generate monthly report mutation
   const generateMonthlyMutation = useMutation({
     mutationFn: async (data: { month: number; year: number; generatedBy?: string }) => {
-      return await apiRequest("/api/monthly-reports", {
+      const response = await fetch("/api/monthly-reports", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -205,6 +216,60 @@ export function MaintenanceReports() {
     return `${value.toFixed(1)}%`;
   };
 
+  const openAnalyticsModal = (report: MonthlyReport) => {
+    setSelectedMonthlyReport(report);
+    setShowAnalyticsModal(true);
+  };
+
+  const openChartsModal = (report: MonthlyReport) => {
+    setSelectedMonthlyReport(report);
+    setShowChartsModal(true);
+  };
+
+  const renderKpiCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => (
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+        <div className={`p-3 rounded-lg ${color}`}>
+          <div className="w-5 h-5">{icon}</div>
+        </div>
+      </div>
+    </Card>
+  );
+
+  const renderPieChart = (data: any, title: string) => {
+    if (!data) return null;
+    
+    const total = Object.values(data).reduce((sum: number, value: any) => sum + (typeof value === 'number' ? value : 0), 0);
+    
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <div className="space-y-3">
+          {Object.entries(data).map(([key, value], index) => {
+            const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
+            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'];
+            return (
+              <div key={key} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`}></div>
+                  <span className="text-sm">{key}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{value}</span>
+                  <span className="text-xs text-muted-foreground">({percentage.toFixed(1)}%)</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -253,7 +318,7 @@ export function MaintenanceReports() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
                   <p className="mt-2 text-muted-foreground">Chargement des rapports...</p>
                 </div>
-              ) : maintenanceReports.length === 0 ? (
+              ) : (maintenanceReports as MaintenanceReport[]).length === 0 ? (
                 <div className="text-center py-8">
                   <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Aucun rapport d'intervention disponible</p>
@@ -263,7 +328,7 @@ export function MaintenanceReports() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {maintenanceReports.map((report: MaintenanceReport) => (
+                  {(maintenanceReports as MaintenanceReport[]).map((report: MaintenanceReport) => (
                     <Card key={report.id} className="border-l-4 border-l-purple-500">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-4">
@@ -425,7 +490,7 @@ export function MaintenanceReports() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                   <p className="mt-2 text-muted-foreground">Chargement des rapports mensuels...</p>
                 </div>
-              ) : monthlyReports.length === 0 ? (
+              ) : (monthlyReports as MonthlyReport[]).length === 0 ? (
                 <div className="text-center py-8">
                   <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Aucun rapport mensuel disponible</p>
@@ -435,7 +500,7 @@ export function MaintenanceReports() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {monthlyReports.map((report: MonthlyReport) => (
+                  {(monthlyReports as MonthlyReport[]).map((report: MonthlyReport) => (
                     <Card key={report.id} className="border-l-4 border-l-blue-500">
                       <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-6">
@@ -587,8 +652,20 @@ export function MaintenanceReports() {
                           </div>
                           
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openAnalyticsModal(report)}
+                            >
                               <BarChart3 className="w-4 h-4 mr-2" />
+                              Voir Analyses
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => openChartsModal(report)}
+                            >
+                              <PieChart className="w-4 h-4 mr-2" />
                               Voir Graphiques
                             </Button>
                             <Button variant="outline" size="sm">
