@@ -1,4 +1,4 @@
-import { Settings, User, Wrench, Factory, Home } from "lucide-react";
+import { Settings, User, Wrench, Factory, Home, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
@@ -63,6 +63,20 @@ export function Header() {
                 }`}
               >
                 <span>Tarifs</span>
+              </Button>
+            </Link>
+            <Link href="/access-management">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/access-management" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Accès</span>
               </Button>
             </Link>
             <Link href="/payment">

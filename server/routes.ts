@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { TrialManager } from "./trial-management";
+import { AccessManager } from "./access-management";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./auth-routes";
 import { 
@@ -884,6 +885,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting trial status:", error);
       res.status(500).json({ message: "Failed to get trial status" });
+    }
+  });
+
+  // Access management routes for owner
+  app.post('/api/access/grant', async (req, res) => {
+    try {
+      const { ownerId, granteeEmail, planType, durationDays, reason, notes } = req.body;
+      
+      const accessGrant = AccessManager.createAccessGrant(
+        ownerId,
+        granteeEmail,
+        planType,
+        durationDays,
+        reason,
+        notes
+      );
+      
+      res.json({ success: true, accessGrant });
+    } catch (error) {
+      console.error("Error creating access grant:", error);
+      res.status(500).json({ message: "Failed to create access grant" });
+    }
+  });
+
+  app.get('/api/access/grants/:ownerId', async (req, res) => {
+    try {
+      const { ownerId } = req.params;
+      
+      // Mock data - dans une vraie implémentation, récupérer depuis la base de données
+      const mockGrants = [
+        AccessManager.createAccessGrant(ownerId, "partenaire@entreprise.com", "business", 90, "Partenariat commercial"),
+        AccessManager.createAccessGrant(ownerId, "consultant@expertise.com", "enterprise", 30, "Mission de consulting")
+      ];
+      
+      const report = AccessManager.generateUsageReport(ownerId, mockGrants);
+      const notifications = AccessManager.getOwnerNotifications(ownerId, mockGrants);
+      
+      res.json({ grants: mockGrants, report, notifications });
+    } catch (error) {
+      console.error("Error fetching access grants:", error);
+      res.status(500).json({ message: "Failed to fetch access grants" });
+    }
+  });
+
+  app.post('/api/access/revoke', async (req, res) => {
+    try {
+      const { grantId, ownerId, reason } = req.body;
+      
+      const success = AccessManager.revokeAccess(grantId, ownerId, reason);
+      
+      if (success) {
+        res.json({ success: true, message: "Access revoked successfully" });
+      } else {
+        res.status(400).json({ message: "Failed to revoke access" });
+      }
+    } catch (error) {
+      console.error("Error revoking access:", error);
+      res.status(500).json({ message: "Failed to revoke access" });
+    }
+  });
+
+  app.post('/api/access/extend', async (req, res) => {
+    try {
+      const { grantId, ownerId, additionalDays } = req.body;
+      
+      const updatedGrant = AccessManager.extendAccess(grantId, ownerId, additionalDays);
+      
+      if (updatedGrant) {
+        res.json({ success: true, accessGrant: updatedGrant });
+      } else {
+        res.status(400).json({ message: "Failed to extend access" });
+      }
+    } catch (error) {
+      console.error("Error extending access:", error);
+      res.status(500).json({ message: "Failed to extend access" });
+    }
+  });
+
+  app.get('/api/access/validate/:grantId', async (req, res) => {
+    try {
+      const { grantId } = req.params;
+      
+      // Dans une vraie implémentation, récupérer le grant depuis la base de données
+      const mockGrant = AccessManager.createAccessGrant("owner_1", "test@example.com", "business", 30);
+      const validation = AccessManager.validateAccess(mockGrant);
+      
+      res.json({ validation, grant: mockGrant });
+    } catch (error) {
+      console.error("Error validating access:", error);
+      res.status(500).json({ message: "Failed to validate access" });
     }
   });
 
