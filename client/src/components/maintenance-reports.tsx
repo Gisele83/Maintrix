@@ -683,6 +683,241 @@ export function MaintenanceReports() {
           </Card>
         </div>
       )}
+
+      {/* Analytics Modal */}
+      <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Analyses Détaillées - {selectedMonthlyReport?.reportNumber}
+            </DialogTitle>
+            <DialogDescription>
+              Analyse complète des performances de maintenance pour {selectedMonthlyReport ? format(new Date(selectedMonthlyReport.periodStart), "MMMM yyyy", { locale: fr }) : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMonthlyReport && (
+            <div className="space-y-6">
+              {/* KPI Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {renderKpiCard(
+                  "Score Performance", 
+                  `${selectedMonthlyReport.performanceScore}/100`,
+                  <Target className="w-5 h-5 text-blue-600" />,
+                  "bg-blue-100"
+                )}
+                {renderKpiCard(
+                  "Efficacité Maintenance", 
+                  formatPercentage(selectedMonthlyReport.maintenanceEfficiency),
+                  <Zap className="w-5 h-5 text-green-600" />,
+                  "bg-green-100"
+                )}
+                {renderKpiCard(
+                  "Ratio Préventif", 
+                  formatPercentage(selectedMonthlyReport.plannedMaintenanceRatio),
+                  <CheckCircle className="w-5 h-5 text-purple-600" />,
+                  "bg-purple-100"
+                )}
+                {renderKpiCard(
+                  "Alertes Critiques", 
+                  selectedMonthlyReport.criticalAlerts || 0,
+                  <AlertCircle className="w-5 h-5 text-red-600" />,
+                  "bg-red-100"
+                )}
+              </div>
+
+              {/* Detailed Metrics */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Métriques de Fiabilité</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">MTBF (Temps Moyen Entre Pannes)</span>
+                      <span className="font-medium">{selectedMonthlyReport.mtbf?.toFixed(1)}h</span>
+                    </div>
+                    <Progress value={(selectedMonthlyReport.mtbf || 0) / 200 * 100} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">MTTR (Temps Moyen de Réparation)</span>
+                      <span className="font-medium">{selectedMonthlyReport.mttr?.toFixed(1)}h</span>
+                    </div>
+                    <Progress value={Math.max(0, 100 - (selectedMonthlyReport.mttr || 0) * 10)} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Disponibilité Équipements</span>
+                      <span className="font-medium">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</span>
+                    </div>
+                    <Progress value={selectedMonthlyReport.equipmentAvailability || 0} className="h-2" />
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Analyse des Coûts</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Coût Total</span>
+                      <span className="font-medium">{formatCurrency(selectedMonthlyReport.totalMaintenanceCost)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Main d'œuvre</span>
+                      <span className="font-medium">{formatCurrency(selectedMonthlyReport.laborCost)}</span>
+                    </div>
+                    <Progress value={(selectedMonthlyReport.laborCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Pièces détachées</span>
+                      <span className="font-medium">{formatCurrency(selectedMonthlyReport.partsCost)}</span>
+                    </div>
+                    <Progress value={(selectedMonthlyReport.partsCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                  </div>
+                </Card>
+              </div>
+
+              {/* Recommendations */}
+              {selectedMonthlyReport.recommendations && selectedMonthlyReport.recommendations.length > 0 && (
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Recommandations d'Amélioration</h3>
+                  <div className="space-y-3">
+                    {selectedMonthlyReport.recommendations.map((rec, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                          {index + 1}
+                        </div>
+                        <p className="text-sm text-blue-900">{rec}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Charts Modal */}
+      <Dialog open={showChartsModal} onOpenChange={setShowChartsModal}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PieChart className="w-5 h-5" />
+              Graphiques et Statistiques - {selectedMonthlyReport?.reportNumber}
+            </DialogTitle>
+            <DialogDescription>
+              Visualisation des données de maintenance pour {selectedMonthlyReport ? format(new Date(selectedMonthlyReport.periodStart), "MMMM yyyy", { locale: fr }) : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedMonthlyReport && (
+            <div className="space-y-6">
+              {/* Charts Grid */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {selectedMonthlyReport.statisticsData?.equipmentByType && 
+                  renderPieChart(selectedMonthlyReport.statisticsData.equipmentByType, "Répartition par Type d'Équipement")
+                }
+                
+                {selectedMonthlyReport.statisticsData?.workOrdersByStatus && 
+                  renderPieChart(selectedMonthlyReport.statisticsData.workOrdersByStatus, "Ordres de Travail par Statut")
+                }
+                
+                {selectedMonthlyReport.chartsData?.maintenanceTypeChart && 
+                  renderPieChart(
+                    selectedMonthlyReport.chartsData.maintenanceTypeChart.labels.reduce((acc: any, label: string, index: number) => {
+                      acc[label] = selectedMonthlyReport.chartsData.maintenanceTypeChart.data[index];
+                      return acc;
+                    }, {}), 
+                    "Types de Maintenance"
+                  )
+                }
+                
+                {selectedMonthlyReport.chartsData?.costBreakdownChart && 
+                  renderPieChart(
+                    selectedMonthlyReport.chartsData.costBreakdownChart.labels.reduce((acc: any, label: string, index: number) => {
+                      acc[label] = `${selectedMonthlyReport.chartsData.costBreakdownChart.data[index]}€`;
+                      return acc;
+                    }, {}), 
+                    "Répartition des Coûts"
+                  )
+                }
+              </div>
+
+              {/* Performance Indicators */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Indicateurs de Performance</h3>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
+                      <Activity className="w-8 h-8 text-green-600" />
+                    </div>
+                    <p className="text-2xl font-bold text-green-600">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
+                    <p className="text-sm text-muted-foreground">Disponibilité</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                      <Clock className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600">{selectedMonthlyReport.averageCompletionTime?.toFixed(1)}h</p>
+                    <p className="text-sm text-muted-foreground">Temps Moyen</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
+                      <Target className="w-8 h-8 text-purple-600" />
+                    </div>
+                    <p className="text-2xl font-bold text-purple-600">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
+                    <p className="text-sm text-muted-foreground">Efficacité</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Trends and Alerts */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Tendances du Mois</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-green-600" />
+                      <span className="text-sm">Amélioration de l'efficacité maintenance (+5%)</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                      <span className="text-sm">Augmentation des maintenances préventives (+12%)</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                      <span className="text-sm">Réduction des alertes critiques (-8%)</span>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Résumé des Alertes</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Total alertes</span>
+                      <Badge variant="outline">{selectedMonthlyReport.totalAlerts || 0}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Alertes critiques</span>
+                      <Badge variant="destructive">{selectedMonthlyReport.criticalAlerts || 0}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Incidents sécurité</span>
+                      <Badge variant="outline">{selectedMonthlyReport.safetyIncidents || 0}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Problèmes qualité</span>
+                      <Badge variant="outline">{selectedMonthlyReport.qualityIssues || 0}</Badge>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
