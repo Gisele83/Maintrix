@@ -16,7 +16,8 @@ import {
   Wifi,
   Database,
   Shield,
-  Headphones
+  Headphones,
+  Gift
 } from "lucide-react";
 
 interface PricingFeature {
@@ -68,7 +69,7 @@ export default function Pricing() {
       ],
       userLimit: "1 utilisateur / 1 site",
       target: "Découverte, auto-formation",
-      ctaText: "Commencer gratuitement",
+      ctaText: "Essai gratuit 14 jours",
       ctaVariant: "outline"
     },
     {
@@ -91,7 +92,7 @@ export default function Pricing() {
       ],
       userLimit: "Jusqu'à 10 utilisateurs",
       target: "Techniciens, PME",
-      ctaText: "Choisir Pro",
+      ctaText: "Essai gratuit 14 jours",
       ctaVariant: "default"
     },
     {
@@ -114,7 +115,7 @@ export default function Pricing() {
       ],
       userLimit: "Multi-sites, équipes",
       target: "PME/ETI industrialisées",
-      ctaText: "Choisir Business",
+      ctaText: "Essai gratuit 14 jours",
       ctaVariant: "default"
     },
     {
@@ -184,10 +185,14 @@ export default function Pricing() {
             <h1 className="text-4xl font-bold tracking-tight">
               Choisissez votre formule d'abonnement
             </h1>
-            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-4">
               Tarification hybride adaptée à une GMAO connectée avec diagnostic intelligent par IA. 
               Montée en gamme naturelle selon la taille, la maturité numérique et les besoins spécifiques.
             </p>
+            <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 px-4 py-2 rounded-full border border-green-200 dark:border-green-800">
+              <Gift className="h-4 w-4" />
+              <span className="font-medium">Essai gratuit 14 jours pour tous les plans</span>
+            </div>
           </div>
         </div>
       </div>

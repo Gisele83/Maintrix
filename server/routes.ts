@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { TrialManager } from "./trial-management";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./auth-routes";
 import { 
@@ -857,6 +858,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchPerformed: false,
         suggestions: []
       });
+    }
+  });
+
+  // Trial management routes
+  app.post('/api/trial/start', async (req, res) => {
+    try {
+      const { email, planType } = req.body;
+      const trialUser = TrialManager.createTrialUser(email, planType);
+      res.json({ success: true, trialUser });
+    } catch (error) {
+      console.error("Error starting trial:", error);
+      res.status(500).json({ message: "Failed to start trial" });
+    }
+  });
+
+  app.get('/api/trial/status/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      // Dans une vraie implémentation, récupérer trialUser depuis la base de données
+      const mockTrialUser = TrialManager.createTrialUser("test@example.com", "business");
+      const status = TrialManager.getTrialStatus(mockTrialUser);
+      const notifications = TrialManager.getTrialNotifications(mockTrialUser);
+      res.json({ status, notifications });
+    } catch (error) {
+      console.error("Error getting trial status:", error);
+      res.status(500).json({ message: "Failed to get trial status" });
     }
   });
 

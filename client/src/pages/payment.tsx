@@ -228,6 +228,9 @@ export default function Payment() {
                 <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground">
                   <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">
+                    Essai gratuit 14 jours inclus pour tous les nouveaux utilisateurs
+                  </p>
+                  <p className="text-xs mt-1">
                     Les références de compte seront renseignées ultérieurement
                   </p>
                 </div>

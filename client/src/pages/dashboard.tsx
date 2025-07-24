@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink, Activity } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
+import { TrialBanner } from "@/components/trial-banner";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
 import { RepairGuidance } from "@/components/repair-guidance";
@@ -326,6 +327,14 @@ export default function Dashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Bannière d'essai gratuit */}
+        <TrialBanner 
+          daysRemaining={12}
+          planType="business"
+          diagnosticsUsed={15}
+          diagnosticsLimit={500}
+          isTrialActive={true}
+        />
         {/* Diagnostic Section */}
         {activeTab === "diagnostic" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
