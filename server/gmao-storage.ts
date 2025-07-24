@@ -163,6 +163,13 @@ export class GMAOStorage {
     return workOrder;
   }
 
+  // Work Orders by Validation Status (same procedure as Purchase Orders)
+  async getWorkOrdersByValidationStatus(status: string): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.validationStatus, status))
+      .orderBy(desc(workOrders.createdAt));
+  }
+
   // Preventive Maintenance Methods
   async getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]> {
     return await db.select().from(preventiveMaintenancePlans).orderBy(desc(preventiveMaintenancePlans.createdAt));

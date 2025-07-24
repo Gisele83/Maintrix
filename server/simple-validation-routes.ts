@@ -4,42 +4,51 @@ import { gmaoStorage } from "./gmao-storage";
 // Simple validation routes for demonstration
 export function registerSimpleValidationRoutes(app: Express) {
   
-  // Get pending work orders for validation (simplified)
+  // Get pending work orders for validation based on authenticated user level  
   app.get("/api/validation/work-orders/pending", async (req, res) => {
-    // For demo purposes, always return demo work orders for validation testing
-    const demoWorkOrders = [
-      {
-        id: 1,
-        orderNumber: "WO-2025-001",
-        title: "Maintenance préventive pompe hydraulique",
-        description: "Révision complète de la pompe hydraulique principale - remplacement des joints et filtres",
-        priority: "high",
-        status: "pending",
-        validationStatus: "pending",
-        totalCost: "2500.00",
-        estimatedDuration: 180,
-        requestedBy: "Jean Martin",
-        equipmentId: 1,
-        scheduledDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 2,
-        orderNumber: "WO-2025-002", 
-        title: "Réparation urgente moteur électrique",
-        description: "Remplacement du moteur électrique du convoyeur principal suite à panne",
-        priority: "urgent",
-        status: "pending",
-        validationStatus: "pending",
-        totalCost: "8500.00",
-        estimatedDuration: 300,
-        requestedBy: "Marie Dupont",
-        equipmentId: 2,
-        scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString()
+    try {
+      const { validationLevel, userToken } = req.query;
+      let userLevel = parseInt(validationLevel as string) || 1;
+      
+      console.log(`Fetching work orders for validation level ${userLevel}`);
+      
+      // Get work orders based on validation status and level
+      let targetStatus;
+      switch (userLevel) {
+        case 1: targetStatus = "pending"; break;
+        case 2: targetStatus = "level1_validated"; break;
+        case 3: targetStatus = "level2_validated"; break;
+        default: targetStatus = "pending";
       }
-    ];
-    res.json(demoWorkOrders);
+      
+      const workOrders = await gmaoStorage.getWorkOrdersByValidationStatus(targetStatus);
+      
+      // Format for frontend display
+      const formattedOrders = workOrders.map(order => ({
+        id: order.id,
+        orderNumber: order.orderNumber || `WO-${order.id}`,
+        title: order.title || 'Ordre de travail',
+        description: order.description || 'Description non disponible',
+        equipmentType: order.orderType || 'Non spécifié',
+        priority: order.priority || 'medium',
+        assignedTo: order.assignedTo ? `Technicien ${order.assignedTo}` : 'Non assigné',
+        estimatedDuration: order.estimatedDuration ? `${Math.floor(order.estimatedDuration / 60)}h${order.estimatedDuration % 60}min` : 'Non défini',
+        scheduledDate: order.scheduledStart ? new Date(order.scheduledStart).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        validationStatus: order.validationStatus,
+        totalAmount: order.cost?.toString() || '0.00',
+        currency: 'EUR',
+        requestedBy: order.requestedBy ? `User ${order.requestedBy}` : 'Service Maintenance',
+        createdAt: order.createdAt,
+        documentType: 'work_order'
+      }));
+      
+      console.log(`Found ${formattedOrders.length} work orders for level ${userLevel}`);
+      res.json(formattedOrders);
+      
+    } catch (error) {
+      console.error("Error fetching work orders for validation:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des ordres de travail" });
+    }
   });
 
   // Get pending purchase orders for validation based on authenticated user level
@@ -163,23 +172,55 @@ export function registerSimpleValidationRoutes(app: Express) {
     }
   });
 
-  // Validate work order (simplified)
+  // Validate work order with real database updates (same procedure as purchase orders)
   app.post("/api/validation/work-orders/validate", async (req, res) => {
     try {
-      const { workorderId, action, validationLevel, comments } = req.body;
+      const { workorderId, action, validationLevel, comments, validatorId } = req.body;
       
-      // For demo purposes, just update the work order status
       if (action === "validate") {
-        const newStatus = validationLevel === 1 ? "level1_validated" : "fully_validated";
+        // Update the work order validation status in database
+        const updateData: any = {
+          validationStatus: validationLevel === 1 ? "level1_validated" : "level2_validated"
+        };
+
+        // Set validation fields based on level
+        if (validationLevel === 1) {
+          updateData.level1ValidatedBy = validatorId || 1; // Chef Service
+          updateData.level1ValidatedAt = new Date();
+        } else if (validationLevel === 2) {
+          updateData.level2ValidatedBy = validatorId || 2; // Directeur Général
+          updateData.level2ValidatedAt = new Date();
+          updateData.validationStatus = "level2_validated"; // Goes to Service Achat if needed
+        } else if (validationLevel === 3) {
+          // Final validation by Service Achat
+          updateData.validationStatus = "validated";
+          updateData.canExecute = true; // Allow execution after final validation
+        }
+
+        if (comments) {
+          updateData.level1ValidationNotes = validationLevel === 1 ? comments : updateData.level1ValidationNotes;
+          updateData.level2ValidationNotes = validationLevel === 2 ? comments : updateData.level2ValidationNotes;
+        }
+
+        await gmaoStorage.updateWorkOrder(workorderId, updateData);
         
-        // In a real implementation, we would update the work order validation status
-        console.log(`Work order ${workorderId} ${action}d at level ${validationLevel}`);
+        console.log(`Work order ${workorderId} validated at level ${validationLevel}`);
         
         res.json({
           success: true,
-          message: `Ordre de travail ${action === "validate" ? "validé" : "rejeté"} avec succès`
+          message: `Ordre de travail validé avec succès - Niveau ${validationLevel}`
         });
       } else {
+        // Handle rejection
+        const updateData: any = {
+          validationStatus: "rejected",
+          rejectedBy: validatorId,
+          rejectedAt: new Date(),
+          rejectionReason: comments || "Rejet sans commentaire"
+        };
+
+        await gmaoStorage.updateWorkOrder(workorderId, updateData);
+        
         console.log(`Work order ${workorderId} rejected: ${comments}`);
         res.json({
           success: true,
