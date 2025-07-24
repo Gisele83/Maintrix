@@ -2,7 +2,7 @@ export const translations = {
   fr: {
     // Header
     appTitle: "Smart GMAO DiagFix",
-    appSubtitle: "Plateforme complète de gestion de maintenance avec diagnostic IA",
+    appSubtitle: "Smart Diagnostic + Smart GMAO - Plateforme complète de maintenance",
     technician: "Technicien",
     
     // Navigation
@@ -177,7 +177,7 @@ export const translations = {
   en: {
     // Header
     appTitle: "Smart GMAO DiagFix",
-    appSubtitle: "Complete Maintenance Management Platform with AI Diagnostics",
+    appSubtitle: "Smart Diagnostic + Smart GMAO - Complete Maintenance Platform",
     technician: "Technician",
     
     // Navigation

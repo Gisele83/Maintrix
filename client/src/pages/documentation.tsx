@@ -59,32 +59,32 @@ export default function Documentation() {
   const guides: GuideSection[] = [
     {
       id: "getting-started",
-      title: "Premiers pas avec Smart GMAO DiagFix",
-      description: "Guide d'introduction pour débuter avec la plateforme intégrée Diagnostic IA + GMAO",
+      title: "Premiers pas avec Smart Diagnostic et Smart GMAO",
+      description: "Guide d'introduction pour débuter avec la plateforme intégrée Smart Diagnostic + Smart GMAO",
       duration: "15 min",
       difficulty: "Débutant",
       icon: Play,
       content: [
         "Connexion à Smart GMAO DiagFix et interface unifiée",
-        "Navigation entre les modules Diagnostic IA et GMAO",
-        "Création de votre premier diagnostic avec intelligence artificielle",
-        "Intégration des diagnostics dans les ordres de travail GMAO",
-        "Gestion complète du cycle de maintenance (diagnostic → OT → intervention)",
+        "Navigation entre Smart Diagnostic et Smart GMAO",
+        "Création de votre premier diagnostic avec Smart Diagnostic",
+        "Intégration des diagnostics dans Smart GMAO pour les ordres de travail",
+        "Gestion complète du cycle de maintenance (Smart Diagnostic → Smart GMAO → intervention)",
         "Comprendre les résultats IA et la maintenance prédictive",
-        "Sauvegarde et historique unifié diagnostic-GMAO"
+        "Sauvegarde et historique unifié Smart Diagnostic + Smart GMAO"
       ]
     },
     {
       id: "diagnostic-advanced",
-      title: "Diagnostic IA Avancé + GMAO",
-      description: "Maîtrisez l'intégration complète Diagnostic IA et GMAO",
+      title: "Smart Diagnostic Avancé + Smart GMAO",
+      description: "Maîtrisez l'intégration complète Smart Diagnostic et Smart GMAO",
       duration: "35 min",
       difficulty: "Intermédiaire",
       icon: Brain,
       content: [
         "Utilisation des modes ML avancés (Ensemble, Neural Networks)",
         "Interprétation des scores de confiance et analyses prédictives",
-        "Conversion automatique diagnostic → ordre de travail GMAO",
+        "Conversion automatique Smart Diagnostic → ordre de travail Smart GMAO",
         "Analyse des anomalies et maintenance prédictive",
         "Workflow intégré diagnostic → planification → intervention",
         "Optimisation des diagnostics selon votre contexte industriel",
@@ -93,7 +93,7 @@ export default function Documentation() {
     },
     {
       id: "gmao-complete",
-      title: "GMAO Complet - Gestion de Maintenance",
+      title: "Smart GMAO Complet - Gestion de Maintenance",
       description: "Maîtrisez tous les aspects de la gestion de maintenance",
       duration: "45 min",
       difficulty: "Intermédiaire",

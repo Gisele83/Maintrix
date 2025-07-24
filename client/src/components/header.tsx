@@ -35,7 +35,7 @@ export function Header() {
                 }`}
               >
                 <Home className="w-4 h-4" />
-                <span>Diagnostic</span>
+                <span>Smart Diagnostic</span>
               </Button>
             </Link>
             <Link href="/gmao">
@@ -49,7 +49,7 @@ export function Header() {
                 }`}
               >
                 <Factory className="w-4 h-4" />
-                <span>GMAO</span>
+                <span>Smart GMAO</span>
               </Button>
             </Link>
             <Link href="/pricing">

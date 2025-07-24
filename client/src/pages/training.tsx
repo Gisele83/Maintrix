@@ -61,7 +61,7 @@ export default function Training() {
     {
       id: "intro-basics",
       title: "Introduction et Bases",
-      description: "Découvrez Smart GMAO DiagFix : Diagnostic IA intégré avec gestion de maintenance complète",
+      description: "Découvrez Smart GMAO DiagFix : Smart Diagnostic intégré avec Smart GMAO complet",
       duration: "45 min",
       difficulty: "Débutant",
       progress: 100,
@@ -69,12 +69,12 @@ export default function Training() {
       lessons: 5,
       category: "Introduction",
       icon: Play,
-      skills: ["Navigation interface unifiée", "Première connexion", "Vue d'ensemble Diagnostic + GMAO", "Workflow intégré"]
+      skills: ["Navigation interface unifiée", "Première connexion", "Vue d'ensemble Smart Diagnostic + Smart GMAO", "Workflow intégré"]
     },
     {
       id: "diagnostic-fundamentals",
-      title: "Fondamentaux du Diagnostic IA",
-      description: "Maîtrisez le diagnostic intelligent avec IA intégrée au GMAO",
+      title: "Fondamentaux de Smart Diagnostic",
+      description: "Maîtrisez Smart Diagnostic avec IA intégrée à Smart GMAO",
       duration: "2h 30min",
       difficulty: "Débutant",
       progress: 100,
@@ -82,11 +82,11 @@ export default function Training() {
       lessons: 8,
       category: "Diagnostic",
       icon: Target,
-      skills: ["Analyse symptômes IA", "Identification problèmes automatisée", "Intégration GMAO", "Workflow unifié"]
+      skills: ["Analyse symptômes IA", "Identification problèmes automatisée", "Intégration Smart GMAO", "Workflow unifié"]
     },
     {
       id: "gmao-integration",
-      title: "Intégration GMAO Complète",
+      title: "Intégration Smart GMAO Complète",
       description: "Du diagnostic à l'intervention : gestion complète de maintenance",
       duration: "3h 00min",
       difficulty: "Intermédiaire",
@@ -155,7 +155,7 @@ export default function Training() {
     {
       id: "technician-path",
       title: "Parcours Technicien Smart GMAO",
-      description: "Formation complète technicien : Diagnostic IA + GMAO intégré",
+      description: "Formation complète technicien : Smart Diagnostic + Smart GMAO intégré",
       modules: ["intro-basics", "diagnostic-fundamentals", "gmao-integration", "maintenance-procedures"],
       totalDuration: "6h 00min",
       targetAudience: "Techniciens de maintenance, opérateurs",

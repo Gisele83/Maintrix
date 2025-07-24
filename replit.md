@@ -2,7 +2,7 @@
 
 ## Overview
 
-Smart GMAO DiagFix is a complete integrated platform that seamlessly combines AI-powered diagnostics with comprehensive GMAO (Computerized Maintenance Management System) capabilities. The platform unifies intelligent diagnostic features with full-scale maintenance management in a single, cohesive solution. The system integrates advanced machine learning, IoT sensor data, enterprise systems (SAP/Maximo), and predictive maintenance to provide a unified industrial maintenance solution.
+Smart GMAO DiagFix is a complete integrated platform that seamlessly combines Smart Diagnostic (AI-powered diagnostics) with Smart GMAO (comprehensive Computerized Maintenance Management System). The platform unifies Smart Diagnostic intelligent features with Smart GMAO full-scale maintenance management in a single, cohesive solution. The system integrates advanced machine learning, IoT sensor data, enterprise systems (SAP/Maximo), and predictive maintenance to provide a unified industrial maintenance solution.
 
 ## User Preferences
 
@@ -108,6 +108,8 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **UPDATED: Documentation and training materials to reflect integrated Diagnostic + GMAO approach**
 ✓ **ENHANCED: Navigation includes payment center for subscription and account management**
 ✓ **MODERNIZED: Complete platform branding to emphasize the unified maintenance management solution**
+✓ **RENAMED: Clear distinction between Smart Diagnostic (AI assistant) and Smart GMAO (maintenance management)**
+✓ **STRUCTURED: Unified branding with distinct module names for better user understanding**
 ✓ **COMPLETED: Full-featured React Native mobile application with offline capabilities**
 ✓ **IMPLEMENTED: Complete mobile architecture with navigation, theming, and context providers**
 ✓ **ADDED: Advanced diagnostic screen with ML mode selection and comprehensive form**
