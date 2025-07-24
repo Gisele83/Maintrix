@@ -567,13 +567,79 @@ export function registerGMAORoutes(app: Express) {
   // PURCHASE ORDERS MANAGEMENT
   // OLD purchase orders route - will be replaced by demo version below
 
+  // Check document type based on amount
+  app.post("/api/purchase-orders/document-type", async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const numAmount = parseFloat(amount);
+      
+      if (isNaN(numAmount)) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      // Use fixed thresholds for now (avoid database dependency)
+      const purchaseOrderThreshold = 1500;
+      const commandLetterThreshold = 1500;
+      
+      let documentType, validationLevels, message;
+      
+      if (numAmount <= purchaseOrderThreshold) {
+        documentType = "purchase_order";
+        validationLevels = 2;
+        message = `Montant ≤ ${purchaseOrderThreshold}€ : Bon de Commande avec validation 2 niveaux (Chef Service + Directeur)`;
+      } else {
+        documentType = "command_letter";
+        validationLevels = 2;
+        message = `Montant > ${commandLetterThreshold}€ : Lettre de Commande avec validation 2 niveaux (Chef Service + Directeur)`;
+      }
+
+      res.json({
+        documentType,
+        validationLevels,
+        threshold: purchaseOrderThreshold,
+        commandThreshold: commandLetterThreshold,
+        message
+      });
+    } catch (error) {
+      console.error("Error determining document type:", error);
+      res.status(500).json({ error: "Failed to determine document type" });
+    }
+  });
+
   app.post("/api/purchase-orders", async (req, res) => {
     try {
-      const order = await gmaoStorage.createPurchaseOrder(req.body);
-      res.status(201).json(order);
+      // Determine document type based on amount
+      const amount = parseFloat(req.body.totalAmount);
+      const documentType = amount <= 1500 ? "purchase_order" : "command_letter";
+      
+      const orderData = {
+        orderType: req.body.orderType || "spare_parts",
+        requestedBy: req.body.requestedBy,
+        totalAmount: req.body.totalAmount,
+        priority: req.body.priority || "medium",
+        documentType,
+        validationStatus: "pending",
+        status: "draft",
+        currency: "EUR",
+        // Add other required fields with defaults
+        deliveryAddress: req.body.deliveryAddress || "",
+        notes: req.body.description || "",
+        terms: req.body.terms || ""
+      };
+      
+      const order = await gmaoStorage.createPurchaseOrder(orderData);
+      res.status(201).json({
+        success: true,
+        message: `${documentType === "purchase_order" ? "Bon de commande" : "Lettre de commande"} créé avec succès`,
+        order
+      });
     } catch (error) {
       console.error("Error creating purchase order:", error);
-      res.status(500).json({ message: "Failed to create purchase order" });
+      res.status(500).json({ 
+        success: false,
+        message: "Erreur lors de la création de la commande",
+        error: error.message 
+      });
     }
   });
 

@@ -45,7 +45,7 @@ export default function PurchaseOrderCreator() {
     try {
       const response = await apiRequest("/api/purchase-orders/document-type", {
         method: "POST",
-        body: JSON.stringify({ amount })
+        body: { amount }
       });
       setDocumentTypeInfo(response);
     } catch (error) {
@@ -59,7 +59,7 @@ export default function PurchaseOrderCreator() {
     mutationFn: async (orderData: any) => {
       return await apiRequest("/api/purchase-orders", {
         method: "POST",
-        body: JSON.stringify(orderData)
+        body: orderData
       });
     },
     onSuccess: (response) => {
