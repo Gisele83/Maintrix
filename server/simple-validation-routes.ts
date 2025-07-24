@@ -42,19 +42,33 @@ export function registerSimpleValidationRoutes(app: Express) {
     res.json(demoWorkOrders);
   });
 
-  // Get pending purchase orders for validation (includes real orders from purchase creation)
+  // Get pending purchase orders for validation based on user level
   app.get("/api/validation/purchase-orders/pending", async (req, res) => {
     try {
-      // Get real purchase orders with pending validation status
-      const realPurchaseOrders = await gmaoStorage.getPurchaseOrdersByStatus("pending");
+      const { validationLevel } = req.query;
+      const userLevel = parseInt(validationLevel as string) || 1;
       
-      // Convert to validation format and add demo data for testing
+      // Get orders based on validation level:
+      // Level 1: pending orders (not yet validated)
+      // Level 2: level1_validated orders (validated by level 1, awaiting level 2)
+      // Level 3: level2_validated orders (validated by level 2, awaiting final approval)
+      let targetStatus;
+      switch (userLevel) {
+        case 1: targetStatus = "pending"; break;
+        case 2: targetStatus = "level1_validated"; break;
+        case 3: targetStatus = "level2_validated"; break;
+        default: targetStatus = "pending";
+      }
+      
+      const realPurchaseOrders = await gmaoStorage.getPurchaseOrdersByStatus(targetStatus);
+      
+      // Convert to validation format
       const formattedRealOrders = realPurchaseOrders.map(order => ({
         id: order.id,
         orderNumber: order.orderNumber,
         orderType: order.orderType || "Pièces de rechange",
         description: order.notes || "Commande créée via le système",
-        supplier: "Fournisseur Standard", // Could be enhanced with supplier lookup
+        supplier: "Fournisseur Standard",
         totalAmount: order.totalAmount,
         currency: order.currency || "EUR",
         validationStatus: order.validationStatus,
@@ -65,8 +79,8 @@ export function registerSimpleValidationRoutes(app: Express) {
         documentType: order.documentType
       }));
 
-      // Always include demo orders for now, plus any real orders
-      const demoPurchaseOrders = [
+      // Only add demo orders if no real orders and level 1
+      const demoPurchaseOrders = (formattedRealOrders.length === 0 && userLevel === 1) ? [
       {
         id: 1,
         orderNumber: "PO-2025-001",
@@ -102,7 +116,7 @@ export function registerSimpleValidationRoutes(app: Express) {
         deliveryDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
         createdAt: new Date().toISOString()
       }
-      ];
+      ] : [];
       
       // Return real orders + demo orders if needed
       const allOrders = [...formattedRealOrders, ...demoPurchaseOrders];
@@ -195,8 +209,12 @@ export function registerSimpleValidationRoutes(app: Express) {
         } else if (validationLevel === 2) {
           updateData.directeurValidatedBy = validatorId?.toString() || "Directeur Général";
           updateData.directeurValidatedAt = new Date();
+          updateData.validationStatus = "level2_validated"; // Goes to Service Achat
+        } else if (validationLevel === 3) {
+          // Final validation by Service Achat
           updateData.validationStatus = "validated";
           updateData.canPrint = true; // Allow printing after final validation
+          updateData.printedAt = new Date(); // Auto-print and save
         }
 
         if (comments) {

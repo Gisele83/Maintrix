@@ -468,7 +468,7 @@ export class GMAOStorage {
   }
 
   async getPurchaseOrdersByStatus(status: string): Promise<PurchaseOrder[]> {
-    return await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.status, status));
+    return await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.validationStatus, status));
   }
 
   // Purchase Order Items management
