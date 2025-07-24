@@ -4,13 +4,15 @@ import {
   Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
-  Search, Filter, Eye, Edit, Trash2, ShoppingCart
+  Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
+  PieChart, DollarSign, Gauge
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Header } from "@/components/header";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
@@ -39,6 +41,8 @@ type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inven
 export default function GMAODashboard() {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<GMAOTab>("overview");
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
 
   // Fetch GMAO dashboard data
   const { data: dashboardData, isLoading } = useQuery<GMAODashboardData>({
@@ -409,20 +413,176 @@ export default function GMAODashboard() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Analytiques et KPI</h2>
             
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <BarChart3 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Tableaux de Bord Analytiques</h3>
-                  <p className="text-muted-foreground mb-4">
-                    KPI de maintenance : MTBF, MTTR, disponibilité, coûts et prédictions IA
-                  </p>
-                  <Button variant="outline">
-                    Voir les analyses
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* KPI Summary Cards */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="border-l-4 border-l-green-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Disponibilité Globale</p>
+                      <p className="text-3xl font-bold text-green-600">94.7%</p>
+                      <p className="text-xs text-green-600 mt-1">+2.3% ce mois</p>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded-lg">
+                      <Activity className="w-6 h-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-blue-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">MTBF Moyen</p>
+                      <p className="text-3xl font-bold text-blue-600">168h</p>
+                      <p className="text-xs text-blue-600 mt-1">+12h ce mois</p>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <Clock className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-purple-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">MTTR Moyen</p>
+                      <p className="text-3xl font-bold text-purple-600">4.2h</p>
+                      <p className="text-xs text-purple-600 mt-1">-0.8h ce mois</p>
+                    </div>
+                    <div className="p-3 bg-purple-100 rounded-lg">
+                      <Wrench className="w-6 h-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-l-4 border-l-yellow-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Coût Maintenance</p>
+                      <p className="text-3xl font-bold text-yellow-600">€47.2K</p>
+                      <p className="text-xs text-yellow-600 mt-1">-8% ce mois</p>
+                    </div>
+                    <div className="p-3 bg-yellow-100 rounded-lg">
+                      <DollarSign className="w-6 h-6 text-yellow-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Performance Trends */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Tendances de Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Efficacité Maintenance</span>
+                      <span className="font-medium">87.3%</span>
+                    </div>
+                    <Progress value={87.3} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Taux Préventif</span>
+                      <span className="font-medium">68.5%</span>
+                    </div>
+                    <Progress value={68.5} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Satisfaction Qualité</span>
+                      <span className="font-medium">92.1%</span>
+                    </div>
+                    <Progress value={92.1} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Objectifs vs Réalisé
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">Disponibilité Cible: 95%</span>
+                        <span className="font-medium text-green-600">94.7%</span>
+                      </div>
+                      <Progress value={94.7} max={95} className="h-2" />
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">MTBF Cible: 180h</span>
+                        <span className="font-medium text-blue-600">168h</span>
+                      </div>
+                      <Progress value={168} max={180} className="h-2" />
+                    </div>
+                    
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">Budget Maintenance: €50K</span>
+                        <span className="font-medium text-green-600">€47.2K</span>
+                      </div>
+                      <Progress value={47.2} max={50} className="h-2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Analytics Actions */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <BarChart3 className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Analyses Détaillées</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Rapports avancés, prédictions IA et recommandations
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowAnalyticsModal(true)}
+                    >
+                      Voir les analyses
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center py-8">
+                    <PieChart className="w-12 h-12 mx-auto text-purple-600 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Tableaux de Bord</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Visualisations interactives et métriques temps réel
+                    </p>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowAnalyticsModal(true)}
+                    >
+                      Voir les graphiques
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
@@ -438,7 +598,10 @@ export default function GMAODashboard() {
                   <p className="text-muted-foreground mb-4">
                     Notifications temps réel basées sur les seuils IoT et prédictions IA
                   </p>
-                  <Button variant="outline">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowAlertsModal(true)}
+                  >
                     Voir les alertes
                   </Button>
                 </div>
@@ -447,6 +610,289 @@ export default function GMAODashboard() {
           </div>
         )}
       </main>
+
+      {/* Analytics Modal */}
+      <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Analyses Détaillées de Performance
+            </DialogTitle>
+            <DialogDescription>
+              Rapports avancés, prédictions IA et recommandations pour optimiser la maintenance
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Advanced KPIs */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Efficacité Globale</h3>
+                  <Gauge className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">OEE (Overall Equipment Effectiveness)</span>
+                    <span className="font-medium">78.4%</span>
+                  </div>
+                  <Progress value={78.4} className="h-2" />
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">Taux d'utilisation</span>
+                    <span className="font-medium">85.2%</span>
+                  </div>
+                  <Progress value={85.2} className="h-2" />
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">Taux de performance</span>
+                    <span className="font-medium">92.1%</span>
+                  </div>
+                  <Progress value={92.1} className="h-2" />
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Coûts & Budget</h3>
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Coût par heure productive</span>
+                    <span className="font-medium">€127</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">Économies préventif vs correctif</span>
+                    <span className="font-medium text-green-600">€12.3K</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">ROI maintenance prédictive</span>
+                    <span className="font-medium text-green-600">+24%</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Prédictions IA</h3>
+                  <Brain className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Pannes évitées ce mois</span>
+                    <span className="font-medium">7</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">Précision prédictions</span>
+                    <span className="font-medium">94.3%</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-sm">Alertes précoces actives</span>
+                    <span className="font-medium text-orange-600">3</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Detailed Analytics Charts */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Analyse des Tendances</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">Amélioration continue</p>
+                      <p className="text-sm text-muted-foreground">MTBF en hausse de 12% sur 3 mois</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <Activity className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">Optimisation des coûts</p>
+                      <p className="text-sm text-muted-foreground">Réduction de 8% des coûts de maintenance</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                    <Brain className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <p className="font-medium">IA Performance</p>
+                      <p className="text-sm text-muted-foreground">Modèles prédictifs améliorés de 15%</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Recommandations Prioritaires</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                      1
+                    </div>
+                    <div>
+                      <p className="font-medium text-yellow-900">Optimiser planning préventif</p>
+                      <p className="text-sm text-yellow-800">Réduire MTTR de 15% avec planification avancée</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                      2
+                    </div>
+                    <div>
+                      <p className="font-medium text-blue-900">Formation équipes</p>
+                      <p className="text-sm text-blue-800">Améliorer compétences sur équipements critiques</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                      3
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-900">Expansion IoT</p>
+                      <p className="text-sm text-green-800">Ajouter capteurs sur 3 équipements critiques</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* Performance Benchmarks */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Comparaison Sectorielle</h3>
+              <div className="grid md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">94.7%</p>
+                  <p className="text-sm text-muted-foreground">Votre disponibilité</p>
+                  <p className="text-xs text-green-600">+2.1% vs secteur</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-blue-600">168h</p>
+                  <p className="text-sm text-muted-foreground">Votre MTBF</p>
+                  <p className="text-xs text-blue-600">+18h vs secteur</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-purple-600">4.2h</p>
+                  <p className="text-sm text-muted-foreground">Votre MTTR</p>
+                  <p className="text-xs text-purple-600">-1.3h vs secteur</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-yellow-600">€127</p>
+                  <p className="text-sm text-muted-foreground">Coût/h productive</p>
+                  <p className="text-xs text-yellow-600">-€15 vs secteur</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alerts Modal */}
+      <Dialog open={showAlertsModal} onOpenChange={setShowAlertsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Centre d'Alertes Intelligent
+            </DialogTitle>
+            <DialogDescription>
+              Notifications temps réel et alertes prédictives basées sur l'IA
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Alert Summary */}
+            <div className="grid md:grid-cols-4 gap-4">
+              <Card className="p-4 border-l-4 border-l-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Critiques</p>
+                    <p className="text-2xl font-bold text-red-600">3</p>
+                  </div>
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+              </Card>
+              
+              <Card className="p-4 border-l-4 border-l-yellow-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Importantes</p>
+                    <p className="text-2xl font-bold text-yellow-600">7</p>
+                  </div>
+                  <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                </div>
+              </Card>
+              
+              <Card className="p-4 border-l-4 border-l-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Prédictives</p>
+                    <p className="text-2xl font-bold text-blue-600">5</p>
+                  </div>
+                  <Brain className="w-6 h-6 text-blue-600" />
+                </div>
+              </Card>
+              
+              <Card className="p-4 border-l-4 border-l-green-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Résolues</p>
+                    <p className="text-2xl font-bold text-green-600">12</p>
+                  </div>
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </Card>
+            </div>
+
+            {/* Recent Alerts */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Alertes Récentes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-4 border border-red-200 bg-red-50 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <div className="flex-1">
+                      <p className="font-medium">Pression hydraulique critique - Grue STS-01</p>
+                      <p className="text-sm text-muted-foreground">Seuil dépassé: 6.74 bar (limite: 4.0 bar)</p>
+                    </div>
+                    <Badge variant="destructive">Critique</Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+                    <Clock className="w-5 h-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <p className="font-medium">Maintenance préventive due - RTG-02</p>
+                      <p className="text-sm text-muted-foreground">Échéance dans 2 jours</p>
+                    </div>
+                    <Badge variant="outline" className="border-yellow-600 text-yellow-600">Important</Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                    <Brain className="w-5 h-5 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="font-medium">Prédiction de panne - Reach Stacker RS-01</p>
+                      <p className="text-sm text-muted-foreground">Probabilité de panne dans 7 jours: 78%</p>
+                    </div>
+                    <Badge variant="outline" className="border-blue-600 text-blue-600">Prédictive</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
