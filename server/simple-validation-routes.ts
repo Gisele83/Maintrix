@@ -42,11 +42,15 @@ export function registerSimpleValidationRoutes(app: Express) {
     res.json(demoWorkOrders);
   });
 
-  // Get pending purchase orders for validation based on user level
+  // Get pending purchase orders for validation based on authenticated user level
   app.get("/api/validation/purchase-orders/pending", async (req, res) => {
     try {
-      const { validationLevel } = req.query;
-      const userLevel = parseInt(validationLevel as string) || 1;
+      // Get validation level from authenticated user or query param (for testing)
+      const { validationLevel, userToken } = req.query;
+      let userLevel = parseInt(validationLevel as string) || 1;
+      
+      // TODO: Extract user level from authenticated session when auth is implemented
+      // For now using query params for testing
       
       // Get orders based on validation level:
       // Level 1: pending orders (not yet validated)

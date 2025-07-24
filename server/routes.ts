@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerAuthRoutes } from "./auth-routes";
 import { 
   insertMaintenanceCaseSchema, 
   insertReportedCaseSchema, 
@@ -499,6 +500,9 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register validation system authentication
+  registerAuthRoutes(app);
+  
   // Register GMAO routes
   registerGMAORoutes(app);
   

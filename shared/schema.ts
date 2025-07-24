@@ -821,3 +821,46 @@ export const insertCompanyConfigSchema = createInsertSchema(companyConfig).omit(
 
 export type CompanyConfig = typeof companyConfig.$inferSelect;
 export type InsertCompanyConfig = z.infer<typeof insertCompanyConfigSchema>;
+
+// Authentication system for validation workflow
+export const validationUsers = pgTable("validation_users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(), // Hashed password
+  matricule: varchar("matricule", { length: 20 }).notNull().unique(),
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  department: varchar("department", { length: 100 }).notNull(),
+  validationLevel: integer("validation_level").notNull(), // 1=Chef Service, 2=Directeur, 3=Service Achat
+  isActive: boolean("is_active").default(true),
+  canValidateOrders: boolean("can_validate_orders").default(false),
+  canValidateWorkOrders: boolean("can_validate_work_orders").default(false),
+  email: varchar("email", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userSessions = pgTable("user_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => validationUsers.id).notNull(),
+  sessionToken: varchar("session_token", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Schemas for validation users
+export const insertValidationUserSchema = createInsertSchema(validationUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ValidationUser = typeof validationUsers.$inferSelect;
+export type InsertValidationUser = z.infer<typeof insertValidationUserSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;

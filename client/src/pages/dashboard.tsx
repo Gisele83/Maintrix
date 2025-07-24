@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -218,6 +218,21 @@ export default function Dashboard() {
     },
   ];
 
+  const utilityLinks = [
+    {
+      href: "/secure-validation",
+      label: "Validation Sécurisée",
+      icon: Shield,
+      description: "Système d'authentification multi-niveaux"
+    },
+    {
+      href: "/gmao",
+      label: "GMAO Dashboard", 
+      icon: Factory,
+      description: "Gestion de maintenance assistée"
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Header />
@@ -269,6 +284,18 @@ export default function Dashboard() {
             
             {/* Navigation Links */}
             <div className="flex items-center space-x-2">
+              {utilityLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link key={link.href} href={link.href}>
+                    <Button variant="outline" className="flex items-center space-x-2 hover:bg-primary/10 hover:border-primary/20">
+                      <Icon className="w-4 h-4" />
+                      <span className="hidden sm:inline">{link.label}</span>
+                      <ExternalLink className="w-3 h-3 opacity-50" />
+                    </Button>
+                  </Link>
+                );
+              })}
               <Link href="/learning">
                 <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
                   <Brain className="w-4 h-4" />

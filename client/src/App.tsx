@@ -1,3 +1,4 @@
+import React, { lazy } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/documentation" component={Documentation} />
       <Route path="/training" component={Training} />
       <Route path="/learning" component={LearningDashboard} />
+      <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
   );
