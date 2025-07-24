@@ -50,7 +50,7 @@ interface ChallengeEvent {
 export class GamificationEngine extends EventEmitter {
   private userSkillCache: Map<number, Map<number, UserSkillProgress>> = new Map();
   private achievementCache: Map<number, MaintenanceAchievement[]> = new Map();
-  private activechallenges: Map<number, any[]> = new Map(); // userId -> active challenges
+  private activeChallenges: Map<number, any[]> = new Map(); // userId -> active challenges
   private isInitialized: boolean = false;
 
   constructor() {
@@ -494,7 +494,7 @@ export class GamificationEngine extends EventEmitter {
    */
   async startChallenge(userId: number, challengeId: number): Promise<void> {
     try {
-      const activeUserChallenges = this.activeCharlenges.get(userId) || [];
+      const activeUserChallenges = this.activeChallenges.get(userId) || [];
       
       // Check if already active
       if (activeUserChallenges.some(c => c.challengeId === challengeId)) {
@@ -511,7 +511,7 @@ export class GamificationEngine extends EventEmitter {
       };
       
       activeUserChallenges.push(challenge);
-      this.activeCharlenges.set(userId, activeUserChallenges);
+      this.activeChallenges.set(userId, activeUserChallenges);
       
       console.log(`🎯 Challenge started: User ${userId}, Challenge ${challengeId}`);
       
@@ -533,7 +533,7 @@ export class GamificationEngine extends EventEmitter {
    */
   async updateChallengeProgress(userId: number, challengeId: number, progress: number): Promise<void> {
     try {
-      const activeUserChallenges = this.activeCharlenges.get(userId) || [];
+      const activeUserChallenges = this.activeChallenges.get(userId) || [];
       const challenge = activeUserChallenges.find(c => c.challengeId === challengeId);
       
       if (!challenge) {
@@ -558,7 +558,7 @@ export class GamificationEngine extends EventEmitter {
    */
   async completeChallenge(userId: number, challengeId: number, score?: number): Promise<void> {
     try {
-      const activeUserChallenges = this.activeCharlenges.get(userId) || [];
+      const activeUserChallenges = this.activeChallenges.get(userId) || [];
       const challengeIndex = activeUserChallenges.findIndex(c => c.challengeId === challengeId);
       
       if (challengeIndex === -1) {
@@ -571,7 +571,7 @@ export class GamificationEngine extends EventEmitter {
       
       // Remove from active challenges
       activeUserChallenges.splice(challengeIndex, 1);
-      this.activeCharlenges.set(userId, activeUserChallenges);
+      this.activeChallenges.set(userId, activeUserChallenges);
       
       // Award experience based on challenge
       const experienceReward = 150; // Base reward
@@ -645,7 +645,7 @@ export class GamificationEngine extends EventEmitter {
    */
   getAvailableChallenges(userId: number): any[] {
     const userSkills = this.getUserSkillProgress(userId);
-    const activeUserChallenges = this.activeCharlenges.get(userId) || [];
+    const activeUserChallenges = this.activeChallenges.get(userId) || [];
     
     // Mock available challenges based on user level
     const allChallenges = [
@@ -703,13 +703,13 @@ export class GamificationEngine extends EventEmitter {
   private checkExpiredChallenges(): void {
     const now = new Date();
     
-    this.activeChallenges.forEach((challenges, userId) => {
-      const expiredChallenges = challenges.filter(challenge => {
+    this.activeChallenges.forEach((challenges: any[], userId: number) => {
+      const expiredChallenges = challenges.filter((challenge: any) => {
         const timeElapsed = (now.getTime() - challenge.startTime.getTime()) / (1000 * 60); // minutes
         return timeElapsed > 120; // 2 hours timeout
       });
       
-      expiredChallenges.forEach(challenge => {
+      expiredChallenges.forEach((challenge: any) => {
         console.log(`⏰ Challenge expired: User ${userId}, Challenge ${challenge.challengeId}`);
         
         // Remove expired challenge
@@ -736,7 +736,7 @@ export class GamificationEngine extends EventEmitter {
     const totalUsers = this.userSkillCache.size;
     let totalActiveChallenges = 0;
     
-    this.activeCharlenges.forEach(challenges => {
+    this.activeChallenges.forEach(challenges => {
       totalActiveChallenges += challenges.length;
     });
     
