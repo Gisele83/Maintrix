@@ -111,10 +111,11 @@ export default function ValidationDashboard({
   };
 
   const handleValidation = async (recordType: "work_order" | "purchase_order", recordId: number, action: "validate" | "reject") => {
+    // Justification requise uniquement pour les rejets
     if (!validationComments.trim() && action === "reject") {
       toast({
-        title: "Commentaire requis",
-        description: "Veuillez ajouter un commentaire pour justifier le rejet",
+        title: "Justification requise",
+        description: "Veuillez expliquer la raison du rejet",
         variant: "destructive",
       });
       return;

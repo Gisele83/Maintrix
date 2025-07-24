@@ -22,7 +22,7 @@ import { WorkOrderManagement } from "@/components/work-order-management";
 import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import { InventoryManagement } from "@/components/inventory-management";
 import { MaintenanceReports } from "@/components/maintenance-reports";
-import ValidationDashboard from "@/components/validation-dashboard";
+import ValidationDashboard from "@/components/validation-dashboard-simple";
 import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
 import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
 import ThresholdConfiguration from "@/components/threshold-configuration";

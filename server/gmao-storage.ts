@@ -1178,8 +1178,7 @@ export class GMAOStorage {
         updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
           validationStatus: "chef_service_validated",
           chefServiceValidatedBy: data.validatorId,
-          chefServiceValidatedAt: currentDate,
-          chefServiceValidationNotes: data.comments
+          chefServiceValidatedAt: currentDate
         });
       } else if (data.validationLevel === 2) {
         // Directeur Général valide - bon prêt pour impression
@@ -1187,7 +1186,6 @@ export class GMAOStorage {
           validationStatus: "ready_for_print",
           directeurValidatedBy: data.validatorId,
           directeurValidatedAt: currentDate,
-          directeurValidationNotes: data.comments,
           canPrint: true
         });
       }

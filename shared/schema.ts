@@ -583,10 +583,10 @@ export const purchaseOrders = pgTable("purchase_orders", {
   validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, chef_service_validated, directeur_validated, ready_for_print, printed, rejected
   chefServiceValidatedBy: integer("chef_service_validated_by").references(() => userProfiles.id), // Chef de Service Utilisateur
   chefServiceValidatedAt: timestamp("chef_service_validated_at"),
-  chefServiceValidationNotes: text("chef_service_validation_notes"),
+  chefServiceRejectionReason: text("chef_service_rejection_reason"), // Justification uniquement pour les rejets
   directeurValidatedBy: integer("directeur_validated_by").references(() => userProfiles.id), // Directeur Général
   directeurValidatedAt: timestamp("directeur_validated_at"),
-  directeurValidationNotes: text("directeur_validation_notes"),
+  directeurRejectionReason: text("directeur_rejection_reason"), // Justification uniquement pour les rejets
   documentsJustificatifs: jsonb("documents_justificatifs"), // Documents joints par l'initiateur
   rejectedBy: integer("rejected_by").references(() => userProfiles.id),
   rejectedAt: timestamp("rejected_at"),
