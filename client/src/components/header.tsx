@@ -52,6 +52,19 @@ export function Header() {
                 <span>GMAO</span>
               </Button>
             </Link>
+            <Link href="/pricing">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/pricing" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <span>Tarifs</span>
+              </Button>
+            </Link>
           </nav>
           
           <div className="flex items-center space-x-4">

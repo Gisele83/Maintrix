@@ -10,6 +10,7 @@ import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
 import Training from "@/pages/training";
 import LearningDashboard from "@/pages/learning-dashboard";
+import Pricing from "@/pages/pricing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/documentation" component={Documentation} />
       <Route path="/training" component={Training} />
       <Route path="/learning" component={LearningDashboard} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>

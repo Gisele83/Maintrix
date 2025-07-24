@@ -220,16 +220,22 @@ export default function Dashboard() {
 
   const utilityLinks = [
     {
-      href: "/secure-validation",
-      label: "Validation Sécurisée",
+      href: "/pricing",
+      label: "Tarifs",
       icon: Shield,
-      description: "Système d'authentification multi-niveaux"
+      description: "Formules d'abonnement"
+    },
+    {
+      href: "/secure-validation",
+      label: "Validation",
+      icon: Factory,
+      description: "Système multi-niveaux"
     },
     {
       href: "/gmao",
-      label: "GMAO Dashboard", 
+      label: "GMAO", 
       icon: Factory,
-      description: "Gestion de maintenance assistée"
+      description: "Dashboard industriel"
     }
   ];
 
