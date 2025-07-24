@@ -19,6 +19,7 @@ import { EquipmentManagement } from "@/components/equipment-management";
 import { WorkOrderManagement } from "@/components/work-order-management";
 import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import { InventoryManagement } from "@/components/inventory-management";
+import { MaintenanceReports } from "@/components/maintenance-reports";
 
 
 interface GMAODashboardData {
@@ -33,7 +34,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "analytics" | "alerts";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -76,9 +77,14 @@ export default function GMAODashboard() {
       icon: ShoppingCart,
     },
     {
+      id: "reports" as GMAOTab,
+      label: "Rapports",
+      icon: BarChart3,
+    },
+    {
       id: "analytics" as GMAOTab,
       label: "Analytiques",
-      icon: BarChart3,
+      icon: TrendingUp,
     },
     {
       id: "alerts" as GMAOTab,
@@ -393,6 +399,10 @@ export default function GMAODashboard() {
 
         {activeTab === "procurement" && (
           <ProcurementDashboard />
+        )}
+
+        {activeTab === "reports" && (
+          <MaintenanceReports />
         )}
 
         {activeTab === "analytics" && (

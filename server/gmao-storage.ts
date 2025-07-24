@@ -43,6 +43,15 @@ import {
   type InsertPurchaseOrderItem,
   type ReorderRule,
   type InsertReorderRule,
+  maintenanceReports,
+  monthlyReports,
+  reportTemplates,
+  type MaintenanceReport,
+  type InsertMaintenanceReport,
+  type MonthlyReport,
+  type InsertMonthlyReport,
+  type ReportTemplate,
+  type InsertReportTemplate,
 } from "@shared/schema";
 
 export class GMAOStorage {
@@ -582,6 +591,425 @@ export class GMAOStorage {
     }
 
     return results;
+  }
+
+  // ============= MAINTENANCE REPORTS MANAGEMENT =============
+
+  // Generate maintenance report after work order completion
+  async generateMaintenanceReport(workOrderId: number, reportData: Partial<InsertMaintenanceReport>): Promise<MaintenanceReport> {
+    // Get work order details
+    const workOrder = await this.getWorkOrderById(workOrderId);
+    if (!workOrder) {
+      throw new Error("Work order not found");
+    }
+
+    // Generate report number
+    const reportNumber = await this.generateReportNumber("MR");
+    
+    // Calculate duration if not provided
+    const actualDuration = reportData.actualDuration || 
+      (reportData.endTime && reportData.startTime ? 
+        Math.floor((new Date(reportData.endTime).getTime() - new Date(reportData.startTime).getTime()) / (1000 * 60)) : 
+        null);
+
+    // Calculate costs
+    const partsCost = reportData.partsUsed ? 
+      Array.isArray(reportData.partsUsed) ? 
+        reportData.partsUsed.reduce((sum: number, part: any) => sum + (part.cost || 0), 0) : 0 : 0;
+    
+    const laborCost = reportData.laborCost || 
+      (actualDuration ? (actualDuration / 60) * 50 : 0); // 50€/hour default rate
+
+    const totalCost = partsCost + laborCost;
+
+    const reportDataComplete: InsertMaintenanceReport = {
+      reportNumber,
+      workOrderId,
+      equipmentId: workOrder.equipmentId,
+      reportType: workOrder.orderType || "corrective",
+      interventionType: reportData.interventionType || "repair",
+      technician: reportData.technician || workOrder.assignedTo?.toString() || "Non spécifié",
+      supervisor: reportData.supervisor,
+      startTime: reportData.startTime || workOrder.createdAt || new Date(),
+      endTime: reportData.endTime || new Date(),
+      actualDuration,
+      plannedDuration: workOrder.estimatedDuration,
+      workDescription: reportData.workDescription || workOrder.description,
+      problemDiagnosis: reportData.problemDiagnosis,
+      actionsTaken: reportData.actionsTaken || "Intervention terminée",
+      partsUsed: reportData.partsUsed,
+      toolsUsed: reportData.toolsUsed,
+      safetyIncidents: reportData.safetyIncidents,
+      qualityCheck: reportData.qualityCheck || false,
+      qualityNotes: reportData.qualityNotes,
+      followUpRequired: reportData.followUpRequired || false,
+      followUpDate: reportData.followUpDate,
+      followUpNotes: reportData.followUpNotes,
+      totalCost,
+      laborCost,
+      partsCost,
+      status: "draft",
+      ...reportData
+    };
+
+    const [report] = await db.insert(maintenanceReports).values(reportDataComplete).returning();
+
+    // Auto-approve if no issues
+    if (!reportData.safetyIncidents && !reportData.followUpRequired) {
+      await this.approveMaintenanceReport(report.id, reportData.technician || "System");
+    }
+
+    console.log(`Maintenance report ${reportNumber} generated for work order ${workOrderId}`);
+    return report;
+  }
+
+  // Get maintenance reports
+  async getMaintenanceReports(filters?: {
+    equipmentId?: number;
+    reportType?: string;
+    status?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<MaintenanceReport[]> {
+    let query = db.select().from(maintenanceReports);
+    
+    if (filters) {
+      const conditions = [];
+      if (filters.equipmentId) conditions.push(eq(maintenanceReports.equipmentId, filters.equipmentId));
+      if (filters.reportType) conditions.push(eq(maintenanceReports.reportType, filters.reportType));
+      if (filters.status) conditions.push(eq(maintenanceReports.status, filters.status));
+      if (filters.startDate) conditions.push(gte(maintenanceReports.createdAt, filters.startDate));
+      if (filters.endDate) conditions.push(lte(maintenanceReports.createdAt, filters.endDate));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+    }
+    
+    return query.orderBy(desc(maintenanceReports.createdAt));
+  }
+
+  // Approve maintenance report
+  async approveMaintenanceReport(reportId: number, approvedBy: string): Promise<MaintenanceReport> {
+    const [report] = await db
+      .update(maintenanceReports)
+      .set({
+        status: "approved",
+        approvedBy,
+        approvalDate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(maintenanceReports.id, reportId))
+      .returning();
+    return report;
+  }
+
+  // ============= MONTHLY REPORTS MANAGEMENT =============
+
+  // Generate monthly maintenance report
+  async generateMonthlyReport(month: number, year: number, generatedBy?: string): Promise<MonthlyReport> {
+    const reportNumber = await this.generateReportNumber("MM");
+    
+    // Calculate period dates
+    const periodStart = new Date(year, month - 1, 1);
+    const periodEnd = new Date(year, month, 0, 23, 59, 59);
+
+    // Calculate equipment statistics
+    const equipment = await this.getEquipmentRegistry();
+    const totalEquipment = equipment.length;
+    const activeEquipment = equipment.filter(eq => eq.operationalState === "operational").length;
+    const equipmentAvailability = activeEquipment > 0 ? (activeEquipment / totalEquipment) * 100 : 0;
+
+    // Calculate work orders statistics
+    const workOrders = await this.getWorkOrdersByDateRange(periodStart, periodEnd);
+    const totalWorkOrders = workOrders.length;
+    const completedWorkOrders = workOrders.filter(wo => wo.status === "completed").length;
+    const preventiveWorkOrders = workOrders.filter(wo => wo.type === "preventive").length;
+    const correctiveWorkOrders = workOrders.filter(wo => wo.type === "corrective").length;
+
+    // Calculate average completion time
+    const completedWOs = workOrders.filter(wo => wo.status === "completed" && wo.actualEndTime);
+    const averageCompletionTime = completedWOs.length > 0 ? 
+      completedWOs.reduce((sum, wo) => {
+        const duration = wo.actualEndTime && wo.startTime ? 
+          (new Date(wo.actualEndTime).getTime() - new Date(wo.startTime).getTime()) / (1000 * 60 * 60) : 0;
+        return sum + duration;
+      }, 0) / completedWOs.length : 0;
+
+    // Calculate maintenance KPIs
+    const maintenanceReportsInPeriod = await this.getMaintenanceReports({
+      startDate: periodStart,
+      endDate: periodEnd
+    });
+
+    // MTBF and MTTR calculations (simplified)
+    const mtbf = totalEquipment > 0 && correctiveWorkOrders > 0 ? 
+      (30 * 24 * totalEquipment) / correctiveWorkOrders : 0; // 30 days in hours per equipment
+    const mttr = correctiveWorkOrders > 0 ? averageCompletionTime : 0;
+    const plannedMaintenanceRatio = totalWorkOrders > 0 ? (preventiveWorkOrders / totalWorkOrders) * 100 : 0;
+    const maintenanceEfficiency = completedWorkOrders > 0 ? (completedWorkOrders / totalWorkOrders) * 100 : 0;
+
+    // Calculate costs
+    const totalMaintenanceCost = maintenanceReportsInPeriod.reduce((sum, report) => {
+      return sum + (parseFloat(report.totalCost?.toString() || "0"));
+    }, 0);
+
+    const laborCost = maintenanceReportsInPeriod.reduce((sum, report) => {
+      return sum + (parseFloat(report.laborCost?.toString() || "0"));
+    }, 0);
+
+    const partsCost = maintenanceReportsInPeriod.reduce((sum, report) => {
+      return sum + (parseFloat(report.partsCost?.toString() || "0"));
+    }, 0);
+
+    const costPerWorkOrder = completedWorkOrders > 0 ? totalMaintenanceCost / completedWorkOrders : 0;
+
+    // Get alerts for the period
+    const alerts = await this.getAlertsForPeriod(periodStart, periodEnd);
+    const totalAlerts = alerts.length;
+    const criticalAlerts = alerts.filter(alert => alert.severity === "critical").length;
+
+    // Generate statistics and charts data
+    const statisticsData = {
+      equipmentByType: equipment.reduce((acc: any, eq) => {
+        acc[eq.equipmentType] = (acc[eq.equipmentType] || 0) + 1;
+        return acc;
+      }, {}),
+      workOrdersByStatus: workOrders.reduce((acc: any, wo) => {
+        acc[wo.status] = (acc[wo.status] || 0) + 1;
+        return acc;
+      }, {}),
+      dailyWorkOrders: this.calculateDailyWorkOrders(workOrders, periodStart, periodEnd),
+      costTrends: this.calculateCostTrends(maintenanceReportsInPeriod),
+      alertsByType: alerts.reduce((acc: any, alert) => {
+        acc[alert.alertType] = (acc[alert.alertType] || 0) + 1;
+        return acc;
+      }, {})
+    };
+
+    const chartsData = {
+      equipmentAvailabilityChart: {
+        labels: ["Disponible", "En maintenance", "Arrêté"],
+        data: [activeEquipment, totalWorkOrders, totalEquipment - activeEquipment - totalWorkOrders]
+      },
+      maintenanceTypeChart: {
+        labels: ["Préventive", "Corrective"],
+        data: [preventiveWorkOrders, correctiveWorkOrders]
+      },
+      costBreakdownChart: {
+        labels: ["Main d'œuvre", "Pièces détachées"],
+        data: [laborCost, partsCost]
+      }
+    };
+
+    // Calculate performance score
+    const performanceScore = this.calculatePerformanceScore({
+      equipmentAvailability,
+      plannedMaintenanceRatio,
+      maintenanceEfficiency,
+      mtbf: mtbf > 0 ? Math.min(mtbf / 100, 100) : 0 // Normalize MTBF
+    });
+
+    // Generate recommendations
+    const recommendations = this.generateRecommendations({
+      plannedMaintenanceRatio,
+      equipmentAvailability,
+      criticalAlerts,
+      totalAlerts,
+      mttr
+    });
+
+    const monthlyReportData: InsertMonthlyReport = {
+      reportNumber,
+      month,
+      year,
+      periodStart,
+      periodEnd,
+      generatedBy: generatedBy || "System",
+      totalEquipment,
+      activeEquipment,
+      equipmentAvailability,
+      totalWorkOrders,
+      completedWorkOrders,
+      preventiveWorkOrders,
+      correctiveWorkOrders,
+      averageCompletionTime,
+      mtbf,
+      mttr,
+      plannedMaintenanceRatio,
+      maintenanceEfficiency,
+      totalMaintenanceCost,
+      laborCost,
+      partsCost,
+      contractorCost: 0,
+      costPerWorkOrder,
+      partsConsumed: this.calculatePartsConsumed(maintenanceReportsInPeriod),
+      inventoryTurnover: 0, // Could be calculated from stock movements
+      stockouts: 0,
+      emergencyPurchases: 0,
+      totalAlerts,
+      criticalAlerts,
+      safetyIncidents: this.countSafetyIncidents(maintenanceReportsInPeriod),
+      qualityIssues: this.countQualityIssues(maintenanceReportsInPeriod),
+      performanceScore,
+      improvementAreas: this.identifyImprovementAreas(performanceScore, plannedMaintenanceRatio, equipmentAvailability),
+      recommendations,
+      statisticsData,
+      chartsData,
+      status: "generated"
+    };
+
+    const [report] = await db.insert(monthlyReports).values(monthlyReportData).returning();
+    
+    console.log(`Monthly report ${reportNumber} generated for ${month}/${year}`);
+    return report;
+  }
+
+  // Get monthly reports
+  async getMonthlyReports(year?: number): Promise<MonthlyReport[]> {
+    let query = db.select().from(monthlyReports);
+    
+    if (year) {
+      query = query.where(eq(monthlyReports.year, year));
+    }
+    
+    return query.orderBy(desc(monthlyReports.year), desc(monthlyReports.month));
+  }
+
+  // Helper method to generate report numbers
+  private async generateReportNumber(prefix: string): Promise<string> {
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const day = String(new Date().getDate()).padStart(2, '0');
+    const timestamp = Date.now().toString().slice(-4);
+    return `${prefix}${year}${month}${day}${timestamp}`;
+  }
+
+  // Helper methods for monthly report calculations
+  private async getWorkOrdersByDateRange(startDate: Date, endDate: Date): Promise<WorkOrder[]> {
+    return db.select().from(workOrders)
+      .where(and(
+        gte(workOrders.createdAt, startDate),
+        lte(workOrders.createdAt, endDate)
+      ));
+  }
+
+  private async getAlertsForPeriod(startDate: Date, endDate: Date): Promise<AlertsNotifications[]> {
+    return db.select().from(alertsNotifications)
+      .where(and(
+        gte(alertsNotifications.createdAt, startDate),
+        lte(alertsNotifications.createdAt, endDate)
+      ));
+  }
+
+  private calculateDailyWorkOrders(workOrders: WorkOrder[], startDate: Date, endDate: Date): any[] {
+    const dailyData = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      const dayStart = new Date(current);
+      const dayEnd = new Date(current);
+      dayEnd.setHours(23, 59, 59);
+      
+      const dayWorkOrders = workOrders.filter(wo => {
+        const woDate = new Date(wo.createdAt);
+        return woDate >= dayStart && woDate <= dayEnd;
+      });
+      
+      dailyData.push({
+        date: current.toISOString().split('T')[0],
+        count: dayWorkOrders.length
+      });
+      
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dailyData;
+  }
+
+  private calculateCostTrends(reports: MaintenanceReport[]): any[] {
+    const costByWeek = reports.reduce((acc: any, report) => {
+      const week = this.getWeekNumber(new Date(report.createdAt));
+      acc[week] = (acc[week] || 0) + parseFloat(report.totalCost?.toString() || "0");
+      return acc;
+    }, {});
+    
+    return Object.entries(costByWeek).map(([week, cost]) => ({
+      week: parseInt(week),
+      cost
+    }));
+  }
+
+  private getWeekNumber(date: Date): number {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
+
+  private calculatePerformanceScore(metrics: any): number {
+    const weights = {
+      equipmentAvailability: 0.3,
+      plannedMaintenanceRatio: 0.25,
+      maintenanceEfficiency: 0.25,
+      mtbf: 0.2
+    };
+    
+    return Math.round(
+      (metrics.equipmentAvailability * weights.equipmentAvailability) +
+      (metrics.plannedMaintenanceRatio * weights.plannedMaintenanceRatio) +
+      (metrics.maintenanceEfficiency * weights.maintenanceEfficiency) +
+      (metrics.mtbf * weights.mtbf)
+    );
+  }
+
+  private generateRecommendations(metrics: any): string[] {
+    const recommendations = [];
+    
+    if (metrics.plannedMaintenanceRatio < 70) {
+      recommendations.push("Augmenter la proportion de maintenance préventive pour réduire les pannes");
+    }
+    
+    if (metrics.equipmentAvailability < 85) {
+      recommendations.push("Optimiser la planification des interventions pour améliorer la disponibilité");
+    }
+    
+    if (metrics.criticalAlerts > metrics.totalAlerts * 0.3) {
+      recommendations.push("Renforcer la surveillance préventive pour réduire les alertes critiques");
+    }
+    
+    if (metrics.mttr > 4) {
+      recommendations.push("Améliorer la formation des techniciens pour réduire le temps de réparation");
+    }
+    
+    return recommendations;
+  }
+
+  private identifyImprovementAreas(score: number, plannedRatio: number, availability: number): string[] {
+    const areas = [];
+    
+    if (score < 70) areas.push("Performance globale");
+    if (plannedRatio < 60) areas.push("Maintenance préventive");
+    if (availability < 80) areas.push("Disponibilité équipements");
+    
+    return areas;
+  }
+
+  private calculatePartsConsumed(reports: MaintenanceReport[]): number {
+    return reports.reduce((sum, report) => {
+      if (report.partsUsed && Array.isArray(report.partsUsed)) {
+        return sum + report.partsUsed.reduce((partSum: number, part: any) => partSum + (part.quantity || 0), 0);
+      }
+      return sum;
+    }, 0);
+  }
+
+  private countSafetyIncidents(reports: MaintenanceReport[]): number {
+    return reports.filter(report => report.safetyIncidents && report.safetyIncidents.trim().length > 0).length;
+  }
+
+  private countQualityIssues(reports: MaintenanceReport[]): number {
+    return reports.filter(report => report.qualityCheck === false || 
+      (report.qualityNotes && report.qualityNotes.toLowerCase().includes("problème"))).length;
   }
 }
 

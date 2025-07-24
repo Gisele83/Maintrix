@@ -582,3 +582,148 @@ export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSche
 
 export type ReorderRule = typeof reorderRules.$inferSelect;
 export type InsertReorderRule = z.infer<typeof insertReorderRuleSchema>;
+
+// ============= MAINTENANCE REPORTS TABLES =============
+
+// Maintenance Reports table - Generated after each intervention
+export const maintenanceReports = pgTable("maintenance_reports", {
+  id: serial("id").primaryKey(),
+  reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  reportType: varchar("report_type", { length: 50 }).notNull(), // intervention, preventive, corrective, inspection
+  interventionType: varchar("intervention_type", { length: 50 }), // repair, replacement, adjustment, inspection
+  technician: varchar("technician", { length: 100 }).notNull(),
+  supervisor: varchar("supervisor", { length: 100 }),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  actualDuration: integer("actual_duration"), // minutes
+  plannedDuration: integer("planned_duration"), // minutes
+  workDescription: text("work_description").notNull(),
+  problemDiagnosis: text("problem_diagnosis"),
+  actionsTaken: text("actions_taken").notNull(),
+  partsUsed: jsonb("parts_used"), // Array of {partId, partNumber, quantity, cost}
+  toolsUsed: text("tools_used").array(),
+  safetyIncidents: text("safety_incidents"),
+  qualityCheck: boolean("quality_check").default(false),
+  qualityNotes: text("quality_notes"),
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+  followUpNotes: text("follow_up_notes"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 10, scale: 2 }),
+  partsCost: decimal("parts_cost", { precision: 10, scale: 2 }),
+  status: varchar("status", { length: 30 }).notNull().default("draft"), // draft, approved, archived
+  approvedBy: varchar("approved_by", { length: 100 }),
+  approvalDate: timestamp("approval_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Monthly Reports table - Generated monthly with KPIs and statistics
+export const monthlyReports = pgTable("monthly_reports", {
+  id: serial("id").primaryKey(),
+  reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  generatedBy: varchar("generated_by", { length: 100 }),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  
+  // Equipment statistics
+  totalEquipment: integer("total_equipment"),
+  activeEquipment: integer("active_equipment"),
+  equipmentAvailability: decimal("equipment_availability", { precision: 5, scale: 2 }), // percentage
+  
+  // Work orders statistics
+  totalWorkOrders: integer("total_work_orders"),
+  completedWorkOrders: integer("completed_work_orders"),
+  preventiveWorkOrders: integer("preventive_work_orders"),
+  correctiveWorkOrders: integer("corrective_work_orders"),
+  averageCompletionTime: decimal("average_completion_time", { precision: 8, scale: 2 }), // hours
+  
+  // Maintenance KPIs
+  mtbf: decimal("mtbf", { precision: 8, scale: 2 }), // Mean Time Between Failures (hours)
+  mttr: decimal("mttr", { precision: 8, scale: 2 }), // Mean Time To Repair (hours)
+  plannedMaintenanceRatio: decimal("planned_maintenance_ratio", { precision: 5, scale: 2 }), // percentage
+  maintenanceEfficiency: decimal("maintenance_efficiency", { precision: 5, scale: 2 }), // percentage
+  
+  // Cost analysis
+  totalMaintenanceCost: decimal("total_maintenance_cost", { precision: 12, scale: 2 }),
+  laborCost: decimal("labor_cost", { precision: 12, scale: 2 }),
+  partsCost: decimal("parts_cost", { precision: 12, scale: 2 }),
+  contractorCost: decimal("contractor_cost", { precision: 12, scale: 2 }),
+  costPerWorkOrder: decimal("cost_per_work_order", { precision: 10, scale: 2 }),
+  
+  // Parts and inventory
+  partsConsumed: integer("parts_consumed"),
+  inventoryTurnover: decimal("inventory_turnover", { precision: 5, scale: 2 }),
+  stockouts: integer("stockouts"),
+  emergencyPurchases: integer("emergency_purchases"),
+  
+  // Alerts and incidents
+  totalAlerts: integer("total_alerts"),
+  criticalAlerts: integer("critical_alerts"),
+  safetyIncidents: integer("safety_incidents"),
+  qualityIssues: integer("quality_issues"),
+  
+  // Performance trends
+  performanceScore: decimal("performance_score", { precision: 5, scale: 2 }), // overall score 0-100
+  improvementAreas: text("improvement_areas").array(),
+  recommendations: text("recommendations").array(),
+  
+  // Additional data
+  statisticsData: jsonb("statistics_data"), // Detailed stats for charts
+  chartsData: jsonb("charts_data"), // Chart configurations and data
+  
+  status: varchar("status", { length: 30 }).notNull().default("generated"), // generated, reviewed, approved
+  reviewedBy: varchar("reviewed_by", { length: 100 }),
+  reviewDate: timestamp("review_date"),
+  notes: text("notes"),
+});
+
+// Report Templates table for customizable report formats
+export const reportTemplates = pgTable("report_templates", {
+  id: serial("id").primaryKey(),
+  templateName: varchar("template_name", { length: 100 }).notNull(),
+  templateType: varchar("template_type", { length: 50 }).notNull(), // intervention, monthly, custom
+  description: text("description"),
+  sections: jsonb("sections"), // Array of report sections to include
+  kpiMetrics: text("kpi_metrics").array(), // Which KPIs to include
+  chartTypes: text("chart_types").array(), // Which charts to generate
+  format: varchar("format", { length: 30 }).default("pdf"), // pdf, excel, html
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for maintenance reports
+export const insertMaintenanceReportSchema = createInsertSchema(maintenanceReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMonthlyReportSchema = createInsertSchema(monthlyReports).omit({
+  id: true,
+  generatedAt: true,
+});
+
+export const insertReportTemplateSchema = createInsertSchema(reportTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for maintenance reports
+export type MaintenanceReport = typeof maintenanceReports.$inferSelect;
+export type InsertMaintenanceReport = z.infer<typeof insertMaintenanceReportSchema>;
+
+export type MonthlyReport = typeof monthlyReports.$inferSelect;
+export type InsertMonthlyReport = z.infer<typeof insertMonthlyReportSchema>;
+
+export type ReportTemplate = typeof reportTemplates.$inferSelect;
+export type InsertReportTemplate = z.infer<typeof insertReportTemplateSchema>;
