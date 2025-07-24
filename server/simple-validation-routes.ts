@@ -175,36 +175,36 @@ export function registerSimpleValidationRoutes(app: Express) {
   // Validate work order with real database updates (same procedure as purchase orders)
   app.post("/api/validation/work-orders/validate", async (req, res) => {
     try {
-      const { workorderId, action, validationLevel, comments, validatorId } = req.body;
+      const { workorderId, orderId, action, validationLevel, comments, validatorId } = req.body;
+      const workOrderId = workorderId || orderId; // Handle both field names
+      
+      console.log(`Validating work order ${workOrderId} at level ${validationLevel} with action ${action}`);
       
       if (action === "validate") {
-        // Update the work order validation status in database
-        const updateData: any = {
-          validationStatus: validationLevel === 1 ? "level1_validated" : "level2_validated"
-        };
+        // Determine next validation status
+        let newValidationStatus;
+        const updateData: any = {};
 
-        // Set validation fields based on level
         if (validationLevel === 1) {
-          updateData.level1ValidatedBy = validatorId || 1; // Chef Service
+          newValidationStatus = "level1_validated";
+          updateData.level1ValidatedBy = validatorId || 1;
           updateData.level1ValidatedAt = new Date();
+          updateData.level1ValidationNotes = comments;
         } else if (validationLevel === 2) {
-          updateData.level2ValidatedBy = validatorId || 2; // Directeur Général
+          newValidationStatus = "level2_validated";
+          updateData.level2ValidatedBy = validatorId || 2;
           updateData.level2ValidatedAt = new Date();
-          updateData.validationStatus = "level2_validated"; // Goes to Service Achat if needed
+          updateData.level2ValidationNotes = comments;
         } else if (validationLevel === 3) {
-          // Final validation by Service Achat
-          updateData.validationStatus = "validated";
+          newValidationStatus = "validated";
           updateData.canExecute = true; // Allow execution after final validation
         }
 
-        if (comments) {
-          updateData.level1ValidationNotes = validationLevel === 1 ? comments : updateData.level1ValidationNotes;
-          updateData.level2ValidationNotes = validationLevel === 2 ? comments : updateData.level2ValidationNotes;
-        }
+        updateData.validationStatus = newValidationStatus;
 
-        await gmaoStorage.updateWorkOrder(workorderId, updateData);
+        await gmaoStorage.updateWorkOrder(workOrderId, updateData);
         
-        console.log(`Work order ${workorderId} validated at level ${validationLevel}`);
+        console.log(`Work order ${workOrderId} validated at level ${validationLevel}, new status: ${newValidationStatus}`);
         
         res.json({
           success: true,
@@ -219,9 +219,9 @@ export function registerSimpleValidationRoutes(app: Express) {
           rejectionReason: comments || "Rejet sans commentaire"
         };
 
-        await gmaoStorage.updateWorkOrder(workorderId, updateData);
+        await gmaoStorage.updateWorkOrder(workOrderId, updateData);
         
-        console.log(`Work order ${workorderId} rejected: ${comments}`);
+        console.log(`Work order ${workOrderId} rejected: ${comments}`);
         res.json({
           success: true,
           message: "Ordre de travail rejeté avec succès"
@@ -231,7 +231,8 @@ export function registerSimpleValidationRoutes(app: Express) {
       console.error("Error validating work order:", error);
       res.status(500).json({ 
         success: false, 
-        message: "Erreur lors de la validation de l'ordre de travail" 
+        message: "Erreur lors de la validation de l'ordre de travail",
+        error: error.message
       });
     }
   });

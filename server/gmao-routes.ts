@@ -125,13 +125,37 @@ export function registerGMAORoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request body format" });
       }
 
-      const data = insertWorkOrderSchema.parse(req.body);
+      console.log("Raw work order data:", JSON.stringify(req.body, null, 2));
+
+      // Transform and clean the data before validation
+      const cleanedData: any = {};
+      
+      // Copy and transform each field explicitly
+      if (req.body.equipmentId) cleanedData.equipmentId = parseInt(req.body.equipmentId);
+      if (req.body.orderType) cleanedData.orderType = req.body.orderType;
+      if (req.body.title) cleanedData.title = req.body.title;
+      if (req.body.description) cleanedData.description = req.body.description;
+      if (req.body.priority) cleanedData.priority = req.body.priority;
+      if (req.body.status) cleanedData.status = req.body.status;
+      if (req.body.assignedTo) cleanedData.assignedTo = parseInt(req.body.assignedTo);
+      if (req.body.requestedBy) cleanedData.requestedBy = parseInt(req.body.requestedBy);
+      if (req.body.estimatedDuration) cleanedData.estimatedDuration = parseInt(req.body.estimatedDuration);
+      if (req.body.scheduledStart) cleanedData.scheduledStart = new Date(req.body.scheduledStart);
+      if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
+      if (req.body.notes) cleanedData.notes = req.body.notes;
+
+      console.log("Cleaned work order data:", JSON.stringify(cleanedData, null, 2));
+
+      const data = insertWorkOrderSchema.parse(cleanedData);
       const workOrder = await gmaoStorage.createWorkOrder(data);
       
       console.log(`Work order created: ${workOrder.orderNumber} - ${workOrder.title}`);
       res.status(201).json(workOrder);
     } catch (error) {
       console.error("Error creating work order:", error);
+      if (error.issues) {
+        console.error("Validation issues:", JSON.stringify(error.issues, null, 2));
+      }
       res.status(400).json({ 
         message: "Failed to create work order",
         error: error instanceof Error ? error.message : "Unknown error"
