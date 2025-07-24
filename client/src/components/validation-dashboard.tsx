@@ -105,6 +105,8 @@ export default function ValidationDashboard({
       setValidationHistory(response.logs || []);
     } catch (error) {
       console.error("Error loading validation history:", error);
+      // Set empty array as fallback
+      setValidationHistory([]);
     }
   };
 

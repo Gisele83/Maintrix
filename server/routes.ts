@@ -22,7 +22,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
 import { registerGMAORoutes } from "./gmao-routes";
-import validationRoutes from "./validation-routes";
+import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -502,8 +502,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register GMAO routes
   registerGMAORoutes(app);
   
-  // Validation routes for multi-level approval system
-  app.use("/api/validation", validationRoutes);
+  // Register simple validation routes for demonstration
+  registerSimpleValidationRoutes(app);
 
   // Initialize enterprise integrations
   const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");
