@@ -17,6 +17,28 @@ import {
   InsertModelPerformance,
   AdaptiveLearning,
   InsertAdaptiveLearning,
+  // GMAO types
+  EquipmentRegistry,
+  InsertEquipmentRegistry,
+  WorkOrder,
+  InsertWorkOrder,
+  PreventiveMaintenancePlan,
+  InsertPreventiveMaintenancePlan,
+  SparePart,
+  InsertSparePart,
+  StockMovement,
+  InsertStockMovement,
+  IotSensorData,
+  InsertIotSensorData,
+  PredictiveAnalytics,
+  InsertPredictiveAnalytics,
+  KpiMetrics,
+  InsertKpiMetrics,
+  IntegrationLog,
+  InsertIntegrationLog,
+  AlertsNotifications,
+  InsertAlertsNotifications,
+  // Tables
   maintenanceCases,
   repairProcedures,
   reportedCases,
@@ -25,7 +47,17 @@ import {
   feedbackSessions,
   learningMetrics,
   modelPerformance,
-  adaptiveLearning
+  adaptiveLearning,
+  equipmentRegistry,
+  workOrders,
+  preventiveMaintenancePlans,
+  spareParts,
+  stockMovements,
+  iotSensorData,
+  predictiveAnalytics,
+  kpiMetrics,
+  integrationLog,
+  alertsNotifications
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, ilike, or, and, desc, arrayContains, sql } from "drizzle-orm";
@@ -78,6 +110,68 @@ export interface IStorage {
   getAdaptiveLearning(): Promise<AdaptiveLearning[]>;
   getAdaptiveLearningByEquipment(equipmentType: string): Promise<AdaptiveLearning | undefined>;
   updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void>;
+
+  // GMAO - Equipment Registry
+  getEquipmentRegistry(): Promise<EquipmentRegistry[]>;
+  getEquipmentById(id: number): Promise<EquipmentRegistry | undefined>;
+  getEquipmentByEquipmentId(equipmentId: string): Promise<EquipmentRegistry | undefined>;
+  createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry>;
+  updateEquipment(id: number, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry>;
+  searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string }): Promise<EquipmentRegistry[]>;
+
+  // GMAO - Work Orders
+  getWorkOrders(): Promise<WorkOrder[]>;
+  getWorkOrderById(id: number): Promise<WorkOrder | undefined>;
+  getWorkOrdersByEquipment(equipmentId: number): Promise<WorkOrder[]>;
+  getWorkOrdersByStatus(status: string): Promise<WorkOrder[]>;
+  getWorkOrdersByAssignee(userId: number): Promise<WorkOrder[]>;
+  createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
+  updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder>;
+
+  // GMAO - Preventive Maintenance
+  getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]>;
+  getPreventiveMaintenancePlanById(id: number): Promise<PreventiveMaintenancePlan | undefined>;
+  getPreventiveMaintenancePlansByEquipmentType(equipmentType: string): Promise<PreventiveMaintenancePlan[]>;
+  createPreventiveMaintenancePlan(data: InsertPreventiveMaintenancePlan): Promise<PreventiveMaintenancePlan>;
+  updatePreventiveMaintenancePlan(id: number, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan>;
+
+  // GMAO - Spare Parts Inventory
+  getSpareParts(): Promise<SparePart[]>;
+  getSparePartById(id: number): Promise<SparePart | undefined>;
+  getSparePartByPartNumber(partNumber: string): Promise<SparePart | undefined>;
+  getSparePartsByCategory(category: string): Promise<SparePart[]>;
+  getLowStockParts(): Promise<SparePart[]>;
+  createSparePart(data: InsertSparePart): Promise<SparePart>;
+  updateSparePart(id: number, updates: Partial<SparePart>): Promise<SparePart>;
+
+  // GMAO - Stock Movements
+  getStockMovements(): Promise<StockMovement[]>;
+  getStockMovementsByPart(sparePartId: number): Promise<StockMovement[]>;
+  createStockMovement(data: InsertStockMovement): Promise<StockMovement>;
+
+  // IoT Sensor Data
+  getIotSensorData(equipmentId?: number, sensorType?: string, limit?: number): Promise<IotSensorData[]>;
+  createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData>;
+  getLatestSensorData(equipmentId: number): Promise<IotSensorData[]>;
+
+  // Predictive Analytics
+  getPredictiveAnalytics(equipmentId?: number): Promise<PredictiveAnalytics[]>;
+  createPredictiveAnalytics(data: InsertPredictiveAnalytics): Promise<PredictiveAnalytics>;
+  getLatestPredictions(equipmentId: number): Promise<PredictiveAnalytics | undefined>;
+
+  // KPI Metrics
+  getKpiMetrics(equipmentId?: number, metricType?: string): Promise<KpiMetrics[]>;
+  createKpiMetrics(data: InsertKpiMetrics): Promise<KpiMetrics>;
+
+  // Integration Log
+  getIntegrationLog(systemName?: string): Promise<IntegrationLog[]>;
+  createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog>;
+
+  // Alerts and Notifications
+  getAlertsNotifications(status?: string): Promise<AlertsNotifications[]>;
+  getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]>;
+  createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications>;
+  updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
 }
 
 export class MemStorage implements IStorage {

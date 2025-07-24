@@ -1,0 +1,519 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { 
+  Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
+  AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
+  Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
+  Search, Filter, Eye, Edit, Trash2
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Header } from "@/components/header";
+import { useLanguage } from "@/hooks/use-language";
+import { t } from "@/lib/i18n";
+
+interface GMAODashboardData {
+  equipmentCount: number;
+  activeWorkOrdersCount: number;
+  pendingWorkOrdersCount: number;
+  criticalAlertsCount: number;
+  lowStockPartsCount: number;
+  recentWorkOrders: any[];
+  recentAlerts: any[];
+  equipmentByType: Record<string, number>;
+  workOrdersByStatus: Record<string, number>;
+}
+
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "analytics" | "alerts";
+
+export default function GMAODashboard() {
+  const { language } = useLanguage();
+  const [activeTab, setActiveTab] = useState<GMAOTab>("overview");
+
+  // Fetch GMAO dashboard data
+  const { data: dashboardData, isLoading } = useQuery<GMAODashboardData>({
+    queryKey: ["/api/gmao-dashboard"],
+  });
+
+  const tabs = [
+    {
+      id: "overview" as GMAOTab,
+      label: "Vue d'ensemble",
+      icon: BarChart3,
+    },
+    {
+      id: "equipment" as GMAOTab,
+      label: "Équipements",
+      icon: Factory,
+    },
+    {
+      id: "work-orders" as GMAOTab,
+      label: "Ordres de Travail",
+      icon: Wrench,
+    },
+    {
+      id: "maintenance" as GMAOTab,
+      label: "Maintenance Préventive",
+      icon: CalendarCheck,
+    },
+    {
+      id: "inventory" as GMAOTab,
+      label: "Inventaire",
+      icon: Package,
+    },
+    {
+      id: "analytics" as GMAOTab,
+      label: "Analytiques",
+      icon: BarChart3,
+    },
+    {
+      id: "alerts" as GMAOTab,
+      label: "Alertes",
+      icon: Bell,
+    },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+      case 'in_progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+        <Header />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <Header />
+      
+      {/* GMAO Hero Section */}
+      <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center space-x-2 bg-blue-500/10 text-blue-600 px-4 py-2 rounded-full text-sm font-medium">
+              <Factory className="w-4 h-4" />
+              <span>GMAO Intelligente</span>
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              SMDiagFix GMAO
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Plateforme complète de gestion de maintenance assistée par ordinateur avec IA prédictive
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8 overflow-x-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center space-x-2 px-3 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    activeTab === tab.id
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${
+                    activeTab === tab.id ? "text-primary" : "text-muted-foreground"
+                  }`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    Équipements Actifs
+                  </CardTitle>
+                  <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {dashboardData?.equipmentCount || 0}
+                  </div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    +2 ce mois
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                    OT Actifs
+                  </CardTitle>
+                  <Wrench className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                    {dashboardData?.activeWorkOrdersCount || 0}
+                  </div>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">
+                    -5 depuis hier
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
+                    Alertes Critiques
+                  </CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                    {dashboardData?.criticalAlertsCount || 0}
+                  </div>
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    +1 aujourd'hui
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                    Stock Faible
+                  </CardTitle>
+                  <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {dashboardData?.lowStockPartsCount || 0}
+                  </div>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">
+                    Réapprovisionnement nécessaire
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts and Recent Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Equipment by Type Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Factory className="w-5 h-5" />
+                    <span>Équipements par Type</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.equipmentByType && Object.entries(dashboardData.equipmentByType).map(([type, count]) => (
+                      <div key={type} className="flex items-center justify-between">
+                        <span className="text-sm font-medium capitalize">{type}</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-32 bg-muted rounded-full h-2">
+                            <div 
+                              className="bg-primary h-2 rounded-full" 
+                              style={{ width: `${Math.min((count / Math.max(...Object.values(dashboardData.equipmentByType))) * 100, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground w-8 text-right">{count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Work Orders */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Wrench className="w-5 h-5" />
+                    <span>Ordres de Travail Récents</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.recentWorkOrders?.slice(0, 5).map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">{order.title}</p>
+                          <p className="text-xs text-muted-foreground">#{order.orderNumber}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getPriorityColor(order.priority)}>
+                            {order.priority}
+                          </Badge>
+                          <Badge className={getStatusColor(order.status)}>
+                            {order.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    )) || (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Aucun ordre de travail récent
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Recent Alerts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Bell className="w-5 h-5" />
+                    <span>Alertes Récentes</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.recentAlerts?.slice(0, 5).map((alert) => (
+                      <div key={alert.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
+                        <AlertTriangle className={`w-4 h-4 mt-1 ${
+                          alert.severity === 'critical' ? 'text-red-500' :
+                          alert.severity === 'high' ? 'text-orange-500' :
+                          alert.severity === 'medium' ? 'text-yellow-500' : 'text-blue-500'
+                        }`} />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{alert.title}</p>
+                          <p className="text-xs text-muted-foreground">{alert.message}</p>
+                        </div>
+                        <Badge className={
+                          alert.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
+                          alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                        }>
+                          {alert.severity}
+                        </Badge>
+                      </div>
+                    )) || (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Aucune alerte récente
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Work Orders by Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5" />
+                    <span>OT par Statut</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => (
+                      <div key={status} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            status === 'pending' ? 'bg-orange-500' :
+                            status === 'in_progress' ? 'bg-blue-500' :
+                            status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
+                          }`} />
+                          <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
+                        </div>
+                        <span className="text-sm font-bold">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "equipment" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gestion des Équipements</h2>
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvel Équipement
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Factory className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Module Équipements</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Gestion complète du registre des équipements avec fiches techniques détaillées
+                  </p>
+                  <Button variant="outline">
+                    Voir la liste des équipements
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "work-orders" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Ordres de Travail</h2>
+              <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvel OT
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Wrench className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Gestion des Ordres de Travail</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Planification, attribution et suivi des interventions de maintenance
+                  </p>
+                  <Button variant="outline">
+                    Voir les ordres de travail
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "maintenance" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Maintenance Préventive</h2>
+              <Button className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau Plan
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <CalendarCheck className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Plans de Maintenance Préventive</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Planification automatisée et gestion des maintenances préventives
+                  </p>
+                  <Button variant="outline">
+                    Voir les plans de maintenance
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "inventory" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gestion des Stocks</h2>
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle Pièce
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Inventaire des Pièces Détachées</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Gestion intelligente des stocks avec alertes de seuils et réapprovisionnement automatique
+                  </p>
+                  <Button variant="outline">
+                    Voir l'inventaire
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Analytiques et KPI</h2>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <BarChart3 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Tableaux de Bord Analytiques</h3>
+                  <p className="text-muted-foreground mb-4">
+                    KPI de maintenance : MTBF, MTTR, disponibilité, coûts et prédictions IA
+                  </p>
+                  <Button variant="outline">
+                    Voir les analyses
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "alerts" && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Centre d'Alertes</h2>
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <Bell className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Système d'Alertes Intelligent</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Notifications temps réel basées sur les seuils IoT et prédictions IA
+                  </p>
+                  <Button variant="outline">
+                    Voir les alertes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

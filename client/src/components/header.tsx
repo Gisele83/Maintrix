@@ -1,10 +1,12 @@
-import { Settings, User, Wrench } from "lucide-react";
+import { Settings, User, Wrench, Factory, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
+import { Link, useLocation } from "wouter";
 
 export function Header() {
   const { language, toggleLanguage } = useLanguage();
+  const [location] = useLocation();
 
   return (
     <header className="bg-carbon-gray-90 text-white shadow-lg sticky top-0 z-50">
@@ -19,6 +21,38 @@ export function Header() {
               {t("appSubtitle", language)}
             </span>
           </div>
+          
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                <span>Diagnostic</span>
+              </Button>
+            </Link>
+            <Link href="/gmao">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/gmao" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <Factory className="w-4 h-4" />
+                <span>GMAO</span>
+              </Button>
+            </Link>
+          </nav>
           
           <div className="flex items-center space-x-4">
             {/* Language Toggle */}

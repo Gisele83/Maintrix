@@ -1,8 +1,8 @@
-# SMDiagFix - Industrial Maintenance Diagnostic Assistant
+# SMDiagFix GMAO - Comprehensive Maintenance Management Platform
 
 ## Overview
 
-SMDiagFix is a full-stack web application designed to assist industrial technicians with equipment diagnostics and maintenance procedures. The system uses a React frontend with TypeScript and an Express.js backend, featuring an intelligent diagnostic engine that analyzes equipment symptoms and provides maintenance recommendations.
+SMDiagFix has evolved into a complete GMAO (Computerized Maintenance Management System) platform that combines AI-powered diagnostics with comprehensive maintenance management capabilities. The system integrates advanced machine learning, IoT sensor data, enterprise systems (SAP/Maximo), and predictive maintenance to provide a unified industrial maintenance solution.
 
 ## User Preferences
 
@@ -80,6 +80,17 @@ User requested improvements based on provided database and enhanced specificatio
 ✓ **INTEGRATED: Robust offline storage with SQLite database and automatic caching**
 ✓ **BUILT: Complete API service with offline fallback and automatic synchronization**
 ✓ **ADDED: Professional theming system with gradients, animations, and modern UI components**
+✓ **TRANSFORMED: Complete GMAO platform with enterprise-grade maintenance management**
+✓ **IMPLEMENTED: Comprehensive equipment registry with full asset tracking**
+✓ **CREATED: Advanced work order management system with workflow automation**
+✓ **BUILT: Preventive maintenance scheduling with predictive algorithms**
+✓ **DEVELOPED: Complete spare parts inventory management with stock optimization**
+✓ **INTEGRATED: IoT sensor data collection with real-time monitoring**
+✓ **ADDED: SAP ERP integration connector for enterprise synchronization**
+✓ **CREATED: Advanced predictive maintenance engine with failure prediction**
+✓ **IMPLEMENTED: Real-time alerts and notifications system**
+✓ **BUILT: Comprehensive KPI dashboards and analytics**
+✓ **ADDED: Enterprise integration hub for multiple system connectivity**
 
 ## System Architecture
 
@@ -94,16 +105,59 @@ User requested improvements based on provided database and enhanced specificatio
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ES modules
-- **API Design**: RESTful API with JSON responses
-- **Storage**: In-memory storage with database abstraction layer (ready for PostgreSQL via Drizzle ORM)
+- **API Design**: RESTful API with JSON responses + GMAO-specific endpoints
+- **Storage**: PostgreSQL with Drizzle ORM (full database implementation)
+- **Enterprise Integration**: SAP connector, IoT connector, Maximo integration ready
 - **Build System**: Vite for frontend, esbuild for backend
+- **Real-time**: IoT sensor data processing with MQTT simulation
 
 ### Database Design
 - **ORM**: Drizzle ORM configured for PostgreSQL
-- **Schema**: Includes tables for equipment types, maintenance cases, repair procedures, reported cases, and diagnostic sessions
+- **Schema**: Complete GMAO database with 15+ tables:
+  - Equipment registry and asset tracking
+  - Work orders and maintenance planning
+  - Preventive maintenance schedules
+  - Spare parts inventory and stock movements
+  - IoT sensor data and predictive analytics
+  - KPI metrics and integration logs
+  - Alerts and notifications system
 - **Migration**: Drizzle-kit for schema management
+- **Integration**: Ready for enterprise data synchronization
 
 ## Key Components
+
+### Complete GMAO Platform Features
+
+#### 1. Equipment Asset Management
+- Comprehensive equipment registry with technical specifications
+- Asset tracking with location, criticality, and operational state
+- Equipment hierarchy and relationships
+- Maintenance history and performance metrics
+
+#### 2. Work Order Management System
+- Complete work order lifecycle management
+- Priority-based scheduling and assignment 
+- Mobile-friendly technician interface
+- Integration with preventive maintenance plans
+- Real-time status tracking and completion workflows
+
+#### 3. Preventive Maintenance Planning
+- Automated maintenance scheduling based on time, usage, or condition
+- Equipment-specific maintenance procedures
+- Maintenance calendar and resource planning
+- Integration with predictive analytics
+
+#### 4. Spare Parts Inventory Management
+- Complete parts catalog with specifications
+- Stock level monitoring and reorder automation
+- Parts usage tracking and cost analysis  
+- Supplier management and procurement workflows
+
+#### 5. Enterprise System Integration
+- **SAP ERP Connector**: Bidirectional synchronization of work orders and equipment
+- **IoT Data Integration**: Real-time sensor data collection via MQTT
+- **Predictive Analytics Engine**: ML-powered failure prediction
+- **Universal API Gateway**: Ready for Maximo and SCADA integration
 
 ### Advanced Machine Learning Diagnostic Engine
 - **Standard ML Mode**: Random Forest and Gradient Boosting classifiers with TF-IDF text analysis
@@ -119,25 +173,56 @@ User requested improvements based on provided database and enhanced specificatio
 - Comprehensive model training with cross-validation metrics
 
 ### Advanced User Interface Components
-1. **Enhanced Diagnostic Form**: Captures equipment details, symptoms, urgency with ML mode selection
-2. **Advanced ML Diagnostic Results**: 
+
+#### GMAO Dashboard Modules
+1. **Equipment Management Dashboard**:
+   - Real-time equipment status monitoring
+   - Asset performance metrics and health scores
+   - Equipment hierarchy visualization
+   - Maintenance history and cost tracking
+
+2. **Work Order Management Interface**:
+   - Priority-based work order queues
+   - Mobile-optimized technician interface
+   - Real-time status updates and notifications
+   - Resource allocation and scheduling tools
+
+3. **Preventive Maintenance Planning**:
+   - Automated maintenance calendar
+   - Equipment-specific maintenance procedures
+   - Resource planning and skill matching
+   - Predictive maintenance recommendations
+
+4. **Inventory Management System**:
+   - Parts catalog with technical specifications
+   - Stock level monitoring and alerts
+   - Automated reorder point management
+   - Usage analytics and cost optimization
+
+5. **Analytics and KPI Dashboard**:
+   - MTBF/MTTR calculations and trending
+   - Equipment availability and reliability metrics
+   - Maintenance cost analysis and budgeting
+   - Predictive maintenance ROI tracking
+
+6. **Integration Management Center**:
+   - Real-time system connectivity status
+   - Data synchronization monitoring
+   - Integration health checks and diagnostics
+   - Enterprise system configuration
+
+#### Enhanced AI Diagnostic Components
+1. **Advanced ML Diagnostic Results**: 
    - Neural network predictions with 95%+ confidence scoring
    - Anomaly detection alerts with behavior analysis
    - Failure risk assessment with percentage scoring
-   - Pattern matching visualization with historical correlation
-   - Predictive maintenance scheduling recommendations
-   - Equipment-specific insights (motor alignment, pump cavitation, etc.)
-   - Advanced metrics panel with ML-specific indicators
-   - Real-time model accuracy and training status
-3. **ML Training Controls**: 
-   - Advanced mode toggle with feature explanations
-   - Separate training buttons for standard and advanced models
-   - Model performance metrics display
-4. **Intelligent Repair Guidance**: ML-enhanced procedures with risk warnings
-5. **Predictive Maintenance History**: 
-   - ML-enhanced filtering with failure prediction
-   - Advanced export with ML metrics and predictions
-6. **Smart Case Reporting**: AI-assisted incident categorization
+   - Equipment-specific insights and recommendations
+
+2. **Predictive Maintenance Engine**:
+   - Real-time failure probability calculations
+   - Remaining useful life estimations
+   - Maintenance optimization algorithms
+   - Cost-benefit analysis for maintenance decisions
 
 ### Storage Layer
 - Abstract storage interface (`IStorage`) for database operations

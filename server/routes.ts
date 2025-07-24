@@ -1,11 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMaintenanceCaseSchema, insertReportedCaseSchema, insertDiagnosticSessionSchema, insertUserProfileSchema } from "@shared/schema";
+import { 
+  insertMaintenanceCaseSchema, 
+  insertReportedCaseSchema, 
+  insertDiagnosticSessionSchema, 
+  insertUserProfileSchema,
+  insertEquipmentRegistrySchema,
+  insertWorkOrderSchema,
+  insertPreventiveMaintenancePlanSchema,
+  insertSparePartSchema,
+  insertStockMovementSchema,
+  insertIotSensorDataSchema,
+  insertPredictiveAnalyticsSchema,
+  insertKpiMetricsSchema,
+  insertIntegrationLogSchema,
+  insertAlertsNotificationsSchema
+} from "@shared/schema";
 import { z } from "zod";
 import { spawn } from "child_process";
 import path from "path";
 import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
+import { registerGMAORoutes } from "./gmao-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -482,6 +498,110 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register GMAO routes
+  registerGMAORoutes(app);
+
+  // Initialize enterprise integrations
+  const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");
+  const integrationConfig = {
+    iot: {
+      mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
+      mqttUsername: process.env.MQTT_USERNAME,
+      mqttPassword: process.env.MQTT_PASSWORD,
+      sensorThresholds: [
+        { sensorType: 'temperature', warningThreshold: 75, criticalThreshold: 85, unit: '°C' },
+        { sensorType: 'vibration', warningThreshold: 4.5, criticalThreshold: 7.1, unit: 'mm/s' },
+        { sensorType: 'pressure', warningThreshold: 5.5, criticalThreshold: 4.0, unit: 'bar' },
+        { sensorType: 'current', warningThreshold: 105, criticalThreshold: 120, unit: 'A' }
+      ]
+    }
+  };
+
+  const integrationHub = initializeIntegrations(integrationConfig);
+  
+  // Initialize integrations (non-blocking)
+  integrationHub.initialize().catch(error => {
+    console.error('Integration initialization error:', error);
+  });
+
+  // Integration management routes
+  app.get("/api/integrations/status", async (req, res) => {
+    try {
+      const hub = getIntegrationHub();
+      if (!hub) {
+        return res.status(500).json({ message: "Integration hub not initialized" });
+      }
+      
+      const status = hub.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting integration status:", error);
+      res.status(500).json({ message: "Failed to get integration status" });
+    }
+  });
+
+  app.post("/api/integrations/test", async (req, res) => {
+    try {
+      const hub = getIntegrationHub();
+      if (!hub) {
+        return res.status(500).json({ message: "Integration hub not initialized" });
+      }
+      
+      const results = await hub.testAllConnections();
+      res.json(results);
+    } catch (error) {
+      console.error("Error testing integrations:", error);
+      res.status(500).json({ message: "Failed to test integrations" });
+    }
+  });
+
+  app.post("/api/integrations/sync", async (req, res) => {
+    try {
+      const hub = getIntegrationHub();
+      if (!hub) {
+        return res.status(500).json({ message: "Integration hub not initialized" });
+      }
+      
+      const results = await hub.forceSyncAll();
+      res.json(results);
+    } catch (error) {
+      console.error("Error forcing sync:", error);
+      res.status(500).json({ message: "Failed to force sync" });
+    }
+  });
+
+  // Predictive maintenance routes
+  app.get("/api/predictive/:equipmentId", async (req, res) => {
+    try {
+      const { PredictiveMaintenanceEngine } = await import("./integrations/predictive-engine");
+      const engine = new PredictiveMaintenanceEngine();
+      
+      const equipmentId = parseInt(req.params.equipmentId);
+      const analysis = await engine.analyzeEquipmentHealth(equipmentId);
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error in predictive analysis:", error);
+      res.status(500).json({ message: "Failed to perform predictive analysis" });
+    }
+  });
+
+  // IoT real-time data route
+  app.get("/api/iot/:equipmentId/realtime", async (req, res) => {
+    try {
+      const hub = getIntegrationHub();
+      if (!hub) {
+        return res.status(500).json({ message: "Integration hub not initialized" });
+      }
+      
+      const equipmentId = parseInt(req.params.equipmentId);
+      const data = await hub.getIoTData(equipmentId);
+      res.json(data);
+    } catch (error) {
+      console.error("Error getting IoT data:", error);
+      res.status(500).json({ message: "Failed to get IoT data" });
+    }
+  });
   
   // ML Diagnostic endpoint - enhanced with machine learning
   app.post("/api/diagnostic-ml", async (req, res) => {
