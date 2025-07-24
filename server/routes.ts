@@ -24,6 +24,7 @@ import path from "path";
 import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
 import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
+import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -502,6 +503,9 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register validation system authentication
   registerAuthRoutes(app);
+  
+  // Register equipment health routes FIRST to avoid route conflicts
+  registerEquipmentHealthRoutes(app);
   
   // Register GMAO routes
   registerGMAORoutes(app);

@@ -290,6 +290,48 @@ export class GMAOStorage {
     return await query.orderBy(desc(iotSensorData.timestamp)).limit(limit);
   }
 
+  // Get alerts for equipment
+  async getAlerts(equipmentId?: number, limit: number = 50): Promise<any[]> {
+    // For now, generate mock alerts based on recent sensor data
+    const sensorData = await this.getIotSensorData(equipmentId, undefined, 20);
+    const alerts = [];
+    let alertId = 1;
+    
+    sensorData.forEach(reading => {
+      if (reading.sensorType === 'temperature' && reading.value > 75) {
+        alerts.push({
+          id: alertId++,
+          severity: reading.value > 85 ? 'critical' : 'warning',
+          message: `Température élevée: ${reading.value}°C`,
+          timestamp: reading.timestamp,
+          equipmentId: reading.equipmentId
+        });
+      }
+      
+      if (reading.sensorType === 'vibration' && reading.value > 4.5) {
+        alerts.push({
+          id: alertId++,
+          severity: reading.value > 6.0 ? 'critical' : 'warning',
+          message: `Vibration excessive: ${reading.value} mm/s`,
+          timestamp: reading.timestamp,
+          equipmentId: reading.equipmentId
+        });
+      }
+      
+      if (reading.sensorType === 'pressure' && reading.value > 4.0) {
+        alerts.push({
+          id: alertId++,
+          severity: reading.value > 5.0 ? 'critical' : 'warning',
+          message: `Pression anormale: ${reading.value} bar`,
+          timestamp: reading.timestamp,
+          equipmentId: reading.equipmentId
+        });
+      }
+    });
+    
+    return alerts.slice(0, limit);
+  }
+
   async createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData> {
     const [sensorData] = await db.insert(iotSensorData).values(data).returning();
     return sensorData;

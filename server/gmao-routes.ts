@@ -36,6 +36,9 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/equipment/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid equipment ID" });
+      }
       const equipment = await gmaoStorage.getEquipmentById(id);
       if (!equipment) {
         return res.status(404).json({ message: "Equipment not found" });

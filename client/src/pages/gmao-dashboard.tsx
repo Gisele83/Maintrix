@@ -27,6 +27,7 @@ import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo
 import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
 import ThresholdConfiguration from "@/components/threshold-configuration";
 import PurchaseOrderCreator from "@/components/purchase-order-creator";
+import { EquipmentHealthDashboard } from "@/components/equipment-health-dashboard";
 
 
 interface GMAODashboardData {
@@ -41,7 +42,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "validation" | "company-config";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "health-dashboard" | "validation" | "company-config";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -99,6 +100,11 @@ export default function GMAODashboard() {
       id: "alerts" as GMAOTab,
       label: "Alertes",
       icon: Bell,
+    },
+    {
+      id: "health-dashboard" as GMAOTab,
+      label: "Santé Équipements",
+      icon: Activity,
     },
     {
       id: "validation" as GMAOTab,
@@ -626,6 +632,10 @@ export default function GMAODashboard() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {activeTab === "health-dashboard" && (
+          <EquipmentHealthDashboard />
         )}
 
         {activeTab === "validation" && (
