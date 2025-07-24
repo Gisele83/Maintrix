@@ -217,11 +217,13 @@ export function MaintenanceReports() {
   };
 
   const openAnalyticsModal = (report: MonthlyReport) => {
+    console.log("Opening analytics modal for report:", report.reportNumber);
     setSelectedMonthlyReport(report);
     setShowAnalyticsModal(true);
   };
 
   const openChartsModal = (report: MonthlyReport) => {
+    console.log("Opening charts modal for report:", report.reportNumber);
     setSelectedMonthlyReport(report);
     setShowChartsModal(true);
   };
@@ -259,7 +261,7 @@ export function MaintenanceReports() {
                   <span className="text-sm">{key}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{value}</span>
+                  <span className="text-sm font-medium">{String(value)}</span>
                   <span className="text-xs text-muted-foreground">({percentage.toFixed(1)}%)</span>
                 </div>
               </div>
@@ -655,7 +657,10 @@ export function MaintenanceReports() {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => openAnalyticsModal(report)}
+                              onClick={() => {
+                                console.log("Analytics button clicked for report:", report.reportNumber);
+                                openAnalyticsModal(report);
+                              }}
                             >
                               <BarChart3 className="w-4 h-4 mr-2" />
                               Voir Analyses
@@ -686,7 +691,12 @@ export function MaintenanceReports() {
 
       {/* Analytics Modal */}
       <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => {
+            console.log("Analytics modal opened, state:", showAnalyticsModal);
+            console.log("Selected report:", selectedMonthlyReport?.reportNumber);
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
