@@ -25,6 +25,8 @@ import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard";
 import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
 import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
+import ThresholdConfiguration from "@/components/threshold-configuration";
+import PurchaseOrderCreator from "@/components/purchase-order-creator";
 
 
 interface GMAODashboardData {
@@ -415,7 +417,10 @@ export default function GMAODashboard() {
         )}
 
         {activeTab === "procurement" && (
-          <ProcurementDashboard />
+          <div className="space-y-6">
+            <PurchaseOrderCreator />
+            <ProcurementDashboard />
+          </div>
         )}
 
         {activeTab === "reports" && (
@@ -641,6 +646,7 @@ export default function GMAODashboard() {
 
         {activeTab === "company-config" && (
           <div className="space-y-6">
+            <ThresholdConfiguration />
             <CompanyLetterheadConfig />
           </div>
         )}

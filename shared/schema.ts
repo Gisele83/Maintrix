@@ -224,6 +224,9 @@ export const companyConfig = pgTable("company_config", {
   fontFamily: varchar("font_family", { length: 100 }).default("Arial, sans-serif"),
   letterheadTemplate: text("letterhead_template"), // Complete letterhead template
   documentFooter: text("document_footer"), // Standard footer for documents
+  // Purchase order and command letter thresholds
+  purchaseOrderThreshold: decimal("purchase_order_threshold", { precision: 10, scale: 2 }).default("1500.00"),
+  commandLetterThreshold: decimal("command_letter_threshold", { precision: 10, scale: 2 }).default("1500.01"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -563,6 +566,7 @@ export const purchaseOrders = pgTable("purchase_orders", {
   orderNumber: varchar("order_number", { length: 50 }).unique().notNull(),
   supplierId: integer("supplier_id").references(() => suppliers.id),
   orderType: varchar("order_type", { length: 50 }).notNull(), // spare_parts, services, maintenance
+  documentType: varchar("document_type", { length: 50 }).notNull().default("purchase_order"), // "purchase_order" or "command_letter"
   status: varchar("status", { length: 50 }).notNull().default("draft"), // draft, sent, confirmed, received, cancelled
   priority: varchar("priority", { length: 20 }).notNull().default("medium"), // low, medium, high, urgent
   requestedBy: varchar("requested_by", { length: 100 }),

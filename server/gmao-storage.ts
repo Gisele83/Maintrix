@@ -415,9 +415,15 @@ export class GMAOStorage {
 
   // Purchase Orders management
   async createPurchaseOrder(orderData: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const orderNumber = `${orderData.documentType === "command_letter" ? "CL" : "PO"}-${Date.now()}`;
+    
     const [order] = await db
       .insert(purchaseOrders)
-      .values(orderData)
+      .values({
+        ...orderData,
+        orderNumber,
+        status: "pending"
+      })
       .returning();
     return order;
   }

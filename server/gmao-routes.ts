@@ -1078,6 +1078,47 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Get document type based on amount
+  app.post("/api/purchase-orders/document-type", async (req, res) => {
+    try {
+      const { amount } = req.body;
+      
+      if (!amount || isNaN(parseFloat(amount))) {
+        return res.status(400).json({ message: "Montant invalide" });
+      }
+      
+      const config = await gmaoStorage.getCompanyConfig();
+      const purchaseThreshold = parseFloat(config?.purchaseOrderThreshold || "1500.00");
+      const commandThreshold = parseFloat(config?.commandLetterThreshold || "1500.01");
+      
+      const amountValue = parseFloat(amount);
+      let documentType: string;
+      let validationLevels: number;
+      
+      if (amountValue <= purchaseThreshold) {
+        documentType = "purchase_order";
+        validationLevels = 2; // Standard validation levels
+      } else if (amountValue >= commandThreshold) {
+        documentType = "command_letter";
+        validationLevels = 3; // Enhanced validation for command letters
+      } else {
+        documentType = "purchase_order"; // Default to purchase order for edge cases
+        validationLevels = 2;
+      }
+      
+      res.json({
+        documentType,
+        validationLevels,
+        threshold: purchaseThreshold,
+        commandThreshold,
+        message: `Montant ${amountValue}€ → ${documentType === "purchase_order" ? "Bon de Commande" : "Lettre de Commande"}`
+      });
+    } catch (error) {
+      console.error("Error determining document type:", error);
+      res.status(500).json({ message: "Failed to determine document type" });
+    }
+  });
+
   // Create or update company configuration  
   app.post("/api/company-config", async (req, res) => {
     try {
