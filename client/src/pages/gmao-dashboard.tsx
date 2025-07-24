@@ -23,6 +23,7 @@ import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import { InventoryManagement } from "@/components/inventory-management";
 import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard";
+import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
 
 
 interface GMAODashboardData {
@@ -37,7 +38,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "validation";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "validation" | "company-config";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -100,6 +101,11 @@ export default function GMAODashboard() {
       id: "validation" as GMAOTab,
       label: "Validation Multi-Niveaux",
       icon: ClipboardCheck,
+    },
+    {
+      id: "company-config" as GMAOTab,
+      label: "Configuration Entreprise",
+      icon: Cog,
     },
   ];
 
@@ -625,6 +631,12 @@ export default function GMAODashboard() {
               canValidateWorkOrders={true}
               canValidatePurchaseOrders={true}
             />
+          </div>
+        )}
+
+        {activeTab === "company-config" && (
+          <div className="space-y-6">
+            <CompanyLetterheadConfig />
           </div>
         )}
       </main>

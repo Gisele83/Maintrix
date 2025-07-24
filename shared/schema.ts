@@ -206,6 +206,29 @@ export type AdaptiveLearning = typeof adaptiveLearning.$inferSelect;
 
 // GMAO COMPLETE TABLES - Extension for comprehensive maintenance management
 
+// Company Configuration - Enterprise Branding and Letterhead
+export const companyConfig = pgTable("company_config", {
+  id: serial("id").primaryKey(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  address: text("address"),
+  phone: varchar("phone", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  website: varchar("website", { length: 255 }),
+  taxNumber: varchar("tax_number", { length: 100 }),
+  logoUrl: varchar("logo_url", { length: 500 }),
+  logoBase64: text("logo_base64"), // For storing uploaded logo as base64
+  headerTemplate: text("header_template"), // Custom header template HTML
+  footerTemplate: text("footer_template"), // Custom footer template HTML
+  primaryColor: varchar("primary_color", { length: 7 }).default("#0066cc"), // Hex color
+  secondaryColor: varchar("secondary_color", { length: 7 }).default("#f8f9fa"),
+  fontFamily: varchar("font_family", { length: 100 }).default("Arial, sans-serif"),
+  letterheadTemplate: text("letterhead_template"), // Complete letterhead template
+  documentFooter: text("document_footer"), // Standard footer for documents
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Equipment Registry - Complete asset management
 export const equipmentRegistry = pgTable("equipment_registry", {
   id: serial("id").primaryKey(),
@@ -786,3 +809,13 @@ export type InsertMonthlyReport = z.infer<typeof insertMonthlyReportSchema>;
 
 export type ReportTemplate = typeof reportTemplates.$inferSelect;
 export type InsertReportTemplate = z.infer<typeof insertReportTemplateSchema>;
+
+// Company Configuration types
+export const insertCompanyConfigSchema = createInsertSchema(companyConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CompanyConfig = typeof companyConfig.$inferSelect;
+export type InsertCompanyConfig = z.infer<typeof insertCompanyConfigSchema>;

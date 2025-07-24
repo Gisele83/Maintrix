@@ -57,6 +57,9 @@ import {
   type InsertMonthlyReport,
   type ReportTemplate,
   type InsertReportTemplate,
+  companyConfig,
+  type CompanyConfig,
+  type InsertCompanyConfig,
 } from "@shared/schema";
 
 export class GMAOStorage {
@@ -1358,6 +1361,188 @@ export class GMAOStorage {
         reason: purchaseOrder.rejectionReason
       }
     };
+  }
+
+  // ============= COMPANY CONFIGURATION METHODS =============
+  
+  async getCompanyConfig(): Promise<CompanyConfig | undefined> {
+    const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
+    return config;
+  }
+
+  async createCompanyConfig(configData: InsertCompanyConfig): Promise<CompanyConfig> {
+    // Deactivate existing configs
+    await db.update(companyConfig).set({ isActive: false });
+    
+    const [newConfig] = await db
+      .insert(companyConfig)
+      .values({ ...configData, isActive: true })
+      .returning();
+    return newConfig;
+  }
+
+  async updateCompanyConfig(id: number, configData: Partial<InsertCompanyConfig>): Promise<CompanyConfig> {
+    const [updatedConfig] = await db
+      .update(companyConfig)
+      .set({ ...configData, updatedAt: new Date() })
+      .where(eq(companyConfig.id, id))
+      .returning();
+    return updatedConfig;
+  }
+
+  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number): Promise<string> {
+    const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
+    const [purchaseOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
+
+    if (!config || !purchaseOrder) {
+      throw new Error("Configuration d'entreprise ou bon de commande introuvable");
+    }
+
+    // Generate HTML with company letterhead
+    const letterheadTemplate = config.letterheadTemplate || this.generateDefaultLetterhead(config);
+    
+    const purchaseOrderContent = this.generatePurchaseOrderContent(purchaseOrder);
+    
+    return letterheadTemplate.replace('{{DOCUMENT_CONTENT}}', purchaseOrderContent);
+  }
+
+  private generateDefaultLetterhead(config: CompanyConfig): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { 
+      font-family: ${config.fontFamily || 'Arial, sans-serif'}; 
+      margin: 0; 
+      padding: 20mm;
+      color: #333;
+    }
+    .letterhead-header {
+      display: flex;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 3px solid ${config.primaryColor || '#0066cc'};
+      margin-bottom: 30px;
+    }
+    .logo-section {
+      flex: 0 0 auto;
+      margin-right: 30px;
+    }
+    .logo {
+      max-height: 80px;
+      max-width: 200px;
+    }
+    .company-info {
+      flex: 1;
+    }
+    .company-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: ${config.primaryColor || '#0066cc'};
+      margin-bottom: 10px;
+    }
+    .company-details {
+      font-size: 12px;
+      line-height: 1.4;
+      color: #666;
+    }
+    .document-content {
+      min-height: 400px;
+      margin: 30px 0;
+    }
+    .document-footer {
+      border-top: 2px solid ${config.secondaryColor || '#f8f9fa'};
+      padding-top: 15px;
+      margin-top: 30px;
+      text-align: center;
+      font-size: 10px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="letterhead-header">
+    ${config.logoBase64 ? `
+    <div class="logo-section">
+      <img src="${config.logoBase64}" alt="Logo" class="logo">
+    </div>
+    ` : ''}
+    <div class="company-info">
+      <div class="company-name">${config.companyName}</div>
+      <div class="company-details">
+        ${config.address ? config.address.replace(/\n/g, '<br>') + '<br>' : ''}
+        ${config.phone ? 'Tél: ' + config.phone : ''} ${config.email ? '| Email: ' + config.email : ''}<br>
+        ${config.website ? 'Web: ' + config.website : ''} ${config.taxNumber ? '| SIRET: ' + config.taxNumber : ''}
+      </div>
+    </div>
+  </div>
+  
+  <div class="document-content">
+    {{DOCUMENT_CONTENT}}
+  </div>
+  
+  <div class="document-footer">
+    ${config.documentFooter || config.companyName + ' - ' + config.phone + ' - ' + config.email}
+  </div>
+</body>
+</html>`;
+  }
+
+  private generatePurchaseOrderContent(purchaseOrder: PurchaseOrder): string {
+    const items = typeof purchaseOrder.items === 'string' 
+      ? JSON.parse(purchaseOrder.items) 
+      : purchaseOrder.items || [];
+    
+    const itemsRows = items.map((item: any) => `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 10px;">${item.description}</td>
+        <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.quantity}</td>
+        <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${item.unitPrice.toFixed(2)} €</td>
+        <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${(item.quantity * item.unitPrice).toFixed(2)} €</td>
+      </tr>
+    `).join('');
+
+    return `
+    <div style="margin-bottom: 30px;">
+      <h2 style="color: #0066cc; margin-bottom: 20px;">BON DE COMMANDE</h2>
+      <div style="display: flex; justify-content: space-between;">
+        <div>
+          <strong>Numéro:</strong> ${purchaseOrder.orderNumber}<br>
+          <strong>Date:</strong> ${new Date(purchaseOrder.createdAt!).toLocaleDateString('fr-FR')}<br>
+          <strong>Demandeur:</strong> ${purchaseOrder.requestedBy}
+        </div>
+        <div style="text-align: right;">
+          <strong>Fournisseur:</strong><br>
+          ${purchaseOrder.supplier}
+        </div>
+      </div>
+    </div>
+    
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <thead>
+        <tr style="background-color: #0066cc; color: white;">
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Article</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Qté</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Prix Unit.</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+        <tr style="font-weight: bold; background-color: #f5f5f5;">
+          <td colspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: right;">TOTAL HT:</td>
+          <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${purchaseOrder.totalAmount} €</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div style="margin-top: 30px;">
+      <p><strong>Description:</strong> ${purchaseOrder.description}</p>
+      <p><strong>Statut validation:</strong> ${purchaseOrder.validationStatus}</p>
+      <p><strong>Date de livraison:</strong> ${purchaseOrder.deliveryDate ? new Date(purchaseOrder.deliveryDate).toLocaleDateString('fr-FR') : 'À définir'}</p>
+    </div>`;
   }
 }
 

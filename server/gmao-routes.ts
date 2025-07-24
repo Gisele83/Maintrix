@@ -1052,6 +1052,92 @@ export function registerGMAORoutes(app: Express) {
 
 
 
+  // ============= COMPANY CONFIGURATION ROUTES =============
+  
+  // Get company configuration
+  app.get("/api/company-config", async (req, res) => {
+    try {
+      const config = await gmaoStorage.getCompanyConfig();
+      if (!config) {
+        return res.json({
+          companyName: "Votre Entreprise",
+          address: "",
+          phone: "",
+          email: "",
+          website: "",
+          taxNumber: "",
+          primaryColor: "#0066cc",
+          secondaryColor: "#f8f9fa",
+          fontFamily: "Arial, sans-serif"
+        });
+      }
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching company config:", error);
+      res.status(500).json({ message: "Failed to fetch company configuration" });
+    }
+  });
+
+  // Create or update company configuration  
+  app.post("/api/company-config", async (req, res) => {
+    try {
+      const existingConfig = await gmaoStorage.getCompanyConfig();
+      
+      if (existingConfig) {
+        const updatedConfig = await gmaoStorage.updateCompanyConfig(existingConfig.id, req.body);
+        res.json({
+          success: true,
+          message: "Configuration mise à jour avec succès",
+          config: updatedConfig
+        });
+      } else {
+        const newConfig = await gmaoStorage.createCompanyConfig(req.body);
+        res.json({
+          success: true,
+          message: "Configuration créée avec succès",
+          config: newConfig
+        });
+      }
+    } catch (error) {
+      console.error("Error saving company config:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to save company configuration" 
+      });
+    }
+  });
+
+  // Generate purchase order with letterhead
+  app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId);
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error("Error generating purchase order with letterhead:", error);
+      res.status(500).json({ message: "Failed to generate purchase order with letterhead" });
+    }
+  });
+
+  // Download purchase order as PDF endpoint (placeholder)
+  app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
+    try {
+      const purchaseOrderId = parseInt(req.params.id);
+      const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId);
+      
+      // In a real implementation, you would convert HTML to PDF here
+      // For now, we'll return the HTML with PDF headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${purchaseOrderId}.pdf"`);
+      res.send(html);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
   // ============= VALIDATION DEMO ROUTES =============
   
   // Create sample validation data for testing
