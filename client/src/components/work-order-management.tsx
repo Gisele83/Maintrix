@@ -16,14 +16,15 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 const workOrderSchema = z.object({
-  workOrderNumber: z.string().min(1, "Numéro d'ordre requis"),
+  workOrderNumber: z.string().optional(), // Auto-generated, not required
   equipmentId: z.string().min(1, "Équipement requis"),
   workOrderType: z.string().min(1, "Type d'ordre requis"),
+  title: z.string().min(1, "Titre requis"),
+  description: z.string().min(1, "Description requise"),
   priority: z.string().min(1, "Priorité requise"),
   status: z.string().min(1, "Statut requis"),
   assignedTo: z.string().optional(),
-  description: z.string().min(1, "Description requise"),
-  requestedBy: z.string().min(1, "Demandeur requis"),
+  requestedBy: z.string().optional(),
   scheduledDate: z.string().optional(),
   estimatedDuration: z.string().optional(),
   notes: z.string().optional()
@@ -142,13 +143,14 @@ export function WorkOrderManagement() {
   const form = useForm<WorkOrderFormData>({
     resolver: zodResolver(workOrderSchema),
     defaultValues: {
-      workOrderNumber: `WO-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      workOrderNumber: "",
       equipmentId: "",
       workOrderType: "",
+      title: "",
+      description: "",
       priority: "medium",
       status: "pending",
       assignedTo: "",
-      description: "",
       requestedBy: "",
       scheduledDate: "",
       estimatedDuration: "",
@@ -165,17 +167,51 @@ export function WorkOrderManagement() {
   });
 
   const onSubmit = (data: WorkOrderFormData) => {
+    // Clean and validate data before transformation
+    if (!data.equipmentId || !data.workOrderType || !data.title || !data.description) {
+      toast({
+        title: "Erreur de validation",
+        description: "Tous les champs obligatoires doivent être remplis",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Transform form data to match API expectations
-    const transformedData = {
-      ...data,
+    const apiData: any = {
       equipmentId: parseInt(data.equipmentId),
-      estimatedDuration: data.estimatedDuration ? parseInt(data.estimatedDuration) : undefined,
-      scheduledStart: data.scheduledDate ? new Date(data.scheduledDate).toISOString() : undefined,
       orderType: data.workOrderType, // Map workOrderType to orderType for API
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      status: data.status,
     };
 
-    // Remove frontend-only fields
-    const { workOrderNumber, workOrderType, scheduledDate, ...apiData } = transformedData;
+    // Add optional fields only if they have values
+    if (data.assignedTo && data.assignedTo.trim()) {
+      const assignedToNum = parseInt(data.assignedTo);
+      if (!isNaN(assignedToNum)) apiData.assignedTo = assignedToNum;
+    }
+    
+    if (data.requestedBy && data.requestedBy.trim()) {
+      const requestedByNum = parseInt(data.requestedBy);
+      if (!isNaN(requestedByNum)) apiData.requestedBy = requestedByNum;
+    }
+    
+    if (data.estimatedDuration && data.estimatedDuration.trim()) {
+      const duration = parseInt(data.estimatedDuration);
+      if (!isNaN(duration)) apiData.estimatedDuration = duration;
+    }
+    
+    if (data.scheduledDate && data.scheduledDate.trim()) {
+      apiData.scheduledStart = new Date(data.scheduledDate);
+    }
+    
+    if (data.notes && data.notes.trim()) {
+      apiData.notes = data.notes;
+    }
+
+    console.log("Sending work order data:", apiData);
 
     if (selectedWorkOrder) {
       updateWorkOrderMutation.mutate({ id: selectedWorkOrder.id, data: apiData });
@@ -190,11 +226,12 @@ export function WorkOrderManagement() {
       workOrderNumber: workOrder.workOrderNumber || workOrder.orderNumber || '',
       equipmentId: workOrder.equipmentId?.toString() || '',
       workOrderType: workOrder.workOrderType || workOrder.orderType || '',
+      title: (workOrder as any).title || '',
+      description: workOrder.description || '',
       priority: workOrder.priority || 'medium',
       status: workOrder.status || 'pending',
-      assignedTo: workOrder.assignedTo || "",
-      description: workOrder.description || '',
-      requestedBy: workOrder.requestedBy || '',
+      assignedTo: workOrder.assignedTo?.toString() || "",
+      requestedBy: workOrder.requestedBy?.toString() || '',
       scheduledDate: workOrder.scheduledDate || "",
       estimatedDuration: workOrder.estimatedDuration?.toString() || "",
       notes: workOrder.notes || ""
@@ -483,6 +520,20 @@ function WorkOrderForm({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Titre *</FormLabel>
+              <FormControl>
+                <Input placeholder="ex: Maintenance pompe A1" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField

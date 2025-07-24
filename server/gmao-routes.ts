@@ -125,8 +125,6 @@ export function registerGMAORoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request body format" });
       }
 
-      console.log("Raw work order data:", JSON.stringify(req.body, null, 2));
-
       // Transform and clean the data before validation
       const cleanedData: any = {};
       
@@ -143,8 +141,6 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.scheduledStart) cleanedData.scheduledStart = new Date(req.body.scheduledStart);
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
-
-      console.log("Cleaned work order data:", JSON.stringify(cleanedData, null, 2));
 
       const data = insertWorkOrderSchema.parse(cleanedData);
       const workOrder = await gmaoStorage.createWorkOrder(data);
