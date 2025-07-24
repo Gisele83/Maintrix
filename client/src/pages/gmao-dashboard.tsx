@@ -15,6 +15,11 @@ import { Header } from "@/components/header";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
 import { ProcurementDashboard } from "@/components/procurement-dashboard";
+import { EquipmentManagement } from "@/components/equipment-management";
+import { WorkOrderManagement } from "@/components/work-order-management";
+import { PreventiveMaintenance } from "@/components/preventive-maintenance";
+import { InventoryManagement } from "@/components/inventory-management";
+
 
 interface GMAODashboardData {
   equipmentCount: number;
@@ -371,111 +376,19 @@ export default function GMAODashboard() {
         )}
 
         {activeTab === "equipment" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Gestion des Équipements</h2>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvel Équipement
-              </Button>
-            </div>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <Factory className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Module Équipements</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Gestion complète du registre des équipements avec fiches techniques détaillées
-                  </p>
-                  <Button variant="outline">
-                    Voir la liste des équipements
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <EquipmentManagement />
         )}
 
         {activeTab === "work-orders" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Ordres de Travail</h2>
-              <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvel OT
-              </Button>
-            </div>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <Wrench className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Gestion des Ordres de Travail</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Planification, attribution et suivi des interventions de maintenance
-                  </p>
-                  <Button variant="outline">
-                    Voir les ordres de travail
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <WorkOrderManagement />
         )}
 
         {activeTab === "maintenance" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Maintenance Préventive</h2>
-              <Button className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau Plan
-              </Button>
-            </div>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <CalendarCheck className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Plans de Maintenance Préventive</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Planification automatisée et gestion des maintenances préventives
-                  </p>
-                  <Button variant="outline">
-                    Voir les plans de maintenance
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <PreventiveMaintenance />
         )}
 
         {activeTab === "inventory" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Gestion des Stocks</h2>
-              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle Pièce
-              </Button>
-            </div>
-            
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Inventaire des Pièces Détachées</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Gestion intelligente des stocks avec alertes de seuils et réapprovisionnement automatique
-                  </p>
-                  <Button variant="outline">
-                    Voir l'inventaire
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <InventoryManagement />
         )}
 
         {activeTab === "procurement" && (
