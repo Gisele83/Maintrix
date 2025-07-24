@@ -545,4 +545,110 @@ export function registerGMAORoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch dashboard data" });
     }
   });
+
+  // ============= PROCUREMENT AND SUPPLIER MANAGEMENT ROUTES =============
+
+  // SUPPLIERS MANAGEMENT
+  app.get("/api/suppliers", async (req, res) => {
+    try {
+      const suppliers = await gmaoStorage.getSuppliers();
+      res.json(suppliers);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      res.status(500).json({ message: "Failed to fetch suppliers" });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    try {
+      const supplier = await gmaoStorage.createSupplier(req.body);
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error("Error creating supplier:", error);
+      res.status(500).json({ message: "Failed to create supplier" });
+    }
+  });
+
+  // PURCHASE ORDERS MANAGEMENT
+  app.get("/api/purchase-orders", async (req, res) => {
+    try {
+      const orders = await gmaoStorage.getPurchaseOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching purchase orders:", error);
+      res.status(500).json({ message: "Failed to fetch purchase orders" });
+    }
+  });
+
+  app.post("/api/purchase-orders", async (req, res) => {
+    try {
+      const order = await gmaoStorage.createPurchaseOrder(req.body);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating purchase order:", error);
+      res.status(500).json({ message: "Failed to create purchase order" });
+    }
+  });
+
+  // REORDER RULES AND AUTOMATIC ORDERING
+  app.get("/api/reorder-rules", async (req, res) => {
+    try {
+      const rules = await gmaoStorage.getReorderRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Error fetching reorder rules:", error);
+      res.status(500).json({ message: "Failed to fetch reorder rules" });
+    }
+  });
+
+  app.post("/api/reorder-rules", async (req, res) => {
+    try {
+      const rule = await gmaoStorage.createReorderRule(req.body);
+      res.status(201).json(rule);
+    } catch (error) {
+      console.error("Error creating reorder rule:", error);
+      res.status(500).json({ message: "Failed to create reorder rule" });
+    }
+  });
+
+  // Trigger automatic reorder check - NEW WORKING VERSION
+  app.post("/api/trigger-reorder-check", async (req, res) => {
+    try {
+      console.log("🚀 Manual trigger for automatic procurement...");
+      
+      // Import the new automated procurement system
+      const { handleAutomaticReorder } = await import("./auto-procurement-api");
+      await handleAutomaticReorder(req, res);
+      
+    } catch (error) {
+      console.error("Error during reorder check:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to complete reorder check",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get parts needing reorder - NEW WORKING VERSION  
+  app.get("/api/parts-needing-reorder", async (req, res) => {
+    try {
+      const { getPartsNeedingReorder } = await import("./auto-procurement-api");
+      await getPartsNeedingReorder(req, res);
+    } catch (error) {
+      console.error("Error fetching parts needing reorder:", error);
+      res.status(500).json({ message: "Failed to fetch parts needing reorder" });
+    }
+  });
+
+  // Get procurement system status
+  app.get("/api/procurement-status", async (req, res) => {
+    try {
+      const { getProcurementStatus } = await import("./auto-procurement-api");
+      await getProcurementStatus(req, res);
+    } catch (error) {
+      console.error("Error getting procurement status:", error);
+      res.status(500).json({ message: "Failed to get procurement status" });
+    }
+  });
 }

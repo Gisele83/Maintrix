@@ -469,3 +469,116 @@ export type InsertIntegrationLog = z.infer<typeof insertIntegrationLogSchema>;
 
 export type AlertsNotifications = typeof alertsNotifications.$inferSelect;
 export type InsertAlertsNotifications = z.infer<typeof insertAlertsNotificationsSchema>;
+
+// Suppliers/Manufacturers table
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  supplierCode: varchar("supplier_code", { length: 50 }).unique().notNull(),
+  companyName: varchar("company_name", { length: 200 }).notNull(),
+  supplierType: varchar("supplier_type", { length: 50 }).notNull(), // manufacturer, distributor, service_provider
+  contactPerson: varchar("contact_person", { length: 100 }),
+  email: varchar("email", { length: 150 }),
+  phone: varchar("phone", { length: 50 }),
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  country: varchar("country", { length: 100 }),
+  rating: integer("rating").default(0), // 1-5 stars
+  paymentTerms: varchar("payment_terms", { length: 100 }),
+  deliveryTime: integer("delivery_time"), // days
+  certifications: jsonb("certifications"), // ISO, quality certs
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Purchase Orders table
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: serial("id").primaryKey(),
+  orderNumber: varchar("order_number", { length: 50 }).unique().notNull(),
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  orderType: varchar("order_type", { length: 50 }).notNull(), // spare_parts, services, maintenance
+  status: varchar("status", { length: 50 }).notNull().default("draft"), // draft, sent, confirmed, received, cancelled
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"), // low, medium, high, urgent
+  requestedBy: varchar("requested_by", { length: 100 }),
+  approvedBy: varchar("approved_by", { length: 100 }),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("EUR"),
+  orderDate: timestamp("order_date").defaultNow(),
+  expectedDelivery: timestamp("expected_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  deliveryAddress: text("delivery_address"),
+  notes: text("notes"),
+  terms: text("terms"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Purchase Order Items table
+export const purchaseOrderItems = pgTable("purchase_order_items", {
+  id: serial("id").primaryKey(),
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  sparePartId: integer("spare_part_id").references(() => spareParts.id),
+  partNumber: varchar("part_number", { length: 100 }),
+  description: text("description"),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 12, scale: 2 }),
+  expectedDelivery: timestamp("expected_delivery"),
+  received: boolean("received").default(false),
+  receivedQuantity: integer("received_quantity").default(0),
+  receivedDate: timestamp("received_date"),
+  notes: text("notes"),
+});
+
+// Automatic Reorder Rules table
+export const reorderRules = pgTable("reorder_rules", {
+  id: serial("id").primaryKey(),
+  sparePartId: integer("spare_part_id").references(() => spareParts.id),
+  reorderPoint: integer("reorder_point").notNull(), // minimum stock level
+  reorderQuantity: integer("reorder_quantity").notNull(), // quantity to order
+  maxStock: integer("max_stock"), // maximum stock level
+  supplierId: integer("supplier_id").references(() => suppliers.id),
+  isActive: boolean("is_active").default(true),
+  leadTime: integer("lead_time"), // days
+  lastTriggered: timestamp("last_triggered"),
+  autoOrder: boolean("auto_order").default(false), // automatic order generation
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for new procurement tables
+export const insertSupplierSchema = createInsertSchema(suppliers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({
+  id: true,
+});
+
+export const insertReorderRuleSchema = createInsertSchema(reorderRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for new procurement tables
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+
+export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
+export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+
+export type ReorderRule = typeof reorderRules.$inferSelect;
+export type InsertReorderRule = z.infer<typeof insertReorderRuleSchema>;

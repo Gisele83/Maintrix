@@ -4,7 +4,7 @@ import {
   Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
-  Search, Filter, Eye, Edit, Trash2
+  Search, Filter, Eye, Edit, Trash2, ShoppingCart
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Header } from "@/components/header";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
+import { ProcurementDashboard } from "@/components/procurement-dashboard";
 
 interface GMAODashboardData {
   equipmentCount: number;
@@ -27,7 +28,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "analytics" | "alerts";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "analytics" | "alerts";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -63,6 +64,11 @@ export default function GMAODashboard() {
       id: "inventory" as GMAOTab,
       label: "Inventaire",
       icon: Package,
+    },
+    {
+      id: "procurement" as GMAOTab,
+      label: "Achats",
+      icon: ShoppingCart,
     },
     {
       id: "analytics" as GMAOTab,
@@ -470,6 +476,10 @@ export default function GMAODashboard() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {activeTab === "procurement" && (
+          <ProcurementDashboard />
         )}
 
         {activeTab === "analytics" && (

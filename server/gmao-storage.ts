@@ -11,6 +11,10 @@ import {
   kpiMetrics,
   integrationLog,
   alertsNotifications,
+  suppliers,
+  purchaseOrders,
+  purchaseOrderItems,
+  reorderRules,
   type EquipmentRegistry,
   type InsertEquipmentRegistry,
   type WorkOrder,
@@ -30,7 +34,15 @@ import {
   type IntegrationLog,
   type InsertIntegrationLog,
   type AlertsNotifications,
-  type InsertAlertsNotifications
+  type InsertAlertsNotifications,
+  type Supplier,
+  type InsertSupplier,
+  type PurchaseOrder,
+  type InsertPurchaseOrder,
+  type PurchaseOrderItem,
+  type InsertPurchaseOrderItem,
+  type ReorderRule,
+  type InsertReorderRule,
 } from "@shared/schema";
 
 export class GMAOStorage {
@@ -354,6 +366,221 @@ export class GMAOStorage {
       .where(eq(alertsNotifications.id, id))
       .returning();
     return alert;
+  }
+
+  // Suppliers management
+  async createSupplier(supplierData: InsertSupplier): Promise<Supplier> {
+    const [supplier] = await this.db
+      .insert(suppliers)
+      .values(supplierData)
+      .returning();
+    return supplier;
+  }
+
+  async getSuppliers(): Promise<Supplier[]> {
+    return await this.db.select().from(suppliers).where(eq(suppliers.isActive, true));
+  }
+
+  async getSupplierById(id: number): Promise<Supplier | undefined> {
+    const [supplier] = await this.db.select().from(suppliers).where(eq(suppliers.id, id));
+    return supplier;
+  }
+
+  async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
+    const [supplier] = await this.db
+      .update(suppliers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(suppliers.id, id))
+      .returning();
+    return supplier;
+  }
+
+  // Purchase Orders management
+  async createPurchaseOrder(orderData: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const [order] = await this.db
+      .insert(purchaseOrders)
+      .values(orderData)
+      .returning();
+    return order;
+  }
+
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return await this.db.select().from(purchaseOrders);
+  }
+
+  async getPurchaseOrderById(id: number): Promise<PurchaseOrder | undefined> {
+    const [order] = await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+    return order;
+  }
+
+  async updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder> {
+    const [order] = await this.db
+      .update(purchaseOrders)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(purchaseOrders.id, id))
+      .returning();
+    return order;
+  }
+
+  async getPurchaseOrdersByStatus(status: string): Promise<PurchaseOrder[]> {
+    return await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.status, status));
+  }
+
+  // Purchase Order Items management
+  async createPurchaseOrderItem(itemData: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    const [item] = await this.db
+      .insert(purchaseOrderItems)
+      .values(itemData)
+      .returning();
+    return item;
+  }
+
+  async getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]> {
+    return await this.db.select().from(purchaseOrderItems)
+      .where(eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId));
+  }
+
+  async updatePurchaseOrderItem(id: number, data: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem> {
+    const [item] = await this.db
+      .update(purchaseOrderItems)
+      .set(data)
+      .where(eq(purchaseOrderItems.id, id))
+      .returning();
+    return item;
+  }
+
+  // Reorder Rules management
+  async createReorderRule(ruleData: InsertReorderRule): Promise<ReorderRule> {
+    const [rule] = await this.db
+      .insert(reorderRules)
+      .values(ruleData)
+      .returning();
+    return rule;
+  }
+
+  async getReorderRules(): Promise<ReorderRule[]> {
+    return await this.db.select().from(reorderRules).where(eq(reorderRules.isActive, true));
+  }
+
+  async getReorderRuleByPartId(sparePartId: number): Promise<ReorderRule | undefined> {
+    const [rule] = await this.db.select().from(reorderRules)
+      .where(and(eq(reorderRules.sparePartId, sparePartId), eq(reorderRules.isActive, true)));
+    return rule;
+  }
+
+  async updateReorderRule(id: number, data: Partial<InsertReorderRule>): Promise<ReorderRule> {
+    const [rule] = await this.db
+      .update(reorderRules)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(reorderRules.id, id))
+      .returning();
+    return rule;
+  }
+
+  // Stock monitoring and automatic reorder
+  async checkStockLevelsAndTriggerReorders(): Promise<{ triggeredRules: ReorderRule[], createdOrders: PurchaseOrder[] }> {
+    const rules = await this.getReorderRules();
+    const triggeredRules: ReorderRule[] = [];
+    const createdOrders: PurchaseOrder[] = [];
+
+    for (const rule of rules) {
+      const part = await this.getSparePartById(rule.sparePartId);
+      if (!part) continue;
+
+      // Check if stock is below reorder point
+      if (part.currentStock <= rule.reorderPoint) {
+        // Check if not recently triggered (prevent spam)
+        const hoursSinceLastTrigger = rule.lastTriggered 
+          ? (Date.now() - rule.lastTriggered.getTime()) / (1000 * 60 * 60)
+          : 24;
+
+        if (hoursSinceLastTrigger >= 2) { // Minimum 2 hours between triggers
+          triggeredRules.push(rule);
+
+          // Update last triggered timestamp
+          await this.updateReorderRule(rule.id, { lastTriggered: new Date() });
+
+          // Generate alert
+          await this.createAlert({
+            alertType: "stock_low",
+            equipmentId: null,
+            severity: part.currentStock <= 0 ? "critical" : "high",
+            title: "Stock faible détecté",
+            message: `Stock de "${part.partName}" (${part.partNumber}) est descendu à ${part.currentStock} unités. Seuil de réapprovisionnement: ${rule.reorderPoint}`,
+            triggerValue: part.currentStock,
+            thresholdValue: rule.reorderPoint
+          });
+
+          // If auto-order is enabled, create purchase order
+          if (rule.autoOrder && rule.supplierId) {
+            const supplier = await this.getSupplierById(rule.supplierId);
+            if (supplier) {
+              const orderNumber = await this.generatePurchaseOrderNumber();
+              const expectedDelivery = new Date();
+              expectedDelivery.setDate(expectedDelivery.getDate() + (rule.leadTime || supplier.deliveryTime || 7));
+
+              const purchaseOrder = await this.createPurchaseOrder({
+                orderNumber,
+                supplierId: rule.supplierId,
+                orderType: "spare_parts",
+                status: "draft",
+                priority: part.currentStock <= 0 ? "urgent" : "high",
+                requestedBy: "Auto-Reorder System",
+                totalAmount: part.unitPrice ? parseFloat((parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2)) : 0,
+                currency: "EUR",
+                expectedDelivery,
+                deliveryAddress: "Magasin principal",
+                notes: `Commande automatique - Stock critique atteint pour ${part.partName}`,
+                terms: supplier.paymentTerms || "Standard"
+              });
+
+              // Add item to purchase order
+              await this.createPurchaseOrderItem({
+                purchaseOrderId: purchaseOrder.id,
+                sparePartId: part.id,
+                partNumber: part.partNumber,
+                description: part.partName,
+                quantity: rule.reorderQuantity,
+                unitPrice: part.unitPrice ? parseFloat(part.unitPrice) : 0,
+                totalPrice: part.unitPrice ? parseFloat((parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2)) : 0,
+                expectedDelivery
+              });
+
+              createdOrders.push(purchaseOrder);
+
+              console.log(`Auto-order created: ${orderNumber} for ${part.partName} (${rule.reorderQuantity} units)`);
+            }
+          }
+        }
+      }
+    }
+
+    return { triggeredRules, createdOrders };
+  }
+
+  // Generate purchase order number
+  private async generatePurchaseOrderNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const orders = await this.db.select().from(purchaseOrders)
+      .where(sql`EXTRACT(year FROM order_date) = ${year}`);
+    
+    const nextNumber = (orders.length + 1).toString().padStart(4, '0');
+    return `PO${year}${nextNumber}`;
+  }
+
+  // Get parts with stock below reorder point
+  async getPartsNeedingReorder(): Promise<(SparePart & { reorderRule?: ReorderRule })[]> {
+    const partsQuery = await this.db.select().from(spareParts);
+    const results = [];
+
+    for (const part of partsQuery) {
+      const rule = await this.getReorderRuleByPartId(part.id);
+      if (rule && part.currentStock <= rule.reorderPoint) {
+        results.push({ ...part, reorderRule: rule });
+      }
+    }
+
+    return results;
   }
 }
 
