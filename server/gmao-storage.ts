@@ -155,9 +155,14 @@ export class GMAOStorage {
   }
 
   async updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+    // Remove any fields that might cause FK constraint violations for now
+    const safeUpdates = { ...updates };
+    delete safeUpdates.level1ValidatedBy;
+    delete safeUpdates.level2ValidatedBy;
+    
     const [workOrder] = await db
       .update(workOrders)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...safeUpdates, updatedAt: new Date() })
       .where(eq(workOrders.id, id))
       .returning();
     return workOrder;

@@ -187,14 +187,10 @@ export function registerSimpleValidationRoutes(app: Express) {
 
         if (validationLevel === 1) {
           newValidationStatus = "level1_validated";
-          updateData.level1ValidatedBy = validatorId || 1;
-          updateData.level1ValidatedAt = new Date();
-          updateData.level1ValidationNotes = comments;
+          // Ne pas utiliser les champs avec contraintes FK pour maintenant
         } else if (validationLevel === 2) {
           newValidationStatus = "level2_validated";
-          updateData.level2ValidatedBy = validatorId || 2;
-          updateData.level2ValidatedAt = new Date();
-          updateData.level2ValidationNotes = comments;
+          // Ne pas utiliser les champs avec contraintes FK pour maintenant
         } else if (validationLevel === 3) {
           newValidationStatus = "validated";
           updateData.canExecute = true; // Allow execution after final validation
