@@ -19,9 +19,12 @@ import {
   Wrench,
   Settings,
   BarChart,
-  Factory
+  Factory,
+  ArrowLeft
 } from "lucide-react";
 import { Header } from "@/components/header";
+import { ModuleViewer } from "@/components/training/ModuleViewer";
+import { getModuleContent } from "@/data/trainingContent";
 
 interface TrainingModule {
   id: string;
@@ -49,6 +52,7 @@ interface LearningPath {
 
 export default function Training() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [userProgress, setUserProgress] = useState({
     totalModules: 12,
     completedModules: 4,
@@ -62,6 +66,7 @@ export default function Training() {
   // Gestionnaires d'événements pour les modules de formation
   const handleStartModule = (moduleId: string, title: string) => {
     console.log(`Starting training module: ${moduleId}`);
+    setSelectedModule(moduleId);
     toast({
       title: "Module démarré",
       description: `Début du module: ${title}`,
@@ -70,10 +75,24 @@ export default function Training() {
 
   const handleContinueModule = (moduleId: string, title: string) => {
     console.log(`Continuing training module: ${moduleId}`);
+    setSelectedModule(moduleId);
     toast({
       title: "Module repris",
       description: `Reprise du module: ${title}`,
     });
+  };
+
+  const handleModuleComplete = (moduleId: string) => {
+    console.log(`Module completed: ${moduleId}`);
+    setSelectedModule(null);
+    toast({
+      title: "Module terminé !",
+      description: "Félicitations pour avoir terminé ce module de formation",
+    });
+  };
+
+  const handleExitModule = () => {
+    setSelectedModule(null);
   };
 
   const handleStartCertification = (certType: string) => {
@@ -287,6 +306,32 @@ export default function Training() {
     if (!path) return [];
     return trainingModules.filter(module => path.modules.includes(module.id));
   };
+
+  // Si un module est sélectionné, afficher le ModuleViewer
+  if (selectedModule) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6">
+            <Button 
+              variant="outline" 
+              onClick={handleExitModule}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Retour aux modules</span>
+            </Button>
+          </div>
+          <ModuleViewer
+            moduleId={selectedModule}
+            onComplete={handleModuleComplete}
+            onExit={handleExitModule}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
