@@ -51,7 +51,8 @@ export default function Dashboard() {
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
     mutationFn: async (data: any) => {
-      let endpoint = "/api/diagnostic-ml";
+      // Use the basic diagnostic endpoint that we know works
+      let endpoint = "/api/diagnostic";
       if (ensembleMode) {
         endpoint = "/api/diagnostic-ensemble-ml";
       } else if (enhancedMode) {
@@ -59,8 +60,10 @@ export default function Dashboard() {
       } else if (advancedMode) {
         endpoint = "/api/diagnostic-advanced-ml";
       }
-      const response = await apiRequest(endpoint, { method: "POST", body: JSON.stringify(data) });
-      return await response.json();
+      
+      console.log("Sending diagnostic data:", data);
+      const response = await apiRequest(endpoint, { method: "POST", body: data });
+      return response;
     },
     onSuccess: (result: any) => {
       console.log("ML Diagnostic API response:", result);
@@ -172,9 +175,18 @@ export default function Dashboard() {
   });
 
   const handleDiagnosticSubmit = (data: any) => {
+    console.log("Raw form data received:", data);
+    console.log("Data type:", typeof data);
+    console.log("JSON stringified data:", JSON.stringify(data));
+    
     setIsAnalyzing(true);
     setDiagnosticResults([]);
-    diagnosticMutation.mutate(data);
+    
+    // Ensure data is a plain object, not a string
+    const cleanData = typeof data === 'string' ? JSON.parse(data) : data;
+    console.log("Clean data to send:", cleanData);
+    
+    diagnosticMutation.mutate(cleanData);
   };
 
   const handleStartRepair = (caseId: number) => {
