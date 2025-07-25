@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/header";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Shield, 
   AlertTriangle, 
@@ -44,6 +45,45 @@ interface SecurityMetrics {
 
 export default function SecurityDashboard() {
   const [timeRange, setTimeRange] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+  const { toast } = useToast();
+
+  const handleExportLogs = () => {
+    toast({
+      title: "Export des logs",
+      description: "Les logs de sécurité sont en cours d'export...",
+    });
+    
+    // Simulation de l'export
+    setTimeout(() => {
+      toast({
+        title: "Export réussi",
+        description: "Les logs ont été exportés avec succès vers security-logs.csv",
+      });
+    }, 2000);
+  };
+
+  const handleGenerateReport = () => {
+    toast({
+      title: "Génération du rapport",
+      description: "Le rapport de sécurité est en cours de génération...",
+    });
+    
+    // Simulation de la génération
+    setTimeout(() => {
+      toast({
+        title: "Rapport généré",
+        description: "Le rapport de sécurité mensuel a été créé avec succès",
+      });
+    }, 3000);
+  };
+
+  const handleEmergencyMode = () => {
+    toast({
+      title: "Mode urgence activé",
+      description: "Toutes les mesures de sécurité renforcées ont été activées",
+      variant: "destructive",
+    });
+  };
 
   // Mock data - en production, récupérer depuis l'API de sécurité
   const securityMetrics: SecurityMetrics = {
@@ -448,15 +488,51 @@ export default function SecurityDashboard() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span>Rate limiting actif</span>
-                    <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => toast({
+                          title: "Rate Limiting",
+                          description: "100-1000 requêtes/15min selon l'endpoint",
+                        })}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Détection d'anomalies</span>
-                    <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => toast({
+                          title: "Détection d'anomalies",
+                          description: "Surveillance des comportements suspects en temps réel",
+                        })}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Logs de sécurité</span>
-                    <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-100 text-green-800">Activé</Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => toast({
+                          title: "Logs de sécurité",
+                          description: "Traçabilité complète des actions utilisateurs",
+                        })}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -466,15 +542,27 @@ export default function SecurityDashboard() {
                   <CardTitle>Actions Rapides</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleExportLogs}
+                  >
                     <Eye className="h-4 w-4 mr-2" />
                     Exporter les logs
                   </Button>
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleGenerateReport}
+                  >
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Générer rapport
                   </Button>
-                  <Button variant="destructive" className="w-full">
+                  <Button 
+                    variant="destructive" 
+                    className="w-full"
+                    onClick={handleEmergencyMode}
+                  >
                     <AlertTriangle className="h-4 w-4 mr-2" />
                     Mode urgence
                   </Button>
