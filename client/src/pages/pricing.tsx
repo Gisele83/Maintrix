@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/header";
+import { useLocation } from "wouter";
 import { 
   Check, 
   Star, 
@@ -48,6 +49,17 @@ interface AddonModule {
 }
 
 export default function Pricing() {
+  const [location, navigate] = useLocation();
+
+  const handlePlanSelection = (planName: string) => {
+    // Rediriger vers la page de paiement avec le plan sélectionné
+    navigate(`/payment?plan=${planName.toLowerCase()}`);
+  };
+
+  const handleAddonSelection = (addonName: string) => {
+    // Pour les modules additionnels, rediriger vers une page d'information ou de contact
+    navigate(`/payment?addon=${addonName.toLowerCase().replace(/ /g, '-')}`);
+  };
   const plans: PricingPlan[] = [
     {
       name: "Freemium",
@@ -266,6 +278,7 @@ export default function Pricing() {
                     className="w-full" 
                     variant={plan.ctaVariant}
                     size="lg"
+                    onClick={() => handlePlanSelection(plan.name)}
                   >
                     {plan.ctaText}
                   </Button>
@@ -299,7 +312,12 @@ export default function Pricing() {
                   <CardContent className="pt-0">
                     <div className="text-center">
                       <p className="text-xl font-bold text-primary mb-3">{addon.price}</p>
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => handleAddonSelection(addon.name)}
+                      >
                         En savoir plus
                       </Button>
                     </div>
@@ -323,12 +341,21 @@ export default function Pricing() {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" className="px-8">
+                  <Button 
+                    size="lg" 
+                    className="px-8"
+                    onClick={() => navigate('/payment?demo=true')}
+                  >
                     <Headphones className="w-4 h-4 mr-2" />
                     Demander une démo
                   </Button>
-                  <Button size="lg" variant="outline" className="px-8">
-                    Essai gratuit 30 jours
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="px-8"
+                    onClick={() => handlePlanSelection('Pro')}
+                  >
+                    Essai gratuit 14 jours
                   </Button>
                 </div>
               </div>

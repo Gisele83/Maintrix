@@ -51,6 +51,48 @@ export default function Payment() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [accountReference, setAccountReference] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [selectedAddon, setSelectedAddon] = useState<string>("");
+  const [isDemo, setIsDemo] = useState<boolean>(false);
+
+  // Extraire les paramètres de l'URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const plan = urlParams.get('plan');
+    const addon = urlParams.get('addon');
+    const demo = urlParams.get('demo');
+    
+    if (plan) {
+      setSelectedPlan(plan);
+      // Définir le montant selon le plan
+      switch(plan.toLowerCase()) {
+        case 'freemium':
+          setAmount('0');
+          break;
+        case 'pro':
+          setAmount('20');
+          break;
+        case 'business':
+          setAmount('75');
+          break;
+        case 'enterprise':
+          setAmount('sur devis');
+          break;
+        default:
+          setAmount('20');
+      }
+    }
+    
+    if (addon) {
+      setSelectedAddon(addon);
+      setAmount('25'); // Prix standard pour les modules additionnels
+    }
+    
+    if (demo === 'true') {
+      setIsDemo(true);
+      setAmount('0');
+    }
+  }, []);
   
   // Mock data - Les références de compte seront renseignées ultérieurement
   const mockAccounts: PaymentAccount[] = [
@@ -190,6 +232,52 @@ export default function Payment() {
             </p>
           </div>
         </div>
+
+        {/* Plan sélectionné */}
+        {(selectedPlan || selectedAddon || isDemo) && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span>
+                  {isDemo ? "Demande de démonstration" : 
+                   selectedPlan ? `Plan ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}` : 
+                   `Module ${selectedAddon?.replace(/-/g, ' ')}`}
+                </span>
+              </CardTitle>
+              <CardDescription>
+                {isDemo ? "Nous vous contacterons pour planifier une démonstration personnalisée" :
+                 selectedPlan ? `Vous avez sélectionné le plan ${selectedPlan} avec essai gratuit de 14 jours` :
+                 `Module additionnel sélectionné: ${selectedAddon?.replace(/-/g, ' ')}`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    {isDemo ? "Démonstration gratuite" : 
+                     selectedPlan === 'freemium' ? "Plan gratuit" :
+                     amount === 'sur devis' ? "Tarif sur mesure" :
+                     `${amount}€/mois`}
+                  </p>
+                  {!isDemo && selectedPlan !== 'freemium' && (
+                    <p className="text-sm text-muted-foreground">
+                      Essai gratuit de 14 jours inclus
+                    </p>
+                  )}
+                </div>
+                {selectedPlan && (
+                  <Badge variant="secondary">
+                    {selectedPlan === 'freemium' ? 'Gratuit' :
+                     selectedPlan === 'pro' ? 'Populaire' :
+                     selectedPlan === 'business' ? 'Recommandé' :
+                     'Enterprise'}
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Comptes liés */}
