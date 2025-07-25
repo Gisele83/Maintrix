@@ -45,7 +45,7 @@ export function LessonViewer({
     newCompleted.add(stepIndex);
     setCompletedSteps(newCompleted);
 
-    if (newCompleted.size === lesson.steps.length) {
+    if (newCompleted.size === lesson.content.steps.length) {
       toast({
         title: "✅ Leçon terminée!",
         description: "Vous pouvez maintenant passer aux exercices ou à la leçon suivante.",
@@ -61,12 +61,22 @@ export function LessonViewer({
   };
 
   const handleQuizComplete = () => {
-    const totalQuestions = lesson.exercises?.length || 0;
-    const correctAnswers = lesson.exercises?.filter((exercise, index) => 
-      exerciseAnswers[exercise.id] === exercise.correctAnswer
-    ).length || 0;
+    const exercises = lesson.content.exercises || [];
+    const totalQuestions = exercises.reduce((total, exercise) => 
+      total + (exercise.questions?.length || 0), 0
+    );
+    
+    let correctAnswers = 0;
+    exercises.forEach(exercise => {
+      exercise.questions?.forEach((question, qIndex) => {
+        const questionId = `${exercise.title}-${qIndex}`;
+        if (exerciseAnswers[questionId] === question.correct) {
+          correctAnswers++;
+        }
+      });
+    });
 
-    const score = (correctAnswers / totalQuestions) * 100;
+    const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
     toast({
       title: score >= 70 ? "🎉 Quiz réussi!" : "📚 Continuez vos efforts",
@@ -79,8 +89,21 @@ export function LessonViewer({
     }
   };
 
-  const currentStepData = lesson.steps[currentStep];
-  const progress = ((currentStep + 1) / lesson.steps.length) * 100;
+  // Vérifications de sécurité
+  if (!lesson || !lesson.content || !lesson.content.steps || lesson.content.steps.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card className="border-0 shadow-lg">
+          <CardContent className="pt-6 text-center">
+            <p className="text-gray-600">Aucune leçon disponible.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const currentStepData = lesson.content.steps[currentStep];
+  const progress = ((currentStep + 1) / lesson.content.steps.length) * 100;
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -92,7 +115,7 @@ export function LessonViewer({
               <CardTitle className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                 {lesson.title}
               </CardTitle>
-              <p className="text-blue-600 dark:text-blue-400 mt-2">{lesson.description}</p>
+              <p className="text-blue-600 dark:text-blue-400 mt-2">{lesson.content.introduction}</p>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="px-3 py-1">
@@ -101,7 +124,7 @@ export function LessonViewer({
               </Badge>
               <Badge variant="outline" className="px-3 py-1">
                 <Target className="w-4 h-4 mr-1" />
-                {lesson.difficulty}
+                Fondamental
               </Badge>
             </div>
           </div>
@@ -113,7 +136,7 @@ export function LessonViewer({
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Progression</span>
-            <span className="text-sm text-gray-600">{currentStep + 1} / {lesson.steps.length}</span>
+            <span className="text-sm text-gray-600">{currentStep + 1} / {lesson.content.steps.length}</span>
           </div>
           <Progress value={progress} className="w-full" />
           <div className="mt-2 text-xs text-gray-500">
@@ -123,7 +146,7 @@ export function LessonViewer({
       </Card>
 
       {/* Step Content */}
-      {!showExercises && currentStepData && (
+      {!showExercises && currentStepData && currentStep < lesson.content.steps.length && (
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -137,14 +160,14 @@ export function LessonViewer({
             <p className="text-lg leading-relaxed">{currentStepData.description}</p>
 
             {/* Key Points */}
-            {currentStepData.keyPoints && currentStepData.keyPoints.length > 0 && (
+            {currentStepData.tips && currentStepData.tips.length > 0 && (
               <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
                 <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center">
                   <Lightbulb className="w-5 h-5 mr-2" />
                   Points clés
                 </h4>
                 <ul className="space-y-2">
-                  {currentStepData.keyPoints.map((point, index) => (
+                  {currentStepData.tips.map((point, index) => (
                     <li key={index} className="flex items-start">
                       <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5 flex-shrink-0">
                         {index + 1}
@@ -197,8 +220,8 @@ export function LessonViewer({
                 )}
 
                 <Button
-                  onClick={() => setCurrentStep(Math.min(lesson.steps.length - 1, currentStep + 1))}
-                  disabled={currentStep === lesson.steps.length - 1}
+                  onClick={() => setCurrentStep(Math.min(lesson.content.steps.length - 1, currentStep + 1))}
+                  disabled={currentStep >= lesson.content.steps.length - 1}
                   className="flex items-center"
                 >
                   Suivant
@@ -211,7 +234,7 @@ export function LessonViewer({
       )}
 
       {/* Exercises Section */}
-      {showExercises && lesson.exercises && (
+      {showExercises && lesson.content.exercises && (
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -220,28 +243,38 @@ export function LessonViewer({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {lesson.exercises.map((exercise, index) => (
-              <div key={exercise.id} className="p-6 border rounded-xl">
-                <h4 className="font-semibold mb-4 text-lg">
-                  Question {index + 1}: {exercise.question}
-                </h4>
-                <div className="space-y-2">
-                  {exercise.options.map((option, optionIndex) => (
-                    <label
-                      key={optionIndex}
-                      className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name={exercise.id}
-                        value={optionIndex}
-                        onChange={() => handleExerciseAnswer(exercise.id, optionIndex)}
-                        className="mr-3"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
+            {lesson.content.exercises.map((exercise, exerciseIndex) => (
+              <div key={`exercise-${exerciseIndex}`} className="p-6 border rounded-xl">
+                <h3 className="font-semibold mb-4 text-xl text-blue-800">{exercise.title}</h3>
+                <p className="text-gray-600 mb-6">{exercise.description}</p>
+                
+                {exercise.questions?.map((question, questionIndex) => {
+                  const questionId = `${exercise.title}-${questionIndex}`;
+                  return (
+                    <div key={questionId} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <h4 className="font-semibold mb-4 text-lg">
+                        Question {questionIndex + 1}: {question.question}
+                      </h4>
+                      <div className="space-y-2">
+                        {question.answers.map((answer, answerIndex) => (
+                          <label
+                            key={answerIndex}
+                            className="flex items-center p-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                          >
+                            <input
+                              type="radio"
+                              name={questionId}
+                              value={answerIndex}
+                              onChange={() => handleExerciseAnswer(questionId, answerIndex)}
+                              className="mr-3"
+                            />
+                            <span>{answer}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
 
@@ -249,7 +282,11 @@ export function LessonViewer({
               <Button
                 onClick={handleQuizComplete}
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
-                disabled={Object.keys(exerciseAnswers).length !== lesson.exercises.length}
+                disabled={
+                  lesson.content.exercises.reduce((total, exercise) => 
+                    total + (exercise.questions?.length || 0), 0
+                  ) !== Object.keys(exerciseAnswers).length
+                }
               >
                 <Award className="w-5 h-5 mr-2" />
                 Valider le quiz
@@ -272,7 +309,7 @@ export function LessonViewer({
         </Button>
 
         <div className="flex space-x-3">
-          {!showExercises && completedSteps.size === lesson.steps.length && lesson.exercises && (
+          {!showExercises && lesson.content.steps && completedSteps.size === lesson.content.steps.length && lesson.content.exercises && (
             <Button
               onClick={() => setShowExercises(true)}
               className="bg-yellow-600 hover:bg-yellow-700 flex items-center"
@@ -282,7 +319,7 @@ export function LessonViewer({
             </Button>
           )}
 
-          {!showExercises && (
+          {!showExercises && lesson.content.exercises && lesson.content.exercises.length > 0 && (
             <Button
               onClick={() => setShowExercises(true)}
               variant="outline"
