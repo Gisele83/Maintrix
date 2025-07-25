@@ -65,7 +65,7 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
     }
 
     res.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de l\'import:', error);
     res.status(500).json({ 
       success: false,
@@ -131,7 +131,7 @@ router.get('/export', async (req: Request, res: Response) => {
     res.setHeader('Content-Length', buffer.length.toString());
     
     res.send(buffer);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de l\'export:', error);
     res.status(500).json({ 
       error: error.message || 'Erreur interne du serveur' 
@@ -164,7 +164,7 @@ router.get('/template', async (req: Request, res: Response) => {
     res.setHeader('Content-Length', buffer.length.toString());
     
     res.send(buffer);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la génération du template:', error);
     res.status(500).json({ 
       error: error.message || 'Erreur interne du serveur' 
@@ -211,7 +211,7 @@ router.get('/import-history', async (req: Request, res: Response) => {
     ];
     
     res.json(history);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la récupération de l\'historique:', error);
     res.status(500).json({ 
       error: error.message || 'Erreur interne du serveur' 
@@ -266,13 +266,13 @@ router.post('/validate', upload.single('file'), async (req: Request, res: Respon
         const records = XLSX.utils.sheet_to_json(worksheet);
         validation.estimatedRecords = records.length;
       }
-    } catch (error) {
+    } catch (error: any) {
       validation.errors.push(`Erreur d'analyse du fichier: ${error.message}`);
       validation.success = false;
     }
 
     res.json(validation);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la validation:', error);
     res.status(500).json({ 
       success: false,
