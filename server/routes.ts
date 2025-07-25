@@ -90,8 +90,8 @@ function calculateTextSimilarity(text1: string, text2: string): number {
   const words1 = new Set(text1.split(/\s+/).filter(w => w.length > 2));
   const words2 = new Set(text2.split(/\s+/).filter(w => w.length > 2));
   
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  const union = new Set([...words1, ...words2]);
+  const intersection = new Set(Array.from(words1).filter(x => words2.has(x)));
+  const union = new Set([...Array.from(words1), ...Array.from(words2)]);
   
   return union.size > 0 ? intersection.size / union.size : 0;
 }
@@ -516,12 +516,26 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
   return tips[equipmentType] || ["Effectuer une maintenance préventive régulière"];
 }
 
+// Middleware pour une meilleure gestion des erreurs JSON
+function jsonErrorHandler(err: any, req: any, res: any, next: any) {
+  if (err instanceof SyntaxError && 'body' in err) {
+    console.error('JSON Parse Error:', err.message);
+    console.error('Request body preview:', String(req.body || '').substring(0, 100));
+    return res.status(400).json({ 
+      message: 'Format JSON invalide dans la requête',
+      error: 'Invalid JSON format'
+    });
+  }
+  next(err);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Appliquer les mesures de sécurité globales
   app.use(securityHeaders);
   app.use(generalRateLimit);
   app.use(anomalyDetection);
+  app.use(jsonErrorHandler);
   
   // Register validation system authentication avec rate limiting
   app.use('/api/auth', authRateLimit);
