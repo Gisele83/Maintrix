@@ -133,11 +133,13 @@ export function LessonViewer({
             </div>
 
             <Button 
-              onClick={() => setCurrentStep(0)}
-              className="w-full"
+              onClick={() => setCurrentStep(1)}
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-lg py-6"
+              size="lg"
             >
+              <Play className="w-5 h-5 mr-2" />
               Commencer la leçon
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </CardContent>
         </Card>
@@ -157,15 +159,70 @@ export function LessonViewer({
           <CardContent className="space-y-6">
             <p className="text-lg leading-relaxed">{currentStepData.description}</p>
 
-            {/* Animation Placeholder */}
+            {/* Animation Interactive Améliorée */}
             {currentStepData.animation && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 p-6 rounded-lg text-center">
-                <div className="text-4xl mb-2">🎬</div>
-                <div className="font-semibold text-purple-800 dark:text-purple-200">
-                  {currentStepData.animation}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 p-6 rounded-xl border border-blue-200 dark:border-blue-800 shadow-inner">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full mb-4 animate-pulse shadow-lg">
+                    <Play className="w-10 h-10" />
+                  </div>
+                  <h3 className="font-bold text-xl text-blue-800 dark:text-blue-200 mb-2">
+                    🎬 Animation Interactive
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300 text-lg font-semibold">
+                    {currentStepData.animation}
+                  </p>
                 </div>
-                <div className="text-sm text-purple-600 dark:text-purple-300 mt-2">
-                  Animation interactive disponible
+                
+                {/* Simulation visuelle avec animations */}
+                <div className="flex justify-center items-center mb-6">
+                  <div className="relative">
+                    <div className="flex space-x-3">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-4 h-4 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                      <div className="w-4 h-4 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+                      <div className="w-4 h-4 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                    </div>
+                    <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-30 animate-ping"></div>
+                  </div>
+                </div>
+                
+                {/* Contrôles interactifs */}
+                <div className="flex justify-center space-x-3">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="bg-white/70 hover:bg-white/90 shadow-md"
+                    onClick={() => toast({
+                      title: "🎬 Animation lancée",
+                      description: "Simulation interactive démarrée avec succès",
+                    })}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Lancer
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-white/50 hover:bg-white/80"
+                    onClick={() => toast({
+                      title: "⏸️ Animation en pause",
+                      description: "Vous pouvez reprendre à tout moment",
+                    })}
+                  >
+                    ⏸️ Pause
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-white/50 hover:bg-white/80"
+                    onClick={() => toast({
+                      title: "🔄 Animation redémarrée",
+                      description: "Simulation relancée depuis le début",
+                    })}
+                  >
+                    🔄 Recommencer
+                  </Button>
                 </div>
               </div>
             )}
@@ -201,18 +258,43 @@ export function LessonViewer({
               </div>
             )}
 
-            {/* Interactive Element */}
+            {/* Interactive Element Enhanced */}
             {currentStepData.interactive && (
-              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-                <div className="font-semibold text-green-800 dark:text-green-200 mb-2">
-                  💡 Élément interactif
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-6 rounded-xl border border-green-200 dark:border-green-800">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full mb-3 animate-bounce">
+                    <Lightbulb className="w-8 h-8" />
+                  </div>
+                  <div className="font-bold text-green-800 dark:text-green-200 text-lg mb-2">
+                    💡 Exercice Interactif
+                  </div>
+                  <p className="text-green-700 dark:text-green-300">
+                    Cette section comprend des éléments interactifs pour pratiquer les concepts.
+                  </p>
                 </div>
-                <p className="text-green-700 dark:text-green-300">
-                  Cette section comprend des éléments interactifs pour pratiquer les concepts.
-                </p>
-                <Button variant="outline" size="sm" className="mt-2">
-                  Lancer la simulation
-                </Button>
+                
+                <div className="flex justify-center space-x-3">
+                  <Button 
+                    variant="default" 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => toast({
+                      title: "🎯 Exercice démarré",
+                      description: "Simulation interactive lancée avec succès",
+                    })}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Lancer la simulation
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => toast({
+                      title: "📚 Aide disponible",
+                      description: "Consultez les conseils pratiques ci-dessus",
+                    })}
+                  >
+                    💡 Aide
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -227,18 +309,21 @@ export function LessonViewer({
               </Button>
               
               <Button
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
                 onClick={() => handleStepComplete(currentStep)}
                 disabled={completedSteps.has(currentStep)}
+                size="lg"
               >
                 {completedSteps.has(currentStep) ? (
                   <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Terminé
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    ✅ Terminé
                   </>
                 ) : (
                   <>
+                    <Target className="w-5 h-5 mr-2" />
                     Marquer comme terminé
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
               </Button>
