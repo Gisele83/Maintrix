@@ -61,27 +61,27 @@ export default function Training() {
 
   // Gestionnaires d'événements pour les modules de formation
   const handleStartModule = (moduleId: string, title: string) => {
+    console.log(`Starting training module: ${moduleId}`);
     toast({
       title: "Module démarré",
       description: `Début du module: ${title}`,
     });
-    console.log(`Starting training module: ${moduleId}`);
   };
 
   const handleContinueModule = (moduleId: string, title: string) => {
+    console.log(`Continuing training module: ${moduleId}`);
     toast({
       title: "Module repris",
       description: `Reprise du module: ${title}`,
     });
-    console.log(`Continuing training module: ${moduleId}`);
   };
 
   const handleStartCertification = (certType: string) => {
+    console.log(`Starting certification: ${certType}`);
     toast({
       title: "Certification commencée",
       description: `Début du parcours de certification: ${certType}`,
     });
-    console.log(`Starting certification: ${certType}`);
   };
 
   const trainingModules: TrainingModule[] = [
@@ -521,7 +521,10 @@ export default function Training() {
                     <Button 
                       className="w-full mt-4" 
                       variant={module.completed ? "outline" : "default"}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Button clicked for module:', module.id, module.title);
                         if (module.completed || module.progress > 0) {
                           handleContinueModule(module.id, module.title);
                         } else {
@@ -573,7 +576,12 @@ export default function Training() {
                 <Button 
                   className="w-full mt-2" 
                   size="sm"
-                  onClick={() => handleStartCertification("Technicien Certifié")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Certification button clicked: Technicien Certifié');
+                    handleStartCertification("Technicien Certifié");
+                  }}
                 >
                   Commencer
                 </Button>
@@ -588,7 +596,12 @@ export default function Training() {
                 <Button 
                   className="w-full mt-2" 
                   size="sm"
-                  onClick={() => handleStartCertification("Expert IA")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Certification button clicked: Expert IA');
+                    handleStartCertification("Expert IA");
+                  }}
                 >
                   Commencer
                 </Button>
@@ -603,7 +616,12 @@ export default function Training() {
                 <Button 
                   className="w-full mt-2" 
                   size="sm"
-                  onClick={() => handleStartCertification("Administrateur")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Certification button clicked: Administrateur');
+                    handleStartCertification("Administrateur");
+                  }}
                 >
                   Commencer
                 </Button>
