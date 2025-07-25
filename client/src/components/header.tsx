@@ -1,4 +1,4 @@
-import { Settings, User, Wrench, Factory, Home, Shield } from "lucide-react";
+import { Settings, User, Wrench, Factory, Home, Shield, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
@@ -91,6 +91,20 @@ export function Header() {
               >
                 <Shield className="w-4 h-4" />
                 <span>Sécurité</span>
+              </Button>
+            </Link>
+            <Link href="/support-chatbot">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`flex items-center space-x-2 transition-all duration-200 ${
+                  location === "/support-chatbot" 
+                    ? "bg-carbon-blue/20 text-carbon-blue" 
+                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                <span>Assistant</span>
               </Button>
             </Link>
             <Link href="/payment">

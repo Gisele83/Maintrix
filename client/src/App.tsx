@@ -15,6 +15,7 @@ import Payment from "@/pages/payment";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import SecurityDashboard from "@/pages/security-dashboard";
+import SupportChatbot from "@/pages/support-chatbot";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/iot-gamification" component={IoTGamificationDashboard} />
       <Route path="/access-management" component={AccessManagement} />
       <Route path="/security-dashboard" component={SecurityDashboard} />
+      <Route path="/support-chatbot" component={SupportChatbot} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
