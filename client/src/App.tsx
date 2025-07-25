@@ -16,6 +16,7 @@ import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import SecurityDashboard from "@/pages/security-dashboard";
 import SupportChatbot from "@/pages/support-chatbot";
+import DataImportExport from "@/pages/data-import-export";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/access-management" component={AccessManagement} />
       <Route path="/security-dashboard" component={SecurityDashboard} />
       <Route path="/support-chatbot" component={SupportChatbot} />
+      <Route path="/data-import-export" component={DataImportExport} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>

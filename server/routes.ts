@@ -40,6 +40,7 @@ import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
+import { dataImportExportRoutes } from "./data-import-export-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -537,6 +538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register IoT and Gamification routes
   registerIoTGamificationRoutes(app);
+  
+  // Data Import/Export routes
+  app.use('/api/data', dataImportExportRoutes);
 
   // Initialize enterprise integrations
   const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");

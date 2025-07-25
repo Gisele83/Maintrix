@@ -321,6 +321,12 @@ export default function Dashboard() {
                   <span className="hidden sm:inline">Profils</span>
                 </Button>
               </Link>
+              <Link href="/data-import-export">
+                <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Import/Export</span>
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -527,7 +533,7 @@ export default function Dashboard() {
               isLoading={isAnalyzing}
               onStartRepair={handleStartRepair}
               onSaveDiagnostic={handleSaveDiagnostic}
-              sessionId={currentSessionId}
+              sessionId={currentSessionId || undefined}
               cloudSearchPerformed={cloudSearchPerformed}
               cloudInsights={cloudInsights}
             />
