@@ -1,67 +1,88 @@
-# SMDiagFix - Assistant de Diagnostic IA pour la Maintenance Industrielle
+# Smart GMAO DiagFix - Plateforme Intégrée de Maintenance Industrielle
 
-## 📋 Support de Présentation
+## 📋 Support de Présentation Officiel - Janvier 2025
 
 ---
 
 ## 🎯 Vue d'Ensemble
 
-**SMDiagFix** est une plateforme avancée de diagnostic et maintenance industrielle propulsée par l'intelligence artificielle, conçue pour révolutionner la façon dont les techniciens abordent la maintenance d'équipements.
+**Smart GMAO DiagFix** est la première plateforme industrielle intégrée combinant **Smart Diagnostic** (assistant IA de diagnostic) et **Smart GMAO** (système complet de gestion de maintenance assistée par ordinateur). Cette solution révolutionnaire transforme complètement l'approche de la maintenance industrielle moderne.
 
-### Problématique Adressée
-- Temps de diagnostic long et coûteux
-- Manque d'expertise technique disponible 24/7
-- Erreurs humaines dans l'identification des pannes
-- Absence de prédiction des défaillances
-- Difficulté à capitaliser sur l'expérience
+### Défis Industriels Actuels
+- **Maintenance réactive coûteuse** : Interventions d'urgence non planifiées
+- **Manque d'expertise technique** : Pénurie de techniciens expérimentés
+- **Données dispersées** : Informations éparpillées dans différents systèmes
+- **Absence de prédiction** : Défaillances imprévisibles et pannes critiques
+- **ROI maintenance faible** : Budgets mal optimisés et ressources gaspillées
 
-### Solution Proposée
-Une IA complète qui assiste les techniciens avec:
-- Diagnostic intelligent en temps réel
-- Recommandations de maintenance prédictive
-- Procédures de réparation guidées
-- Apprentissage continu auto-adaptatif
+### Solution Intégrée Smart GMAO DiagFix
+Une plateforme unifiée combinant deux modules complémentaires :
+
+**Smart Diagnostic** (Assistant IA) :
+- Diagnostic intelligent temps réel avec IA avancée
+- Analyse prédictive des défaillances
+- Recommandations maintenance basées sur ML
+- Interface conversationnelle avec chatbot technique
+
+**Smart GMAO** (Gestion Maintenance) :
+- Gestion complète des équipements et assets
+- Ordres de travail automatisés avec workflow
+- Maintenance préventive intelligente
+- Gestion stocks et approvisionnement
+- Intégration IoT temps réel avec capteurs
+- Tableau de bord KPI et analytics avancés
 
 ---
 
-## ⚡ Fonctionnalités Principales
+## ⚡ Modules Fonctionnels Intégrés
 
-### 1. Diagnostic IA Multi-Niveaux
-- **Standard ML**: Classification par forêts aléatoires et gradient boosting
-- **Advanced ML**: Réseaux de neurones et machines à vecteurs de support
-- **Ensemble ML**: Consensus de 9 algorithmes pour précision maximale
-- **Analyse sémantique**: Compréhension des variations de description des symptômes
+### 🧠 Module Smart Diagnostic (Assistant IA)
+**Diagnostic Intelligent Multi-Niveaux:**
+- **Mode ML Standard**: Classification forêts aléatoires et gradient boosting
+- **Mode ML Avancé**: Réseaux neurones, SVM et détection anomalies
+- **Mode Ensemble ML**: Consensus de 9 algorithmes pour précision maximale
+- **Chatbot Technique**: Assistant conversationnel avec base de connaissances
 
-### 2. Couverture Équipement Complète
-**Équipements Industriels Classiques:**
-- Moteurs électriques et pompes
-- Compresseurs et ventilateurs
-- Transformateurs et variateurs
-- Systèmes hydrauliques
+**Couverture Équipement Étendue:**
+- **Équipements Industriels**: Moteurs, pompes, compresseurs, transformateurs
+- **Électronique de Puissance**: Convertisseurs, onduleurs, UPS, capteurs
+- **Équipements Portuaires**: Grues STS/RTG, reach stackers, spreaders
+- **Systèmes Spécialisés**: HVAC, hydraulique, pneumatique, automation
 
-**Électronique de Puissance:**
-- Convertisseurs AC/DC et DC/DC
-- Onduleurs et redresseurs
-- Systèmes UPS et batteries
-- Capteurs et instrumentations
+### 🔧 Module Smart GMAO (Gestion Maintenance)
+**Gestion Complète des Assets:**
+- **Registre Équipements**: Base données complète avec spécifications techniques
+- **Ordres de Travail**: Workflow automatisé avec validation multi-niveaux
+- **Maintenance Préventive**: Planification intelligente basée sur l'usage/temps
+- **Gestion Stocks**: Inventaire pièces détachées avec réapprovisionnement automatique
+- **KPI et Analytics**: Tableaux de bord MTBF/MTTR, disponibilité, coûts
 
-**Équipements Portuaires:**
-- Grues STS et RTG
-- Reach stackers et spreaders
-- Grues mobiles et straddle carriers
-- Systèmes de manutention automatisés
+### 📱 Module IoT & Monitoring Temps Réel
+**Surveillance Continue:**
+- **Capteurs Industriels**: Température, vibration, pression, débit
+- **Alertes Automatiques**: Notifications temps réel selon seuils configurables
+- **Monitoring Santé**: Score santé équipements avec tendances prédictives
+- **Intégration MQTT**: Collecte données temps réel avec protocoles industriels
 
-### 3. Intelligence Prédictive
-- **Évaluation des risques**: Calcul probabiliste des défaillances
-- **Estimation des coûts**: Prévision budgétaire automatique
-- **Planification maintenance**: Optimisation des interventions
-- **Détection d'anomalies**: Identification précoce des problèmes
+### 🛡️ Module Sécurité Avancée
+**Protection Multi-Niveaux:**
+- **Rate Limiting**: Protection contre surcharge et attaques DoS
+- **Détection Anomalies**: Identification comportements suspects temps réel
+- **Audit et Logs**: Traçabilité complète des actions utilisateurs
+- **Dashboard Sécurité**: Monitoring centralisé avec alertes proactives
 
-### 4. Système d'Apprentissage Continu
-- **Collecte de feedback**: Modal d'évaluation intégré
-- **Auto-amélioration**: Réentraînement automatique des modèles
-- **Métriques de performance**: Suivi en temps réel de la précision
-- **Adaptation contextuelle**: Ajustement selon les retours utilisateurs
+### 🎮 Module Gamification & Compétences
+**Engagement Utilisateur:**
+- **Compétences Techniques**: 6 domaines spécialisés avec progression
+- **Système Points XP**: Récompenses basées sur performance maintenance
+- **Achievements**: 7 accomplissements déblocables
+- **Classement**: Compétition saine entre techniciens
+
+### 💳 Module Abonnements & Essais
+**Modèle Commercial Flexible:**
+- **Essai Gratuit**: 14 jours complets toutes fonctionnalités
+- **Plans Tarifaires**: Freemium, Pro, Business, Enterprise
+- **Addons Spécialisés**: IA Prédictive, Connecteur ERP, IoT, PowerBI
 
 ---
 

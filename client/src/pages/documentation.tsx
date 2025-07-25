@@ -59,19 +59,22 @@ export default function Documentation() {
   const guides: GuideSection[] = [
     {
       id: "getting-started",
-      title: "Premiers pas avec Smart Diagnostic et Smart GMAO",
-      description: "Guide d'introduction pour débuter avec la plateforme intégrée Smart Diagnostic + Smart GMAO",
-      duration: "15 min",
+      title: "Premiers pas avec Smart GMAO DiagFix",
+      description: "Guide d'introduction complet pour débuter avec la plateforme intégrée Smart Diagnostic + Smart GMAO",
+      duration: "20 min",
       difficulty: "Débutant",
       icon: Play,
       content: [
-        "Connexion à Smart GMAO DiagFix et interface unifiée",
-        "Navigation entre Smart Diagnostic et Smart GMAO",
-        "Création de votre premier diagnostic avec Smart Diagnostic",
-        "Intégration des diagnostics dans Smart GMAO pour les ordres de travail",
-        "Gestion complète du cycle de maintenance (Smart Diagnostic → Smart GMAO → intervention)",
-        "Comprendre les résultats IA et la maintenance prédictive",
-        "Sauvegarde et historique unifié Smart Diagnostic + Smart GMAO"
+        "Connexion à Smart GMAO DiagFix et découverte de l'interface unifiée",
+        "Navigation entre Smart Diagnostic (assistant IA) et Smart GMAO (gestion maintenance)",
+        "Création de votre premier diagnostic avec Smart Diagnostic IA",
+        "Intégration automatique des diagnostics dans Smart GMAO pour générer des ordres de travail",
+        "Workflow complet de maintenance : Smart Diagnostic → Smart GMAO → IoT → Intervention",
+        "Utilisation du chatbot support technique intégré",
+        "Comprendre les résultats IA, maintenance prédictive et gamification",
+        "Monitoring IoT temps réel et alertes automatiques",
+        "Système de validation multi-niveaux et sécurité avancée",
+        "Gestion des abonnements et période d'essai gratuite de 14 jours"
       ]
     },
     {

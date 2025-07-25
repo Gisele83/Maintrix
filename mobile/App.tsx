@@ -11,6 +11,8 @@ import { DatabaseProvider } from './src/context/DatabaseContext';
 import { theme } from './src/theme/theme';
 import { initializeOfflineStorage } from './src/services/OfflineStorage';
 
+// Smart GMAO DiagFix Mobile - Integrated Maintenance Management Platform
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
