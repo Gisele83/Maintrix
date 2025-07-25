@@ -174,16 +174,17 @@ export function LessonViewer({
                   </p>
                 </div>
                 
-                {/* Simulation visuelle avec animations */}
+                {/* Simulation visuelle avec animations améliorées */}
                 <div className="flex justify-center items-center mb-6">
-                  <div className="relative">
-                    <div className="flex space-x-3">
-                      <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-4 h-4 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
-                      <div className="w-4 h-4 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
-                      <div className="w-4 h-4 bg-pink-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                  <div className="relative animate-float">
+                    <div className="flex space-x-4">
+                      <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-6 h-6 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '200ms' }}></div>
+                      <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '400ms' }}></div>
+                      <div className="w-6 h-6 bg-gradient-to-r from-pink-400 to-pink-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '600ms' }}></div>
                     </div>
-                    <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-30 animate-ping"></div>
+                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full opacity-20 animate-ping"></div>
+                    <div className="absolute -inset-6 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full opacity-10 animate-pulse"></div>
                   </div>
                 </div>
                 
@@ -192,11 +193,22 @@ export function LessonViewer({
                   <Button 
                     variant="secondary" 
                     size="sm" 
-                    className="bg-white/70 hover:bg-white/90 shadow-md"
-                    onClick={() => toast({
-                      title: "🎬 Animation lancée",
-                      description: "Simulation interactive démarrée avec succès",
-                    })}
+                    className="bg-white/70 hover:bg-white/90 shadow-md animate-pulse-glow"
+                    onClick={() => {
+                      console.log("Animation lancée");
+                      toast({
+                        title: "🎬 Animation lancée",
+                        description: "Simulation interactive démarrée avec succès",
+                      });
+                      // Simuler démarrage animation
+                      const element = document.querySelector('.animate-float');
+                      if (element) {
+                        element.classList.add('animate-rotate-slow');
+                        setTimeout(() => {
+                          element.classList.remove('animate-rotate-slow');
+                        }, 3000);
+                      }
+                    }}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Lancer
@@ -205,10 +217,16 @@ export function LessonViewer({
                     variant="outline" 
                     size="sm"
                     className="bg-white/50 hover:bg-white/80"
-                    onClick={() => toast({
-                      title: "⏸️ Animation en pause",
-                      description: "Vous pouvez reprendre à tout moment",
-                    })}
+                    onClick={() => {
+                      console.log("Animation en pause");
+                      toast({
+                        title: "⏸️ Animation en pause",
+                        description: "Vous pouvez reprendre à tout moment",
+                      });
+                      // Pause les animations
+                      const elements = document.querySelectorAll('.animate-bounce, .animate-pulse, .animate-float');
+                      elements.forEach(el => el.style.animationPlayState = 'paused');
+                    }}
                   >
                     ⏸️ Pause
                   </Button>
@@ -216,10 +234,19 @@ export function LessonViewer({
                     variant="outline" 
                     size="sm"
                     className="bg-white/50 hover:bg-white/80"
-                    onClick={() => toast({
-                      title: "🔄 Animation redémarrée",
-                      description: "Simulation relancée depuis le début",
-                    })}
+                    onClick={() => {
+                      console.log("Animation redémarrée");
+                      toast({
+                        title: "🔄 Animation redémarrée",
+                        description: "Simulation relancée depuis le début",
+                      });
+                      // Redémarre les animations
+                      const elements = document.querySelectorAll('.animate-bounce, .animate-pulse, .animate-float');
+                      elements.forEach(el => {
+                        el.style.animationPlayState = 'running';
+                        el.classList.add('animate-slide-in');
+                      });
+                    }}
                   >
                     🔄 Recommencer
                   </Button>
@@ -276,21 +303,36 @@ export function LessonViewer({
                 <div className="flex justify-center space-x-3">
                   <Button 
                     variant="default" 
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={() => toast({
-                      title: "🎯 Exercice démarré",
-                      description: "Simulation interactive lancée avec succès",
-                    })}
+                    className="bg-green-600 hover:bg-green-700 animate-pulse-glow"
+                    onClick={() => {
+                      console.log("Exercice interactif démarré");
+                      toast({
+                        title: "🎯 Exercice démarré",
+                        description: "Simulation interactive lancée avec succès",
+                      });
+                      // Simuler lancement exercice
+                      const container = document.querySelector('.bg-gradient-to-r.from-green-50');
+                      if (container) {
+                        container.classList.add('animate-slide-in');
+                        container.style.border = '2px solid #22c55e';
+                        setTimeout(() => {
+                          container.style.border = '';
+                        }, 2000);
+                      }
+                    }}
                   >
                     <Play className="w-4 h-4 mr-2" />
                     Lancer la simulation
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => toast({
-                      title: "📚 Aide disponible",
-                      description: "Consultez les conseils pratiques ci-dessus",
-                    })}
+                    onClick={() => {
+                      console.log("Aide affichée");
+                      toast({
+                        title: "📚 Aide disponible",
+                        description: "Consultez les conseils pratiques ci-dessus",
+                      });
+                    }}
                   >
                     💡 Aide
                   </Button>
