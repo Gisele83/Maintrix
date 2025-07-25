@@ -2,7 +2,7 @@
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
-import { users } from '@shared/schema';
+// import { users } from '@shared/schema'; // Removed unused import
 import { z } from 'zod';
 
 // Configuration des headers de sécurité
@@ -133,7 +133,7 @@ class SecurityLogger {
   static log(entry: Partial<SecurityLogEntry>, req: Request, success: boolean = true) {
     const logEntry: SecurityLogEntry = {
       timestamp: new Date(),
-      userId: (req.user as any)?.id || 'anonymous',
+      userId: (req as any).user?.id || 'anonymous',
       action: entry.action || 'unknown',
       resource: entry.resource || req.path,
       ip: this.getClientIP(req),
@@ -255,7 +255,7 @@ export const anomalyDetection = (req: Request, res: Response, next: NextFunction
 // Middleware de validation d'accès par rôle
 export const requireRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
+    if (!(req as any).user) {
       SecurityLogger.log({
         action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
         riskLevel: 'MEDIUM'
@@ -264,7 +264,7 @@ export const requireRole = (roles: string[]) => {
       return res.status(401).json({ error: 'Authentification requise' });
     }
     
-    const userRole = (req.user as any)?.role || 'user';
+    const userRole = (req as any).user?.role || 'user';
     if (!roles.includes(userRole)) {
       SecurityLogger.log({
         action: 'INSUFFICIENT_PRIVILEGES',
@@ -287,7 +287,7 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
   }
   
   const token = req.headers['x-csrf-token'] || req.body._csrf;
-  const sessionToken = req.session?.csrfToken;
+  const sessionToken = (req as any).session?.csrfToken;
   
   if (!token || !sessionToken || token !== sessionToken) {
     SecurityLogger.log({

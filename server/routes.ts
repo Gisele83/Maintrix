@@ -520,7 +520,20 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 function jsonErrorHandler(err: any, req: any, res: any, next: any) {
   if (err instanceof SyntaxError && 'body' in err) {
     console.error('JSON Parse Error:', err.message);
-    console.error('Request body preview:', String(req.body || '').substring(0, 100));
+    
+    // Mieux traiter le preview du body pour éviter [object Object]
+    let bodyPreview = 'empty';
+    try {
+      if (req.rawBody) {
+        bodyPreview = req.rawBody.toString().substring(0, 100);
+      } else if (req.body) {
+        bodyPreview = typeof req.body === 'string' ? req.body.substring(0, 100) : JSON.stringify(req.body).substring(0, 100);
+      }
+    } catch (e) {
+      bodyPreview = 'unparseable';
+    }
+    
+    console.error('Request body preview:', bodyPreview);
     return res.status(400).json({ 
       message: 'Format JSON invalide dans la requête',
       error: 'Invalid JSON format'
