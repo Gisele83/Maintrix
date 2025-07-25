@@ -308,10 +308,13 @@ export { SecurityLogger };
 export const commonSchemas = {
   diagnosticInput: z.object({
     equipmentType: z.string().min(1).max(50),
-    symptoms: z.array(z.string().max(500)).max(20),
+    symptoms: z.union([z.string().max(2000), z.array(z.string().max(500)).max(20)]),
+    symptomsChecked: z.array(z.string().max(500)).max(20).optional(),
     zone: z.string().max(100).optional(),
     urgency: z.enum(['low', 'medium', 'high', 'critical']),
-    description: z.string().max(2000).optional()
+    description: z.string().max(2000).optional(),
+    equipmentId: z.string().max(50).optional(),
+    sector: z.string().max(100).optional()
   }),
   
   userInput: z.object({

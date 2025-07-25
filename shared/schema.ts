@@ -118,6 +118,16 @@ export const insertDiagnosticSessionSchema = createInsertSchema(diagnosticSessio
   id: true,
   createdAt: true,
   status: true,
+}).extend({
+  // Allow symptoms to be either string or array - convert array to string in API
+  symptoms: z.union([z.string(), z.array(z.string())]).transform((val) => {
+    if (Array.isArray(val)) {
+      return val.join(", ");
+    }
+    return val;
+  }),
+  // Make symptomsChecked optional since it can be derived from symptoms
+  symptomsChecked: z.array(z.string()).optional(),
 });
 
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
