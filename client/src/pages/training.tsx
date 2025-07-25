@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import { 
   GraduationCap, 
   Play, 
@@ -56,6 +57,32 @@ export default function Training() {
     certificates: 2,
     streak: 7
   });
+  const { toast } = useToast();
+
+  // Gestionnaires d'événements pour les modules de formation
+  const handleStartModule = (moduleId: string, title: string) => {
+    toast({
+      title: "Module démarré",
+      description: `Début du module: ${title}`,
+    });
+    console.log(`Starting training module: ${moduleId}`);
+  };
+
+  const handleContinueModule = (moduleId: string, title: string) => {
+    toast({
+      title: "Module repris",
+      description: `Reprise du module: ${title}`,
+    });
+    console.log(`Continuing training module: ${moduleId}`);
+  };
+
+  const handleStartCertification = (certType: string) => {
+    toast({
+      title: "Certification commencée",
+      description: `Début du parcours de certification: ${certType}`,
+    });
+    console.log(`Starting certification: ${certType}`);
+  };
 
   const trainingModules: TrainingModule[] = [
     {
@@ -491,7 +518,17 @@ export default function Training() {
                       </div>
                     </div>
 
-                    <Button className="w-full mt-4" variant={module.completed ? "outline" : "default"}>
+                    <Button 
+                      className="w-full mt-4" 
+                      variant={module.completed ? "outline" : "default"}
+                      onClick={() => {
+                        if (module.completed || module.progress > 0) {
+                          handleContinueModule(module.id, module.title);
+                        } else {
+                          handleStartModule(module.id, module.title);
+                        }
+                      }}
+                    >
                       {module.completed ? (
                         <>
                           <CheckCircle className="w-4 h-4 mr-2" />
@@ -532,7 +569,14 @@ export default function Training() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Maîtrise des fonctionnalités de diagnostic et maintenance
                 </p>
-                <Badge variant="secondary">6h de formation</Badge>
+                <Badge variant="secondary" className="mb-3">6h de formation</Badge>
+                <Button 
+                  className="w-full mt-2" 
+                  size="sm"
+                  onClick={() => handleStartCertification("Technicien Certifié")}
+                >
+                  Commencer
+                </Button>
               </div>
               <div className="text-center p-4 bg-white dark:bg-yellow-900 rounded-lg">
                 <Award className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
@@ -540,7 +584,14 @@ export default function Training() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Spécialisation en intelligence artificielle et analyse
                 </p>
-                <Badge variant="secondary">8h de formation</Badge>
+                <Badge variant="secondary" className="mb-3">8h de formation</Badge>
+                <Button 
+                  className="w-full mt-2" 
+                  size="sm"
+                  onClick={() => handleStartCertification("Expert IA")}
+                >
+                  Commencer
+                </Button>
               </div>
               <div className="text-center p-4 bg-white dark:bg-yellow-900 rounded-lg">
                 <Award className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
@@ -548,7 +599,14 @@ export default function Training() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Administration système et gestion avancée
                 </p>
-                <Badge variant="secondary">10h de formation</Badge>
+                <Badge variant="secondary" className="mb-3">10h de formation</Badge>
+                <Button 
+                  className="w-full mt-2" 
+                  size="sm"
+                  onClick={() => handleStartCertification("Administrateur")}
+                >
+                  Commencer
+                </Button>
               </div>
             </div>
           </CardContent>
