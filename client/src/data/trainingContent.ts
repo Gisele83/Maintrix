@@ -438,6 +438,213 @@ const equipment = await createEquipment({
         }
       ]
     }
+  },
+  {
+    id: "iot-monitoring",
+    title: "Monitoring IoT Temps Réel",
+    description: "Surveillance avancée avec capteurs IoT, alertes automatiques et maintenance prédictive",
+    totalDuration: "45 min",
+    prerequisites: ["Module Introduction terminé"],
+    outcomes: [
+      "Configurer les capteurs IoT intelligents",
+      "Interpréter les données temps réel",
+      "Configurer les alertes automatiques",
+      "Utiliser la maintenance prédictive"
+    ],
+    lessons: [
+      {
+        id: "lesson-1",
+        title: "Configuration capteurs IoT",
+        duration: "20 min",
+        content: {
+          introduction: "Le système IoT de Smart GMAO DiagFix collecte des données temps réel pour optimiser la maintenance et prévenir les pannes.",
+          objectives: [
+            "Configurer les capteurs IoT",
+            "Comprendre les seuils d'alerte",
+            "Interpréter les données temps réel"
+          ],
+          steps: [
+            {
+              title: "Installation capteurs intelligents",
+              description: "Configuration des capteurs de température, vibration, pression et courant avec auto-calibration.",
+              animation: "📡 Animation : Installation et configuration capteurs IoT",
+              tips: [
+                "Auto-détection des capteurs compatibles",
+                "Calibration automatique selon équipement",
+                "Monitoring temps réel intégré"
+              ]
+            }
+          ],
+          exercises: [
+            {
+              title: "Simulation : Configuration capteur",
+              description: "Configurez un capteur de vibration",
+              type: "simulation"
+            }
+          ],
+          resources: [
+            "Guide installation capteurs IoT",
+            "Spécifications techniques capteurs",
+            "Procédures de calibration"
+          ]
+        }
+      }
+    ],
+    finalAssessment: {
+      title: "Évaluation IoT Monitoring",
+      description: "Testez vos connaissances en monitoring IoT",
+      questions: [
+        {
+          question: "Quels types de capteurs sont intégrés dans Smart GMAO DiagFix ?",
+          answers: [
+            "Température, vibration, pression, courant",
+            "Température uniquement",
+            "Vibration uniquement",
+            "Capteurs visuels"
+          ],
+          correct: 0,
+          explanation: "Smart GMAO DiagFix intègre une gamme complète de capteurs pour un monitoring optimal."
+        }
+      ]
+    }
+  },
+  {
+    id: "security-advanced",
+    title: "Sécurité et Accès Avancés",
+    description: "Gestion des accès, sécurité des données et audit complet",
+    totalDuration: "40 min",
+    prerequisites: ["Module Introduction terminé"],
+    outcomes: [
+      "Configurer les rôles et permissions",
+      "Gérer la sécurité des données",
+      "Utiliser le système d'audit",
+      "Configurer l'authentification multi-niveaux"
+    ],
+    lessons: [
+      {
+        id: "lesson-1",
+        title: "Gestion des accès multi-niveaux",
+        duration: "20 min",
+        content: {
+          introduction: "Smart GMAO DiagFix offre un système de sécurité avancé avec authentification multi-niveaux et audit complet.",
+          objectives: [
+            "Configurer les rôles utilisateurs",
+            "Gérer les permissions par module",
+            "Utiliser le système d'audit"
+          ],
+          steps: [
+            {
+              title: "Configuration des rôles",
+              description: "Système hiérarchique avec rôles personnalisables selon les besoins organisationnels.",
+              animation: "🔐 Animation : Configuration système de rôles",
+              tips: [
+                "Rôles prédéfinis : Technicien, Superviseur, Gestionnaire",
+                "Permissions granulaires par fonction",
+                "Audit automatique de toutes les actions"
+              ]
+            }
+          ],
+          exercises: [
+            {
+              title: "Pratique : Création profil utilisateur",
+              description: "Créez un profil technicien avec permissions spécifiques",
+              type: "practical"
+            }
+          ],
+          resources: [
+            "Guide sécurité et accès",
+            "Matrice des permissions",
+            "Procédures d'audit"
+          ]
+        }
+      }
+    ],
+    finalAssessment: {
+      title: "Certification Sécurité",
+      description: "Évaluation des compétences sécurité",
+      questions: [
+        {
+          question: "Quels sont les niveaux d'accès disponibles dans Smart GMAO DiagFix ?",
+          answers: [
+            "Technicien, Superviseur, Gestionnaire avec permissions granulaires",
+            "Utilisateur et Administrateur uniquement",
+            "Accès libre pour tous",
+            "Un seul niveau d'accès"
+          ],
+          correct: 0,
+          explanation: "Le système offre une hiérarchie flexible avec permissions détaillées par fonction."
+        }
+      ]
+    }
+  },
+  {
+    id: "gamification-skills",
+    title: "Gamification et Développement des Compétences",
+    description: "Système de gamification pour motivation et développement des compétences techniques",
+    totalDuration: "35 min",
+    prerequisites: ["Module Introduction terminé"],
+    outcomes: [
+      "Comprendre le système de compétences",
+      "Utiliser la gamification pour la motivation",
+      "Suivre les progrès et achievements",
+      "Optimiser l'apprentissage continu"
+    ],
+    lessons: [
+      {
+        id: "lesson-1",
+        title: "Système de compétences et achievements",
+        duration: "15 min",
+        content: {
+          introduction: "Smart GMAO DiagFix intègre un système de gamification pour motiver les équipes et développer les compétences techniques.",
+          objectives: [
+            "Comprendre les niveaux de compétences",
+            "Débloquer les achievements",
+            "Suivre les progrès individuels et d'équipe"
+          ],
+          steps: [
+            {
+              title: "Système de niveaux de compétences",
+              description: "6 compétences principales avec progression mesurable et rewards motivants.",
+              animation: "🎯 Animation : Progression compétences et achievements",
+              tips: [
+                "Diagnostics précis, Maintenance préventive, Analyse IoT",
+                "Gestion équipements, Efficacité énergétique, Leadership technique",
+                "Points d'expérience et badges de reconnaissance"
+              ]
+            }
+          ],
+          exercises: [
+            {
+              title: "Challenge : Premier diagnostic",
+              description: "Complétez votre premier diagnostic pour débloquer l'achievement",
+              type: "simulation"
+            }
+          ],
+          resources: [
+            "Guide système de compétences",
+            "Liste complète des achievements",
+            "Stratégies de motivation d'équipe"
+          ]
+        }
+      }
+    ],
+    finalAssessment: {
+      title: "Évaluation Gamification",
+      description: "Testez votre compréhension du système de compétences",
+      questions: [
+        {
+          question: "Combien de compétences principales sont trackées dans Smart GMAO DiagFix ?",
+          answers: [
+            "6 compétences principales",
+            "3 compétences",
+            "10 compétences",
+            "Aucun système de compétences"
+          ],
+          correct: 0,
+          explanation: "Le système track 6 compétences clés pour un développement professionnel complet."
+        }
+      ]
+    }
   }
 ];
 
