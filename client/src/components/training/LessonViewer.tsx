@@ -39,6 +39,8 @@ export function LessonViewer({
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [showExercises, setShowExercises] = useState(false);
   const [exerciseAnswers, setExerciseAnswers] = useState<Record<string, number>>({});
+  const [animationState, setAnimationState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
+  const [simulationRunning, setSimulationRunning] = useState(false);
   const { toast } = useToast();
 
   const handleStepComplete = (stepIndex: number) => {
@@ -174,18 +176,69 @@ export function LessonViewer({
                   </p>
                 </div>
                 
-                {/* Simulation visuelle avec animations améliorées */}
+                {/* Simulation visuelle avec animations dynamiques contrôlables */}
                 <div className="flex justify-center items-center mb-6">
-                  <div className="relative animate-float">
+                  <div className={`relative transition-all duration-300 ${animationState === 'playing' ? 'animate-float' : ''}`}>
                     <div className="flex space-x-4">
-                      <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-6 h-6 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '200ms' }}></div>
-                      <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '400ms' }}></div>
-                      <div className="w-6 h-6 bg-gradient-to-r from-pink-400 to-pink-600 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '600ms' }}></div>
+                      <div 
+                        className={`w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full shadow-lg transition-all duration-300 ${
+                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
+                        }`} 
+                        style={{ 
+                          animationDelay: '0ms',
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                      <div 
+                        className={`w-8 h-8 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full shadow-lg transition-all duration-300 ${
+                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
+                        }`} 
+                        style={{ 
+                          animationDelay: '200ms',
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                      <div 
+                        className={`w-8 h-8 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full shadow-lg transition-all duration-300 ${
+                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
+                        }`} 
+                        style={{ 
+                          animationDelay: '400ms',
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                      <div 
+                        className={`w-8 h-8 bg-gradient-to-r from-pink-400 to-pink-600 rounded-full shadow-lg transition-all duration-300 ${
+                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
+                        }`} 
+                        style={{ 
+                          animationDelay: '600ms',
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
                     </div>
-                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full opacity-20 animate-ping"></div>
-                    <div className="absolute -inset-6 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full opacity-10 animate-pulse"></div>
+                    {animationState === 'playing' && (
+                      <>
+                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full opacity-20 animate-ping"></div>
+                        <div className="absolute -inset-6 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full opacity-10 animate-pulse"></div>
+                      </>
+                    )}
                   </div>
+                </div>
+                
+                {/* Indicateur d'état d'animation */}
+                <div className="text-center mb-4">
+                  <Badge 
+                    variant="outline" 
+                    className={`${
+                      animationState === 'playing' ? 'border-green-500 text-green-700 bg-green-50' : 
+                      animationState === 'paused' ? 'border-yellow-500 text-yellow-700 bg-yellow-50' :
+                      'border-gray-500 text-gray-700 bg-gray-50'
+                    }`}
+                  >
+                    {animationState === 'playing' ? '▶️ En cours' : 
+                     animationState === 'paused' ? '⏸️ En pause' : '⏹️ Arrêtée'}
+                  </Badge>
                 </div>
                 
                 {/* Contrôles interactifs */}
@@ -193,58 +246,59 @@ export function LessonViewer({
                   <Button 
                     variant="secondary" 
                     size="sm" 
-                    className="bg-white/70 hover:bg-white/90 shadow-md animate-pulse-glow"
+                    className={`bg-white/70 hover:bg-white/90 shadow-md transition-all ${
+                      animationState === 'stopped' ? 'animate-pulse-glow' : ''
+                    }`}
                     onClick={() => {
-                      console.log("Animation lancée");
+                      console.log("Animation lancée - État précédent:", animationState);
+                      setAnimationState('playing');
                       toast({
                         title: "🎬 Animation lancée",
                         description: "Simulation interactive démarrée avec succès",
                       });
-                      // Simuler démarrage animation
-                      const element = document.querySelector('.animate-float');
-                      if (element) {
-                        element.classList.add('animate-rotate-slow');
-                        setTimeout(() => {
-                          element.classList.remove('animate-rotate-slow');
-                        }, 3000);
-                      }
                     }}
+                    disabled={animationState === 'playing'}
                   >
                     <Play className="w-4 h-4 mr-2" />
-                    Lancer
+                    {animationState === 'playing' ? 'En cours...' : 'Lancer'}
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
                     className="bg-white/50 hover:bg-white/80"
                     onClick={() => {
-                      console.log("Animation en pause");
-                      toast({
-                        title: "⏸️ Animation en pause",
-                        description: "Vous pouvez reprendre à tout moment",
-                      });
-                      // Pause les animations
-                      const elements = document.querySelectorAll('.animate-bounce, .animate-pulse, .animate-float');
-                      elements.forEach(el => el.style.animationPlayState = 'paused');
+                      console.log("Animation pause/reprise - État précédent:", animationState);
+                      if (animationState === 'playing') {
+                        setAnimationState('paused');
+                        toast({
+                          title: "⏸️ Animation en pause",
+                          description: "Vous pouvez reprendre à tout moment",
+                        });
+                      } else if (animationState === 'paused') {
+                        setAnimationState('playing');
+                        toast({
+                          title: "▶️ Animation reprise",
+                          description: "Simulation relancée",
+                        });
+                      }
                     }}
+                    disabled={animationState === 'stopped'}
                   >
-                    ⏸️ Pause
+                    {animationState === 'playing' ? '⏸️ Pause' : '▶️ Reprendre'}
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
                     className="bg-white/50 hover:bg-white/80"
                     onClick={() => {
-                      console.log("Animation redémarrée");
+                      console.log("Animation redémarrée - État précédent:", animationState);
+                      setAnimationState('stopped');
+                      setTimeout(() => {
+                        setAnimationState('playing');
+                      }, 100);
                       toast({
                         title: "🔄 Animation redémarrée",
                         description: "Simulation relancée depuis le début",
-                      });
-                      // Redémarre les animations
-                      const elements = document.querySelectorAll('.animate-bounce, .animate-pulse, .animate-float');
-                      elements.forEach(el => {
-                        el.style.animationPlayState = 'running';
-                        el.classList.add('animate-slide-in');
                       });
                     }}
                   >
@@ -285,11 +339,15 @@ export function LessonViewer({
               </div>
             )}
 
-            {/* Interactive Element Enhanced */}
+            {/* Interactive Element Enhanced avec simulation réelle */}
             {currentStepData.interactive && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-6 rounded-xl border border-green-200 dark:border-green-800">
+              <div className={`bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-6 rounded-xl border-2 transition-all duration-300 ${
+                simulationRunning ? 'border-green-500 bg-green-100' : 'border-green-200 dark:border-green-800'
+              }`}>
                 <div className="text-center mb-4">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full mb-3 animate-bounce">
+                  <div className={`inline-flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full mb-3 transition-all ${
+                    simulationRunning ? 'animate-bounce scale-110' : 'animate-pulse'
+                  }`}>
                     <Lightbulb className="w-8 h-8" />
                   </div>
                   <div className="font-bold text-green-800 dark:text-green-200 text-lg mb-2">
@@ -298,36 +356,65 @@ export function LessonViewer({
                   <p className="text-green-700 dark:text-green-300">
                     Cette section comprend des éléments interactifs pour pratiquer les concepts.
                   </p>
+                  
+                  {/* Indicateur de simulation */}
+                  <div className="mt-3">
+                    <Badge 
+                      variant="outline" 
+                      className={`${
+                        simulationRunning ? 'border-green-500 text-green-700 bg-green-50 animate-pulse' : 
+                        'border-gray-500 text-gray-700 bg-gray-50'
+                      }`}
+                    >
+                      {simulationRunning ? '🔄 Simulation en cours' : '⏹️ Simulation arrêtée'}
+                    </Badge>
+                  </div>
                 </div>
+                
+                {/* Zone de simulation interactive */}
+                {simulationRunning && (
+                  <div className="bg-white/50 p-4 rounded-lg mb-4 border border-green-300">
+                    <div className="flex justify-center items-center space-x-2 mb-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-ping" style={{animationDelay: '0.5s'}}></div>
+                      <div className="w-3 h-3 bg-purple-500 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                    </div>
+                    <p className="text-center text-sm text-green-700 font-medium">
+                      ✨ Exercice interactif en cours d'exécution...
+                    </p>
+                  </div>
+                )}
                 
                 <div className="flex justify-center space-x-3">
                   <Button 
                     variant="default" 
-                    className="bg-green-600 hover:bg-green-700 animate-pulse-glow"
+                    className={`bg-green-600 hover:bg-green-700 transition-all ${
+                      !simulationRunning ? 'animate-pulse-glow' : 'scale-105'
+                    }`}
                     onClick={() => {
-                      console.log("Exercice interactif démarré");
+                      console.log("Exercice interactif démarré/arrêté - État précédent:", simulationRunning);
+                      setSimulationRunning(!simulationRunning);
                       toast({
-                        title: "🎯 Exercice démarré",
-                        description: "Simulation interactive lancée avec succès",
+                        title: simulationRunning ? "⏹️ Exercice arrêté" : "🎯 Exercice démarré",
+                        description: simulationRunning ? "Simulation terminée" : "Simulation interactive lancée avec succès",
                       });
-                      // Simuler lancement exercice
-                      const container = document.querySelector('.bg-gradient-to-r.from-green-50');
-                      if (container) {
-                        container.classList.add('animate-slide-in');
-                        container.style.border = '2px solid #22c55e';
-                        setTimeout(() => {
-                          container.style.border = '';
-                        }, 2000);
-                      }
                     }}
                   >
-                    <Play className="w-4 h-4 mr-2" />
-                    Lancer la simulation
+                    {simulationRunning ? (
+                      <>
+                        ⏹ Arrêter la simulation
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Lancer la simulation
+                      </>
+                    )}
                   </Button>
                   <Button 
                     variant="outline"
                     onClick={() => {
-                      console.log("Aide affichée");
+                      console.log("Aide affichée pour exercice interactif");
                       toast({
                         title: "📚 Aide disponible",
                         description: "Consultez les conseils pratiques ci-dessus",
