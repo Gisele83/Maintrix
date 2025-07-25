@@ -176,53 +176,139 @@ export function LessonViewer({
                   </p>
                 </div>
                 
-                {/* Simulation visuelle avec animations dynamiques contrôlables */}
-                <div className="flex justify-center items-center mb-6">
-                  <div className={`relative transition-all duration-300 ${animationState === 'playing' ? 'animate-float' : ''}`}>
-                    <div className="flex space-x-4">
+                {/* Simulation industrielle avancée avec équipements réels */}
+                <div className="mb-6">
+                  <div className="machinery-simulation">
+                    {/* Engrenages rotatifs */}
+                    <div 
+                      className={`machinery-gear ${animationState === 'playing' ? 'rotating' : ''}`}
+                      style={{ 
+                        width: '60px', 
+                        height: '60px', 
+                        top: '50px', 
+                        left: '50px',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+                    <div 
+                      className={`machinery-gear ${animationState === 'playing' ? 'rotating' : ''}`}
+                      style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        top: '70px', 
+                        left: '130px',
+                        animationDirection: 'reverse',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+
+                    {/* Manomètre de pression */}
+                    <div className="pressure-gauge" style={{ top: '180px', left: '80px' }}>
                       <div 
-                        className={`w-8 h-8 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full shadow-lg transition-all duration-300 ${
-                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
-                        }`} 
+                        className={`pressure-indicator ${animationState === 'playing' ? 'active' : ''}`}
                         style={{ 
-                          animationDelay: '0ms',
-                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
-                        }}
-                      ></div>
-                      <div 
-                        className={`w-8 h-8 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full shadow-lg transition-all duration-300 ${
-                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
-                        }`} 
-                        style={{ 
-                          animationDelay: '200ms',
-                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
-                        }}
-                      ></div>
-                      <div 
-                        className={`w-8 h-8 bg-gradient-to-r from-purple-400 to-purple-600 rounded-full shadow-lg transition-all duration-300 ${
-                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
-                        }`} 
-                        style={{ 
-                          animationDelay: '400ms',
-                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
-                        }}
-                      ></div>
-                      <div 
-                        className={`w-8 h-8 bg-gradient-to-r from-pink-400 to-pink-600 rounded-full shadow-lg transition-all duration-300 ${
-                          animationState === 'playing' ? 'animate-bounce scale-110' : animationState === 'paused' ? 'scale-105' : 'scale-100'
-                        }`} 
-                        style={{ 
-                          animationDelay: '600ms',
                           animationPlayState: animationState === 'paused' ? 'paused' : 'running'
                         }}
                       ></div>
                     </div>
+
+                    {/* Canalisations avec flux */}
+                    <div className="fluid-pipe" style={{ top: '150px', left: '20px', width: '200px' }}>
+                      <div 
+                        className={`fluid-flow ${animationState === 'playing' ? 'active' : ''}`}
+                        style={{ 
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                    </div>
+                    <div className="fluid-pipe" style={{ top: '220px', left: '150px', width: '120px' }}>
+                      <div 
+                        className={`fluid-flow ${animationState === 'playing' ? 'active' : ''}`}
+                        style={{ 
+                          animationDelay: '1s',
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                    </div>
+
+                    {/* Thermomètre */}
+                    <div className="temperature-gauge" style={{ top: '40px', right: '60px' }}>
+                      <div 
+                        className={`temperature-mercury ${animationState === 'playing' ? 'rising' : ''}`}
+                        style={{ 
+                          height: animationState === 'stopped' ? '20%' : undefined,
+                          animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                        }}
+                      ></div>
+                    </div>
+
+                    {/* Capteurs de vibration */}
+                    <div 
+                      className={`vibration-sensor ${animationState === 'playing' ? 'shaking' : ''}`}
+                      style={{ 
+                        top: '120px', 
+                        left: '180px',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+                    <div 
+                      className={`vibration-sensor ${animationState === 'playing' ? 'shaking' : ''}`}
+                      style={{ 
+                        top: '60px', 
+                        left: '220px',
+                        animationDelay: '0.1s',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+
+                    {/* Robot de maintenance */}
+                    <div 
+                      className={`maintenance-robot ${animationState === 'playing' ? 'moving' : ''}`}
+                      style={{ 
+                        bottom: '20px', 
+                        left: '20px',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+
+                    {/* Indicateurs d'alerte */}
+                    <div 
+                      className={`alert-indicator ${animationState === 'playing' ? 'critical' : ''}`}
+                      style={{ 
+                        top: '20px', 
+                        left: '20px',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+                    <div 
+                      className={`alert-indicator ${animationState === 'playing' ? 'critical' : ''}`}
+                      style={{ 
+                        top: '20px', 
+                        left: '40px',
+                        animationDelay: '0.5s',
+                        animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                      }}
+                    ></div>
+
+                    {/* Overlay de diagnostic */}
                     {animationState === 'playing' && (
-                      <>
-                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full opacity-20 animate-ping"></div>
-                        <div className="absolute -inset-6 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full opacity-10 animate-pulse"></div>
-                      </>
+                      <div className="diagnostic-overlay">
+                        <div 
+                          className="diagnostic-line scanning"
+                          style={{ 
+                            animationPlayState: animationState === 'paused' ? 'paused' : 'running'
+                          }}
+                        ></div>
+                      </div>
                     )}
+
+                    {/* Panneau de statut */}
+                    <div className="status-panel">
+                      <div>STATUS: {animationState === 'playing' ? 'RUNNING' : animationState === 'paused' ? 'PAUSED' : 'STOPPED'}</div>
+                      <div>TEMP: {animationState === 'playing' ? '85°C' : '25°C'}</div>
+                      <div>PRESS: {animationState === 'playing' ? '4.2 bar' : '0.0 bar'}</div>
+                      <div>VIBR: {animationState === 'playing' ? '5.1 mm/s' : '0.0 mm/s'}</div>
+                    </div>
                   </div>
                 </div>
                 

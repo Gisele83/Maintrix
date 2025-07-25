@@ -2,53 +2,261 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Animations personnalisées pour la formation */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+/* Animations personnalisées pour la formation - Système avancé */
+@keyframes machinery-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes pulse-glow {
+@keyframes pressure-pulse {
   0%, 100% { 
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
     transform: scale(1);
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
   }
   50% { 
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
-    transform: scale(1.05);
+    transform: scale(1.2);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
   }
 }
 
-@keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes fluid-flow {
+  0% { transform: translateX(-100px) scaleX(0); opacity: 0; }
+  20% { transform: translateX(-50px) scaleX(0.5); opacity: 0.7; }
+  50% { transform: translateX(0px) scaleX(1); opacity: 1; }
+  80% { transform: translateX(50px) scaleX(0.8); opacity: 0.8; }
+  100% { transform: translateX(100px) scaleX(0); opacity: 0; }
 }
 
-@keyframes slide-in {
-  from { 
-    opacity: 0; 
-    transform: translateX(-20px); 
+@keyframes temperature-rise {
+  0% { 
+    height: 20%;
+    background: linear-gradient(to top, #10b981, #059669);
   }
-  to { 
-    opacity: 1; 
-    transform: translateX(0); 
+  25% { 
+    height: 40%;
+    background: linear-gradient(to top, #f59e0b, #d97706);
+  }
+  50% { 
+    height: 60%;
+    background: linear-gradient(to top, #ef4444, #dc2626);
+  }
+  75% { 
+    height: 80%;
+    background: linear-gradient(to top, #dc2626, #991b1b);
+  }
+  100% { 
+    height: 90%;
+    background: linear-gradient(to top, #991b1b, #7f1d1d);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.8);
   }
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes vibration-shake {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  10% { transform: translateX(-2px) translateY(-1px); }
+  20% { transform: translateX(2px) translateY(1px); }
+  30% { transform: translateX(-3px) translateY(-2px); }
+  40% { transform: translateX(3px) translateY(2px); }
+  50% { transform: translateX(-2px) translateY(-3px); }
+  60% { transform: translateX(2px) translateY(3px); }
+  70% { transform: translateX(-1px) translateY(-2px); }
+  80% { transform: translateX(1px) translateY(2px); }
+  90% { transform: translateX(-1px) translateY(-1px); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+@keyframes diagnostic-scan {
+  0% { 
+    width: 2px;
+    left: 0%;
+    box-shadow: 0 0 10px #00ff00;
+  }
+  50% { 
+    width: 4px;
+    box-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00;
+  }
+  100% { 
+    width: 2px;
+    left: 100%;
+    box-shadow: 0 0 10px #00ff00;
+  }
 }
 
-.animate-rotate-slow {
-  animation: rotate-slow 4s linear infinite;
+@keyframes alert-blink {
+  0%, 50% { 
+    background: #ef4444;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+  }
+  25%, 75% { 
+    background: #dc2626;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 1);
+  }
 }
 
-.animate-slide-in {
-  animation: slide-in 0.5s ease-out;
+.machinery-simulation {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.machinery-gear {
+  position: absolute;
+  border: 4px solid #475569;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+.machinery-gear.rotating {
+  animation: machinery-rotate 3s linear infinite;
+}
+
+.pressure-gauge {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 4px solid #374151;
+  background: linear-gradient(135deg, #f3f4f6, #d1d5db);
+}
+
+.pressure-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 25px;
+  background: #1f2937;
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%);
+}
+
+.pressure-indicator.active {
+  animation: pressure-pulse 2s ease-in-out infinite;
+}
+
+.fluid-pipe {
+  position: absolute;
+  height: 8px;
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+.fluid-flow {
+  position: absolute;
+  height: 100%;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  border-radius: 4px;
+}
+
+.fluid-flow.active {
+  animation: fluid-flow 2s linear infinite;
+}
+
+.temperature-gauge {
+  position: absolute;
+  width: 20px;
+  height: 80px;
+  background: #e5e7eb;
+  border: 2px solid #374151;
+  border-radius: 10px;
+}
+
+.temperature-mercury {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.temperature-mercury.rising {
+  animation: temperature-rise 4s ease-in-out infinite;
+}
+
+.vibration-sensor {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-radius: 6px;
+  border: 2px solid #047857;
+}
+
+.vibration-sensor.shaking {
+  animation: vibration-shake 0.3s ease-in-out infinite;
+}
+
+.diagnostic-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 0, 0.1) 50%, transparent 100%);
+}
+
+.diagnostic-line {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: #00ff00;
+}
+
+.diagnostic-line.scanning {
+  animation: diagnostic-scan 3s linear infinite;
+}
+
+.alert-indicator {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.alert-indicator.critical {
+  animation: alert-blink 1s ease-in-out infinite;
+}
+
+.status-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.maintenance-robot {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 8px;
+  border: 2px solid #b45309;
+}
+
+.maintenance-robot.moving {
+  animation: maintenance-move 8s ease-in-out infinite;
+}
+
+@keyframes maintenance-move {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  25% { transform: translateX(100px) translateY(-20px); }
+  50% { transform: translateX(200px) translateY(0); }
+  75% { transform: translateX(100px) translateY(20px); }
 }
 
 :root {
