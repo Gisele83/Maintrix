@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { 
   BookOpen, 
   Video, 
@@ -21,7 +22,8 @@ import {
   Brain,
   Upload,
   BarChart,
-  Factory
+  Factory,
+  ExternalLink
 } from "lucide-react";
 import { Header } from "@/components/header";
 
@@ -55,6 +57,35 @@ export default function Documentation() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Gestionnaires d'événements pour les boutons
+  const handleOpenGuide = (guideId: string, title: string) => {
+    toast({
+      title: "Guide ouvert",
+      description: `Ouverture du guide: ${title}`,
+    });
+    // Ici, on pourrait ouvrir un modal ou naviguer vers une page détaillée
+    console.log(`Opening guide: ${guideId}`);
+  };
+
+  const handleWatchVideo = (videoId: string, title: string) => {
+    toast({
+      title: "Lecture vidéo",
+      description: `Lancement de la vidéo: ${title}`,
+    });
+    // Ici, on pourrait ouvrir un lecteur vidéo ou une fenêtre popup
+    console.log(`Playing video: ${videoId}`);
+  };
+
+  const handleDownloadResource = (filename: string) => {
+    toast({
+      title: "Téléchargement démarré",
+      description: `Téléchargement de ${filename} en cours...`,
+    });
+    // Simulation du téléchargement
+    console.log(`Downloading: ${filename}`);
+  };
 
   const guides: GuideSection[] = [
     {
@@ -406,7 +437,10 @@ export default function Documentation() {
                           </div>
                         )}
                       </div>
-                      <Button className="w-full mt-4">
+                      <Button 
+                        className="w-full mt-4"
+                        onClick={() => handleOpenGuide(guide.id, guide.title)}
+                      >
                         <BookOpen className="w-4 h-4 mr-2" />
                         Lire le guide
                       </Button>
@@ -449,7 +483,10 @@ export default function Documentation() {
                       </div>
                       <h3 className="font-semibold">{video.title}</h3>
                       <p className="text-sm text-muted-foreground">{video.description}</p>
-                      <Button className="w-full">
+                      <Button 
+                        className="w-full"
+                        onClick={() => handleWatchVideo(video.id, video.title)}
+                      >
                         <Play className="w-4 h-4 mr-2" />
                         Regarder
                       </Button>
@@ -522,7 +559,11 @@ export default function Documentation() {
                         <div className="font-medium">Guide d'installation</div>
                         <div className="text-sm text-muted-foreground">PDF - 2.5 MB</div>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadResource("Guide d'installation")}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -531,7 +572,11 @@ export default function Documentation() {
                         <div className="font-medium">API Documentation</div>
                         <div className="text-sm text-muted-foreground">PDF - 1.8 MB</div>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadResource("API Documentation")}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -540,7 +585,11 @@ export default function Documentation() {
                         <div className="font-medium">Templates CSV</div>
                         <div className="text-sm text-muted-foreground">ZIP - 45 KB</div>
                       </div>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadResource("Templates CSV")}
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -557,17 +606,59 @@ export default function Documentation() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="font-medium">Webinaires mensuels</div>
-                      <div className="text-sm text-muted-foreground">Sessions live avec nos experts</div>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <div className="font-medium">Webinaires mensuels</div>
+                        <div className="text-sm text-muted-foreground">Sessions live avec nos experts</div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          toast({
+                            title: "Redirection",
+                            description: "Accès aux webinaires en cours...",
+                          });
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="font-medium">Forum communauté</div>
-                      <div className="text-sm text-muted-foreground">Échangez avec d'autres utilisateurs</div>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <div className="font-medium">Forum communauté</div>
+                        <div className="text-sm text-muted-foreground">Échangez avec d'autres utilisateurs</div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          toast({
+                            title: "Forum ouvert",
+                            description: "Redirection vers le forum communauté...",
+                          });
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="font-medium">Support technique</div>
-                      <div className="text-sm text-muted-foreground">Assistance personnalisée 24/7</div>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <div className="font-medium">Support technique</div>
+                        <div className="text-sm text-muted-foreground">Assistance personnalisée 24/7</div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          toast({
+                            title: "Support contacté",
+                            description: "Redirection vers le support technique...",
+                          });
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -587,18 +678,48 @@ export default function Documentation() {
                   Nouveau sur SMDiagFix ? Suivez ces étapes pour être opérationnel en 15 minutes :
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-white dark:bg-green-900 rounded-lg">
-                    <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
-                    <div className="font-medium">Regarder l'intro (5 min)</div>
-                  </div>
-                  <div className="text-center p-4 bg-white dark:bg-green-900 rounded-lg">
-                    <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
-                    <div className="font-medium">Premier diagnostic (5 min)</div>
-                  </div>
-                  <div className="text-center p-4 bg-white dark:bg-green-900 rounded-lg">
-                    <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
-                    <div className="font-medium">Explorer les fonctionnalités (5 min)</div>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    onClick={() => handleWatchVideo("intro-video", "Vidéo d'introduction Smart GMAO DiagFix")}
+                  >
+                    <div>
+                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
+                      <div className="font-medium">Regarder l'intro (5 min)</div>
+                    </div>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    onClick={() => {
+                      toast({
+                        title: "Diagnostic démarré",
+                        description: "Redirection vers l'interface de diagnostic...",
+                      });
+                      window.location.href = "/";
+                    }}
+                  >
+                    <div>
+                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
+                      <div className="font-medium">Premier diagnostic (5 min)</div>
+                    </div>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    onClick={() => {
+                      toast({
+                        title: "GMAO ouvert",
+                        description: "Redirection vers le tableau de bord GMAO...",
+                      });
+                      window.location.href = "/gmao-dashboard";
+                    }}
+                  >
+                    <div>
+                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
+                      <div className="font-medium">Explorer les fonctionnalités (5 min)</div>
+                    </div>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
