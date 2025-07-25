@@ -2,6 +2,18 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { TrialManager } from "./trial-management";
 import { AccessManager } from "./access-management";
+import { 
+  securityHeaders, 
+  diagnosticRateLimit, 
+  authRateLimit, 
+  generalRateLimit,
+  validateInput,
+  securityLogging,
+  anomalyDetection,
+  requireRole,
+  SecurityLogger,
+  commonSchemas
+} from "./security-middleware";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./auth-routes";
 import { 
@@ -504,7 +516,14 @@ function generatePredictiveTips(equipmentType: string, diagnosis: string): strin
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Register validation system authentication
+  
+  // Appliquer les mesures de sécurité globales
+  app.use(securityHeaders);
+  app.use(generalRateLimit);
+  app.use(anomalyDetection);
+  
+  // Register validation system authentication avec rate limiting
+  app.use('/api/auth', authRateLimit);
   registerAuthRoutes(app);
   
   // Register equipment health routes FIRST to avoid route conflicts
@@ -889,7 +908,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Access management routes for owner
-  app.post('/api/access/grant', async (req, res) => {
+  app.post('/api/access/grant', 
+    requireRole(['owner', 'admin']),
+    securityLogging('ACCESS_GRANT', 'HIGH'),
+    async (req, res) => {
     try {
       const { ownerId, granteeEmail, planType, durationDays, reason, notes } = req.body;
       
@@ -979,7 +1001,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Traditional diagnostic endpoint - analyze symptoms and return suggestions
-  app.post("/api/diagnostic", async (req, res) => {
+  app.post("/api/diagnostic", 
+    diagnosticRateLimit,
+    validateInput(commonSchemas.diagnosticInput),
+    securityLogging('DIAGNOSTIC_REQUEST', 'LOW'),
+    async (req, res) => {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
       

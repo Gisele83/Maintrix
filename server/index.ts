@@ -6,6 +6,9 @@ import { smartNotificationEngine } from './integrations/smart-notification-engin
 import { gamificationEngine } from './integrations/gamification-engine';
 
 const app = express();
+
+// Configure Express middleware et sécurité
+app.set('trust proxy', 1); // Important pour rate limiting et sécurité
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
