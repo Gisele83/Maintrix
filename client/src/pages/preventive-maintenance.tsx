@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import PreventiveMaintenanceCounters from "@/components/preventive-maintenance-counters";
 import { 
   Calendar, 
   Plus, 
@@ -29,7 +30,8 @@ import {
   PauseCircle,
   RotateCcw,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Timer
 } from "lucide-react";
 
 interface MaintenancePlan {
@@ -394,6 +396,7 @@ export default function PreventiveMaintenance() {
             <Tabs defaultValue="plans" className="w-full">
               <TabsList className="mb-6">
                 <TabsTrigger value="plans">Plans de Maintenance</TabsTrigger>
+                <TabsTrigger value="counters">Compteurs Préventifs</TabsTrigger>
                 <TabsTrigger value="calendar">Calendrier</TabsTrigger>
                 <TabsTrigger value="analytics">Analyses</TabsTrigger>
               </TabsList>
@@ -501,6 +504,10 @@ export default function PreventiveMaintenance() {
                     );
                   })}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="counters">
+                <PreventiveMaintenanceCounters />
               </TabsContent>
 
               <TabsContent value="calendar">
