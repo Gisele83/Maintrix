@@ -55,6 +55,7 @@ export default function ModernNavigation() {
       current: location === "/gmao",
       submenu: [
         { name: "Dashboard GMAO", href: "/gmao", icon: Activity },
+        { name: "Dashboard Maintenance", href: "/maintenance-dashboard", icon: BarChart3 },
         { name: "Équipements", href: "/equipment", icon: Cpu },
         { name: "Ordres de Travail", href: "/work-orders", icon: Wrench },
         { name: "Maintenance Préventive", href: "/preventive", icon: Settings },
