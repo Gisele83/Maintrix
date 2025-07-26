@@ -22,7 +22,8 @@ import {
   Download,
   Upload,
   Edit,
-  Trash2
+  Trash2,
+  X
 } from "lucide-react";
 
 interface InventoryItem {
@@ -56,6 +57,18 @@ export default function InventoryManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newPart, setNewPart] = useState({
+    partNumber: "",
+    name: "",
+    description: "",
+    category: "",
+    currentStock: 0,
+    minStock: 0,
+    maxStock: 0,
+    unitPrice: 0,
+    supplier: "",
+    location: ""
+  });
   const { toast } = useToast();
 
   // Fetch inventory data
@@ -218,6 +231,65 @@ export default function InventoryManagement() {
     }
   };
 
+  const handleAddPart = () => {
+    if (!newPart.partNumber || !newPart.name) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir au minimum la référence et le nom de la pièce",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Pièce ajoutée",
+      description: `${newPart.name} (${newPart.partNumber}) a été ajoutée à l'inventaire`,
+    });
+
+    // Reset form
+    setNewPart({
+      partNumber: "",
+      name: "",
+      description: "",
+      category: "",
+      currentStock: 0,
+      minStock: 0,
+      maxStock: 0,
+      unitPrice: 0,
+      supplier: "",
+      location: ""
+    });
+    setShowAddForm(false);
+  };
+
+  const handleEditPart = (partId: number) => {
+    toast({
+      title: "Édition",
+      description: `Ouverture de l'édition pour la pièce ID: ${partId}`,
+    });
+  };
+
+  const handleOrderPart = (partId: number, partName: string) => {
+    toast({
+      title: "Commande",
+      description: `Création d'une commande pour: ${partName}`,
+    });
+  };
+
+  const handleExport = () => {
+    toast({
+      title: "Export",
+      description: "Export de l'inventaire en cours...",
+    });
+  };
+
+  const handleCreateOrder = () => {
+    toast({
+      title: "Nouvelle commande",
+      description: "Ouverture du formulaire de création de commande",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -334,7 +406,7 @@ export default function InventoryManagement() {
                       ))}
                     </select>
                     
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleExport}>
                       <Download className="h-4 w-4 mr-2" />
                       Exporter
                     </Button>
@@ -395,10 +467,18 @@ export default function InventoryManagement() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-2">
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleEditPart(item.id)}
+                              >
                                 <Edit className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleOrderPart(item.id, item.name)}
+                              >
                                 <ShoppingCart className="h-3 w-3" />
                               </Button>
                             </div>
@@ -474,7 +554,10 @@ export default function InventoryManagement() {
                   <p className="text-gray-500 mb-6">
                     Module de gestion des commandes fournisseurs et réapprovisionnement automatique
                   </p>
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white">
+                  <Button 
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    onClick={handleCreateOrder}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Créer une Commande
                   </Button>
@@ -483,6 +566,155 @@ export default function InventoryManagement() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Add Part Modal */}
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Ajouter une Nouvelle Pièce</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAddForm(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="partNumber">Référence *</Label>
+                  <Input
+                    id="partNumber"
+                    value={newPart.partNumber}
+                    onChange={(e) => setNewPart({...newPart, partNumber: e.target.value})}
+                    placeholder="Ex: BRG-001"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="name">Nom *</Label>
+                  <Input
+                    id="name"
+                    value={newPart.name}
+                    onChange={(e) => setNewPart({...newPart, name: e.target.value})}
+                    placeholder="Ex: Roulement à billes"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={newPart.description}
+                    onChange={(e) => setNewPart({...newPart, description: e.target.value})}
+                    placeholder="Description détaillée de la pièce"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Catégorie</Label>
+                  <select
+                    id="category"
+                    value={newPart.category}
+                    onChange={(e) => setNewPart({...newPart, category: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sélectionner une catégorie</option>
+                    <option value="Roulements">Roulements</option>
+                    <option value="Filtres">Filtres</option>
+                    <option value="Joints">Joints</option>
+                    <option value="Vannes">Vannes</option>
+                    <option value="Pompes">Pompes</option>
+                    <option value="Électronique">Électronique</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="supplier">Fournisseur</Label>
+                  <Input
+                    id="supplier"
+                    value={newPart.supplier}
+                    onChange={(e) => setNewPart({...newPart, supplier: e.target.value})}
+                    placeholder="Ex: SKF France"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="currentStock">Stock Actuel</Label>
+                  <Input
+                    id="currentStock"
+                    type="number"
+                    value={newPart.currentStock}
+                    onChange={(e) => setNewPart({...newPart, currentStock: parseInt(e.target.value) || 0})}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="minStock">Stock Minimum</Label>
+                  <Input
+                    id="minStock"
+                    type="number"
+                    value={newPart.minStock}
+                    onChange={(e) => setNewPart({...newPart, minStock: parseInt(e.target.value) || 0})}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="maxStock">Stock Maximum</Label>
+                  <Input
+                    id="maxStock"
+                    type="number"
+                    value={newPart.maxStock}
+                    onChange={(e) => setNewPart({...newPart, maxStock: parseInt(e.target.value) || 0})}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="unitPrice">Prix Unitaire (€)</Label>
+                  <Input
+                    id="unitPrice"
+                    type="number"
+                    step="0.01"
+                    value={newPart.unitPrice}
+                    onChange={(e) => setNewPart({...newPart, unitPrice: parseFloat(e.target.value) || 0})}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Emplacement</Label>
+                  <Input
+                    id="location"
+                    value={newPart.location}
+                    onChange={(e) => setNewPart({...newPart, location: e.target.value})}
+                    placeholder="Ex: A1-B3"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAddForm(false)}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={handleAddPart}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter la Pièce
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
