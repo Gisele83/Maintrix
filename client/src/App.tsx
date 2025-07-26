@@ -20,6 +20,7 @@ import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import InventoryManagement from "@/pages/inventory-management";
+import WorkOrders from "@/pages/work-orders";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,7 +44,7 @@ function Router() {
       <Route path="/advanced-reporting" component={AdvancedReporting} />
       <Route path="/inventory" component={InventoryManagement} />
       <Route path="/equipment" component={() => <div>Page Équipements en développement</div>} />
-      <Route path="/work-orders" component={() => <div>Page Ordres de Travail en développement</div>} />
+      <Route path="/work-orders" component={WorkOrders} />
       <Route path="/preventive" component={() => <div>Page Maintenance Préventive en développement</div>} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
