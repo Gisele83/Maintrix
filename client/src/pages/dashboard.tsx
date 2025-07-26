@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink, Activity } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink, Activity, Sparkles, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { TrialBanner } from "@/components/trial-banner";
@@ -12,6 +12,8 @@ import { CaseReporting } from "@/components/case-reporting";
 import { DataImport } from "@/components/data-import";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import ModernNavigation from "@/components/modern-navigation";
+import FeatureCards, { QuickStats } from "@/components/feature-cards";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";

@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
+import ModernHome from "@/pages/modern-home";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
@@ -23,7 +24,8 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/" component={ModernHome} />
+      <Route path="/dashboard" component={Dashboard} />
       <Route path="/gmao" component={GMAODashboard} />
       <Route path="/dashboard/gmao" component={GMAODashboard} />
       <Route path="/profiles" component={UserProfiles} />
