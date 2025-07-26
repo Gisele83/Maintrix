@@ -22,6 +22,7 @@ import AdvancedReporting from "@/pages/advanced-reporting";
 import InventoryManagement from "@/pages/inventory-management";
 import WorkOrders from "@/pages/work-orders";
 import EquipmentManagement from "@/pages/equipment-management";
+import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -46,7 +47,7 @@ function Router() {
       <Route path="/inventory" component={InventoryManagement} />
       <Route path="/equipment" component={EquipmentManagement} />
       <Route path="/work-orders" component={WorkOrders} />
-      <Route path="/preventive" component={() => <div>Page Maintenance Préventive en développement</div>} />
+      <Route path="/preventive" component={PreventiveMaintenance} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
