@@ -17,6 +17,7 @@ import AccessManagement from "@/pages/access-management";
 import SecurityDashboard from "@/pages/security-dashboard";
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
+import AdvancedReporting from "@/pages/advanced-reporting";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/security-dashboard" component={SecurityDashboard} />
       <Route path="/support-chatbot" component={SupportChatbot} />
       <Route path="/data-import-export" component={DataImportExport} />
+      <Route path="/advanced-reporting" component={AdvancedReporting} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
