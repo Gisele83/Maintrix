@@ -21,6 +21,7 @@ import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import InventoryManagement from "@/pages/inventory-management";
 import WorkOrders from "@/pages/work-orders";
+import EquipmentManagement from "@/pages/equipment-management";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,7 +44,7 @@ function Router() {
       <Route path="/data-import-export" component={DataImportExport} />
       <Route path="/advanced-reporting" component={AdvancedReporting} />
       <Route path="/inventory" component={InventoryManagement} />
-      <Route path="/equipment" component={() => <div>Page Équipements en développement</div>} />
+      <Route path="/equipment" component={EquipmentManagement} />
       <Route path="/work-orders" component={WorkOrders} />
       <Route path="/preventive" component={() => <div>Page Maintenance Préventive en développement</div>} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
