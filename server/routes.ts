@@ -560,6 +560,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register GMAO routes
   registerGMAORoutes(app);
   
+  // Register Budget Management routes
+  const { registerBudgetRoutes } = await import("./budget-management");
+  registerBudgetRoutes(app);
+  
   // Register simple validation routes for demonstration
   registerSimpleValidationRoutes(app);
   
