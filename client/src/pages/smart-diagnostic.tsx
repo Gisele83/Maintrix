@@ -205,6 +205,116 @@ export default function SmartDiagnostic() {
   const [enhancedMode, setEnhancedMode] = useState(false);
   const [ensembleMode, setEnsembleMode] = useState(false);
 
+  // Generate diagnostic report function
+  const generateDiagnosticReport = () => {
+    if (!diagnosticResults.length) return;
+
+    const reportContent = generateReportHTML();
+    
+    // Create and download the report
+    const blob = new Blob([reportContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rapport-diagnostic-${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Rapport téléchargé",
+      description: "Le rapport d'analyse IA a été téléchargé avec succès",
+    });
+  };
+
+  const generateReportHTML = () => {
+    const reportDate = new Date().toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport de Diagnostic Smart GMAO DiagFix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
+        .logo { color: #2563eb; font-size: 28px; font-weight: bold; }
+        .subtitle { color: #6b7280; margin-top: 5px; }
+        .section { margin-bottom: 30px; }
+        .section-title { color: #1f2937; font-size: 20px; font-weight: bold; border-left: 4px solid #2563eb; padding-left: 15px; margin-bottom: 15px; }
+        .diagnostic-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 15px; }
+        .diagnostic-title { color: #1f2937; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .confidence { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: bold; }
+        .risk-high { background: #fee2e2; color: #dc2626; }
+        .risk-medium { background: #fef3c7; color: #d97706; }
+        .risk-low { background: #dcfce7; color: #16a34a; }
+        .details { margin-top: 15px; }
+        .label { font-weight: bold; color: #374151; }
+        .footer { margin-top: 50px; text-align: center; color: #6b7280; font-size: 14px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Smart GMAO DiagFix</div>
+        <div class="subtitle">Rapport de Diagnostic IA - Analyse Avancée</div>
+        <div style="margin-top: 10px; color: #6b7280;">Généré le ${reportDate}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Résumé de l'Analyse</div>
+        <p><span class="label">Session ID:</span> ${currentSessionId || 'N/A'}</p>
+        <p><span class="label">Nombre de suggestions:</span> ${diagnosticResults.length}</p>
+        <p><span class="label">Mode d'analyse:</span> ${
+          ensembleMode ? 'Ensemble ML (9 algorithmes)' :
+          enhancedMode ? 'ML Avancé (Réseaux de neurones)' :
+          advancedMode ? 'ML Avancé (SVM + Isolation Forest)' :
+          'ML Standard'
+        }</p>
+        ${cloudSearchPerformed ? `<p><span class="label">Recherche Cloud:</span> Effectuée</p>` : ''}
+        ${cloudInsights ? `<p><span class="label">Insights Cloud:</span> ${cloudInsights}</p>` : ''}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Diagnostics Détaillés</div>
+        ${diagnosticResults.map((result, index) => `
+        <div class="diagnostic-item">
+            <div class="diagnostic-title">Diagnostic ${index + 1}: ${result.diagnosis}</div>
+            <div style="margin-bottom: 15px;">
+                <span class="confidence">Confiance: ${result.confidence}%</span>
+                <span class="confidence risk-${result.riskLevel === 'Élevé' ? 'high' : result.riskLevel === 'Moyen' ? 'medium' : 'low'}" style="margin-left: 10px;">
+                    Risque: ${result.riskLevel}
+                </span>
+            </div>
+            <div class="details">
+                <p><span class="label">Solution recommandée:</span> ${result.solution}</p>
+                ${result.estimatedCost ? `<p><span class="label">Coût estimé:</span> ${result.estimatedCost}</p>` : ''}
+                ${result.estimatedDuration ? `<p><span class="label">Durée estimée:</span> ${result.estimatedDuration}h</p>` : ''}
+                ${result.urgency ? `<p><span class="label">Urgence:</span> ${result.urgency}</p>` : ''}
+                ${result.aiInsights ? `<p><span class="label">Insights IA:</span> ${result.aiInsights}</p>` : ''}
+                ${result.predictiveMaintenance ? `<p><span class="label">Maintenance prédictive:</span> ${result.predictiveMaintenance}</p>` : ''}
+            </div>
+        </div>
+        `).join('')}
+    </div>
+
+    <div class="footer">
+        <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+        <p>Plateforme de diagnostic IA et gestion de maintenance industrielle</p>
+        <p>Pour plus d'informations, consultez la documentation complète de la plateforme</p>
+    </div>
+</body>
+</html>`;
+  };
+
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -224,14 +334,17 @@ export default function SmartDiagnostic() {
     onSuccess: (result: any) => {
       console.log("ML Diagnostic API response:", result);
       setDiagnosticResults(result.suggestions || []);
-      setCurrentSessionId(result.sessionId || null);
+      setCurrentSessionId(result.sessionId ?? null);
       setCloudSearchPerformed(result.cloudSearchPerformed || false);
       setCloudInsights(result.cloudInsights || "");
       setIsAnalyzing(false);
       
       // Sélectionner automatiquement le premier cas pour les procédures de réparation
-      if (result.suggestions && result.suggestions.length > 0 && result.suggestions[0].caseId) {
-        setSelectedCaseId(result.suggestions[0].caseId);
+      if (result.suggestions && result.suggestions.length > 0) {
+        const firstCaseId = result.suggestions[0].caseId;
+        if (firstCaseId !== undefined) {
+          setSelectedCaseId(firstCaseId);
+        }
       }
       
       const mlType = result.ensembleML ? " (Ensemble ML)" : 
@@ -604,17 +717,24 @@ export default function SmartDiagnostic() {
                       <Button 
                         className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                         onClick={() => {
+                          if (diagnosticResults.length === 0) {
+                            toast({
+                              title: "Aucun diagnostic disponible",
+                              description: "Veuillez d'abord réaliser un diagnostic pour générer un rapport",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
                           toast({
                             title: "Génération de rapport",
                             description: "Création du rapport d'analyse IA en cours...",
                           });
-                          // Simulation de génération de rapport
+
+                          // Générer le rapport réel
                           setTimeout(() => {
-                            toast({
-                              title: "Rapport généré",
-                              description: "Le rapport d'analyse IA a été créé avec succès",
-                            });
-                          }, 2000);
+                            generateDiagnosticReport();
+                          }, 1000);
                         }}
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
