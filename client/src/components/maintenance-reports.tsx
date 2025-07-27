@@ -414,6 +414,291 @@ export function MaintenanceReports() {
     `;
   };
 
+  // Download monthly report as PDF
+  const downloadMonthlyReport = (report: MonthlyReport) => {
+    try {
+      const reportContent = generateMonthlyReportHTML(report);
+      
+      // Create and download the report
+      const blob = new Blob([reportContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport-mensuel-${report.reportNumber}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Rapport téléchargé",
+        description: `Le rapport mensuel ${report.reportNumber} a été téléchargé avec succès`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Impossible de télécharger le rapport mensuel",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Generate HTML content for monthly report
+  const generateMonthlyReportHTML = (report: MonthlyReport) => {
+    const reportDate = new Date(report.generatedAt).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const periodStart = new Date(report.periodStart).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const periodEnd = new Date(report.periodEnd).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Rapport Mensuel ${report.reportNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+          .header { text-align: center; border-bottom: 3px solid #3B82F6; padding-bottom: 20px; margin-bottom: 30px; }
+          .company-name { font-size: 28px; font-weight: bold; color: #3B82F6; margin-bottom: 10px; }
+          .report-title { font-size: 22px; color: #374151; margin-bottom: 10px; }
+          .report-period { font-size: 16px; color: #6B7280; }
+          .section { margin-bottom: 30px; }
+          .section-title { font-size: 18px; font-weight: bold; color: #3B82F6; border-bottom: 2px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 20px; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px; }
+          .kpi-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; text-align: center; }
+          .kpi-title { font-size: 14px; color: #6B7280; margin-bottom: 8px; }
+          .kpi-value { font-size: 28px; font-weight: bold; color: #1F2937; }
+          .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
+          .stats-card { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; }
+          .stats-title { font-size: 16px; font-weight: bold; color: #374151; margin-bottom: 15px; }
+          .stats-item { display: flex; justify-between; margin-bottom: 8px; font-size: 14px; }
+          .stats-label { color: #6B7280; }
+          .stats-value { font-weight: 600; color: #1F2937; }
+          .recommendations { background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 8px; padding: 20px; }
+          .recommendation-item { margin-bottom: 10px; padding-left: 20px; position: relative; }
+          .recommendation-item:before { content: "•"; color: #3B82F6; font-weight: bold; position: absolute; left: 0; }
+          .performance-badge { display: inline-block; background: #10B981; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
+          .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #6B7280; font-size: 12px; }
+          .chart-placeholder { background: #F3F4F6; border: 1px solid #D1D5DB; border-radius: 8px; padding: 40px; text-align: center; color: #6B7280; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Smart GMAO DiagFix</div>
+          <div class="report-title">Rapport Mensuel de Maintenance</div>
+          <div class="report-period">Période du ${periodStart} au ${periodEnd}</div>
+          <div style="margin-top: 15px; font-size: 14px; color: #6B7280;">
+            Rapport ${report.reportNumber} généré le ${reportDate}
+          </div>
+          <div class="performance-badge">
+            Score Performance: ${report.performanceScore || 0}/100
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Indicateurs Clés de Performance (KPIs)</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title">Disponibilité Équipements</div>
+              <div class="kpi-value">${(report.equipmentAvailability || 0).toFixed(1)}%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">MTBF (Heures)</div>
+              <div class="kpi-value">${(report.mtbf || 0).toFixed(1)}h</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">MTTR (Heures)</div>
+              <div class="kpi-value">${(report.mttr || 0).toFixed(1)}h</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Coût Total</div>
+              <div class="kpi-value">${(report.totalMaintenanceCost || 0).toFixed(0)}€</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Statistiques Détaillées</div>
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="stats-title">Ordres de Travail</div>
+              <div class="stats-item">
+                <span class="stats-label">Total</span>
+                <span class="stats-value">${report.totalWorkOrders || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Terminés</span>
+                <span class="stats-value">${report.completedWorkOrders || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Préventifs</span>
+                <span class="stats-value">${report.preventiveWorkOrders || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Correctifs</span>
+                <span class="stats-value">${report.correctiveWorkOrders || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Temps moyen</span>
+                <span class="stats-value">${(report.averageCompletionTime || 0).toFixed(1)}h</span>
+              </div>
+            </div>
+
+            <div class="stats-card">
+              <div class="stats-title">Analyse des Coûts</div>
+              <div class="stats-item">
+                <span class="stats-label">Coût total</span>
+                <span class="stats-value">${(report.totalMaintenanceCost || 0).toFixed(2)}€</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Main d'œuvre</span>
+                <span class="stats-value">${(report.laborCost || 0).toFixed(2)}€</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Pièces détachées</span>
+                <span class="stats-value">${(report.partsCost || 0).toFixed(2)}€</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Sous-traitance</span>
+                <span class="stats-value">${(report.contractorCost || 0).toFixed(2)}€</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Coût par OT</span>
+                <span class="stats-value">${(report.costPerWorkOrder || 0).toFixed(2)}€</span>
+              </div>
+            </div>
+
+            <div class="stats-card">
+              <div class="stats-title">Alertes & Incidents</div>
+              <div class="stats-item">
+                <span class="stats-label">Alertes totales</span>
+                <span class="stats-value">${report.totalAlerts || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Alertes critiques</span>
+                <span class="stats-value" style="color: #DC2626;">${report.criticalAlerts || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Incidents sécurité</span>
+                <span class="stats-value">${report.safetyIncidents || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Problèmes qualité</span>
+                <span class="stats-value">${report.qualityIssues || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Gestion des Stocks</div>
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="stats-title">Inventaire</div>
+              <div class="stats-item">
+                <span class="stats-label">Pièces consommées</span>
+                <span class="stats-value">${report.partsConsumed || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Rotation stock</span>
+                <span class="stats-value">${(report.inventoryTurnover || 0).toFixed(1)}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Ruptures stock</span>
+                <span class="stats-value">${report.stockouts || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Achats urgents</span>
+                <span class="stats-value">${report.emergencyPurchases || 0}</span>
+              </div>
+            </div>
+
+            <div class="stats-card">
+              <div class="stats-title">Équipements</div>
+              <div class="stats-item">
+                <span class="stats-label">Total équipements</span>
+                <span class="stats-value">${report.totalEquipment || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Équipements actifs</span>
+                <span class="stats-value">${report.activeEquipment || 0}</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Disponibilité</span>
+                <span class="stats-value">${(report.equipmentAvailability || 0).toFixed(1)}%</span>
+              </div>
+            </div>
+
+            <div class="stats-card">
+              <div class="stats-title">Performance Maintenance</div>
+              <div class="stats-item">
+                <span class="stats-label">Efficacité</span>
+                <span class="stats-value">${(report.maintenanceEfficiency || 0).toFixed(1)}%</span>
+              </div>
+              <div class="stats-item">
+                <span class="stats-label">Ratio préventif</span>
+                <span class="stats-value">${(report.plannedMaintenanceRatio || 0).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${report.recommendations && report.recommendations.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Recommandations d'Amélioration</div>
+          <div class="recommendations">
+            ${report.recommendations.map(rec => `
+              <div class="recommendation-item">${rec}</div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        ${report.improvementAreas && report.improvementAreas.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Axes d'Amélioration Identifiés</div>
+          <div class="recommendations">
+            ${report.improvementAreas.map(area => `
+              <div class="recommendation-item">${area}</div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="section-title">Notes et Observations</div>
+          <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; border-left: 4px solid #3B82F6;">
+            ${report.notes || 'Aucune note particulière pour cette période.'}
+          </div>
+        </div>
+
+        <div class="footer">
+          <p><strong>Rapport généré par:</strong> ${report.generatedBy || 'Système GMAO'}</p>
+          <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+          <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
+          ${report.reviewedBy ? `<p><strong>Révisé par:</strong> ${report.reviewedBy} le ${report.reviewDate ? new Date(report.reviewDate).toLocaleDateString('fr-FR') : 'N/A'}</p>` : ''}
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   const renderKpiCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => (
     <Card className="p-4">
       <div className="flex items-center justify-between">
@@ -863,7 +1148,11 @@ export function MaintenanceReports() {
                               <PieChart className="w-4 h-4 mr-2" />
                               Voir Graphiques
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => downloadMonthlyReport(report)}
+                            >
                               <Download className="w-4 h-4 mr-2" />
                               Télécharger PDF
                             </Button>
