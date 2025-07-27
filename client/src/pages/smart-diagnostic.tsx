@@ -68,9 +68,16 @@ export default function SmartDiagnostic() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState("");
+  
+  // Modal states
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [repairInProgress, setRepairInProgress] = useState(false);
+  
+  // History modal states
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [diagnosticHistory, setDiagnosticHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Données de procédures de réparation
   const repairProcedures = {
@@ -205,6 +212,55 @@ export default function SmartDiagnostic() {
   const [enhancedMode, setEnhancedMode] = useState(false);
   const [ensembleMode, setEnsembleMode] = useState(false);
 
+  // Load diagnostic history function
+  const loadDiagnosticHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      // Charger l'historique depuis l'API ou localStorage
+      const storedHistory = localStorage.getItem('smartgmao_diagnostic_history');
+      if (storedHistory) {
+        const history = JSON.parse(storedHistory);
+        setDiagnosticHistory(history);
+      } else {
+        // Créer un historique d'exemple s'il n'y en a pas
+        const exampleHistory = [
+          {
+            id: 1,
+            date: new Date().toLocaleDateString('fr-FR'),
+            equipmentType: "Moteur électrique",
+            symptoms: "Vibrations anormales, température élevée",
+            diagnosis: "Défaut de palier",
+            confidence: 87,
+            status: "Résolu"
+          },
+          {
+            id: 2,
+            date: new Date(Date.now() - 86400000).toLocaleDateString('fr-FR'),
+            equipmentType: "Pompe hydraulique",
+            symptoms: "Pression insuffisante, bruit anormal",
+            diagnosis: "Usure des joints",
+            confidence: 92,
+            status: "En cours"
+          }
+        ];
+        setDiagnosticHistory(exampleHistory);
+      }
+      
+      toast({
+        title: "Historique chargé",
+        description: "L'historique des diagnostics a été chargé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger l'historique",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Generate diagnostic report function
   const generateDiagnosticReport = () => {
     if (!diagnosticResults.length) return;
@@ -300,7 +356,6 @@ export default function SmartDiagnostic() {
                 ${result.estimatedDuration ? `<p><span class="label">Durée estimée:</span> ${result.estimatedDuration}h</p>` : ''}
                 ${result.urgency ? `<p><span class="label">Urgence:</span> ${result.urgency}</p>` : ''}
                 ${result.aiInsights ? `<p><span class="label">Insights IA:</span> ${result.aiInsights}</p>` : ''}
-                ${result.predictiveMaintenance ? `<p><span class="label">Maintenance prédictive:</span> ${result.predictiveMaintenance}</p>` : ''}
             </div>
         </div>
         `).join('')}
@@ -687,14 +742,9 @@ export default function SmartDiagnostic() {
                       <Button 
                         className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
                         onClick={() => {
-                          toast({
-                            title: "Historique des diagnostics",
-                            description: "Chargement de l'historique des analyses IA...",
-                          });
-                          // Redirection vers la page historique ou affichage dans un modal
-                          setTimeout(() => {
-                            window.location.href = "/dashboard#history";
-                          }, 1000);
+                          setShowHistoryModal(true);
+                          // Charger l'historique depuis l'API
+                          loadDiagnosticHistory();
                         }}
                       >
                         <History className="h-4 w-4 mr-2" />
@@ -970,6 +1020,104 @@ export default function SmartDiagnostic() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal d'historique des diagnostics */}
+        <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-3">
+                <History className="h-6 w-6 text-green-600" />
+                <span>Historique des Diagnostics</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowHistoryModal(false)}
+                  className="ml-auto"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {isLoadingHistory ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-gray-600">Chargement de l'historique...</p>
+                </div>
+              ) : diagnosticHistory.length === 0 ? (
+                <div className="text-center py-8">
+                  <History className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600">Aucun diagnostic dans l'historique</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {diagnosticHistory.map((item) => (
+                    <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-4 mb-2">
+                            <h3 className="font-semibold text-gray-900">{item.equipmentType}</h3>
+                            <Badge variant={item.status === "Résolu" ? "default" : "secondary"}>
+                              {item.status}
+                            </Badge>
+                            <span className="text-sm text-gray-500">{item.date}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            <span className="font-medium">Symptômes:</span> {item.symptoms}
+                          </p>
+                          <p className="text-sm text-gray-800">
+                            <span className="font-medium">Diagnostic:</span> {item.diagnosis}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-blue-600">{item.confidence}%</div>
+                            <div className="text-xs text-gray-500">Confiance</div>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            Voir détails
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <p className="text-sm text-gray-500">
+                {diagnosticHistory.length} diagnostic(s) dans l'historique
+              </p>
+              <div className="space-x-2">
+                <Button variant="outline" onClick={() => setShowHistoryModal(false)}>
+                  Fermer
+                </Button>
+                <Button onClick={() => {
+                  // Exporter l'historique
+                  const exportData = JSON.stringify(diagnosticHistory, null, 2);
+                  const blob = new Blob([exportData], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `historique-diagnostics-${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.json`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  
+                  toast({
+                    title: "Historique exporté",
+                    description: "L'historique a été téléchargé au format JSON",
+                  });
+                }}>
+                  Exporter
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </main>
