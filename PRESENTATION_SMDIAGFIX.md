@@ -19,8 +19,10 @@
 Une plateforme unifiée combinant deux modules complémentaires :
 
 **Smart Diagnostic** (Assistant IA) :
-- Diagnostic intelligent temps réel avec IA avancée
-- Analyse prédictive des défaillances
+- Page dédiée avec interface moderne et glassmorphisme
+- Diagnostic intelligent temps réel avec 3 modes ML (Standard/Avancé/Ensemble)
+- Onglets intégrés : Diagnostic, Réparation, Historique, Rapports
+- Analyse prédictive des défaillances avec scoring confiance
 - Recommandations maintenance basées sur ML
 - Interface conversationnelle avec chatbot technique
 
@@ -37,7 +39,9 @@ Une plateforme unifiée combinant deux modules complémentaires :
 ## ⚡ Modules Fonctionnels Intégrés
 
 ### 🧠 Module Smart Diagnostic (Assistant IA)
-**Diagnostic Intelligent Multi-Niveaux:**
+**Interface Dédiée avec Glassmorphisme:**
+- **Page Smart Diagnostic** : Interface moderne dédiée accessible via navigation principale
+- **Onglets Intégrés** : Diagnostic, Réparation, Historique, Rapports dans une interface unifiée
 - **Mode ML Standard**: Classification forêts aléatoires et gradient boosting
 - **Mode ML Avancé**: Réseaux neurones, SVM et détection anomalies
 - **Mode Ensemble ML**: Consensus de 9 algorithmes pour précision maximale

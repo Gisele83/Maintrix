@@ -66,10 +66,11 @@ export const trainingModulesContent: ModuleContent[] = [
         title: "Vue d'ensemble de Smart GMAO DiagFix",
         duration: "10 min",
         content: {
-          introduction: "Smart GMAO DiagFix est une plateforme révolutionnaire qui unifie l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance assistée par ordinateur (GMAO). Cette leçon vous présente l'architecture globale et les avantages concurrentiels.",
+          introduction: "Smart GMAO DiagFix est une plateforme révolutionnaire qui unifie l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance assistée par ordinateur (GMAO). Cette leçon vous présente l'interface moderne avec glassmorphisme, la page dédiée Smart Diagnostic et l'architecture globale unifiée.",
           objectives: [
             "Comprendre la vision unifiée Smart Diagnostic + Smart GMAO",
-            "Identifier les modules principaux de la plateforme",
+            "Naviguer vers la page dédiée Smart Diagnostic IA",
+            "Identifier les modules principaux et les onglets intégrés",
             "Reconnaître les avantages par rapport aux solutions traditionnelles"
           ],
           steps: [

@@ -96,9 +96,9 @@ export default function Documentation() {
       difficulty: "Débutant",
       icon: Play,
       content: [
-        "Connexion à Smart GMAO DiagFix et découverte de l'interface unifiée",
-        "Navigation entre Smart Diagnostic (assistant IA) et Smart GMAO (gestion maintenance)",
-        "Création de votre premier diagnostic avec Smart Diagnostic IA",
+        "Connexion à Smart GMAO DiagFix et découverte de l'interface moderne avec glassmorphisme",
+        "Navigation vers la page dédiée Smart Diagnostic via le bouton principal ou les cartes fonctionnalités",
+        "Création de votre premier diagnostic avec l'interface Smart Diagnostic IA dédiée",
         "Intégration automatique des diagnostics dans Smart GMAO pour générer des ordres de travail",
         "Workflow complet de maintenance : Smart Diagnostic → Smart GMAO → IoT → Intervention",
         "Utilisation du chatbot support technique intégré",
@@ -116,7 +116,8 @@ export default function Documentation() {
       difficulty: "Intermédiaire",
       icon: Brain,
       content: [
-        "Utilisation des modes ML avancés (Ensemble, Neural Networks)",
+        "Utilisation des modes ML avancés (Standard, Avancé, Ensemble ML) dans la page dédiée",
+        "Navigation entre les onglets Diagnostic, Réparation, Historique et Rapports",
         "Interprétation des scores de confiance et analyses prédictives",
         "Conversion automatique Smart Diagnostic → ordre de travail Smart GMAO",
         "Analyse des anomalies et maintenance prédictive",

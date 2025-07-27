@@ -55,8 +55,12 @@ L'application mobile Smart GMAO DiagFix vous permet d'accéder à toutes les fon
 │ 🔧 Sélection Équipement     │
 │ ⚙️  Type et Zone            │
 │ 📝 Symptômes Détectés       │
-│ 🤖 Mode ML (Standard/Avancé)│
+│ 🤖 Mode ML (Standard/Avancé/│
+│    Ensemble ML)             │
 │ 📊 Résultats IA             │
+│ 📋 Onglets : Diagnostic,    │
+│    Réparation, Historique,  │
+│    Rapports                 │
 └─────────────────────────────┘
 ```
 
@@ -69,9 +73,16 @@ L'application mobile Smart GMAO DiagFix vous permet d'accéder à toutes les fon
 6. **Procédures Réparation** : Guide étape par étape
 
 ### Modes IA Disponibles
-- **Standard ML** : Diagnostic rapide (offline)
-- **Avancé ML** : Analyse poussée (online)
-- **Ensemble ML** : Consensus multi-modèles (online)
+- **Standard ML** : Diagnostic rapide avec forêts aléatoires (offline)
+- **Avancé ML** : Réseaux neurones et SVM (online)
+- **Ensemble ML** : Consensus de 9 algorithmes pour précision maximale (online)
+
+### Navigation Interface Dédiée
+- **Page Smart Diagnostic** : Interface dédiée accessible via bouton principal
+- **Onglet Diagnostic** : Formulaire ML avec sélection mode
+- **Onglet Réparation** : Procédures guidées étape par étape
+- **Onglet Historique** : Historique complet des diagnostics
+- **Onglet Rapports** : Export et analytics des interventions
 
 ---
 

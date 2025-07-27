@@ -113,6 +113,38 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 
 ---
 
+### 🧠 Smart Diagnostic IA - Interface Dédiée
+
+#### Q: Comment accéder à la nouvelle page Smart Diagnostic ?
+**R:** La page Smart Diagnostic est maintenant dédiée et accessible via :
+1. **Bouton principal** : "Démarrer Diagnostic IA" depuis la page d'accueil
+2. **Cartes fonctionnalités** : Bouton "Accéder" sous "Smart Diagnostic IA"
+3. **Menu navigation** : Smart Diagnostic → Smart Diagnostic IA
+
+#### Q: Quels sont les onglets disponibles dans Smart Diagnostic ?
+**R:** La page Smart Diagnostic comporte 4 onglets intégrés :
+- **Diagnostic** : Formulaire ML avec sélection mode IA (Standard/Avancé/Ensemble)
+- **Réparation** : Procédures guidées étape par étape avec sécurité
+- **Historique** : Historique complet des diagnostics avec filtrage
+- **Rapports** : Analytics et export des interventions (CSV/Excel/PDF)
+
+#### Q: Quelle est la différence entre les modes ML ?
+**R:** Trois modes disponibles selon complexité :
+- **Standard ML** : Forêts aléatoires et gradient boosting (rapide)
+- **Avancé ML** : Réseaux neurones, SVM, détection anomalies (précis)
+- **Ensemble ML** : Consensus de 9 algorithmes pour précision maximale (expert)
+
+#### Q: Comment utiliser le nouveau workflow diagnostic ?
+**R:** Workflow intégré Smart Diagnostic → Smart GMAO :
+1. Accédez à la page dédiée Smart Diagnostic
+2. Sélectionnez le mode ML approprié
+3. Remplissez le formulaire équipement/symptômes
+4. Analysez les résultats IA avec scoring confiance
+5. Conversion automatique en ordre de travail Smart GMAO
+6. Suivi intervention via IoT monitoring temps réel
+
+---
+
 ### 🧠 Intelligence Artificielle
 
 #### Q: Comment l'IA apprend-elle de nos données ?
