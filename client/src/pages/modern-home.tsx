@@ -7,8 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import ModernNavigation from "@/components/modern-navigation";
 import FeatureCards, { QuickStats } from "@/components/feature-cards";
 import { TrialBanner } from "@/components/trial-banner";
-import { DiagnosticForm } from "@/components/diagnostic-form";
-import { DiagnosticResults } from "@/components/diagnostic-results";
+
 import {
   Brain,
   Factory,
@@ -30,8 +29,6 @@ import {
 } from "lucide-react";
 
 export default function ModernHome() {
-  const [showDiagnosticForm, setShowDiagnosticForm] = useState(false);
-  const [diagnosticResults, setDiagnosticResults] = useState([]);
 
   // Fetch recent alerts for live updates
   const { data: alerts = [] } = useQuery({
@@ -72,14 +69,15 @@ export default function ModernHome() {
           
           {/* Quick Action Buttons */}
           <div className="flex flex-col lg:flex-row justify-center items-center space-y-6 lg:space-y-0 lg:space-x-8 mt-12">
-            <Button 
-              onClick={() => setShowDiagnosticForm(true)}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-6 rounded-2xl text-xl font-medium shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 min-w-[280px]"
-            >
-              <Brain className="h-6 w-6 mr-4" />
-              Démarrer Diagnostic IA
-              <ChevronRight className="h-5 w-5 ml-3" />
-            </Button>
+            <Link href="/smart-diagnostic">
+              <Button 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-6 rounded-2xl text-xl font-medium shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 min-w-[280px]"
+              >
+                <Brain className="h-6 w-6 mr-4" />
+                Démarrer Diagnostic IA
+                <ChevronRight className="h-5 w-5 ml-3" />
+              </Button>
+            </Link>
             
             <Link href="/gmao">
               <Button 
@@ -119,35 +117,7 @@ export default function ModernHome() {
         {/* Quick Stats Dashboard */}
         <QuickStats />
 
-        {/* Diagnostic Form Modal */}
-        {showDiagnosticForm && (
-          <div className="mb-16">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200 p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 flex items-center">
-                  <Brain className="h-8 w-8 text-purple-600 mr-3" />
-                  Diagnostic IA Intelligent
-                </h2>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowDiagnosticForm(false)}
-                  className="text-gray-500 hover:text-gray-700 rounded-xl"
-                >
-                  ✕
-                </Button>
-              </div>
-              <DiagnosticForm 
-                onResultsChange={setDiagnosticResults}
-                className="bg-transparent"
-              />
-              {diagnosticResults.length > 0 && (
-                <div className="mt-8">
-                  <DiagnosticResults suggestions={diagnosticResults} />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Feature Cards Grid */}
         <div className="mb-16">

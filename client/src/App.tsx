@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import ModernHome from "@/pages/modern-home";
+import SmartDiagnostic from "@/pages/smart-diagnostic";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
@@ -31,6 +32,8 @@ function Router() {
     <Switch>
       <Route path="/" component={ModernHome} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/diagnostic" component={SmartDiagnostic} />
+      <Route path="/smart-diagnostic" component={SmartDiagnostic} />
       <Route path="/gmao" component={GMAODashboard} />
       <Route path="/dashboard/gmao" component={GMAODashboard} />
       <Route path="/profiles" component={UserProfiles} />

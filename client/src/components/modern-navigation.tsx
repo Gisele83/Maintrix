@@ -43,9 +43,9 @@ export default function ModernNavigation() {
     },
     {
       name: "Smart Diagnostic",
-      href: "/",
+      href: "/smart-diagnostic",
       icon: Brain,
-      current: location === "/",
+      current: location === "/smart-diagnostic" || location === "/diagnostic",
       badge: "IA",
     },
     {
