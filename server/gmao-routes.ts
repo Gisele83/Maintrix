@@ -281,12 +281,13 @@ export function registerGMAORoutes(app: Express) {
   // Create spare part
   app.post("/api/spare-parts", async (req, res) => {
     try {
+      console.log("Received spare part data:", req.body);
       const data = insertSparePartSchema.parse(req.body);
       const part = await gmaoStorage.createSparePart(data);
       res.status(201).json(part);
     } catch (error) {
       console.error("Error creating spare part:", error);
-      res.status(400).json({ message: "Failed to create spare part" });
+      res.status(400).json({ message: "Failed to create spare part", error: error.message });
     }
   });
 

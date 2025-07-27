@@ -82,6 +82,7 @@ export function InventoryManagement() {
       };
       return apiRequest("/api/spare-parts", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData)
       });
     },
@@ -115,6 +116,7 @@ export function InventoryManagement() {
       };
       return apiRequest(`/api/spare-parts/${id}`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData)
       });
     },
@@ -178,7 +180,7 @@ export function InventoryManagement() {
   });
 
   // Get unique categories from spare parts
-  const categories = [...new Set(spareParts.map(part => part.category))];
+  const categories = Array.from(new Set(spareParts.map(part => part.category)));
 
   const filteredParts = spareParts.filter(part => {
     const matchesSearch = part.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
