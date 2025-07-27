@@ -46,14 +46,35 @@ interface DiagnosticSuggestion {
   diagnosis: string;
   solution: string;
   confidence: number;
-  estimatedDuration: number;
-  estimatedCost: string;
-  riskLevel: string;
-  aiInsights: string;
-  equipmentType: string;
-  urgency: string;
-  caseId?: number;
+  matchingCases: number;
+  caseId: number;
+  estimatedDuration?: number;
+  estimatedCost?: string;
+  riskLevel?: string;
+  aiInsights?: string;
+  equipmentType?: string;
+  urgency?: string;
   difficulty?: string;
+  duration?: number;
+  costEstimate?: string;
+  predictiveTips?: string[];
+  // Advanced ML fields
+  advancedML?: boolean;
+  anomalyDetected?: boolean;
+  anomalyScore?: number;
+  failureRisk?: number;
+  patternMatch?: any;
+  maintenanceRecommendation?: any;
+  // Ensemble ML fields
+  ensembleML?: boolean;
+  ensembleAgreement?: number;
+  individualPredictions?: any;
+  riskAssessment?: any;
+  // Cloud diagnostic fields
+  cloudSource?: boolean;
+  repairSteps?: string[];
+  safetyWarnings?: string[];
+  tools?: string[];
 }
 
 export default function SmartDiagnostic() {
@@ -703,7 +724,7 @@ export default function SmartDiagnostic() {
                           
                           if (diagnosticResults.length > 0) {
                             // Si nous avons des résultats diagnostiques, toujours permettre l'accès
-                            const caseIdToUse = selectedCaseId || (diagnosticResults[0]?.caseId);
+                            const caseIdToUse = selectedCaseId || (diagnosticResults[0]?.caseId) || 1;
                             setSelectedCaseId(caseIdToUse);
                             setCurrentStep(0);
                             setRepairInProgress(false);
@@ -741,10 +762,24 @@ export default function SmartDiagnostic() {
                       </p>
                       <Button 
                         className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                        onClick={async () => {
-                          // Charger l'historique puis ouvrir le modal
-                          await loadDiagnosticHistory();
-                          setShowHistoryModal(true);
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log("History button clicked!");
+                          
+                          try {
+                            // Charger l'historique puis ouvrir le modal
+                            await loadDiagnosticHistory();
+                            setShowHistoryModal(true);
+                            console.log("History modal should be open now");
+                          } catch (error) {
+                            console.error("Error loading history:", error);
+                            toast({
+                              title: "Erreur",
+                              description: "Impossible de charger l'historique",
+                              variant: "destructive",
+                            });
+                          }
                         }}
                       >
                         <History className="h-4 w-4 mr-2" />
