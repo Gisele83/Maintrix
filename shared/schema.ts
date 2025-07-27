@@ -519,7 +519,21 @@ export const insertSparePartSchema = createInsertSchema(spareParts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+}).extend({
+  // Transform number fields to strings for PostgreSQL decimal columns
+  unitPrice: z.number().transform(val => val.toString()).optional(),
+  currentStock: z.number().optional(),
+  minimumStock: z.number().transform(val => val).optional(), // Map to minStock in database
+  maximumStock: z.number().transform(val => val).optional(), // Map to maxStock in database
+  leadTime: z.number().optional(),
+}).transform(data => ({
+  ...data,
+  // Map frontend field names to database field names
+  minStock: data.minimumStock,
+  maxStock: data.maximumStock,
+  minimumStock: undefined, // Remove frontend field
+  maximumStock: undefined, // Remove frontend field
+}));
 
 export const insertStockMovementSchema = createInsertSchema(stockMovements).omit({
   id: true,
