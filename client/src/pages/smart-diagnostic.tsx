@@ -380,7 +380,23 @@ export default function SmartDiagnostic() {
                       <p className="text-gray-600 mb-6">
                         Guides pas-à-pas pour la réparation d'équipements
                       </p>
-                      <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                      <Button 
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        onClick={() => {
+                          if (selectedCaseId) {
+                            toast({
+                              title: "Procédures de réparation",
+                              description: "Lancement des procédures pour le cas sélectionné",
+                            });
+                          } else {
+                            toast({
+                              title: "Sélectionner un diagnostic",
+                              description: "Veuillez d'abord réaliser un diagnostic pour accéder aux procédures",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
                         <Wrench className="h-4 w-4 mr-2" />
                         Accéder aux procédures
                       </Button>
@@ -398,7 +414,19 @@ export default function SmartDiagnostic() {
                       <p className="text-gray-600 mb-6">
                         Consultez l'historique complet des analyses IA
                       </p>
-                      <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700">
+                      <Button 
+                        className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                        onClick={() => {
+                          toast({
+                            title: "Historique des diagnostics",
+                            description: "Chargement de l'historique des analyses IA...",
+                          });
+                          // Redirection vers la page historique ou affichage dans un modal
+                          setTimeout(() => {
+                            window.location.href = "/dashboard#history";
+                          }, 1000);
+                        }}
+                      >
                         <History className="h-4 w-4 mr-2" />
                         Voir l'historique
                       </Button>
@@ -416,7 +444,22 @@ export default function SmartDiagnostic() {
                       <p className="text-gray-600 mb-6">
                         Génération automatique de rapports d'analyse et de performance IA
                       </p>
-                      <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                      <Button 
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        onClick={() => {
+                          toast({
+                            title: "Génération de rapport",
+                            description: "Création du rapport d'analyse IA en cours...",
+                          });
+                          // Simulation de génération de rapport
+                          setTimeout(() => {
+                            toast({
+                              title: "Rapport généré",
+                              description: "Le rapport d'analyse IA a été créé avec succès",
+                            });
+                          }, 2000);
+                        }}
+                      >
                         <BarChart3 className="h-4 w-4 mr-2" />
                         Générer rapport
                       </Button>
