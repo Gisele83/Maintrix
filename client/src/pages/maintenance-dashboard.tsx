@@ -199,10 +199,277 @@ export default function MaintenanceDashboard() {
   };
 
   const handleExportReport = () => {
-    toast({
-      title: "Export en cours",
-      description: "Le rapport de maintenance est en cours de génération...",
+    try {
+      // Generate maintenance dashboard report
+      const reportContent = generateMaintenanceDashboardReport();
+      
+      // Create and download the report
+      const blob = new Blob([reportContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tableau-bord-maintenance-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export terminé",
+        description: "Le rapport du tableau de bord maintenance a été téléchargé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur d'export",
+        description: "Impossible de générer le rapport de maintenance",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Generate HTML report for maintenance dashboard
+  const generateMaintenanceDashboardReport = () => {
+    const currentDate = new Date().toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tableau de Bord Maintenance - Smart GMAO DiagFix</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+          .header { text-align: center; border-bottom: 3px solid #3B82F6; padding-bottom: 20px; margin-bottom: 30px; }
+          .company-name { font-size: 32px; font-weight: bold; color: #3B82F6; margin-bottom: 10px; }
+          .report-title { font-size: 24px; color: #374151; margin-bottom: 10px; }
+          .report-date { font-size: 16px; color: #6B7280; }
+          .section { margin-bottom: 40px; }
+          .section-title { font-size: 20px; font-weight: bold; color: #3B82F6; border-bottom: 2px solid #E5E7EB; padding-bottom: 8px; margin-bottom: 25px; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 30px; }
+          .kpi-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .kpi-title { font-size: 14px; color: #6B7280; margin-bottom: 10px; text-transform: uppercase; font-weight: 600; }
+          .kpi-value { font-size: 32px; font-weight: bold; color: #1F2937; margin-bottom: 8px; }
+          .kpi-trend { font-size: 14px; font-weight: 500; }
+          .kpi-trend.positive { color: #10B981; }
+          .kpi-trend.negative { color: #EF4444; }
+          .kpi-trend.neutral { color: #6B7280; }
+          .equipment-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+          .equipment-card { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; }
+          .equipment-title { font-size: 18px; font-weight: bold; color: #374151; margin-bottom: 15px; }
+          .equipment-item { display: flex; justify-between; align-items: center; margin-bottom: 12px; padding: 12px; background: #F9FAFB; border-radius: 6px; }
+          .equipment-name { font-weight: 600; color: #1F2937; }
+          .equipment-status { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+          .status-operational { background: #D1FAE5; color: #065F46; }
+          .status-maintenance { background: #FEF3C7; color: #92400E; }
+          .status-critical { background: #FEE2E2; color: #991B1B; }
+          .status-down { background: #F3F4F6; color: #374151; }
+          .cost-breakdown { background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; }
+          .cost-item { display: flex; justify-between; align-items: center; margin-bottom: 15px; padding: 15px; border-radius: 8px; background: #F8FAFC; }
+          .cost-category { font-weight: 600; color: #374151; }
+          .cost-amount { font-size: 18px; font-weight: bold; color: #1F2937; }
+          .cost-percentage { font-size: 14px; color: #6B7280; margin-left: 10px; }
+          .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #6B7280; font-size: 12px; }
+          .highlight-box { background: #EFF6FF; border: 1px solid #DBEAFE; border-radius: 8px; padding: 20px; margin: 20px 0; }
+          .performance-indicator { display: inline-block; background: #10B981; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Smart GMAO DiagFix</div>
+          <div class="report-title">Tableau de Bord Maintenance</div>
+          <div class="report-date">Généré le ${currentDate}</div>
+          <div class="performance-indicator">
+            Performance Globale: ${Math.round((metrics.oee + metrics.availability + metrics.reliability) / 3)}%
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Indicateurs Clés de Performance (KPIs)</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title">OEE Global</div>
+              <div class="kpi-value">${metrics.oee}%</div>
+              <div class="kpi-trend positive">+2.3% ce mois</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">MTBF Moyen</div>
+              <div class="kpi-value">${metrics.mtbf}h</div>
+              <div class="kpi-trend positive">+45h ce mois</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">MTTR Moyen</div>
+              <div class="kpi-value">${metrics.mttr}h</div>
+              <div class="kpi-trend positive">-0.8h ce mois</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Disponibilité</div>
+              <div class="kpi-value">${metrics.availability}%</div>
+              <div class="kpi-trend positive">+1.2% ce mois</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Ordres de Travail - Période: ${selectedPeriod === 'week' ? 'Cette semaine' : selectedPeriod === 'month' ? 'Ce mois' : selectedPeriod === 'quarter' ? 'Ce trimestre' : 'Cette année'}</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title">Total OT</div>
+              <div class="kpi-value">${metrics.totalWorkOrders}</div>
+              <div class="kpi-trend neutral">Toutes catégories</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Terminés</div>
+              <div class="kpi-value">${metrics.completedWorkOrders}</div>
+              <div class="kpi-trend positive">${Math.round((metrics.completedWorkOrders / metrics.totalWorkOrders) * 100)}% de réussite</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">En Cours</div>
+              <div class="kpi-value">${metrics.pendingWorkOrders}</div>
+              <div class="kpi-trend neutral">Progression normale</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">En Retard</div>
+              <div class="kpi-value">${metrics.overdueWorkOrders}</div>
+              <div class="kpi-trend ${metrics.overdueWorkOrders > 0 ? 'negative' : 'positive'}">${metrics.overdueWorkOrders === 0 ? 'Excellent' : 'Attention requise'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">État des Équipements</div>
+          <div class="equipment-grid">
+            <div class="equipment-card">
+              <div class="equipment-title">Équipements Principaux</div>
+              ${equipmentStatus.map(equipment => `
+                <div class="equipment-item">
+                  <div>
+                    <div class="equipment-name">${equipment.name}</div>
+                    <div style="font-size: 12px; color: #6B7280;">Score santé: ${equipment.healthScore}%</div>
+                  </div>
+                  <div class="equipment-status status-${equipment.status}">
+                    ${equipment.status === 'operational' ? 'Opérationnel' : 
+                      equipment.status === 'maintenance' ? 'Maintenance' :
+                      equipment.status === 'critical' ? 'Critique' : 'Arrêté'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="equipment-card">
+              <div class="equipment-title">Statistiques Équipements</div>
+              <div class="equipment-item">
+                <span>Équipements actifs</span>
+                <span class="equipment-name">${equipmentStatus.filter(e => e.status === 'operational').length}/${equipmentStatus.length}</span>
+              </div>
+              <div class="equipment-item">
+                <span>Score santé moyen</span>
+                <span class="equipment-name">${Math.round(equipmentStatus.reduce((acc, e) => acc + e.healthScore, 0) / equipmentStatus.length)}%</span>
+              </div>
+              <div class="equipment-item">
+                <span>Utilisation moyenne</span>
+                <span class="equipment-name">${Math.round(equipmentStatus.reduce((acc, e) => acc + e.utilization, 0) / equipmentStatus.length)}%</span>
+              </div>
+              <div class="equipment-item">
+                <span>Alertes actives</span>
+                <span class="equipment-name" style="color: ${metrics.criticalAlerts > 0 ? '#EF4444' : '#10B981'}">${metrics.activeAlerts} (${metrics.criticalAlerts} critiques)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Analyse des Coûts de Maintenance</div>
+          <div class="cost-breakdown">
+            <div style="margin-bottom: 20px;">
+              <strong>Coût total de maintenance: ${metrics.maintenanceCosts.toLocaleString('fr-FR')}€</strong>
+              <span style="color: #10B981; margin-left: 15px;">Économies réalisées: ${metrics.costSavings.toLocaleString('fr-FR')}€</span>
+            </div>
+            ${maintenanceCosts.map(cost => `
+              <div class="cost-item">
+                <div>
+                  <span class="cost-category">${cost.category}</span>
+                  <span class="cost-percentage">(${cost.percentage}%)</span>
+                </div>
+                <div>
+                  <span class="cost-amount">${cost.amount.toLocaleString('fr-FR')}€</span>
+                  <span style="font-size: 14px; color: ${cost.trend === 'up' ? '#EF4444' : cost.trend === 'down' ? '#10B981' : '#6B7280'};">
+                    ${cost.trend === 'up' ? '↗' : cost.trend === 'down' ? '↘' : '→'}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Performances et Métriques Avancées</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-title">Fiabilité</div>
+              <div class="kpi-value">${metrics.reliability}%</div>
+              <div class="kpi-trend positive">Très bon niveau</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Maintenance Planifiée</div>
+              <div class="kpi-value">${metrics.plannedMaintenanceRate}%</div>
+              <div class="kpi-trend positive">Objectif: >75%</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Utilisation Techniciens</div>
+              <div class="kpi-value">${metrics.technicianUtilization}%</div>
+              <div class="kpi-trend positive">Optimale</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-title">Santé Équipements</div>
+              <div class="kpi-value">${metrics.equipmentHealth}%</div>
+              <div class="kpi-trend positive">Excellent état</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Recommandations et Actions</div>
+          <div class="highlight-box">
+            <h3 style="color: #3B82F6; margin-top: 0;">Points Forts</h3>
+            <ul>
+              <li>OEE supérieur à 85% - Performance excellente</li>
+              <li>MTBF en amélioration constante (+45h ce mois)</li>
+              <li>Taux de maintenance planifiée optimal (${metrics.plannedMaintenanceRate}%)</li>
+              <li>Réduction du MTTR (-0.8h) indiquant une efficacité d'intervention améliorée</li>
+            </ul>
+            
+            <h3 style="color: #F59E0B; margin-bottom: 10px;">Points d'Attention</h3>
+            <ul>
+              ${metrics.overdueWorkOrders > 0 ? `<li>⚠️ ${metrics.overdueWorkOrders} ordres de travail en retard nécessitent une attention immédiate</li>` : ''}
+              ${metrics.criticalAlerts > 0 ? `<li>🚨 ${metrics.criticalAlerts} alertes critiques en cours</li>` : ''}
+              <li>Surveiller l'évolution des coûts de pièces détachées (${maintenanceCosts[0]?.percentage}% du budget)</li>
+            </ul>
+
+            <h3 style="color: #10B981; margin-bottom: 10px;">Actions Recommandées</h3>
+            <ul>
+              <li>✅ Maintenir le niveau de maintenance préventive</li>
+              <li>📊 Analyser les causes de pannes récurrentes pour optimiser les stocks</li>
+              <li>🎯 Former les équipes sur les nouvelles procédures d'intervention</li>
+              <li>📈 Étendre l'analyse prédictive aux équipements secondaires</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p><strong>Rapport généré par:</strong> Smart GMAO DiagFix</p>
+          <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
+          <p>Données extraites le ${currentDate} - Période analysée: ${selectedPeriod === 'week' ? 'Semaine courante' : selectedPeriod === 'month' ? 'Mois courant' : selectedPeriod === 'quarter' ? 'Trimestre courant' : 'Année courante'}</p>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
   return (
