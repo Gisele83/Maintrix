@@ -55,6 +55,7 @@ function Router() {
       <Route path="/equipment-management" component={EquipmentManagement} />
       <Route path="/work-orders" component={WorkOrders} />
       <Route path="/preventive" component={PreventiveMaintenance} />
+      <Route path="/preventive-maintenance" component={PreventiveMaintenance} />
       <Route path="/maintenance-dashboard" component={MaintenanceDashboard} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
