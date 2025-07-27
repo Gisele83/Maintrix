@@ -459,6 +459,9 @@ export const insertEquipmentRegistrySchema = createInsertSchema(equipmentRegistr
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  installationDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  warrantyExpiry: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
 export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({

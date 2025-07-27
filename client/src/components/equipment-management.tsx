@@ -636,7 +636,7 @@ function EquipmentForm({
         />
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={() => {}}>
+          <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
             Annuler
           </Button>
           <Button type="submit" disabled={isLoading}>
