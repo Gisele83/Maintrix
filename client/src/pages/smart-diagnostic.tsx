@@ -332,8 +332,8 @@ export default function SmartDiagnostic() {
 
                     {/* Diagnostic Form */}
                     <DiagnosticForm 
-                      onFormSubmit={handleDiagnosticSubmit}
-                      isAnalyzing={isAnalyzing}
+                      onSubmit={handleDiagnosticSubmit}
+                      isLoading={isAnalyzing}
                     />
 
                     {/* Results */}
