@@ -228,6 +228,192 @@ export function MaintenanceReports() {
     setShowChartsModal(true);
   };
 
+  // Download intervention report as PDF
+  const downloadInterventionReport = (report: MaintenanceReport) => {
+    try {
+      const reportContent = generateInterventionReportHTML(report);
+      
+      // Create and download the report
+      const blob = new Blob([reportContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport-intervention-${report.reportNumber}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Rapport téléchargé",
+        description: `Le rapport d'intervention ${report.reportNumber} a été téléchargé avec succès`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur de téléchargement",
+        description: "Impossible de télécharger le rapport d'intervention",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Generate HTML content for intervention report
+  const generateInterventionReportHTML = (report: MaintenanceReport) => {
+    const reportDate = new Date(report.createdAt).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Rapport d'Intervention ${report.reportNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+          .header { text-align: center; border-bottom: 3px solid #8B5CF6; padding-bottom: 20px; margin-bottom: 30px; }
+          .company-name { font-size: 24px; font-weight: bold; color: #8B5CF6; margin-bottom: 10px; }
+          .report-title { font-size: 20px; color: #374151; }
+          .section { margin-bottom: 25px; }
+          .section-title { font-size: 16px; font-weight: bold; color: #8B5CF6; border-bottom: 1px solid #E5E7EB; padding-bottom: 5px; margin-bottom: 15px; }
+          .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
+          .info-item { }
+          .info-label { font-weight: bold; color: #374151; }
+          .info-value { margin-top: 2px; }
+          .description { background-color: #F9FAFB; padding: 15px; border-radius: 5px; border-left: 4px solid #8B5CF6; }
+          .parts-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .parts-table th, .parts-table td { border: 1px solid #E5E7EB; padding: 8px; text-align: left; }
+          .parts-table th { background-color: #F3F4F6; font-weight: bold; }
+          .alert-box { background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 5px; padding: 15px; margin: 15px 0; }
+          .quality-check { background-color: #D1FAE5; border: 1px solid #10B981; border-radius: 5px; padding: 10px; margin: 10px 0; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #E5E7EB; text-align: center; color: #6B7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Smart GMAO DiagFix</div>
+          <div class="report-title">Rapport d'Intervention de Maintenance</div>
+          <div style="margin-top: 10px; font-size: 14px; color: #6B7280;">Généré le ${reportDate}</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Informations Générales</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Numéro de rapport:</div>
+              <div class="info-value">${report.reportNumber}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Type d'intervention:</div>
+              <div class="info-value">${report.interventionType}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Technicien:</div>
+              <div class="info-value">${report.technician}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Superviseur:</div>
+              <div class="info-value">${report.supervisor || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Durée réelle:</div>
+              <div class="info-value">${report.actualDuration ? `${report.actualDuration} minutes` : 'N/A'}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Coût total:</div>
+              <div class="info-value">${report.totalCost ? `${report.totalCost.toFixed(2)} €` : 'N/A'}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Description des Travaux</div>
+          <div class="description">${report.workDescription}</div>
+        </div>
+
+        ${report.problemDiagnosis ? `
+        <div class="section">
+          <div class="section-title">Diagnostic du Problème</div>
+          <div class="description">${report.problemDiagnosis}</div>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="section-title">Actions Réalisées</div>
+          <div class="description">${report.actionsTaken}</div>
+        </div>
+
+        ${report.partsUsed && report.partsUsed.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Pièces Utilisées</div>
+          <table class="parts-table">
+            <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Quantité</th>
+                <th>Coût unitaire</th>
+                <th>Coût total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${report.partsUsed.map(part => `
+                <tr>
+                  <td>${part.partNumber}</td>
+                  <td>${part.quantity}</td>
+                  <td>${part.cost ? `${part.cost.toFixed(2)} €` : 'N/A'}</td>
+                  <td>${part.cost && part.quantity ? `${(part.cost * part.quantity).toFixed(2)} €` : 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        ${report.toolsUsed && report.toolsUsed.length > 0 ? `
+        <div class="section">
+          <div class="section-title">Outils Utilisés</div>
+          <ul>
+            ${report.toolsUsed.map(tool => `<li>${tool}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+
+        ${report.safetyIncidents ? `
+        <div class="alert-box">
+          <strong>⚠️ Incident de Sécurité Signalé:</strong><br>
+          ${report.safetyIncidents}
+        </div>
+        ` : ''}
+
+        ${report.qualityCheck ? `
+        <div class="quality-check">
+          <strong>✅ Contrôle Qualité Validé</strong>
+          ${report.qualityNotes ? `<br>Notes: ${report.qualityNotes}` : ''}
+        </div>
+        ` : ''}
+
+        ${report.followUpRequired ? `
+        <div class="alert-box">
+          <strong>📅 Suivi Requis</strong>
+          ${report.followUpDate ? `<br>Date de suivi: ${new Date(report.followUpDate).toLocaleDateString('fr-FR')}` : ''}
+          ${report.followUpNotes ? `<br>Notes: ${report.followUpNotes}` : ''}
+        </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+          <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
   const renderKpiCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => (
     <Card className="p-4">
       <div className="flex items-center justify-between">
@@ -418,7 +604,11 @@ export function MaintenanceReports() {
                             )}
                           </div>
                           
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => downloadInterventionReport(report)}
+                          >
                             <Download className="w-4 h-4 mr-2" />
                             Télécharger PDF
                           </Button>
