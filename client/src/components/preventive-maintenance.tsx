@@ -172,10 +172,25 @@ export function PreventiveMaintenance() {
   });
 
   const onSubmit = (data: MaintenancePlanFormData) => {
+    // Map frontend data to backend schema
+    const mappedData = {
+      planName: data.description || `Plan de ${data.maintenanceType}`,
+      equipmentType: data.maintenanceType,
+      equipmentIds: data.equipmentId, // Will be transformed to array in schema
+      frequency: data.frequency,
+      frequencyValue: data.frequencyValue,
+      tasks: data.instructions,
+      estimatedDuration: data.estimatedDuration,
+      requiredSkills: data.assignedTeam,
+      safetyRequirements: data.safetyNotes,
+      lastExecuted: data.lastMaintenance,
+      nextDue: data.nextMaintenance,
+    };
+
     if (selectedPlan) {
-      updatePlanMutation.mutate({ id: selectedPlan.id, data });
+      updatePlanMutation.mutate({ id: selectedPlan.id, data: mappedData });
     } else {
-      addPlanMutation.mutate(data);
+      addPlanMutation.mutate(mappedData);
     }
   };
 

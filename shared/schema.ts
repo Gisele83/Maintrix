@@ -499,9 +499,20 @@ export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
   completionNotes: z.string().optional(),
 });
 
-export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventiveMaintenancePlans).omit({
-  id: true,
-  createdAt: true,
+export const insertPreventiveMaintenancePlanSchema = z.object({
+  // Map frontend fields to database schema
+  planName: z.string().min(1, "Le nom du plan est requis"),
+  equipmentType: z.string().min(1, "Le type d'équipement est requis"), 
+  equipmentIds: z.string().transform(val => [parseInt(val, 10)]), // Convert single equipmentId to array
+  frequency: z.string().min(1, "La fréquence est requise"),
+  frequencyValue: z.string().transform(val => val ? parseInt(val, 10) : null).optional(),
+  tasks: z.string().transform(val => val ? val.split(',').map(t => t.trim()) : []).optional(),
+  estimatedDuration: z.string().transform(val => val ? parseInt(val, 10) : null).optional(),
+  requiredSkills: z.string().transform(val => val ? val.split(',').map(s => s.trim()) : []).optional(),
+  safetyRequirements: z.string().optional(),
+  isActive: z.boolean().default(true),
+  lastExecuted: z.string().optional().transform((str) => str ? new Date(str) : null),
+  nextDue: z.string().optional().transform((str) => str ? new Date(str) : null),
 });
 
 export const insertSparePartSchema = createInsertSchema(spareParts).omit({
