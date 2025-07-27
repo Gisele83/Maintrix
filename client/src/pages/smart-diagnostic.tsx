@@ -157,8 +157,47 @@ export default function SmartDiagnostic() {
   const getCurrentProcedure = () => {
     if (!selectedCaseId || !diagnosticResults.length) return null;
     const selectedResult = diagnosticResults.find(r => r.caseId === selectedCaseId);
-    if (!selectedResult?.caseId) return null;
-    return repairProcedures[selectedResult.caseId as keyof typeof repairProcedures] || null;
+    if (!selectedResult) return null;
+    
+    // Vérifier si nous avons une procédure prédéfinie
+    const predefinedProcedure = repairProcedures[selectedResult.caseId as keyof typeof repairProcedures];
+    if (predefinedProcedure) {
+      return predefinedProcedure;
+    }
+    
+    // Sinon, créer une procédure générique basée sur le diagnostic
+    return {
+      title: selectedResult.diagnosis || "Procédure de Réparation",
+      duration: selectedResult.estimatedDuration ? `${selectedResult.estimatedDuration}h` : "1-2 heures",
+      difficulty: selectedResult.difficulty || "Intermédiaire",
+      cost: selectedResult.estimatedCost || "N/A",
+      safetyLevel: selectedResult.riskLevel === "Élevé" ? "Élevé" : "Moyen",
+      tools: ["Outils standard", "Équipements de sécurité", "Matériel de mesure"],
+      materials: ["Pièces de rechange", "Consommables", "Produits d'entretien"],
+      steps: [
+        {
+          title: "Préparation et diagnostic",
+          description: "Préparer la zone de travail et confirmer le diagnostic",
+          duration: "15 min",
+          safety: "Port des équipements de protection individuelle obligatoire",
+          details: "Consigner l'équipement, sécuriser la zone et confirmer les symptômes identifiés"
+        },
+        {
+          title: "Exécution de la réparation",
+          description: selectedResult.solution || "Appliquer la solution recommandée",
+          duration: "45 min",
+          safety: "Suivre les consignes de sécurité spécifiques à l'équipement",
+          details: selectedResult.solution || "Exécuter la réparation selon les recommandations du diagnostic IA"
+        },
+        {
+          title: "Test et validation",
+          description: "Tester le fonctionnement et valider la réparation",
+          duration: "20 min",
+          safety: "Vérifier tous les paramètres avant remise en service",
+          details: "Effectuer les tests fonctionnels et s'assurer que les symptômes ont disparu"
+        }
+      ]
+    };
   };
   
   // ML Mode states
@@ -492,13 +531,23 @@ export default function SmartDiagnostic() {
                       <Button 
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         onClick={() => {
-                          if (selectedCaseId && getCurrentProcedure()) {
+                          console.log("Repair button clicked. selectedCaseId:", selectedCaseId, "diagnosticResults:", diagnosticResults);
+                          
+                          if (diagnosticResults.length > 0) {
+                            // Si nous avons des résultats diagnostiques, toujours permettre l'accès
+                            const caseIdToUse = selectedCaseId || (diagnosticResults[0]?.caseId);
+                            setSelectedCaseId(caseIdToUse);
                             setCurrentStep(0);
                             setRepairInProgress(false);
                             setShowRepairModal(true);
+                            
+                            toast({
+                              title: "Procédures de réparation",
+                              description: `Ouverture des procédures pour le cas ${caseIdToUse}`,
+                            });
                           } else {
                             toast({
-                              title: "Sélectionner un diagnostic",
+                              title: "Aucun diagnostic disponible",
                               description: "Veuillez d'abord réaliser un diagnostic pour accéder aux procédures",
                               variant: "destructive",
                             });
