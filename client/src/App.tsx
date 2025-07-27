@@ -14,6 +14,7 @@ import Training from "@/pages/training";
 import LearningDashboard from "@/pages/learning-dashboard";
 import Pricing from "@/pages/pricing";
 import Payment from "@/pages/payment";
+import PaymentSecurity from "@/pages/payment-security";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import SecurityDashboard from "@/pages/security-dashboard";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/learning" component={LearningDashboard} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/payment" component={Payment} />
+      <Route path="/payment-security" component={PaymentSecurity} />
       <Route path="/iot-gamification" component={IoTGamificationDashboard} />
       <Route path="/access-management" component={AccessManagement} />
       <Route path="/security-dashboard" component={SecurityDashboard} />

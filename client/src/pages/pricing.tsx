@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Header } from "@/components/header";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
   Star, 
@@ -50,15 +51,40 @@ interface AddonModule {
 
 export default function Pricing() {
   const [location, navigate] = useLocation();
+  const { toast } = useToast();
 
   const handlePlanSelection = (planName: string) => {
-    // Rediriger vers la page de paiement avec le plan sélectionné
-    navigate(`/payment?plan=${planName.toLowerCase()}`);
+    if (planName.toLowerCase() === 'freemium') {
+      // Pour Freemium, accès direct sans paiement
+      navigate('/');
+      toast({
+        title: "Bienvenue dans Smart GMAO DiagFix !",
+        description: "Vous avez accès à toutes les fonctionnalités de base gratuitement.",
+      });
+      return;
+    }
+    
+    if (planName.toLowerCase() === 'enterprise') {
+      // Pour Enterprise, rediriger vers contact
+      navigate('/support-chatbot');
+      return;
+    }
+    
+    // Pour les autres plans, préparation infrastructure paiement (désactivé pour freemium)
+    toast({
+      title: "Fonctionnalité bientôt disponible",
+      description: "Les abonnements payants seront disponibles prochainement. Profitez de la version freemium complète !",
+      variant: "default",
+    });
   };
 
   const handleAddonSelection = (addonName: string) => {
-    // Pour les modules additionnels, rediriger vers une page d'information ou de contact
-    navigate(`/payment?addon=${addonName.toLowerCase().replace(/ /g, '-')}`);
+    // Modules additionnels disponibles dans futures versions
+    toast({
+      title: "Module en préparation",
+      description: "Ce module sera disponible avec les versions payantes. Utilisez la version freemium complète !",
+      variant: "default",
+    });
   };
   const plans: PricingPlan[] = [
     {
@@ -81,8 +107,8 @@ export default function Pricing() {
       ],
       userLimit: "1 utilisateur / 1 site",
       target: "Découverte, auto-formation",
-      ctaText: "Essai gratuit 14 jours",
-      ctaVariant: "outline"
+      ctaText: "Accès gratuit immédiat",
+      ctaVariant: "default"
     },
     {
       name: "Pro",
@@ -104,8 +130,8 @@ export default function Pricing() {
       ],
       userLimit: "Jusqu'à 10 utilisateurs",
       target: "Techniciens, PME",
-      ctaText: "Essai gratuit 14 jours",
-      ctaVariant: "default"
+      ctaText: "Bientôt disponible",
+      ctaVariant: "outline"
     },
     {
       name: "Business",
@@ -127,8 +153,8 @@ export default function Pricing() {
       ],
       userLimit: "Multi-sites, équipes",
       target: "PME/ETI industrialisées",
-      ctaText: "Essai gratuit 14 jours",
-      ctaVariant: "default"
+      ctaText: "Bientôt disponible",
+      ctaVariant: "outline"
     },
     {
       name: "Enterprise",
@@ -203,7 +229,7 @@ export default function Pricing() {
             </p>
             <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 px-4 py-2 rounded-full border border-green-200 dark:border-green-800">
               <Gift className="h-4 w-4" />
-              <span className="font-medium">Essai gratuit 14 jours pour tous les plans</span>
+              <span className="font-medium">Version Freemium complète disponible gratuitement</span>
             </div>
           </div>
         </div>
@@ -344,7 +370,7 @@ export default function Pricing() {
                   <Button 
                     size="lg" 
                     className="px-8"
-                    onClick={() => navigate('/payment?demo=true')}
+                    onClick={() => navigate('/support-chatbot')}
                   >
                     <Headphones className="w-4 h-4 mr-2" />
                     Demander une démo
@@ -353,9 +379,9 @@ export default function Pricing() {
                     size="lg" 
                     variant="outline" 
                     className="px-8"
-                    onClick={() => handlePlanSelection('Pro')}
+                    onClick={() => handlePlanSelection('Freemium')}
                   >
-                    Essai gratuit 14 jours
+                    Commencer gratuitement
                   </Button>
                 </div>
               </div>

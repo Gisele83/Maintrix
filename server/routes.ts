@@ -41,6 +41,7 @@ import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
+import { registerPaymentRoutes } from "./payment-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -2408,6 +2409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to execute auto-improvement" });
     }
   });
+
+  // Intégration des routes de paiement sécurisées (VERSION FREEMIUM - désactivées)
+  console.log("🔒 Initializing secure payment infrastructure (FREEMIUM MODE)...");
+  registerPaymentRoutes(app);
+  console.log("✅ Payment routes registered (disabled for freemium version)");
 
   const httpServer = createServer(app);
   return httpServer;
