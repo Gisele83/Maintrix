@@ -37,10 +37,7 @@ import {
   Plus, 
   Search, 
   Edit,
-  AlertTriangle,
-  TrendingUp,
   Download,
-  Filter,
   Grid,
   List 
 } from "lucide-react";
@@ -53,11 +50,11 @@ interface SparePart {
   partName: string;
   category: string;
   supplier: string;
+  manufacturer: string;
   unitPrice: number;
   currentStock: number;
   minStock: number;
   maxStock: number;
-  unit: string;
   location: string;
   leadTime: number;
   description: string;
@@ -71,13 +68,13 @@ const sparePartFormSchema = z.object({
   partName: z.string().min(1, "Le nom de la pièce est requis"),
   category: z.string().min(1, "La catégorie est requise"),
   supplier: z.string().min(1, "Le fournisseur est requis"),
-  unitPrice: z.string().min(1, "Le prix unitaire est requis"),
+  manufacturer: z.string().optional(),
+  unitPrice: z.string().transform((val) => parseFloat(val)).refine((val) => val > 0, "Le prix unitaire doit être supérieur à 0"),
   currentStock: z.number().min(0, "Le stock ne peut pas être négatif"),
   minStock: z.number().min(0, "Le stock minimum ne peut pas être négatif"),
   maxStock: z.number().min(0, "Le stock maximum ne peut pas être négatif"),
-  unit: z.string().min(1, "L'unité est requise"),
   location: z.string().optional(),
-  leadTime: z.string().optional(),
+  leadTime: z.string().optional().transform((val) => val ? parseInt(val) : undefined),
   description: z.string().optional(),
 });
 
@@ -95,8 +92,8 @@ export default function InventoryManagement() {
   const queryClient = useQueryClient();
 
   // Fetch spare parts
-  const { data: spareParts = [], isLoading } = useQuery({
-    queryKey: ["/api/gmao/spare-parts"],
+  const { data: spareParts = [], isLoading } = useQuery<SparePart[]>({
+    queryKey: ["/api/spare-parts"],
   });
 
   // Form
@@ -107,11 +104,11 @@ export default function InventoryManagement() {
       partName: "",
       category: "",
       supplier: "",
+      manufacturer: "",
       unitPrice: "",
       currentStock: 0,
       minStock: 0,
       maxStock: 0,
-      unit: "",
       location: "",
       leadTime: "",
       description: "",
@@ -121,9 +118,9 @@ export default function InventoryManagement() {
   // Mutations
   const createPartMutation = useMutation({
     mutationFn: (data: SparePartFormData) =>
-      apiRequest("POST", "/api/gmao/spare-parts", data),
+      apiRequest("POST", "/api/spare-parts", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gmao/spare-parts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       toast({
         title: "Succès",
         description: "Pièce détachée créée avec succès",
@@ -131,10 +128,11 @@ export default function InventoryManagement() {
       setIsAddDialogOpen(false);
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Create part error:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la création de la pièce détachée",
+        description: error.message || "Erreur lors de la création de la pièce détachée",
         variant: "destructive",
       });
     },
@@ -142,9 +140,9 @@ export default function InventoryManagement() {
 
   const updatePartMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: SparePartFormData }) =>
-      apiRequest("PUT", `/api/gmao/spare-parts/${id}`, data),
+      apiRequest("PUT", `/api/spare-parts/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gmao/spare-parts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       toast({
         title: "Succès",
         description: "Pièce détachée modifiée avec succès",
@@ -153,10 +151,11 @@ export default function InventoryManagement() {
       setSelectedPart(null);
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Update part error:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la modification de la pièce détachée",
+        description: error.message || "Erreur lors de la modification de la pièce détachée",
         variant: "destructive",
       });
     },
@@ -179,38 +178,26 @@ export default function InventoryManagement() {
           <title>Rapport d'Inventaire - Smart GMAO DiagFix</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; }
-            h2 { color: #374151; margin-top: 30px; }
-            .summary { background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            h1 { color: #1f2937; }
             table { width: 100%; border-collapse: collapse; margin: 20px 0; }
             th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
-            th { background: #f9fafb; font-weight: bold; }
-            .alert { color: #dc2626; font-weight: bold; }
-            .good { color: #059669; }
+            th { background: #f9fafb; }
           </style>
         </head>
         <body>
           <h1>Rapport d'Inventaire des Pièces Détachées</h1>
           <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+          <p><strong>Nombre total de références:</strong> ${spareParts.length}</p>
+          <p><strong>Valeur totale du stock:</strong> ${totalValue.toFixed(2)} €</p>
           
-          <div class="summary">
-            <h2>Résumé Général</h2>
-            <p><strong>Nombre total de références:</strong> ${spareParts.length}</p>
-            <p><strong>Valeur totale du stock:</strong> ${totalValue.toFixed(2)} €</p>
-            <p><strong>Articles en stock faible:</strong> <span class="alert">${lowStockItems.length}</span></p>
-          </div>
-
-          <h2>Détail des Pièces Détachées</h2>
           <table>
             <thead>
               <tr>
                 <th>Référence</th>
                 <th>Nom</th>
-                <th>Catégorie</th>
                 <th>Stock</th>
                 <th>Prix Unitaire</th>
                 <th>Valeur</th>
-                <th>Statut</th>
               </tr>
             </thead>
             <tbody>
@@ -218,43 +205,13 @@ export default function InventoryManagement() {
                 <tr>
                   <td>${part.partNumber}</td>
                   <td>${part.partName}</td>
-                  <td>${part.category}</td>
-                  <td>${part.currentStock} ${part.unit}</td>
+                  <td>${part.currentStock}</td>
                   <td>${part.unitPrice.toFixed(2)} €</td>
                   <td>${(part.currentStock * part.unitPrice).toFixed(2)} €</td>
-                  <td class="${part.currentStock <= part.minStock ? 'alert' : 'good'}">
-                    ${part.currentStock <= part.minStock ? 'Stock faible' : 'OK'}
-                  </td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
-
-          ${lowStockItems.length > 0 ? `
-            <h2>Alertes de Stock Faible</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Référence</th>
-                  <th>Nom</th>
-                  <th>Stock Actuel</th>
-                  <th>Stock Minimum</th>
-                  <th>Recommandation</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${lowStockItems.map((part: SparePart) => `
-                  <tr>
-                    <td>${part.partNumber}</td>
-                    <td>${part.partName}</td>
-                    <td class="alert">${part.currentStock}</td>
-                    <td>${part.minStock || 0}</td>
-                    <td>Commander ${Math.max(part.maxStock - part.currentStock, part.minStock * 2)} unités</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : ''}
         </body>
       </html>
     `;
@@ -291,11 +248,11 @@ export default function InventoryManagement() {
       partName: part.partName,
       category: part.category,
       supplier: part.supplier,
+      manufacturer: part.manufacturer || "",
       unitPrice: part.unitPrice.toString(),
       currentStock: part.currentStock,
       minStock: part.minStock,
       maxStock: part.maxStock,
-      unit: part.unit,
       location: part.location || "",
       leadTime: part.leadTime?.toString() || "",
       description: part.description || "",
@@ -382,28 +339,8 @@ export default function InventoryManagement() {
                   <SelectItem value="mechanical">Mécanique</SelectItem>
                   <SelectItem value="electrical">Électrique</SelectItem>
                   <SelectItem value="hydraulic">Hydraulique</SelectItem>
-                  <SelectItem value="electronic">Électronique</SelectItem>
-                  <SelectItem value="bearing">Roulement</SelectItem>
-                  <SelectItem value="seal">Joint</SelectItem>
-                  <SelectItem value="consumable">Consommable</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -418,24 +355,12 @@ export default function InventoryManagement() {
             <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Aucune pièce trouvée</h3>
             <p className="text-muted-foreground mb-4">
-              {searchTerm || categoryFilter !== "all"
-                ? "Aucune pièce ne correspond à vos critères de recherche."
-                : "Commencez par ajouter votre première pièce détachée."}
+              Commencez par ajouter votre première pièce détachée.
             </p>
-            {!searchTerm && categoryFilter === "all" && (
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ajouter une Pièce
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
-            )}
           </CardContent>
         </Card>
       ) : (
-        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredParts.map((part: SparePart) => {
             const stockStatus = getStockStatus(part);
             return (
@@ -460,14 +385,10 @@ export default function InventoryManagement() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Catégorie:</span>
-                      <span className="text-sm font-medium">{part.category}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Stock:</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium">
-                          {part.currentStock} {part.unit}
+                          {part.currentStock}
                         </span>
                         <Badge variant={stockStatus.color as any}>
                           {stockStatus.label}
@@ -478,18 +399,6 @@ export default function InventoryManagement() {
                       <span className="text-sm text-muted-foreground">Prix unitaire:</span>
                       <span className="text-sm font-medium">{part.unitPrice.toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Valeur totale:</span>
-                      <span className="text-sm font-medium">
-                        {(part.currentStock * part.unitPrice).toFixed(2)} €
-                      </span>
-                    </div>
-                    {part.location && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Emplacement:</span>
-                        <span className="text-sm font-medium">{part.location}</span>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -579,10 +488,6 @@ function PartForm({
                     <SelectItem value="mechanical">Mécanique</SelectItem>
                     <SelectItem value="electrical">Électrique</SelectItem>
                     <SelectItem value="hydraulic">Hydraulique</SelectItem>
-                    <SelectItem value="electronic">Électronique</SelectItem>
-                    <SelectItem value="bearing">Roulement</SelectItem>
-                    <SelectItem value="seal">Joint</SelectItem>
-                    <SelectItem value="consumable">Consommable</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -603,6 +508,20 @@ function PartForm({
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="manufacturer"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Fabricant</FormLabel>
+              <FormControl>
+                <Input placeholder="ex: SKF, Bosch, Siemens" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-3 gap-4">
           <FormField
@@ -643,26 +562,13 @@ function PartForm({
           />
           <FormField
             control={form.control}
-            name="unit"
+            name="leadTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unité *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unité" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="pc">pièce</SelectItem>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="l">litre</SelectItem>
-                    <SelectItem value="m">mètre</SelectItem>
-                    <SelectItem value="m²">m²</SelectItem>
-                    <SelectItem value="set">jeu</SelectItem>
-                    <SelectItem value="pack">pack</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Délai (jours)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="7" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -720,20 +626,6 @@ function PartForm({
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="leadTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Délai de livraison (jours)</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="7" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}
