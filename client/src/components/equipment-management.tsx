@@ -72,7 +72,7 @@ export function EquipmentManagement() {
       console.log("Sending equipment data:", data);
       return apiRequest("/api/equipment", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: data
       });
     },
     onSuccess: () => {
@@ -97,7 +97,7 @@ export function EquipmentManagement() {
     mutationFn: ({ id, data }: { id: number; data: EquipmentFormData }) => 
       apiRequest(`/api/equipment/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data)
+        body: data
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
