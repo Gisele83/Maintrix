@@ -77,7 +77,7 @@ export function PreventiveMaintenance() {
   const addPlanMutation = useMutation({
     mutationFn: (data: MaintenancePlanFormData) => apiRequest("/api/preventive-maintenance-plans", {
       method: "POST",
-      body: JSON.stringify(data)
+      body: data
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/preventive-maintenance-plans"] });
@@ -101,7 +101,7 @@ export function PreventiveMaintenance() {
     mutationFn: ({ id, data }: { id: number; data: Partial<MaintenancePlanFormData> }) => 
       apiRequest(`/api/preventive-maintenance-plans/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data)
+        body: data
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/preventive-maintenance-plans"] });
@@ -283,7 +283,7 @@ export function PreventiveMaintenance() {
               form={form}
               onSubmit={onSubmit}
               isLoading={addPlanMutation.isPending}
-              equipment={equipment}
+              equipment={equipment as any[]}
             />
           </DialogContent>
         </Dialog>
@@ -440,7 +440,7 @@ export function PreventiveMaintenance() {
             form={form}
             onSubmit={onSubmit}
             isLoading={updatePlanMutation.isPending}
-            equipment={equipment}
+            equipment={equipment as any[]}
           />
         </DialogContent>
       </Dialog>
