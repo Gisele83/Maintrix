@@ -92,9 +92,14 @@ export default function InventoryManagement() {
   const queryClient = useQueryClient();
 
   // Fetch spare parts
-  const { data: spareParts = [], isLoading } = useQuery<SparePart[]>({
+  const { data: spareParts = [], isLoading, refetch } = useQuery<SparePart[]>({
     queryKey: ["/api/spare-parts"],
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache
   });
+
+  // Debug log
+  console.log("Current spare parts:", spareParts);
 
   // Form
   const form = useForm<SparePartFormData>({
@@ -117,10 +122,14 @@ export default function InventoryManagement() {
 
   // Mutations
   const createPartMutation = useMutation({
-    mutationFn: (data: SparePartFormData) =>
-      apiRequest("POST", "/api/spare-parts", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+    mutationFn: (data: SparePartFormData) => {
+      console.log("Sending data to API:", data);
+      return apiRequest("POST", "/api/spare-parts", data);
+    },
+    onSuccess: (newPart) => {
+      console.log("Part created successfully:", newPart);
+      // Force refetch instead of just invalidating
+      queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
       toast({
         title: "Succès",
         description: "Pièce détachée créée avec succès",
@@ -139,10 +148,14 @@ export default function InventoryManagement() {
   });
 
   const updatePartMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: SparePartFormData }) =>
-      apiRequest("PUT", `/api/spare-parts/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+    mutationFn: ({ id, data }: { id: number; data: SparePartFormData }) => {
+      console.log("Updating part:", id, data);
+      return apiRequest("PUT", `/api/spare-parts/${id}`, data);
+    },
+    onSuccess: (updatedPart) => {
+      console.log("Part updated successfully:", updatedPart);
+      // Force refetch instead of just invalidating
+      queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
       toast({
         title: "Succès",
         description: "Pièce détachée modifiée avec succès",
