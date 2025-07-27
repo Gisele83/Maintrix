@@ -43,21 +43,25 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
-// Types
+// Types - Aligned with database schema
 interface SparePart {
   id: number;
   partNumber: string;
   partName: string;
-  category: string;
-  supplier: string;
-  manufacturer: string;
-  unitPrice: number;
+  category: string | null;
+  supplier: string | null;
+  manufacturer: string | null;
+  unitPrice: string; // Database stores as decimal string
+  currency: string;
   currentStock: number;
   minStock: number;
   maxStock: number;
-  location: string;
-  leadTime: number;
-  description: string;
+  reorderPoint: number;
+  leadTime: number | null;
+  location: string | null;
+  description: string | null;
+  compatibleEquipment: any;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -69,7 +73,7 @@ const sparePartFormSchema = z.object({
   category: z.string().min(1, "La catégorie est requise"),
   supplier: z.string().min(1, "Le fournisseur est requis"),
   manufacturer: z.string().optional(),
-  unitPrice: z.string().transform((val) => parseFloat(val)).refine((val) => val > 0, "Le prix unitaire doit être supérieur à 0"),
+  unitPrice: z.string().refine((val) => parseFloat(val) > 0, "Le prix unitaire doit être supérieur à 0"),
   currentStock: z.number().min(0, "Le stock ne peut pas être négatif"),
   minStock: z.number().min(0, "Le stock minimum ne peut pas être négatif"),
   maxStock: z.number().min(0, "Le stock maximum ne peut pas être négatif"),
@@ -99,7 +103,8 @@ export default function InventoryManagement() {
   });
 
   // Debug log
-  console.log("Current spare parts:", spareParts);
+  console.log("Current spare parts count:", spareParts.length);
+  console.log("Spare parts data:", spareParts);
 
   // Form
   const form = useForm<SparePartFormData>({
@@ -128,8 +133,9 @@ export default function InventoryManagement() {
     },
     onSuccess: (newPart) => {
       console.log("Part created successfully:", newPart);
-      // Force refetch instead of just invalidating
-      queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
+      // Force immediate refetch
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       toast({
         title: "Succès",
         description: "Pièce détachée créée avec succès",
@@ -177,7 +183,7 @@ export default function InventoryManagement() {
   // Export functionality
   const handleExportInventory = () => {
     const totalValue = spareParts.reduce((sum: number, part: SparePart) => 
-      sum + (part.currentStock * part.unitPrice), 0
+      sum + (part.currentStock * parseFloat(part.unitPrice || '0')), 0
     );
     
     const lowStockItems = spareParts.filter((part: SparePart) => 
@@ -219,8 +225,8 @@ export default function InventoryManagement() {
                   <td>${part.partNumber}</td>
                   <td>${part.partName}</td>
                   <td>${part.currentStock}</td>
-                  <td>${part.unitPrice.toFixed(2)} €</td>
-                  <td>${(part.currentStock * part.unitPrice).toFixed(2)} €</td>
+                  <td>${parseFloat(part.unitPrice || '0').toFixed(2)} €</td>
+                  <td>${(part.currentStock * parseFloat(part.unitPrice || '0')).toFixed(2)} €</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -262,7 +268,7 @@ export default function InventoryManagement() {
       category: part.category,
       supplier: part.supplier,
       manufacturer: part.manufacturer || "",
-      unitPrice: part.unitPrice.toString(),
+      unitPrice: part.unitPrice || "0",
       currentStock: part.currentStock,
       minStock: part.minStock,
       maxStock: part.maxStock,
@@ -410,7 +416,7 @@ export default function InventoryManagement() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Prix unitaire:</span>
-                      <span className="text-sm font-medium">{part.unitPrice.toFixed(2)} €</span>
+                      <span className="text-sm font-medium">{parseFloat(part.unitPrice || '0').toFixed(2)} €</span>
                     </div>
                   </div>
                 </CardContent>
