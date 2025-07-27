@@ -163,8 +163,8 @@ export function PreventiveMaintenance() {
   });
 
   const filteredPlans = maintenancePlans.filter(plan => {
-    const matchesSearch = plan.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (plan.equipmentName && plan.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = (plan.planName && plan.planName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (plan.equipmentType && plan.equipmentType.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === "all" || 
                          (statusFilter === "active" && plan.isActive) ||
                          (statusFilter === "inactive" && !plan.isActive);
@@ -330,8 +330,8 @@ export function PreventiveMaintenance() {
       {/* Maintenance Plans Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredPlans.map((plan) => {
-          const nextMaintenanceDate = plan.nextMaintenance || 
-            calculateNextMaintenance(plan.lastMaintenance || "", plan.frequency, plan.frequencyValue);
+          const nextMaintenanceDate = plan.nextDue || 
+            calculateNextMaintenance(plan.lastExecuted || "", plan.frequency, plan.frequencyValue);
           const isMaintenanceOverdue = isOverdue(nextMaintenanceDate);
           
           return (
@@ -340,7 +340,7 @@ export function PreventiveMaintenance() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-5 h-5 text-blue-600" />
-                    <CardTitle className="text-lg">{plan.equipmentName || `Équipement ${plan.equipmentId}`}</CardTitle>
+                    <CardTitle className="text-lg">{plan.planName}</CardTitle>
                   </div>
                   <div className="flex space-x-1">
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(plan)}>
@@ -359,19 +359,21 @@ export function PreventiveMaintenance() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="font-medium text-sm text-gray-900 mb-1">Type de maintenance:</p>
-                  <p className="text-sm text-gray-600">{plan.maintenanceType}</p>
+                  <p className="font-medium text-sm text-gray-900 mb-1">Type d'équipement:</p>
+                  <p className="text-sm text-gray-600">{plan.equipmentType}</p>
                 </div>
 
                 <div>
-                  <p className="font-medium text-sm text-gray-900 mb-1">Description:</p>
-                  <p className="text-sm text-gray-600 line-clamp-2">{plan.description}</p>
+                  <p className="font-medium text-sm text-gray-900 mb-1">Tâches:</p>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {Array.isArray(plan.tasks) ? plan.tasks.join(', ') : (plan.tasks || 'Aucune tâche définie')}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Fréquence:</span>
-                    <p className="text-gray-600">{plan.frequencyValue} {plan.frequency}</p>
+                    <p className="text-gray-600">{plan.frequencyValue || ''} {plan.frequency}</p>
                   </div>
                   {plan.estimatedDuration && (
                     <div>
@@ -379,19 +381,19 @@ export function PreventiveMaintenance() {
                       <p className="text-gray-600">{plan.estimatedDuration}h</p>
                     </div>
                   )}
-                  {plan.assignedTeam && (
+                  {plan.requiredSkills && Array.isArray(plan.requiredSkills) && plan.requiredSkills.length > 0 && (
                     <div className="col-span-2">
-                      <span className="font-medium">Équipe:</span>
-                      <p className="text-gray-600">{plan.assignedTeam}</p>
+                      <span className="font-medium">Compétences:</span>
+                      <p className="text-gray-600">{plan.requiredSkills.join(', ')}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  {plan.lastMaintenance && (
+                  {plan.lastExecuted && (
                     <div className="text-sm">
-                      <span className="font-medium">Dernière maintenance:</span>
-                      <p className="text-gray-600">{new Date(plan.lastMaintenance).toLocaleDateString('fr-FR')}</p>
+                      <span className="font-medium">Dernière exécution:</span>
+                      <p className="text-gray-600">{new Date(plan.lastExecuted).toLocaleDateString('fr-FR')}</p>
                     </div>
                   )}
                   <div className="text-sm">
@@ -403,10 +405,7 @@ export function PreventiveMaintenance() {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <Badge className={getPriorityColor(plan.priority)}>
-                    {plan.priority}
-                  </Badge>
+                <div className="flex justify-end items-center pt-2">
                   <div className="flex items-center space-x-2">
                     <Badge className={getStatusColor(plan.isActive)}>
                       {plan.isActive ? "Actif" : "Inactif"}
