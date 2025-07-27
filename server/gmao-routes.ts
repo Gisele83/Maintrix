@@ -214,7 +214,7 @@ export function registerGMAORoutes(app: Express) {
   // ============= PREVENTIVE MAINTENANCE ROUTES =============
   
   // Get all preventive maintenance plans
-  app.get("/api/preventive-maintenance", async (req, res) => {
+  app.get("/api/preventive-maintenance-plans", async (req, res) => {
     try {
       const plans = await gmaoStorage.getPreventiveMaintenancePlans();
       res.json(plans);
@@ -225,8 +225,9 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Create preventive maintenance plan
-  app.post("/api/preventive-maintenance", async (req, res) => {
+  app.post("/api/preventive-maintenance-plans", async (req, res) => {
     try {
+      console.log("Received maintenance plan data:", req.body);
       const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
       const plan = await gmaoStorage.createPreventiveMaintenancePlan(data);
       res.status(201).json(plan);
@@ -237,7 +238,7 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Update preventive maintenance plan
-  app.put("/api/preventive-maintenance/:id", async (req, res) => {
+  app.put("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
