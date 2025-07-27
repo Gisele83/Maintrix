@@ -78,7 +78,7 @@ const sparePartFormSchema = z.object({
   minStock: z.number().min(0, "Le stock minimum ne peut pas être négatif"),
   maxStock: z.number().min(0, "Le stock maximum ne peut pas être négatif"),
   location: z.string().optional(),
-  leadTime: z.string().optional().transform((val) => val ? parseInt(val) : undefined),
+  leadTime: z.string().optional().transform((val) => val ? parseInt(val) : null),
   description: z.string().optional(),
 });
 
@@ -182,6 +182,7 @@ export default function InventoryManagement() {
 
   // Export functionality
   const handleExportInventory = () => {
+    console.log("Starting export process...");
     const totalValue = spareParts.reduce((sum: number, part: SparePart) => 
       sum + (part.currentStock * parseFloat(part.unitPrice || '0')), 0
     );
@@ -190,6 +191,7 @@ export default function InventoryManagement() {
       part.currentStock <= part.minStock
     );
 
+    console.log("Creating HTML content...");
     const html = `
       <!DOCTYPE html>
       <html>
@@ -235,16 +237,19 @@ export default function InventoryManagement() {
       </html>
     `;
 
+    console.log("Creating blob and download link...");
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `inventaire_${new Date().toISOString().split('T')[0]}.html`;
     document.body.appendChild(a);
+    console.log("Triggering download...");
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
+    console.log("Export completed successfully");
     toast({
       title: "Export réussi",
       description: "Le rapport d'inventaire a été téléchargé",
@@ -261,12 +266,13 @@ export default function InventoryManagement() {
   };
 
   const handleEdit = (part: SparePart) => {
+    console.log("Editing part:", part);
     setSelectedPart(part);
     form.reset({
       partNumber: part.partNumber,
       partName: part.partName,
-      category: part.category,
-      supplier: part.supplier,
+      category: part.category || "",
+      supplier: part.supplier || "",
       manufacturer: part.manufacturer || "",
       unitPrice: part.unitPrice || "0",
       currentStock: part.currentStock,
@@ -276,6 +282,7 @@ export default function InventoryManagement() {
       leadTime: part.leadTime?.toString() || "",
       description: part.description || "",
     });
+    console.log("Opening edit dialog...");
     setIsEditDialogOpen(true);
   };
 
@@ -395,7 +402,12 @@ export default function InventoryManagement() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleEdit(part)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("Edit button clicked for part:", part.id);
+                        handleEdit(part);
+                      }}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
