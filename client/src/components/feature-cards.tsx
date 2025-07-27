@@ -25,7 +25,7 @@ const features = [
     title: "Smart Diagnostic IA",
     description: "Assistant de diagnostic intelligent avec IA avancée et ML ensemble",
     icon: Brain,
-    href: "/",
+    href: "/smart-diagnostic",
     gradient: "from-purple-500 to-pink-500",
     badge: "IA Native",
     features: ["9 algorithmes ML", "Diagnostic en temps réel", "Suggestions automatiques", "Auto-apprentissage"],
