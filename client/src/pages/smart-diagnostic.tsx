@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -24,7 +27,16 @@ import {
   AlertTriangle,
   CheckCircle,
   Zap,
-  ArrowLeft
+  ArrowLeft,
+  Play,
+  Pause,
+  RotateCcw,
+  Shield,
+  FileText,
+  Timer,
+  Euro,
+  ChevronRight,
+  X
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -56,6 +68,98 @@ export default function SmartDiagnostic() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState("");
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [repairInProgress, setRepairInProgress] = useState(false);
+
+  // Données de procédures de réparation
+  const repairProcedures = {
+    1: {
+      title: "Remplacement Roulement Défectueux",
+      duration: "2-3 heures",
+      difficulty: "Intermédiaire",
+      cost: "230€",
+      safetyLevel: "Élevé",
+      tools: ["Extracteur de roulement", "Marteau à inertie", "Presse hydraulique", "Tournevis", "Clés mixtes"],
+      materials: ["Roulement neuf SKF 6308", "Graisse lithium", "Joint d'étanchéité"],
+      steps: [
+        {
+          title: "Préparation et sécurité",
+          description: "Consigner l'équipement et s'équiper des EPI",
+          duration: "10 min",
+          safety: "Port du casque, lunettes et gants obligatoires",
+          details: "Couper l'alimentation électrique, verrouiller les organes de commande et afficher la consignation"
+        },
+        {
+          title: "Démontage du roulement usagé",
+          description: "Retirer le roulement défaillant avec l'extracteur",
+          duration: "45 min",
+          safety: "Attention aux projections lors de l'extraction",
+          details: "Utiliser l'extracteur progressivement, contrôler l'état de l'arbre et du logement"
+        },
+        {
+          title: "Nettoyage et inspection",
+          description: "Nettoyer le logement et vérifier l'alignement",
+          duration: "30 min",
+          safety: "Utiliser des solvants dans un local ventilé",
+          details: "Dégraisser complètement, mesurer les côtes, contrôler l'état des surfaces"
+        },
+        {
+          title: "Montage du nouveau roulement",
+          description: "Installer le roulement neuf avec la presse",
+          duration: "60 min",
+          safety: "Respecter le sens de montage et l'effort de serrage",
+          details: "Chauffer légèrement le roulement, emmener progressivement en butée"
+        },
+        {
+          title: "Remontage et test",
+          description: "Remonter l'ensemble et effectuer les essais",
+          duration: "35 min",
+          safety: "Vérifier le serrage avant mise en route",
+          details: "Test à vide puis en charge progressive, contrôler température et vibrations"
+        }
+      ]
+    },
+    8: {
+      title: "Réparation Amorçage Déficient Pompe",
+      duration: "1-2 heures",
+      difficulty: "Facile",
+      cost: "71€",
+      safetyLevel: "Moyen",
+      tools: ["Manomètre", "Clés plates", "Multimètre", "Tournevis"],
+      materials: ["Joint de bride", "Huile hydraulique", "Filtre à air"],
+      steps: [
+        {
+          title: "Diagnostic préliminaire",
+          description: "Vérifier les niveaux et pressions",
+          duration: "15 min",
+          safety: "Attention à la pression résiduelle",
+          details: "Contrôler niveau réservoir, état des flexibles, pression d'aspiration"
+        },
+        {
+          title: "Purge circuit aspiration",
+          description: "Éliminer l'air du circuit d'aspiration",
+          duration: "30 min",
+          safety: "Manipuler l'huile avec précaution",
+          details: "Ouvrir les purgeurs, faire tourner la pompe manuellement, contrôler l'étanchéité"
+        },
+        {
+          title: "Contrôle et ajustement",
+          description: "Vérifier l'amorçage et ajuster les paramètres",
+          duration: "45 min",
+          safety: "Surveiller la température d'huile",
+          details: "Test d'amorçage automatique, réglage pression, contrôle débits"
+        }
+      ]
+    }
+  };
+
+  const getCurrentProcedure = () => {
+    if (!selectedCaseId || !diagnosticResults.length) return null;
+    const selectedResult = diagnosticResults.find(r => r.caseId === selectedCaseId);
+    if (!selectedResult?.caseId) return null;
+    return repairProcedures[selectedResult.caseId as keyof typeof repairProcedures] || null;
+  };
   
   // ML Mode states
   const [advancedMode, setAdvancedMode] = useState(false);
@@ -85,6 +189,11 @@ export default function SmartDiagnostic() {
       setCloudSearchPerformed(result.cloudSearchPerformed || false);
       setCloudInsights(result.cloudInsights || "");
       setIsAnalyzing(false);
+      
+      // Sélectionner automatiquement le premier cas pour les procédures de réparation
+      if (result.suggestions && result.suggestions.length > 0 && result.suggestions[0].caseId) {
+        setSelectedCaseId(result.suggestions[0].caseId);
+      }
       
       const mlType = result.ensembleML ? " (Ensemble ML)" : 
                    result.enhancedML ? " (Enhanced ML)" : 
@@ -383,11 +492,10 @@ export default function SmartDiagnostic() {
                       <Button 
                         className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         onClick={() => {
-                          if (selectedCaseId) {
-                            toast({
-                              title: "Procédures de réparation",
-                              description: "Lancement des procédures pour le cas sélectionné",
-                            });
+                          if (selectedCaseId && getCurrentProcedure()) {
+                            setCurrentStep(0);
+                            setRepairInProgress(false);
+                            setShowRepairModal(true);
                           } else {
                             toast({
                               title: "Sélectionner un diagnostic",
@@ -470,6 +578,231 @@ export default function SmartDiagnostic() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Modal de procédures de réparation */}
+        <Dialog open={showRepairModal} onOpenChange={setShowRepairModal}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-3">
+                <Wrench className="h-6 w-6 text-blue-600" />
+                <span>{getCurrentProcedure()?.title}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowRepairModal(false)}
+                  className="ml-auto"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+
+            {getCurrentProcedure() && (
+              <div className="space-y-6">
+                {/* Informations générales */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Timer className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Durée</p>
+                      <p className="font-medium">{getCurrentProcedure()?.duration}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Difficulté</p>
+                      <p className="font-medium">{getCurrentProcedure()?.difficulty}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Euro className="h-4 w-4 text-purple-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Coût</p>
+                      <p className="font-medium">{getCurrentProcedure()?.cost}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Shield className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Sécurité</p>
+                      <p className="font-medium">{getCurrentProcedure()?.safetyLevel}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progression */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Progression</h3>
+                    <span className="text-sm text-gray-500">
+                      Étape {currentStep + 1} sur {getCurrentProcedure()?.steps.length}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(currentStep / (getCurrentProcedure()?.steps.length || 1)) * 100} 
+                    className="h-2"
+                  />
+                </div>
+
+                {/* Outils et matériaux */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-3 flex items-center">
+                      <Wrench className="h-4 w-4 mr-2 text-blue-600" />
+                      Outils requis
+                    </h4>
+                    <ul className="space-y-1 text-sm">
+                      {getCurrentProcedure()?.tools.map((tool, index) => (
+                        <li key={index} className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full mr-2" />
+                          {tool}
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-3 flex items-center">
+                      <FileText className="h-4 w-4 mr-2 text-green-600" />
+                      Matériaux
+                    </h4>
+                    <ul className="space-y-1 text-sm">
+                      {getCurrentProcedure()?.materials.map((material, index) => (
+                        <li key={index} className="flex items-center">
+                          <div className="w-2 h-2 bg-green-600 rounded-full mr-2" />
+                          {material}
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                </div>
+
+                {/* Étapes de réparation */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Étapes de réparation</h3>
+                  {getCurrentProcedure()?.steps.map((step, index) => (
+                    <Card 
+                      key={index} 
+                      className={`p-4 transition-all duration-200 ${
+                        index === currentStep 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : index < currentStep 
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-4">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          index === currentStep 
+                            ? 'bg-blue-600 text-white' 
+                            : index < currentStep 
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {index < currentStep ? <CheckCircle className="h-4 w-4" /> : index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold">{step.title}</h4>
+                            <Badge variant="outline" className="text-xs">
+                              {step.duration}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-600 mb-3">{step.description}</p>
+                          
+                          {index === currentStep && (
+                            <div className="space-y-3 mt-4 p-3 bg-white rounded border">
+                              <div className="flex items-start space-x-2">
+                                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5" />
+                                <div>
+                                  <p className="font-medium text-orange-800 text-sm">Sécurité</p>
+                                  <p className="text-sm text-orange-700">{step.safety}</p>
+                                </div>
+                              </div>
+                              <Separator />
+                              <div>
+                                <p className="font-medium text-sm mb-1">Détails de l'étape</p>
+                                <p className="text-sm text-gray-600">{step.details}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Contrôles de navigation */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                    disabled={currentStep === 0}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Étape précédente
+                  </Button>
+
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant={repairInProgress ? "secondary" : "default"}
+                      onClick={() => setRepairInProgress(!repairInProgress)}
+                    >
+                      {repairInProgress ? (
+                        <>
+                          <Pause className="h-4 w-4 mr-2" />
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Démarrer
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCurrentStep(0);
+                        setRepairInProgress(false);
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Recommencer
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (currentStep < (getCurrentProcedure()?.steps.length || 1) - 1) {
+                        setCurrentStep(currentStep + 1);
+                      } else {
+                        toast({
+                          title: "Réparation terminée",
+                          description: "Toutes les étapes ont été complétées avec succès",
+                        });
+                        setShowRepairModal(false);
+                      }
+                    }}
+                  >
+                    {currentStep < (getCurrentProcedure()?.steps.length || 1) - 1 ? (
+                      <>
+                        Étape suivante
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </>
+                    ) : (
+                      <>
+                        Terminer
+                        <CheckCircle className="h-4 w-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
