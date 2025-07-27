@@ -741,10 +741,10 @@ export default function SmartDiagnostic() {
                       </p>
                       <Button 
                         className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                        onClick={() => {
+                        onClick={async () => {
+                          // Charger l'historique puis ouvrir le modal
+                          await loadDiagnosticHistory();
                           setShowHistoryModal(true);
-                          // Charger l'historique depuis l'API
-                          loadDiagnosticHistory();
                         }}
                       >
                         <History className="h-4 w-4 mr-2" />
