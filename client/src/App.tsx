@@ -23,7 +23,7 @@ import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import InventoryManagement from "@/pages/inventory-management";
 import WorkOrders from "@/pages/work-orders";
-import EquipmentManagement from "@/pages/equipment-management";
+import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import MaintenanceDashboard from "@/pages/maintenance-dashboard";
 import NotFound from "@/pages/not-found";
@@ -52,6 +52,7 @@ function Router() {
       <Route path="/advanced-reporting" component={AdvancedReporting} />
       <Route path="/inventory" component={InventoryManagement} />
       <Route path="/equipment" component={EquipmentManagement} />
+      <Route path="/equipment-management" component={EquipmentManagement} />
       <Route path="/work-orders" component={WorkOrders} />
       <Route path="/preventive" component={PreventiveMaintenance} />
       <Route path="/maintenance-dashboard" component={MaintenanceDashboard} />

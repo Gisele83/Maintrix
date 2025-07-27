@@ -18,16 +18,17 @@ import { useToast } from "@/hooks/use-toast";
 const equipmentSchema = z.object({
   equipmentName: z.string().min(1, "Nom de l'équipement requis"),
   equipmentType: z.string().min(1, "Type d'équipement requis"),
-  equipmentCode: z.string().min(1, "Code équipement requis"),
+  equipmentId: z.string().min(1, "ID équipement requis"),
   location: z.string().min(1, "Localisation requise"),
   zone: z.string().min(1, "Zone requise"),
-  status: z.string().min(1, "Statut requis"),
+  operationalState: z.string().min(1, "Statut requis"),
   criticalityLevel: z.string().min(1, "Niveau de criticité requis"),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
   serialNumber: z.string().optional(),
   installationDate: z.string().optional(),
-  specifications: z.string().optional(),
+  sector: z.string().optional(),
+  technicalSpecs: z.string().optional(),
   maintenanceNotes: z.string().optional()
 });
 
@@ -37,16 +38,17 @@ interface Equipment {
   id: number;
   equipmentName: string;
   equipmentType: string;
-  equipmentCode: string;
+  equipmentId: string;
   location: string;
   zone: string;
-  status: string;
+  operationalState: string;
   criticalityLevel: string;
   manufacturer?: string;
   model?: string;
   serialNumber?: string;
   installationDate?: string;
-  specifications?: string;
+  sector?: string;
+  technicalSpecs?: any;
   maintenanceNotes?: string;
   createdAt?: string;
 }
@@ -66,10 +68,13 @@ export function EquipmentManagement() {
 
   // Add equipment mutation
   const addEquipmentMutation = useMutation({
-    mutationFn: (data: EquipmentFormData) => apiRequest("/api/equipment", {
-      method: "POST",
-      body: JSON.stringify(data)
-    }),
+    mutationFn: (data: EquipmentFormData) => {
+      console.log("Sending equipment data:", data);
+      return apiRequest("/api/equipment", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
       setIsAddDialogOpen(false);
@@ -138,23 +143,24 @@ export function EquipmentManagement() {
     defaultValues: {
       equipmentName: "",
       equipmentType: "",
-      equipmentCode: "",
+      equipmentId: "",
       location: "",
       zone: "",
-      status: "operational",
+      operationalState: "operational",
       criticalityLevel: "medium",
       manufacturer: "",
       model: "",
       serialNumber: "",
       installationDate: "",
-      specifications: "",
+      sector: "",
+      technicalSpecs: "",
       maintenanceNotes: ""
     }
   });
 
   const filteredEquipment = equipment.filter(eq =>
     eq.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    eq.equipmentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    eq.equipmentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     eq.equipmentType.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -171,16 +177,17 @@ export function EquipmentManagement() {
     form.reset({
       equipmentName: equipment.equipmentName,
       equipmentType: equipment.equipmentType,
-      equipmentCode: equipment.equipmentCode,
+      equipmentId: equipment.equipmentId,
       location: equipment.location,
       zone: equipment.zone,
-      status: equipment.status,
+      operationalState: equipment.operationalState,
       criticalityLevel: equipment.criticalityLevel,
       manufacturer: equipment.manufacturer || "",
       model: equipment.model || "",
       serialNumber: equipment.serialNumber || "",
       installationDate: equipment.installationDate || "",
-      specifications: equipment.specifications || "",
+      sector: equipment.sector || "",
+      technicalSpecs: equipment.technicalSpecs || "",
       maintenanceNotes: equipment.maintenanceNotes || ""
     });
     setIsEditDialogOpen(true);
@@ -192,8 +199,8 @@ export function EquipmentManagement() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (operationalState: string) => {
+    switch (operationalState) {
       case "operational": return "bg-green-100 text-green-800";
       case "maintenance": return "bg-yellow-100 text-yellow-800";
       case "broken": return "bg-red-100 text-red-800";
@@ -285,8 +292,8 @@ export function EquipmentManagement() {
             <CardContent className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="font-medium">Code:</span>
-                  <p className="text-gray-600">{eq.equipmentCode}</p>
+                  <span className="font-medium">ID:</span>
+                  <p className="text-gray-600">{eq.equipmentId}</p>
                 </div>
                 <div>
                   <span className="font-medium">Type:</span>
@@ -303,8 +310,8 @@ export function EquipmentManagement() {
               </div>
               
               <div className="flex justify-between items-center pt-2">
-                <Badge className={getStatusColor(eq.status)}>
-                  {eq.status}
+                <Badge className={getStatusColor(eq.operationalState)}>
+                  {eq.operationalState}
                 </Badge>
                 <Badge className={getCriticalityColor(eq.criticalityLevel)}>
                   {eq.criticalityLevel}
@@ -386,10 +393,10 @@ function EquipmentForm({
           
           <FormField
             control={form.control}
-            name="equipmentCode"
+            name="equipmentId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Code équipement *</FormLabel>
+                <FormLabel>ID équipement *</FormLabel>
                 <FormControl>
                   <Input placeholder="ex: STS-001" {...field} />
                 </FormControl>
@@ -435,7 +442,7 @@ function EquipmentForm({
 
           <FormField
             control={form.control}
-            name="status"
+            name="operationalState"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Statut *</FormLabel>
@@ -448,7 +455,7 @@ function EquipmentForm({
                   <SelectContent>
                     <SelectItem value="operational">Opérationnel</SelectItem>
                     <SelectItem value="maintenance">En maintenance</SelectItem>
-                    <SelectItem value="broken">En panne</SelectItem>
+                    <SelectItem value="offline">Hors ligne</SelectItem>
                     <SelectItem value="decommissioned">Hors service</SelectItem>
                   </SelectContent>
                 </Select>
@@ -594,7 +601,7 @@ function EquipmentForm({
 
         <FormField
           control={form.control}
-          name="specifications"
+          name="technicalSpecs"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Spécifications techniques</FormLabel>
