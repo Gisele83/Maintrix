@@ -21,6 +21,7 @@ import { EquipmentManagement } from "@/components/equipment-management";
 import { WorkOrderManagement } from "@/components/work-order-management";
 import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import InventoryManagement from "@/components/inventory-management-rebuilt";
+import InventoryDiagnostic from "@/components/inventory-diagnostic";
 import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard-simple";
 import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
@@ -419,7 +420,10 @@ export default function GMAODashboard() {
         )}
 
         {activeTab === "inventory" && (
-          <InventoryManagement />
+          <div className="space-y-6">
+            <InventoryDiagnostic />
+            <InventoryManagement />
+          </div>
         )}
 
         {activeTab === "procurement" && (
