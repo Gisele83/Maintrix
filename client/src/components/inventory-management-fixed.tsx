@@ -99,6 +99,8 @@ export default function InventoryManagement() {
     queryKey: ["/api/spare-parts"],
     staleTime: 0,
     gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   console.log("Current spare parts:", spareParts.length, spareParts);
@@ -130,12 +132,20 @@ export default function InventoryManagement() {
     },
     onSuccess: async (newPart) => {
       console.log("Part created successfully:", newPart);
-      await refetch();
+      
+      // Force multiple refresh strategies
+      await queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       await queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
+      await refetch();
+      
+      // Add small delay to ensure UI updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+      }, 100);
       
       toast({
         title: "Succès",
-        description: "Pièce détachée créée avec succès",
+        description: `Pièce ${newPart?.partName || 'détachée'} créée avec succès`,
       });
       setIsAddDialogOpen(false);
       form.reset();
@@ -158,12 +168,20 @@ export default function InventoryManagement() {
     },
     onSuccess: async (updatedPart) => {
       console.log("Part updated successfully:", updatedPart);
-      await refetch();
+      
+      // Force multiple refresh strategies
+      await queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       await queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
+      await refetch();
+      
+      // Add small delay to ensure UI updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+      }, 100);
       
       toast({
         title: "Succès",
-        description: "Pièce détachée modifiée avec succès",
+        description: `Pièce ${updatedPart?.partName || 'détachée'} modifiée avec succès`,
       });
       setIsEditDialogOpen(false);
       setSelectedPart(null);
@@ -180,20 +198,25 @@ export default function InventoryManagement() {
   });
 
   // Export functionality with full logging
-  const handleExportInventory = () => {
+  const handleExportInventory = async () => {
     console.log("=== STARTING EXPORT PROCESS ===");
-    console.log("Parts to export:", spareParts.length);
     
-    if (spareParts.length === 0) {
+    // Force refresh before export
+    await refetch();
+    const currentParts = spareParts.length > 0 ? spareParts : [];
+    console.log("Parts to export:", currentParts.length);
+    
+    if (currentParts.length === 0) {
       toast({
         title: "Aucune donnée",
-        description: "Aucune pièce à exporter",
+        description: "Aucune pièce à exporter. Actualisation des données...",
         variant: "destructive",
       });
+      await queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
       return;
     }
 
-    const totalValue = spareParts.reduce((sum: number, part: SparePart) => 
+    const totalValue = currentParts.reduce((sum: number, part: SparePart) => 
       sum + (part.currentStock * parseFloat(part.unitPrice || '0')), 0
     );
     
@@ -221,7 +244,7 @@ export default function InventoryManagement() {
           <div class="summary">
             <h3>📊 Résumé</h3>
             <p><strong>Date du rapport:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-            <p><strong>Nombre total de références:</strong> ${spareParts.length}</p>
+            <p><strong>Nombre total de références:</strong> ${currentParts.length}</p>
             <p><strong>Valeur totale du stock:</strong> ${totalValue.toFixed(2)} €</p>
           </div>
           
@@ -240,7 +263,7 @@ export default function InventoryManagement() {
               </tr>
             </thead>
             <tbody>
-              ${spareParts.map((part: SparePart) => {
+              ${currentParts.map((part: SparePart) => {
                 const totalPartValue = part.currentStock * parseFloat(part.unitPrice || '0');
                 const stockStatus = part.currentStock <= part.minStock ? 'stock-low' : 
                                   part.currentStock >= part.maxStock ? 'stock-high' : '';
@@ -284,8 +307,8 @@ export default function InventoryManagement() {
 
     console.log("=== EXPORT COMPLETED ===");
     toast({
-      title: "Export réussi ✅",
-      description: `Rapport généré avec ${spareParts.length} pièces`,
+      title: "Export réussi",
+      description: `Rapport généré avec ${currentParts.length} pièces`,
     });
   };
 
