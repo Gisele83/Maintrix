@@ -94,28 +94,58 @@ export default function InventoryManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch spare parts with forced refresh
-  const { data: spareParts = [], isLoading, refetch } = useQuery<SparePart[]>({
+  // Fetch spare parts with forced refresh and proper error handling
+  const { data: rawData, isLoading, error, refetch } = useQuery<SparePart[]>({
     queryKey: ["/api/spare-parts"],
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchInterval: 5000, // Refresh every 5 seconds
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  console.log("DEBUG - Current spare parts:", spareParts.length, spareParts);
+  // Ensure we always have an array and log the actual data
+  const spareParts = rawData || [];
   
-  // Filter parts
+  // Debug logging with more detail
+  console.log("=== INVENTORY MANAGEMENT DEBUG ===");
+  console.log("Raw API data:", rawData);
+  console.log("Processed spareParts:", spareParts);
+  console.log("spareParts length:", spareParts.length);
+  console.log("isLoading:", isLoading);
+  console.log("error:", error);
+  
+  if (spareParts.length > 0) {
+    console.log("First 3 parts:", spareParts.slice(0, 3));
+  }
+
+  // Robust filtering with null checks
   const filteredParts = spareParts.filter((part: SparePart) => {
-    const matchesSearch = 
-      part.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
+    if (!part) return false;
+    
+    const partName = part.partName || "";
+    const partNumber = part.partNumber || "";
+    const category = part.category || "";
+    
+    const matchesSearch = searchTerm === "" || 
+      partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      partNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesCategory = categoryFilter === "all" || category === categoryFilter;
+    
     return matchesSearch && matchesCategory;
   });
   
-  console.log("DEBUG - Filtered parts:", filteredParts.length, "Search:", searchTerm, "Category:", categoryFilter);
+  console.log("=== FILTERING RESULTS ===");
+  console.log("Original parts count:", spareParts.length);
+  console.log("Filtered parts count:", filteredParts.length);
+  console.log("Search term:", searchTerm);
+  console.log("Category filter:", categoryFilter);
+  
+  if (filteredParts.length !== spareParts.length) {
+    console.log("Some parts were filtered out");
+  }
 
   // Form with proper default values
   const form = useForm<SparePartFormData>({
