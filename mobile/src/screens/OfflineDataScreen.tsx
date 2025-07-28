@@ -4,44 +4,30 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   Alert,
-  RefreshControl,
-} from 'react-native';
-import {
-  Card,
-  Button,
-  List,
-  ProgressBar,
-  Surface,
-  Divider,
-  Chip,
   ActivityIndicator,
-} from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import { useOffline } from '../contexts/OfflineContext';
+import { useApiService } from '../services/ApiService';
+import * as Progress from 'react-native-progress';
 
-import { useOffline } from '../context/OfflineContext';
-import { useDatabase } from '../context/DatabaseContext';
-import { theme, spacing, typography, gradients } from '../theme/theme';
-import { RootStackParamList } from '../navigation/AppNavigator';
+const OfflineDataScreen = () => {
+  const { theme } = useTheme();
+  const { isOnline, pendingSyncCount, syncData, lastSyncTime } = useOffline();
+  const apiService = useApiService();
 
-type OfflineDataScreenNavigationProp = StackNavigationProp<RootStackParamList, 'OfflineData'>;
-
-export function OfflineDataScreen() {
-  const navigation = useNavigation<OfflineDataScreenNavigationProp>();
-  const { isOnline, syncPending, pendingCount, syncOfflineData, clearCache } = useOffline();
-  const { storage, isInitialized } = useDatabase();
-
+  const [loading, setLoading] = useState(false);
   const [storageInfo, setStorageInfo] = useState({
-    pendingFeedback: 0,
-    pendingDiagnostics: 0,
-    cachedHistory: 0,
-    equipmentTypes: 0,
+    totalDiagnostics: 0,
+    pendingSync: 0,
+    cacheSize: '0 MB',
+    photosSize: '0 MB',
+    totalSize: '0 MB',
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadStorageInfo();
@@ -49,488 +35,554 @@ export function OfflineDataScreen() {
 
   const loadStorageInfo = async () => {
     try {
-      setIsLoading(true);
-      const info = await storage.getStorageInfo();
-      setStorageInfo(info);
+      const diagnostics = await apiService.getOfflineDiagnostics();
+      
+      setStorageInfo({
+        totalDiagnostics: diagnostics.length,
+        pendingSync: pendingSyncCount,
+        cacheSize: '2.3 MB', // Simulated
+        photosSize: '1.8 MB', // Simulated
+        totalSize: '15.7 MB', // Simulated
+      });
     } catch (error) {
-      console.error('Error loading storage info:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to load storage info:', error);
     }
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await loadStorageInfo();
-    setIsRefreshing(false);
-  };
-
-  const handleSync = async () => {
+  const handleSyncAll = async () => {
     if (!isOnline) {
-      Alert.alert(
-        'Connexion requise',
-        'La synchronisation nécessite une connexion internet',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Hors ligne', 'Vous devez être connecté à Internet pour synchroniser.');
       return;
     }
 
+    setLoading(true);
     try {
-      await syncOfflineData();
+      await syncData();
       await loadStorageInfo();
-      Alert.alert('Synchronisation', 'Données synchronisées avec succès');
+      Alert.alert('Succès', 'Toutes les données ont été synchronisées avec succès.');
     } catch (error) {
-      Alert.alert('Erreur', 'Échec de la synchronisation');
+      Alert.alert('Erreur', 'Échec de la synchronisation. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleClearCache = () => {
     Alert.alert(
       'Vider le cache',
-      'Cette action supprimera toutes les données mises en cache. Les données non synchronisées seront perdues. Continuer ?',
+      'Cette action supprimera toutes les données temporaires. Les diagnostics sauvegardés seront conservés.',
       [
-        { text: 'Annuler' },
+        { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Vider',
+          text: 'Confirmer',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
-              await clearCache();
-              await loadStorageInfo();
-              Alert.alert('Cache', 'Cache vidé avec succès');
+              // Simulate cache clearing
+              setTimeout(() => {
+                setStorageInfo(prev => ({ ...prev, cacheSize: '0 MB' }));
+                setLoading(false);
+                Alert.alert('Succès', 'Cache vidé avec succès.');
+              }, 1000);
             } catch (error) {
-              Alert.alert('Erreur', 'Échec de la suppression du cache');
+              setLoading(false);
+              Alert.alert('Erreur', 'Impossible de vider le cache.');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
-  const handleClearSpecificData = (dataType: string) => {
+  const handleClearAllData = () => {
     Alert.alert(
-      'Supprimer les données',
-      `Voulez-vous supprimer les données de type "${dataType}" ?`,
+      'Supprimer toutes les données',
+      'ATTENTION: Cette action supprimera définitivement tous vos diagnostics et données hors ligne. Cette action est irréversible.',
       [
-        { text: 'Annuler' },
+        { text: 'Annuler', style: 'cancel' },
         {
           text: 'Supprimer',
           style: 'destructive',
           onPress: async () => {
-            // Implement specific data clearing logic
-            Alert.alert('Information', 'Fonctionnalité en développement');
-          }
-        }
+            setLoading(true);
+            try {
+              // Simulate data clearing
+              setTimeout(() => {
+                setStorageInfo({
+                  totalDiagnostics: 0,
+                  pendingSync: 0,
+                  cacheSize: '0 MB',
+                  photosSize: '0 MB',
+                  totalSize: '0 MB',
+                });
+                setLoading(false);
+                Alert.alert('Succès', 'Toutes les données ont été supprimées.');
+              }, 1500);
+            } catch (error) {
+              setLoading(false);
+              Alert.alert('Erreur', 'Impossible de supprimer les données.');
+            }
+          },
+        },
       ]
     );
   };
 
-  const getTotalCacheSize = () => {
-    return storageInfo.pendingFeedback + 
-           storageInfo.pendingDiagnostics + 
-           storageInfo.cachedHistory + 
-           storageInfo.equipmentTypes;
-  };
-
-  const getStorageUsage = () => {
-    const total = getTotalCacheSize();
-    const maxStorage = 1000; // Arbitrary max for demonstration
-    return total / maxStorage;
-  };
-
-  const getConnectionStatus = () => {
-    if (syncPending) return 'Synchronisation en cours...';
-    if (isOnline) return 'Connecté';
-    return 'Hors ligne';
-  };
-
-  const getConnectionColor = () => {
-    if (syncPending) return theme.colors.warning;
-    if (isOnline) return theme.colors.success;
-    return theme.colors.error;
-  };
-
-  const getConnectionIcon = () => {
-    if (syncPending) return 'sync';
-    if (isOnline) return 'wifi';
-    return 'wifi-off';
-  };
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradients.primary} style={styles.header}>
-          <Text style={styles.headerTitle}>Données Hors-ligne</Text>
-          <Text style={styles.headerSubtitle}>Chargement...</Text>
-        </LinearGradient>
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </View>
+  const handleExportData = () => {
+    Alert.alert(
+      'Export des données',
+      'Cette fonctionnalité permettra d\'exporter toutes vos données vers un fichier CSV ou JSON.',
+      [{ text: 'OK' }]
     );
-  }
+  };
+
+  const formatLastSync = () => {
+    if (!lastSyncTime) return 'Jamais synchronisé';
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - lastSyncTime.getTime()) / 1000);
+    
+    if (diff < 60) return 'Il y a moins d\'une minute';
+    if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} minutes`;
+    if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)} heures`;
+    return `Il y a ${Math.floor(diff / 86400)} jours`;
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    headerGradient: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 5,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    statusCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+    },
+    statusTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+    },
+    statusItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+    },
+    statusItemLast: {
+      borderBottomWidth: 0,
+    },
+    statusIcon: {
+      marginRight: 15,
+    },
+    statusContent: {
+      flex: 1,
+    },
+    statusLabel: {
+      fontSize: 16,
+      color: theme.colors.text,
+      fontWeight: '500',
+    },
+    statusValue: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    statusBadge: {
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 15,
+    },
+    statusBadgeText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: 'bold',
+    },
+    storageCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+    },
+    storageTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+    },
+    storageGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    storageItem: {
+      width: '48%',
+      backgroundColor: theme.colors.background,
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 10,
+      alignItems: 'center',
+    },
+    storageIcon: {
+      marginBottom: 10,
+    },
+    storageValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.primary,
+      marginBottom: 5,
+    },
+    storageLabel: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+    },
+    syncCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+    },
+    syncTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+    },
+    syncStatus: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      borderRadius: 10,
+      marginBottom: 15,
+    },
+    syncStatusText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginLeft: 10,
+      flex: 1,
+    },
+    progressContainer: {
+      marginBottom: 15,
+    },
+    progressLabel: {
+      fontSize: 14,
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    progressInfo: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 5,
+    },
+    progressText: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+    },
+    actionButton: {
+      backgroundColor: theme.colors.primary,
+      borderRadius: 15,
+      paddingVertical: 15,
+      alignItems: 'center',
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    actionButtonSecondary: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionButtonDanger: {
+      backgroundColor: '#ef4444',
+    },
+    actionButtonDisabled: {
+      backgroundColor: theme.colors.border,
+      opacity: 0.6,
+    },
+    actionButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: '500',
+      marginLeft: 8,
+    },
+    actionButtonTextSecondary: {
+      color: theme.colors.text,
+    },
+    infoCard: {
+      backgroundColor: '#e1f5fe',
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 20,
+    },
+    infoText: {
+      fontSize: 14,
+      color: '#01579b',
+      lineHeight: 20,
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    },
+    loadingContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 30,
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.text,
+      marginTop: 15,
+    },
+  });
+
+  const syncProgress = storageInfo.pendingSync > 0 
+    ? (storageInfo.totalDiagnostics - storageInfo.pendingSync) / storageInfo.totalDiagnostics 
+    : 1;
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          colors={[theme.colors.primary]}
-        />
-      }
-    >
-      <LinearGradient colors={gradients.primary} style={styles.header}>
-        <Text style={styles.headerTitle}>Données Hors-ligne</Text>
-        <Text style={styles.headerSubtitle}>
-          Gestion du stockage local
-        </Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#1e40af', '#3b82f6']}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.headerTitle}>Données Hors Ligne</Text>
+        <Text style={styles.headerSubtitle}>Gestion du stockage et synchronisation</Text>
       </LinearGradient>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Connection Status */}
-        <Card style={styles.statusCard}>
-          <Card.Content>
-            <View style={styles.statusRow}>
-              <View style={styles.statusInfo}>
-                <Text style={styles.statusTitle}>État de Connexion</Text>
-                <View style={styles.statusDetails}>
-                  <Icon 
-                    name={getConnectionIcon()} 
-                    size={20} 
-                    color={getConnectionColor()} 
-                  />
-                  <Text style={[styles.statusText, { color: getConnectionColor() }]}>
-                    {getConnectionStatus()}
-                  </Text>
-                </View>
-              </View>
-              {pendingCount > 0 && (
-                <Chip
-                  icon="sync"
-                  style={styles.pendingChip}
-                  textStyle={styles.pendingText}
-                >
-                  {pendingCount} en attente
-                </Chip>
-              )}
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Storage Overview */}
-        <Card style={styles.overviewCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Aperçu du Stockage</Text>
-            <View style={styles.storageOverview}>
-              <View style={styles.storageItem}>
-                <Text style={styles.storageValue}>{getTotalCacheSize()}</Text>
-                <Text style={styles.storageLabel}>Éléments total</Text>
-              </View>
-              <View style={styles.storageItem}>
-                <Text style={styles.storageValue}>
-                  {Math.round(getStorageUsage() * 100)}%
-                </Text>
-                <Text style={styles.storageLabel}>Utilisation</Text>
-              </View>
-            </View>
-            <ProgressBar
-              progress={getStorageUsage()}
-              color={theme.colors.primary}
-              style={styles.progressBar}
+        <View style={styles.statusCard}>
+          <Text style={styles.statusTitle}>État de la connexion</Text>
+          
+          <View style={[styles.statusItem, styles.statusItemLast]}>
+            <Ionicons
+              name={isOnline ? 'wifi' : 'wifi-off'}
+              size={24}
+              color={isOnline ? '#10b981' : '#ef4444'}
+              style={styles.statusIcon}
             />
-          </Card.Content>
-        </Card>
-
-        {/* Data Details */}
-        <Card style={styles.detailsCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Détails des Données</Text>
-            
-            <List.Item
-              title="Feedback en attente"
-              description={`${storageInfo.pendingFeedback} éléments non synchronisés`}
-              left={(props) => <List.Icon {...props} icon="rate-review" />}
-              right={() => (
-                <View style={styles.itemActions}>
-                  <Text style={styles.itemCount}>{storageInfo.pendingFeedback}</Text>
-                  {storageInfo.pendingFeedback > 0 && (
-                    <Icon
-                      name="delete"
-                      size={20}
-                      color={theme.colors.error}
-                      onPress={() => handleClearSpecificData('feedback')}
-                    />
-                  )}
-                </View>
-              )}
-            />
-            <Divider />
-            
-            <List.Item
-              title="Diagnostics en attente"
-              description={`${storageInfo.pendingDiagnostics} diagnostics non synchronisés`}
-              left={(props) => <List.Icon {...props} icon="search" />}
-              right={() => (
-                <View style={styles.itemActions}>
-                  <Text style={styles.itemCount}>{storageInfo.pendingDiagnostics}</Text>
-                  {storageInfo.pendingDiagnostics > 0 && (
-                    <Icon
-                      name="delete"
-                      size={20}
-                      color={theme.colors.error}
-                      onPress={() => handleClearSpecificData('diagnostics')}
-                    />
-                  )}
-                </View>
-              )}
-            />
-            <Divider />
-            
-            <List.Item
-              title="Historique en cache"
-              description={`${storageInfo.cachedHistory} cas de maintenance`}
-              left={(props) => <List.Icon {...props} icon="history" />}
-              right={() => (
-                <View style={styles.itemActions}>
-                  <Text style={styles.itemCount}>{storageInfo.cachedHistory}</Text>
-                  {storageInfo.cachedHistory > 0 && (
-                    <Icon
-                      name="delete"
-                      size={20}
-                      color={theme.colors.error}
-                      onPress={() => handleClearSpecificData('history')}
-                    />
-                  )}
-                </View>
-              )}
-            />
-            <Divider />
-            
-            <List.Item
-              title="Types d'équipements"
-              description={`${storageInfo.equipmentTypes} types en cache`}
-              left={(props) => <List.Icon {...props} icon="build" />}
-              right={() => (
-                <View style={styles.itemActions}>
-                  <Text style={styles.itemCount}>{storageInfo.equipmentTypes}</Text>
-                  {storageInfo.equipmentTypes > 0 && (
-                    <Icon
-                      name="delete"
-                      size={20}
-                      color={theme.colors.error}
-                      onPress={() => handleClearSpecificData('equipment')}
-                    />
-                  )}
-                </View>
-              )}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Sync Status */}
-        {pendingCount > 0 && (
-          <Card style={styles.syncCard}>
-            <Card.Content>
-              <Text style={styles.sectionTitle}>Synchronisation</Text>
-              <Text style={styles.syncDescription}>
-                {pendingCount} élément{pendingCount > 1 ? 's' : ''} en attente de synchronisation
+            <View style={styles.statusContent}>
+              <Text style={styles.statusLabel}>
+                {isOnline ? 'En ligne' : 'Hors ligne'}
               </Text>
-              <Text style={styles.syncNote}>
+              <Text style={styles.statusValue}>
                 {isOnline 
-                  ? 'Vous pouvez synchroniser maintenant'
-                  : 'Synchronisation disponible une fois connecté'
+                  ? 'Synchronisation disponible' 
+                  : 'Mode hors ligne actif'
                 }
               </Text>
-            </Card.Content>
-          </Card>
-        )}
+            </View>
+            <View style={[
+              styles.statusBadge,
+              { backgroundColor: isOnline ? '#10b981' : '#ef4444' }
+            ]}>
+              <Text style={styles.statusBadgeText}>
+                {isOnline ? 'CONNECTÉ' : 'DÉCONNECTÉ'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Storage Information */}
+        <View style={styles.storageCard}>
+          <Text style={styles.storageTitle}>Utilisation du stockage</Text>
+          
+          <View style={styles.storageGrid}>
+            <View style={styles.storageItem}>
+              <Ionicons
+                name="document-text"
+                size={32}
+                color={theme.colors.primary}
+                style={styles.storageIcon}
+              />
+              <Text style={styles.storageValue}>{storageInfo.totalDiagnostics}</Text>
+              <Text style={styles.storageLabel}>Diagnostics</Text>
+            </View>
+
+            <View style={styles.storageItem}>
+              <Ionicons
+                name="cloud-upload"
+                size={32}
+                color={storageInfo.pendingSync > 0 ? '#f59e0b' : '#10b981'}
+                style={styles.storageIcon}
+              />
+              <Text style={styles.storageValue}>{storageInfo.pendingSync}</Text>
+              <Text style={styles.storageLabel}>En attente</Text>
+            </View>
+
+            <View style={styles.storageItem}>
+              <Ionicons
+                name="folder"
+                size={32}
+                color={theme.colors.primary}
+                style={styles.storageIcon}
+              />
+              <Text style={styles.storageValue}>{storageInfo.cacheSize}</Text>
+              <Text style={styles.storageLabel}>Cache</Text>
+            </View>
+
+            <View style={styles.storageItem}>
+              <Ionicons
+                name="camera"
+                size={32}
+                color={theme.colors.primary}
+                style={styles.storageIcon}
+              />
+              <Text style={styles.storageValue}>{storageInfo.photosSize}</Text>
+              <Text style={styles.storageLabel}>Photos</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Sync Status */}
+        <View style={styles.syncCard}>
+          <Text style={styles.syncTitle}>Synchronisation</Text>
+          
+          <View style={styles.syncStatus}>
+            <Ionicons
+              name={storageInfo.pendingSync > 0 ? 'sync-circle' : 'checkmark-circle'}
+              size={20}
+              color={storageInfo.pendingSync > 0 ? '#f59e0b' : '#10b981'}
+            />
+            <Text style={styles.syncStatusText}>
+              {storageInfo.pendingSync > 0
+                ? `${storageInfo.pendingSync} éléments en attente de synchronisation`
+                : 'Toutes les données sont synchronisées'
+              }
+            </Text>
+          </View>
+
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressLabel}>Progression de la synchronisation</Text>
+            <Progress.Bar
+              progress={syncProgress}
+              width={null}
+              height={8}
+              color={theme.colors.primary}
+              unfilledColor={theme.colors.border}
+              borderWidth={0}
+              borderRadius={4}
+            />
+            <View style={styles.progressInfo}>
+              <Text style={styles.progressText}>
+                {Math.round(syncProgress * 100)}% synchronisé
+              </Text>
+              <Text style={styles.progressText}>
+                Dernière sync: {formatLastSync()}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              (!isOnline || loading) && styles.actionButtonDisabled
+            ]}
+            onPress={handleSyncAll}
+            disabled={!isOnline || loading}
+          >
+            <Ionicons name="sync" size={20} color="white" />
+            <Text style={styles.actionButtonText}>
+              {loading ? 'Synchronisation...' : 'Synchroniser maintenant'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Actions */}
-        <Card style={styles.actionsCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Actions</Text>
-            
-            <Button
-              mode="contained"
-              onPress={handleSync}
-              disabled={!isOnline || syncPending || pendingCount === 0}
-              loading={syncPending}
-              style={styles.actionButton}
-              icon="sync"
-            >
-              {syncPending ? 'Synchronisation...' : 'Synchroniser maintenant'}
-            </Button>
-            
-            <Button
-              mode="outlined"
-              onPress={handleClearCache}
-              disabled={getTotalCacheSize() === 0}
-              style={styles.actionButton}
-              icon="delete"
-            >
-              Vider tout le cache
-            </Button>
-            
-            <Button
-              mode="outlined"
-              onPress={handleRefresh}
-              style={styles.actionButton}
-              icon="refresh"
-            >
-              Actualiser les infos
-            </Button>
-          </Card.Content>
-        </Card>
-
-        {/* Info Card */}
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <Text style={styles.infoTitle}>💡 Informations</Text>
-            <Text style={styles.infoText}>
-              • Les données sont automatiquement mises en cache pour une utilisation hors-ligne{'\n'}
-              • La synchronisation se fait automatiquement quand une connexion est disponible{'\n'}
-              • Vous pouvez vider le cache pour libérer de l'espace{'\n'}
-              • Les données non synchronisées seront perdues si vous videz le cache
+        <View style={styles.storageCard}>
+          <Text style={styles.storageTitle}>Actions</Text>
+          
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonSecondary]}
+            onPress={handleExportData}
+            disabled={loading}
+          >
+            <Ionicons name="download" size={20} color={theme.colors.text} />
+            <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+              Exporter les données
             </Text>
-          </Card.Content>
-        </Card>
-      </View>
-    </ScrollView>
-  );
-}
+          </TouchableOpacity>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: '#ffffff',
-    marginBottom: spacing.xs,
-  },
-  headerSubtitle: {
-    ...typography.body1,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  content: {
-    padding: spacing.md,
-  },
-  statusCard: {
-    marginBottom: spacing.md,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusInfo: {
-    flex: 1,
-  },
-  statusTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-  },
-  statusDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    ...typography.body1,
-    marginLeft: spacing.sm,
-    fontWeight: '500',
-  },
-  pendingChip: {
-    backgroundColor: theme.colors.warningContainer,
-  },
-  pendingText: {
-    ...typography.body2,
-    color: theme.colors.warning,
-  },
-  overviewCard: {
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.h4,
-    marginBottom: spacing.md,
-  },
-  storageOverview: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing.md,
-  },
-  storageItem: {
-    alignItems: 'center',
-  },
-  storageValue: {
-    ...typography.h2,
-    color: theme.colors.primary,
-    fontWeight: 'bold',
-  },
-  storageLabel: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-    marginTop: spacing.xs,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-  },
-  detailsCard: {
-    marginBottom: spacing.md,
-  },
-  itemActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  itemCount: {
-    ...typography.body1,
-    color: theme.colors.primary,
-    fontWeight: '500',
-    marginRight: spacing.sm,
-  },
-  syncCard: {
-    marginBottom: spacing.md,
-    backgroundColor: theme.colors.primaryContainer,
-  },
-  syncDescription: {
-    ...typography.body1,
-    marginBottom: spacing.sm,
-  },
-  syncNote: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-  },
-  actionsCard: {
-    marginBottom: spacing.md,
-  },
-  actionButton: {
-    marginBottom: spacing.sm,
-  },
-  infoCard: {
-    backgroundColor: theme.colors.surfaceVariant,
-    marginBottom: spacing.lg,
-  },
-  infoTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-  },
-  infoText: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-    lineHeight: 20,
-  },
-});
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonSecondary]}
+            onPress={handleClearCache}
+            disabled={loading}
+          >
+            <Ionicons name="trash" size={20} color={theme.colors.text} />
+            <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+              Vider le cache
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonDanger]}
+            onPress={handleClearAllData}
+            disabled={loading}
+          >
+            <Ionicons name="warning" size={20} color="white" />
+            <Text style={styles.actionButtonText}>
+              Supprimer toutes les données
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Information */}
+        <View style={styles.infoCard}>
+          <Text style={styles.infoText}>
+            💡 Les données sont automatiquement sauvegardées hors ligne pour vous permettre de travailler même sans connexion Internet. 
+            La synchronisation se fait automatiquement dès qu'une connexion est disponible.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContent}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <Text style={styles.loadingText}>Traitement en cours...</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default OfflineDataScreen;

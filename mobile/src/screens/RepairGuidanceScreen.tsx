@@ -6,637 +6,626 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Animated,
-} from 'react-native';
-import {
-  Card,
-  Button,
-  ProgressBar,
-  Checkbox,
-  Surface,
-  Portal,
   Modal,
-  TextInput,
-  Divider,
-  Chip,
-} from 'react-native-paper';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import * as Animatable from 'react-native-animatable';
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import * as Progress from 'react-native-progress';
 
-import { theme, spacing, typography, gradients } from '../theme/theme';
-import { useOffline } from '../context/OfflineContext';
-import { RootStackParamList } from '../navigation/AppNavigator';
-
-type RepairGuidanceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'RepairGuidance'>;
-type RepairGuidanceScreenRouteProp = RouteProp<RootStackParamList, 'RepairGuidance'>;
-
-interface RepairStep {
-  id: number;
-  title: string;
-  description: string;
-  duration: number;
-  safety: string[];
-  tools: string[];
-  images?: string[];
-  warnings?: string[];
-  completed: boolean;
-}
-
-export function RepairGuidanceScreen() {
-  const navigation = useNavigation<RepairGuidanceScreenNavigationProp>();
-  const route = useRoute<RepairGuidanceScreenRouteProp>();
-  const { caseId, diagnosis } = route.params;
-  const { isOnline } = useOffline();
+const RepairGuidanceScreen = () => {
+  const { theme } = useTheme();
+  const route = useRoute();
+  const navigation = useNavigation();
+  const { diagnostic, equipmentType } = route.params as any;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [steps, setSteps] = useState<RepairStep[]>([]);
-  const [isStepCompleted, setIsStepCompleted] = useState(false);
-  const [showSafetyModal, setShowSafetyModal] = useState(false);
-  const [showToolsModal, setShowToolsModal] = useState(false);
-  const [showNotesModal, setShowNotesModal] = useState(false);
-  const [repairNotes, setRepairNotes] = useState('');
-  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [showSafetyWarning, setShowSafetyWarning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  const progressAnimation = new Animated.Value(0);
-
-  useEffect(() => {
-    generateRepairSteps();
-    setStartTime(new Date());
-  }, [caseId, diagnosis]);
-
-  useEffect(() => {
-    if (startTime && !isPaused) {
-      const interval = setInterval(() => {
-        setElapsedTime(Math.floor((new Date().getTime() - startTime.getTime()) / 1000));
-      }, 1000);
-      return () => clearInterval(interval);
+  // Generate repair steps based on diagnostic results
+  const repairSteps = [
+    {
+      id: 1,
+      title: 'Préparation et sécurité',
+      description: 'Mise en sécurité de l\'équipement et préparation des outils',
+      duration: 15,
+      tools: ['Multimètre', 'Clés de sécurité', 'EPI complet'],
+      safety: 'ATTENTION: Couper l\'alimentation électrique avant intervention',
+      instructions: [
+        'Consigner l\'équipement selon la procédure LOTO',
+        'Vérifier l\'absence de tension',
+        'Porter les équipements de protection individuelle',
+        'Préparer les outils nécessaires'
+      ]
+    },
+    {
+      id: 2,
+      title: 'Diagnostic visuel',
+      description: 'Inspection visuelle des composants principaux',
+      duration: 20,
+      tools: ['Lampe d\'inspection', 'Appareil photo'],
+      safety: 'Attention aux pièces chaudes ou sous pression',
+      instructions: [
+        'Inspecter visuellement l\'état général de l\'équipement',
+        'Rechercher des signes d\'usure, de corrosion ou de dommages',
+        'Photographier les anomalies constatées',
+        'Noter toutes les observations'
+      ]
+    },
+    {
+      id: 3,
+      title: 'Démontage ciblé',
+      description: 'Démontage des pièces défectueuses identifiées',
+      duration: 45,
+      tools: ['Clés dynamométriques', 'Extracteurs', 'Contenants étiquetés'],
+      safety: 'Respecter l\'ordre de démontage, marquer les positions',
+      instructions: [
+        'Suivre la séquence de démontage recommandée',
+        'Marquer la position des pièces avant démontage',
+        'Nettoyer et inspecter chaque pièce démontée',
+        'Ranger les pièces dans des contenants étiquetés'
+      ]
+    },
+    {
+      id: 4,
+      title: 'Remplacement des pièces',
+      description: 'Installation des nouvelles pièces de rechange',
+      duration: 30,
+      tools: ['Pièces de rechange', 'Graisse/lubrifiant', 'Chiffons'],
+      safety: 'Vérifier la compatibilité des pièces de rechange',
+      instructions: [
+        'Vérifier les références des pièces de rechange',
+        'Appliquer le lubrifiant selon les spécifications',
+        'Installer les nouvelles pièces en respectant les couples',
+        'Contrôler l\'alignement et le jeu fonctionnel'
+      ]
+    },
+    {
+      id: 5,
+      title: 'Remontage et réglages',
+      description: 'Remontage de l\'équipement et réglages finaux',
+      duration: 35,
+      tools: ['Clés dynamométriques', 'Jauges d\'épaisseur'],
+      safety: 'Respecter les couples de serrage spécifiés',
+      instructions: [
+        'Remonter dans l\'ordre inverse du démontage',
+        'Appliquer les couples de serrage spécifiés',
+        'Effectuer les réglages de jeu et d\'alignement',
+        'Vérifier la liberté de mouvement'
+      ]
+    },
+    {
+      id: 6,
+      title: 'Tests et validation',
+      description: 'Tests de fonctionnement et validation de la réparation',
+      duration: 25,
+      tools: ['Instruments de mesure', 'Protocole de test'],
+      safety: 'Effectuer les tests par étapes progressives',
+      instructions: [
+        'Effectuer les vérifications électriques',
+        'Démarrer l\'équipement à vide',
+        'Monter progressivement en charge',
+        'Valider tous les paramètres de fonctionnement'
+      ]
     }
-  }, [startTime, isPaused]);
+  ];
 
   useEffect(() => {
-    const progress = steps.length > 0 ? (currentStep + 1) / steps.length : 0;
-    Animated.timing(progressAnimation, {
-      toValue: progress,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [currentStep, steps.length]);
-
-  const generateRepairSteps = () => {
-    // Generate repair steps based on diagnosis
-    const baseSteps: RepairStep[] = [
-      {
-        id: 1,
-        title: 'Préparation et Sécurité',
-        description: 'Vérifier l\'environnement de travail et préparer les outils de sécurité',
-        duration: 5,
-        safety: [
-          'Porter des EPI (casque, gants, lunettes)',
-          'Vérifier que l\'équipement est hors tension',
-          'Mettre en place la procédure de consignation',
-          'Informer l\'équipe de maintenance'
-        ],
-        tools: ['EPI complet', 'Multimètre', 'Outils de consignation'],
-        warnings: ['Ne jamais travailler sous tension', 'Respecter les distances de sécurité'],
-        completed: false,
-      },
-      {
-        id: 2,
-        title: 'Diagnostic Visuel',
-        description: 'Inspection visuelle complète de l\'équipement et identification des anomalies',
-        duration: 10,
-        safety: [
-          'Utiliser un éclairage adapté',
-          'Éviter les contacts directs',
-          'Photographier les anomalies'
-        ],
-        tools: ['Lampe torche', 'Appareil photo', 'Loupe'],
-        completed: false,
-      },
-      {
-        id: 3,
-        title: 'Tests et Mesures',
-        description: 'Effectuer les mesures électriques et mécaniques nécessaires',
-        duration: 15,
-        safety: [
-          'Utiliser des instruments calibrés',
-          'Respecter les consignes de mesure',
-          'Vérifier la continuité des masses'
-        ],
-        tools: ['Multimètre', 'Mégohmmètre', 'Pince ampèremétrique'],
-        completed: false,
-      },
-      {
-        id: 4,
-        title: 'Réparation',
-        description: 'Exécuter les actions correctives identifiées',
-        duration: 30,
-        safety: [
-          'Suivre la procédure de maintenance',
-          'Utiliser les pièces de rechange appropriées',
-          'Documenter les interventions'
-        ],
-        tools: ['Clés', 'Tournevis', 'Pièces de rechange'],
-        warnings: ['Respecter les couples de serrage', 'Vérifier l\'alignement'],
-        completed: false,
-      },
-      {
-        id: 5,
-        title: 'Tests de Fonctionnement',
-        description: 'Vérifier le bon fonctionnement après réparation',
-        duration: 10,
-        safety: [
-          'Procéder par étapes progressives',
-          'Surveiller les paramètres de fonctionnement',
-          'Être prêt à arrêter en cas d\'anomalie'
-        ],
-        tools: ['Instruments de mesure', 'Fiche de test'],
-        completed: false,
-      },
-      {
-        id: 6,
-        title: 'Finalisation',
-        description: 'Nettoyer, ranger et documenter l\'intervention',
-        duration: 5,
-        safety: [
-          'Remettre tous les dispositifs de sécurité',
-          'Nettoyer la zone de travail',
-          'Remplir le rapport d\'intervention'
-        ],
-        tools: ['Produits de nettoyage', 'Rapport d\'intervention'],
-        completed: false,
-      },
-    ];
-
-    setSteps(baseSteps);
-  };
-
-  const handleStepComplete = () => {
-    if (currentStep < steps.length) {
-      const newSteps = [...steps];
-      newSteps[currentStep].completed = true;
-      setSteps(newSteps);
-      setIsStepCompleted(true);
-      
-      setTimeout(() => {
-        setIsStepCompleted(false);
-        if (currentStep < steps.length - 1) {
-          setCurrentStep(currentStep + 1);
-        } else {
-          handleRepairComplete();
-        }
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setElapsedTime(time => time + 1);
       }, 1000);
     }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingVertical: 15,
+    },
+    headerGradient: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 5,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 15,
+    },
+    progressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    progressInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    progressText: {
+      color: 'white',
+      fontSize: 14,
+      marginLeft: 10,
+    },
+    timerContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 15,
+    },
+    timerText: {
+      color: 'white',
+      fontSize: 14,
+      marginLeft: 5,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    stepCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary,
+    },
+    activeStepCard: {
+      borderLeftColor: '#10b981',
+      backgroundColor: `${theme.colors.success}10`,
+    },
+    completedStepCard: {
+      borderLeftColor: '#6b7280',
+      opacity: 0.7,
+    },
+    stepHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    stepNumber: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: theme.colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepNumberCompleted: {
+      backgroundColor: '#10b981',
+    },
+    stepNumberText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    stepTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      flex: 1,
+      marginLeft: 15,
+    },
+    stepDuration: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 10,
+    },
+    stepDescription: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginBottom: 15,
+    },
+    safetyWarning: {
+      backgroundColor: '#fef3cd',
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    safetyText: {
+      fontSize: 14,
+      color: '#856404',
+      marginLeft: 10,
+      flex: 1,
+    },
+    toolsContainer: {
+      marginBottom: 15,
+    },
+    toolsTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    toolsList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    toolChip: {
+      backgroundColor: theme.colors.background,
+      borderRadius: 15,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginRight: 8,
+      marginBottom: 5,
+    },
+    toolText: {
+      fontSize: 12,
+      color: theme.colors.text,
+    },
+    instructionsList: {
+      marginBottom: 20,
+    },
+    instructionItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    instructionBullet: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: theme.colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+      marginTop: 2,
+    },
+    instructionText: {
+      fontSize: 14,
+      color: theme.colors.text,
+      flex: 1,
+      lineHeight: 20,
+    },
+    stepActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    actionButton: {
+      flex: 1,
+      backgroundColor: theme.colors.primary,
+      borderRadius: 10,
+      paddingVertical: 12,
+      marginHorizontal: 5,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    actionButtonSecondary: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionButtonDisabled: {
+      backgroundColor: theme.colors.border,
+      opacity: 0.5,
+    },
+    actionButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: '500',
+      marginLeft: 5,
+    },
+    actionButtonTextSecondary: {
+      color: theme.colors.text,
+    },
+    completedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#10b981',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 15,
+    },
+    completedBadgeText: {
+      color: 'white',
+      fontSize: 12,
+      fontWeight: '500',
+      marginLeft: 5,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      margin: 20,
+      maxHeight: '80%',
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+      textAlign: 'center',
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 20,
+    },
+    modalButton: {
+      flex: 1,
+      backgroundColor: theme.colors.primary,
+      borderRadius: 10,
+      paddingVertical: 12,
+      marginHorizontal: 5,
+      alignItems: 'center',
+    },
+    modalButtonSecondary: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    modalButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    modalButtonTextSecondary: {
+      color: theme.colors.text,
+    },
+  });
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}h ${mins}m ${secs}s`;
+    }
+    return `${mins}m ${secs}s`;
   };
 
-  const handleRepairComplete = () => {
+  const handleStartTimer = () => {
+    setIsTimerRunning(true);
+  };
+
+  const handlePauseTimer = () => {
+    setIsTimerRunning(false);
+  };
+
+  const handleCompleteStep = (stepIndex: number) => {
+    if (!completedSteps.includes(stepIndex)) {
+      setCompletedSteps([...completedSteps, stepIndex]);
+    }
+    if (stepIndex < repairSteps.length - 1) {
+      setCurrentStep(stepIndex + 1);
+    }
+  };
+
+  const handleShowSafetyWarning = () => {
+    setShowSafetyWarning(true);
+  };
+
+  const handleFinishRepair = () => {
     Alert.alert(
-      'Réparation Terminée',
-      'Félicitations ! La réparation a été terminée avec succès.',
+      'Réparation terminée',
+      'Félicitations ! Vous avez terminé la procédure de réparation. Souhaitez-vous donner votre avis ?',
       [
         {
-          text: 'Ajouter des Notes',
-          onPress: () => setShowNotesModal(true)
+          text: 'Plus tard',
+          style: 'cancel',
+          onPress: () => navigation.goBack(),
         },
         {
-          text: 'Terminer',
-          onPress: () => navigation.goBack()
-        }
+          text: 'Évaluer',
+          onPress: () => navigation.navigate('Feedback' as never, { diagnostic } as never),
+        },
       ]
     );
   };
 
-  const handlePreviousStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleNextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePauseResume = () => {
-    setIsPaused(!isPaused);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getStepProgress = () => {
-    if (steps.length === 0) return 0;
-    return (currentStep + 1) / steps.length;
-  };
-
-  const currentStepData = steps[currentStep];
-
-  if (!currentStepData) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradients.primary} style={styles.header}>
-          <Text style={styles.headerTitle}>Guidance Réparation</Text>
-          <Text style={styles.headerSubtitle}>Chargement...</Text>
-        </LinearGradient>
-      </View>
-    );
-  }
+  const progress = completedSteps.length / repairSteps.length;
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.primary} style={styles.header}>
-        <Text style={styles.headerTitle}>Guidance Réparation</Text>
-        <Text style={styles.headerSubtitle}>{diagnosis}</Text>
+      <LinearGradient
+        colors={['#1e40af', '#3b82f6']}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.headerTitle}>Guide de Réparation</Text>
+        <Text style={styles.headerSubtitle}>
+          {diagnostic?.suggestions?.[0]?.issue || 'Procédure de maintenance'}
+        </Text>
         
         <View style={styles.progressContainer}>
           <View style={styles.progressInfo}>
+            <Progress.Bar
+              progress={progress}
+              width={150}
+              height={8}
+              color="white"
+              unfilledColor="rgba(255, 255, 255, 0.3)"
+              borderWidth={0}
+            />
             <Text style={styles.progressText}>
-              Étape {currentStep + 1} sur {steps.length}
-            </Text>
-            <Text style={styles.timerText}>
-              {formatTime(elapsedTime)}
+              {completedSteps.length}/{repairSteps.length} étapes
             </Text>
           </View>
-          <ProgressBar
-            progress={getStepProgress()}
-            color="#ffffff"
-            style={styles.progressBar}
-          />
+          
+          <View style={styles.timerContainer}>
+            <Ionicons name="time" size={14} color="white" />
+            <Text style={styles.timerText}>{formatTime(elapsedTime)}</Text>
+          </View>
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        <Animatable.View
-          animation={isStepCompleted ? 'pulse' : undefined}
-          duration={1000}
-        >
-          <Card style={styles.stepCard}>
-            <Card.Content>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {repairSteps.map((step, index) => {
+          const isActive = index === currentStep;
+          const isCompleted = completedSteps.includes(index);
+          const isAccessible = index === 0 || completedSteps.includes(index - 1);
+
+          return (
+            <View
+              key={step.id}
+              style={[
+                styles.stepCard,
+                isActive && styles.activeStepCard,
+                isCompleted && styles.completedStepCard,
+              ]}
+            >
               <View style={styles.stepHeader}>
-                <Text style={styles.stepTitle}>{currentStepData.title}</Text>
-                <Chip
-                  icon="schedule"
-                  style={styles.durationChip}
-                  textStyle={styles.durationText}
-                >
-                  {currentStepData.duration} min
-                </Chip>
+                <View style={styles.stepNumber}>
+                  {isCompleted ? (
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  ) : (
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
+                  )}
+                </View>
+                <Text style={styles.stepTitle}>{step.title}</Text>
+                {isCompleted ? (
+                  <View style={styles.completedBadge}>
+                    <Ionicons name="checkmark-circle" size={12} color="white" />
+                    <Text style={styles.completedBadgeText}>Terminé</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.stepDuration}>{step.duration} min</Text>
+                )}
               </View>
-              
-              <Text style={styles.stepDescription}>
-                {currentStepData.description}
-              </Text>
-            </Card.Content>
-          </Card>
-        </Animatable.View>
 
-        <View style={styles.actionButtons}>
-          <Button
-            mode="outlined"
-            onPress={() => setShowSafetyModal(true)}
-            style={styles.actionButton}
-            icon="security"
-          >
-            Sécurité ({currentStepData.safety.length})
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={() => setShowToolsModal(true)}
-            style={styles.actionButton}
-            icon="build"
-          >
-            Outils ({currentStepData.tools.length})
-          </Button>
-        </View>
+              <Text style={styles.stepDescription}>{step.description}</Text>
 
-        {currentStepData.warnings && currentStepData.warnings.length > 0 && (
-          <Card style={styles.warningCard}>
-            <Card.Content>
-              <View style={styles.warningHeader}>
-                <Icon name="warning" size={24} color={theme.colors.error} />
-                <Text style={styles.warningTitle}>Attention</Text>
-              </View>
-              {currentStepData.warnings.map((warning, index) => (
-                <Text key={index} style={styles.warningText}>
-                  • {warning}
-                </Text>
-              ))}
-            </Card.Content>
-          </Card>
-        )}
+              {isActive && (
+                <>
+                  <View style={styles.safetyWarning}>
+                    <Ionicons name="warning" size={16} color="#856404" />
+                    <Text style={styles.safetyText}>{step.safety}</Text>
+                  </View>
 
-        <View style={styles.navigationButtons}>
-          <Button
-            mode="outlined"
-            onPress={handlePreviousStep}
-            disabled={currentStep === 0}
-            style={styles.navButton}
-            icon="chevron-left"
-          >
-            Précédent
-          </Button>
-          
-          <Button
-            mode="contained"
-            onPress={handleStepComplete}
-            style={styles.completeButton}
-            icon="check"
-          >
-            {currentStep === steps.length - 1 ? 'Terminer' : 'Suivant'}
-          </Button>
-        </View>
+                  <View style={styles.toolsContainer}>
+                    <Text style={styles.toolsTitle}>Outils requis :</Text>
+                    <View style={styles.toolsList}>
+                      {step.tools.map((tool, toolIndex) => (
+                        <View key={toolIndex} style={styles.toolChip}>
+                          <Text style={styles.toolText}>{tool}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
 
-        <View style={styles.controls}>
-          <Button
-            mode="outlined"
-            onPress={handlePauseResume}
-            style={styles.controlButton}
-            icon={isPaused ? "play-arrow" : "pause"}
-          >
-            {isPaused ? 'Reprendre' : 'Pause'}
-          </Button>
-          
-          <Button
-            mode="outlined"
-            onPress={() => setShowNotesModal(true)}
-            style={styles.controlButton}
-            icon="note"
-          >
-            Notes
-          </Button>
-        </View>
+                  <View style={styles.instructionsList}>
+                    {step.instructions.map((instruction, instrIndex) => (
+                      <View key={instrIndex} style={styles.instructionItem}>
+                        <View style={styles.instructionBullet}>
+                          <Text style={styles.stepNumberText}>{instrIndex + 1}</Text>
+                        </View>
+                        <Text style={styles.instructionText}>{instruction}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.stepActions}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.actionButtonSecondary]}
+                      onPress={handleShowSafetyWarning}
+                    >
+                      <Ionicons name="shield-checkmark" size={16} color={theme.colors.text} />
+                      <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+                        Sécurité
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => {
+                        if (!isTimerRunning) handleStartTimer();
+                        handleCompleteStep(index);
+                        if (index === repairSteps.length - 1) {
+                          handleFinishRepair();
+                        }
+                      }}
+                    >
+                      <Ionicons name="checkmark" size={16} color="white" />
+                      <Text style={styles.actionButtonText}>
+                        {index === repairSteps.length - 1 ? 'Terminer' : 'Étape suivante'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {!isActive && !isCompleted && !isAccessible && (
+                <View style={styles.stepActions}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.actionButtonDisabled]}
+                    disabled={true}
+                  >
+                    <Ionicons name="lock-closed" size={16} color="white" />
+                    <Text style={styles.actionButtonText}>Verrouillé</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
 
-      {/* Safety Modal */}
-      <Portal>
-        <Modal
-          visible={showSafetyModal}
-          onDismiss={() => setShowSafetyModal(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Text style={styles.modalTitle}>Consignes de Sécurité</Text>
-          <ScrollView style={styles.modalContent}>
-            {currentStepData.safety.map((item, index) => (
-              <View key={index} style={styles.safetyItem}>
-                <Icon name="check-circle" size={20} color={theme.colors.success} />
-                <Text style={styles.safetyText}>{item}</Text>
-              </View>
-            ))}
-          </ScrollView>
-          <Button
-            mode="contained"
-            onPress={() => setShowSafetyModal(false)}
-            style={styles.modalButton}
-          >
-            Compris
-          </Button>
-        </Modal>
-      </Portal>
-
-      {/* Tools Modal */}
-      <Portal>
-        <Modal
-          visible={showToolsModal}
-          onDismiss={() => setShowToolsModal(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Text style={styles.modalTitle}>Outils Requis</Text>
-          <ScrollView style={styles.modalContent}>
-            {currentStepData.tools.map((tool, index) => (
-              <View key={index} style={styles.toolItem}>
-                <Checkbox status="unchecked" />
-                <Text style={styles.toolText}>{tool}</Text>
-              </View>
-            ))}
-          </ScrollView>
-          <Button
-            mode="contained"
-            onPress={() => setShowToolsModal(false)}
-            style={styles.modalButton}
-          >
-            Fermer
-          </Button>
-        </Modal>
-      </Portal>
-
-      {/* Notes Modal */}
-      <Portal>
-        <Modal
-          visible={showNotesModal}
-          onDismiss={() => setShowNotesModal(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Text style={styles.modalTitle}>Notes de Réparation</Text>
-          <TextInput
-            label="Observations et commentaires"
-            value={repairNotes}
-            onChangeText={setRepairNotes}
-            multiline
-            numberOfLines={5}
-            style={styles.notesInput}
-          />
-          <View style={styles.modalButtons}>
-            <Button
-              mode="outlined"
-              onPress={() => setShowNotesModal(false)}
-              style={styles.modalButton}
-            >
-              Annuler
-            </Button>
-            <Button
-              mode="contained"
-              onPress={() => {
-                // Save notes
-                setShowNotesModal(false);
-                Alert.alert('Notes', 'Notes sauvegardées avec succès');
-              }}
-              style={styles.modalButton}
-            >
-              Sauvegarder
-            </Button>
+      <Modal
+        visible={showSafetyWarning}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSafetyWarning(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>⚠️ Consignes de Sécurité</Text>
+            <ScrollView>
+              <Text style={styles.instructionText}>
+                • Toujours consigner l'équipement avant intervention{'\n'}
+                • Porter les équipements de protection individuelle{'\n'}
+                • Vérifier l'absence de tension électrique{'\n'}
+                • Respecter les procédures LOTO (Lock Out Tag Out){'\n'}
+                • Ne jamais travailler seul sur les équipements critiques{'\n'}
+                • Signaler immédiatement tout incident ou anomalie{'\n'}
+                • Suivre les procédures d'urgence en cas de problème
+              </Text>
+            </ScrollView>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowSafetyWarning(false)}
+              >
+                <Text style={styles.modalButtonText}>Compris</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+      </Modal>
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: spacing.lg,
-    paddingTop: spacing.xl,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: '#ffffff',
-    marginBottom: spacing.xs,
-  },
-  headerSubtitle: {
-    ...typography.body1,
-    color: '#ffffff',
-    opacity: 0.9,
-    marginBottom: spacing.md,
-  },
-  progressContainer: {
-    marginTop: spacing.md,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  progressText: {
-    ...typography.body2,
-    color: '#ffffff',
-  },
-  timerText: {
-    ...typography.body2,
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  content: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  stepCard: {
-    marginBottom: spacing.md,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  stepTitle: {
-    ...typography.h3,
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  durationChip: {
-    backgroundColor: theme.colors.primaryContainer,
-  },
-  durationText: {
-    ...typography.body2,
-    color: theme.colors.primary,
-  },
-  stepDescription: {
-    ...typography.body1,
-    lineHeight: 24,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
-  },
-  warningCard: {
-    marginBottom: spacing.md,
-    backgroundColor: theme.colors.errorContainer,
-  },
-  warningHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  warningTitle: {
-    ...typography.h4,
-    color: theme.colors.error,
-    marginLeft: spacing.sm,
-  },
-  warningText: {
-    ...typography.body2,
-    color: theme.colors.error,
-    marginBottom: spacing.xs,
-  },
-  navigationButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-  },
-  navButton: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  completeButton: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  controlButton: {
-    flex: 1,
-    marginHorizontal: spacing.xs,
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.surface,
-    margin: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: theme.roundness,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    ...typography.h3,
-    marginBottom: spacing.md,
-  },
-  modalContent: {
-    maxHeight: 400,
-    marginBottom: spacing.md,
-  },
-  modalButton: {
-    marginTop: spacing.md,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
-  safetyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  safetyText: {
-    ...typography.body1,
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  toolItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  toolText: {
-    ...typography.body1,
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  notesInput: {
-    marginBottom: spacing.md,
-    minHeight: 120,
-  },
-});
+export default RepairGuidanceScreen;

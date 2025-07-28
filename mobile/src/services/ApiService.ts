@@ -1,251 +1,237 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import NetInfo from '@react-native-netinfo/netinfo';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { OfflineStorage } from './OfflineStorage';
+import { useOffline } from '../contexts/OfflineContext';
+import { useDatabase } from '../contexts/DatabaseContext';
 
-export interface DiagnosticRequest {
+const API_BASE_URL = 'http://your-server-url.com/api'; // Replace with your actual server URL
+
+interface DiagnosticRequest {
   equipmentType: string;
-  symptoms: string;
-  symptomsChecked: string[];
-  urgency: 'low' | 'medium' | 'high';
+  equipmentId?: string;
+  symptoms: string[];
   zone?: string;
   sector?: string;
-  equipmentId?: string;
-  advancedMode?: boolean;
-  enhancedMode?: boolean;
-  ensembleMode?: boolean;
+  urgencyLevel: string;
+  mlMode: string;
 }
 
-export interface DiagnosticSuggestion {
-  id: number;
-  diagnosis: string;
-  solution: string;
-  confidence: number;
-  estimatedDuration: number;
-  estimatedCost: string;
+interface DiagnosticResponse {
+  suggestions: any[];
+  confidenceScore: number;
   riskLevel: string;
-  aiInsights: string;
-  equipmentType: string;
-  urgency: string;
-  mlMetrics?: {
-    neuralNetwork?: number;
-    svm?: number;
-    anomalyScore?: number;
-    ensembleAgreement?: number;
-  };
-}
-
-export interface DiagnosticResponse {
-  suggestions: DiagnosticSuggestion[];
-  sessionId: number;
-  mlEnabled: boolean;
-  advancedML: boolean;
-  enhancedML: boolean;
-  ensembleML: boolean;
-}
-
-export interface MaintenanceCase {
-  id: number;
-  equipmentType: string;
-  symptoms: string;
-  diagnosis: string;
-  solution: string;
-  estimatedDuration: number;
-  estimatedCost: string;
-  createdAt: string;
-}
-
-export interface FeedbackData {
-  sessionId: number;
-  rating: number;
-  helpful: boolean | null;
-  comments: string;
-  suggestionsAccuracy: string;
-  timestamp: string;
+  estimatedCost: number;
+  insights: string[];
 }
 
 class ApiService {
-  private api: AxiosInstance;
-  private baseURL: string;
-  private offlineStorage: OfflineStorage;
+  private isOnline: boolean = true;
+  private executeQuery: any = null;
 
   constructor() {
-    // Default to localhost for development, can be configured
-    this.baseURL = __DEV__ ? 'http://localhost:5000' : 'https://your-production-api.com';
-    this.offlineStorage = new OfflineStorage();
-    
-    this.api = axios.create({
-      baseURL: this.baseURL,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    // These will be set by the hook
+  }
 
-    // Add request interceptor for offline handling
-    this.api.interceptors.request.use(
-      async (config) => {
-        const netInfo = await NetInfo.fetch();
-        if (!netInfo.isConnected) {
-          throw new Error('NO_INTERNET');
+  setOnlineStatus(isOnline: boolean) {
+    this.isOnline = isOnline;
+  }
+
+  setDatabaseQuery(executeQuery: any) {
+    this.executeQuery = executeQuery;
+  }
+
+  async performDiagnostic(request: DiagnosticRequest): Promise<DiagnosticResponse> {
+    if (this.isOnline) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/diagnostic`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-        return config;
-      },
-      (error) => Promise.reject(error)
+
+        const data = await response.json();
+        
+        // Cache the result for offline use
+        await this.cacheData(`diagnostic_${Date.now()}`, data);
+        
+        return data;
+      } catch (error) {
+        console.error('API call failed, falling back to offline mode:', error);
+        return this.performOfflineDiagnostic(request);
+      }
+    } else {
+      return this.performOfflineDiagnostic(request);
+    }
+  }
+
+  private async performOfflineDiagnostic(request: DiagnosticRequest): Promise<DiagnosticResponse> {
+    // Offline diagnostic logic using cached data and simple rules
+    const symptoms = request.symptoms.join(' ').toLowerCase();
+    
+    let suggestions = [];
+    let confidenceScore = 0.6; // Lower confidence for offline
+    let riskLevel = 'medium';
+    let estimatedCost = 100;
+
+    // Simple pattern matching for common issues
+    if (symptoms.includes('vibration') || symptoms.includes('bruit')) {
+      suggestions.push({
+        issue: 'Problème de roulement ou d\'alignement',
+        solution: 'Vérifier les roulements et l\'alignement',
+        priority: 'high',
+        estimatedTime: 120,
+      });
+      riskLevel = 'high';
+      estimatedCost = 250;
+      confidenceScore = 0.7;
+    } else if (symptoms.includes('temperature') || symptoms.includes('chauffe')) {
+      suggestions.push({
+        issue: 'Surchauffe du système',
+        solution: 'Vérifier le système de refroidissement',
+        priority: 'high',
+        estimatedTime: 90,
+      });
+      riskLevel = 'high';
+      estimatedCost = 180;
+      confidenceScore = 0.75;
+    } else if (symptoms.includes('fuite') || symptoms.includes('huile')) {
+      suggestions.push({
+        issue: 'Fuite hydraulique',
+        solution: 'Inspecter les joints et raccords',
+        priority: 'medium',
+        estimatedTime: 60,
+      });
+      estimatedCost = 120;
+    } else {
+      suggestions.push({
+        issue: 'Diagnostic général requis',
+        solution: 'Inspection complète recommandée',
+        priority: 'medium',
+        estimatedTime: 180,
+      });
+    }
+
+    return {
+      suggestions,
+      confidenceScore,
+      riskLevel,
+      estimatedCost,
+      insights: [
+        'Diagnostic effectué en mode hors ligne',
+        'Synchronisation recommandée pour un diagnostic plus précis'
+      ],
+    };
+  }
+
+  async saveDiagnosticOffline(diagnostic: any): Promise<number> {
+    if (!this.executeQuery) {
+      throw new Error('Database not available');
+    }
+
+    const result = await this.executeQuery(`
+      INSERT INTO diagnostics (
+        equipment_type, equipment_id, symptoms, zone, sector, 
+        urgency_level, ml_mode, suggestions, confidence_score, 
+        risk_level, estimated_cost, synced
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `, [
+      diagnostic.equipmentType,
+      diagnostic.equipmentId || '',
+      JSON.stringify(diagnostic.symptoms),
+      diagnostic.zone || '',
+      diagnostic.sector || '',
+      diagnostic.urgencyLevel,
+      diagnostic.mlMode,
+      JSON.stringify(diagnostic.suggestions),
+      diagnostic.confidenceScore,
+      diagnostic.riskLevel,
+      diagnostic.estimatedCost,
+    ]);
+
+    return result.insertId;
+  }
+
+  async getOfflineDiagnostics(): Promise<any[]> {
+    if (!this.executeQuery) {
+      return [];
+    }
+
+    const result = await this.executeQuery(
+      'SELECT * FROM diagnostics ORDER BY created_at DESC'
     );
 
-    // Add response interceptor for error handling
-    this.api.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        if (error.message === 'NO_INTERNET' || error.code === 'NETWORK_ERROR') {
-          // Try to get data from offline storage
-          const offlineData = await this.offlineStorage.getOfflineData(error.config.url);
-          if (offlineData) {
-            return { data: offlineData };
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
+    return result.rows._array.map((row: any) => ({
+      ...row,
+      symptoms: JSON.parse(row.symptoms || '[]'),
+      suggestions: JSON.parse(row.suggestions || '[]'),
+    }));
   }
 
-  // Set base URL for production
-  setBaseURL(url: string): void {
-    this.baseURL = url;
-    this.api.defaults.baseURL = url;
+  async saveFeedback(feedback: any): Promise<void> {
+    if (!this.executeQuery) {
+      throw new Error('Database not available');
+    }
+
+    await this.executeQuery(`
+      INSERT INTO feedback (
+        diagnostic_id, rating, accuracy_rating, time_saved, 
+        comments, suggestions, synced
+      ) VALUES (?, ?, ?, ?, ?, ?, 0)
+    `, [
+      feedback.diagnosticId,
+      feedback.rating,
+      feedback.accuracyRating,
+      feedback.timeSaved,
+      feedback.comments || '',
+      feedback.suggestions || '',
+    ]);
   }
 
-  // Diagnostic Methods
-  async getDiagnostic(request: DiagnosticRequest): Promise<DiagnosticResponse> {
+  private async cacheData(key: string, data: any): Promise<void> {
+    if (!this.executeQuery) return;
+
     try {
-      const response: AxiosResponse<DiagnosticResponse> = await this.api.post(
-        '/api/diagnostic',
-        request
-      );
-      
-      // Cache successful response for offline use
-      await this.offlineStorage.cacheResponse('/api/diagnostic', response.data);
-      
-      return response.data;
-    } catch (error: any) {
-      if (error.message === 'NO_INTERNET') {
-        // Try to get offline diagnostic
-        const offlineResult = await this.offlineStorage.getOfflineDiagnostic(request);
-        if (offlineResult) {
-          return offlineResult;
-        }
-      }
-      throw error;
-    }
-  }
-
-  // History Methods
-  async getHistory(): Promise<MaintenanceCase[]> {
-    try {
-      const response: AxiosResponse<MaintenanceCase[]> = await this.api.get('/api/history');
-      
-      // Cache history for offline use
-      await this.offlineStorage.cacheResponse('/api/history', response.data);
-      
-      return response.data;
-    } catch (error: any) {
-      if (error.message === 'NO_INTERNET') {
-        const offlineHistory = await this.offlineStorage.getOfflineHistory();
-        if (offlineHistory) {
-          return offlineHistory;
-        }
-      }
-      throw error;
-    }
-  }
-
-  // Feedback Methods
-  async submitFeedback(feedbackData: FeedbackData): Promise<void> {
-    try {
-      await this.api.post('/api/feedback', feedbackData);
-    } catch (error: any) {
-      if (error.message === 'NO_INTERNET') {
-        // Store feedback for later sync
-        await this.offlineStorage.storePendingFeedback(feedbackData);
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  // Sync Methods
-  async syncOfflineData(): Promise<void> {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      throw new Error('No internet connection for sync');
-    }
-
-    // Sync pending feedback
-    const pendingFeedback = await this.offlineStorage.getPendingFeedback();
-    for (const feedback of pendingFeedback) {
-      try {
-        await this.api.post('/api/feedback', feedback);
-        await this.offlineStorage.removePendingFeedback(feedback.sessionId);
-      } catch (error) {
-        console.error('Failed to sync feedback:', error);
-      }
-    }
-
-    // Sync pending diagnostics
-    const pendingDiagnostics = await this.offlineStorage.getPendingDiagnostics();
-    for (const diagnostic of pendingDiagnostics) {
-      try {
-        await this.api.post('/api/diagnostic', diagnostic);
-        await this.offlineStorage.removePendingDiagnostic(diagnostic.id);
-      } catch (error) {
-        console.error('Failed to sync diagnostic:', error);
-      }
-    }
-  }
-
-  // Equipment Methods
-  async getEquipmentTypes(): Promise<string[]> {
-    try {
-      const response: AxiosResponse<string[]> = await this.api.get('/api/equipment-types');
-      await this.offlineStorage.cacheResponse('/api/equipment-types', response.data);
-      return response.data;
-    } catch (error: any) {
-      if (error.message === 'NO_INTERNET') {
-        const offlineTypes = await this.offlineStorage.getOfflineEquipmentTypes();
-        if (offlineTypes) {
-          return offlineTypes;
-        }
-      }
-      throw error;
-    }
-  }
-
-  // ML Training Methods
-  async trainML(): Promise<void> {
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
-      throw new Error('Internet connection required for ML training');
-    }
-    
-    await this.api.post('/api/train-ml');
-  }
-
-  // Network status
-  async isOnline(): Promise<boolean> {
-    const netInfo = await NetInfo.fetch();
-    return netInfo.isConnected ?? false;
-  }
-
-  // Configuration
-  async getServerConfig(): Promise<any> {
-    try {
-      const response = await this.api.get('/api/config');
-      return response.data;
+      await this.executeQuery(`
+        INSERT OR REPLACE INTO offline_cache (key, data, expires_at) 
+        VALUES (?, ?, datetime('now', '+24 hours'))
+      `, [key, JSON.stringify(data)]);
     } catch (error) {
-      return null;
+      console.error('Failed to cache data:', error);
     }
+  }
+
+  async getCachedData(key: string): Promise<any> {
+    if (!this.executeQuery) return null;
+
+    try {
+      const result = await this.executeQuery(
+        'SELECT data FROM offline_cache WHERE key = ? AND expires_at > datetime("now")',
+        [key]
+      );
+
+      if (result.rows.length > 0) {
+        return JSON.parse(result.rows._array[0].data);
+      }
+    } catch (error) {
+      console.error('Failed to get cached data:', error);
+    }
+
+    return null;
   }
 }
 
 export const apiService = new ApiService();
+
+// Hook to initialize the service with context data
+export const useApiService = () => {
+  const { isOnline } = useOffline();
+  const { executeQuery } = useDatabase();
+
+  apiService.setOnlineStatus(isOnline);
+  apiService.setDatabaseQuery(executeQuery);
+
+  return apiService;
+};

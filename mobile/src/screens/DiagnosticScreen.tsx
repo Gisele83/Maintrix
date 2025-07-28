@@ -1,646 +1,530 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
   TouchableOpacity,
-} from 'react-native';
-import {
-  Button,
-  Card,
   TextInput,
-  Checkbox,
-  RadioButton,
-  Portal,
-  Modal,
+  Alert,
   ActivityIndicator,
-  Chip,
-  Surface,
-  Divider,
-} from 'react-native-paper';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import { useApiService } from '../services/ApiService';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
-import { apiService, DiagnosticRequest, DiagnosticSuggestion } from '../services/ApiService';
-import { useOffline } from '../context/OfflineContext';
-import { theme, spacing, typography, gradients } from '../theme/theme';
-import { RootStackParamList } from '../navigation/AppNavigator';
+const DiagnosticScreen = () => {
+  const { theme } = useTheme();
+  const apiService = useApiService();
+  const navigation = useNavigation();
 
-type DiagnosticScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
-
-interface DiagnosticFormData {
-  equipmentType: string;
-  symptoms: string;
-  symptomsChecked: string[];
-  urgency: 'low' | 'medium' | 'high';
-  zone: string;
-  sector: string;
-  equipmentId: string;
-  advancedMode: boolean;
-  enhancedMode: boolean;
-  ensembleMode: boolean;
-}
-
-const equipmentTypes = [
-  'moteur', 'pompe', 'compresseur', 'ventilateur', 'transformateur',
-  'variateur', 'convertisseur', 'onduleur', 'ups', 'redresseur',
-  'sts', 'rtg', 'mobile_crane', 'reach_stacker', 'straddle_carrier', 'spreader'
-];
-
-const commonSymptoms = [
-  'Vibrations anormales', 'Surchauffe', 'Bruit inhabituel', 'Fuite d\'huile',
-  'Dysfonctionnement électrique', 'Perte de puissance', 'Arrêt inopiné',
-  'Problème de démarrage', 'Consommation excessive', 'Odeur de brûlé'
-];
-
-const zones = [
-  'Atelier Production', 'Zone Stockage', 'Salle Machines', 'Terminal Container',
-  'Quai Chargement', 'Centrale Énergie', 'Traitement Eau', 'Air Comprimé',
-  'Laboratoire', 'Maintenance', 'Bureaux', 'Extérieur', 'Sous-sol', 'Toiture'
-];
-
-const sectors = [
-  'Ligne 1', 'Ligne 2', 'Ligne 3', 'Atelier Mécanique', 'Atelier Électrique',
-  'Poste 1', 'Poste 2', 'Poste 3', 'Armoire A', 'Armoire B', 'Armoire C',
-  'Grue 1', 'Grue 2', 'Convoyeur 1', 'Convoyeur 2', 'Station Pompage',
-  'Compresseur Principal', 'Groupe Froid'
-];
-
-export function DiagnosticScreen() {
-  const navigation = useNavigation<DiagnosticScreenNavigationProp>();
-  const { isOnline, syncPending } = useOffline();
-  const queryClient = useQueryClient();
-
-  const [formData, setFormData] = useState<DiagnosticFormData>({
+  const [formData, setFormData] = useState({
     equipmentType: '',
-    symptoms: '',
-    symptomsChecked: [],
-    urgency: 'medium',
+    equipmentId: '',
+    symptoms: [] as string[],
     zone: '',
     sector: '',
-    equipmentId: '',
-    advancedMode: false,
-    enhancedMode: false,
-    ensembleMode: false,
+    urgencyLevel: 'medium',
+    mlMode: 'standard',
   });
 
-  const [showResults, setShowResults] = useState(false);
-  const [suggestions, setSuggestions] = useState<DiagnosticSuggestion[]>([]);
-  const [sessionId, setSessionId] = useState<number | null>(null);
-  const [showSymptomsModal, setShowSymptomsModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
 
-  // Diagnostic mutation
-  const diagnosticMutation = useMutation({
-    mutationFn: async (request: DiagnosticRequest) => {
-      return await apiService.getDiagnostic(request);
+  const equipmentTypes = [
+    { id: 'motor', label: 'Moteur électrique', icon: 'flash' },
+    { id: 'pump', label: 'Pompe hydraulique', icon: 'water' },
+    { id: 'conveyor', label: 'Convoyeur', icon: 'trending-up' },
+    { id: 'crane', label: 'Grue portuaire', icon: 'construct' },
+    { id: 'generator', label: 'Générateur', icon: 'battery-charging' },
+    { id: 'compressor', label: 'Compresseur', icon: 'resize' },
+  ];
+
+  const symptomsList = [
+    { id: 'vibration', label: 'Vibrations anormales', category: 'mechanical' },
+    { id: 'noise', label: 'Bruit inhabituel', category: 'mechanical' },
+    { id: 'temperature', label: 'Température élevée', category: 'thermal' },
+    { id: 'leak', label: 'Fuite d\'huile/fluide', category: 'fluid' },
+    { id: 'performance', label: 'Baisse de performance', category: 'performance' },
+    { id: 'electrical', label: 'Problème électrique', category: 'electrical' },
+    { id: 'wear', label: 'Usure visible', category: 'mechanical' },
+    { id: 'corrosion', label: 'Corrosion', category: 'environmental' },
+  ];
+
+  const urgencyLevels = [
+    { id: 'low', label: 'Faible', color: '#10b981' },
+    { id: 'medium', label: 'Moyenne', color: '#f59e0b' },
+    { id: 'high', label: 'Élevée', color: '#ef4444' },
+    { id: 'critical', label: 'Critique', color: '#dc2626' },
+  ];
+
+  const mlModes = [
+    { id: 'standard', label: 'Standard', description: 'Analyse rapide et fiable' },
+    { id: 'advanced', label: 'Avancé', description: 'IA approfondie avec réseaux de neurones' },
+    { id: 'ensemble', label: 'Ensemble ML', description: 'Consensus de 9 algorithmes' },
+  ];
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
     },
-    onSuccess: (data) => {
-      setSuggestions(data.suggestions || []);
-      setSessionId(data.sessionId);
-      setShowResults(true);
+    header: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
     },
-    onError: (error) => {
-      Alert.alert(
-        'Erreur Diagnostic',
-        isOnline ? 'Erreur lors du diagnostic' : 'Diagnostic hors-ligne indisponible',
-        [{ text: 'OK' }]
-      );
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+    },
+    section: {
+      marginBottom: 25,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+    },
+    input: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 10,
+      paddingHorizontal: 15,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: theme.colors.text,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    equipmentGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    equipmentCard: {
+      width: '48%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 10,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    equipmentCardSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: `${theme.colors.primary}15`,
+    },
+    equipmentIcon: {
+      marginBottom: 8,
+    },
+    equipmentLabel: {
+      fontSize: 14,
+      color: theme.colors.text,
+      textAlign: 'center',
+    },
+    symptomsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    symptomChip: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      marginRight: 10,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    symptomChipSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    symptomText: {
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    symptomTextSelected: {
+      color: 'white',
+    },
+    urgencyContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    urgencyButton: {
+      flex: 1,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 10,
+      paddingVertical: 12,
+      marginHorizontal: 3,
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    urgencyButtonSelected: {
+      borderWidth: 2,
+    },
+    urgencyText: {
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    mlModeCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 10,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    mlModeCardSelected: {
+      borderColor: theme.colors.primary,
+      backgroundColor: `${theme.colors.primary}15`,
+    },
+    mlModeTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 5,
+    },
+    mlModeDescription: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+    },
+    analyzeButton: {
+      borderRadius: 15,
+      overflow: 'hidden',
+      marginTop: 20,
+      marginBottom: 20,
+    },
+    analyzeGradient: {
+      paddingVertical: 15,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+    },
+    analyzeButtonText: {
+      color: 'white',
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginLeft: 10,
+    },
+    resultsContainer: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 20,
+      marginBottom: 20,
+    },
+    resultsTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 15,
+    },
+    suggestion: {
+      backgroundColor: theme.colors.background,
+      borderRadius: 10,
+      padding: 15,
+      marginBottom: 10,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary,
+    },
+    suggestionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 5,
+    },
+    suggestionText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginBottom: 10,
+    },
+    metricRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+    },
+    metricItem: {
+      alignItems: 'center',
+    },
+    metricValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.colors.primary,
+    },
+    metricLabel: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 15,
+    },
+    actionButton: {
+      flex: 1,
+      backgroundColor: theme.colors.primary,
+      borderRadius: 10,
+      paddingVertical: 12,
+      marginHorizontal: 5,
+      alignItems: 'center',
+    },
+    actionButtonSecondary: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    actionButtonText: {
+      color: 'white',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    actionButtonTextSecondary: {
+      color: theme.colors.text,
     },
   });
 
-  const handleSubmit = () => {
-    if (!formData.equipmentType || !formData.symptoms) {
-      Alert.alert(
-        'Champs manquants',
-        'Veuillez sélectionner un équipement et décrire les symptômes',
-        [{ text: 'OK' }]
-      );
+  const handleEquipmentSelect = (equipmentId: string) => {
+    setFormData({ ...formData, equipmentType: equipmentId });
+  };
+
+  const handleSymptomToggle = (symptomId: string) => {
+    const updatedSymptoms = formData.symptoms.includes(symptomId)
+      ? formData.symptoms.filter(s => s !== symptomId)
+      : [...formData.symptoms, symptomId];
+    
+    setFormData({ ...formData, symptoms: updatedSymptoms });
+  };
+
+  const handleAnalyze = async () => {
+    if (!formData.equipmentType || formData.symptoms.length === 0) {
+      Alert.alert('Données incomplètes', 'Veuillez sélectionner un type d\'équipement et au moins un symptôme.');
       return;
     }
 
-    const request: DiagnosticRequest = {
-      equipmentType: formData.equipmentType,
-      symptoms: formData.symptoms,
-      symptomsChecked: formData.symptomsChecked,
-      urgency: formData.urgency,
-      zone: formData.zone,
-      sector: formData.sector,
-      equipmentId: formData.equipmentId,
-      advancedMode: formData.advancedMode,
-      enhancedMode: formData.enhancedMode,
-      ensembleMode: formData.ensembleMode,
-    };
-
-    diagnosticMutation.mutate(request);
-  };
-
-  const handleSymptomToggle = (symptom: string) => {
-    const newSymptoms = formData.symptomsChecked.includes(symptom)
-      ? formData.symptomsChecked.filter(s => s !== symptom)
-      : [...formData.symptomsChecked, symptom];
-    
-    setFormData(prev => ({ ...prev, symptomsChecked: newSymptoms }));
-  };
-
-  const handleStartRepair = (suggestion: DiagnosticSuggestion) => {
-    navigation.navigate('RepairGuidance', {
-      caseId: suggestion.id,
-      diagnosis: suggestion.diagnosis,
-    });
-  };
-
-  const handleFeedback = (suggestion: DiagnosticSuggestion) => {
-    if (sessionId) {
-      navigation.navigate('Feedback', {
-        sessionId,
-        diagnosis: suggestion.diagnosis,
-        solution: suggestion.solution,
+    setLoading(true);
+    try {
+      const result = await apiService.performDiagnostic(formData);
+      setResults(result);
+      
+      // Save diagnostic to local database
+      await apiService.saveDiagnosticOffline({
+        ...formData,
+        suggestions: result.suggestions,
+        confidenceScore: result.confidenceScore,
+        riskLevel: result.riskLevel,
+        estimatedCost: result.estimatedCost,
       });
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de réaliser le diagnostic. Veuillez réessayer.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      equipmentType: '',
-      symptoms: '',
-      symptomsChecked: [],
-      urgency: 'medium',
-      zone: '',
-      sector: '',
-      equipmentId: '',
-      advancedMode: false,
-      enhancedMode: false,
-      ensembleMode: false,
-    });
-    setShowResults(false);
-    setSuggestions([]);
-    setSessionId(null);
-  };
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.warning;
-      case 'low': return theme.colors.success;
-      default: return theme.colors.secondary;
+  const handleStartRepair = () => {
+    if (results) {
+      navigation.navigate('RepairGuidance' as never, { 
+        diagnostic: results,
+        equipmentType: formData.equipmentType 
+      } as never);
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return theme.colors.success;
-    if (confidence >= 0.6) return theme.colors.warning;
-    return theme.colors.error;
+  const handleProvideFeedback = () => {
+    if (results) {
+      navigation.navigate('Feedback' as never, { 
+        diagnostic: results 
+      } as never);
+    }
   };
-
-  if (showResults) {
-    return (
-      <ScrollView style={styles.container}>
-        <LinearGradient
-          colors={gradients.primary}
-          style={styles.header}
-        >
-          <Text style={styles.headerTitle}>Résultats du Diagnostic</Text>
-          <Text style={styles.headerSubtitle}>
-            {suggestions.length} suggestion{suggestions.length > 1 ? 's' : ''} trouvée{suggestions.length > 1 ? 's' : ''}
-          </Text>
-        </LinearGradient>
-
-        <View style={styles.content}>
-          {suggestions.map((suggestion, index) => (
-            <Card key={index} style={styles.suggestionCard}>
-              <Card.Content>
-                <View style={styles.suggestionHeader}>
-                  <View style={styles.confidenceContainer}>
-                    <Text style={[styles.confidenceText, { color: getConfidenceColor(suggestion.confidence) }]}>
-                      {Math.round(suggestion.confidence * 100)}%
-                    </Text>
-                    <Text style={styles.confidenceLabel}>Confiance</Text>
-                  </View>
-                  <View style={styles.urgencyContainer}>
-                    <Chip
-                      icon="priority-high"
-                      style={[styles.urgencyChip, { backgroundColor: getUrgencyColor(suggestion.urgency) }]}
-                      textStyle={styles.urgencyText}
-                    >
-                      {suggestion.urgency.toUpperCase()}
-                    </Chip>
-                  </View>
-                </View>
-
-                <Text style={styles.diagnosisTitle}>{suggestion.diagnosis}</Text>
-                <Text style={styles.solutionText}>{suggestion.solution}</Text>
-
-                <Divider style={styles.divider} />
-
-                <View style={styles.metricsContainer}>
-                  <View style={styles.metricItem}>
-                    <Icon name="schedule" size={16} color={theme.colors.secondary} />
-                    <Text style={styles.metricText}>{suggestion.estimatedDuration} min</Text>
-                  </View>
-                  <View style={styles.metricItem}>
-                    <Icon name="euro" size={16} color={theme.colors.secondary} />
-                    <Text style={styles.metricText}>{suggestion.estimatedCost}</Text>
-                  </View>
-                  <View style={styles.metricItem}>
-                    <Icon name="warning" size={16} color={theme.colors.secondary} />
-                    <Text style={styles.metricText}>{suggestion.riskLevel}</Text>
-                  </View>
-                </View>
-
-                {suggestion.aiInsights && (
-                  <Surface style={styles.insightsContainer}>
-                    <Text style={styles.insightsTitle}>💡 Insights IA</Text>
-                    <Text style={styles.insightsText}>{suggestion.aiInsights}</Text>
-                  </Surface>
-                )}
-
-                <View style={styles.actionButtons}>
-                  <Button
-                    mode="contained"
-                    onPress={() => handleStartRepair(suggestion)}
-                    style={styles.repairButton}
-                    icon="build"
-                  >
-                    Réparer
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    onPress={() => handleFeedback(suggestion)}
-                    style={styles.feedbackButton}
-                    icon="rate-review"
-                  >
-                    Feedback
-                  </Button>
-                </View>
-              </Card.Content>
-            </Card>
-          ))}
-
-          <Button
-            mode="outlined"
-            onPress={resetForm}
-            style={styles.newDiagnosticButton}
-            icon="refresh"
-          >
-            Nouveau Diagnostic
-          </Button>
-        </View>
-      </ScrollView>
-    );
-  }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView style={styles.container}>
-        <LinearGradient
-          colors={gradients.primary}
-          style={styles.header}
-        >
-          <Text style={styles.headerTitle}>Diagnostic IA</Text>
-          <Text style={styles.headerSubtitle}>
-            {isOnline ? 'Diagnostic en ligne' : 'Mode hors-ligne'}
-          </Text>
-          {!isOnline && (
-            <Surface style={styles.offlineWarning}>
-              <Icon name="wifi-off" size={16} color={theme.colors.warning} />
-              <Text style={styles.offlineText}>Mode hors-ligne actif</Text>
-            </Surface>
-          )}
-        </LinearGradient>
-
-        <View style={styles.content}>
-          <Card style={styles.formCard}>
-            <Card.Title title="Informations Équipement" />
-            <Card.Content>
-              <TextInput
-                label="Type d'équipement *"
-                value={formData.equipmentType}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, equipmentType: text }))}
-                style={styles.input}
-                right={<TextInput.Icon icon="chevron-down" />}
-              />
-
-              <TextInput
-                label="Zone"
-                value={formData.zone}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, zone: text }))}
-                style={styles.input}
-              />
-
-              <TextInput
-                label="Secteur"
-                value={formData.sector}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, sector: text }))}
-                style={styles.input}
-              />
-
-              <TextInput
-                label="ID Équipement"
-                value={formData.equipmentId}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, equipmentId: text }))}
-                style={styles.input}
-              />
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.formCard}>
-            <Card.Title title="Symptômes" />
-            <Card.Content>
-              <TextInput
-                label="Description des symptômes *"
-                value={formData.symptoms}
-                onChangeText={(text) => setFormData(prev => ({ ...prev, symptoms: text }))}
-                multiline
-                numberOfLines={3}
-                style={styles.textArea}
-              />
-
-              <Button
-                mode="outlined"
-                onPress={() => setShowSymptomsModal(true)}
-                style={styles.symptomsButton}
-                icon="checklist"
+    <View style={styles.container}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Equipment Type Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Type d'équipement</Text>
+          <View style={styles.equipmentGrid}>
+            {equipmentTypes.map((equipment) => (
+              <TouchableOpacity
+                key={equipment.id}
+                style={[
+                  styles.equipmentCard,
+                  formData.equipmentType === equipment.id && styles.equipmentCardSelected
+                ]}
+                onPress={() => handleEquipmentSelect(equipment.id)}
               >
-                Sélectionner symptômes ({formData.symptomsChecked.length})
-              </Button>
-
-              {formData.symptomsChecked.length > 0 && (
-                <View style={styles.selectedSymptoms}>
-                  {formData.symptomsChecked.map((symptom, index) => (
-                    <Chip
-                      key={index}
-                      onClose={() => handleSymptomToggle(symptom)}
-                      style={styles.symptomChip}
-                    >
-                      {symptom}
-                    </Chip>
-                  ))}
-                </View>
-              )}
-            </Card.Content>
-          </Card>
-
-          <Card style={styles.formCard}>
-            <Card.Title title="Urgence" />
-            <Card.Content>
-              <RadioButton.Group
-                onValueChange={(value) => setFormData(prev => ({ ...prev, urgency: value as 'low' | 'medium' | 'high' }))}
-                value={formData.urgency}
-              >
-                <View style={styles.radioGroup}>
-                  <RadioButton.Item label="Faible" value="low" />
-                  <RadioButton.Item label="Moyenne" value="medium" />
-                  <RadioButton.Item label="Élevée" value="high" />
-                </View>
-              </RadioButton.Group>
-            </Card.Content>
-          </Card>
-
-          {isOnline && (
-            <Card style={styles.formCard}>
-              <Card.Title title="Options IA" />
-              <Card.Content>
-                <View style={styles.checkboxContainer}>
-                  <Checkbox.Item
-                    label="Mode Avancé"
-                    status={formData.advancedMode ? 'checked' : 'unchecked'}
-                    onPress={() => setFormData(prev => ({ ...prev, advancedMode: !prev.advancedMode }))}
-                  />
-                  <Checkbox.Item
-                    label="Mode Amélioré"
-                    status={formData.enhancedMode ? 'checked' : 'unchecked'}
-                    onPress={() => setFormData(prev => ({ ...prev, enhancedMode: !prev.enhancedMode }))}
-                  />
-                  <Checkbox.Item
-                    label="Mode Ensemble"
-                    status={formData.ensembleMode ? 'checked' : 'unchecked'}
-                    onPress={() => setFormData(prev => ({ ...prev, ensembleMode: !prev.ensembleMode }))}
-                  />
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={diagnosticMutation.isPending}
-            disabled={diagnosticMutation.isPending || !formData.equipmentType || !formData.symptoms}
-            style={styles.submitButton}
-            icon="search"
-          >
-            {diagnosticMutation.isPending ? 'Analyse en cours...' : 'Lancer le Diagnostic'}
-          </Button>
+                <Ionicons
+                  name={equipment.icon as any}
+                  size={24}
+                  color={formData.equipmentType === equipment.id ? theme.colors.primary : theme.colors.textSecondary}
+                  style={styles.equipmentIcon}
+                />
+                <Text style={styles.equipmentLabel}>{equipment.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Symptoms Modal */}
-        <Portal>
-          <Modal
-            visible={showSymptomsModal}
-            onDismiss={() => setShowSymptomsModal(false)}
-            contentContainerStyle={styles.modalContainer}
-          >
-            <Text style={styles.modalTitle}>Sélectionner les symptômes</Text>
-            <ScrollView style={styles.modalContent}>
-              {commonSymptoms.map((symptom, index) => (
-                <Checkbox.Item
-                  key={index}
-                  label={symptom}
-                  status={formData.symptomsChecked.includes(symptom) ? 'checked' : 'unchecked'}
-                  onPress={() => handleSymptomToggle(symptom)}
-                />
-              ))}
-            </ScrollView>
-            <Button
-              mode="contained"
-              onPress={() => setShowSymptomsModal(false)}
-              style={styles.modalButton}
-            >
-              Fermer
-            </Button>
-          </Modal>
-        </Portal>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
+        {/* Equipment ID */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ID Équipement (optionnel)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: MOT-001, PUMP-A23..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={formData.equipmentId}
+            onChangeText={(text) => setFormData({ ...formData, equipmentId: text })}
+          />
+        </View>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: spacing.lg,
-    paddingTop: spacing.xxl,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: '#ffffff',
-    marginBottom: spacing.xs,
-  },
-  headerSubtitle: {
-    ...typography.body1,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
-  offlineWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.warningContainer,
-    padding: spacing.sm,
-    borderRadius: theme.roundness,
-    marginTop: spacing.sm,
-  },
-  offlineText: {
-    ...typography.body2,
-    color: theme.colors.warning,
-    marginLeft: spacing.xs,
-  },
-  content: {
-    padding: spacing.md,
-  },
-  formCard: {
-    marginBottom: spacing.md,
-  },
-  input: {
-    marginBottom: spacing.sm,
-  },
-  textArea: {
-    marginBottom: spacing.sm,
-  },
-  symptomsButton: {
-    marginBottom: spacing.sm,
-  },
-  selectedSymptoms: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.sm,
-  },
-  symptomChip: {
-    margin: spacing.xs,
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  checkboxContainer: {
-    paddingVertical: spacing.sm,
-  },
-  submitButton: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.surface,
-    margin: spacing.lg,
-    borderRadius: theme.roundness,
-    padding: spacing.lg,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    ...typography.h3,
-    marginBottom: spacing.md,
-  },
-  modalContent: {
-    maxHeight: 400,
-  },
-  modalButton: {
-    marginTop: spacing.md,
-  },
-  suggestionCard: {
-    marginBottom: spacing.md,
-  },
-  suggestionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  confidenceContainer: {
-    alignItems: 'center',
-  },
-  confidenceText: {
-    ...typography.h3,
-    fontWeight: 'bold',
-  },
-  confidenceLabel: {
-    ...typography.caption,
-    color: theme.colors.secondary,
-  },
-  urgencyContainer: {
-    alignItems: 'center',
-  },
-  urgencyChip: {
-    minWidth: 80,
-  },
-  urgencyText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  diagnosisTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-  },
-  solutionText: {
-    ...typography.body1,
-    marginBottom: spacing.md,
-  },
-  divider: {
-    marginVertical: spacing.md,
-  },
-  metricsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: spacing.md,
-  },
-  metricItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metricText: {
-    ...typography.body2,
-    marginLeft: spacing.xs,
-  },
-  insightsContainer: {
-    backgroundColor: theme.colors.primaryContainer,
-    padding: spacing.md,
-    borderRadius: theme.roundness,
-    marginBottom: spacing.md,
-  },
-  insightsTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-  },
-  insightsText: {
-    ...typography.body2,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
-  repairButton: {
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  feedbackButton: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  newDiagnosticButton: {
-    marginTop: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-});
+        {/* Symptoms Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Symptômes observés</Text>
+          <View style={styles.symptomsContainer}>
+            {symptomsList.map((symptom) => (
+              <TouchableOpacity
+                key={symptom.id}
+                style={[
+                  styles.symptomChip,
+                  formData.symptoms.includes(symptom.id) && styles.symptomChipSelected
+                ]}
+                onPress={() => handleSymptomToggle(symptom.id)}
+              >
+                <Text style={[
+                  styles.symptomText,
+                  formData.symptoms.includes(symptom.id) && styles.symptomTextSelected
+                ]}>
+                  {symptom.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Urgency Level */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Niveau d'urgence</Text>
+          <View style={styles.urgencyContainer}>
+            {urgencyLevels.map((level) => (
+              <TouchableOpacity
+                key={level.id}
+                style={[
+                  styles.urgencyButton,
+                  formData.urgencyLevel === level.id && {
+                    ...styles.urgencyButtonSelected,
+                    borderColor: level.color,
+                    backgroundColor: `${level.color}15`,
+                  }
+                ]}
+                onPress={() => setFormData({ ...formData, urgencyLevel: level.id })}
+              >
+                <Text style={[
+                  styles.urgencyText,
+                  { color: formData.urgencyLevel === level.id ? level.color : theme.colors.text }
+                ]}>
+                  {level.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ML Mode Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mode d'analyse IA</Text>
+          {mlModes.map((mode) => (
+            <TouchableOpacity
+              key={mode.id}
+              style={[
+                styles.mlModeCard,
+                formData.mlMode === mode.id && styles.mlModeCardSelected
+              ]}
+              onPress={() => setFormData({ ...formData, mlMode: mode.id })}
+            >
+              <Text style={styles.mlModeTitle}>{mode.label}</Text>
+              <Text style={styles.mlModeDescription}>{mode.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Analyze Button */}
+        <TouchableOpacity
+          style={styles.analyzeButton}
+          onPress={handleAnalyze}
+          disabled={loading}
+        >
+          <LinearGradient
+            colors={['#1e40af', '#3b82f6']}
+            style={styles.analyzeGradient}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" size="small" />
+            ) : (
+              <Ionicons name="search" size={20} color="white" />
+            )}
+            <Text style={styles.analyzeButtonText}>
+              {loading ? 'Analyse en cours...' : 'Lancer le diagnostic IA'}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Results */}
+        {results && (
+          <View style={styles.resultsContainer}>
+            <Text style={styles.resultsTitle}>Résultats du diagnostic</Text>
+            
+            {results.suggestions.map((suggestion: any, index: number) => (
+              <View key={index} style={styles.suggestion}>
+                <Text style={styles.suggestionTitle}>{suggestion.issue}</Text>
+                <Text style={styles.suggestionText}>{suggestion.solution}</Text>
+                
+                <View style={styles.metricRow}>
+                  <View style={styles.metricItem}>
+                    <Text style={styles.metricValue}>
+                      {Math.round(results.confidenceScore * 100)}%
+                    </Text>
+                    <Text style={styles.metricLabel}>Confiance</Text>
+                  </View>
+                  <View style={styles.metricItem}>
+                    <Text style={styles.metricValue}>{results.riskLevel}</Text>
+                    <Text style={styles.metricLabel}>Risque</Text>
+                  </View>
+                  <View style={styles.metricItem}>
+                    <Text style={styles.metricValue}>{results.estimatedCost}€</Text>
+                    <Text style={styles.metricLabel}>Coût estimé</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleStartRepair}
+              >
+                <Text style={styles.actionButtonText}>Guide de réparation</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonSecondary]}
+                onPress={handleProvideFeedback}
+              >
+                <Text style={[styles.actionButtonText, styles.actionButtonTextSecondary]}>
+                  Évaluer
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default DiagnosticScreen;

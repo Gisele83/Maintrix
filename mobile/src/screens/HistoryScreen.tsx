@@ -5,275 +5,423 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  RefreshControl,
-  Alert,
-  FlatList,
-} from 'react-native';
-import {
-  Card,
-  Searchbar,
-  FilterChip,
-  FAB,
-  Surface,
-  ActivityIndicator,
-  Button,
-  Chip,
-  Portal,
-  Modal,
   TextInput,
-  Menu,
-  Divider,
-} from 'react-native-paper';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import { useApiService } from '../services/ApiService';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-import { apiService, MaintenanceCase } from '../services/ApiService';
-import { useOffline } from '../context/OfflineContext';
-import { theme, spacing, typography, gradients } from '../theme/theme';
-import { RootStackParamList } from '../navigation/AppNavigator';
+const HistoryScreen = () => {
+  const { theme } = useTheme();
+  const apiService = useApiService();
+  const navigation = useNavigation();
 
-type HistoryScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
-
-export function HistoryScreen() {
-  const navigation = useNavigation<HistoryScreenNavigationProp>();
-  const { isOnline, syncPending } = useOffline();
-  const queryClient = useQueryClient();
-
+  const [diagnostics, setDiagnostics] = useState<any[]>([]);
+  const [filteredDiagnostics, setFilteredDiagnostics] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredData, setFilteredData] = useState<MaintenanceCase[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'equipment' | 'urgency'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showDetails, setShowDetails] = useState<MaintenanceCase | null>(null);
-  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
-  // Fetch history data
-  const { data: history = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['history'],
-    queryFn: () => apiService.getHistory(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const filters = [
+    { id: 'all', label: 'Tous', icon: 'list' },
+    { id: 'motor', label: 'Moteurs', icon: 'flash' },
+    { id: 'pump', label: 'Pompes', icon: 'water' },
+    { id: 'high', label: 'Urgence', icon: 'warning' },
+    { id: 'recent', label: 'Récents', icon: 'time' },
+  ];
 
-  // Update filtered data when history or filters change
   useEffect(() => {
-    let filtered = [...history];
+    loadDiagnostics();
+  }, []);
+
+  useEffect(() => {
+    filterDiagnostics();
+  }, [diagnostics, searchQuery, selectedFilter]);
+
+  const loadDiagnostics = async () => {
+    setLoading(true);
+    try {
+      const data = await apiService.getOfflineDiagnostics();
+      setDiagnostics(data);
+    } catch (error) {
+      console.error('Failed to load diagnostics:', error);
+      Alert.alert('Erreur', 'Impossible de charger l\'historique des diagnostics.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterDiagnostics = () => {
+    let filtered = [...diagnostics];
 
     // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(item =>
-        item.equipmentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.symptoms.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.diagnosis.toLowerCase().includes(searchQuery.toLowerCase())
+        item.equipment_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.equipment_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.suggestions?.some((s: any) => s.issue?.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
-    // Apply equipment type filter
-    if (selectedFilter !== 'all') {
-      filtered = filtered.filter(item => item.equipmentType === selectedFilter);
+    // Apply category filter
+    switch (selectedFilter) {
+      case 'motor':
+        filtered = filtered.filter(item => item.equipment_type === 'motor');
+        break;
+      case 'pump':
+        filtered = filtered.filter(item => item.equipment_type === 'pump');
+        break;
+      case 'high':
+        filtered = filtered.filter(item => item.urgency_level === 'high' || item.urgency_level === 'critical');
+        break;
+      case 'recent':
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        filtered = filtered.filter(item => new Date(item.created_at) > oneDayAgo);
+        break;
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-        case 'equipment':
-          comparison = a.equipmentType.localeCompare(b.equipmentType);
-          break;
-        case 'urgency':
-          const urgencyOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-          comparison = (urgencyOrder[a.urgency as keyof typeof urgencyOrder] || 0) - 
-                     (urgencyOrder[b.urgency as keyof typeof urgencyOrder] || 0);
-          break;
-      }
-      
-      return sortOrder === 'desc' ? -comparison : comparison;
-    });
-
-    setFilteredData(filtered);
-  }, [history, searchQuery, selectedFilter, sortBy, sortOrder]);
-
-  const getUniqueEquipmentTypes = () => {
-    const types = [...new Set(history.map(item => item.equipmentType))];
-    return types;
+    setFilteredDiagnostics(filtered);
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.warning;
-      case 'low': return theme.colors.success;
-      default: return theme.colors.secondary;
+  const getRiskLevelColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'low': return '#10b981';
+      case 'medium': return '#f59e0b';
+      case 'high': return '#ef4444';
+      case 'critical': return '#dc2626';
+      default: return theme.colors.textSecondary;
     }
   };
 
-  const getDurationColor = (duration: number) => {
-    if (duration <= 30) return theme.colors.success;
-    if (duration <= 60) return theme.colors.warning;
-    return theme.colors.error;
-  };
-
-  const handleExport = () => {
-    if (!isOnline) {
-      Alert.alert(
-        'Connexion requise',
-        'La fonctionnalité d\'export nécessite une connexion internet',
-        [{ text: 'OK' }]
-      );
-      return;
+  const getEquipmentIcon = (equipmentType: string) => {
+    switch (equipmentType) {
+      case 'motor': return 'flash';
+      case 'pump': return 'water';
+      case 'conveyor': return 'trending-up';
+      case 'crane': return 'construct';
+      case 'generator': return 'battery-charging';
+      case 'compressor': return 'resize';
+      default: return 'construct';
     }
-
-    setShowExportModal(true);
   };
 
-  const handleExportFormat = (format: string) => {
+  const handleDiagnosticPress = (diagnostic: any) => {
     Alert.alert(
-      `Export ${format.toUpperCase()}`,
-      `Exporter ${filteredData.length} cas de maintenance en ${format.toUpperCase()}?`,
+      'Actions',
+      'Que souhaitez-vous faire avec ce diagnostic ?',
       [
-        { text: 'Annuler' },
-        { 
-          text: 'Exporter',
-          onPress: () => {
-            // Simulate export
-            setTimeout(() => {
-              Alert.alert('Export réussi', `${filteredData.length} cas exportés en ${format.toUpperCase()}`);
-              setShowExportModal(false);
-            }, 1000);
-          }
-        }
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+        {
+          text: 'Voir les détails',
+          onPress: () => showDiagnosticDetails(diagnostic),
+        },
+        {
+          text: 'Refaire le diagnostic',
+          onPress: () => redoDiagnostic(diagnostic),
+        },
+        {
+          text: 'Guide de réparation',
+          onPress: () => navigation.navigate('RepairGuidance' as never, {
+            diagnostic: { suggestions: diagnostic.suggestions },
+            equipmentType: diagnostic.equipment_type
+          } as never),
+        },
       ]
     );
   };
 
-  const handleCasePress = (item: MaintenanceCase) => {
-    setShowDetails(item);
+  const showDiagnosticDetails = (diagnostic: any) => {
+    const details = `
+Équipement: ${diagnostic.equipment_type}
+ID: ${diagnostic.equipment_id || 'Non spécifié'}
+Symptômes: ${diagnostic.symptoms?.join(', ') || 'Non spécifiés'}
+Niveau de risque: ${diagnostic.risk_level}
+Confiance: ${Math.round((diagnostic.confidence_score || 0) * 100)}%
+Coût estimé: ${diagnostic.estimated_cost || 'Non estimé'}€
+Date: ${format(new Date(diagnostic.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}
+    `.trim();
+
+    Alert.alert('Détails du diagnostic', details);
   };
 
-  const handleStartNewDiagnostic = () => {
-    navigation.navigate('MainTabs', { screen: 'Diagnostic' });
+  const redoDiagnostic = (diagnostic: any) => {
+    navigation.navigate('Diagnostic' as never);
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'dd/MM/yyyy à HH:mm', { locale: fr });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  const renderHistoryItem = ({ item }: { item: MaintenanceCase }) => (
-    <Card style={styles.historyCard} onPress={() => handleCasePress(item)}>
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <View style={styles.equipmentInfo}>
-            <Text style={styles.equipmentType}>{item.equipmentType}</Text>
-            <Text style={styles.equipmentDate}>{formatDate(item.createdAt)}</Text>
-          </View>
-          <View style={styles.durationContainer}>
-            <Text style={[styles.duration, { color: getDurationColor(item.estimatedDuration) }]}>
-              {item.estimatedDuration}min
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={styles.diagnosis} numberOfLines={2}>
-          {item.diagnosis}
-        </Text>
-        
-        <Text style={styles.symptoms} numberOfLines={1}>
-          Symptômes: {item.symptoms}
-        </Text>
-        
-        <View style={styles.cardFooter}>
-          <Chip
-            icon="euro"
-            style={styles.costChip}
-            textStyle={styles.costText}
-          >
-            {item.estimatedCost}
-          </Chip>
-          <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="visibility" size={20} color={theme.colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="share" size={20} color={theme.colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Card.Content>
-    </Card>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Icon name="history" size={64} color={theme.colors.secondary} />
-      <Text style={styles.emptyTitle}>Aucun Historique</Text>
-      <Text style={styles.emptyText}>
-        {isOnline 
-          ? 'Commencez par effectuer un diagnostic pour voir l\'historique ici'
-          : 'Mode hors-ligne: Historique limité aux données mises en cache'
-        }
-      </Text>
-      <Button
-        mode="contained"
-        onPress={handleStartNewDiagnostic}
-        style={styles.emptyButton}
-        icon="add"
-      >
-        Nouveau Diagnostic
-      </Button>
-    </View>
-  );
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient colors={gradients.primary} style={styles.header}>
-          <Text style={styles.headerTitle}>Historique</Text>
-          <Text style={styles.headerSubtitle}>Chargement des données...</Text>
-        </LinearGradient>
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </View>
+  const handleExportHistory = () => {
+    Alert.alert(
+      'Export des données',
+      'Cette fonctionnalité permettra d\'exporter l\'historique vers un fichier CSV.',
+      [{ text: 'OK' }]
     );
-  }
+  };
 
-  if (error) {
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingVertical: 15,
+    },
+    headerGradient: {
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 5,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 15,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 10,
+      paddingHorizontal: 15,
+      paddingVertical: 10,
+    },
+    searchInput: {
+      flex: 1,
+      color: 'white',
+      fontSize: 16,
+      marginLeft: 10,
+    },
+    content: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 20,
+    },
+    filtersContainer: {
+      flexDirection: 'row',
+      marginBottom: 20,
+    },
+    filterChip: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 20,
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      marginRight: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    filterChipActive: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    filterIcon: {
+      marginRight: 5,
+    },
+    filterText: {
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    filterTextActive: {
+      color: 'white',
+    },
+    statsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      paddingVertical: 15,
+      marginBottom: 20,
+    },
+    statItem: {
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    diagnosticCard: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 15,
+      padding: 15,
+      marginBottom: 15,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary,
+    },
+    diagnosticHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    equipmentInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    equipmentIcon: {
+      marginRight: 10,
+    },
+    equipmentDetails: {
+      flex: 1,
+    },
+    equipmentType: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+    },
+    equipmentId: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+    },
+    diagnosticDate: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+    },
+    symptomsContainer: {
+      marginBottom: 10,
+    },
+    symptomsTitle: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.colors.text,
+      marginBottom: 5,
+    },
+    symptomsList: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    symptomChip: {
+      backgroundColor: theme.colors.background,
+      borderRadius: 12,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      marginRight: 5,
+      marginBottom: 3,
+    },
+    symptomText: {
+      fontSize: 12,
+      color: theme.colors.text,
+    },
+    resultsContainer: {
+      marginBottom: 15,
+    },
+    resultItem: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginBottom: 2,
+    },
+    metricsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+    },
+    metricItem: {
+      alignItems: 'center',
+    },
+    metricValue: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: theme.colors.primary,
+    },
+    metricLabel: {
+      fontSize: 10,
+      color: theme.colors.textSecondary,
+      marginTop: 2,
+    },
+    riskBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 10,
+      alignSelf: 'flex-start',
+    },
+    riskText: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: 'white',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 40,
+    },
+    emptyIcon: {
+      marginBottom: 20,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    emptyText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      fontSize: 16,
+      color: theme.colors.textSecondary,
+      marginTop: 10,
+    },
+    exportButton: {
+      position: 'absolute',
+      bottom: 20,
+      right: 20,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+    },
+  });
+
+  if (loading) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={gradients.primary} style={styles.header}>
+        <LinearGradient
+          colors={['#1e40af', '#3b82f6']}
+          style={styles.headerGradient}
+        >
           <Text style={styles.headerTitle}>Historique</Text>
-          <Text style={styles.headerSubtitle}>Erreur de chargement</Text>
+          <Text style={styles.headerSubtitle}>Chargement...</Text>
         </LinearGradient>
-        <View style={styles.centerContent}>
-          <Surface style={styles.errorCard}>
-            <Icon name="error" size={48} color={theme.colors.error} />
-            <Text style={styles.errorTitle}>Erreur de Chargement</Text>
-            <Text style={styles.errorText}>
-              {isOnline ? 'Impossible de charger l\'historique' : 'Données hors-ligne indisponibles'}
-            </Text>
-            <Button
-              mode="contained"
-              onPress={() => refetch()}
-              style={styles.errorButton}
-              icon="refresh"
-            >
-              Réessayer
-            </Button>
-          </Surface>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Chargement de l'historique...</Text>
         </View>
       </View>
     );
@@ -281,482 +429,199 @@ export function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={gradients.primary} style={styles.header}>
+      <LinearGradient
+        colors={['#1e40af', '#3b82f6']}
+        style={styles.headerGradient}
+      >
         <Text style={styles.headerTitle}>Historique</Text>
         <Text style={styles.headerSubtitle}>
-          {filteredData.length} cas de maintenance
+          {diagnostics.length} diagnostic{diagnostics.length > 1 ? 's' : ''} enregistré{diagnostics.length > 1 ? 's' : ''}
         </Text>
-        {!isOnline && (
-          <Surface style={styles.offlineWarning}>
-            <Icon name="wifi-off" size={16} color={theme.colors.warning} />
-            <Text style={styles.offlineText}>Données hors-ligne</Text>
-          </Surface>
-        )}
+        
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={16} color="white" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher..."
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </LinearGradient>
 
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Rechercher équipement, symptôme..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-        />
-        
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            <Icon name="filter-list" size={20} color={theme.colors.primary} />
-            <Text style={styles.filterText}>Filtres</Text>
-          </TouchableOpacity>
-          
-          <Menu
-            visible={showSortMenu}
-            onDismiss={() => setShowSortMenu(false)}
-            anchor={
-              <TouchableOpacity
-                style={styles.sortButton}
-                onPress={() => setShowSortMenu(true)}
-              >
-                <Icon name="sort" size={20} color={theme.colors.primary} />
-                <Text style={styles.sortText}>Trier</Text>
-              </TouchableOpacity>
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setSortBy('date');
-                setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-                setShowSortMenu(false);
-              }}
-              title="Date"
-              leadingIcon="schedule"
-            />
-            <Menu.Item
-              onPress={() => {
-                setSortBy('equipment');
-                setSortOrder('asc');
-                setShowSortMenu(false);
-              }}
-              title="Équipement"
-              leadingIcon="build"
-            />
-            <Menu.Item
-              onPress={() => {
-                setSortBy('urgency');
-                setSortOrder('desc');
-                setShowSortMenu(false);
-              }}
-              title="Urgence"
-              leadingIcon="priority-high"
-            />
-          </Menu>
-        </View>
-      </View>
-
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <FilterChip
-              selected={selectedFilter === 'all'}
-              onPress={() => setSelectedFilter('all')}
-              style={styles.filterChip}
-            >
-              Tous
-            </FilterChip>
-            {getUniqueEquipmentTypes().map(type => (
-              <FilterChip
-                key={type}
-                selected={selectedFilter === type}
-                onPress={() => setSelectedFilter(type)}
-                style={styles.filterChip}
-              >
-                {type}
-              </FilterChip>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
-      {filteredData.length === 0 ? (
-        renderEmptyState()
-      ) : (
-        <FlatList
-          data={filteredData}
-          renderItem={renderHistoryItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={refetch}
-              colors={[theme.colors.primary]}
-            />
-          }
-        />
-      )}
-
-      {isOnline && (
-        <FAB
-          style={styles.fab}
-          icon="download"
-          onPress={handleExport}
-          label="Export"
-        />
-      )}
-
-      {/* Details Modal */}
-      <Portal>
-        <Modal
-          visible={!!showDetails}
-          onDismiss={() => setShowDetails(null)}
-          contentContainerStyle={styles.modalContainer}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Filters */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.filtersContainer}
         >
-          {showDetails && (
-            <ScrollView>
-              <Text style={styles.modalTitle}>{showDetails.equipmentType}</Text>
-              <Text style={styles.modalDate}>{formatDate(showDetails.createdAt)}</Text>
-              
-              <Divider style={styles.modalDivider} />
-              
-              <Text style={styles.modalSectionTitle}>Diagnostic</Text>
-              <Text style={styles.modalText}>{showDetails.diagnosis}</Text>
-              
-              <Text style={styles.modalSectionTitle}>Symptômes</Text>
-              <Text style={styles.modalText}>{showDetails.symptoms}</Text>
-              
-              <Text style={styles.modalSectionTitle}>Solution</Text>
-              <Text style={styles.modalText}>{showDetails.solution}</Text>
-              
-              <View style={styles.modalMetrics}>
-                <View style={styles.modalMetric}>
-                  <Text style={styles.modalMetricLabel}>Durée</Text>
-                  <Text style={styles.modalMetricValue}>{showDetails.estimatedDuration} min</Text>
+          {filters.map((filter) => (
+            <TouchableOpacity
+              key={filter.id}
+              style={[
+                styles.filterChip,
+                selectedFilter === filter.id && styles.filterChipActive
+              ]}
+              onPress={() => setSelectedFilter(filter.id)}
+            >
+              <Ionicons
+                name={filter.icon as any}
+                size={14}
+                color={selectedFilter === filter.id ? 'white' : theme.colors.text}
+                style={styles.filterIcon}
+              />
+              <Text style={[
+                styles.filterText,
+                selectedFilter === filter.id && styles.filterTextActive
+              ]}>
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Statistics */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{diagnostics.length}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {diagnostics.filter(d => d.risk_level === 'high' || d.risk_level === 'critical').length}
+            </Text>
+            <Text style={styles.statLabel}>Urgents</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>
+              {diagnostics.filter(d => {
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                return new Date(d.created_at) > oneDayAgo;
+              }).length}
+            </Text>
+            <Text style={styles.statLabel}>Récents</Text>
+          </View>
+        </View>
+
+        {/* Diagnostics List */}
+        {filteredDiagnostics.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons 
+              name="document-text-outline" 
+              size={64} 
+              color={theme.colors.textSecondary}
+              style={styles.emptyIcon}
+            />
+            <Text style={styles.emptyTitle}>Aucun diagnostic trouvé</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery || selectedFilter !== 'all' 
+                ? 'Essayez de modifier vos critères de recherche'
+                : 'Commencez par réaliser votre premier diagnostic'}
+            </Text>
+          </View>
+        ) : (
+          filteredDiagnostics.map((diagnostic, index) => (
+            <TouchableOpacity
+              key={diagnostic.id || index}
+              style={styles.diagnosticCard}
+              onPress={() => handleDiagnosticPress(diagnostic)}
+            >
+              <View style={styles.diagnosticHeader}>
+                <View style={styles.equipmentInfo}>
+                  <Ionicons
+                    name={getEquipmentIcon(diagnostic.equipment_type) as any}
+                    size={24}
+                    color={theme.colors.primary}
+                    style={styles.equipmentIcon}
+                  />
+                  <View style={styles.equipmentDetails}>
+                    <Text style={styles.equipmentType}>
+                      {diagnostic.equipment_type === 'motor' ? 'Moteur électrique' :
+                       diagnostic.equipment_type === 'pump' ? 'Pompe hydraulique' :
+                       diagnostic.equipment_type === 'conveyor' ? 'Convoyeur' :
+                       diagnostic.equipment_type === 'crane' ? 'Grue portuaire' :
+                       diagnostic.equipment_type === 'generator' ? 'Générateur' :
+                       diagnostic.equipment_type === 'compressor' ? 'Compresseur' :
+                       diagnostic.equipment_type}
+                    </Text>
+                    {diagnostic.equipment_id && (
+                      <Text style={styles.equipmentId}>ID: {diagnostic.equipment_id}</Text>
+                    )}
+                  </View>
                 </View>
-                <View style={styles.modalMetric}>
-                  <Text style={styles.modalMetricLabel}>Coût</Text>
-                  <Text style={styles.modalMetricValue}>{showDetails.estimatedCost}</Text>
+                <Text style={styles.diagnosticDate}>
+                  {format(new Date(diagnostic.created_at), 'dd/MM HH:mm', { locale: fr })}
+                </Text>
+              </View>
+
+              {diagnostic.symptoms && diagnostic.symptoms.length > 0 && (
+                <View style={styles.symptomsContainer}>
+                  <Text style={styles.symptomsTitle}>Symptômes :</Text>
+                  <View style={styles.symptomsList}>
+                    {diagnostic.symptoms.map((symptom: string, idx: number) => (
+                      <View key={idx} style={styles.symptomChip}>
+                        <Text style={styles.symptomText}>{symptom}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.resultsContainer}>
+                {diagnostic.suggestions && diagnostic.suggestions[0] && (
+                  <Text style={styles.resultItem}>
+                    🔧 {diagnostic.suggestions[0].issue}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.metricsContainer}>
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricValue}>
+                    {Math.round((diagnostic.confidence_score || 0) * 100)}%
+                  </Text>
+                  <Text style={styles.metricLabel}>Confiance</Text>
+                </View>
+                <View style={styles.metricItem}>
+                  <View style={[
+                    styles.riskBadge,
+                    { backgroundColor: getRiskLevelColor(diagnostic.risk_level) }
+                  ]}>
+                    <Text style={styles.riskText}>
+                      {diagnostic.risk_level === 'low' ? 'Faible' :
+                       diagnostic.risk_level === 'medium' ? 'Moyen' :
+                       diagnostic.risk_level === 'high' ? 'Élevé' :
+                       diagnostic.risk_level === 'critical' ? 'Critique' :
+                       diagnostic.risk_level}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricValue}>{diagnostic.estimated_cost || 0}€</Text>
+                  <Text style={styles.metricLabel}>Coût estimé</Text>
                 </View>
               </View>
-              
-              <Button
-                mode="contained"
-                onPress={() => setShowDetails(null)}
-                style={styles.modalButton}
-              >
-                Fermer
-              </Button>
-            </ScrollView>
-          )}
-        </Modal>
-      </Portal>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
 
-      {/* Export Modal */}
-      <Portal>
-        <Modal
-          visible={showExportModal}
-          onDismiss={() => setShowExportModal(false)}
-          contentContainerStyle={styles.exportModalContainer}
+      {/* Export Button */}
+      <TouchableOpacity
+        style={styles.exportButton}
+        onPress={handleExportHistory}
+      >
+        <LinearGradient
+          colors={['#1e40af', '#3b82f6']}
+          style={styles.exportButton}
         >
-          <Text style={styles.exportTitle}>Exporter les Données</Text>
-          <Text style={styles.exportSubtitle}>
-            {filteredData.length} cas de maintenance sélectionnés
-          </Text>
-          
-          <View style={styles.exportOptions}>
-            <Button
-              mode="contained"
-              onPress={() => handleExportFormat('csv')}
-              style={styles.exportButton}
-              icon="file-delimited"
-            >
-              Export CSV
-            </Button>
-            <Button
-              mode="contained"
-              onPress={() => handleExportFormat('excel')}
-              style={styles.exportButton}
-              icon="microsoft-excel"
-            >
-              Export Excel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={() => handleExportFormat('pdf')}
-              style={styles.exportButton}
-              icon="file-pdf"
-            >
-              Export PDF
-            </Button>
-          </View>
-          
-          <Button
-            mode="outlined"
-            onPress={() => setShowExportModal(false)}
-            style={styles.exportCancelButton}
-          >
-            Annuler
-          </Button>
-        </Modal>
-      </Portal>
+          <Ionicons name="download" size={24} color="white" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: spacing.lg,
-    paddingTop: spacing.xxl,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: '#ffffff',
-    marginBottom: spacing.xs,
-  },
-  headerSubtitle: {
-    ...typography.body1,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
-  offlineWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.warningContainer,
-    padding: spacing.sm,
-    borderRadius: theme.roundness,
-    marginTop: spacing.sm,
-  },
-  offlineText: {
-    ...typography.body2,
-    color: theme.colors.warning,
-    marginLeft: spacing.xs,
-  },
-  centerContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  searchContainer: {
-    padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-  },
-  searchBar: {
-    marginBottom: spacing.sm,
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  filterText: {
-    ...typography.body2,
-    color: theme.colors.primary,
-    marginLeft: spacing.xs,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  sortText: {
-    ...typography.body2,
-    color: theme.colors.primary,
-    marginLeft: spacing.xs,
-  },
-  filtersContainer: {
-    padding: spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.outline,
-  },
-  filterChip: {
-    marginRight: spacing.sm,
-  },
-  listContent: {
-    padding: spacing.md,
-  },
-  historyCard: {
-    marginBottom: spacing.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  equipmentInfo: {
-    flex: 1,
-  },
-  equipmentType: {
-    ...typography.h4,
-    marginBottom: spacing.xs,
-  },
-  equipmentDate: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-  },
-  durationContainer: {
-    alignItems: 'center',
-  },
-  duration: {
-    ...typography.h4,
-    fontWeight: 'bold',
-  },
-  diagnosis: {
-    ...typography.body1,
-    marginBottom: spacing.sm,
-  },
-  symptoms: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-    marginBottom: spacing.md,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  costChip: {
-    backgroundColor: theme.colors.primaryContainer,
-  },
-  costText: {
-    ...typography.body2,
-    color: theme.colors.primary,
-  },
-  cardActions: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    marginLeft: spacing.sm,
-    padding: spacing.xs,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    ...typography.body1,
-    textAlign: 'center',
-    color: theme.colors.secondary,
-    marginBottom: spacing.lg,
-  },
-  emptyButton: {
-    paddingHorizontal: spacing.lg,
-  },
-  errorCard: {
-    padding: spacing.xl,
-    borderRadius: theme.roundness,
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-  },
-  errorTitle: {
-    ...typography.h3,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  errorText: {
-    ...typography.body1,
-    textAlign: 'center',
-    color: theme.colors.secondary,
-    marginBottom: spacing.lg,
-  },
-  errorButton: {
-    paddingHorizontal: spacing.lg,
-  },
-  fab: {
-    position: 'absolute',
-    margin: spacing.md,
-    right: 0,
-    bottom: 0,
-    backgroundColor: theme.colors.primary,
-  },
-  modalContainer: {
-    backgroundColor: theme.colors.surface,
-    margin: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: theme.roundness,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    ...typography.h2,
-    marginBottom: spacing.xs,
-  },
-  modalDate: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-  },
-  modalDivider: {
-    marginVertical: spacing.md,
-  },
-  modalSectionTitle: {
-    ...typography.h4,
-    marginBottom: spacing.sm,
-    marginTop: spacing.md,
-  },
-  modalText: {
-    ...typography.body1,
-    marginBottom: spacing.md,
-  },
-  modalMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: spacing.md,
-  },
-  modalMetric: {
-    alignItems: 'center',
-  },
-  modalMetricLabel: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-  },
-  modalMetricValue: {
-    ...typography.h4,
-    marginTop: spacing.xs,
-  },
-  modalButton: {
-    marginTop: spacing.lg,
-  },
-  exportModalContainer: {
-    backgroundColor: theme.colors.surface,
-    margin: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: theme.roundness,
-  },
-  exportTitle: {
-    ...typography.h3,
-    marginBottom: spacing.sm,
-  },
-  exportSubtitle: {
-    ...typography.body2,
-    color: theme.colors.secondary,
-    marginBottom: spacing.lg,
-  },
-  exportOptions: {
-    marginBottom: spacing.lg,
-  },
-  exportButton: {
-    marginBottom: spacing.sm,
-  },
-  exportCancelButton: {
-    marginTop: spacing.md,
-  },
-});
+export default HistoryScreen;
