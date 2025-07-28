@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import InventoryDiagnostic from "@/components/inventory-diagnostic";
+import InventoryManagementRebuilt from "@/components/inventory-management-rebuilt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -375,12 +377,41 @@ export default function InventoryManagement() {
 
           {/* Inventory Tab */}
           <TabsContent value="inventory">
+            <div className="space-y-6">
+              <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-2xl">
+                    <Package className="h-6 w-6 mr-3 text-blue-600" />
+                    Diagnostic Inventaire - Connexion API
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <InventoryDiagnostic />
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-2xl">
+                    <Package className="h-6 w-6 mr-3 text-blue-600" />
+                    Inventaire des Pièces - Version Corrigée
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <InventoryManagementRebuilt />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* ANCIEN CONTENU DÉPLACÉ POUR RÉFÉRENCE */}
+          <TabsContent value="inventory-old">
             <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
                   <CardTitle className="flex items-center text-2xl">
                     <Package className="h-6 w-6 mr-3 text-blue-600" />
-                    Inventaire des Pièces
+                    Inventaire des Pièces (Ancien)
                   </CardTitle>
                   
                   <div className="flex flex-col lg:flex-row space-y-2 lg:space-y-0 lg:space-x-4">
