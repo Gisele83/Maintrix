@@ -101,6 +101,7 @@ export default function InventoryManagement() {
     gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   console.log("Current spare parts:", spareParts.length, spareParts);
@@ -128,7 +129,10 @@ export default function InventoryManagement() {
   const createPartMutation = useMutation({
     mutationFn: async (data: SparePartFormData) => {
       console.log("Creating part with data:", data);
-      return apiRequest("POST", "/api/spare-parts", data);
+      return apiRequest("/api/spare-parts", {
+        method: "POST",
+        body: data,
+      });
     },
     onSuccess: async (newPart) => {
       console.log("Part created successfully:", newPart);
@@ -164,7 +168,10 @@ export default function InventoryManagement() {
   const updatePartMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: SparePartFormData }) => {
       console.log("Updating part:", id, data);
-      return apiRequest("PUT", `/api/spare-parts/${id}`, data);
+      return apiRequest(`/api/spare-parts/${id}`, {
+        method: "PUT",
+        body: data,
+      });
     },
     onSuccess: async (updatedPart) => {
       console.log("Part updated successfully:", updatedPart);
