@@ -104,7 +104,18 @@ export default function InventoryManagement() {
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  console.log("Current spare parts:", spareParts.length, spareParts);
+  console.log("DEBUG - Current spare parts:", spareParts.length, spareParts);
+  
+  // Filter parts
+  const filteredParts = spareParts.filter((part: SparePart) => {
+    const matchesSearch = 
+      part.partName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      part.partNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+  
+  console.log("DEBUG - Filtered parts:", filteredParts.length, "Search:", searchTerm, "Category:", categoryFilter);
 
   // Form with proper default values
   const form = useForm<SparePartFormData>({
@@ -353,13 +364,7 @@ export default function InventoryManagement() {
     setIsEditDialogOpen(true);
   };
 
-  // Filter data
-  const filteredParts = spareParts.filter((part: SparePart) => {
-    const matchesSearch = part.partName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         part.partNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "all" || part.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+
 
   const getStockStatus = (part: SparePart) => {
     if (part.currentStock <= part.minStock) return { label: "Stock faible", color: "destructive" };
