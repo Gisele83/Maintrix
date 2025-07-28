@@ -2525,6 +2525,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route pour alertes de stock bas et recommandations
+  app.get("/api/stock/alerts/low-stock", async (req, res) => {
+    try {
+      const alertData = await stockManager.generateLowStockAlerts();
+      res.json(alertData);
+    } catch (error: any) {
+      console.error("Erreur alertes stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour sortie automatique lors de création d'ordre de travail
+  app.post("/api/stock/auto-deduction", async (req, res) => {
+    try {
+      const { workOrderId, partsRequired } = req.body;
+      const result = await stockManager.autoStockDeductionForWorkOrder(workOrderId, partsRequired);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Erreur déduction automatique:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour retour automatique après ordre de travail
+  app.post("/api/stock/auto-return", async (req, res) => {
+    try {
+      const { workOrderId, partsReturned } = req.body;
+      await stockManager.autoStockReturnAfterWorkOrder(workOrderId, partsReturned);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Erreur retour automatique:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Route pour réserver du stock
   app.post("/api/stock/reserve", async (req, res) => {
     try {

@@ -226,6 +226,123 @@ export class StockManager {
       reference: `OT-${workOrderId}-RES`,
     });
   }
+  /**
+   * Sortie automatique de stock lors de la création d'un ordre de travail
+   */
+  async autoStockDeductionForWorkOrder(
+    workOrderId: number, 
+    partsRequired: { sparePartId: number, quantity: number }[]
+  ): Promise<{ success: boolean, shortages: any[] }> {
+    const shortages = [];
+    
+    for (const part of partsRequired) {
+      try {
+        // Vérifier la disponibilité
+        const availability = await this.checkStockAvailability(part.sparePartId, part.quantity);
+        
+        if (!availability.available) {
+          shortages.push({
+            sparePartId: part.sparePartId,
+            required: part.quantity,
+            available: availability.currentStock,
+            shortage: availability.shortage
+          });
+          continue;
+        }
+
+        // Effectuer la sortie automatique
+        await this.recordStockMovement({
+          sparePartId: part.sparePartId,
+          movementType: 'OUT',
+          quantity: part.quantity,
+          reason: 'WORK_ORDER',
+          workOrderId: workOrderId,
+          reference: `AUTO-OT-${workOrderId}`,
+          notes: `Sortie automatique pour ordre de travail ${workOrderId}`,
+        });
+
+      } catch (error: any) {
+        console.error(`Erreur lors de la sortie automatique pour la pièce ${part.sparePartId}:`, error);
+        shortages.push({
+          sparePartId: part.sparePartId,
+          error: error.message
+        });
+      }
+    }
+
+    return {
+      success: shortages.length === 0,
+      shortages
+    };
+  }
+
+  /**
+   * Retour automatique de stock après ordre de travail
+   */
+  async autoStockReturnAfterWorkOrder(
+    workOrderId: number, 
+    partsReturned: { sparePartId: number, quantity: number, condition: string }[]
+  ): Promise<void> {
+    for (const part of partsReturned) {
+      try {
+        const movementType = part.condition === 'good' ? 'RETURN' : 'OUT';
+        const reason = part.condition === 'good' ? 'RETURN' : 'DAMAGED';
+        
+        await this.recordStockMovement({
+          sparePartId: part.sparePartId,
+          movementType: movementType,
+          quantity: part.quantity,
+          reason: reason,
+          workOrderId: workOrderId,
+          reference: `AUTO-RETURN-OT-${workOrderId}`,
+          notes: `Retour automatique après ordre de travail ${workOrderId} - État: ${part.condition}`,
+        });
+
+      } catch (error) {
+        console.error(`Erreur lors du retour automatique pour la pièce ${part.sparePartId}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Génération d'alertes de stock bas avec recommandations de commande
+   */
+  async generateLowStockAlerts(): Promise<{ alerts: any[], recommendations: any[] }> {
+    try {
+      const lowStockParts = await db
+        .select()
+        .from(spareParts)
+        .where(sql`${spareParts.currentStock} <= ${spareParts.minStock}`);
+
+      const alerts = lowStockParts.map(part => ({
+        id: part.id,
+        partNumber: part.partNumber,
+        partName: part.partName,
+        currentStock: part.currentStock,
+        minStock: part.minStock,
+        alertLevel: part.currentStock === 0 ? 'CRITICAL' : 'WARNING',
+        message: part.currentStock === 0 
+          ? `Stock épuisé pour ${part.partName} (${part.partNumber})`
+          : `Stock bas pour ${part.partName} (${part.partNumber}): ${part.currentStock}/${part.minStock}`
+      }));
+
+      const recommendations = lowStockParts.map(part => ({
+        sparePartId: part.id,
+        partNumber: part.partNumber,
+        partName: part.partName,
+        currentStock: part.currentStock,
+        minStock: part.minStock,
+        recommendedOrder: Math.max(part.maxStock - part.currentStock, part.minStock * 2),
+        supplier: part.supplier,
+        estimatedCost: (Math.max(part.maxStock - part.currentStock, part.minStock * 2) * parseFloat(part.unitPrice)).toFixed(2)
+      }));
+
+      return { alerts, recommendations };
+    } catch (error) {
+      console.error('Erreur lors de la génération des alertes de stock:', error);
+      return { alerts: [], recommendations: [] };
+    }
+  }
 }
 
 // Instance singleton

@@ -1,4 +1,5 @@
 import InventorySimple from "@/components/inventory-simple";
+import StockAlertsDashboard from "@/components/stock-alerts-dashboard";
 
 export default function InventoryManagement() {
   return (
@@ -14,8 +15,21 @@ export default function InventoryManagement() {
           </p>
         </div>
 
+        {/* Dashboard d'alertes de stock */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            Alertes de Stock
+          </h2>
+          <StockAlertsDashboard />
+        </div>
+
         {/* Interface Inventaire */}
-        <InventorySimple />
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            Inventaire des Pièces Détachées
+          </h2>
+          <InventorySimple />
+        </div>
       </div>
     </div>
   );

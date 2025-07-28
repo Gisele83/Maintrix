@@ -6,6 +6,7 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import StockMovementModal from "@/components/stock-movement-modal";
+import StockHistoryModal from "@/components/stock-history-modal";
 import {
   Card,
   CardContent,
@@ -98,6 +99,18 @@ export default function InventorySimple() {
     isOpen: false,
     sparePartId: 0,
     currentStock: 0,
+    partName: "",
+    partNumber: ""
+  });
+
+  const [stockHistoryModal, setStockHistoryModal] = useState<{
+    isOpen: boolean;
+    sparePartId: number;
+    partName: string;
+    partNumber: string;
+  }>({
+    isOpen: false,
+    sparePartId: 0,
     partName: "",
     partNumber: ""
   });
@@ -582,13 +595,12 @@ export default function InventorySimple() {
                         size="sm"
                         variant="outline"
                         className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => {
-                          // TODO: Afficher l'historique des mouvements
-                          toast({
-                            title: "Historique",
-                            description: `Historique de ${part.partName} - Fonctionnalité en cours de développement`,
-                          });
-                        }}
+                        onClick={() => setStockHistoryModal({
+                          isOpen: true,
+                          sparePartId: part.id,
+                          partName: part.partName,
+                          partNumber: part.partNumber
+                        })}
                       >
                         <History className="w-4 h-4 mr-1" />
                         Historique
@@ -610,6 +622,15 @@ export default function InventorySimple() {
         currentStock={stockMovementModal.currentStock}
         partName={stockMovementModal.partName}
         partNumber={stockMovementModal.partNumber}
+      />
+
+      {/* Modal d'historique des mouvements */}
+      <StockHistoryModal
+        isOpen={stockHistoryModal.isOpen}
+        onClose={() => setStockHistoryModal(prev => ({ ...prev, isOpen: false }))}
+        sparePartId={stockHistoryModal.sparePartId}
+        partName={stockHistoryModal.partName}
+        partNumber={stockHistoryModal.partNumber}
       />
     </div>
   );
