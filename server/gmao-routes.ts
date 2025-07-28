@@ -283,11 +283,62 @@ export function registerGMAORoutes(app: Express) {
     try {
       console.log("Received spare part data:", req.body);
       const data = insertSparePartSchema.parse(req.body);
-      const part = await gmaoStorage.createSparePart(data);
+      
+      // Générer un numéro de pièce unique si conflit détecté
+      let uniquePartNumber = data.partNumber;
+      let counter = 1;
+      
+      // Vérifier si le numéro existe déjà
+      while (true) {
+        try {
+          const existing = await gmaoStorage.getSparePartByPartNumber(uniquePartNumber);
+          if (!existing) {
+            break; // Numéro unique trouvé
+          }
+          
+          // Générer un nouveau numéro avec suffixe
+          uniquePartNumber = `${data.partNumber}-${counter.toString().padStart(3, '0')}`;
+          counter++;
+          
+          if (counter > 999) {
+            throw new Error("Impossible de générer un numéro de pièce unique");
+          }
+        } catch (error: any) {
+          if (error.message?.includes('Impossible de générer')) {
+            throw error;
+          }
+          break; // En cas d'erreur de requête, continuer avec le numéro actuel
+        }
+      }
+      
+      // Créer la pièce avec le numéro unique
+      const partToCreate = {
+        ...data,
+        partNumber: uniquePartNumber
+      };
+      
+      const part = await gmaoStorage.createSparePart(partToCreate);
+      console.log(`Pièce créée avec succès: ${uniquePartNumber}`);
       res.status(201).json(part);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating spare part:", error);
-      res.status(400).json({ message: "Failed to create spare part", error: error.message });
+      
+      // Gestion spécifique des erreurs de contraintes uniques
+      if (error.message && (
+        error.message.includes('duplicate key') || 
+        error.message.includes('unique constraint') ||
+        error.message.includes('already exists')
+      )) {
+        res.status(400).json({ 
+          message: "Cette référence de pièce existe déjà", 
+          error: "Référence en doublon" 
+        });
+      } else {
+        res.status(400).json({ 
+          message: "Failed to create spare part", 
+          error: error.message 
+        });
+      }
     }
   });
 

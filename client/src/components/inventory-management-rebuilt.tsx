@@ -224,11 +224,25 @@ export default function InventoryManagementRebuilt() {
         forceRefresh();
       }, 500);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("=== CREATION ERROR ===", error);
+      
+      // Gestion spécifique des erreurs de contraintes uniques
+      let errorMessage = "Erreur lors de la création de la pièce";
+      
+      if (error.message && (
+        error.message.includes('duplicate key') || 
+        error.message.includes('unique constraint') ||
+        error.message.includes('already exists')
+      )) {
+        errorMessage = "Cette référence de pièce existe déjà. Veuillez utiliser une référence différente.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Erreur",
-        description: "Erreur lors de la création de la pièce",
+        title: "❌ Référence déjà utilisée",
+        description: errorMessage,
         variant: "destructive",
       });
     },
