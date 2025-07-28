@@ -36,7 +36,7 @@ export default function ModernHome() {
     refetchInterval: 5000 // Refresh every 5 seconds for live updates
   });
 
-  const activeAlerts = alerts.filter((alert: any) => alert.status === 'active').length;
+  const activeAlerts = (alerts as any[]).filter((alert: any) => alert.status === 'active').length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
