@@ -20,7 +20,7 @@ import { ProcurementDashboard } from "@/components/procurement-dashboard";
 import { EquipmentManagement } from "@/components/equipment-management";
 import { WorkOrderManagement } from "@/components/work-order-management";
 import { PreventiveMaintenance } from "@/components/preventive-maintenance";
-import InventoryManagement from "@/components/inventory-management-fixed";
+import InventoryManagement from "@/components/inventory-management-debug";
 import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard-simple";
 import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
