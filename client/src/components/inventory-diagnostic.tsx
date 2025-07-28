@@ -68,8 +68,11 @@ export default function InventoryDiagnostic() {
   const createTestPart = async () => {
     console.log("=== CRÉATION PIÈCE DE TEST ===");
     
+    // Générer un numéro vraiment unique pour éviter les conflits
+    const uniqueId = `DIAG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const testPart = {
-      partNumber: `DIAG-${Date.now()}`,
+      partNumber: uniqueId,
       partName: `Test Diagnostic ${new Date().toLocaleTimeString()}`,
       category: "diagnostic",
       supplier: "Test Diagnostic Supplier",

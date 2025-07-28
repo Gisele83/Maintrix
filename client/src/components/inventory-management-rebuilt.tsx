@@ -137,11 +137,13 @@ export default function InventoryManagementRebuilt() {
     }
   }, [queryClient, refetch]);
 
-  // Données à afficher (priorité à l'état local)
-  const spareParts = localParts.length > 0 ? localParts : (apiData || []);
+  // Combinaison des données avec priorité aux données locales - toujours un tableau
+  const spareParts = Array.isArray(localParts) && localParts.length > 0 
+    ? localParts 
+    : (Array.isArray(apiData) ? apiData : []);
 
-  // Filtrage robuste
-  const filteredParts = spareParts.filter((part: SparePart) => {
+  // Filtrage robuste avec vérification de type
+  const filteredParts = (Array.isArray(spareParts) ? spareParts : []).filter((part: SparePart) => {
     if (!part) return false;
     
     const partName = (part.partName || "").toLowerCase();
