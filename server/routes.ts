@@ -2415,6 +2415,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPaymentRoutes(app);
   console.log("✅ Payment routes registered (disabled for freemium version)");
 
+  // ==================== GESTION DES MOUVEMENTS DE STOCK ====================
+  // Import du gestionnaire de stock
+  const { stockManager } = await import("./stock-management.js");
+
+  // Route pour sortie de stock (maintenance/réparation)
+  app.post("/api/stock/outbound", async (req, res) => {
+    try {
+      const { sparePartId, quantity, workOrderId, equipmentId, performedBy, notes } = req.body;
+      
+      if (!sparePartId || !quantity) {
+        return res.status(400).json({ message: "sparePartId et quantity sont requis" });
+      }
+
+      const movement = await stockManager.outboundForMaintenance(
+        sparePartId, quantity, workOrderId, equipmentId, performedBy, notes
+      );
+
+      res.json(movement);
+    } catch (error: any) {
+      console.error("Erreur sortie de stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour retour de stock
+  app.post("/api/stock/return", async (req, res) => {
+    try {
+      const { sparePartId, quantity, workOrderId, performedBy, notes } = req.body;
+      
+      if (!sparePartId || !quantity) {
+        return res.status(400).json({ message: "sparePartId et quantity sont requis" });
+      }
+
+      const movement = await stockManager.returnToStock(
+        sparePartId, quantity, workOrderId, performedBy, notes
+      );
+
+      res.json(movement);
+    } catch (error: any) {
+      console.error("Erreur retour de stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour entrée de stock (nouveau stock)
+  app.post("/api/stock/inbound", async (req, res) => {
+    try {
+      const { sparePartId, quantity, reason, reference, performedBy, unitCost, notes } = req.body;
+      
+      if (!sparePartId || !quantity || !reason) {
+        return res.status(400).json({ message: "sparePartId, quantity et reason sont requis" });
+      }
+
+      const movement = await stockManager.inboundStock(
+        sparePartId, quantity, reason, reference, performedBy, unitCost, notes
+      );
+
+      res.json(movement);
+    } catch (error: any) {
+      console.error("Erreur entrée de stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour ajustement de stock
+  app.post("/api/stock/adjust", async (req, res) => {
+    try {
+      const { sparePartId, newQuantity, performedBy, notes } = req.body;
+      
+      if (!sparePartId || newQuantity === undefined) {
+        return res.status(400).json({ message: "sparePartId et newQuantity sont requis" });
+      }
+
+      const movement = await stockManager.adjustStock(
+        sparePartId, newQuantity, performedBy, notes
+      );
+
+      res.json(movement);
+    } catch (error: any) {
+      console.error("Erreur ajustement de stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour vérifier la disponibilité du stock
+  app.get("/api/stock/:sparePartId/availability/:quantity", async (req, res) => {
+    try {
+      const sparePartId = parseInt(req.params.sparePartId);
+      const quantity = parseInt(req.params.quantity);
+
+      const availability = await stockManager.checkStockAvailability(sparePartId, quantity);
+      res.json(availability);
+    } catch (error: any) {
+      console.error("Erreur vérification stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour l'historique des mouvements
+  app.get("/api/stock/:sparePartId/history", async (req, res) => {
+    try {
+      const sparePartId = parseInt(req.params.sparePartId);
+      const history = await stockManager.getMovementHistory(sparePartId);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Erreur historique stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Route pour réserver du stock
+  app.post("/api/stock/reserve", async (req, res) => {
+    try {
+      const { sparePartId, quantity, workOrderId, performedBy } = req.body;
+      
+      if (!sparePartId || !quantity || !workOrderId) {
+        return res.status(400).json({ message: "sparePartId, quantity et workOrderId sont requis" });
+      }
+
+      const movement = await stockManager.reserveStock(
+        sparePartId, quantity, workOrderId, performedBy
+      );
+
+      res.json(movement);
+    } catch (error: any) {
+      console.error("Erreur réservation stock:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

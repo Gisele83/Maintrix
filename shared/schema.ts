@@ -348,16 +348,23 @@ export const spareParts = pgTable("spare_parts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Stock Movements
+// Stock Movements - Enhanced for complete inventory tracking
 export const stockMovements = pgTable("stock_movements", {
   id: serial("id").primaryKey(),
-  sparePartId: integer("spare_part_id").references(() => spareParts.id),
-  movementType: varchar("movement_type", { length: 20 }).notNull(), // in, out, adjustment, return
+  sparePartId: integer("spare_part_id").references(() => spareParts.id).notNull(),
+  movementType: varchar("movement_type", { length: 20 }).notNull(), // 'IN', 'OUT', 'ADJUSTMENT', 'RETURN'
   quantity: integer("quantity").notNull(),
-  reference: text("reference"), // Work order number, purchase order, etc.
-  reason: text("reason"),
+  previousStock: integer("previous_stock").notNull(),
+  newStock: integer("new_stock").notNull(),
+  reason: varchar("reason", { length: 100 }), // 'MAINTENANCE', 'PURCHASE', 'RETURN', 'INVENTORY', 'DAMAGED', 'WORK_ORDER'
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   performedBy: integer("performed_by").references(() => userProfiles.id),
-  createdAt: timestamp("created_at").defaultNow(),
+  reference: text("reference"), // Work order number, purchase order, etc.
+  notes: text("notes"),
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // IoT Sensor Data - Real-time monitoring
@@ -581,9 +588,6 @@ export type InsertPreventiveMaintenancePlan = z.infer<typeof insertPreventiveMai
 
 export type SparePart = typeof spareParts.$inferSelect;
 export type InsertSparePart = z.infer<typeof insertSparePartSchema>;
-
-export type StockMovement = typeof stockMovements.$inferSelect;
-export type InsertStockMovement = z.infer<typeof insertStockMovementSchema>;
 
 export type IotSensorData = typeof iotSensorData.$inferSelect;
 export type InsertIotSensorData = z.infer<typeof insertIotSensorDataSchema>;

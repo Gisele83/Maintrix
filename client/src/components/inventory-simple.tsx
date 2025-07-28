@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import StockMovementModal from "@/components/stock-movement-modal";
 import {
   Card,
   CardContent,
@@ -42,7 +43,11 @@ import {
   Search, 
   Download,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  RotateCcw,
+  History
 } from "lucide-react";
 
 interface SparePart {
@@ -83,6 +88,19 @@ export default function InventorySimple() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [stockMovementModal, setStockMovementModal] = useState<{
+    isOpen: boolean;
+    sparePartId: number;
+    currentStock: number;
+    partName: string;
+    partNumber: string;
+  }>({
+    isOpen: false,
+    sparePartId: 0,
+    currentStock: 0,
+    partName: "",
+    partNumber: ""
+  });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -524,6 +542,58 @@ export default function InventorySimple() {
                         Stock bas
                       </Badge>
                     )}
+                    
+                    {/* Boutons de gestion de stock */}
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        onClick={() => setStockMovementModal({
+                          isOpen: true,
+                          sparePartId: part.id,
+                          currentStock: part.currentStock,
+                          partName: part.partName,
+                          partNumber: part.partNumber
+                        })}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-1" />
+                        Entrée
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        disabled={part.currentStock === 0}
+                        onClick={() => setStockMovementModal({
+                          isOpen: true,
+                          sparePartId: part.id,
+                          currentStock: part.currentStock,
+                          partName: part.partName,
+                          partNumber: part.partNumber
+                        })}
+                      >
+                        <TrendingDown className="w-4 h-4 mr-1" />
+                        Sortie
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => {
+                          // TODO: Afficher l'historique des mouvements
+                          toast({
+                            title: "Historique",
+                            description: `Historique de ${part.partName} - Fonctionnalité en cours de développement`,
+                          });
+                        }}
+                      >
+                        <History className="w-4 h-4 mr-1" />
+                        Historique
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -531,6 +601,16 @@ export default function InventorySimple() {
           ))}
         </div>
       )}
+
+      {/* Modal de mouvement de stock */}
+      <StockMovementModal
+        isOpen={stockMovementModal.isOpen}
+        onClose={() => setStockMovementModal(prev => ({ ...prev, isOpen: false }))}
+        sparePartId={stockMovementModal.sparePartId}
+        currentStock={stockMovementModal.currentStock}
+        partName={stockMovementModal.partName}
+        partNumber={stockMovementModal.partNumber}
+      />
     </div>
   );
 }
