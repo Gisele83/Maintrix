@@ -1,4 +1,4 @@
-import InventoryManagementRebuilt from "@/components/inventory-management-rebuilt";
+import InventorySimple from "@/components/inventory-simple";
 
 export default function InventoryManagement() {
   return (
@@ -15,7 +15,7 @@ export default function InventoryManagement() {
         </div>
 
         {/* Interface Inventaire */}
-        <InventoryManagementRebuilt />
+        <InventorySimple />
       </div>
     </div>
   );

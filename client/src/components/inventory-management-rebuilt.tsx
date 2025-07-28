@@ -106,7 +106,8 @@ export default function InventoryManagementRebuilt() {
     gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    retry: 2,
+    retry: 1,
+    retryOnMount: false,
   });
 
   // Synchronisation des données API avec l'état local
