@@ -176,14 +176,41 @@ export default function InventoryManagement() {
       });
     },
     onSuccess: async (newPart) => {
-      console.log("Part created successfully:", newPart);
+      console.log("=== PART CREATION SUCCESS ===");
+      console.log("New part created:", newPart);
       
-      // Force multiple refresh strategies
+      // Clear all cache and force complete refresh
+      await queryClient.clear();
       await queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       await queryClient.refetchQueries({ queryKey: ["/api/spare-parts"] });
+      
+      // Force component refresh
       await refetch();
       
-      // Add small delay to ensure UI updates
+      // Additional delayed refresh to ensure data appears
+      setTimeout(async () => {
+        console.log("=== DELAYED REFRESH ===");
+        await queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+        await refetch();
+      }, 1000);
+      
+      // Close dialog and reset form
+      setIsAddDialogOpen(false);
+      form.reset();
+      
+      // Show success message
+      toast({
+        title: "Succès",
+        description: `Pièce "${newPart?.partName}" ajoutée à l'inventaire. Actualisation en cours...`,
+      });
+      
+      // Final verification with another delayed refresh
+      setTimeout(async () => {
+        console.log("=== FINAL VERIFICATION REFRESH ===");
+        await queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+        const freshData = await refetch();
+        console.log("Fresh data after final refresh:", freshData.data?.length);
+      }, 2000);
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
       }, 100);
