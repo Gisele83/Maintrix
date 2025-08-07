@@ -340,12 +340,12 @@ export default function PreventiveMaintenance() {
     const planData = {
       planName: addFormData.planName,
       equipmentType: addFormData.equipment,
-      equipmentIds: [1],
+      equipmentIds: "1", // String as expected by schema
       frequency: addFormData.frequency,
-      frequencyValue: 1,
-      tasks: [addFormData.description || "Maintenance standard"],
-      estimatedDuration: addFormData.duration * 60, // Convert hours to minutes
-      requiredSkills: ["maintenance_generale"],
+      frequencyValue: "1", // String as expected by schema
+      tasks: addFormData.description || "Maintenance standard", // String as expected by schema
+      estimatedDuration: (addFormData.duration * 60).toString(), // String as expected by schema
+      requiredSkills: "maintenance_generale", // String as expected by schema
       safetyRequirements: "EPI obligatoire",
       isActive: true,
       nextDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
