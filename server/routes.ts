@@ -556,6 +556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/auth', authRateLimit);
   registerAuthRoutes(app);
   
+  // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
+  app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);
+
   // Register equipment health routes FIRST to avoid route conflicts
   registerEquipmentHealthRoutes(app);
   
