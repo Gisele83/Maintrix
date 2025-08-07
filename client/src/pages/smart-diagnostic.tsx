@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
-import { ExcelProcessorDemo } from "@/components/excel-processor-demo";
 import { useLanguage } from "@/hooks/use-language";
 import {
   Brain,
@@ -542,10 +541,7 @@ export default function SmartDiagnostic() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Excel Processing Demo */}
-        <div className="mb-8">
-          <ExcelProcessorDemo />
-        </div>
+
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
