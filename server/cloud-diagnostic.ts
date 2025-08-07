@@ -67,13 +67,24 @@ export async function performCloudDiagnostic(request: CloudDiagnosticRequest): P
       aiInsights: result.aiInsights || "Analyse effectuée par intelligence artificielle"
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cloud diagnostic error:', error);
+    
+    // Gestion spécifique des erreurs OpenAI
+    let errorMessage = "Service cloud temporairement indisponible";
+    if (error.status === 429) {
+      errorMessage = "Quota API OpenAI dépassé - Service disponible en mode local";
+    } else if (error.status === 401) {
+      errorMessage = "Clé API OpenAI invalide - Contactez l'administrateur";
+    } else if (error.code === 'insufficient_quota') {
+      errorMessage = "Quota OpenAI insuffisant - Diagnostic local activé";
+    }
+    
     return {
       suggestions: [],
       searchPerformed: false,
       confidence: 0,
-      aiInsights: "Erreur lors de l'analyse cloud"
+      aiInsights: errorMessage
     };
   }
 }

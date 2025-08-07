@@ -1185,9 +1185,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             cloudSearchPerformed = true;
             cloudInsights = cloudResult.aiInsights;
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Cloud diagnostic error:", error);
-          // Continue with local suggestions if cloud fails
+          // Ensure graceful fallback to local diagnostics
+          cloudInsights = `Service cloud indisponible (${error.status === 429 ? 'quota dépassé' : 'erreur technique'}) - Diagnostic local activé`;
+          cloudSearchPerformed = false;
         }
       }
       
