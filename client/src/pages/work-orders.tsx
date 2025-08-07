@@ -292,13 +292,23 @@ export default function WorkOrders() {
             Gestion complète des interventions de maintenance
           </p>
         </div>
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvel Ordre
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvel Ordre
+          </Button>
+          <Button 
+            onClick={() => window.location.href = '/data-import'}
+            variant="outline"
+            className="border-purple-300 text-purple-700 hover:bg-purple-50 shadow-lg"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Importer historique
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}

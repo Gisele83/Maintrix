@@ -28,6 +28,7 @@ export default function DataImport() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'free' | 'premium'>('premium'); // Pour la démo, on considère l'utilisateur comme premium
   const { toast } = useToast();
 
   const handleImportIndustrialData = async () => {
@@ -214,9 +215,23 @@ export default function DataImport() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
             Importation des Données Industrielles
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
             Complétez votre base de données avec 120 cas industriels enrichis
           </p>
+          
+          {/* Demo Toggle for Subscription Status */}
+          <div className="flex justify-center mb-4">
+            <div className="bg-white border rounded-lg p-2 flex items-center shadow-sm">
+              <span className="text-sm text-gray-600 mr-3">Mode Démo:</span>
+              <Button
+                onClick={() => setSubscriptionStatus(subscriptionStatus === 'free' ? 'premium' : 'free')}
+                variant={subscriptionStatus === 'premium' ? 'default' : 'outline'}
+                className="text-xs"
+              >
+                {subscriptionStatus === 'premium' ? '👑 Premium' : '🔒 Gratuit'}
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -281,15 +296,38 @@ export default function DataImport() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
-                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
-                  <h3 className="font-semibold text-purple-900 mb-2">
-                    Téléchargez votre fichier Excel
-                  </h3>
-                  <p className="text-purple-700 text-sm">
-                    Importez vos propres données de maintenance historiques
-                    pour enrichir le système de diagnostic IA
-                  </p>
-                </div>
+                {subscriptionStatus === 'premium' ? (
+                  <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                    <h3 className="font-semibold text-purple-900 mb-2 flex items-center">
+                      <Badge className="bg-purple-600 text-white mr-2">PREMIUM</Badge>
+                      Importez votre historique d'équipements
+                    </h3>
+                    <p className="text-purple-700 text-sm mb-3">
+                      En tant qu'abonné Premium, importez vos propres données de maintenance 
+                      historiques pour enrichir le système de diagnostic IA avec votre expérience terrain.
+                    </p>
+                    <div className="text-xs text-purple-600 space-y-1">
+                      <p>• Format supporté : Excel (.xlsx, .xls)</p>
+                      <p>• Colonnes requises : Équipement, Symptômes, Diagnostic, Solutions</p>
+                      <p>• Intégration automatique dans l'IA diagnostique</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                    <h3 className="font-semibold text-orange-900 mb-2">
+                      Fonctionnalité Premium Requise
+                    </h3>
+                    <p className="text-orange-700 text-sm mb-3">
+                      L'importation d'historique d'équipements personnalisé est réservée aux abonnés Premium (19€/mois).
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/pricing'}
+                      className="bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                    >
+                      Voir les Plans Premium
+                    </Button>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <input
@@ -304,10 +342,10 @@ export default function DataImport() {
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
                     className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
-                    disabled={isUploadingFile || isImporting}
+                    disabled={subscriptionStatus !== 'premium' || isUploadingFile || isImporting}
                   >
                     <FileText className="w-4 h-4 mr-2" />
-                    Sélectionner un fichier Excel
+                    {subscriptionStatus === 'premium' ? 'Sélectionner un fichier Excel' : 'Premium Requis'}
                   </Button>
 
                   {selectedFile && (
@@ -338,13 +376,18 @@ export default function DataImport() {
 
                   <Button 
                     onClick={handleFileUpload}
-                    disabled={!selectedFile || isUploadingFile || isImporting}
+                    disabled={subscriptionStatus !== 'premium' || !selectedFile || isUploadingFile || isImporting}
                     className="w-full bg-purple-600 hover:bg-purple-700 text-sm py-4"
                   >
                     {isUploadingFile ? (
                       <>
                         <CloudUpload className="w-4 h-4 mr-2 animate-bounce" />
                         Téléchargement...
+                      </>
+                    ) : subscriptionStatus !== 'premium' ? (
+                      <>
+                        <CloudUpload className="w-4 h-4 mr-2" />
+                        Abonnement Premium Requis
                       </>
                     ) : (
                       <>
