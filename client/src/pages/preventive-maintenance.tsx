@@ -65,6 +65,7 @@ export default function PreventiveMaintenance() {
   const [addFormData, setAddFormData] = useState({
     planName: "",
     equipment: "",
+    customEquipment: "",
     frequency: "",
     description: "",
     duration: 2
@@ -328,6 +329,8 @@ export default function PreventiveMaintenance() {
   });
 
   const handleAddPlan = () => {
+    const equipmentType = addFormData.equipment === "autre" ? addFormData.customEquipment : addFormData.equipment;
+    
     if (!addFormData.planName || !addFormData.equipment || !addFormData.frequency) {
       toast({
         title: "Erreur",
@@ -337,9 +340,18 @@ export default function PreventiveMaintenance() {
       return;
     }
 
+    if (addFormData.equipment === "autre" && !addFormData.customEquipment) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez spécifier le nom de l'équipement.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const planData = {
       planName: addFormData.planName,
-      equipmentType: addFormData.equipment,
+      equipmentType: equipmentType,
       equipmentIds: "1", // String as expected by schema
       frequency: addFormData.frequency,
       frequencyValue: "1", // String as expected by schema
@@ -358,6 +370,7 @@ export default function PreventiveMaintenance() {
     setAddFormData({
       planName: "",
       equipment: "",
+      customEquipment: "",
       frequency: "",
       description: "",
       duration: 2
@@ -1093,8 +1106,22 @@ export default function PreventiveMaintenance() {
                     <option value="compresseur">Compresseur Air</option>
                     <option value="convoyeur">Convoyeur</option>
                     <option value="transformateur">Transformateur</option>
+                    <option value="grue">Grue</option>
+                    <option value="variateur">Variateur de fréquence</option>
+                    <option value="autre">Autre</option>
                   </select>
                 </div>
+                {addFormData.equipment === "autre" && (
+                  <div>
+                    <Label htmlFor="customEquipment">Nom de l'équipement</Label>
+                    <Input 
+                      id="customEquipment"
+                      value={addFormData.customEquipment}
+                      onChange={(e) => setAddFormData({...addFormData, customEquipment: e.target.value})}
+                      placeholder="Ex: Ventilateur industriel, Machine spéciale..." 
+                    />
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="frequency">Fréquence</Label>
                   <select 
