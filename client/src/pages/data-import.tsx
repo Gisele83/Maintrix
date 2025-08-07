@@ -44,7 +44,7 @@ export default function DataImport() {
       
       toast({
         title: "Importation réussie",
-        description: `${response.data.equipment} équipements, ${response.data.workOrders} ordres de travail et ${response.data.spareParts} pièces importés`,
+        description: `${response.data.equipment} équipements, ${response.data.workOrders} ordres, ${response.data.spareParts} pièces et ${response.data.maintenanceCases} cas de maintenance importés`,
       });
 
     } catch (error: any) {
@@ -156,10 +156,16 @@ export default function DataImport() {
                       <p className="text-sm text-purple-700">Ordres de Travail</p>
                     </div>
                     
-                    <div className="bg-orange-50 p-4 rounded-lg text-center col-span-2">
+                    <div className="bg-orange-50 p-4 rounded-lg text-center">
                       <Package className="w-8 h-8 text-orange-600 mx-auto mb-2" />
                       <p className="text-2xl font-bold text-orange-900">{importResult.data.spareParts}</p>
                       <p className="text-sm text-orange-700">Pièces Détachées</p>
+                    </div>
+                    
+                    <div className="bg-green-50 p-4 rounded-lg text-center">
+                      <BarChart3 className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-green-900">{importResult.data.maintenanceCases}</p>
+                      <p className="text-sm text-green-700">Cas Historiques</p>
                     </div>
                   </div>
 

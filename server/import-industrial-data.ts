@@ -1,8 +1,8 @@
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
 import { db } from './db';
-import { equipmentRegistry, workOrders, spareParts } from '../shared/schema';
+import { equipmentRegistry, workOrders, spareParts, maintenanceCases } from '../shared/schema';
 
 interface IndustrialCase {
   equipmentId?: string;
@@ -28,7 +28,7 @@ interface IndustrialCase {
   priority?: string;
 }
 
-export async function importIndustrialDatabase() {
+export async function importIndustrialDatabase(): Promise<{ equipment: number; workOrders: number; spareParts: number; maintenanceCases: number }> {
   try {
     console.log('🔄 Starting import of industrial database...');
     
@@ -56,6 +56,7 @@ export async function importIndustrialDatabase() {
     let equipmentCount = 0;
     let workOrderCount = 0;
     let partsCount = 0;
+    let maintenanceCasesCount = 0;
 
     for (let i = 0; i < data.length; i++) {
       const row = data[i] as any[];
@@ -141,6 +142,29 @@ export async function importIndustrialDatabase() {
             
             partsCount++;
           }
+
+          // Import maintenance case for diagnostic learning
+          if (row[13] && row[14]) { // maintenance type and problem
+            const maintenanceCase = {
+              equipmentType: equipmentData.equipmentType,
+              equipmentId: insertedEquipment.id.toString(),
+              zone: equipmentData.location,
+              sector: 'production',
+              symptoms: row[14] || 'Problème non spécifié',
+              diagnosis: `${row[13]} - ${row[14]}` || 'Diagnostic automatique',
+              solution: row[15] || 'Solution à déterminer',
+              duration: parseFloat(row[19]) || 120,
+              resolved: true,
+              urgency: normalizePriority(row[20]) || 'medium',
+              confidence: 0.85
+            };
+
+            await db.insert(maintenanceCases)
+              .values(maintenanceCase)
+              .returning();
+
+            maintenanceCasesCount++;
+          }
         }
 
       } catch (rowError) {
@@ -153,12 +177,13 @@ export async function importIndustrialDatabase() {
     console.log(`   📦 Equipment imported: ${equipmentCount}`);
     console.log(`   🔧 Work orders created: ${workOrderCount}`);
     console.log(`   🔩 Spare parts added: ${partsCount}`);
+    console.log(`   🧠 Maintenance cases imported: ${maintenanceCasesCount}`);
 
     return {
-      success: true,
       equipment: equipmentCount,
       workOrders: workOrderCount,
-      spareParts: partsCount
+      spareParts: partsCount,
+      maintenanceCases: maintenanceCasesCount
     };
 
   } catch (error) {
