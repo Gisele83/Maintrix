@@ -36,22 +36,25 @@ export default function DataImport() {
       }, 200);
 
       // Use the correct Excel processing endpoint
-      const response = await apiRequest("POST", "/api/diagnostic/process-excel-sheets", {});
+      const result = await apiRequest("/api/diagnostic/process-excel-sheets", {
+        method: "POST",
+        body: {}
+      });
       
       clearInterval(progressInterval);
       setProgress(100);
       
-      const result = await response.json();
+      console.log("Import API response:", result);
       
-      if (result.success) {
+      if (result && result.success) {
         // Transform the result to match expected format
         const transformedResult = {
           success: true,
           data: {
-            equipment: result.data.equipments,
-            workOrders: result.data.diagnostics,
-            spareParts: result.data.procedures,
-            maintenanceCases: result.data.crossReferences
+            equipment: result.data?.equipments || 0,
+            workOrders: result.data?.diagnostics || 0,
+            spareParts: result.data?.procedures || 0,
+            maintenanceCases: result.data?.crossReferences || 0
           }
         };
         
@@ -59,10 +62,10 @@ export default function DataImport() {
         
         toast({
           title: "✅ Importation réussie",
-          description: `${result.data.equipments} équipements, ${result.data.diagnostics} diagnostics, ${result.data.procedures} procédures et ${result.data.crossReferences} cas croisés importés`,
+          description: `${transformedResult.data.equipment} équipements, ${transformedResult.data.workOrders} diagnostics, ${transformedResult.data.spareParts} procédures et ${transformedResult.data.maintenanceCases} cas croisés importés`,
         });
       } else {
-        throw new Error(result.message);
+        throw new Error(result?.message || "Réponse API invalide");
       }
 
     } catch (error: any) {
