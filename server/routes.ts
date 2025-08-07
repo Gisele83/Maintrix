@@ -2615,28 +2615,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import industrial database endpoint - Enhanced with historical learning
-  app.post("/api/import/industrial-data", async (req, res) => {
+  // Import default historical database from Excel file
+  app.post("/api/import/default-historical-data", async (req, res) => {
     try {
-      // Import sample maintenance cases for diagnostic learning
-      const { importSampleData } = await import("./simple-import");
-      const result = await importSampleData();
+      const { processDefaultHistoricalData } = await import("./simple-excel-reader");
+      const result = await processDefaultHistoricalData();
       
-      res.json({
-        success: true,
-        message: "Base de données industrielle enrichie avec cas historiques",
-        data: {
-          equipment: 15,
-          workOrders: 12,
-          spareParts: 25,
-          maintenanceCases: result.maintenanceCases
-        }
-      });
+      res.json(result);
     } catch (error: any) {
-      console.error("Import error:", error);
+      console.error("Default import error:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur lors de l'importation",
+        message: "Erreur lors de l'importation du fichier historique par défaut",
+        error: error.message
+      });
+    }
+  });
+
+  // Import user's custom historical Excel file
+  app.post("/api/import/user-historical-data", async (req, res) => {
+    try {
+      const { filePath } = req.body;
+      
+      if (!filePath) {
+        return res.status(400).json({
+          success: false,
+          message: "Chemin du fichier requis"
+        });
+      }
+
+      const { ExcelHistoryProcessor } = await import("./excel-processor");
+      const processor = new ExcelHistoryProcessor();
+      const result = await processor.processUserExcelFile(filePath);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            maintenanceCases: result.maintenanceCases,
+            equipment: result.equipment,
+            workOrders: result.workOrders,
+            spareParts: result.spareParts,
+            source: "user_uploaded_file"
+          }
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message
+        });
+      }
+    } catch (error: any) {
+      console.error("User import error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors de l'importation du fichier utilisateur",
         error: error.message
       });
     }
@@ -2705,8 +2739,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve diagnostic test page
   app.get('/diagnostic-test.html', (req, res) => {
-    const path = require('path');
-    res.sendFile(path.join(__dirname, '..', 'diagnostic-test.html'));
+    import('path').then(path => {
+      import('url').then(url => {
+        const __filename = url.fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        res.sendFile(path.join(__dirname, '..', 'diagnostic-test.html'));
+      });
+    });
   });
 
   const httpServer = createServer(app);

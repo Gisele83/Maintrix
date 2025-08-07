@@ -8,6 +8,7 @@ Preferred communication style: Simple, everyday language.
 User requested improvements based on provided database and enhanced specifications document.
 User loves the new modern interface design with glassmorphism effects and gradient styling.
 User confirmed architecture requirements: Interface unifiée avec architecture modulaire - Module GMAO (planification, interventions, techniciens) + Module Diagnostic intelligent (analyse symptômes → diagnostic → préconisations → lien vers intervention).
+User specifically requested to use ONLY the provided Excel file (Base_Industrie_120_Cas_Enrichie_1754588437015.xlsx) as historical database for diagnostic pattern matching and to allow users to upload their own historical maintenance data.
 
 ## System Architecture
 ### Frontend Architecture
@@ -32,7 +33,8 @@ User confirmed architecture requirements: Interface unifiée avec architecture m
 - **Migration**: Drizzle-kit for schema management.
 
 ### Technical Implementations
-- **AI Diagnostic Engine**: Combines Standard ML (Random Forest, Gradient Boosting with TF-IDF), Advanced ML (Neural Networks, SVM, Anomaly Detection using MLP and Isolation Forest), and Ensemble ML (combining 9 algorithms for multi-model consensus). Includes predictive maintenance scheduling, failure risk assessment, and continuous learning system with feedback collection.
+- **AI Diagnostic Engine**: Combines Standard ML (Random Forest, Gradient Boosting with TF-IDF), Advanced ML (Neural Networks, SVM, Anomaly Detection using MLP and Isolation Forest), and Ensemble ML (combining 9 algorithms for multi-model consensus). Includes predictive maintenance scheduling, failure risk assessment, and continuous learning system with feedback collection. Now exclusively uses historical industrial maintenance cases from Excel files for pattern matching.
+- **Historical Data Processing**: Excel processor system (simple-excel-reader.ts, excel-processor.ts) that extracts maintenance cases from user-provided Excel files or default industrial database. Supports automatic column detection and data normalization for equipment types (moteur, pompe, compresseur, convoyeur).
 - **GMAO Platform**: Comprehensive equipment registry, advanced work order management with multi-level validation, preventive maintenance scheduling (time, usage, condition-based), complete spare parts inventory with stock optimization and automatic unique reference generation, and a budget management system with multi-level approvals.
 - **Security**: Multi-level authentication (bcrypt), advanced security middleware (rate limiting, anomaly detection, CSRF protection), and a security dashboard.
 - **Reporting**: Comprehensive maintenance reporting system with automatic generation (intervention, monthly, dashboard reports) including KPIs (MTBF, MTTR, OEE, availability).

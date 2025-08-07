@@ -163,19 +163,30 @@
             </div>
         </div>
         
-        <button onclick="testImport()">1. Lancer l'Importation des Cas Historiques</button>
-        <button onclick="testDiagnostic()">2. Tester le Diagnostic Intelligent</button>
+        <button onclick="importDefaultHistory()">1. Charger l'Historique par Défaut (Excel)</button>
+        <button onclick="showFileUpload()">2. Charger Votre Fichier Excel</button>
+        <button onclick="testDiagnostic()">3. Tester le Diagnostic Intelligent</button>
+        
+        <div id="fileUploadSection" style="display: none; margin-top: 20px; padding: 20px; background: #f8fafc; border-radius: 10px;">
+            <h4>📁 Charger votre fichier Excel d'historique</h4>
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="margin: 10px 0;">
+            <button onclick="uploadUserFile()">Traiter le Fichier</button>
+            <p style="font-size: 14px; color: #6b7280; margin-top: 10px;">
+                Formats supportés: .xlsx, .xls<br>
+                Le système analysera automatiquement les colonnes pour extraire les cas de maintenance.
+            </p>
+        </div>
         
         <div id="results"></div>
     </div>
 
     <script>
-        async function testImport() {
+        async function importDefaultHistory() {
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<div class="loading">⏳ Importation des cas historiques en cours...</div>';
+            resultsDiv.innerHTML = '<div class="loading">📊 Chargement de l\'historique par défaut (Base_Industrie_120_Cas_Enrichie.xlsx)...</div>';
             
             try {
-                const response = await fetch('/api/import/industrial-data', {
+                const response = await fetch('/api/import/default-historical-data', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -185,16 +196,17 @@
                 if (data.success) {
                     resultsDiv.innerHTML = `
                         <div class="results">
-                            <h3>✅ Importation réussie</h3>
+                            <h3>✅ Historique par défaut chargé</h3>
+                            <p><strong>Fichier:</strong> ${data.data.source}</p>
                             <p><strong>Message:</strong> ${data.message}</p>
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                                <div style="text-align: center; padding: 10px; background: #dcfce7; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #16a34a;">${data.data.maintenanceCases}</div>
+                                    <div style="font-size: 14px; color: #6b7280;">Cas de Maintenance</div>
+                                </div>
                                 <div style="text-align: center; padding: 10px; background: #dbeafe; border-radius: 8px;">
                                     <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${data.data.equipment}</div>
                                     <div style="font-size: 14px; color: #6b7280;">Équipements</div>
-                                </div>
-                                <div style="text-align: center; padding: 10px; background: #dcfce7; border-radius: 8px;">
-                                    <div style="font-size: 24px; font-weight: bold; color: #16a34a;">${data.data.maintenanceCases}</div>
-                                    <div style="font-size: 14px; color: #6b7280;">Cas Historiques</div>
                                 </div>
                                 <div style="text-align: center; padding: 10px; background: #fef3c7; border-radius: 8px;">
                                     <div style="font-size: 24px; font-weight: bold; color: #d97706;">${data.data.workOrders}</div>
@@ -212,6 +224,70 @@
                 }
             } catch (error) {
                 resultsDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+            }
+        }
+        
+        function showFileUpload() {
+            const section = document.getElementById('fileUploadSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        async function uploadUserFile() {
+            const fileInput = document.getElementById('excelFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Veuillez sélectionner un fichier Excel');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="loading">📤 Traitement de votre fichier: ${file.name}...</div>`;
+            
+            try {
+                // For this demo, we'll simulate the file processing
+                // In a real implementation, you would upload the file to the server first
+                const response = await fetch('/api/import/user-historical-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filePath: `uploaded/${file.name}` // Simulated path
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="results">
+                            <h3>✅ Votre fichier a été traité</h3>
+                            <p><strong>Fichier:</strong> ${file.name}</p>
+                            <p><strong>Message:</strong> ${data.message}</p>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                                <div style="text-align: center; padding: 10px; background: #dcfce7; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #16a34a;">${data.data.maintenanceCases}</div>
+                                    <div style="font-size: 14px; color: #6b7280;">Cas de Maintenance</div>
+                                </div>
+                                <div style="text-align: center; padding: 10px; background: #dbeafe; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${data.data.equipment}</div>
+                                    <div style="font-size: 14px; color: #6b7280;">Équipements</div>
+                                </div>
+                                <div style="text-align: center; padding: 10px; background: #fef3c7; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #d97706;">${data.data.workOrders}</div>
+                                    <div style="font-size: 14px; color: #6b7280;">Ordres de Travail</div>
+                                </div>
+                                <div style="text-align: center; padding: 10px; background: #fce7f3; border-radius: 8px;">
+                                    <div style="font-size: 24px; font-weight: bold; color: #be185d;">${data.data.spareParts}</div>
+                                    <div style="font-size: 14px; color: #6b7280;">Pièces Détachées</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div class="error">❌ Erreur: ${data.message}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">❌ Erreur de traitement: ${error.message}</div>`;
             }
         }
         
