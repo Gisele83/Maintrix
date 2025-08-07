@@ -762,6 +762,150 @@ export class MemStorage implements IStorage {
 
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
+  
+  // GMAO - Equipment Registry
+  async getEquipmentRegistry(): Promise<EquipmentRegistry[]> {
+    return await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
+  }
+
+  async getEquipmentById(id: number): Promise<EquipmentRegistry | undefined> {
+    const [equipment] = await db.select().from(equipmentRegistry).where(eq(equipmentRegistry.id, id));
+    return equipment;
+  }
+
+  async getEquipmentByEquipmentId(equipmentId: string): Promise<EquipmentRegistry | undefined> {
+    const [equipment] = await db.select().from(equipmentRegistry).where(eq(equipmentRegistry.equipmentId, equipmentId));
+    return equipment;
+  }
+
+  async createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry> {
+    const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
+    return equipment;
+  }
+
+  async updateEquipment(id: number, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
+    const [equipment] = await db
+      .update(equipmentRegistry)
+      .set(updates)
+      .where(eq(equipmentRegistry.id, id))
+      .returning();
+    
+    if (!equipment) {
+      throw new Error(`Equipment with id ${id} not found`);
+    }
+    return equipment;
+  }
+
+  async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string }): Promise<EquipmentRegistry[]> {
+    let baseQuery = db.select().from(equipmentRegistry);
+
+    const conditions = [];
+    if (query.equipmentType) {
+      conditions.push(ilike(equipmentRegistry.equipmentType, `%${query.equipmentType}%`));
+    }
+    if (query.zone) {
+      conditions.push(ilike(equipmentRegistry.zone, `%${query.zone}%`));
+    }
+    if (query.sector) {
+      conditions.push(ilike(equipmentRegistry.sector, `%${query.sector}%`));
+    }
+
+    if (conditions.length > 0) {
+      baseQuery = baseQuery.where(and(...conditions));
+    }
+
+    return await baseQuery.orderBy(desc(equipmentRegistry.createdAt));
+  }
+
+  // Work Orders - GMAO methods placeholders
+  async getWorkOrders(): Promise<WorkOrder[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {
+    throw new Error("Method not implemented");
+  }
+
+  async getWorkOrdersByEquipment(equipmentId: number): Promise<WorkOrder[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
+    throw new Error("Method not implemented");
+  }
+
+  async updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+    throw new Error("Method not implemented");
+  }
+
+  async updateWorkOrderStatus(id: number, status: string): Promise<WorkOrder> {
+    throw new Error("Method not implemented");
+  }
+
+  async getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createPreventiveMaintenancePlan(data: InsertPreventiveMaintenancePlan): Promise<PreventiveMaintenancePlan> {
+    throw new Error("Method not implemented");
+  }
+
+  async getSpareParts(): Promise<SparePart[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createSparePart(data: InsertSparePart): Promise<SparePart> {
+    throw new Error("Method not implemented");
+  }
+
+  async getStockMovements(): Promise<StockMovement[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createStockMovement(data: InsertStockMovement): Promise<StockMovement> {
+    throw new Error("Method not implemented");
+  }
+
+  async getIotSensorData(): Promise<IotSensorData[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData> {
+    throw new Error("Method not implemented");
+  }
+
+  async getPredictiveAnalytics(): Promise<PredictiveAnalytics[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createPredictiveAnalytics(data: InsertPredictiveAnalytics): Promise<PredictiveAnalytics> {
+    throw new Error("Method not implemented");
+  }
+
+  async getKpiMetrics(): Promise<KpiMetrics[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createKpiMetrics(data: InsertKpiMetrics): Promise<KpiMetrics> {
+    throw new Error("Method not implemented");
+  }
+
+  async getIntegrationLog(): Promise<IntegrationLog[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog> {
+    throw new Error("Method not implemented");
+  }
+
+  async getAlertsNotifications(): Promise<AlertsNotifications[]> {
+    throw new Error("Method not implemented");
+  }
+
+  async createAlertsNotifications(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
+    throw new Error("Method not implemented");
+  }
+
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {
     return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
   }

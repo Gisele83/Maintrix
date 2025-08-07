@@ -2679,10 +2679,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get equipment identifiers from database
   app.get("/api/diagnostic/equipment-identifiers", async (req, res) => {
     try {
-      const equipment = await storage.getEquipmentRegistry();
+      // Import necessary modules for direct database query
+      const { db } = await import('./db');
+      const { equipmentRegistry } = await import('@shared/schema');
+      const { desc } = await import('drizzle-orm');
+      
+      // Direct database query to get equipment
+      const equipment = await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
       const identifiers = equipment.map(eq => ({
         id: eq.id,
-        name: eq.name || eq.equipmentId,
+        name: eq.equipmentName || eq.equipmentId,
         type: eq.equipmentType,
         identifier: eq.equipmentId || `${eq.equipmentType.toUpperCase()}-${eq.id.toString().padStart(3, '0')}`
       }));
