@@ -42,10 +42,19 @@ export default function DataImport() {
       }, 200);
 
       // Use the correct Excel processing endpoint
-      const result = await apiRequest("/api/diagnostic/process-excel-sheets", {
+      const response = await fetch("/api/diagnostic/process-excel-sheets", {
         method: "POST",
-        body: {}
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({})
       });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur serveur: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
       
       clearInterval(progressInterval);
       setProgress(100);
@@ -114,14 +123,20 @@ export default function DataImport() {
       const response = await fetch('/api/diagnostic/upload-excel', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
       });
 
       clearInterval(progressInterval);
       setProgress(100);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `Erreur serveur ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage += `: ${errorData.message || errorData.error || response.statusText}`;
+        } catch {
+          errorMessage += `: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
