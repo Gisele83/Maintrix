@@ -53,44 +53,67 @@ export default function ModernHome() {
             </h1>
             <div className="absolute -top-4 -right-12">
               <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
-                <Sparkles className="h-4 w-4 mr-2" />
-                IA Native
+                Interface Unifiée
               </div>
             </div>
           </div>
           
-          <p className="text-2xl text-gray-600 mt-8 max-w-5xl mx-auto leading-relaxed font-light">
-            Plateforme intelligente de maintenance industrielle combinant 
-            <span className="font-semibold text-purple-600 mx-2">Smart Diagnostic IA</span> 
-            et 
-            <span className="font-semibold text-blue-600 mx-2">Smart GMAO</span> 
-            complète
+          <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto mb-8 leading-relaxed">
+            <span className="font-semibold text-blue-600">Architecture Modulaire</span> : 
+            Deux modules intégrés pour une maintenance industrielle intelligente
           </p>
           
-          {/* Quick Action Buttons */}
-          <div className="flex flex-col lg:flex-row justify-center items-center space-y-6 lg:space-y-0 lg:space-x-8 mt-12">
-            <Link href="/smart-diagnostic">
-              <Button 
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-6 rounded-2xl text-xl font-medium shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 min-w-[280px]"
-              >
-                <Brain className="h-6 w-6 mr-4" />
-                Démarrer Diagnostic IA
-                <ChevronRight className="h-5 w-5 ml-3" />
-              </Button>
-            </Link>
+          {/* Modules Description */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-12">
+            <div className="bg-white/60 backdrop-blur-sm border border-blue-200 rounded-2xl p-8 shadow-xl">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <Settings className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-blue-900 mb-4">Module GMAO</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Planification des interventions, gestion des techniciens, ordres de travail et maintenance préventive
+              </p>
+              <div className="mt-6">
+                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Link href="/gmao">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Accéder au GMAO
+                  </Link>
+                </Button>
+              </div>
+            </div>
             
-            <Link href="/gmao">
-              <Button 
-                variant="outline"
-                className="border-3 border-blue-500 text-blue-600 hover:bg-blue-50 px-10 py-6 rounded-2xl text-xl font-medium hover:shadow-xl transform hover:scale-105 transition-all duration-300 min-w-[280px]"
-              >
-                <Factory className="h-6 w-6 mr-4" />
-                Accéder GMAO
-                <ExternalLink className="h-5 w-5 ml-3" />
-              </Button>
-            </Link>
+            <div className="bg-white/60 backdrop-blur-sm border border-purple-200 rounded-2xl p-8 shadow-xl">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <Brain className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-purple-900 mb-4">Module Diagnostic IA</h3>
+              <p className="text-gray-700 leading-relaxed">
+                Analyse intelligente : symptômes → diagnostic → préconisations → lien vers intervention
+              </p>
+              <div className="mt-6 space-y-3">
+                <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+                  <Link href="/diagnostic">
+                    <Brain className="w-4 h-4 mr-2" />
+                    Diagnostic IA
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full border-purple-500 text-purple-600 hover:bg-purple-50">
+                  <Link href="/voice-diagnostic">
+                    <div className="w-4 h-4 mr-2 rounded-full bg-red-500 animate-pulse flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    Assistant Vocal
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </div>
-
+          
           {/* Live Status Indicators */}
           <div className="flex justify-center items-center flex-wrap gap-4 mt-12">
             <div className="flex items-center space-x-3 text-base text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-green-200 shadow-lg">

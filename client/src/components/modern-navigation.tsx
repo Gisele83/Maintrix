@@ -43,24 +43,23 @@ export default function ModernNavigation() {
       current: location === "/",
     },
     {
-      name: "Smart Diagnostic",
-      href: "/smart-diagnostic",
+      name: "Module Diagnostic IA",
+      href: "/diagnostic",
       icon: Brain,
-      current: location === "/smart-diagnostic" || location === "/diagnostic",
-      badge: "IA",
+      current: location === "/smart-diagnostic" || location === "/diagnostic" || location === "/voice-diagnostic",
+      badge: "INTELLIGENT",
+      submenu: [
+        { name: "Diagnostic IA", href: "/diagnostic", icon: Brain },
+        { name: "Assistant Vocal", href: "/voice-diagnostic", icon: Mic },
+        { name: "Smart Diagnostic", href: "/smart-diagnostic", icon: Brain },
+      ]
     },
     {
-      name: "Assistant Vocal",
-      href: "/voice-diagnostic",
-      icon: Mic,
-      current: location === "/voice-diagnostic",
-      badge: "VOCAL",
-    },
-    {
-      name: "Smart GMAO",
+      name: "Module GMAO",
       href: "/gmao",
       icon: Settings,
       current: location === "/gmao",
+      badge: "PLANIFICATION",
       submenu: [
         { name: "Dashboard GMAO", href: "/gmao", icon: Activity },
         { name: "Dashboard Maintenance", href: "/maintenance-dashboard", icon: BarChart3 },

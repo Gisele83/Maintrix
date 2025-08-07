@@ -7,6 +7,7 @@ Smart GMAO DiagFix is an integrated platform combining Smart Diagnostic (AI-powe
 Preferred communication style: Simple, everyday language.
 User requested improvements based on provided database and enhanced specifications document.
 User loves the new modern interface design with glassmorphism effects and gradient styling.
+User confirmed architecture requirements: Interface unifiée avec architecture modulaire - Module GMAO (planification, interventions, techniciens) + Module Diagnostic intelligent (analyse symptômes → diagnostic → préconisations → lien vers intervention).
 
 ## System Architecture
 ### Frontend Architecture
