@@ -2701,6 +2701,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process Excel file with multiple sheets (Equipment, Diagnostic, Procedure cross-references)
+  app.post("/api/diagnostic/process-excel-sheets", async (req, res) => {
+    try {
+      const { ExcelRealProcessor } = await import('./excel-real-processor');
+      const processor = new ExcelRealProcessor();
+      
+      const result = await processor.processRealExcelData();
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Excel real processing error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors du traitement du fichier Excel réel",
+        error: error.message
+      });
+    }
+  });
+
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {
     try {
