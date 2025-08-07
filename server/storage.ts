@@ -1258,4 +1258,4 @@ export class MemStorageWithLearning extends MemStorage {
   }
 }
 
-export const storage = new MemStorageWithLearning();
+export const storage = new DatabaseStorage();

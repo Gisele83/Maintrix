@@ -163,21 +163,21 @@ export async function processUserExcelFile(req: Request, res: Response) {
       equipmentData = extractEquipmentData(workbook.Sheets[workbook.SheetNames[0]]);
     }
 
-    // Create synthetic procedure data based on diagnostics
+    // Create synthetic procedure data based on diagnostics with proper database schema
     procedureData = diagnosticData.map((diag, index) => ({
       procedureId: `PROC${String(index + 1).padStart(3, '0')}`,
-      diagnosticId: diag.diagnosticId,
       title: `Procédure pour ${diag.diagnosis}`,
+      titleEn: `Procedure for ${diag.diagnosis}`,
       description: `Procédure de réparation pour résoudre: ${diag.symptoms}`,
-      steps: [
-        'Arrêter l\'équipement en sécurité',
-        'Diagnostiquer la cause racine',
-        'Appliquer la solution recommandée',
-        'Tester le fonctionnement',
-        'Remettre en service'
-      ],
-      estimatedDuration: Math.floor(Math.random() * 240 + 60), // 60-300 minutes
-      difficulty: ['Facile', 'Moyen', 'Difficile'][Math.floor(Math.random() * 3)]
+      descriptionEn: `Repair procedure to resolve: ${diag.symptoms}`,
+      stepNumber: index + 1,
+      estimatedTime: Math.floor(Math.random() * 240 + 60), // 60-300 minutes
+      toolsRequired: ['Outils standards', 'Équipement de sécurité'],
+      toolsRequiredEn: ['Standard tools', 'Safety equipment'],
+      safetyWarning: 'Arrêter l\'équipement avant intervention',
+      safetyWarningEn: 'Stop equipment before intervention',
+      isCompleted: false,
+      caseId: null
     }));
 
     console.log(`✅ Extracted: ${equipmentData.length} equipment, ${diagnosticData.length} diagnostics, ${procedureData.length} procedures`);
@@ -209,13 +209,15 @@ export async function processUserExcelFile(req: Request, res: Response) {
       }
     }
 
-    // Save procedure data  
-    for (const procedure of procedureData) {
-      try {
-        await storage.createRepairProcedure(procedure);
-        savedProcedures++;
-      } catch (error: any) {
-        console.error(`❌ Failed to create procedure ${procedure.procedureId}:`, error.message);
+    // Save procedure data (only if we have diagnostics to base them on)
+    if (diagnosticData.length > 0) {
+      for (const procedure of procedureData) {
+        try {
+          await storage.createRepairProcedure(procedure);
+          savedProcedures++;
+        } catch (error: any) {
+          console.error(`❌ Failed to create procedure ${procedure.procedureId}:`, error.message);
+        }
       }
     }
 

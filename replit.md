@@ -17,6 +17,9 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 ✅ Ensemble ML delivering 5/9 model consensus with pattern matching from 120 real cases
 ✅ Module GMAO + Module Diagnostic intelligent unified interface completed and functional
 ✅ RESOLVED: Equipment dropdown now shows authentic industrial/port equipment from Excel file (Kalmar RTG, ZPMC STS, Liebherr cranes, Siemens drives, ABB transformers, etc.)
+✅ NEW: Complete user Excel file upload system with dual interface (demo data + user data)
+✅ NEW: Secure file processing with multer middleware, flexible column name support, and PostgreSQL integration
+✅ NEW: Enhanced data import page with purple-themed user upload section and progress tracking
 
 ## System Architecture
 ### Frontend Architecture
@@ -42,7 +45,7 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 
 ### Technical Implementations
 - **AI Diagnostic Engine**: Combines Standard ML (Random Forest, Gradient Boosting with TF-IDF), Advanced ML (Neural Networks, SVM, Anomaly Detection using MLP and Isolation Forest), and Ensemble ML (combining 9 algorithms for multi-model consensus). Includes predictive maintenance scheduling, failure risk assessment, and continuous learning system with feedback collection. Now exclusively uses 120 real industrial maintenance cases from Excel files for pattern matching with 98% confidence.
-- **Historical Data Processing**: Direct Excel import system (direct-excel-import.ts) that successfully extracts and processes maintenance cases from 6 interconnected Excel tables: Equipements (10), Diagnostics (120), Procedures_Reparation (120), Interventions (1), Techniciens (1), Regles_Symptomes (120). Supports full cross-referencing and automatic equipment type normalization for industrial equipment (grues, moteurs, pompes, compresseurs, transformateurs, variateurs, convoyeurs).
+- **Historical Data Processing**: Dual-mode Excel import system supporting both pre-loaded industrial data and user-uploaded files. Direct Excel import system (direct-excel-import.ts) processes 6 interconnected tables from Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx. User upload system (user-excel-upload.ts) with multer middleware handles custom Excel files with flexible column naming (Equipment_ID/EquipmentID variants). Supports full cross-referencing and automatic equipment type normalization for industrial equipment (grues, moteurs, pompes, compresseurs, transformateurs, variateurs, convoyeurs).
 - **GMAO Platform**: Comprehensive equipment registry, advanced work order management with multi-level validation, preventive maintenance scheduling (time, usage, condition-based), complete spare parts inventory with stock optimization and automatic unique reference generation, and a budget management system with multi-level approvals.
 - **Security**: Multi-level authentication (bcrypt), advanced security middleware (rate limiting, anomaly detection, CSRF protection), and a security dashboard.
 - **Reporting**: Comprehensive maintenance reporting system with automatic generation (intervention, monthly, dashboard reports) including KPIs (MTBF, MTTR, OEE, availability).
