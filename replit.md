@@ -20,6 +20,7 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 ✅ NEW: Complete user Excel file upload system with dual interface (demo data + user data)
 ✅ NEW: Secure file processing with multer middleware, flexible column name support, and PostgreSQL integration
 ✅ NEW: Enhanced data import page with purple-themed user upload section and progress tracking
+✅ LATEST: Added "Autre" option in preventive maintenance equipment dropdown with custom input field for unlisted equipment
 
 ## System Architecture
 ### Frontend Architecture
