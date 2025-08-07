@@ -122,12 +122,68 @@ export default function WorkOrders() {
     category: "Correctif"
   });
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch real work orders from API
+  const { data: workOrders = [], isLoading, error } = useQuery({
+    queryKey: ['/api/work-orders'],
+    retry: 2,
+    staleTime: 30000 // 30 seconds
+  }) as { data: any[], isLoading: boolean, error: any };
+
+  // Mutation for creating work orders
+  const createWorkOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const response = await fetch('/api/work-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create work order');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/work-orders'] });
+      toast({
+        title: "Ordre de travail créé",
+        description: `${newOrder.title} a été créé avec succès`,
+      });
+      
+      // Reset form
+      setNewOrder({
+        title: "",
+        description: "",
+        equipment: "",
+        priority: "medium",
+        assignedTo: "",
+        dueDate: "",
+        estimatedHours: 0,
+        location: "",
+        category: "Correctif"
+      });
+      setShowCreateForm(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
 
   // Filter work orders based on search and filters
-  const filteredOrders = mockWorkOrders.filter(order => {
-    const matchesSearch = order.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.equipment.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrders = (workOrders || []).filter((order: any) => {
+    const matchesSearch = (order.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.workOrderNumber || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.equipmentName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === "all" || order.status === selectedStatus;
     const matchesPriority = selectedPriority === "all" || order.priority === selectedPriority;
     
@@ -139,10 +195,17 @@ export default function WorkOrders() {
     switch (status) {
       case "pending":
         return { label: "En attente", color: "bg-yellow-100 text-yellow-800", icon: Clock };
+      case "in_progress":
       case "in-progress":
         return { label: "En cours", color: "bg-blue-100 text-blue-800", icon: Play };
       case "completed":
         return { label: "Terminé", color: "bg-green-100 text-green-800", icon: CheckCircle };
+      case "assigned":
+        return { label: "Assigné", color: "bg-purple-100 text-purple-800", icon: User };
+      case "paused":
+        return { label: "Suspendu", color: "bg-orange-100 text-orange-800", icon: Pause };
+      case "cancelled":
+        return { label: "Annulé", color: "bg-red-100 text-red-800", icon: X };
       case "scheduled":
         return { label: "Planifié", color: "bg-purple-100 text-purple-800", icon: Calendar };
       default:
@@ -167,11 +230,11 @@ export default function WorkOrders() {
 
   // Statistics calculation
   const stats = {
-    total: mockWorkOrders.length,
-    pending: mockWorkOrders.filter(o => o.status === "pending").length,
-    inProgress: mockWorkOrders.filter(o => o.status === "in-progress").length,
-    completed: mockWorkOrders.filter(o => o.status === "completed").length,
-    critical: mockWorkOrders.filter(o => o.priority === "critical").length
+    total: workOrders.length,
+    pending: workOrders.filter((o: any) => o.status === "pending").length,
+    inProgress: workOrders.filter((o: any) => o.status === "in_progress" || o.status === "in-progress").length,
+    completed: workOrders.filter((o: any) => o.status === "completed").length,
+    critical: workOrders.filter((o: any) => o.priority === "critical" || o.priority === "urgent").length
   };
 
   const handleCreateOrder = () => {
@@ -184,24 +247,23 @@ export default function WorkOrders() {
       return;
     }
 
-    toast({
-      title: "Ordre de travail créé",
-      description: `${newOrder.title} a été créé avec succès`,
-    });
+    // Create work order via API
+    const orderData = {
+      title: newOrder.title,
+      description: newOrder.description || "",
+      equipmentName: newOrder.equipment,
+      priority: newOrder.priority,
+      status: "pending",
+      assignedTo: newOrder.assignedTo || "Non assigné",
+      requestedBy: "Utilisateur Web",
+      dueDate: newOrder.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now if not specified
+      estimatedHours: Number(newOrder.estimatedHours) || 2,
+      location: newOrder.location || "Non spécifié",
+      category: newOrder.category,
+      workOrderNumber: `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+    };
 
-    // Reset form
-    setNewOrder({
-      title: "",
-      description: "",
-      equipment: "",
-      priority: "medium",
-      assignedTo: "",
-      dueDate: "",
-      estimatedHours: 0,
-      location: "",
-      category: "Correctif"
-    });
-    setShowCreateForm(false);
+    createWorkOrderMutation.mutate(orderData);
   };
 
   const handleStatusChange = (orderId: number, newStatus: string) => {
@@ -316,9 +378,11 @@ export default function WorkOrders() {
               >
                 <option value="all">Tous les statuts</option>
                 <option value="pending">En attente</option>
-                <option value="in-progress">En cours</option>
+                <option value="assigned">Assigné</option>
+                <option value="in_progress">En cours</option>
+                <option value="paused">Suspendu</option>
                 <option value="completed">Terminé</option>
-                <option value="scheduled">Planifié</option>
+                <option value="cancelled">Annulé</option>
               </select>
 
               <select
@@ -327,7 +391,7 @@ export default function WorkOrders() {
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Toutes priorités</option>
-                <option value="critical">Critique</option>
+                <option value="urgent">Urgent</option>
                 <option value="high">Haute</option>
                 <option value="medium">Moyenne</option>
                 <option value="low">Faible</option>
@@ -338,8 +402,65 @@ export default function WorkOrders() {
       </Card>
 
       {/* Work Orders List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredOrders.map((order) => {
+      {isLoading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, index) => (
+            <Card key={index} className="bg-white/70 backdrop-blur-sm border shadow-lg animate-pulse">
+              <CardHeader className="pb-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-full"></div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-3 bg-gray-200 rounded w-full"></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : error ? (
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Erreur de chargement</h3>
+              <p className="text-red-600 mb-4">Impossible de charger les ordres de travail.</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                Réessayer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : filteredOrders.length === 0 ? (
+        <Card className="bg-blue-50 border-blue-200 lg:col-span-2 xl:col-span-3">
+          <CardContent className="p-8">
+            <div className="text-center">
+              <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-blue-800 mb-2">Aucun ordre de travail trouvé</h3>
+              <p className="text-blue-600 mb-4">
+                {workOrders.length === 0 
+                  ? "Aucun ordre de travail n'a été créé pour le moment." 
+                  : "Aucun ordre ne correspond aux filtres sélectionnés."}
+              </p>
+              <Button 
+                onClick={() => setShowCreateForm(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Créer le premier ordre
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredOrders.map((order: any) => {
           const statusConfig = getStatusConfig(order.status);
           const priorityConfig = getPriorityConfig(order.priority);
           const StatusIcon = statusConfig.icon;
@@ -350,7 +471,7 @@ export default function WorkOrders() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg font-semibold text-gray-900">
-                      {order.number}
+                      {order.orderNumber || order.workOrderNumber || `WO-${order.id}`}
                     </CardTitle>
                     <CardDescription className="text-sm text-gray-600 mt-1">
                       {order.title}
@@ -376,32 +497,32 @@ export default function WorkOrders() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="flex items-center gap-1">
                     <Wrench className="h-3 w-3 text-gray-500" />
-                    <span>{order.equipment}</span>
+                    <span>{order.equipmentName || order.equipment || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 text-gray-500" />
-                    <span>{order.location}</span>
+                    <span>{order.location || "Non spécifié"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3 text-gray-500" />
-                    <span>{order.assignedTo}</span>
+                    <span>{order.assignedTo || "Non assigné"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3 text-gray-500" />
-                    <span>{order.dueDate}</span>
+                    <span>{order.scheduledStart || order.dueDate || "Non programmé"}</span>
                   </div>
                 </div>
 
-                {order.status === "in-progress" && (
+                {order.status === "in_progress" && (
                   <div className="bg-blue-50 p-3 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
                       <span>Progression:</span>
-                      <span>{order.actualHours}h / {order.estimatedHours}h</span>
+                      <span>{Math.round((order.actualDuration || 0) / 60)}h / {Math.round((order.estimatedDuration || 120) / 60)}h</span>
                     </div>
                     <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(order.actualHours / order.estimatedHours) * 100}%` }}
+                        style={{ width: `${Math.min(((order.actualDuration || 0) / (order.estimatedDuration || 120)) * 100, 100)}%` }}
                       ></div>
                     </div>
                   </div>
@@ -453,22 +574,7 @@ export default function WorkOrders() {
             </Card>
           );
         })}
-      </div>
-
-      {filteredOrders.length === 0 && (
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
-          <CardContent className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Aucun ordre de travail</h3>
-              <p className="text-gray-600">
-                {searchTerm || selectedStatus !== "all" || selectedPriority !== "all" 
-                  ? "Aucun ordre ne correspond à vos critères de recherche"
-                  : "Créez votre premier ordre de travail"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Create Order Modal */}
