@@ -2642,6 +2642,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced diagnostic endpoint using historical cases
+  app.post("/api/diagnostic/analyze", async (req, res) => {
+    try {
+      const data = req.body;
+      
+      // Enhanced diagnostic with historical learning
+      if (data.equipmentType && data.symptoms) {
+        try {
+          const { EnhancedDiagnosticEngine } = await import("./enhanced-diagnostic-engine");
+          const diagnosticEngine = new EnhancedDiagnosticEngine();
+          
+          const enhancedResult = await diagnosticEngine.analyzeWithHistory({
+            equipmentType: data.equipmentType,
+            symptoms: data.symptoms,
+            symptomsChecked: data.symptomsChecked,
+            urgency: data.urgency,
+            zone: data.zone,
+            sector: data.sector
+          });
+          
+          if (enhancedResult.suggestions.length > 0) {
+            return res.json({
+              sessionId: `session_${Date.now()}`,
+              suggestions: enhancedResult.suggestions,
+              mlEnabled: true,
+              modelAccuracy: "enhanced_historical",
+              historicalBoost: true,
+              learningStats: await diagnosticEngine.getLearningStats(),
+              dataSource: "imported_historical_cases",
+              success: true
+            });
+          }
+        } catch (enhancedError) {
+          console.log('Enhanced diagnostic failed:', enhancedError.message);
+        }
+      }
+      
+      // Fallback response
+      res.json({
+        sessionId: `session_${Date.now()}`,
+        suggestions: [{
+          diagnosis: "Analyse en cours",
+          solution: "Diagnostic en attente de données historiques",
+          confidence: 50,
+          riskLevel: "Modéré"
+        }],
+        mlEnabled: false,
+        modelAccuracy: "fallback",
+        success: true
+      });
+      
+    } catch (error: any) {
+      console.error("Diagnostic error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors du diagnostic",
+        error: error.message
+      });
+    }
+  });
+
+  // Serve diagnostic test page
+  app.get('/diagnostic-test.html', (req, res) => {
+    const path = require('path');
+    res.sendFile(path.join(__dirname, '..', 'diagnostic-test.html'));
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
