@@ -98,13 +98,15 @@ function extractDiagnosticData(worksheet: XLSX.WorkSheet): any[] {
 
     return {
       diagnosticId,
+      equipmentType: 'Moteur électrique', // Default equipment type to prevent null constraint
       equipmentId,
+      zone: 'Zone production',
       symptoms,
       diagnosis,
-      severity,
-      confidence: Math.floor(Math.random() * 30 + 70), // 70-99%
-      timestamp: new Date().toISOString(),
-      recommendations: `Recommandations pour ${diagnosis}`
+      solution: `Solution pour ${diagnosis}`,
+      urgency: 'medium',
+      confidence: Math.floor(Math.random() * 30 + 70) / 100, // 0.70-0.99
+      duration: Math.floor(Math.random() * 180 + 60) // 60-240 minutes
     };
   });
 }
