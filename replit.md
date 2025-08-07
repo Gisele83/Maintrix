@@ -16,6 +16,7 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 ✅ AI diagnostic system working with real historical data (98% confidence on industrial cases)
 ✅ Ensemble ML delivering 5/9 model consensus with pattern matching from 120 real cases
 ✅ Module GMAO + Module Diagnostic intelligent unified interface completed and functional
+✅ RESOLVED: Equipment dropdown now shows authentic industrial/port equipment from Excel file (Kalmar RTG, ZPMC STS, Liebherr cranes, Siemens drives, ABB transformers, etc.)
 
 ## System Architecture
 ### Frontend Architecture
