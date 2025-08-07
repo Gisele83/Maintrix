@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -15,13 +16,18 @@ import {
   Wrench,
   Package,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  CloudUpload,
+  FileText
 } from "lucide-react";
 
 export default function DataImport() {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleImportIndustrialData = async () => {
@@ -81,6 +87,110 @@ export default function DataImport() {
     }
   };
 
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "❌ Fichier manquant",
+        description: "Veuillez sélectionner un fichier Excel à importer",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingFile(true);
+    setProgress(0);
+    setImportResult(null);
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('excelFile', selectedFile);
+
+      const response = await fetch('/api/diagnostic/upload-excel', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Upload API response:", result);
+
+      if (result && result.success) {
+        // Transform the result to match expected format
+        const transformedResult = {
+          success: true,
+          data: {
+            equipment: result.data?.equipments || 0,
+            workOrders: result.data?.diagnostics || 0,
+            spareParts: result.data?.procedures || 0,
+            maintenanceCases: result.data?.crossReferences || 0
+          }
+        };
+        
+        setImportResult(transformedResult);
+        
+        toast({
+          title: "✅ Importation fichier réussie",
+          description: `${transformedResult.data.equipment} équipements, ${transformedResult.data.workOrders} diagnostics, ${transformedResult.data.spareParts} procédures et ${transformedResult.data.maintenanceCases} cas importés depuis votre fichier`,
+        });
+
+        // Reset file selection
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } else {
+        throw new Error(result?.message || "Réponse API invalide");
+      }
+
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      setProgress(0);
+      toast({
+        title: "❌ Erreur d'importation fichier",
+        description: error.message || "Une erreur s'est produite lors de l'importation de votre fichier Excel",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+          file.type === 'application/vnd.ms-excel' ||
+          file.name.endsWith('.xlsx') || 
+          file.name.endsWith('.xls')) {
+        setSelectedFile(file);
+        toast({
+          title: "✅ Fichier sélectionné",
+          description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+        });
+      } else {
+        toast({
+          title: "❌ Format invalide",
+          description: "Veuillez sélectionner un fichier Excel (.xlsx ou .xls)",
+          variant: "destructive",
+        });
+        event.target.value = '';
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-8">
@@ -94,13 +204,13 @@ export default function DataImport() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Import Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Demo Data Import Section */}
           <Card className="border-0 shadow-2xl">
             <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <CardTitle className="flex items-center text-2xl">
-                <FileSpreadsheet className="w-6 h-6 mr-3" />
-                Fichier Excel Détecté
+              <CardTitle className="flex items-center text-xl">
+                <FileSpreadsheet className="w-5 h-5 mr-3" />
+                Données Démo
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8">
@@ -127,21 +237,108 @@ export default function DataImport() {
 
                 <Button 
                   onClick={handleImportIndustrialData}
-                  disabled={isImporting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
+                  disabled={isImporting || isUploadingFile}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-sm py-4"
                 >
                   {isImporting ? (
                     <>
-                      <Database className="w-5 h-5 mr-2 animate-spin" />
-                      Importation en cours...
+                      <Database className="w-4 h-4 mr-2 animate-spin" />
+                      Importation...
                     </>
                   ) : (
                     <>
-                      <Upload className="w-5 h-5 mr-2" />
-                      Lancer l'Importation
+                      <Upload className="w-4 h-4 mr-2" />
+                      Importer Démo
                     </>
                   )}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* User File Upload Section */}
+          <Card className="border-0 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+              <CardTitle className="flex items-center text-xl">
+                <CloudUpload className="w-5 h-5 mr-3" />
+                Vos Données
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                  <h3 className="font-semibold text-purple-900 mb-2">
+                    Téléchargez votre fichier Excel
+                  </h3>
+                  <p className="text-purple-700 text-sm">
+                    Importez vos propres données de maintenance historiques
+                    pour enrichir le système de diagnostic IA
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                    onChange={handleFileSelection}
+                    className="hidden"
+                  />
+                  
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="outline"
+                    className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
+                    disabled={isUploadingFile || isImporting}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Sélectionner un fichier Excel
+                  </Button>
+
+                  {selectedFile && (
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-900">{selectedFile.name}</p>
+                          <p className="text-xs text-green-700">
+                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {(isUploadingFile || isImporting) && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {isUploadingFile ? "Téléchargement..." : "Importation..."}
+                        </span>
+                        <span className="text-sm text-gray-500">{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="w-full" />
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleFileUpload}
+                    disabled={!selectedFile || isUploadingFile || isImporting}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-sm py-4"
+                  >
+                    {isUploadingFile ? (
+                      <>
+                        <CloudUpload className="w-4 h-4 mr-2 animate-bounce" />
+                        Téléchargement...
+                      </>
+                    ) : (
+                      <>
+                        <CloudUpload className="w-4 h-4 mr-2" />
+                        Importer le Fichier
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

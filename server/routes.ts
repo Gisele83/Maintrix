@@ -42,6 +42,7 @@ import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { registerPaymentRoutes } from "./payment-routes";
+import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -2725,6 +2726,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // User Excel file upload endpoint
+  app.post("/api/diagnostic/upload-excel", uploadMiddleware, processUserExcelFile);
 
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {
