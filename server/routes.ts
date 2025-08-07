@@ -2676,6 +2676,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get equipment identifiers from database
+  app.get("/api/diagnostic/equipment-identifiers", async (req, res) => {
+    try {
+      const equipment = await storage.getAllEquipment();
+      const identifiers = equipment.map(eq => ({
+        id: eq.id,
+        name: eq.name,
+        type: eq.type,
+        identifier: eq.identifier || `${eq.type.toUpperCase()}-${eq.id.toString().padStart(3, '0')}`
+      }));
+      
+      res.json({
+        success: true,
+        equipment: identifiers
+      });
+    } catch (error: any) {
+      console.error("Error fetching equipment identifiers:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors de la récupération des identifiants d'équipement",
+        error: error.message
+      });
+    }
+  });
+
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {
     try {

@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useLanguage } from "@/hooks/use-language";
@@ -33,6 +34,12 @@ interface DiagnosticFormProps {
 export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   const { language } = useLanguage();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  
+  // Récupérer les identifiants d'équipement depuis la base de données
+  const { data: equipmentData } = useQuery({
+    queryKey: ["/api/diagnostic/equipment-identifiers"],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   const form = useForm<DiagnosticForm>({
     resolver: zodResolver(diagnosticSchema),
@@ -429,16 +436,31 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
             )}
           </div>
 
-          {/* Equipment ID */}
+          {/* Equipment ID - Dropdown from database */}
           <div>
             <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
               {language === "fr" ? "Identifiant équipement" : "Equipment ID"}
             </Label>
-            <Input
-              placeholder={language === "fr" ? "Ex: MOT-001, PUMP-A23..." : "Ex: MOT-001, PUMP-A23..."}
-              {...form.register("equipmentId")}
-              className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
-            />
+            <select
+              value={form.watch("equipmentId") || ""}
+              onChange={(e) => {
+                console.log("Equipment ID selected:", e.target.value);
+                form.setValue("equipmentId", e.target.value);
+              }}
+              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">{language === "fr" ? "Sélectionner un équipement..." : "Select equipment..."}</option>
+              {equipmentData?.equipment && equipmentData.equipment.map((eq: any) => (
+                <option key={eq.id} value={eq.identifier}>
+                  {eq.identifier} - {eq.name} ({eq.type})
+                </option>
+              ))}
+            </select>
+            {!equipmentData?.equipment || equipmentData.equipment.length === 0 && (
+              <p className="text-carbon-gray-50 text-sm mt-1">
+                {language === "fr" ? "Chargement des équipements..." : "Loading equipment..."}
+              </p>
+            )}
           </div>
 
           {/* Location */}

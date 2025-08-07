@@ -90,6 +90,12 @@ export default function SmartDiagnostic() {
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState("");
   
+  // Equipment identifiers from database
+  const { data: equipmentData } = useQuery({
+    queryKey: ["/api/diagnostic/equipment-identifiers"],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+  
   // Modal states
   const [showRepairModal, setShowRepairModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
