@@ -26,14 +26,18 @@ export function ExcelProcessorDemo() {
     setIsProcessing(true);
     try {
       const response = await apiRequest("POST", "/api/diagnostic/process-excel-sheets", {});
-      const data = await response.json();
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
       setResult(data);
       
       if (data.success) {
         toast({
           title: "✅ Fichier Excel traité avec succès",
-          description: `${data.data.crossReferences} cas croisés créés`,
+          description: `${data.data.crossReferences} cas croisés créés avec ${data.data.equipments} équipements`,
         });
       } else {
         toast({
@@ -42,11 +46,24 @@ export function ExcelProcessorDemo() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Excel processing error:", error);
+      
+      const errorMessage = error?.message?.includes('HTTP error') 
+        ? `Erreur serveur: ${error.message}`
+        : "Erreur de connexion au serveur";
+        
       toast({
-        title: "❌ Erreur réseau",
-        description: "Impossible de traiter le fichier Excel",
+        title: "❌ Erreur de traitement Excel",
+        description: errorMessage,
         variant: "destructive",
+      });
+      
+      // Set a failed result for UI display
+      setResult({
+        success: false,
+        message: errorMessage,
+        data: { equipments: 0, diagnostics: 0, procedures: 0, crossReferences: 0 }
       });
     } finally {
       setIsProcessing(false);
