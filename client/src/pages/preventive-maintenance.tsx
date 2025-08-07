@@ -63,8 +63,43 @@ export default function PreventiveMaintenance() {
   const [selectedPlan, setSelectedPlan] = useState<MaintenancePlan | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Sample maintenance plans data - in real app this would come from API
-  const maintenancePlans: MaintenancePlan[] = [
+  // Fetch maintenance plans from API
+  const { data: maintenancePlans = [], isLoading: plansLoading } = useQuery({
+    queryKey: ["/api/maintenance-plans"],
+  });
+
+  // Helper function to safely parse JSON
+  const safeJsonParse = (jsonString: string, fallback: any = []) => {
+    try {
+      return JSON.parse(jsonString);
+    } catch (error) {
+      return fallback;
+    }
+  };
+
+  // Transform data for display
+  const formattedPlans: MaintenancePlan[] = maintenancePlans.map((plan: any) => ({
+    id: plan.id.toString(),
+    name: plan.planName,
+    equipmentId: plan.equipmentIds ? safeJsonParse(plan.equipmentIds, ["unknown"])[0] : "unknown",
+    equipmentName: plan.equipmentType,
+    type: plan.frequency.includes("hour") ? "usage" : plan.frequency.includes("condition") ? "condition" : "time",
+    frequency: plan.frequency,
+    description: plan.tasks ? (Array.isArray(safeJsonParse(plan.tasks, [plan.tasks])) ? safeJsonParse(plan.tasks, [plan.tasks]).join(", ") : plan.tasks) : "Aucune description",
+    status: plan.isActive ? "active" : "paused",
+    priority: "medium",
+    lastExecution: plan.lastExecuted ? new Date(plan.lastExecuted).toISOString().split('T')[0] : "",
+    nextExecution: plan.nextDue ? new Date(plan.nextDue).toISOString().split('T')[0] : "",
+    estimatedDuration: plan.estimatedDuration || 0,
+    assignedTechnician: "Non assigné",
+    procedures: plan.tasks ? safeJsonParse(plan.tasks, [plan.tasks]) : [],
+    spareParts: [],
+    cost: 0,
+    completionRate: 0
+  }));
+
+  // Sample static data for demo
+  const staticPlans: MaintenancePlan[] = [
     {
       id: "1",
       name: "Graissage Moteur Principal",
@@ -162,7 +197,10 @@ export default function PreventiveMaintenance() {
     }
   ];
 
-  const filteredPlans = maintenancePlans.filter(plan => {
+  // Combine real and static data for display
+  const allPlans = [...formattedPlans, ...staticPlans];
+  
+  const filteredPlans = allPlans.filter(plan => {
     const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plan.equipmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plan.assignedTechnician.toLowerCase().includes(searchTerm.toLowerCase());
@@ -207,64 +245,122 @@ export default function PreventiveMaintenance() {
     return diffDays;
   };
 
+  // Mutations for CRUD operations
+  const createPlanMutation = useMutation({
+    mutationFn: async (planData: any) => {
+      return await apiRequest("POST", "/api/maintenance-plans", planData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
+      setShowAddModal(false);
+      toast({
+        title: "Plan ajouté",
+        description: "Le nouveau plan de maintenance a été créé avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le plan de maintenance.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
+      return await apiRequest("PUT", `/api/maintenance-plans/${id}`, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
+      setSelectedPlan(null);
+      toast({
+        title: "Plan modifié",
+        description: "Le plan de maintenance a été mis à jour avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le plan de maintenance.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/maintenance-plans/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
+      toast({
+        title: "Plan supprimé",
+        description: "Le plan de maintenance a été supprimé avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le plan de maintenance.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddPlan = () => {
-    // Créer un nouveau plan avec des données réelles
-    const newPlan: MaintenancePlan = {
-      id: (maintenancePlans.length + 1).toString(),
-      name: "Nouveau Plan de Maintenance",
-      equipmentId: "EQ001",
-      equipmentName: "Moteur Principal Ligne 1",
-      type: "time",
-      frequency: "Mensuel",
-      description: "Plan de maintenance à configurer",
-      status: "active",
-      priority: "medium",
-      lastExecution: new Date().toISOString().split('T')[0],
-      nextExecution: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      estimatedDuration: 2,
-      assignedTechnician: "Tech-001",
-      procedures: ["Inspection visuelle", "Vérification niveaux"],
-      spareParts: [],
-      cost: 150,
-      completionRate: 0
+    const planData = {
+      planName: "Nouveau Plan de Maintenance",
+      equipmentType: "moteur",
+      equipmentIds: [1],
+      frequency: "monthly",
+      frequencyValue: 1,
+      tasks: ["Inspection visuelle", "Vérification niveaux"],
+      estimatedDuration: 120,
+      requiredSkills: ["maintenance_generale"],
+      safetyRequirements: "EPI obligatoire",
+      isActive: true,
+      nextDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
     
-    maintenancePlans.push(newPlan);
-    setShowAddModal(false);
-    toast({
-      title: "Plan ajouté",
-      description: "Le nouveau plan de maintenance a été créé avec succès.",
-    });
+    createPlanMutation.mutate(planData);
   };
+
+  const [editFormData, setEditFormData] = useState<Partial<MaintenancePlan>>({});
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const handleEditPlan = (plan: MaintenancePlan) => {
     setSelectedPlan(plan);
-    // Ouvrir modal d'édition avec formulaire pré-rempli
-    const editForm = document.createElement('div');
-    editForm.innerHTML = `
-      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-        <div style="background: white; padding: 20px; border-radius: 10px; max-width: 500px; width: 90%;">
-          <h3 style="margin: 0 0 15px 0;">Modifier: ${plan.name}</h3>
-          <input type="text" value="${plan.name}" placeholder="Nom du plan" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px;">
-          <textarea placeholder="Description" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; height: 60px;">${plan.description}</textarea>
-          <select style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px;">
-            <option value="low" ${plan.priority === 'low' ? 'selected' : ''}>Priorité Faible</option>
-            <option value="medium" ${plan.priority === 'medium' ? 'selected' : ''}>Priorité Moyenne</option>
-            <option value="high" ${plan.priority === 'high' ? 'selected' : ''}>Priorité Élevée</option>
-            <option value="critical" ${plan.priority === 'critical' ? 'selected' : ''}>Priorité Critique</option>
-          </select>
-          <div style="margin-top: 15px;">
-            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #3b82f6; color: white; padding: 8px 16px; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer;">Sauvegarder</button>
-            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #6b7280; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">Annuler</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(editForm);
-    toast({
-      title: "Édition du plan",
-      description: `Formulaire d'édition ouvert pour ${plan.name}`,
+    setEditFormData({
+      name: plan.name,
+      description: plan.description,
+      priority: plan.priority,
+      frequency: plan.frequency,
+      estimatedDuration: plan.estimatedDuration
     });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedPlan) return;
+    
+    const updates = {
+      planName: editFormData.name,
+      frequency: editFormData.frequency,
+      estimatedDuration: editFormData.estimatedDuration,
+      tasks: JSON.stringify([editFormData.description])
+    };
+    
+    updatePlanMutation.mutate({ 
+      id: parseInt(selectedPlan.id), 
+      updates 
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setSelectedPlan(null);
+    setEditFormData({});
+    setShowEditModal(false);
   };
 
   const handleExecutePlan = (id: string) => {
@@ -314,18 +410,19 @@ export default function PreventiveMaintenance() {
     }
   };
 
-  const handleDeletePlan = (id: string) => {
-    // Confirmer suppression avec modal
-    const confirmDelete = confirm("Êtes-vous sûr de vouloir supprimer ce plan de maintenance ?");
-    if (confirmDelete) {
-      const planIndex = maintenancePlans.findIndex(p => p.id === id);
-      if (planIndex !== -1) {
-        const deletedPlan = maintenancePlans.splice(planIndex, 1)[0];
-        toast({
-          title: "Plan supprimé",
-          description: `Le plan "${deletedPlan.name}" a été supprimé définitivement.`,
-        });
+  const handleDeletePlan = (planId: string) => {
+    const numericId = parseInt(planId);
+    if (!isNaN(numericId)) {
+      const confirmDelete = confirm("Êtes-vous sûr de vouloir supprimer ce plan de maintenance ?");
+      if (confirmDelete) {
+        deletePlanMutation.mutate(numericId);
       }
+    } else {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer ce plan de maintenance (données statiques).",
+        variant: "destructive",
+      });
     }
   };
 
@@ -365,10 +462,10 @@ export default function PreventiveMaintenance() {
   };
 
   // Calculate statistics
-  const totalPlans = maintenancePlans.length;
-  const activePlans = maintenancePlans.filter(p => p.status === "active").length;
-  const overduePlans = maintenancePlans.filter(p => p.status === "overdue").length;
-  const avgCompletionRate = Math.round(maintenancePlans.reduce((acc, p) => acc + p.completionRate, 0) / totalPlans);
+  const totalPlans = allPlans.length;
+  const activePlans = allPlans.filter(p => p.status === "active").length;
+  const overduePlans = allPlans.filter(p => p.status === "overdue").length;
+  const avgCompletionRate = Math.round(allPlans.reduce((acc, p) => acc + p.completionRate, 0) / totalPlans);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -968,6 +1065,74 @@ export default function PreventiveMaintenance() {
               </div>
             </div>
           </Card>
+        )}
+
+        {/* Edit Plan Modal */}
+        {showEditModal && selectedPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Modifier le Plan de Maintenance
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editPlanName">Nom du plan</Label>
+                  <Input 
+                    id="editPlanName" 
+                    value={editFormData.name || selectedPlan.name}
+                    onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                    placeholder="Ex: Graissage pompe hydraulique" 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editFrequency">Fréquence</Label>
+                  <select 
+                    id="editFrequency"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={editFormData.frequency || selectedPlan.frequency}
+                    onChange={(e) => setEditFormData({...editFormData, frequency: e.target.value})}
+                  >
+                    <option value="Hebdomadaire">Hebdomadaire</option>
+                    <option value="Mensuelle">Mensuelle</option>
+                    <option value="Trimestrielle">Trimestrielle</option>
+                    <option value="Annuelle">Annuelle</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="editDuration">Durée estimée (heures)</Label>
+                  <Input 
+                    id="editDuration"
+                    type="number"
+                    value={editFormData.estimatedDuration || selectedPlan.estimatedDuration}
+                    onChange={(e) => setEditFormData({...editFormData, estimatedDuration: parseInt(e.target.value)})}
+                    placeholder="2" 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editDescription">Description</Label>
+                  <textarea 
+                    id="editDescription"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[80px]"
+                    value={editFormData.description || selectedPlan.description}
+                    onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                    placeholder="Description des tâches de maintenance"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button 
+                  onClick={handleSaveEdit} 
+                  className="flex-1"
+                  disabled={updatePlanMutation.isPending}
+                >
+                  {updatePlanMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
+                </Button>
+                <Button variant="outline" onClick={handleCancelEdit} className="flex-1">
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

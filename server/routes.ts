@@ -2108,6 +2108,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Preventive Maintenance Plans API routes
+  app.get("/api/maintenance-plans", async (req, res) => {
+    try {
+      const plans = await storage.getPreventiveMaintenancePlans();
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching maintenance plans:", error);
+      res.status(500).json({ error: "Failed to fetch maintenance plans" });
+    }
+  });
+
+  app.get("/api/maintenance-plans/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const plan = await storage.getPreventiveMaintenancePlanById(id);
+      if (!plan) {
+        return res.status(404).json({ error: "Maintenance plan not found" });
+      }
+      res.json(plan);
+    } catch (error) {
+      console.error("Error fetching maintenance plan:", error);
+      res.status(500).json({ error: "Failed to fetch maintenance plan" });
+    }
+  });
+
+  app.post("/api/maintenance-plans", async (req, res) => {
+    try {
+      const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
+      
+      // Transform frontend data to match database schema
+      const planData = {
+        planName: data.planName,
+        equipmentType: data.equipmentType,
+        equipmentIds: JSON.stringify(data.equipmentIds),
+        frequency: data.frequency,
+        frequencyValue: data.frequencyValue,
+        tasks: JSON.stringify(data.tasks || []),
+        estimatedDuration: data.estimatedDuration,
+        requiredSkills: data.requiredSkills || [],
+        safetyRequirements: data.safetyRequirements,
+        isActive: data.isActive,
+        lastExecuted: data.lastExecuted,
+        nextDue: data.nextDue
+      };
+      
+      const plan = await storage.createPreventiveMaintenancePlan(planData);
+      res.status(201).json(plan);
+    } catch (error) {
+      console.error("Error creating maintenance plan:", error);
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Invalid plan data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create maintenance plan" });
+      }
+    }
+  });
+
+  app.put("/api/maintenance-plans/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      // Remove fields that shouldn't be updated directly
+      delete updates.id;
+      delete updates.createdAt;
+      
+      const plan = await storage.updatePreventiveMaintenancePlan(id, updates);
+      res.json(plan);
+    } catch (error) {
+      console.error("Error updating maintenance plan:", error);
+      if (error.message.includes("not found")) {
+        res.status(404).json({ error: "Maintenance plan not found" });
+      } else {
+        res.status(500).json({ error: "Failed to update maintenance plan" });
+      }
+    }
+  });
+
+  app.delete("/api/maintenance-plans/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deletePreventiveMaintenancePlan(id);
+      if (!success) {
+        return res.status(404).json({ error: "Maintenance plan not found" });
+      }
+      res.json({ success: true, message: "Maintenance plan deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting maintenance plan:", error);
+      res.status(500).json({ error: "Failed to delete maintenance plan" });
+    }
+  });
+
   // Data Import/Export routes
   app.get('/api/templates/maintenance-csv', (req, res) => {
     const { dataImporter } = require('./data-import');

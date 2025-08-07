@@ -843,11 +843,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]> {
-    throw new Error("Method not implemented");
+    return await db.select().from(preventiveMaintenancePlans).orderBy(desc(preventiveMaintenancePlans.createdAt));
+  }
+
+  async getPreventiveMaintenancePlanById(id: number): Promise<PreventiveMaintenancePlan | undefined> {
+    const [plan] = await db.select().from(preventiveMaintenancePlans).where(eq(preventiveMaintenancePlans.id, id));
+    return plan || undefined;
+  }
+
+  async getPreventiveMaintenancePlansByEquipmentType(equipmentType: string): Promise<PreventiveMaintenancePlan[]> {
+    return await db.select().from(preventiveMaintenancePlans)
+      .where(eq(preventiveMaintenancePlans.equipmentType, equipmentType))
+      .orderBy(desc(preventiveMaintenancePlans.createdAt));
   }
 
   async createPreventiveMaintenancePlan(data: InsertPreventiveMaintenancePlan): Promise<PreventiveMaintenancePlan> {
-    throw new Error("Method not implemented");
+    const [plan] = await db
+      .insert(preventiveMaintenancePlans)
+      .values(data)
+      .returning();
+    return plan;
+  }
+
+  async updatePreventiveMaintenancePlan(id: number, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan> {
+    const [plan] = await db
+      .update(preventiveMaintenancePlans)
+      .set(updates)
+      .where(eq(preventiveMaintenancePlans.id, id))
+      .returning();
+    
+    if (!plan) {
+      throw new Error(`Preventive maintenance plan with id ${id} not found`);
+    }
+    return plan;
+  }
+
+  async deletePreventiveMaintenancePlan(id: number): Promise<boolean> {
+    const result = await db
+      .delete(preventiveMaintenancePlans)
+      .where(eq(preventiveMaintenancePlans.id, id));
+    return result.rowCount > 0;
   }
 
   async getSpareParts(): Promise<SparePart[]> {
