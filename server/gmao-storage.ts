@@ -93,7 +93,7 @@ export class GMAOStorage {
     return equipment;
   }
 
-  async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string }): Promise<EquipmentRegistry[]> {
+  async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string; equipmentName?: string }): Promise<EquipmentRegistry[]> {
     let whereCondition = undefined;
     const conditions = [];
 
@@ -106,6 +106,9 @@ export class GMAOStorage {
     if (query.sector) {
       conditions.push(eq(equipmentRegistry.sector, query.sector));
     }
+    if (query.equipmentName) {
+      conditions.push(eq(equipmentRegistry.equipmentName, query.equipmentName));
+    }
 
     if (conditions.length > 0) {
       whereCondition = conditions.length === 1 ? conditions[0] : and(...conditions);
@@ -117,8 +120,41 @@ export class GMAOStorage {
   }
 
   // Work Orders Methods
-  async getWorkOrders(): Promise<WorkOrder[]> {
-    return await db.select().from(workOrders).orderBy(desc(workOrders.createdAt));
+  async getWorkOrders(): Promise<any[]> {
+    return await db
+      .select({
+        id: workOrders.id,
+        orderNumber: workOrders.orderNumber,
+        equipmentId: workOrders.equipmentId,
+        equipmentName: equipmentRegistry.equipmentName,
+        orderType: workOrders.orderType,
+        title: workOrders.title,
+        description: workOrders.description,
+        priority: workOrders.priority,
+        status: workOrders.status,
+        assignedTo: workOrders.assignedTo,
+        requestedBy: workOrders.requestedBy,
+        estimatedDuration: workOrders.estimatedDuration,
+        actualDuration: workOrders.actualDuration,
+        scheduledStart: workOrders.scheduledStart,
+        actualStart: workOrders.actualStart,
+        scheduledEnd: workOrders.scheduledEnd,
+        actualEnd: workOrders.actualEnd,
+        cost: workOrders.cost,
+        laborCost: workOrders.laborCost,
+        materialCost: workOrders.materialCost,
+        externalCost: workOrders.externalCost,
+        notes: workOrders.notes,
+        completionNotes: workOrders.completionNotes,
+        validationStatus: workOrders.validationStatus,
+        canExecute: workOrders.canExecute,
+        createdAt: workOrders.createdAt,
+        updatedAt: workOrders.updatedAt,
+        location: equipmentRegistry.location
+      })
+      .from(workOrders)
+      .leftJoin(equipmentRegistry, eq(workOrders.equipmentId, equipmentRegistry.id))
+      .orderBy(desc(workOrders.createdAt));
   }
 
   async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {

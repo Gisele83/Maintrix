@@ -131,17 +131,38 @@ export function registerGMAORoutes(app: Express) {
       // Transform and clean the data before validation
       const cleanedData: any = {};
       
+      // For creation via web interface, find or create equipment
+      let equipmentId = null;
+      if (req.body.equipmentName) {
+        // Try to find existing equipment by name
+        const existingEquipment = await gmaoStorage.searchEquipment({ equipmentName: req.body.equipmentName });
+        if (existingEquipment && existingEquipment.length > 0) {
+          equipmentId = existingEquipment[0].id;
+        } else {
+          // Create new equipment entry
+          const newEquipment = await gmaoStorage.createEquipment({
+            equipmentId: `EQ-${Date.now()}`,
+            equipmentName: req.body.equipmentName,
+            equipmentType: 'Generic',
+            location: req.body.location || 'Non spécifié'
+          });
+          equipmentId = newEquipment.id;
+        }
+      }
+      
       // Copy and transform each field explicitly
-      if (req.body.equipmentId) cleanedData.equipmentId = parseInt(req.body.equipmentId);
-      if (req.body.orderType) cleanedData.orderType = req.body.orderType;
+      if (equipmentId) cleanedData.equipmentId = equipmentId;
+      cleanedData.orderType = req.body.category === 'Préventif' ? 'preventive' : 'corrective';
       if (req.body.title) cleanedData.title = req.body.title;
       if (req.body.description) cleanedData.description = req.body.description;
       if (req.body.priority) cleanedData.priority = req.body.priority;
       if (req.body.status) cleanedData.status = req.body.status;
-      if (req.body.assignedTo) cleanedData.assignedTo = parseInt(req.body.assignedTo);
-      if (req.body.requestedBy) cleanedData.requestedBy = parseInt(req.body.requestedBy);
-      if (req.body.estimatedDuration) cleanedData.estimatedDuration = parseInt(req.body.estimatedDuration);
-      if (req.body.scheduledStart) cleanedData.scheduledStart = new Date(req.body.scheduledStart);
+      if (req.body.assignedTo && req.body.assignedTo !== "Non assigné") {
+        // For now, skip assignedTo parsing since we don't have user IDs
+        // cleanedData.assignedTo = parseInt(req.body.assignedTo);
+      }
+      if (req.body.estimatedHours) cleanedData.estimatedDuration = parseInt(req.body.estimatedHours) * 60; // Convert to minutes
+      if (req.body.dueDate) cleanedData.scheduledStart = new Date(req.body.dueDate);
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
 
