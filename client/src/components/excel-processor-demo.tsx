@@ -25,10 +25,17 @@ export function ExcelProcessorDemo() {
   const processExcelFile = async () => {
     setIsProcessing(true);
     try {
-      const response = await apiRequest("POST", "/api/diagnostic/process-excel-sheets", {});
+      // Use the same approach as in data-import.tsx that works
+      const response = await fetch("/api/diagnostic/process-excel-sheets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({})
+      });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Erreur serveur: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
