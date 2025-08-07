@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1e40af"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,12 +21,16 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1e40af"
+        "backgroundColor": "#FFFFFF"
       },
       "package": "com.smartgmao.diagfix",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "CAMERA",
+        "RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -36,7 +40,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Smart GMAO DiagFix to access your camera for QR code scanning and equipment identification."
+          "cameraPermission": "Allow Smart GMAO DiagFix to access your camera for QR code scanning and equipment documentation."
+        }
+      ],
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow Smart GMAO DiagFix to access your camera for scanning equipment barcodes."
         }
       ]
     ]
