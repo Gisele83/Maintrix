@@ -2560,6 +2560,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Voice Diagnostic Routes
+  app.post("/api/voice-diagnostic", async (req, res) => {
+    try {
+      const { processVoiceDiagnostic } = await import('./voice-diagnostic');
+      const result = await processVoiceDiagnostic(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Erreur diagnostic vocal:", error);
+      res.status(500).json({ 
+        diagnosis: "Erreur lors du traitement du diagnostic vocal",
+        confidence: 0,
+        recommendations: ["Veuillez réessayer ou contacter le support technique"],
+        urgencyLevel: "low",
+        error: error.message 
+      });
+    }
+  });
+
+  app.post("/api/voice-diagnostic/enhanced", async (req, res) => {
+    try {
+      const { enhancedVoiceDiagnostic } = await import('./voice-diagnostic');
+      const result = await enhancedVoiceDiagnostic(req.body);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Erreur diagnostic vocal avancé:", error);
+      res.status(500).json({ 
+        diagnosis: "Erreur lors du traitement du diagnostic vocal avancé",
+        confidence: 0,
+        recommendations: ["Veuillez réessayer ou contacter le support technique"],
+        urgencyLevel: "low",
+        error: error.message 
+      });
+    }
+  });
+
   // Route pour réserver du stock
   app.post("/api/stock/reserve", async (req, res) => {
     try {

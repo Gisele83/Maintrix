@@ -27,7 +27,8 @@ import {
   Home,
   Cpu,
   Database,
-  ChevronDown
+  ChevronDown,
+  Mic
 } from "lucide-react";
 
 export default function ModernNavigation() {
@@ -47,6 +48,13 @@ export default function ModernNavigation() {
       icon: Brain,
       current: location === "/smart-diagnostic" || location === "/diagnostic",
       badge: "IA",
+    },
+    {
+      name: "Assistant Vocal",
+      href: "/voice-diagnostic",
+      icon: Mic,
+      current: location === "/voice-diagnostic",
+      badge: "VOCAL",
     },
     {
       name: "Smart GMAO",

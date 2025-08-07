@@ -26,6 +26,7 @@ import WorkOrders from "@/pages/work-orders";
 import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import MaintenanceDashboard from "@/pages/maintenance-dashboard";
+import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/preventive" component={PreventiveMaintenance} />
       <Route path="/preventive-maintenance" component={PreventiveMaintenance} />
       <Route path="/maintenance-dashboard" component={MaintenanceDashboard} />
+      <Route path="/voice-diagnostic" component={VoiceDiagnostic} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
