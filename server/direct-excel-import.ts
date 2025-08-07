@@ -85,8 +85,10 @@ print(json.dumps(result, default=str))
       
       const { equipments, diagnostics, procedures, regles } = data;
       
-      // 1. Create equipment registry
+      // 1. Create equipment registry from Excel file
       const equipmentMap = new Map();
+      console.log(`📦 Processing ${equipments.length} equipment entries from Excel...`);
+      
       for (const eq of equipments) {
         try {
           const equipmentData: InsertEquipmentRegistry = {
@@ -94,16 +96,20 @@ print(json.dumps(result, default=str))
             equipmentName: `${eq.Marque || 'Marque'} ${eq.Modèle || 'Modèle'}`,
             equipmentType: this.normalizeType(eq.Type),
             zone: eq.Localisation || 'Zone industrielle',
-            status: 'active',
             manufacturer: eq.Marque || 'Fabricant',
             model: eq.Modèle || 'Modèle',
             installationDate: new Date(eq['Date mise en service'] || new Date())
           };
           
-          const created = await storage.createEquipment(equipmentData);
+          // Import directly to database
+          const { db } = await import('./db');
+          const { equipmentRegistry } = await import('@shared/schema');
+          const [created] = await db.insert(equipmentRegistry).values(equipmentData).returning();
+          console.log(`✅ Equipment created: ${created.equipmentId} - ${created.equipmentName}`);
           equipmentMap.set(eq.ID, { ...eq, dbId: created.id });
-        } catch {
-          equipmentMap.set(eq.ID, eq); // Equipment exists
+        } catch (error: any) {
+          console.error(`❌ Failed to create equipment ${eq.ID}:`, error.message);
+          equipmentMap.set(eq.ID, eq); // Keep processing
         }
       }
       
