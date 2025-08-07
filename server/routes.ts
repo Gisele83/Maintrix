@@ -2615,6 +2615,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import industrial database endpoint
+  app.post("/api/import/industrial-data", async (req, res) => {
+    try {
+      const { importIndustrialDatabase } = await import("./import-industrial-data");
+      const result = await importIndustrialDatabase();
+      res.json({
+        success: true,
+        message: "Base de données industrielle importée avec succès",
+        data: result
+      });
+    } catch (error: any) {
+      console.error("Import error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erreur lors de l'importation",
+        error: error.message
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

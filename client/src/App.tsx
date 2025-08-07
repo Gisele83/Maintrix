@@ -28,6 +28,7 @@ import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import MaintenanceDashboard from "@/pages/maintenance-dashboard";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
+import DataImport from "@/pages/data-import";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -62,6 +63,8 @@ function Router() {
       <Route path="/voice-diagnostic" component={VoiceDiagnostic} />
       <Route path="/modules" component={ModulesOverview} />
       <Route path="/modules-overview" component={ModulesOverview} />
+      <Route path="/data-import" component={DataImport} />
+      <Route path="/import-data" component={DataImport} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>
