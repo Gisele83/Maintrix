@@ -162,7 +162,7 @@ except Exception as e:
           if (equipment) {
             // Create enriched maintenance case
             const maintenanceCase: InsertMaintenanceCase = {
-              equipmentType: this.normalizeEquipmentType(equipment.Type),
+              equipmentType: this.normalizeEquipmentType(equipment.Type) || 'Moteur électrique',
               equipmentId: equipmentId,
               zone: equipment.Localisation || 'Zone industrielle',
               symptoms: diagnostic['Symptômes détectés'] || diagnostic.Symptomes || 'Symptômes industriels',

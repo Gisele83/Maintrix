@@ -1129,7 +1129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add predictive maintenance recommendations if confidence is high
       if (suggestions.length > 0 && suggestions[0].confidence > 80) {
-        suggestions[0].predictiveTips = generatePredictiveTips(
+        (suggestions[0] as any).predictiveTips = generatePredictiveTips(
           data.equipmentType, 
           suggestions[0].diagnosis
         );
@@ -1185,10 +1185,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             cloudSearchPerformed = true;
             cloudInsights = cloudResult.aiInsights;
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorObj = error as any;
           console.error("Cloud diagnostic error:", error);
           // Ensure graceful fallback to local diagnostics
-          cloudInsights = `Service cloud indisponible (${error.status === 429 ? 'quota dépassé' : 'erreur technique'}) - Diagnostic local activé`;
+          cloudInsights = `Service cloud indisponible (${errorObj.status === 429 ? 'quota dépassé' : 'erreur technique'}) - Diagnostic local activé`;
           cloudSearchPerformed = false;
         }
       }
@@ -2764,8 +2765,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               success: true
             });
           }
-        } catch (enhancedError) {
-          console.log('Enhanced diagnostic failed:', enhancedError.message);
+        } catch (enhancedError: unknown) {
+          const errorMessage = enhancedError instanceof Error ? enhancedError.message : 'Erreur inconnue';
+          console.log('Enhanced diagnostic failed:', errorMessage);
         }
       }
       
