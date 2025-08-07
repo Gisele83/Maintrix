@@ -35,23 +35,42 @@ export default function DataImport() {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      const response = await apiRequest("POST", "/api/import/industrial-data");
+      // Use the correct Excel processing endpoint
+      const response = await apiRequest("POST", "/api/diagnostic/process-excel-sheets", {});
       
       clearInterval(progressInterval);
       setProgress(100);
       
-      setImportResult(response);
+      const result = await response.json();
       
-      toast({
-        title: "Importation réussie",
-        description: `${response.data.equipment} équipements, ${response.data.workOrders} ordres, ${response.data.spareParts} pièces et ${response.data.maintenanceCases} cas de maintenance importés`,
-      });
+      if (result.success) {
+        // Transform the result to match expected format
+        const transformedResult = {
+          success: true,
+          data: {
+            equipment: result.data.equipments,
+            workOrders: result.data.diagnostics,
+            spareParts: result.data.procedures,
+            maintenanceCases: result.data.crossReferences
+          }
+        };
+        
+        setImportResult(transformedResult);
+        
+        toast({
+          title: "✅ Importation réussie",
+          description: `${result.data.equipments} équipements, ${result.data.diagnostics} diagnostics, ${result.data.procedures} procédures et ${result.data.crossReferences} cas croisés importés`,
+        });
+      } else {
+        throw new Error(result.message);
+      }
 
     } catch (error: any) {
       console.error("Import error:", error);
+      setProgress(0);
       toast({
-        title: "Erreur d'importation",
-        description: error.message || "Une erreur s'est produite lors de l'importation",
+        title: "❌ Erreur d'importation",
+        description: error.message || "Une erreur s'est produite lors de l'importation Excel",
         variant: "destructive",
       });
     } finally {
