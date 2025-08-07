@@ -2679,12 +2679,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get equipment identifiers from database
   app.get("/api/diagnostic/equipment-identifiers", async (req, res) => {
     try {
-      const equipment = await storage.getAllEquipment();
+      const equipment = await storage.getEquipmentRegistry();
       const identifiers = equipment.map(eq => ({
         id: eq.id,
-        name: eq.name,
-        type: eq.type,
-        identifier: eq.identifier || `${eq.type.toUpperCase()}-${eq.id.toString().padStart(3, '0')}`
+        name: eq.name || eq.equipmentId,
+        type: eq.equipmentType,
+        identifier: eq.equipmentId || `${eq.equipmentType.toUpperCase()}-${eq.id.toString().padStart(3, '0')}`
       }));
       
       res.json({
