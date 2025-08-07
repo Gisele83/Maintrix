@@ -62,6 +62,13 @@ export default function PreventiveMaintenance() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedPlan, setSelectedPlan] = useState<MaintenancePlan | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    planName: "",
+    equipment: "",
+    frequency: "",
+    description: "",
+    duration: 2
+  });
 
   // Fetch maintenance plans from API
   const { data: maintenancePlans = [], isLoading: plansLoading } = useQuery({
@@ -248,17 +255,21 @@ export default function PreventiveMaintenance() {
   // Mutations for CRUD operations
   const createPlanMutation = useMutation({
     mutationFn: async (planData: any) => {
-      return await apiRequest("POST", "/api/maintenance-plans", planData);
+      return await apiRequest("/api/maintenance-plans", {
+        method: "POST",
+        body: planData,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
-      setShowAddModal(false);
+      resetAddForm();
       toast({
         title: "Plan ajouté",
         description: "Le nouveau plan de maintenance a été créé avec succès.",
       });
     },
     onError: (error: any) => {
+      console.error("Error creating plan:", error);
       toast({
         title: "Erreur",
         description: "Impossible de créer le plan de maintenance.",
@@ -269,17 +280,22 @@ export default function PreventiveMaintenance() {
 
   const updatePlanMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: number; updates: any }) => {
-      return await apiRequest("PUT", `/api/maintenance-plans/${id}`, updates);
+      return await apiRequest(`/api/maintenance-plans/${id}`, {
+        method: "PUT",
+        body: updates,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
       setSelectedPlan(null);
+      setShowEditModal(false);
       toast({
         title: "Plan modifié",
         description: "Le plan de maintenance a été mis à jour avec succès.",
       });
     },
     onError: (error: any) => {
+      console.error("Error updating plan:", error);
       toast({
         title: "Erreur",
         description: "Impossible de modifier le plan de maintenance.",
@@ -290,7 +306,9 @@ export default function PreventiveMaintenance() {
 
   const deletePlanMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest("DELETE", `/api/maintenance-plans/${id}`);
+      return await apiRequest(`/api/maintenance-plans/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance-plans"] });
@@ -300,6 +318,7 @@ export default function PreventiveMaintenance() {
       });
     },
     onError: (error: any) => {
+      console.error("Error deleting plan:", error);
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le plan de maintenance.",
@@ -309,14 +328,23 @@ export default function PreventiveMaintenance() {
   });
 
   const handleAddPlan = () => {
+    if (!addFormData.planName || !addFormData.equipment || !addFormData.frequency) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const planData = {
-      planName: "Nouveau Plan de Maintenance",
-      equipmentType: "moteur",
+      planName: addFormData.planName,
+      equipmentType: addFormData.equipment,
       equipmentIds: [1],
-      frequency: "monthly",
+      frequency: addFormData.frequency,
       frequencyValue: 1,
-      tasks: ["Inspection visuelle", "Vérification niveaux"],
-      estimatedDuration: 120,
+      tasks: [addFormData.description || "Maintenance standard"],
+      estimatedDuration: addFormData.duration * 60, // Convert hours to minutes
       requiredSkills: ["maintenance_generale"],
       safetyRequirements: "EPI obligatoire",
       isActive: true,
@@ -324,6 +352,17 @@ export default function PreventiveMaintenance() {
     };
     
     createPlanMutation.mutate(planData);
+  };
+
+  const resetAddForm = () => {
+    setAddFormData({
+      planName: "",
+      equipment: "",
+      frequency: "",
+      description: "",
+      duration: 2
+    });
+    setShowAddModal(false);
   };
 
   const [editFormData, setEditFormData] = useState<Partial<MaintenancePlan>>({});
@@ -1033,33 +1072,74 @@ export default function PreventiveMaintenance() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="planName">Nom du plan</Label>
-                  <Input id="planName" placeholder="Ex: Graissage pompe hydraulique" />
+                  <Input 
+                    id="planName" 
+                    value={addFormData.planName}
+                    onChange={(e) => setAddFormData({...addFormData, planName: e.target.value})}
+                    placeholder="Ex: Graissage pompe hydraulique" 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="equipment">Équipement</Label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <select 
+                    id="equipment"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={addFormData.equipment}
+                    onChange={(e) => setAddFormData({...addFormData, equipment: e.target.value})}
+                  >
                     <option value="">Sélectionner un équipement</option>
-                    <option value="eq1">Moteur Principal Ligne 1</option>
-                    <option value="eq2">Pompe Hydraulique P-001</option>
-                    <option value="eq3">Compresseur Air Principal</option>
+                    <option value="moteur">Moteur Principal</option>
+                    <option value="pompe">Pompe Hydraulique</option>
+                    <option value="compresseur">Compresseur Air</option>
+                    <option value="convoyeur">Convoyeur</option>
+                    <option value="transformateur">Transformateur</option>
                   </select>
                 </div>
                 <div>
                   <Label htmlFor="frequency">Fréquence</Label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                  <select 
+                    id="frequency"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={addFormData.frequency}
+                    onChange={(e) => setAddFormData({...addFormData, frequency: e.target.value})}
+                  >
                     <option value="">Sélectionner la fréquence</option>
-                    <option value="weekly">Hebdomadaire</option>
-                    <option value="monthly">Mensuelle</option>
-                    <option value="quarterly">Trimestrielle</option>
-                    <option value="annual">Annuelle</option>
+                    <option value="Hebdomadaire">Hebdomadaire</option>
+                    <option value="Mensuelle">Mensuelle</option>
+                    <option value="Trimestrielle">Trimestrielle</option>
+                    <option value="Annuelle">Annuelle</option>
                   </select>
+                </div>
+                <div>
+                  <Label htmlFor="duration">Durée estimée (heures)</Label>
+                  <Input 
+                    id="duration"
+                    type="number"
+                    value={addFormData.duration}
+                    onChange={(e) => setAddFormData({...addFormData, duration: parseInt(e.target.value) || 2})}
+                    placeholder="2" 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <textarea 
+                    id="description"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[60px]"
+                    value={addFormData.description}
+                    onChange={(e) => setAddFormData({...addFormData, description: e.target.value})}
+                    placeholder="Description des tâches de maintenance"
+                  />
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <Button onClick={handleAddPlan} className="flex-1">
-                  Créer le plan
+                <Button 
+                  onClick={handleAddPlan} 
+                  className="flex-1"
+                  disabled={createPlanMutation.isPending}
+                >
+                  {createPlanMutation.isPending ? "Création..." : "Créer le plan"}
                 </Button>
-                <Button variant="outline" onClick={() => setShowAddModal(false)} className="flex-1">
+                <Button variant="outline" onClick={resetAddForm} className="flex-1">
                   Annuler
                 </Button>
               </div>
