@@ -11,9 +11,8 @@ import path from 'path';
 
 console.log('🚀 Création d\'un installateur Windows véritable...');
 
-// Créer un script d'installation simple qui fonctionne
-const installerScript = `const { execSync } = require('child_process');
-const { writeFileSync, mkdirSync, existsSync } = require('fs');
+// Créer un script d'installation simple et fonctionnel
+const installerScript = `const { writeFileSync, mkdirSync, existsSync } = require('fs');
 const path = require('path');
 const readline = require('readline');
 
@@ -24,50 +23,16 @@ const rl = readline.createInterface({
 
 console.log('\\n╔══════════════════════════════════════════════════════════════╗');
 console.log('║                Smart GMAO DiagFix v2.1.0                      ║');
-console.log('║              Installateur Windows Automatique                 ║');
+console.log('║              Installateur Windows Simplifié                   ║');
 console.log('╚══════════════════════════════════════════════════════════════╝\\n');
 
-console.log('🎯 Cet installateur va configurer Smart GMAO DiagFix sur votre système');
-console.log('📋 Pré-requis: Node.js (sera téléchargé si nécessaire)\\n');
+console.log('🎯 Installation de Smart GMAO DiagFix sur votre système');
+console.log(\`✅ Node.js intégré: \${process.version}\\n\`);
 
-function checkNodeJS() {
-  try {
-    const version = execSync('node --version', { encoding: 'utf8' }).trim();
-    console.log(\`✅ Node.js détecté: \${version}\`);
-    return true;
-  } catch {
-    console.log('❌ Node.js non détecté');
-    return false;
-  }
-}
-
-function installNodeJS() {
-  console.log('\\n📥 Téléchargement de Node.js...');
-  console.log('🌐 Ouverture du site officiel Node.js...');
+function continueInstallation() {
+  console.log('🔧 Création du répertoire d\\'installation...');
   
-  try {
-    execSync('start https://nodejs.org/dist/v20.11.0/node-v20.11.0-x64.msi');
-    console.log('\\n⚠️  IMPORTANT:');
-    console.log('   1. Téléchargez et installez Node.js depuis la page qui s\\'ouvre');
-    console.log('   2. Relancez cet installateur après l\\'installation de Node.js');
-    console.log('\\n✋ Appuyez sur ENTRÉE pour continuer après installation...');
-    
-    rl.question('', () => {
-      if (checkNodeJS()) {
-        continueInstallation();
-      } else {
-        console.log('❌ Node.js toujours non détecté. Réessayez après installation.');
-        rl.close();
-        process.exit(1);
-      }
-    });
-  } catch (error) {
-    console.log('❌ Erreur lors de l\\'ouverture du téléchargement:', error.message);
-    console.log('📥 Téléchargez manuellement depuis: https://nodejs.org/');
-    rl.close();
-    process.exit(1);
-  }
-}
+  const installDir = path.join(process.env.USERPROFILE || 'C:\\\\Users\\\\Default', 'Smart-GMAO-DiagFix');
 
 function continueInstallation() {
   console.log('\\n🔧 Installation de Smart GMAO DiagFix...');

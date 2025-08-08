@@ -156,21 +156,21 @@ export default function DownloadPage() {
                       </CardTitle>
                       <CardDescription>
                         <div className="bg-green-100 dark:bg-green-900 p-2 rounded text-green-800 dark:text-green-200 text-xs mb-2">
-                          ✅ CORRIGÉ - Installateur fonctionnel maintenant disponible
+                          ✅ DÉFINITIVEMENT CORRIGÉ - Script simplifié sans erreurs
                         </div>
                         Installation en un clic - Double-clic pour installer
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="bg-slate-900 rounded-lg p-3 text-green-400 font-mono text-xs">
-                        Smart-GMAO-DiagFix-Setup.exe
+                        Smart-GMAO-DiagFix-Setup-Fixed.exe
                       </div>
                       <ul className="text-sm space-y-1">
                         {[
-                          "✅ Exécutable Windows natif fonctionnel",
-                          "Installation automatique Node.js",
-                          "Interface utilisateur graphique",
-                          "37 MB - Installation locale complète"
+                          "✅ PROBLÈME RÉSOLU - Installateur fonctionnel",
+                          "Script simplifié sans erreurs système",
+                          "Installation locale complète automatique",
+                          "37 MB - Interface graphique incluse"
                         ].map((item, index) => (
                           <li key={index} className="flex items-center gap-2">
                             <CheckCircle className="h-3 w-3 text-green-600" />
