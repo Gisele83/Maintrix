@@ -61,6 +61,7 @@ export default function LoginPage() {
       department: "",
       role: "technician",
     },
+    mode: "onChange",
   });
 
   const loginMutation = useMutation({
@@ -265,7 +266,13 @@ export default function LoginPage() {
                         <FormItem>
                           <FormLabel>Nom d'utilisateur</FormLabel>
                           <FormControl>
-                            <Input placeholder="Nom d'utilisateur unique" {...field} />
+                            <Input 
+                              placeholder="Nom d'utilisateur unique" 
+                              value={field.value || ""} 
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
