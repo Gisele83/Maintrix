@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
-import { PDFGeneratorFallback, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-fallback";
+import { PDFGeneratorClientSide, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-client-side";
 import {
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
@@ -1249,7 +1249,7 @@ export function registerGMAORoutes(app: Express) {
         notes: "Rapport automatique généré par le système GMAO"
       };
 
-      const pdfGenerator = new PDFGeneratorFallback();
+      const pdfGenerator = new PDFGeneratorClientSide();
       await pdfGenerator.sendMonthlyReportHTML(res, demoReport);
     } catch (error) {
       console.error("Error generating monthly report:", error);

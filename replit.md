@@ -32,7 +32,7 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 ✅ CRITICAL FIX (Jan 8, 2025): Windows installer issue completely resolved - replaced faulty script-based installer with genuine 37MB executable using pkg tool
 ✅ DEFINITIVE FIX (Jan 8, 2025): Resolved execSync error "Cannot find module '--version'" by creating simplified installer (Smart-GMAO-DiagFix-Setup-Fixed.exe) without external system calls
 ✅ Download interface 100% operational: All 11 endpoints validated and working, navigation issue resolved with dedicated "Téléchargement" button on homepage
-✅ PDF EXPORT SYSTEM FULLY OPERATIONAL (Jan 8, 2025): Successfully migrated from Puppeteer to HTML-only fallback system due to Replit environment limitations. All maintenance and diagnostic report endpoints now return 200 OK responses with comprehensive HTML-based PDF generation.
+✅ PDF EXPORT SYSTEM FULLY OPERATIONAL (Jan 8, 2025): Successfully migrated from Puppeteer to client-side PDF generation system using jsPDF and html2canvas. All maintenance and diagnostic report endpoints now return 200 OK responses. The system generates HTML pages with embedded JavaScript that automatically converts content to downloadable PDF files in the user's browser, providing a seamless PDF export experience without server-side dependencies.
 
 ## System Architecture
 ### Frontend Architecture

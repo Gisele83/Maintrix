@@ -2961,9 +2961,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]
       };
 
-      // Use fallback PDF generator to create comprehensive report
-      const { PDFGeneratorFallback } = await import("./pdf-generator-fallback");
-      const pdfGenerator = new PDFGeneratorFallback();
+      // Use client-side PDF generator to create comprehensive report
+      const { PDFGeneratorClientSide } = await import("./pdf-generator-client-side");
+      const pdfGenerator = new PDFGeneratorClientSide();
       await pdfGenerator.sendMonthlyReportHTML(res, reportData);
       
     } catch (error) {
