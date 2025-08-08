@@ -19,7 +19,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  username: z.string().min(1, "Le nom d'utilisateur est requis").min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
+  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
   lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
@@ -66,9 +66,7 @@ export default function LoginPage() {
       department: "",
       role: "technician",
     },
-    mode: "onChange",
-    shouldFocusError: true,
-    criteriaMode: "all",
+    mode: "onBlur",
   });
 
   const loginMutation = useMutation({
@@ -282,8 +280,8 @@ export default function LoginPage() {
                               onChange={(e) => {
                                 const value = e.target.value;
                                 setUsernameDebug(value);
-                                console.log("Username input:", value, "Length:", value.length);
-                                field.onChange(value);
+                                console.log("Username input:", value, "Length:", value.length, "Event:", e.type);
+                                field.onChange(e);
                               }}
                               onBlur={field.onBlur}
                               name="username"
