@@ -13,6 +13,8 @@ export default function DownloadPage() {
       'installer': '/api/download/installer',
       'windows-installer': '/api/download/windows-installer',
       'windows-setup': '/api/download/windows-setup',
+      'windows-exe': '/api/download/windows-exe',
+      'mobile-apk': '/api/download/mobile-apk',
       'docker': '/api/download/docker-package',
       'source': '/api/download/source',
       'quick-start': '/api/download/quick-start',
@@ -143,7 +145,46 @@ export default function DownloadPage() {
               {/* Section Windows */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6">
                 <h3 className="text-xl font-bold mb-4 text-center">🪟 Installation Windows</h3>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-3 gap-4">
+                  {/* Installateur .exe */}
+                  <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg ring-2 ring-green-200 dark:ring-green-800">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Monitor className="h-5 w-5 text-green-600" />
+                        Exécutable (.exe)
+                        <Badge className="bg-green-100 text-green-800 text-xs">NOUVEAU</Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Installation en un clic - Double-clic pour installer
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-slate-900 rounded-lg p-3 text-green-400 font-mono text-xs">
+                        Smart-GMAO-DiagFix-Installer.exe
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {[
+                          "Installation automatique complète",
+                          "Node.js + PostgreSQL inclus",
+                          "Service Windows configuré",
+                          "37 MB - Prêt à utiliser"
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        onClick={() => handleDownload('windows-exe')}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger .exe
+                      </Button>
+                    </CardContent>
+                  </Card>
+
                   <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg">
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
@@ -222,6 +263,90 @@ export default function DownloadPage() {
                 <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
                     💡 <strong>Instructions:</strong> Clic droit sur le fichier téléchargé → "Exécuter en tant qu'administrateur"
+                  </p>
+                </div>
+              </div>
+
+              {/* Section Mobile */}
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-6">
+                <h3 className="text-xl font-bold mb-4 text-center">📱 Application Mobile</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Smartphone className="h-5 w-5 text-purple-600" />
+                        Android APK
+                      </CardTitle>
+                      <CardDescription>
+                        Application mobile complète pour techniciens terrain
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-slate-900 rounded-lg p-3 text-purple-400 font-mono text-xs">
+                        smart-gmao-diagfix-mobile.apk
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {[
+                          "Diagnostic IA hors ligne",
+                          "Scanner QR équipements",
+                          "Guidance réparation",
+                          "Synchronisation cloud"
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-purple-600" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        onClick={() => handleDownload('mobile-apk')}
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger APK
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg opacity-60">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Smartphone className="h-5 w-5 text-gray-400" />
+                        iOS (Bientôt)
+                      </CardTitle>
+                      <CardDescription>
+                        Version iPhone/iPad en développement
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-slate-900 rounded-lg p-3 text-gray-400 font-mono text-xs">
+                        smart-gmao-diagfix.ipa
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {[
+                          "Mêmes fonctionnalités qu'Android",
+                          "Interface native iOS",
+                          "Intégration TestFlight",
+                          "Disponible Q2 2025"
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-gray-400" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        disabled
+                        className="w-full bg-gray-400 cursor-not-allowed"
+                      >
+                        Bientôt disponible
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <p className="text-sm text-purple-800 dark:text-purple-200">
+                    📲 <strong>Installation APK:</strong> Paramètres → Sécurité → Autoriser sources inconnues, puis installer l'APK téléchargé
                   </p>
                 </div>
               </div>

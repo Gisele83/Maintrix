@@ -20,6 +20,16 @@ const DOWNLOADS_CONFIG = {
     path: "scripts/windows-setup.bat",
     contentType: "application/octet-stream"
   },
+  windowsExe: {
+    filename: "Smart-GMAO-DiagFix-Installer.exe",
+    path: "scripts/Smart-GMAO-DiagFix-Installer.exe",
+    contentType: "application/octet-stream"
+  },
+  mobileApk: {
+    filename: "smart-gmao-diagfix-mobile.apk",
+    path: "mobile/smart-gmao-diagfix-mobile.apk",
+    contentType: "application/vnd.android.package-archive"
+  },
   quickStart: {
     filename: "guide-demarrage-rapide.md",
     path: "GUIDE_DEMARRAGE_RAPIDE.md",
@@ -179,6 +189,16 @@ export function registerDownloadRoutes(app: Express): void {
     sendFile(res, setupConfig.path, setupConfig.filename, setupConfig.contentType);
   });
 
+  app.get("/api/download/windows-exe", (req, res) => {
+    const exeConfig = DOWNLOADS_CONFIG.windowsExe;
+    sendFile(res, exeConfig.path, exeConfig.filename, exeConfig.contentType);
+  });
+
+  app.get("/api/download/mobile-apk", (req, res) => {
+    const apkConfig = DOWNLOADS_CONFIG.mobileApk;
+    sendFile(res, apkConfig.path, apkConfig.filename, apkConfig.contentType);
+  });
+
   // Route pour obtenir les informations de version
   app.get("/api/download/info", (req, res) => {
     const packageInfo = { 
@@ -222,6 +242,16 @@ export function registerDownloadRoutes(app: Express): void {
           filename: DOWNLOADS_CONFIG.windowsSetup.filename,
           description: "Script d'installation Batch pour Windows",
           requirements: "Windows 10+, droits administrateur"
+        },
+        windowsExe: {
+          filename: DOWNLOADS_CONFIG.windowsExe.filename,
+          description: "Installateur exécutable Windows (.exe) - Installation en un clic",
+          requirements: "Windows 10+, droits administrateur"
+        },
+        mobileApk: {
+          filename: DOWNLOADS_CONFIG.mobileApk.filename,
+          description: "Application mobile Android (.apk)",
+          requirements: "Android 7.0+, installation sources inconnues activée"
         }
       }
     });

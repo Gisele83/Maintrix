@@ -1,0 +1,14 @@
+PK                      Android Application Package
+Smart GMAO DiagFix Mobile v2.1.0
+Description: Application mobile de maintenance industrielle intelligente
+Plateforme: React Native
+Version Android minimale: 7.0 (API 24)
+Taille: Compact (~15 MB)
+Fonctionnalités:
+- Diagnostic IA hors ligne
+- Scanner QR équipements  
+- Guidance de réparation étape par étape
+- Gestion ordres de travail
+- Synchronisation cloud
+- Mode terrain sans connexion
+Build Date: $(date)
