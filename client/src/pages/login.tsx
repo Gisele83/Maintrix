@@ -41,8 +41,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // State pour debug intermittent
-  const [usernameDebug, setUsernameDebug] = useState("");
+
   
 
 
@@ -273,27 +272,9 @@ export default function LoginPage() {
                           <FormControl>
                             <Input 
                               placeholder="Nom d'utilisateur unique"
-                              type="text"
-                              autoComplete="off"
-                              spellCheck={false}
-                              value={field.value || ""}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setUsernameDebug(value);
-                                console.log("Username input:", value, "Length:", value.length, "Event:", e.type);
-                                field.onChange(e);
-                              }}
-                              onBlur={field.onBlur}
-                              name="username"
-                              id="username-register"
-                              key={`username-register-${isRegistering}`}
+                              {...field}
                             />
                           </FormControl>
-                          {usernameDebug && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              Saisie détectée: "{usernameDebug}" ({usernameDebug.length} caractères)
-                            </div>
-                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -373,12 +354,9 @@ export default function LoginPage() {
                   variant="ghost"
                   onClick={() => {
                     setIsRegistering(!isRegistering);
-                    setUsernameDebug("");
                     if (!isRegistering) {
-                      // Reset form when switching to register
                       registerForm.reset();
                     } else {
-                      // Reset form when switching to login
                       loginForm.reset();
                     }
                   }}
