@@ -30,6 +30,7 @@ import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
 import DownloadPage from "@/pages/download";
+import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -67,6 +68,8 @@ function Router() {
       <Route path="/data-import" component={DataImport} />
       <Route path="/import-data" component={DataImport} />
       <Route path="/download" component={DownloadPage} />
+      <Route path="/localhost-diagnostic" component={LocalhostDiagnostic} />
+      <Route path="/diagnostic-localhost" component={LocalhostDiagnostic} />
       <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
       <Route component={NotFound} />
     </Switch>

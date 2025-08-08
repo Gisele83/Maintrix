@@ -2,6 +2,7 @@ import type { Express, Response } from "express";
 import { createReadStream, existsSync, statSync } from "fs";
 import { join } from "path";
 import archiver from "archiver";
+import path from "path";
 
 // Configuration des téléchargements
 const DOWNLOADS_CONFIG = {
@@ -26,9 +27,24 @@ const DOWNLOADS_CONFIG = {
     contentType: "application/octet-stream"
   },
   mobileApk: {
-    filename: "smart-gmao-diagfix-mobile.apk",
+    filename: "smart-gmao-diagfix-mobile.apk", 
     path: "mobile/smart-gmao-diagfix-mobile.apk",
     contentType: "application/vnd.android.package-archive"
+  },
+  diagnosticScript: {
+    filename: "diagnostic-localhost.js",
+    path: "scripts/diagnostic-localhost.js",
+    contentType: "application/javascript"
+  },
+  fixBatch: {
+    filename: "fix-localhost-access.bat",
+    path: "scripts/fix-localhost-access.bat",
+    contentType: "application/octet-stream"
+  },
+  alternativeServer: {
+    filename: "alternative-server.js",
+    path: "scripts/alternative-server.js",
+    contentType: "application/javascript"
   },
   quickStart: {
     filename: "guide-demarrage-rapide.md",
@@ -155,6 +171,35 @@ function createDockerPackage(res: Response): void {
 }
 
 export function registerDownloadRoutes(app: Express): void {
+  // Route de diagnostic en ligne
+  app.get('/api/diagnostic/localhost', (req, res) => {
+    res.json({
+      status: 'Server is running',
+      port: 5000,
+      timestamp: new Date().toISOString(),
+      suggestions: [
+        'Try http://127.0.0.1:5000 instead of localhost:5000',
+        'Check your firewall settings',
+        'Disable antivirus temporarily',
+        'Try running browser as administrator',
+        'Use cloud version on Replit'
+      ]
+    });
+  });
+
+  // Routes nouvelles pour outils de diagnostic
+  app.get('/api/download/diagnostic-script', (req, res) => {
+    sendFile(res, 'scripts/diagnostic-localhost.js', 'diagnostic-localhost.js', 'application/javascript');
+  });
+
+  app.get('/api/download/fix-batch', (req, res) => {
+    sendFile(res, 'scripts/fix-localhost-access.bat', 'fix-localhost-access.bat', 'application/octet-stream');
+  });
+
+  app.get('/api/download/alternative-server', (req, res) => {
+    sendFile(res, 'scripts/alternative-server.js', 'alternative-server.js', 'application/javascript');
+  });
+
   // Routes spécifiques de téléchargement
   app.get("/api/download/installer", (req, res) => {
     const installerConfig = DOWNLOADS_CONFIG.installer;
