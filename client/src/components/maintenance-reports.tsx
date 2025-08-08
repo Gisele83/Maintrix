@@ -231,22 +231,17 @@ export function MaintenanceReports() {
   // Download intervention report as PDF
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
-      const reportContent = generateInterventionReportHTML(report);
-      
-      // Create and download the report
-      const blob = new Blob([reportContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      // Use the PDF endpoint instead of generating HTML
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `rapport-intervention-${report.reportNumber}.html`;
+      link.href = `/api/maintenance-reports/${report.id}/pdf`;
+      link.download = `rapport-intervention-${report.reportNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
       toast({
-        title: "Rapport téléchargé",
-        description: `Le rapport d'intervention ${report.reportNumber} a été téléchargé avec succès`,
+        title: "Téléchargement PDF en cours",
+        description: `Le rapport d'intervention ${report.reportNumber} est en cours de téléchargement au format PDF`,
       });
     } catch (error) {
       toast({
@@ -417,22 +412,17 @@ export function MaintenanceReports() {
   // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
-      const reportContent = generateMonthlyReportHTML(report);
-      
-      // Create and download the report
-      const blob = new Blob([reportContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      // Use the PDF endpoint instead of generating HTML
       const link = document.createElement('a');
-      link.href = url;
-      link.download = `rapport-mensuel-${report.reportNumber}.html`;
+      link.href = `/api/monthly-reports/${report.id}/pdf`;
+      link.download = `rapport-mensuel-${report.reportNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
 
       toast({
-        title: "Rapport téléchargé",
-        description: `Le rapport mensuel ${report.reportNumber} a été téléchargé avec succès`,
+        title: "Téléchargement PDF en cours",
+        description: `Le rapport mensuel ${report.reportNumber} est en cours de téléchargement au format PDF`,
       });
     } catch (error) {
       toast({

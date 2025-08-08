@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
+import { pdfGeneratorSimple as pdfGenerator, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-simple";
 import {
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
@@ -1008,6 +1009,59 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Download maintenance report as PDF
+  app.get("/api/maintenance-reports/:id/pdf", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      // Get report data - using demo data for now
+      const demoReport: MaintenanceReportData = {
+        id: reportId,
+        reportNumber: "MR20250124001",
+        workOrderId: 1,
+        equipmentId: 1,
+        reportType: "corrective",
+        interventionType: "repair",
+        technician: "Jean Dupont",
+        supervisor: "Marie Martin",
+        startTime: "2025-01-24T08:00:00Z",
+        endTime: "2025-01-24T12:30:00Z",
+        actualDuration: 270,
+        plannedDuration: 240,
+        workDescription: "Remplacement du roulement défaillant sur grue portique STS-01",
+        problemDiagnosis: "Usure prématurée du roulement principal due à une lubrification insuffisante",
+        actionsTaken: "Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
+        partsUsed: [
+          { partId: 1, partNumber: "SKF-22228-E1", quantity: 1, cost: 890.50 },
+          { partId: 2, partNumber: "SHELL-GADUS-S2", quantity: 2, cost: 45.00 }
+        ],
+        toolsUsed: ["Extracteur hydraulique", "Clé dynamométrique", "Pistolet à graisse"],
+        safetyIncidents: undefined,
+        qualityCheck: true,
+        qualityNotes: "Contrôle vibratoire validé, fonctionnement nominal",
+        followUpRequired: true,
+        followUpDate: "2025-02-24T00:00:00Z",
+        followUpNotes: "Contrôle de la lubrification dans 1 mois",
+        totalCost: 1160.50,
+        laborCost: 225.00,
+        partsCost: 935.50,
+        status: "approved",
+        approvedBy: "Marie Martin",
+        approvalDate: "2025-01-24T13:00:00Z",
+        createdAt: "2025-01-24T12:45:00Z",
+        updatedAt: "2025-01-24T13:00:00Z"
+      };
+
+      await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
+    } catch (error) {
+      console.error("Error generating maintenance report PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF report" });
+    }
+  });
+
   // Get maintenance reports - Override with DEMO data
   app.get("/api/maintenance-reports", (req, res) => {
     try {
@@ -1138,6 +1192,67 @@ export function registerGMAORoutes(app: Express) {
     } catch (error) {
       console.error("Error generating monthly report:", error);
       res.status(400).json({ message: "Failed to generate monthly report" });
+    }
+  });
+
+  // Download monthly report as PDF
+  app.get("/api/monthly-reports/:id/pdf", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      // Get report data - using demo data for now
+      const demoReport: MonthlyReportData = {
+        id: reportId,
+        reportNumber: "MM20250124001",
+        month: 1,
+        year: 2025,
+        periodStart: "2025-01-01T00:00:00Z",
+        periodEnd: "2025-01-31T23:59:59Z",
+        generatedBy: "Système GMAO",
+        generatedAt: new Date().toISOString(),
+        totalEquipment: 5,
+        activeEquipment: 4,
+        equipmentAvailability: 85.2,
+        totalWorkOrders: 12,
+        completedWorkOrders: 9,
+        preventiveWorkOrders: 7,
+        correctiveWorkOrders: 5,
+        averageCompletionTime: 3.2,
+        mtbf: 168.5,
+        mttr: 2.8,
+        plannedMaintenanceRatio: 58.3,
+        maintenanceEfficiency: 75.0,
+        totalMaintenanceCost: 15420.75,
+        laborCost: 8950.00,
+        partsCost: 6470.75,
+        contractorCost: 0,
+        costPerWorkOrder: 1285.06,
+        partsConsumed: 23,
+        inventoryTurnover: 4.2,
+        stockouts: 2,
+        emergencyPurchases: 1,
+        totalAlerts: 18,
+        criticalAlerts: 3,
+        safetyIncidents: 0,
+        qualityIssues: 1,
+        performanceScore: 78,
+        improvementAreas: ["Maintenance préventive", "Disponibilité équipements"],
+        recommendations: [
+          "Augmenter la proportion de maintenance préventive pour réduire les pannes",
+          "Optimiser la planification des interventions pour améliorer la disponibilité",
+          "Renforcer la surveillance préventive pour réduire les alertes critiques"
+        ],
+        status: "generated",
+        notes: "Rapport automatique généré par le système GMAO"
+      };
+
+      await pdfGenerator.sendMonthlyReportHTML(res, demoReport);
+    } catch (error) {
+      console.error("Error generating monthly report PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF report" });
     }
   });
 
