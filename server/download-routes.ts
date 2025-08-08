@@ -10,6 +10,16 @@ const DOWNLOADS_CONFIG = {
     path: "scripts/install.sh",
     contentType: "application/x-sh"
   },
+  windowsInstaller: {
+    filename: "windows-installer.ps1",
+    path: "scripts/windows-installer.ps1",
+    contentType: "application/octet-stream"
+  },
+  windowsSetup: {
+    filename: "windows-setup.bat",
+    path: "scripts/windows-setup.bat",
+    contentType: "application/octet-stream"
+  },
   quickStart: {
     filename: "guide-demarrage-rapide.md",
     path: "GUIDE_DEMARRAGE_RAPIDE.md",
@@ -159,6 +169,16 @@ export function registerDownloadRoutes(app: Express): void {
     sendFile(res, docConfig.path, docConfig.filename, docConfig.contentType);
   });
 
+  app.get("/api/download/windows-installer", (req, res) => {
+    const windowsConfig = DOWNLOADS_CONFIG.windowsInstaller;
+    sendFile(res, windowsConfig.path, windowsConfig.filename, windowsConfig.contentType);
+  });
+
+  app.get("/api/download/windows-setup", (req, res) => {
+    const setupConfig = DOWNLOADS_CONFIG.windowsSetup;
+    sendFile(res, setupConfig.path, setupConfig.filename, setupConfig.contentType);
+  });
+
   // Route pour obtenir les informations de version
   app.get("/api/download/info", (req, res) => {
     const packageInfo = { 
@@ -192,6 +212,16 @@ export function registerDownloadRoutes(app: Express): void {
           filename: DOWNLOADS_CONFIG.quickStart.filename,
           description: "Guide de démarrage rapide",
           requirements: "Aucun"
+        },
+        windowsInstaller: {
+          filename: DOWNLOADS_CONFIG.windowsInstaller.filename,
+          description: "Installateur PowerShell pour Windows (Recommandé)",
+          requirements: "Windows 10+, PowerShell, droits administrateur"
+        },
+        windowsSetup: {
+          filename: DOWNLOADS_CONFIG.windowsSetup.filename,
+          description: "Script d'installation Batch pour Windows",
+          requirements: "Windows 10+, droits administrateur"
         }
       }
     });

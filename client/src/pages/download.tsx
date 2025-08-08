@@ -9,13 +9,20 @@ export default function DownloadPage() {
   const [selectedPlan, setSelectedPlan] = useState<'cloud' | 'local'>('cloud');
 
   const handleDownload = (type: string) => {
-    const downloadUrl = type === 'installer' 
-      ? '/api/download/installer'
-      : type === 'docker'
-      ? '/api/download/docker-package'
-      : '/api/download/source';
+    const downloadUrls = {
+      'installer': '/api/download/installer',
+      'windows-installer': '/api/download/windows-installer',
+      'windows-setup': '/api/download/windows-setup',
+      'docker': '/api/download/docker-package',
+      'source': '/api/download/source',
+      'quick-start': '/api/download/quick-start',
+      'documentation': '/api/download/documentation'
+    };
     
-    window.open(downloadUrl, '_blank');
+    const downloadUrl = downloadUrls[type as keyof typeof downloadUrls];
+    if (downloadUrl) {
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   return (
@@ -132,8 +139,96 @@ export default function DownloadPage() {
 
           {/* Installation Locale */}
           <TabsContent value="local">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Installation Automatique */}
+            <div className="space-y-6">
+              {/* Section Windows */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-6">
+                <h3 className="text-xl font-bold mb-4 text-center">🪟 Installation Windows</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Download className="h-5 w-5 text-blue-600" />
+                        PowerShell (Recommandé)
+                      </CardTitle>
+                      <CardDescription>
+                        Installation automatique complète pour Windows
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-slate-900 rounded-lg p-3 text-green-400 font-mono text-xs">
+                        ./windows-installer.ps1
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {[
+                          "Installation Node.js + PostgreSQL",
+                          "Configuration automatique",
+                          "Service Windows",
+                          "Raccourcis bureau"
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        onClick={() => handleDownload('windows-installer')}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger .ps1
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/90 dark:bg-slate-800/90 border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Monitor className="h-5 w-5 text-indigo-600" />
+                        Script Batch
+                      </CardTitle>
+                      <CardDescription>
+                        Alternative simple pour Windows
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="bg-slate-900 rounded-lg p-3 text-green-400 font-mono text-xs">
+                        windows-setup.bat
+                      </div>
+                      <ul className="text-sm space-y-1">
+                        {[
+                          "Installation étape par étape",
+                          "Messages de progression",
+                          "Configuration guidée",
+                          "Compatible toutes versions"
+                        ].map((item, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <CheckCircle className="h-3 w-3 text-indigo-600" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        onClick={() => handleDownload('windows-setup')}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Télécharger .bat
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    💡 <strong>Instructions:</strong> Clic droit sur le fichier téléchargé → "Exécuter en tant qu'administrateur"
+                  </p>
+                </div>
+              </div>
+
+              {/* Section Linux/Unix */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Installation Automatique */}
               <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl">
                 <CardHeader>
                   <div className="flex items-center gap-3">
@@ -237,9 +332,9 @@ export default function DownloadPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+              </div>
 
-            {/* Code Source */}
+              {/* Code Source */}
             <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-xl mt-6">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -283,6 +378,7 @@ export default function DownloadPage() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
