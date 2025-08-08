@@ -1019,42 +1019,33 @@ export function registerGMAORoutes(app: Express) {
 
       // Get report data - using demo data for now
       const demoReport: MaintenanceReportData = {
-        id: reportId,
         reportNumber: "MR20250124001",
-        workOrderId: 1,
-        equipmentId: 1,
-        reportType: "corrective",
-        interventionType: "repair",
+        equipment: "Grue portique STS-01",
+        description: "Remplacement du roulement défaillant sur grue portique STS-01. Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
         technician: "Jean Dupont",
-        supervisor: "Marie Martin",
-        startTime: "2025-01-24T08:00:00Z",
-        endTime: "2025-01-24T12:30:00Z",
-        actualDuration: 270,
-        plannedDuration: 240,
-        workDescription: "Remplacement du roulement défaillant sur grue portique STS-01",
-        problemDiagnosis: "Usure prématurée du roulement principal due à une lubrification insuffisante",
-        actionsTaken: "Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
+        date: "24 janvier 2025",
+        duration: 270,
+        status: "completed",
+        priority: "high",
+        workOrderNumber: "WO-001",
+        interventionType: "repair",
         partsUsed: [
-          { partId: 1, partNumber: "SKF-22228-E1", quantity: 1, cost: 890.50 },
-          { partId: 2, partNumber: "SHELL-GADUS-S2", quantity: 2, cost: 45.00 }
+          { name: "SKF-22228-E1", quantity: 1, unitCost: 890.50 },
+          { name: "SHELL-GADUS-S2", quantity: 2, unitCost: 45.00 }
         ],
-        toolsUsed: ["Extracteur hydraulique", "Clé dynamométrique", "Pistolet à graisse"],
-        safetyIncidents: undefined,
-        qualityCheck: true,
-        qualityNotes: "Contrôle vibratoire validé, fonctionnement nominal",
-        followUpRequired: true,
-        followUpDate: "2025-02-24T00:00:00Z",
-        followUpNotes: "Contrôle de la lubrification dans 1 mois",
-        totalCost: 1160.50,
         laborCost: 225.00,
-        partsCost: 935.50,
-        status: "approved",
-        approvedBy: "Marie Martin",
-        approvalDate: "2025-01-24T13:00:00Z",
-        createdAt: "2025-01-24T12:45:00Z",
-        updatedAt: "2025-01-24T13:00:00Z"
+        totalCost: 1160.50,
+        nextMaintenanceDate: "24 février 2025",
+        recommendations: [
+          "Contrôle de la lubrification dans 1 mois",
+          "Surveillance des vibrations hebdomadaire",
+          "Vérification des couples de serrage"
+        ],
+        supervisor: "Marie Martin",
+        actualDuration: 270
       };
 
+      const pdfGenerator = new PDFGeneratorClientSide();
       await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
     } catch (error) {
       console.error("Error generating maintenance report:", error);

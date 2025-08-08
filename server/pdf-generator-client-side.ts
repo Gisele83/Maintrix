@@ -275,11 +275,11 @@ export class PDFGeneratorClientSide {
                 </div>
                 <div class="info-item">
                   <strong>Statut:</strong>
-                  <span class="status-badge status-${reportData.status.toLowerCase()}">${reportData.status}</span>
+                  <span class="status-badge status-${(reportData.status || 'unknown').toLowerCase()}">${reportData.status || 'Non défini'}</span>
                 </div>
                 <div class="info-item">
                   <strong>Priorité:</strong>
-                  <span class="status-badge status-${reportData.priority.toLowerCase()}">${reportData.priority}</span>
+                  <span class="status-badge status-${(reportData.priority || 'normal').toLowerCase()}">${reportData.priority || 'Normal'}</span>
                 </div>
               </div>
             </div>
