@@ -546,6 +546,9 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register authentication routes
+  const { registerAuthRoutes } = await import("./auth-routes");
+  registerAuthRoutes(app);
   
   // Appliquer les mesures de sécurité globales
   app.use(securityHeaders);

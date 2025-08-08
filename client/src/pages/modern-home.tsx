@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import ModernNavigation from "@/components/modern-navigation";
+import { ModernNavigation } from "@/components/modern-navigation";
 import FeatureCards, { QuickStats } from "@/components/feature-cards";
 import { TrialBanner } from "@/components/trial-banner";
 
@@ -52,8 +52,8 @@ export default function ModernHome() {
             <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
               Smart GMAO DiagFix
             </h1>
-            <div className="absolute -top-2 -right-8 md:-right-12 mt-2">
-              <div className="inline-flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
+            <div className="absolute -top-4 right-0 sm:-right-8 lg:-right-12">
+              <div className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
                 Interface Unifiée
               </div>
             </div>

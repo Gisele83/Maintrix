@@ -1,6 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
-import type { ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface User {
   id: number;
@@ -16,127 +16,59 @@ interface User {
   isActive: boolean;
 }
 
-interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
-interface AuthContextType extends AuthState {
-  login: (token: string, user: User) => void;
-  logout: () => void;
-  updateUser: (user: User) => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-export function useAuthState(): AuthState & {
-  login: (token: string, user: User) => void;
-  logout: () => void;
-  updateUser: (user: User) => void;
-} {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-
+  const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // Check for existing token on mount
-    const token = localStorage.getItem("auth_token");
-    const userData = localStorage.getItem("user_data");
-
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData);
-        setAuthState({
-          user,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_data");
-        setAuthState({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+  // Check if user is authenticated by checking token
+  const { data: user, isLoading: queryLoading } = useQuery({
+    queryKey: ["/api/auth/profile"],
+    queryFn: async () => {
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        throw new Error("No token");
       }
-    } else {
-      setAuthState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      return apiRequest("/api/auth/profile");
+    },
+    retry: false,
+    enabled: !!localStorage.getItem("auth_token"),
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    if (!token && !queryLoading) {
+      setIsLoading(false);
+    } else if (token && !queryLoading) {
+      setIsLoading(false);
     }
-  }, []);
+  }, [queryLoading]);
 
-  const login = (token: string, user: User) => {
+  const login = (token: string, userData: User) => {
     localStorage.setItem("auth_token", token);
-    localStorage.setItem("user_data", JSON.stringify(user));
-    setAuthState({
-      user,
-      token,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+    localStorage.setItem("user_data", JSON.stringify(userData));
+    queryClient.setQueryData(["/api/auth/profile"], userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_data");
-    setAuthState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-    queryClient.clear();
+  const logout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_data");
+      queryClient.clear();
+      window.location.href = "/login";
+    }
   };
 
-  const updateUser = (user: User) => {
-    localStorage.setItem("user_data", JSON.stringify(user));
-    setAuthState(prev => ({
-      ...prev,
-      user,
-    }));
-  };
+  const isAuthenticated = !!user && !!localStorage.getItem("auth_token");
 
   return {
-    ...authState,
+    user,
+    isAuthenticated,
+    isLoading: isLoading || queryLoading,
     login,
     logout,
-    updateUser,
   };
-}
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const auth = useAuthState();
-  
-  return (
-    <AuthContext.Provider value={auth}>
-      {children}
-    </AuthContext.Provider>
-  );
 }

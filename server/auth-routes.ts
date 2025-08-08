@@ -2,7 +2,7 @@ import type { Express } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { db } from "./db";
-import { validationUsers, userSessions } from "@shared/schema";
+import { userProfiles } from "@shared/schema";
 import { eq, and, gt } from "drizzle-orm";
 
 // Authentication middleware
@@ -30,8 +30,8 @@ export const authenticateUser = async (req: any, res: any, next: any) => {
     // Get user details
     const [user] = await db
       .select()
-      .from(validationUsers)
-      .where(eq(validationUsers.id, session.userId));
+      .from(userProfiles)
+      .where(eq(userProfiles.id, session.userId));
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: "Utilisateur non autorisé" });
@@ -61,8 +61,8 @@ export function registerAuthRoutes(app: Express) {
       // Check if username already exists
       const [existingUser] = await db
         .select()
-        .from(validationUsers)
-        .where(eq(validationUsers.username, username));
+        .from(userProfiles)
+        .where(eq(userProfiles.username, username));
 
       if (existingUser) {
         return res.status(409).json({ 
@@ -73,8 +73,8 @@ export function registerAuthRoutes(app: Express) {
       // Check if email already exists
       const [existingEmail] = await db
         .select()
-        .from(validationUsers)
-        .where(eq(validationUsers.email, email));
+        .from(userProfiles)
+        .where(eq(userProfiles.email, email));
 
       if (existingEmail) {
         return res.status(409).json({ 
@@ -85,17 +85,17 @@ export function registerAuthRoutes(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Create user
+      // Create user with password
       const [newUser] = await db
-        .insert(validationUsers)
+        .insert(userProfiles)
         .values({
           username,
           firstName,
           lastName,
           email,
           password: hashedPassword,
-          department: department || null,
           role: role || "technician",
+          department: department || null,
           validationLevel: 0,
           canValidateWorkOrders: false,
           canValidatePurchaseOrders: false,
@@ -133,8 +133,8 @@ export function registerAuthRoutes(app: Express) {
       // Find user by username
       const [user] = await db
         .select()
-        .from(validationUsers)
-        .where(eq(validationUsers.username, username));
+        .from(userProfiles)
+        .where(eq(userProfiles.username, username));
 
       if (!user || !user.isActive) {
         return res.status(401).json({ 
@@ -152,9 +152,9 @@ export function registerAuthRoutes(app: Express) {
 
       // Update last login
       await db
-        .update(validationUsers)
+        .update(userProfiles)
         .set({ lastLogin: new Date() })
-        .where(eq(validationUsers.id, user.id));
+        .where(eq(userProfiles.id, user.id));
 
       // Create session token
       const sessionToken = crypto.randomBytes(32).toString('hex');
