@@ -47,6 +47,78 @@ export const authenticateUser = async (req: any, res: any, next: any) => {
 };
 
 export function registerAuthRoutes(app: Express) {
+  // Registration endpoint
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, firstName, lastName, email, password, department, role } = req.body;
+
+      if (!username || !password || !firstName || !lastName || !email) {
+        return res.status(400).json({ 
+          message: "Tous les champs obligatoires doivent être remplis" 
+        });
+      }
+
+      // Check if username already exists
+      const [existingUser] = await db
+        .select()
+        .from(validationUsers)
+        .where(eq(validationUsers.username, username));
+
+      if (existingUser) {
+        return res.status(409).json({ 
+          message: "Ce nom d'utilisateur existe déjà" 
+        });
+      }
+
+      // Check if email already exists
+      const [existingEmail] = await db
+        .select()
+        .from(validationUsers)
+        .where(eq(validationUsers.email, email));
+
+      if (existingEmail) {
+        return res.status(409).json({ 
+          message: "Cette adresse email est déjà utilisée" 
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create user
+      const [newUser] = await db
+        .insert(validationUsers)
+        .values({
+          username,
+          firstName,
+          lastName,
+          email,
+          password: hashedPassword,
+          department: department || null,
+          role: role || "technician",
+          validationLevel: 0,
+          canValidateWorkOrders: false,
+          canValidatePurchaseOrders: false,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      // Return user data (without password)
+      const { password: _, ...userWithoutPassword } = newUser;
+      
+      res.status(201).json({
+        message: "Compte créé avec succès",
+        user: userWithoutPassword,
+      });
+
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Erreur lors de la création du compte" });
+    }
+  });
+
   // Login endpoint
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -77,6 +149,12 @@ export function registerAuthRoutes(app: Express) {
           message: "Identifiants incorrects" 
         });
       }
+
+      // Update last login
+      await db
+        .update(validationUsers)
+        .set({ lastLogin: new Date() })
+        .where(eq(validationUsers.id, user.id));
 
       // Create session token
       const sessionToken = crypto.randomBytes(32).toString('hex');

@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Dashboard from "@/pages/dashboard";
 import ModernHome from "@/pages/modern-home";
 import SmartDiagnostic from "@/pages/smart-diagnostic";
@@ -31,46 +32,140 @@ import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
 import DownloadPage from "@/pages/download";
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
+import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
+
+function ProtectedRoute({ component: Component, ...props }: any) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700">Chargement...</h2>
+          <p className="text-gray-500">Vérification de votre authentification</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <Component {...props} />;
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={ModernHome} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/diagnostic" component={SmartDiagnostic} />
-      <Route path="/smart-diagnostic" component={SmartDiagnostic} />
-      <Route path="/gmao" component={GMAODashboard} />
-      <Route path="/dashboard/gmao" component={GMAODashboard} />
-      <Route path="/profiles" component={UserProfiles} />
-      <Route path="/documentation" component={Documentation} />
-      <Route path="/training" component={Training} />
-      <Route path="/learning" component={LearningDashboard} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/payment" component={Payment} />
-      <Route path="/payment-security" component={PaymentSecurity} />
-      <Route path="/iot-gamification" component={IoTGamificationDashboard} />
-      <Route path="/access-management" component={AccessManagement} />
-      <Route path="/security-dashboard" component={SecurityDashboard} />
-      <Route path="/support-chatbot" component={SupportChatbot} />
-      <Route path="/data-import-export" component={DataImportExport} />
-      <Route path="/advanced-reporting" component={AdvancedReporting} />
-      <Route path="/inventory" component={InventoryManagement} />
-      <Route path="/equipment" component={EquipmentManagement} />
-      <Route path="/equipment-management" component={EquipmentManagement} />
-      <Route path="/work-orders" component={WorkOrders} />
-      <Route path="/preventive" component={PreventiveMaintenance} />
-      <Route path="/preventive-maintenance" component={PreventiveMaintenance} />
-      <Route path="/maintenance-dashboard" component={MaintenanceDashboard} />
-      <Route path="/voice-diagnostic" component={VoiceDiagnostic} />
-      <Route path="/modules" component={ModulesOverview} />
-      <Route path="/modules-overview" component={ModulesOverview} />
-      <Route path="/data-import" component={DataImport} />
-      <Route path="/import-data" component={DataImport} />
-      <Route path="/download" component={DownloadPage} />
-      <Route path="/localhost-diagnostic" component={LocalhostDiagnostic} />
-      <Route path="/diagnostic-localhost" component={LocalhostDiagnostic} />
-      <Route path="/secure-validation" component={lazy(() => import("./pages/secure-validation"))} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/">
+        {(params) => <ProtectedRoute component={ModernHome} {...params} />}
+      </Route>
+      <Route path="/dashboard">
+        {(params) => <ProtectedRoute component={Dashboard} {...params} />}
+      </Route>
+      <Route path="/diagnostic">
+        {(params) => <ProtectedRoute component={SmartDiagnostic} {...params} />}
+      </Route>
+      <Route path="/smart-diagnostic">
+        {(params) => <ProtectedRoute component={SmartDiagnostic} {...params} />}
+      </Route>
+      <Route path="/gmao">
+        {(params) => <ProtectedRoute component={GMAODashboard} {...params} />}
+      </Route>
+      <Route path="/dashboard/gmao">
+        {(params) => <ProtectedRoute component={GMAODashboard} {...params} />}
+      </Route>
+      <Route path="/profiles">
+        {(params) => <ProtectedRoute component={UserProfiles} {...params} />}
+      </Route>
+      <Route path="/documentation">
+        {(params) => <ProtectedRoute component={Documentation} {...params} />}
+      </Route>
+      <Route path="/training">
+        {(params) => <ProtectedRoute component={Training} {...params} />}
+      </Route>
+      <Route path="/learning">
+        {(params) => <ProtectedRoute component={LearningDashboard} {...params} />}
+      </Route>
+      <Route path="/pricing">
+        {(params) => <ProtectedRoute component={Pricing} {...params} />}
+      </Route>
+      <Route path="/payment">
+        {(params) => <ProtectedRoute component={Payment} {...params} />}
+      </Route>
+      <Route path="/payment-security">
+        {(params) => <ProtectedRoute component={PaymentSecurity} {...params} />}
+      </Route>
+      <Route path="/iot-gamification">
+        {(params) => <ProtectedRoute component={IoTGamificationDashboard} {...params} />}
+      </Route>
+      <Route path="/access-management">
+        {(params) => <ProtectedRoute component={AccessManagement} {...params} />}
+      </Route>
+      <Route path="/security-dashboard">
+        {(params) => <ProtectedRoute component={SecurityDashboard} {...params} />}
+      </Route>
+      <Route path="/support-chatbot">
+        {(params) => <ProtectedRoute component={SupportChatbot} {...params} />}
+      </Route>
+      <Route path="/data-import-export">
+        {(params) => <ProtectedRoute component={DataImportExport} {...params} />}
+      </Route>
+      <Route path="/advanced-reporting">
+        {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}
+      </Route>
+      <Route path="/inventory">
+        {(params) => <ProtectedRoute component={InventoryManagement} {...params} />}
+      </Route>
+      <Route path="/equipment">
+        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+      </Route>
+      <Route path="/equipment-management">
+        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+      </Route>
+      <Route path="/work-orders">
+        {(params) => <ProtectedRoute component={WorkOrders} {...params} />}
+      </Route>
+      <Route path="/preventive">
+        {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
+      </Route>
+      <Route path="/preventive-maintenance">
+        {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
+      </Route>
+      <Route path="/maintenance-dashboard">
+        {(params) => <ProtectedRoute component={MaintenanceDashboard} {...params} />}
+      </Route>
+      <Route path="/voice-diagnostic">
+        {(params) => <ProtectedRoute component={VoiceDiagnostic} {...params} />}
+      </Route>
+      <Route path="/modules">
+        {(params) => <ProtectedRoute component={ModulesOverview} {...params} />}
+      </Route>
+      <Route path="/modules-overview">
+        {(params) => <ProtectedRoute component={ModulesOverview} {...params} />}
+      </Route>
+      <Route path="/data-import">
+        {(params) => <ProtectedRoute component={DataImport} {...params} />}
+      </Route>
+      <Route path="/import-data">
+        {(params) => <ProtectedRoute component={DataImport} {...params} />}
+      </Route>
+      <Route path="/download">
+        {(params) => <ProtectedRoute component={DownloadPage} {...params} />}
+      </Route>
+      <Route path="/localhost-diagnostic">
+        {(params) => <ProtectedRoute component={LocalhostDiagnostic} {...params} />}
+      </Route>
+      <Route path="/diagnostic-localhost">
+        {(params) => <ProtectedRoute component={LocalhostDiagnostic} {...params} />}
+      </Route>
+      <Route path="/secure-validation">
+        {(params) => <ProtectedRoute component={lazy(() => import("./pages/secure-validation"))} {...params} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -79,10 +174,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
