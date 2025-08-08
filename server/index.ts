@@ -106,11 +106,13 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
+  const host = "127.0.0.1"; // Utiliser 127.0.0.1 pour éviter les problèmes DNS
   server.listen({
     port,
-    host: "0.0.0.0",
+    host,
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`✅ Serveur accessible sur http://${host}:${port}`);
+    log(`💡 Utilisez http://127.0.0.1:5000 dans votre navigateur`);
   });
 })();

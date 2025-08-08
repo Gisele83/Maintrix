@@ -200,6 +200,15 @@ export function registerDownloadRoutes(app: Express): void {
     sendFile(res, 'scripts/alternative-server.js', 'alternative-server.js', 'application/javascript');
   });
 
+  // Nouvelles routes pour les outils 127.0.0.1
+  app.get('/api/download/browser-opener', (req, res) => {
+    sendFile(res, 'scripts/open-127-browser.bat', 'open-127-browser.bat', 'application/octet-stream');
+  });
+
+  app.get('/api/download/server-127', (req, res) => {
+    sendFile(res, 'scripts/start-server-127.js', 'start-server-127.js', 'application/javascript');
+  });
+
   // Routes spécifiques de téléchargement
   app.get("/api/download/installer", (req, res) => {
     const installerConfig = DOWNLOADS_CONFIG.installer;
