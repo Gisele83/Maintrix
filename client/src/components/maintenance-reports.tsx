@@ -228,20 +228,20 @@ export function MaintenanceReports() {
     setShowChartsModal(true);
   };
 
-  // Download intervention report as PDF
+  // Download intervention report as HTML
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
-      // Use the PDF endpoint instead of generating HTML
+      // Use the HTML report endpoint for download
       const link = document.createElement('a');
       link.href = `/api/maintenance-reports/${report.id}/pdf`;
-      link.download = `rapport-intervention-${report.reportNumber}.pdf`;
+      link.download = `rapport-intervention-${report.reportNumber}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Téléchargement PDF en cours",
-        description: `Le rapport d'intervention ${report.reportNumber} est en cours de téléchargement au format PDF`,
+        title: "Téléchargement du rapport en cours",
+        description: `Le rapport d'intervention ${report.reportNumber} est en cours de téléchargement`,
       });
     } catch (error) {
       toast({
@@ -409,20 +409,20 @@ export function MaintenanceReports() {
     `;
   };
 
-  // Download monthly report as PDF
+  // Download monthly report as HTML
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
-      // Use the PDF endpoint instead of generating HTML
+      // Use the HTML report endpoint for download
       const link = document.createElement('a');
       link.href = `/api/monthly-reports/${report.id}/pdf`;
-      link.download = `rapport-mensuel-${report.reportNumber}.pdf`;
+      link.download = `rapport-mensuel-${report.reportNumber}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
-        title: "Téléchargement PDF en cours",
-        description: `Le rapport mensuel ${report.reportNumber} est en cours de téléchargement au format PDF`,
+        title: "Téléchargement du rapport en cours",
+        description: `Le rapport mensuel ${report.reportNumber} est en cours de téléchargement`,
       });
     } catch (error) {
       toast({

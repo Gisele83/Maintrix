@@ -1057,8 +1057,8 @@ export function registerGMAORoutes(app: Express) {
 
       await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
     } catch (error) {
-      console.error("Error generating maintenance report PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF report" });
+      console.error("Error generating maintenance report:", error);
+      res.status(500).json({ message: "Failed to generate report" });
     }
   });
 
@@ -1251,8 +1251,8 @@ export function registerGMAORoutes(app: Express) {
 
       await pdfGenerator.sendMonthlyReportHTML(res, demoReport);
     } catch (error) {
-      console.error("Error generating monthly report PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF report" });
+      console.error("Error generating monthly report:", error);
+      res.status(500).json({ message: "Failed to generate report" });
     }
   });
 
