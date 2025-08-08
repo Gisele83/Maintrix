@@ -228,25 +228,20 @@ export function MaintenanceReports() {
     setShowChartsModal(true);
   };
 
-  // Download intervention report as HTML
+  // Download intervention report as PDF
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
-      // Use the HTML report endpoint for download
-      const link = document.createElement('a');
-      link.href = `/api/maintenance-reports/${report.id}/pdf`;
-      link.download = `rapport-intervention-${report.reportNumber}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Open the PDF report endpoint directly in browser
+      window.open(`/api/maintenance-reports/${report.id}/pdf`, '_blank');
 
       toast({
-        title: "Téléchargement du rapport en cours",
-        description: `Le rapport d'intervention ${report.reportNumber} est en cours de téléchargement`,
+        title: "Génération du rapport PDF",
+        description: `Le rapport d'intervention ${report.reportNumber} s'ouvre dans un nouvel onglet`,
       });
     } catch (error) {
       toast({
         title: "Erreur de téléchargement",
-        description: "Impossible de télécharger le rapport d'intervention",
+        description: "Impossible de générer le rapport d'intervention PDF",
         variant: "destructive",
       });
     }
@@ -409,25 +404,20 @@ export function MaintenanceReports() {
     `;
   };
 
-  // Download monthly report as HTML
+  // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
-      // Use the HTML report endpoint for download
-      const link = document.createElement('a');
-      link.href = `/api/monthly-reports/${report.id}/pdf`;
-      link.download = `rapport-mensuel-${report.reportNumber}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Open the PDF report endpoint directly in browser
+      window.open(`/api/monthly-report/pdf`, '_blank');
 
       toast({
-        title: "Téléchargement du rapport en cours",
-        description: `Le rapport mensuel ${report.reportNumber} est en cours de téléchargement`,
+        title: "Génération du rapport PDF",
+        description: `Le rapport mensuel ${report.reportNumber} s'ouvre dans un nouvel onglet`,
       });
     } catch (error) {
       toast({
         title: "Erreur de téléchargement",
-        description: "Impossible de télécharger le rapport mensuel",
+        description: "Impossible de générer le rapport mensuel PDF",
         variant: "destructive",
       });
     }
