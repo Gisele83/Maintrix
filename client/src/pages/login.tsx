@@ -19,7 +19,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
+  username: z.string().min(1, "Le nom d'utilisateur est requis").min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
   lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
@@ -40,6 +40,9 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Debug state for username
+  const [debugUsername, setDebugUsername] = useState("");
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -62,6 +65,7 @@ export default function LoginPage() {
       role: "technician",
     },
     mode: "onChange",
+    shouldFocusError: true,
   });
 
   const loginMutation = useMutation({
@@ -267,13 +271,26 @@ export default function LoginPage() {
                           <FormLabel>Nom d'utilisateur</FormLabel>
                           <FormControl>
                             <Input 
-                              placeholder="Nom d'utilisateur unique" 
-                              value={field.value || ""} 
-                              onChange={field.onChange}
+                              placeholder="Nom d'utilisateur unique"
+                              type="text"
+                              autoComplete="username"
+                              value={field.value}
+                              onChange={(e) => {
+                                console.log("Username change:", e.target.value);
+                                setDebugUsername(e.target.value);
+                                field.onChange(e.target.value);
+                              }}
                               onBlur={field.onBlur}
                               name={field.name}
+                              disabled={false}
+                              readOnly={false}
                             />
                           </FormControl>
+                          {debugUsername && (
+                            <div className="text-xs text-green-600">
+                              Debug: {debugUsername}
+                            </div>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
