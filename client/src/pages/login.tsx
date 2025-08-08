@@ -41,8 +41,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Debug state for username
-  const [debugUsername, setDebugUsername] = useState("");
+
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -274,23 +273,9 @@ export default function LoginPage() {
                               placeholder="Nom d'utilisateur unique"
                               type="text"
                               autoComplete="username"
-                              value={field.value}
-                              onChange={(e) => {
-                                console.log("Username change:", e.target.value);
-                                setDebugUsername(e.target.value);
-                                field.onChange(e.target.value);
-                              }}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              disabled={false}
-                              readOnly={false}
+                              {...field}
                             />
                           </FormControl>
-                          {debugUsername && (
-                            <div className="text-xs text-green-600">
-                              Debug: {debugUsername}
-                            </div>
-                          )}
                           <FormMessage />
                         </FormItem>
                       )}
