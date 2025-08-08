@@ -132,7 +132,7 @@ export class PDFGeneratorSimple {
               <div class="info-item"><strong>Technicien:</strong> ${reportData.technician}</div>
               ${reportData.supervisor ? `<div class="info-item"><strong>Superviseur:</strong> ${reportData.supervisor}</div>` : ''}
               ${reportData.actualDuration ? `<div class="info-item"><strong>Durée réelle:</strong> ${reportData.actualDuration} minutes</div>` : ''}
-              ${reportData.totalCost ? `<div class="info-item"><strong>Coût total:</strong> ${reportData.totalCost.toFixed(2)} €</div>` : ''}
+              ${reportData.totalCost ? `<div class="info-item"><strong>Coût total:</strong> ${(reportData.totalCost || 0).toFixed(2)} €</div>` : ''}
             </div>
           </div>
           
@@ -159,7 +159,7 @@ export class PDFGeneratorSimple {
             <div class="parts-list">
               <ul>
                 ${reportData.partsUsed.map(part => 
-                  `<li>${part.partNumber} - Quantité: ${part.quantity} - Coût: ${part.cost.toFixed(2)} €</li>`
+                  `<li>${part.partNumber} - Quantité: ${part.quantity} - Coût: ${(part.cost || 0).toFixed(2)} €</li>`
                 ).join('')}
               </ul>
             </div>
@@ -269,19 +269,19 @@ export class PDFGeneratorSimple {
             <h3>📊 INDICATEURS CLÉS DE PERFORMANCE</h3>
             <div class="kpi-grid">
               <div class="kpi-card">
-                <div class="kpi-value">${reportData.equipmentAvailability.toFixed(1)}%</div>
+                <div class="kpi-value">${(reportData.equipmentAvailability || 0).toFixed(1)}%</div>
                 <div class="kpi-label">Disponibilité Équipements</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-value">${reportData.mtbf.toFixed(1)}h</div>
+                <div class="kpi-value">${(reportData.mtbf || 0).toFixed(1)}h</div>
                 <div class="kpi-label">MTBF (Temps Moyen Entre Pannes)</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-value">${reportData.mttr.toFixed(1)}h</div>
+                <div class="kpi-value">${(reportData.mttr || 0).toFixed(1)}h</div>
                 <div class="kpi-label">MTTR (Temps Moyen de Réparation)</div>
               </div>
               <div class="kpi-card">
-                <div class="kpi-value">${reportData.totalMaintenanceCost.toFixed(0)}€</div>
+                <div class="kpi-value">${(reportData.totalMaintenanceCost || 0).toFixed(0)}€</div>
                 <div class="kpi-label">Coût Total</div>
               </div>
             </div>
@@ -294,19 +294,19 @@ export class PDFGeneratorSimple {
               <div class="stats-item"><strong>Terminés:</strong> ${reportData.completedWorkOrders}</div>
               <div class="stats-item"><strong>Préventifs:</strong> ${reportData.preventiveWorkOrders}</div>
               <div class="stats-item"><strong>Correctifs:</strong> ${reportData.correctiveWorkOrders}</div>
-              <div class="stats-item"><strong>Temps moyen:</strong> ${reportData.averageCompletionTime.toFixed(1)}h</div>
-              <div class="stats-item"><strong>Efficacité:</strong> ${reportData.maintenanceEfficiency.toFixed(1)}%</div>
+              <div class="stats-item"><strong>Temps moyen:</strong> ${(reportData.averageCompletionTime || 0).toFixed(1)}h</div>
+              <div class="stats-item"><strong>Efficacité:</strong> ${(reportData.maintenanceEfficiency || 0).toFixed(1)}%</div>
             </div>
           </div>
           
           <div class="section">
             <h3>💰 ANALYSE DES COÛTS</h3>
             <div class="stats-grid">
-              <div class="stats-item"><strong>Coût total:</strong> ${reportData.totalMaintenanceCost.toFixed(2)}€</div>
-              <div class="stats-item"><strong>Main d'œuvre:</strong> ${reportData.laborCost.toFixed(2)}€</div>
-              <div class="stats-item"><strong>Pièces détachées:</strong> ${reportData.partsCost.toFixed(2)}€</div>
-              <div class="stats-item"><strong>Sous-traitance:</strong> ${reportData.contractorCost.toFixed(2)}€</div>
-              <div class="stats-item"><strong>Coût par OT:</strong> ${reportData.costPerWorkOrder.toFixed(2)}€</div>
+              <div class="stats-item"><strong>Coût total:</strong> ${(reportData.totalMaintenanceCost || 0).toFixed(2)}€</div>
+              <div class="stats-item"><strong>Main d'œuvre:</strong> ${(reportData.laborCost || 0).toFixed(2)}€</div>
+              <div class="stats-item"><strong>Pièces détachées:</strong> ${(reportData.partsCost || 0).toFixed(2)}€</div>
+              <div class="stats-item"><strong>Sous-traitance:</strong> ${(reportData.contractorCost || 0).toFixed(2)}€</div>
+              <div class="stats-item"><strong>Coût par OT:</strong> ${(reportData.costPerWorkOrder || 0).toFixed(2)}€</div>
             </div>
           </div>
           
@@ -314,7 +314,7 @@ export class PDFGeneratorSimple {
             <h3>📦 STOCK ET APPROVISIONNEMENT</h3>
             <div class="stats-grid">
               <div class="stats-item"><strong>Pièces consommées:</strong> ${reportData.partsConsumed}</div>
-              <div class="stats-item"><strong>Rotation des stocks:</strong> ${reportData.inventoryTurnover.toFixed(1)}</div>
+              <div class="stats-item"><strong>Rotation des stocks:</strong> ${(reportData.inventoryTurnover || 0).toFixed(1)}</div>
               <div class="stats-item"><strong>Ruptures de stock:</strong> ${reportData.stockouts}</div>
               <div class="stats-item"><strong>Achats d'urgence:</strong> ${reportData.emergencyPurchases}</div>
             </div>
@@ -367,14 +367,19 @@ export class PDFGeneratorSimple {
       
       // Launch Puppeteer to generate PDF
       const browser = await puppeteer.launch({
-        headless: true,
+        headless: 'new',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ]
+          '--disable-features=VizDisplayCompositor',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
       });
       
       const page = await browser.newPage();
@@ -410,14 +415,19 @@ export class PDFGeneratorSimple {
       
       // Launch Puppeteer to generate PDF
       const browser = await puppeteer.launch({
-        headless: true,
+        headless: 'new',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ]
+          '--disable-features=VizDisplayCompositor',
+          '--disable-gpu',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
       });
       
       const page = await browser.newPage();

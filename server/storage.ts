@@ -796,6 +796,10 @@ export class DatabaseStorage implements IStorage {
     return equipment;
   }
 
+  async getEquipment(): Promise<EquipmentRegistry[]> {
+    return await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
+  }
+
   async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string }): Promise<EquipmentRegistry[]> {
     let baseQuery = db.select().from(equipmentRegistry);
 
@@ -819,7 +823,7 @@ export class DatabaseStorage implements IStorage {
 
   // Work Orders - GMAO methods placeholders
   async getWorkOrders(): Promise<WorkOrder[]> {
-    throw new Error("Method not implemented");
+    return await db.select().from(workOrders).orderBy(desc(workOrders.createdAt));
   }
 
   async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {
@@ -931,6 +935,10 @@ export class DatabaseStorage implements IStorage {
 
   async createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog> {
     throw new Error("Method not implemented");
+  }
+
+  async getAlerts(): Promise<AlertsNotifications[]> {
+    return await db.select().from(alertsNotifications).orderBy(desc(alertsNotifications.createdAt)).limit(500);
   }
 
   async getAlertsNotifications(): Promise<AlertsNotifications[]> {
