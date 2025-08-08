@@ -87,11 +87,54 @@ export default function AdvancedReporting() {
   const kpis = calculateKPIs();
 
   const exportReport = (format: string) => {
-    toast({
-      title: "Export en cours",
-      description: `Génération du rapport ${format.toUpperCase()}...`,
-    });
-    // Implementation would generate actual export
+    try {
+      if (format === 'pdf') {
+        // Create comprehensive report data
+        const reportData = {
+          period: selectedPeriod,
+          department: selectedDepartment,
+          generatedAt: new Date().toISOString(),
+          kpis,
+          budgetSummary,
+          budgetRequests: budgetRequests.slice(0, 10),
+          workOrders: workOrders.slice(0, 20),
+          equipment: equipment.slice(0, 15),
+          alerts: alerts.slice(0, 10)
+        };
+
+        // Download comprehensive GMAO report PDF
+        const link = document.createElement('a');
+        link.href = `/api/comprehensive-report/pdf?period=${selectedPeriod}&department=${selectedDepartment}`;
+        link.download = `rapport-gmao-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: "Export PDF en cours",
+          description: "Le rapport complet GMAO est en cours de génération et de téléchargement",
+        });
+      } else if (format === 'excel') {
+        // Download Excel report
+        const link = document.createElement('a');
+        link.href = `/api/comprehensive-report/excel?period=${selectedPeriod}&department=${selectedDepartment}`;
+        link.download = `rapport-gmao-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({
+          title: "Export Excel en cours",
+          description: "Le rapport Excel avec toutes les données est en cours de génération",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur d'export",
+        description: `Impossible de générer le rapport ${format.toUpperCase()}`,
+        variant: "destructive",
+      });
+    }
   };
 
   return (

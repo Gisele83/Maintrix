@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import puppeteer from "puppeteer";
 
 // Interface pour les données de rapport d'intervention
 export interface MaintenanceReportData {
@@ -364,13 +365,41 @@ export class PDFGeneratorSimple {
     try {
       const htmlContent = this.generateMaintenanceReportHTML(reportData);
       
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="rapport-intervention-${reportData.reportNumber}.html"`);
-      res.setHeader('Content-Length', Buffer.byteLength(htmlContent, 'utf8'));
+      // Launch Puppeteer to generate PDF
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
+      });
       
-      res.send(htmlContent);
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        }
+      });
+      
+      await browser.close();
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rapport-intervention-${reportData.reportNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
     } catch (error) {
-      console.error("Error generating maintenance report HTML:", error);
+      console.error("Error generating maintenance report PDF:", error);
       throw error;
     }
   }
@@ -379,13 +408,41 @@ export class PDFGeneratorSimple {
     try {
       const htmlContent = this.generateMonthlyReportHTML(reportData);
       
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="rapport-mensuel-${reportData.reportNumber}.html"`);
-      res.setHeader('Content-Length', Buffer.byteLength(htmlContent, 'utf8'));
+      // Launch Puppeteer to generate PDF
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
+      });
       
-      res.send(htmlContent);
+      const page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20mm',
+          right: '20mm',
+          bottom: '20mm',
+          left: '20mm'
+        }
+      });
+      
+      await browser.close();
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="rapport-mensuel-${reportData.reportNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
     } catch (error) {
-      console.error("Error generating monthly report HTML:", error);
+      console.error("Error generating monthly report PDF:", error);
       throw error;
     }
   }
