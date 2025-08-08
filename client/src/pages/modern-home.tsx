@@ -48,12 +48,12 @@ export default function ModernHome() {
         
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="relative inline-block">
-            <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight mb-6">
+          <div className="relative inline-block mb-8">
+            <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
               Smart GMAO DiagFix
             </h1>
-            <div className="absolute -top-4 -right-12">
-              <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
+            <div className="absolute -top-2 -right-8 md:-right-12 mt-2">
+              <div className="inline-flex items-center px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
                 Interface Unifiée
               </div>
             </div>
