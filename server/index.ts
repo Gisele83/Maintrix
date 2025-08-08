@@ -106,13 +106,30 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  const host = "127.0.0.1"; // Utiliser 127.0.0.1 pour éviter les problèmes DNS
-  server.listen({
-    port,
-    host,
-    reusePort: true,
-  }, () => {
-    log(`✅ Serveur accessible sur http://${host}:${port}`);
-    log(`💡 Utilisez http://127.0.0.1:5000 dans votre navigateur`);
+  // Essayer plusieurs configurations d'écoute
+  server.listen(port, '0.0.0.0', () => {
+    log(`✅ Serveur démarré sur le port ${port}`);
+    log(`🌐 Accessible via:`);
+    log(`   → http://localhost:${port}`);
+    log(`   → http://127.0.0.1:${port}`);
+    log(`   → http://0.0.0.0:${port}`);
+    
+    // Test automatique de connectivité
+    setTimeout(() => {
+      import('http').then(http => {
+        const req = http.request({
+          hostname: '127.0.0.1',
+          port: port,
+          path: '/api/health',
+          method: 'GET'
+        }, (res) => {
+          log(`✅ Test de connectivité réussi: ${res.statusCode}`);
+        });
+        req.on('error', (err) => {
+          log(`❌ Test de connectivité échoué: ${err.message}`);
+        });
+        req.end();
+      });
+    }, 1000);
   });
 })();

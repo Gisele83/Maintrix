@@ -209,6 +209,10 @@ export function registerDownloadRoutes(app: Express): void {
     sendFile(res, 'scripts/start-server-127.js', 'start-server-127.js', 'application/javascript');
   });
 
+  app.get('/api/download/emergency-server', (req, res) => {
+    sendFile(res, 'scripts/emergency-server.js', 'emergency-server.js', 'application/javascript');
+  });
+
   // Routes spécifiques de téléchargement
   app.get("/api/download/installer", (req, res) => {
     const installerConfig = DOWNLOADS_CONFIG.installer;
