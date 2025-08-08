@@ -21,8 +21,8 @@ const DOWNLOADS_CONFIG = {
     contentType: "application/octet-stream"
   },
   windowsExe: {
-    filename: "Smart-GMAO-DiagFix-Installer.exe",
-    path: "scripts/Smart-GMAO-DiagFix-Installer.exe",
+    filename: "Smart-GMAO-DiagFix-Setup.exe",
+    path: "scripts/Smart-GMAO-DiagFix-Setup.exe",
     contentType: "application/octet-stream"
   },
   mobileApk: {

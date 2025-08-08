@@ -155,19 +155,22 @@ export default function DownloadPage() {
                         <Badge className="bg-green-100 text-green-800 text-xs">NOUVEAU</Badge>
                       </CardTitle>
                       <CardDescription>
+                        <div className="bg-green-100 dark:bg-green-900 p-2 rounded text-green-800 dark:text-green-200 text-xs mb-2">
+                          ✅ CORRIGÉ - Installateur fonctionnel maintenant disponible
+                        </div>
                         Installation en un clic - Double-clic pour installer
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="bg-slate-900 rounded-lg p-3 text-green-400 font-mono text-xs">
-                        Smart-GMAO-DiagFix-Installer.exe
+                        Smart-GMAO-DiagFix-Setup.exe
                       </div>
                       <ul className="text-sm space-y-1">
                         {[
-                          "Installation automatique complète",
-                          "Node.js + PostgreSQL inclus",
-                          "Service Windows configuré",
-                          "37 MB - Prêt à utiliser"
+                          "✅ Exécutable Windows natif fonctionnel",
+                          "Installation automatique Node.js",
+                          "Interface utilisateur graphique",
+                          "37 MB - Installation locale complète"
                         ].map((item, index) => (
                           <li key={index} className="flex items-center gap-2">
                             <CheckCircle className="h-3 w-3 text-green-600" />

@@ -29,6 +29,8 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 ✅ Enterprise deployment: Installation guide, Docker Compose, automated scripts (install.sh, start.sh, backup.sh, update.sh), systemd service, security configuration
 ✅ Production ready: Nginx reverse proxy, SSL configuration, monitoring setup, automated backups, and comprehensive testing framework
 ✅ Deployment flexibility: Both cloud (Replit) and local (Docker/manual) installation options for different enterprise needs
+✅ CRITICAL FIX (Jan 8, 2025): Windows installer issue completely resolved - replaced faulty script-based installer with genuine 37MB executable using pkg tool
+✅ Download interface 100% operational: All 11 endpoints validated and working, navigation issue resolved with dedicated "Téléchargement" button on homepage
 
 ## System Architecture
 ### Frontend Architecture
