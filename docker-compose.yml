@@ -1,0 +1,251 @@
+# 🐳 Docker Compose - Smart GMAO DiagFix
+# Configuration complète pour déploiement local avec tous les services
+
+version: '3.8'
+
+services:
+  # =================================
+  # APPLICATION SMART GMAO DIAGFIX
+  # =================================
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: smart-gmao-app
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=postgresql://smart_gmao_user:smart_gmao_secure_password@db:5432/smart_gmao_diagfix
+      - SESSION_SECRET=smart_gmao_session_secret_very_long_and_secure_for_production
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=info
+      - ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    networks:
+      - smart-gmao-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =================================
+  # BASE DE DONNÉES POSTGRESQL
+  # =================================
+  db:
+    image: postgres:15-alpine
+    container_name: smart-gmao-db
+    environment:
+      - POSTGRES_DB=smart_gmao_diagfix
+      - POSTGRES_USER=smart_gmao_user
+      - POSTGRES_PASSWORD=smart_gmao_secure_password
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - smart-gmao-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smart_gmao_user -d smart_gmao_diagfix"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres 
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+
+  # =================================
+  # REDIS CACHE ET SESSIONS
+  # =================================
+  redis:
+    image: redis:7-alpine
+    container_name: smart-gmao-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - smart-gmao-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # =================================
+  # NGINX REVERSE PROXY
+  # =================================
+  nginx:
+    image: nginx:alpine
+    container_name: smart-gmao-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/ssl:ro
+      - uploads_data:/var/www/uploads:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - smart-gmao-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # =================================
+  # MONITORING AVEC PROMETHEUS
+  # =================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: smart-gmao-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - smart-gmao-network
+
+  # =================================
+  # DASHBOARDS GRAFANA
+  # =================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: smart-gmao-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=smart_gmao_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - smart-gmao-network
+
+  # =================================
+  # SAUVEGARDE AUTOMATIQUE
+  # =================================
+  backup:
+    image: postgres:15-alpine
+    container_name: smart-gmao-backup
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=smart_gmao_diagfix
+      - POSTGRES_USER=smart_gmao_user
+      - POSTGRES_PASSWORD=smart_gmao_secure_password
+    volumes:
+      - backup_data:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    depends_on:
+      - db
+    restart: "no"
+    networks:
+      - smart-gmao-network
+    # Sauvegarde quotidienne à 2h du matin
+    deploy:
+      replicas: 0
+    command: /bin/sh -c "echo '0 2 * * * /backup.sh' | crontab - && crond -f"
+
+# =================================
+# VOLUMES PERSISTANTS
+# =================================
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  
+  uploads_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/uploads
+  
+  logs_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/logs
+  
+  backup_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/backups
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+
+# =================================
+# RÉSEAU INTERNE
+# =================================
+networks:
+  smart-gmao-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,67 @@
+[Unit]
+Description=Smart GMAO DiagFix - Système de Gestion de Maintenance Assistée par Ordinateur
+Documentation=https://smart-gmao-diagfix.com/docs
+After=network.target postgresql.service
+Wants=postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=smart-gmao
+Group=smart-gmao
+WorkingDirectory=/opt/smart-gmao-diagfix
+EnvironmentFile=/opt/smart-gmao-diagfix/.env
+
+# Commandes d'exécution
+ExecStartPre=/usr/bin/npm run db:push
+ExecStart=/usr/bin/npm start
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+
+# Politique de redémarrage
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Gestion des logs
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=smart-gmao-diagfix
+
+# Sécurité avancée
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Répertoires autorisés en écriture
+ReadWritePaths=/opt/smart-gmao-diagfix/uploads
+ReadWritePaths=/opt/smart-gmao-diagfix/logs
+ReadWritePaths=/opt/smart-gmao-diagfix/backups
+ReadWritePaths=/opt/smart-gmao-diagfix/node_modules
+ReadWritePaths=/tmp
+
+# Limites de ressources
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Variables d'environnement système
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS="--max-old-space-size=2048"
+
+# Délai d'arrêt
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+Also=postgresql.service
