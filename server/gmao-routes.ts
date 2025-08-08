@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
-import { PDFGeneratorClientSide, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-client-side";
+import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
 import {
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
@@ -1045,7 +1045,7 @@ export function registerGMAORoutes(app: Express) {
         actualDuration: 270
       };
 
-      const pdfGenerator = new PDFGeneratorClientSide();
+      const pdfGenerator = new PDFGeneratorFunctional();
       await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
     } catch (error) {
       console.error("Error generating maintenance report:", error);
@@ -1240,7 +1240,7 @@ export function registerGMAORoutes(app: Express) {
         notes: "Rapport automatique généré par le système GMAO"
       };
 
-      const pdfGenerator = new PDFGeneratorClientSide();
+      const pdfGenerator = new PDFGeneratorFunctional();
       await pdfGenerator.sendMonthlyReportHTML(res, demoReport);
     } catch (error) {
       console.error("Error generating monthly report:", error);

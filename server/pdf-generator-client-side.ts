@@ -77,10 +77,9 @@ export class PDFGeneratorClientSide {
     try {
       const htmlContent = this.generateMaintenanceReportHTML(reportData);
       
-      // Envoyer le HTML avec les headers appropriés pour déclencher le téléchargement
+      // Envoyer le HTML avec les headers appropriés pour l'affichage dans le navigateur
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="rapport-intervention-${reportData.reportNumber}.html"`);
-      res.setHeader('X-PDF-Conversion', 'client-side'); // Signal pour le frontend
+      res.setHeader('Cache-Control', 'no-cache');
       
       res.send(htmlContent);
     } catch (error) {
@@ -93,10 +92,9 @@ export class PDFGeneratorClientSide {
     try {
       const htmlContent = this.generateMonthlyReportHTML(reportData);
       
-      // Envoyer le HTML avec les headers appropriés pour déclencher le téléchargement côté client
+      // Envoyer le HTML avec les headers appropriés pour l'affichage dans le navigateur
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="rapport-mensuel-${reportData.reportNumber}.html"`);
-      res.setHeader('X-PDF-Conversion', 'client-side'); // Signal pour le frontend
+      res.setHeader('Cache-Control', 'no-cache');
       
       res.send(htmlContent);
     } catch (error) {
