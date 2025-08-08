@@ -43,6 +43,7 @@ import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
+import { registerDownloadRoutes } from "./download-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -2900,6 +2901,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     });
   });
+
+  // Register download routes
+  registerDownloadRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
