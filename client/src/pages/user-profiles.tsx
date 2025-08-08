@@ -541,19 +541,17 @@ export default function UserProfiles() {
           {editingProfile && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-                <FormField
-                  control={editForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom d'utilisateur</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: jean.dupont" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Nom d'utilisateur
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-400">
+                    {editingProfile.username}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Le nom d'utilisateur ne peut pas être modifié
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

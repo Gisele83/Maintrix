@@ -9,6 +9,7 @@ User requested improvements based on provided database and enhanced specificatio
 User loves the new modern interface design with glassmorphism effects and gradient styling.
 User confirmed architecture requirements: Interface unifiée avec architecture modulaire - Module GMAO (planification, interventions, techniciens) + Module Diagnostic intelligent (analyse symptômes → diagnostic → préconisations → lien vers intervention).
 User specifically requested to use ONLY the provided Excel file (Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx) as historical database for diagnostic pattern matching and to allow users to upload their own historical maintenance data.
+User confirmed that username field should remain non-editable in profile forms for security and data integrity.
 
 ## Recent Success (January 7, 2025)
 ✅ MAJOR BREAKTHROUGH: Successfully integrated 120 real industrial maintenance cases from Excel file with 6 interconnected tables
