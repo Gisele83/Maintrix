@@ -65,7 +65,6 @@ export default function LoginPage() {
       department: "",
       role: "technician",
     },
-    mode: "onBlur",
   });
 
   const loginMutation = useMutation({
@@ -263,22 +262,20 @@ export default function LoginPage() {
                       />
                     </div>
 
-                    <FormField
-                      control={registerForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nom d'utilisateur</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Nom d'utilisateur unique"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                    <div className="space-y-2">
+                      <Label htmlFor="username-field">Nom d'utilisateur</Label>
+                      <Input
+                        id="username-field"
+                        type="text"
+                        placeholder="Nom d'utilisateur unique"
+                        {...registerForm.register("username")}
+                      />
+                      {registerForm.formState.errors.username && (
+                        <p className="text-sm text-red-500">
+                          {registerForm.formState.errors.username.message}
+                        </p>
                       )}
-                    />
+                    </div>
 
                     <FormField
                       control={registerForm.control}
