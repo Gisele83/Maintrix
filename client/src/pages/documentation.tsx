@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -754,6 +754,9 @@ export default function Documentation() {
                   </>
                 )}
               </DialogTitle>
+              <DialogDescription>
+                {selectedGuide?.description}
+              </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh]">
               {selectedGuide && (
@@ -788,11 +791,27 @@ export default function Documentation() {
                   <div className="flex space-x-3 pt-4">
                     <Button 
                       onClick={() => {
-                        toast({
-                          title: "Guide démarré",
-                          description: `Début du guide: ${selectedGuide.title}`,
-                        });
-                        setIsGuideModalOpen(false);
+                        if (selectedGuide) {
+                          toast({
+                            title: "Guide démarré",
+                            description: `Début du guide: ${selectedGuide.title}`,
+                          });
+                          setIsGuideModalOpen(false);
+                          // Redirection vers la page appropriée selon le guide
+                          if (selectedGuide.id === "getting-started") {
+                            window.location.href = "/";
+                          } else if (selectedGuide.id === "diagnostic-advanced") {
+                            window.location.href = "/smart-diagnostic";
+                          } else if (selectedGuide.id === "gmao-complete") {
+                            window.location.href = "/gmao-dashboard";
+                          } else if (selectedGuide.id === "data-import") {
+                            window.location.href = "/data-import";
+                          } else if (selectedGuide.id === "analytics") {
+                            window.location.href = "/advanced-reporting";
+                          } else {
+                            window.location.href = "/";
+                          }
+                        }
                       }}
                       className="flex-1"
                     >
@@ -802,10 +821,20 @@ export default function Documentation() {
                     <Button 
                       variant="outline"
                       onClick={() => {
-                        toast({
-                          title: "Guide téléchargé",
-                          description: "PDF téléchargé avec succès",
-                        });
+                        if (selectedGuide) {
+                          toast({
+                            title: "Téléchargement démarré",
+                            description: `Téléchargement du PDF: ${selectedGuide.title}`,
+                          });
+                          // Simulation du téléchargement d'un PDF
+                          const element = document.createElement('a');
+                          const file = new Blob([`Guide: ${selectedGuide.title}\n\n${selectedGuide.description}\n\nContenu:\n${selectedGuide.content.map((item, index) => `${index + 1}. ${item}`).join('\n')}`], {type: 'text/plain'});
+                          element.href = URL.createObjectURL(file);
+                          element.download = `Guide-${selectedGuide.id}.txt`;
+                          document.body.appendChild(element);
+                          element.click();
+                          document.body.removeChild(element);
+                        }
                       }}
                     >
                       <Download className="w-4 h-4 mr-2" />
@@ -831,6 +860,9 @@ export default function Documentation() {
                   </>
                 )}
               </DialogTitle>
+              <DialogDescription>
+                {selectedVideo?.description}
+              </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh]">
               {selectedVideo && (
@@ -856,10 +888,19 @@ export default function Documentation() {
                       <Button 
                         size="lg"
                         onClick={() => {
-                          toast({
-                            title: "Lecture vidéo",
-                            description: `Lecture de: ${selectedVideo.title}`,
-                          });
+                          if (selectedVideo) {
+                            toast({
+                              title: "Lecture vidéo",
+                              description: `Lecture de: ${selectedVideo.title}`,
+                            });
+                            // Simulation de la lecture d'une vidéo
+                            setTimeout(() => {
+                              toast({
+                                title: "Vidéo terminée",
+                                description: "Merci d'avoir regardé cette vidéo !",
+                              });
+                            }, 3000);
+                          }
                         }}
                       >
                         <Play className="w-5 h-5 mr-2" />
