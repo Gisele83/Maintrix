@@ -33,6 +33,7 @@ import DataImport from "@/pages/data-import";
 import DownloadPage from "@/pages/download";
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import LoginPage from "@/pages/login";
+import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
@@ -61,6 +62,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/force-logout" component={ForceLogout} />
       <Route path="/">
         {(params) => <ProtectedRoute component={ModernHome} {...params} />}
       </Route>
