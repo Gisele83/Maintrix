@@ -11,6 +11,7 @@ import SmartDiagnostic from "@/pages/smart-diagnostic";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
+import IntellectualProperty from "@/pages/intellectual-property";
 import Training from "@/pages/training";
 import LearningDashboard from "@/pages/learning-dashboard";
 import Pricing from "@/pages/pricing";
@@ -86,6 +87,12 @@ function Router() {
       </Route>
       <Route path="/documentation">
         {(params) => <ProtectedRoute component={Documentation} {...params} />}
+      </Route>
+      <Route path="/intellectual-property">
+        {(params) => <ProtectedRoute component={IntellectualProperty} {...params} />}
+      </Route>
+      <Route path="/propriete-intellectuelle">
+        {(params) => <ProtectedRoute component={IntellectualProperty} {...params} />}
       </Route>
       <Route path="/training">
         {(params) => <ProtectedRoute component={Training} {...params} />}
