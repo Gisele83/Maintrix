@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { 
   BookOpen, 
@@ -57,25 +59,27 @@ export default function Documentation() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
+  const [selectedGuide, setSelectedGuide] = useState<GuideSection | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const { toast } = useToast();
 
   // Gestionnaires d'événements pour les boutons
   const handleOpenGuide = (guideId: string, title: string) => {
-    toast({
-      title: "Guide ouvert",
-      description: `Ouverture du guide: ${title}`,
-    });
-    // Ici, on pourrait ouvrir un modal ou naviguer vers une page détaillée
-    console.log(`Opening guide: ${guideId}`);
+    const guide = guides.find(g => g.id === guideId);
+    if (guide) {
+      setSelectedGuide(guide);
+      setIsGuideModalOpen(true);
+    }
   };
 
   const handleWatchVideo = (videoId: string, title: string) => {
-    toast({
-      title: "Lecture vidéo",
-      description: `Lancement de la vidéo: ${title}`,
-    });
-    // Ici, on pourrait ouvrir un lecteur vidéo ou une fenêtre popup
-    console.log(`Playing video: ${videoId}`);
+    const video = videoTutorials.find(v => v.id === videoId);
+    if (video) {
+      setSelectedVideo(video);
+      setIsVideoModalOpen(true);
+    }
   };
 
   const handleDownloadResource = (filename: string) => {
@@ -438,13 +442,17 @@ export default function Documentation() {
                           </div>
                         )}
                       </div>
-                      <Button 
-                        className="w-full mt-4"
-                        onClick={() => handleOpenGuide(guide.id, guide.title)}
-                      >
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Lire le guide
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="w-full mt-4"
+                            onClick={() => handleOpenGuide(guide.id, guide.title)}
+                          >
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            Lire le guide
+                          </Button>
+                        </DialogTrigger>
+                      </Dialog>
                     </CardContent>
                   </Card>
                 );
@@ -484,13 +492,17 @@ export default function Documentation() {
                       </div>
                       <h3 className="font-semibold">{video.title}</h3>
                       <p className="text-sm text-muted-foreground">{video.description}</p>
-                      <Button 
-                        className="w-full"
-                        onClick={() => handleWatchVideo(video.id, video.title)}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Regarder
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="w-full"
+                            onClick={() => handleWatchVideo(video.id, video.title)}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Regarder
+                          </Button>
+                        </DialogTrigger>
+                      </Dialog>
                     </div>
                   </CardContent>
                 </Card>
@@ -726,6 +738,165 @@ export default function Documentation() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modal pour les guides détaillés */}
+        <Dialog open={isGuideModalOpen} onOpenChange={setIsGuideModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                {selectedGuide && (
+                  <>
+                    <selectedGuide.icon className="w-5 h-5" />
+                    <span>{selectedGuide.title}</span>
+                    <Badge variant={selectedGuide.difficulty === "Débutant" ? "secondary" : selectedGuide.difficulty === "Intermédiaire" ? "outline" : "destructive"}>
+                      {selectedGuide.difficulty}
+                    </Badge>
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              {selectedGuide && (
+                <div className="space-y-6 p-4">
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span className="flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {selectedGuide.duration}
+                    </span>
+                    <span className="flex items-center">
+                      <Users className="w-4 h-4 mr-1" />
+                      {selectedGuide.difficulty}
+                    </span>
+                  </div>
+                  
+                  <p className="text-lg">{selectedGuide.description}</p>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold">Contenu du guide :</h3>
+                    {selectedGuide.content.map((item, index) => (
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-muted rounded-lg">
+                        <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p>{item}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex space-x-3 pt-4">
+                    <Button 
+                      onClick={() => {
+                        toast({
+                          title: "Guide démarré",
+                          description: `Début du guide: ${selectedGuide.title}`,
+                        });
+                        setIsGuideModalOpen(false);
+                      }}
+                      className="flex-1"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Commencer ce guide
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        toast({
+                          title: "Guide téléchargé",
+                          description: "PDF téléchargé avec succès",
+                        });
+                      }}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Télécharger PDF
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal pour les vidéos */}
+        <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                {selectedVideo && (
+                  <>
+                    <Video className="w-5 h-5" />
+                    <span>{selectedVideo.title}</span>
+                    <Badge variant="secondary">{selectedVideo.category}</Badge>
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              {selectedVideo && (
+                <div className="space-y-6 p-4">
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span className="flex items-center">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {selectedVideo.duration}
+                    </span>
+                    <span className="flex items-center">
+                      <Badge variant="outline">{selectedVideo.category}</Badge>
+                    </span>
+                  </div>
+                  
+                  {/* Placeholder vidéo simulé */}
+                  <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 rounded-lg flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <div className="text-6xl">{selectedVideo.thumbnail}</div>
+                      <div>
+                        <h3 className="text-xl font-semibold">{selectedVideo.title}</h3>
+                        <p className="text-muted-foreground">{selectedVideo.description}</p>
+                      </div>
+                      <Button 
+                        size="lg"
+                        onClick={() => {
+                          toast({
+                            title: "Lecture vidéo",
+                            description: `Lecture de: ${selectedVideo.title}`,
+                          });
+                        }}
+                      >
+                        <Play className="w-5 h-5 mr-2" />
+                        Lancer la vidéo
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold">Description :</h3>
+                    <p className="text-muted-foreground">{selectedVideo.description}</p>
+                    
+                    <h3 className="text-lg font-semibold">Dans cette vidéo, vous apprendrez :</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Les concepts fondamentaux de la fonctionnalité</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Une démonstration pratique étape par étape</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Les meilleures pratiques et conseils d'experts</span>
+                      </li>
+                      <li className="flex items-center space-x-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Comment éviter les erreurs courantes</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
