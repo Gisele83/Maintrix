@@ -85,7 +85,11 @@ export default function LoginPage() {
         title: "Connexion réussie",
         description: `Bienvenue ${data.user.firstName || data.user.username} !`,
       });
-      setLocation("/");
+      
+      // Force page reload to ensure proper authentication state
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     },
     onError: (error: any) => {
       toast({
