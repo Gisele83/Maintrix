@@ -523,6 +523,33 @@ export const insertPreventiveMaintenancePlanSchema = z.object({
   nextDue: z.string().optional().transform((str) => str ? new Date(str) : null),
 });
 
+// Table des entreprises pour isolation des données
+export const companies = pgTable("companies", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  name: varchar("name", { length: 255 }).notNull(),
+  industry: varchar("industry", { length: 100 }),
+  country: varchar("country", { length: 100 }),
+  subscriptionPlan: varchar("subscription_plan", { length: 50 }).default("starter"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Table des permissions d'accès aux données
+export const dataAccessPermissions = pgTable("data_access_permissions", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  userId: integer("user_id").references(() => userProfiles.id),
+  companyId: integer("company_id").references(() => companies.id),
+  permission: varchar("permission", { length: 100 }).notNull(),
+  metadata: jsonb("metadata"), // Détails de l'accès
+  accessedAt: timestamp("accessed_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+});
+
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = typeof companies.$inferInsert;
+export type DataAccessPermission = typeof dataAccessPermissions.$inferSelect;
+
 export const insertSparePartSchema = createInsertSchema(spareParts).omit({
   id: true,
   createdAt: true,

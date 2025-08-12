@@ -44,6 +44,7 @@ import { dataImportExportRoutes } from "./data-import-export-routes";
 import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 import { registerDownloadRoutes } from "./download-routes";
+import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -2907,6 +2908,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register download routes
   registerDownloadRoutes(app);
+  
+  // Register enhanced diagnostic routes with company data access
+  registerEnhancedDiagnosticRoutes(app);
 
   // Comprehensive Report Export Routes for Advanced Reporting
   app.get("/api/comprehensive-report/pdf", async (req, res) => {
