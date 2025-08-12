@@ -12,6 +12,10 @@ import { apiRequest } from "@/lib/queryClient";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults } from "@/components/diagnostic-results";
 import { useLanguage } from "@/hooks/use-language";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { offlineStorage } from "@/lib/offline-storage";
+import { OfflineDiagnostic } from "@/components/OfflineDiagnostic";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import {
   Brain,
   Search,
@@ -81,6 +85,7 @@ export default function SmartDiagnostic() {
   const { language } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isOffline } = useOfflineSync();
   
   const [activeTab, setActiveTab] = useState<Tab>("diagnostic");
   const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticSuggestion[]>([]);
@@ -535,6 +540,7 @@ export default function SmartDiagnostic() {
                 <Brain className="h-3 w-3 mr-1" />
                 IA Native
               </Badge>
+              <OfflineIndicator />
             </div>
           </div>
         </div>
@@ -608,8 +614,24 @@ export default function SmartDiagnostic() {
               <div className="p-6">
                 <TabsContent value="diagnostic" className="mt-0">
                   <div className="space-y-6">
-                    {/* ML Mode Selection */}
-                    <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                    {/* Offline Diagnostic Mode */}
+                    {isOffline && (
+                      <OfflineDiagnostic
+                        onAddPendingAction={(action) => {
+                          offlineStorage.addPendingAction(action);
+                          toast({
+                            title: "Action sauvegardée",
+                            description: "Sera synchronisée dès le retour de la connexion",
+                          });
+                        }}
+                      />
+                    )}
+                    
+                    {/* Online diagnostic forms (hidden when offline) */}
+                    {!isOffline && (
+                      <>
+                        {/* ML Mode Selection */}
+                        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg flex items-center">
                           <Brain className="h-5 w-5 mr-2 text-purple-600" />
@@ -672,45 +694,47 @@ export default function SmartDiagnostic() {
                             </span>
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                        </Card>
 
-                    {/* Diagnostic Form */}
-                    <DiagnosticForm 
-                      onSubmit={handleDiagnosticSubmit}
-                      isLoading={isAnalyzing}
-                    />
+                        {/* Diagnostic Form */}
+                        <DiagnosticForm 
+                          onSubmit={handleDiagnosticSubmit}
+                          isLoading={isAnalyzing}
+                        />
 
-                    {/* Results */}
-                    {(diagnosticResults.length > 0 || isAnalyzing) && (
-                      <div className="space-y-4">
-                        {isAnalyzing && (
-                          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-                            <CardContent className="p-6 text-center">
-                              <div className="flex items-center justify-center space-x-3">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                                <div>
-                                  <p className="font-medium text-gray-900">Analyse IA en cours...</p>
-                                  <p className="text-sm text-gray-600">
-                                    {ensembleMode ? "Consensus multi-modèles" : 
-                                     advancedMode ? "Réseaux de neurones actifs" : 
-                                     "Machine Learning standard"}
-                                  </p>
+                        {/* Results */}
+                        {(diagnosticResults.length > 0 || isAnalyzing) && (
+                          <div className="space-y-4">
+                          {isAnalyzing && (
+                            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                              <CardContent className="p-6 text-center">
+                                <div className="flex items-center justify-center space-x-3">
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                  <div>
+                                    <p className="font-medium text-gray-900">Analyse IA en cours...</p>
+                                    <p className="text-sm text-gray-600">
+                                      {ensembleMode ? "Consensus multi-modèles" : 
+                                       advancedMode ? "Réseaux de neurones actifs" : 
+                                       "Machine Learning standard"}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
+                              </CardContent>
+                            </Card>
+                          )}
 
-                        {diagnosticResults.length > 0 && (
-                          <DiagnosticResults 
-                            suggestions={diagnosticResults}
-                            onStartRepair={handleStartRepair}
-                            onSaveDiagnostic={handleSaveDiagnostic}
-                            sessionId={currentSessionId || undefined}
-                          />
+                          {diagnosticResults.length > 0 && (
+                            <DiagnosticResults 
+                              suggestions={diagnosticResults}
+                              onStartRepair={handleStartRepair}
+                              onSaveDiagnostic={handleSaveDiagnostic}
+                              sessionId={currentSessionId || undefined}
+                            />
+                          )}
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </div>
                 </TabsContent>
