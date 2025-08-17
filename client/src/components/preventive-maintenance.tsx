@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { PreventiveMaintenancePlan, EquipmentRegistry } from "@shared/schema";
 
 const maintenancePlanSchema = z.object({
   equipmentId: z.string().min(1, "Équipement requis"),
@@ -34,37 +35,19 @@ const maintenancePlanSchema = z.object({
 
 type MaintenancePlanFormData = z.infer<typeof maintenancePlanSchema>;
 
-interface MaintenancePlan {
-  id: number;
-  equipmentId: number;
-  equipmentName?: string;
-  maintenanceType: string;
-  frequency: string;
-  frequencyValue: number;
-  description: string;
-  estimatedDuration?: number;
-  assignedTeam?: string;
-  priority: string;
-  isActive: boolean;
-  lastMaintenance?: string;
-  nextMaintenance?: string;
-  instructions?: string;
-  requiredParts?: string;
-  safetyNotes?: string;
-  createdAt?: string;
-}
+
 
 export function PreventiveMaintenance() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<MaintenancePlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PreventiveMaintenancePlan | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch maintenance plans
-  const { data: maintenancePlans = [], isLoading } = useQuery<MaintenancePlan[]>({
+  const { data: maintenancePlans = [], isLoading } = useQuery<PreventiveMaintenancePlan[]>({
     queryKey: ["/api/preventive-maintenance-plans"],
   });
 
@@ -194,23 +177,23 @@ export function PreventiveMaintenance() {
     }
   };
 
-  const handleEdit = (plan: MaintenancePlan) => {
+  const handleEdit = (plan: PreventiveMaintenancePlan) => {
     setSelectedPlan(plan);
     form.reset({
-      equipmentId: plan.equipmentId.toString(),
-      maintenanceType: plan.maintenanceType,
+      equipmentId: Array.isArray(plan.equipmentIds) && plan.equipmentIds.length > 0 ? plan.equipmentIds[0].toString() : "",
+      maintenanceType: plan.equipmentType || "",
       frequency: plan.frequency,
-      frequencyValue: plan.frequencyValue.toString(),
-      description: plan.description,
+      frequencyValue: plan.frequencyValue?.toString() || "",
+      description: plan.planName || "",
       estimatedDuration: plan.estimatedDuration?.toString() || "",
-      assignedTeam: plan.assignedTeam || "",
-      priority: plan.priority,
-      isActive: plan.isActive,
-      lastMaintenance: plan.lastMaintenance || "",
-      nextMaintenance: plan.nextMaintenance || "",
-      instructions: plan.instructions || "",
-      requiredParts: plan.requiredParts || "",
-      safetyNotes: plan.safetyNotes || ""
+      assignedTeam: Array.isArray(plan.requiredSkills) ? plan.requiredSkills.join(", ") : "",
+      priority: "medium", // Default since not in schema
+      isActive: plan.isActive || false,
+      lastMaintenance: plan.lastExecuted ? new Date(plan.lastExecuted).toISOString().split('T')[0] : "",
+      nextMaintenance: plan.nextDue ? new Date(plan.nextDue).toISOString().split('T')[0] : "",
+      instructions: Array.isArray(plan.tasks) ? plan.tasks.join(", ") : "",
+      requiredParts: "",
+      safetyNotes: plan.safetyRequirements || ""
     });
     setIsEditDialogOpen(true);
   };
