@@ -263,12 +263,43 @@ export function registerGMAORoutes(app: Express) {
   app.put("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = req.body;
-      const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, updates);
+      console.log("Updating maintenance plan:", id, "with data:", req.body);
+      
+      // Extract the data from the request body (could be wrapped in 'data' property)
+      const updateData = req.body.data || req.body;
+      
+      // Validate the update data using the schema (partial for updates)
+      const partialSchema = insertPreventiveMaintenancePlanSchema.partial();
+      const validatedData = partialSchema.parse(updateData);
+      
+      const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, validatedData);
       res.json(plan);
     } catch (error) {
       console.error("Error updating maintenance plan:", error);
-      res.status(400).json({ message: "Failed to update maintenance plan" });
+      if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.issues);
+      }
+      res.status(400).json({ 
+        message: "Failed to update maintenance plan",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Delete preventive maintenance plan
+  app.delete("/api/preventive-maintenance-plans/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log("Deleting maintenance plan:", id);
+      
+      const result = await gmaoStorage.deletePreventiveMaintenancePlan(id);
+      res.json({ success: true, message: "Plan de maintenance supprimé avec succès" });
+    } catch (error) {
+      console.error("Error deleting maintenance plan:", error);
+      res.status(400).json({ 
+        message: "Failed to delete maintenance plan",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

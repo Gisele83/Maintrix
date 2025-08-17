@@ -58,7 +58,7 @@ export function PreventiveMaintenance() {
 
   // Add maintenance plan mutation
   const addPlanMutation = useMutation({
-    mutationFn: (data: MaintenancePlanFormData) => apiRequest("/api/preventive-maintenance-plans", {
+    mutationFn: (data: any) => apiRequest("/api/preventive-maintenance-plans", {
       method: "POST",
       body: data
     }),
@@ -81,10 +81,10 @@ export function PreventiveMaintenance() {
 
   // Update maintenance plan mutation
   const updatePlanMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<MaintenancePlanFormData> }) => 
+    mutationFn: ({ id, data }: { id: number; data: any }) => 
       apiRequest(`/api/preventive-maintenance-plans/${id}`, {
         method: "PUT",
-        body: data
+        body: { data }
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/preventive-maintenance-plans"] });
@@ -155,19 +155,20 @@ export function PreventiveMaintenance() {
   });
 
   const onSubmit = (data: MaintenancePlanFormData) => {
-    // Map frontend data to backend schema
+    // Map frontend data to backend schema with proper array handling
     const mappedData = {
       planName: data.description || `Plan de ${data.maintenanceType}`,
       equipmentType: data.maintenanceType,
-      equipmentIds: data.equipmentId, // Will be transformed to array in schema
+      equipmentIds: [parseInt(data.equipmentId, 10)], // Convert to array of numbers
       frequency: data.frequency,
-      frequencyValue: data.frequencyValue,
-      tasks: data.instructions,
-      estimatedDuration: data.estimatedDuration,
-      requiredSkills: data.assignedTeam,
-      safetyRequirements: data.safetyNotes,
-      lastExecuted: data.lastMaintenance,
-      nextDue: data.nextMaintenance,
+      frequencyValue: data.frequencyValue ? parseInt(data.frequencyValue, 10) : null,
+      tasks: data.instructions ? data.instructions.split(',').map(t => t.trim()).filter(t => t) : [],
+      estimatedDuration: data.estimatedDuration ? parseInt(data.estimatedDuration, 10) : null,
+      requiredSkills: data.assignedTeam ? data.assignedTeam.split(',').map(s => s.trim()).filter(s => s) : [],
+      safetyRequirements: data.safetyNotes || null,
+      lastExecuted: data.lastMaintenance ? new Date(data.lastMaintenance).toISOString() : null,
+      nextDue: data.nextMaintenance ? new Date(data.nextMaintenance).toISOString() : null,
+      isActive: data.isActive
     };
 
     if (selectedPlan) {
@@ -313,8 +314,11 @@ export function PreventiveMaintenance() {
       {/* Maintenance Plans Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredPlans.map((plan) => {
-          const nextMaintenanceDate = plan.nextDue || 
-            calculateNextMaintenance(plan.lastExecuted || "", plan.frequency, plan.frequencyValue);
+          const nextMaintenanceDate = plan.nextDue ? 
+            (typeof plan.nextDue === 'string' ? plan.nextDue : new Date(plan.nextDue).toISOString().split('T')[0]) : 
+            calculateNextMaintenance(plan.lastExecuted ? 
+              (typeof plan.lastExecuted === 'string' ? plan.lastExecuted : new Date(plan.lastExecuted).toISOString().split('T')[0]) : "", 
+              plan.frequency, plan.frequencyValue);
           const isMaintenanceOverdue = isOverdue(nextMaintenanceDate);
           
           return (
@@ -376,7 +380,11 @@ export function PreventiveMaintenance() {
                   {plan.lastExecuted && (
                     <div className="text-sm">
                       <span className="font-medium">Dernière exécution:</span>
-                      <p className="text-gray-600">{new Date(plan.lastExecuted).toLocaleDateString('fr-FR')}</p>
+                      <p className="text-gray-600">
+                        {typeof plan.lastExecuted === 'string' ? 
+                          new Date(plan.lastExecuted).toLocaleDateString('fr-FR') : 
+                          plan.lastExecuted.toLocaleDateString('fr-FR')}
+                      </p>
                     </div>
                   )}
                   <div className="text-sm">
@@ -390,13 +398,13 @@ export function PreventiveMaintenance() {
 
                 <div className="flex justify-end items-center pt-2">
                   <div className="flex items-center space-x-2">
-                    <Badge className={getStatusColor(plan.isActive)}>
+                    <Badge className={getStatusColor(plan.isActive ?? false)}>
                       {plan.isActive ? "Actif" : "Inactif"}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleToggleActive(plan.id, plan.isActive)}
+                      onClick={() => handleToggleActive(plan.id, plan.isActive ?? false)}
                       className="text-xs"
                     >
                       {plan.isActive ? "Désactiver" : "Activer"}
