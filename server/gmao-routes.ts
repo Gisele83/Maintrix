@@ -54,12 +54,32 @@ export function registerGMAORoutes(app: Express) {
   // Create new equipment
   app.post("/api/equipment", async (req, res) => {
     try {
-      const data = insertEquipmentRegistrySchema.parse(req.body);
+      console.log("Creating equipment with data:", req.body);
+      
+      // Convert date strings to Date objects for timestamp fields
+      const processedData = { ...req.body };
+      if (processedData.installationDate && typeof processedData.installationDate === 'string') {
+        processedData.installationDate = new Date(processedData.installationDate);
+      }
+      if (processedData.lastMaintenanceDate && typeof processedData.lastMaintenanceDate === 'string') {
+        processedData.lastMaintenanceDate = new Date(processedData.lastMaintenanceDate);
+      }
+      if (processedData.nextMaintenanceDate && typeof processedData.nextMaintenanceDate === 'string') {
+        processedData.nextMaintenanceDate = new Date(processedData.nextMaintenanceDate);
+      }
+      if (processedData.warrantyEnd && typeof processedData.warrantyEnd === 'string') {
+        processedData.warrantyEnd = new Date(processedData.warrantyEnd);
+      }
+      
+      const data = insertEquipmentRegistrySchema.parse(processedData);
       const equipment = await gmaoStorage.createEquipment(data);
       res.status(201).json(equipment);
     } catch (error) {
       console.error("Error creating equipment:", error);
-      res.status(400).json({ message: "Failed to create equipment" });
+      res.status(400).json({ 
+        message: "Failed to create equipment",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -68,11 +88,32 @@ export function registerGMAORoutes(app: Express) {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const equipment = await gmaoStorage.updateEquipment(id, updates);
+      
+      console.log("Updating equipment:", id, "with updates:", updates);
+      
+      // Convert date strings to Date objects for timestamp fields
+      const processedUpdates = { ...updates };
+      if (processedUpdates.installationDate && typeof processedUpdates.installationDate === 'string') {
+        processedUpdates.installationDate = new Date(processedUpdates.installationDate);
+      }
+      if (processedUpdates.lastMaintenanceDate && typeof processedUpdates.lastMaintenanceDate === 'string') {
+        processedUpdates.lastMaintenanceDate = new Date(processedUpdates.lastMaintenanceDate);
+      }
+      if (processedUpdates.nextMaintenanceDate && typeof processedUpdates.nextMaintenanceDate === 'string') {
+        processedUpdates.nextMaintenanceDate = new Date(processedUpdates.nextMaintenanceDate);
+      }
+      if (processedUpdates.warrantyEnd && typeof processedUpdates.warrantyEnd === 'string') {
+        processedUpdates.warrantyEnd = new Date(processedUpdates.warrantyEnd);
+      }
+      
+      const equipment = await gmaoStorage.updateEquipment(id, processedUpdates);
       res.json(equipment);
     } catch (error) {
       console.error("Error updating equipment:", error);
-      res.status(400).json({ message: "Failed to update equipment" });
+      res.status(400).json({ 
+        message: "Failed to update equipment",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -174,7 +215,7 @@ export function registerGMAORoutes(app: Express) {
       res.status(201).json(workOrder);
     } catch (error) {
       console.error("Error creating work order:", error);
-      if (error.issues) {
+      if (error instanceof z.ZodError) {
         console.error("Validation issues:", JSON.stringify(error.issues, null, 2));
       }
       res.status(400).json({ 
@@ -189,11 +230,35 @@ export function registerGMAORoutes(app: Express) {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const workOrder = await gmaoStorage.updateWorkOrder(id, updates);
+      
+      console.log("Updating work order:", id, "with updates:", updates);
+      
+      // Convert date strings to Date objects for timestamp fields
+      const processedUpdates = { ...updates };
+      if (processedUpdates.scheduledStart && typeof processedUpdates.scheduledStart === 'string') {
+        processedUpdates.scheduledStart = new Date(processedUpdates.scheduledStart);
+      }
+      if (processedUpdates.scheduledEnd && typeof processedUpdates.scheduledEnd === 'string') {
+        processedUpdates.scheduledEnd = new Date(processedUpdates.scheduledEnd);
+      }
+      if (processedUpdates.actualStart && typeof processedUpdates.actualStart === 'string') {
+        processedUpdates.actualStart = new Date(processedUpdates.actualStart);
+      }
+      if (processedUpdates.actualEnd && typeof processedUpdates.actualEnd === 'string') {
+        processedUpdates.actualEnd = new Date(processedUpdates.actualEnd);
+      }
+      if (processedUpdates.completedAt && typeof processedUpdates.completedAt === 'string') {
+        processedUpdates.completedAt = new Date(processedUpdates.completedAt);
+      }
+      
+      const workOrder = await gmaoStorage.updateWorkOrder(id, processedUpdates);
       res.json(workOrder);
     } catch (error) {
       console.error("Error updating work order:", error);
-      res.status(400).json({ message: "Failed to update work order" });
+      res.status(400).json({ 
+        message: "Failed to update work order",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

@@ -241,6 +241,10 @@ export class GMAOStorage {
     return plan;
   }
 
+  async deletePreventiveMaintenancePlan(id: number): Promise<void> {
+    await db.delete(preventiveMaintenancePlans).where(eq(preventiveMaintenancePlans.id, id));
+  }
+
   // Spare Parts Methods
   async getSpareParts(): Promise<SparePart[]> {
     return await db.select().from(spareParts).orderBy(desc(spareParts.createdAt));
