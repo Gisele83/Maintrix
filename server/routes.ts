@@ -45,6 +45,7 @@ import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 import { registerDownloadRoutes } from "./download-routes";
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
+import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -2911,6 +2912,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register enhanced diagnostic routes with company data access
   registerEnhancedDiagnosticRoutes(app);
+
+  // Advanced diagnostic with reliability optimization
+  app.post("/api/advanced-diagnostic", diagnosticRateLimit, validateInput(z.object({
+    equipmentType: z.string().min(1),
+    symptoms: z.string().min(1),
+    urgency: z.enum(['low', 'medium', 'high', 'critical']),
+    equipmentId: z.number().optional(),
+    zone: z.string().optional(),
+    sector: z.string().optional()
+  })), async (req, res) => {
+    try {
+      const { equipmentType, symptoms, urgency, equipmentId, zone, sector } = req.body;
+      
+      console.log('🔬 Performing advanced reliability-optimized diagnostic...');
+      
+      // Use advanced diagnostic optimizer
+      const advancedResult = await advancedDiagnosticOptimizer.performAdvancedDiagnosis({
+        equipmentType,
+        symptoms,
+        equipmentId,
+        urgency,
+        context: { zone, sector }
+      });
+
+      // Enhanced confidence assessment
+      const reliabilityAssessment = {
+        confidenceLevel: advancedResult.confidence.final > 0.8 ? "HIGH" : 
+                        advancedResult.confidence.final > 0.6 ? "MEDIUM" : "LOW",
+        needsReview: advancedResult.recommendedAction === "review_required",
+        uncertaintyBounds: advancedResult.uncertaintyBounds,
+        evidenceStrength: advancedResult.evidenceScore,
+        riskLevel: advancedResult.riskAssessment
+      };
+
+      res.json({
+        success: true,
+        diagnosis: advancedResult.diagnosis,
+        solution: advancedResult.solution,
+        confidence: advancedResult.confidence,
+        reliability: reliabilityAssessment,
+        evidenceChain: advancedResult.evidenceChain,
+        sensorTrends: advancedResult.sensorTrends,
+        similarCases: advancedResult.similarCases.slice(0, 3), // Top 3 cases
+        recommendations: {
+          action: advancedResult.recommendedAction,
+          explanation: reliabilityAssessment.needsReview 
+            ? "Diagnostic nécessite une révision expert en raison de l'incertitude élevée"
+            : "Diagnostic suffisamment fiable pour procéder",
+          nextSteps: reliabilityAssessment.confidenceLevel === "HIGH" 
+            ? ["Procéder avec la solution recommandée", "Surveiller les métriques post-intervention"]
+            : ["Collecter données supplémentaires", "Consulter expert maintenance", "Vérifier capteurs IoT"]
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error("Error in advanced diagnostic:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Advanced diagnostic failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 
   // Comprehensive Report Export Routes for Advanced Reporting
   app.get("/api/comprehensive-report/pdf", async (req, res) => {

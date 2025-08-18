@@ -36,6 +36,11 @@ interface DiagnosticSuggestion {
   safetyWarnings?: string[];
   tools?: string[];
   difficulty?: string;
+  // Advanced reliability fields
+  evidenceChain?: any[];
+  sensorTrends?: any[];
+  recommendedAction?: string;
+  nextSteps?: string[];
 }
 
 interface DiagnosticResultsProps {
