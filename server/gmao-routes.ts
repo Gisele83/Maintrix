@@ -56,8 +56,11 @@ export function registerGMAORoutes(app: Express) {
     try {
       console.log("Creating equipment with data:", req.body);
       
-      // Convert date strings to Date objects for timestamp fields
-      const processedData = { ...req.body };
+      // First validate with Zod (expects strings for date fields)
+      const validatedData = insertEquipmentRegistrySchema.parse(req.body);
+      
+      // Then convert date strings to Date objects for database storage
+      const processedData = { ...validatedData };
       if (processedData.installationDate && typeof processedData.installationDate === 'string') {
         processedData.installationDate = new Date(processedData.installationDate);
       }
@@ -71,11 +74,13 @@ export function registerGMAORoutes(app: Express) {
         processedData.warrantyEnd = new Date(processedData.warrantyEnd);
       }
       
-      const data = insertEquipmentRegistrySchema.parse(processedData);
-      const equipment = await gmaoStorage.createEquipment(data);
+      const equipment = await gmaoStorage.createEquipment(processedData);
       res.status(201).json(equipment);
     } catch (error) {
       console.error("Error creating equipment:", error);
+      if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.issues);
+      }
       res.status(400).json({ 
         message: "Failed to create equipment",
         error: error instanceof Error ? error.message : "Unknown error"
@@ -204,12 +209,23 @@ export function registerGMAORoutes(app: Express) {
         // cleanedData.assignedTo = parseInt(req.body.assignedTo);
       }
       if (req.body.estimatedHours) cleanedData.estimatedDuration = parseInt(req.body.estimatedHours) * 60; // Convert to minutes
-      if (req.body.dueDate) cleanedData.scheduledStart = new Date(req.body.dueDate);
+      if (req.body.dueDate) cleanedData.scheduledStart = req.body.dueDate; // Keep as string for validation
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
 
-      const data = insertWorkOrderSchema.parse(cleanedData);
-      const workOrder = await gmaoStorage.createWorkOrder(data);
+      // First validate with Zod (expects strings for date fields)
+      const validatedData = insertWorkOrderSchema.parse(cleanedData);
+      
+      // Then convert date strings to Date objects for database storage
+      const processedData = { ...validatedData };
+      if (processedData.scheduledStart && typeof processedData.scheduledStart === 'string') {
+        processedData.scheduledStart = new Date(processedData.scheduledStart);
+      }
+      if (processedData.scheduledEnd && typeof processedData.scheduledEnd === 'string') {
+        processedData.scheduledEnd = new Date(processedData.scheduledEnd);
+      }
+      
+      const workOrder = await gmaoStorage.createWorkOrder(processedData);
       
       console.log(`Work order created: ${workOrder.orderNumber} - ${workOrder.title}`);
       res.status(201).json(workOrder);
