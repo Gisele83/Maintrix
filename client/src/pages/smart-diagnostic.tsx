@@ -463,64 +463,17 @@ export default function SmartDiagnostic() {
     const cleanData = typeof data === 'string' ? JSON.parse(data) : data;
     console.log("Clean data to send:", cleanData);
     
+    // Use the ML diagnostic mutation instead of direct API call
     try {
-      // First try advanced diagnostic for improved reliability
-      const advancedResponse = await apiRequest("POST", "/api/advanced-diagnostic", cleanData);
-      
-      // Transform advanced response to match existing UI structure
-      const transformedResults = {
-        sessionId: `session_${Date.now()}`,
-        suggestions: [{
-          diagnosis: advancedResponse.diagnosis,
-          solution: advancedResponse.solution,
-          confidence: Math.round(advancedResponse.confidence.final * 100),
-          riskLevel: advancedResponse.reliability.riskLevel,
-          estimatedCost: advancedResponse.confidence.final > 0.8 ? "€200-500" : "€300-800",
-          estimatedDuration: advancedResponse.confidence.final > 0.8 ? 2 : 4,
-          urgency: cleanData.urgency,
-          aiInsights: `Fiabilité: ${advancedResponse.reliability.confidenceLevel}. ${advancedResponse.recommendations.explanation}`,
-          advancedML: true,
-          evidenceChain: advancedResponse.evidenceChain,
-          sensorTrends: advancedResponse.sensorTrends,
-          recommendedAction: advancedResponse.recommendations.action,
-          nextSteps: advancedResponse.recommendations.nextSteps
-        }],
-        reliability: advancedResponse.reliability,
-        cloudSearchPerformed: true,
-        cloudInsights: `Analyse multi-sources avec ${advancedResponse.evidenceChain.length} éléments d'évidence`,
-        mlEnabled: true,
-        modelAccuracy: advancedResponse.reliability.confidenceLevel,
-        success: true,
-        advanced: true
-      };
-
-      setDiagnosticResults(transformedResults.suggestions || []);
-      setCurrentSessionId(transformedResults.sessionId ?? null);
-      setCloudSearchPerformed(transformedResults.cloudSearchPerformed || false);
-      setCloudInsights(transformedResults.cloudInsights || null);
+      await diagnosticMutation.mutateAsync(cleanData);
+    } catch (error) {
+      console.error("Diagnostic submission error:", error);
       setIsAnalyzing(false);
-
-      // Show reliability notification
-      if (advancedResponse.reliability.needsReview) {
-        toast({
-          title: "Révision recommandée",
-          description: advancedResponse.recommendations.explanation,
-          variant: "default",
-          duration: 8000,
-        });
-      } else {
-        toast({
-          title: "Diagnostic avancé complété",
-          description: `Fiabilité: ${advancedResponse.reliability.confidenceLevel} - Confiance: ${Math.round(advancedResponse.confidence.final * 100)}%`,
-          variant: "default",
-        });
-      }
-
-    } catch (advancedError) {
-      console.warn("Advanced diagnostic failed, trying fallback:", advancedError);
-      
-      // Fallback to existing ML diagnostic system
-      diagnosticMutation.mutate(cleanData);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du diagnostic. Veuillez réessayer.",
+        variant: "destructive"
+      });
     }
   };
 
