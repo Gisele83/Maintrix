@@ -187,7 +187,7 @@ export default function LoginPage() {
               <CardDescription>
                 {isRegistering 
                   ? "Rejoignez la plateforme Smart GMAO DiagFix" 
-                  : "Connectez-vous à votre espace"
+                  : ""
                 }
               </CardDescription>
             </CardHeader>
