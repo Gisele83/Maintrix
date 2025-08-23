@@ -350,7 +350,7 @@ export default function LoginPage() {
                 </Form>
               )}
 
-              <div className="text-center">
+              <div className="text-center space-y-3">
                 <Button
                   variant="ghost"
                   onClick={() => {
@@ -368,6 +368,23 @@ export default function LoginPage() {
                     : "Pas de compte ? S'inscrire"
                   }
                 </Button>
+                
+                <div className="border-t border-gray-200 pt-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // Create a guest session
+                      localStorage.setItem('guestSession', 'true');
+                      window.location.href = '/';
+                    }}
+                    className="w-full border-2 border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    🚀 Continuer sans compte (Mode Démonstration)
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Accès complet aux fonctionnalités en mode démonstration
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

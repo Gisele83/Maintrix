@@ -57,16 +57,20 @@ export function useAuth() {
     } finally {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user_data");
+      localStorage.removeItem("guestSession");
       queryClient.clear();
       window.location.href = "/login";
     }
   };
 
-  const isAuthenticated = !!user && !!localStorage.getItem("auth_token");
+  // Check if guest session exists
+  const isGuestSession = localStorage.getItem('guestSession') === 'true';
+  const isAuthenticated = (!!user && !!localStorage.getItem("auth_token")) || isGuestSession;
 
   return {
     user,
     isAuthenticated,
+    isGuest: isGuestSession && !user,
     isLoading: isLoading || queryLoading,
     login,
     logout,
