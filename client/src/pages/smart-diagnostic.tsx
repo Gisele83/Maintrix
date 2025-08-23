@@ -738,6 +738,7 @@ export default function SmartDiagnostic() {
                           {diagnosticResults.length > 0 && (
                             <DiagnosticResults 
                               suggestions={diagnosticResults}
+                              isLoading={isAnalyzing}
                               onStartRepair={handleStartRepair}
                               onSaveDiagnostic={handleSaveDiagnostic}
                               sessionId={currentSessionId || undefined}
