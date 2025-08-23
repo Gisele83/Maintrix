@@ -1533,7 +1533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic-advanced-ml", diagnosticRateLimit, validateInput(z.object({
     equipmentType: z.string().min(1),
     symptoms: z.string().min(1),
-    urgency: z.enum(['low', 'medium', 'high', 'critical']),
+    urgency: z.enum(['low', 'medium', 'high']),
     equipmentId: z.number().optional(),
     zone: z.string().optional(),
     sector: z.string().optional(),
@@ -1677,7 +1677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic-ensemble-ml", diagnosticRateLimit, validateInput(z.object({
     equipmentType: z.string().min(1),
     symptoms: z.string().min(1),
-    urgency: z.enum(['low', 'medium', 'high', 'critical']),
+    urgency: z.enum(['low', 'medium', 'high']),
     equipmentId: z.number().optional(),
     zone: z.string().optional(),
     sector: z.string().optional(),
