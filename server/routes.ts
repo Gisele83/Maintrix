@@ -1534,12 +1534,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     equipmentType: z.string().min(1),
     symptoms: z.string().min(1),
     urgency: z.enum(['low', 'medium', 'high']),
-    equipmentId: z.number().optional(),
+    equipmentId: z.string().optional(),
     zone: z.string().optional(),
     sector: z.string().optional(),
     symptomsChecked: z.array(z.string()).optional()
   })), async (req, res) => {
     try {
+      console.log("🔍 Advanced ML - Raw request body:", JSON.stringify(req.body, null, 2));
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
       console.log("🔬 Starting Advanced ML diagnostic...");
@@ -1678,12 +1679,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     equipmentType: z.string().min(1),
     symptoms: z.string().min(1),
     urgency: z.enum(['low', 'medium', 'high']),
-    equipmentId: z.number().optional(),
+    equipmentId: z.string().optional(),
     zone: z.string().optional(),
     sector: z.string().optional(),
     symptomsChecked: z.array(z.string()).optional()
   })), async (req, res) => {
     try {
+      console.log("🚀 Ensemble ML - Raw request body:", JSON.stringify(req.body, null, 2));
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
       console.log("🚀 Starting Ensemble ML diagnostic (9 models)...");
