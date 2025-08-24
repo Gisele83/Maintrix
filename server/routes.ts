@@ -48,6 +48,8 @@ import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 import { registerDownloadRoutes } from "./download-routes";
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
+import tenantRoutes from "./tenant-routes";
+import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -3205,6 +3207,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     return solution;
   }
+
+  // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
+  app.use(tenantRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

@@ -1,0 +1,141 @@
+Architecture d’isolation des données (multi-tenant)
+Identité & Contexte de tenant
+
+AuthN via OIDC/SSO (Azure AD/Okta/Keycloak).
+
+Chaque jeton porte un tenant_id (et rôle) → injecté dans toutes les requêtes vers l’API, la DB, l’objet-storage et le vecteur-store.
+
+ABAC (Attribute-Based Access Control) : règles d’accès = rôle + tenant + contexte (ex : site).
+
+Middleware (pseudo-code)
+def require_tenant_context(request):
+    claims = verify_jwt(request.headers["Authorization"])
+    request.ctx.tenant_id = claims["tenant_id"]
+    request.ctx.roles = claims["roles"]
+
+Plan de données (choisir A ou B selon votre taille)
+
+Option A – Isolation forte (recommandée “entreprise”)
+
+Une base par client (ou cluster / instance managée).
+
+Un bucket d’objets par client (ex. s3://gmao/<tenant_id>/...).
+
+Un index de vector-DB par client (ex. tenant_<id>).
+
+Avantages : blast radius minimal, réversibilité, conformité simplifiée.
+
+Option B – Mutualisée + RLS (coûts optimisés)
+
+Schéma partagé avec Row-Level Security.
+
+Règle toutes les requêtes filtrées par tenant_id côté serveur (pas côté appli).
+
+Exemple PostgreSQL RLS
+ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON work_orders
+USING (tenant_id = current_setting('app.tenant_id')::uuid);
+
+-- Dans la session DB, l'API fixe le tenant :
+SET app.tenant_id = '00000000-0000-0000-0000-000000000001';
+
+Réseau & exécution
+
+Namespaces Kubernetes par tenant (ou au minimum par environnement), NetworkPolicies (deny-all par défaut).
+
+mTLS service-to-service, TLS 1.3 en entrée.
+
+Pas de caches partagés cross-tenant (embedding cache, features, etc.).
+
+Chiffrement & clés
+
+Au repos : AES-256 avec clés dédiées par tenant (enveloppe EDEK/KEK) via KMS/HSM.
+
+En transit : TLS 1.3 partout.
+
+Rotation des clés + crypto-shredding (Suppression = destruction des clés du tenant).
+
+Stockage & journaux
+
+Objets : préfixes/buckets par tenant + politiques IAM restreintes.
+
+Logs : jamais de données métiers brutes ; masquage/redaction (PII), partitionnement par tenant, WORM pour audit.
+
+2) Comment renforcer l’IA sans mélange de données brutes
+Stratégie recommandée : fédération + confidentialité
+
+Modèle global (“base”) + adaptateurs par client (ex. LoRA/FT-adapter) → personnalisation locale sans partager les données du client.
+
+Apprentissage fédéré (Federated Averaging) :
+
+Chaque tenant entraîne localement (dans son VPC/espace isolé) sur son historique.
+
+Seuls des poids/gradients agrégés (jamais de données brutes) remontent, via agrégation sécurisée.
+
+Ajouter Différential Privacy (DP) (bruit + clipping des gradients) pour empêcher la ré-identification.
+
+Alternatives/compléments
+
+Distillation de connaissances : le modèle global apprend de sorties/noisy logits, pas des données.
+
+Fédération d’analytique : partage d’agrégats statistiques (ex. distributions de features, SHA de règles) anonymisés + DP.
+
+Opt-in/opt-out par tenant + budget de confidentialité (ε) documenté.
+
+Pipeline MLOps “privacy-by-design”
+
+Séparation stricte des chemins : appr. global vs fine-tuning tenant.
+
+Registry de modèles avec tags global@vX et tenant-123@vY.
+
+Canary/A-B par tenant (pas de fuite en prod).
+
+Tests de fuite (mémorisation) avant promotion : membership inference / data extraction tests.
+
+3) Gouvernance, conformité et opérations
+DPA & RGPD
+
+Contrat de sous-traitance (DPA) : finalités, mesures techniques/organisationnelles, sous-traitants, transferts hors UE.
+
+DPIA si données sensibles.
+
+Clauses contractuelles types si traitements hors UE.
+
+Cycle de vie des données
+
+Rétention configurable par tenant (ex. 3/5/7 ans).
+
+Suppression : logique + crypto-shred (clé du tenant).
+
+Sauvegardes : chiffrées par tenant, restaurations testées, PRA par tenant.
+
+Accès support (JIT)
+
+Just-In-Time access : accès technique temporaire, approuvé à 4-yeux, enregistré, durée limitée.
+
+Bastion + session recording. Aucun accès direct aux données brutes sans consentement.
+
+Sécurité & audit
+
+ISO 27001 / SOC 2 (roadmap), tests d’intrusion annuels, scan SAST/DAST/IAST.
+
+Monitoring : détections d’accès cross-tenant, alerte SIEM.
+
+4) Points spécifiques GMAO/Diagnostic IA
+
+Vecteur-store par tenant pour symptômes/rapports (évite les “réponses croisées”).
+
+Règles expertes : instancier/paramétrer par tenant (seuils capteurs, règles métier).
+
+Explicabilité par tenant : SHAP/feature importance calculés localement ; aucun exemplaire d’un autre client n’est exposé.
+
+Exports/partages : uniquement via espaces sécurisés du tenant (pas d’URL publiques).
+
+5) Modèle d’opt-in clair (à mettre en CGU/CLUF)
+
+Par défaut : aucun partage de données.
+
+Option “Amélioration du modèle global” : seuls des poids/agrégats protégés (FL + DP) sont envoyés.
+
+Droit de retrait immédiat ; suppression rétroactive via crypto-shred.

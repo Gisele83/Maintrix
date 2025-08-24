@@ -33,6 +33,7 @@ import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
 import DownloadPage from "@/pages/download";
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
+import TenantManagement from "@/pages/tenant-management";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
@@ -165,6 +166,9 @@ function Router() {
       </Route>
       <Route path="/diagnostic-localhost">
         {(params) => <ProtectedRoute component={LocalhostDiagnostic} {...params} />}
+      </Route>
+      <Route path="/tenant-management">
+        {(params) => <ProtectedRoute component={TenantManagement} {...params} />}
       </Route>
       <Route path="/secure-validation">
         {(params) => <ProtectedRoute component={lazy(() => import("./pages/secure-validation"))} {...params} />}

@@ -1,15 +1,117 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, varchar, decimal, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar, decimal, jsonb, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
+
+// =======================
+// MULTI-TENANT ARCHITECTURE
+// =======================
+
+export const tenants = pgTable("tenants", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 100 }).unique(),
+  plan: varchar("plan", { length: 50 }).notNull().default("free"), // free, pro, business, enterprise
+  isActive: boolean("is_active").default(true),
+  maxUsers: integer("max_users").default(5),
+  currentUsers: integer("current_users").default(0),
+  dataRetentionDays: integer("data_retention_days").default(365),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  // Security & Compliance
+  encryptionEnabled: boolean("encryption_enabled").default(true),
+  gdprCompliant: boolean("gdpr_compliant").default(true),
+  auditLogsEnabled: boolean("audit_logs_enabled").default(true),
+  // Billing
+  subscriptionId: varchar("subscription_id", { length: 100 }),
+  trialEndDate: timestamp("trial_end_date"),
+  lastBillingDate: timestamp("last_billing_date"),
+  nextBillingDate: timestamp("next_billing_date"),
+  // Contact Info
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  billingAddress: jsonb("billing_address"), // Address object
+  // Settings
+  settings: jsonb("settings").default({}), // Tenant-specific configuration
+  features: jsonb("features").default({}), // Enabled features per tenant
+});
+
+// Federated Learning & AI Improvement
+export const federatedLearning = pgTable("federated_learning", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  patternHash: varchar("pattern_hash", { length: 64 }).notNull(), // Anonymized pattern identifier
+  equipmentCategory: varchar("equipment_category", { length: 100 }).notNull(),
+  problemPattern: jsonb("problem_pattern").notNull(), // Anonymized symptom patterns
+  solutionEffectiveness: real("solution_effectiveness"), // 0-1 success rate
+  anonymizedMetrics: jsonb("anonymized_metrics"), // Non-identifying performance data
+  contributionWeight: real("contribution_weight").default(1.0), // Contribution to global model
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// GDPR & Audit Compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id"), // References userProfiles.id
+  action: varchar("action", { length: 100 }).notNull(), // CREATE, READ, UPDATE, DELETE, EXPORT, etc.
+  resourceType: varchar("resource_type", { length: 100 }).notNull(), // table/entity name
+  resourceId: varchar("resource_id", { length: 100 }), // record ID
+  oldValues: jsonb("old_values"), // Previous state
+  newValues: jsonb("new_values"), // New state
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  sessionId: varchar("session_id", { length: 100 }),
+  timestamp: timestamp("timestamp").defaultNow(),
+  success: boolean("success").default(true),
+  errorMessage: text("error_message"),
+});
+
+export const dataRetention = pgTable("data_retention", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  resourceType: varchar("resource_type", { length: 100 }).notNull(),
+  resourceId: varchar("resource_id", { length: 100 }).notNull(),
+  retentionPolicy: varchar("retention_policy", { length: 50 }).notNull(), // days, months, years
+  retentionPeriod: integer("retention_period").notNull(),
+  scheduledDeletion: timestamp("scheduled_deletion"),
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  gdprRequestId: varchar("gdpr_request_id", { length: 36 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const gdprRequests = pgTable("gdpr_requests", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  requestType: varchar("request_type", { length: 50 }).notNull(), // access, portability, deletion, rectification
+  subjectEmail: varchar("subject_email", { length: 255 }).notNull(),
+  subjectUserId: integer("subject_user_id"),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, processing, completed, rejected
+  requestData: jsonb("request_data"),
+  responseData: jsonb("response_data"),
+  processedBy: integer("processed_by"), // Admin user ID
+  requestDate: timestamp("request_date").defaultNow(),
+  processedDate: timestamp("processed_date"),
+  completionDate: timestamp("completion_date"),
+  notes: text("notes"),
+});
+
+// =======================
+// EXISTING TABLES (NOW MULTI-TENANT)
+// =======================
 
 export const equipmentTypes = pgTable("equipment_types", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   nameEn: text("name_en").notNull(),
 });
 
 export const maintenanceCases = pgTable("maintenance_cases", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentType: text("equipment_type").notNull(),
   equipmentId: text("equipment_id"),
   zone: text("zone"),
@@ -27,6 +129,7 @@ export const maintenanceCases = pgTable("maintenance_cases", {
 
 export const repairProcedures = pgTable("repair_procedures", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   caseId: integer("case_id").references(() => maintenanceCases.id),
   stepNumber: integer("step_number").notNull(),
   title: text("title").notNull(),
@@ -43,6 +146,7 @@ export const repairProcedures = pgTable("repair_procedures", {
 
 export const reportedCases = pgTable("reported_cases", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentType: text("equipment_type").notNull(),
   equipmentId: text("equipment_id"),
   zone: text("zone"),
@@ -57,6 +161,7 @@ export const reportedCases = pgTable("reported_cases", {
 
 export const diagnosticSessions = pgTable("diagnostic_sessions", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentType: text("equipment_type").notNull(),
   equipmentId: text("equipment_id"),
   zone: text("zone"),
@@ -77,6 +182,7 @@ export const diagnosticSessions = pgTable("diagnostic_sessions", {
 // User profiles table - Extended with validation capabilities
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   username: varchar("username", { length: 50 }).notNull().unique(),
   firstName: varchar("first_name", { length: 50 }),
   lastName: varchar("last_name", { length: 50 }),
