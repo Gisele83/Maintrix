@@ -503,6 +503,124 @@ router.get('/api/admin/security/assessment', async (req: TenantRequest, res) => 
   }
 });
 
+// Tests de sécurité automatisés K6/OWASP (Admin uniquement)
+router.post('/api/admin/security/automated-tests', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for automated security tests" });
+    }
+
+    const { runCompleteSecurityAudit } = await import('./automated-security-testing');
+    const baseUrl = `http://localhost:5000`;
+    const tenantIds = req.body.tenantIds || ['demo-tenant-1', 'demo-tenant-2'];
+    const adminKey = req.headers['x-admin-key'] as string;
+
+    const auditResults = await runCompleteSecurityAudit(baseUrl, tenantIds, adminKey);
+    
+    res.json({
+      ...auditResults,
+      testExecutedAt: new Date().toISOString(),
+      configuration: {
+        baseUrl,
+        testedTenants: tenantIds,
+        testDuration: '2m',
+        virtualUsers: 20
+      }
+    });
+  } catch (error) {
+    console.error("Automated security tests error:", error);
+    res.status(500).json({ error: "Failed to run automated security tests" });
+  }
+});
+
+// Gestion KMS + crypto-shred (Admin uniquement) 
+router.post('/api/admin/kms/generate-tenant-key', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for KMS operations" });
+    }
+
+    const { tenantId } = req.body;
+    if (!tenantId) {
+      return res.status(400).json({ error: "tenantId is required" });
+    }
+
+    const { initializeTenantEncryption } = await import('./kms-encryption');
+    const tenantKey = await initializeTenantEncryption(tenantId);
+    
+    res.json({
+      success: true,
+      tenantKey: {
+        tenantId: tenantKey.tenantId,
+        keyId: tenantKey.keyId,
+        keyVersion: tenantKey.keyVersion,
+        algorithm: tenantKey.algorithm,
+        createdAt: tenantKey.createdAt,
+        isActive: tenantKey.isActive
+      }
+    });
+  } catch (error) {
+    console.error("KMS key generation error:", error);
+    res.status(500).json({ error: "Failed to generate tenant encryption key" });
+  }
+});
+
+router.post('/api/admin/kms/crypto-shred', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for crypto-shred operations" });
+    }
+
+    const { tenantId, reason } = req.body;
+    if (!tenantId) {
+      return res.status(400).json({ error: "tenantId is required for crypto-shred" });
+    }
+
+    const { performCryptoShred } = await import('./kms-encryption');
+    const shredResult = await performCryptoShred(tenantId, reason || 'GDPR_DELETION_REQUEST');
+    
+    res.json({
+      success: true,
+      shredResult,
+      warning: "All encrypted data for this tenant is now permanently unrecoverable"
+    });
+  } catch (error) {
+    console.error("Crypto-shred error:", error);
+    res.status(500).json({ error: "Failed to perform crypto-shred operation" });
+  }
+});
+
+// Génération NetworkPolicies K8s (Admin uniquement)
+router.get('/api/admin/k8s/network-policies/:tenantId', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for K8s operations" });
+    }
+
+    const { tenantId } = req.params;
+    const { K8sNetworkPolicyService } = await import('./k8s-network-policies');
+    
+    const policies = K8sNetworkPolicyService.generateAllTenantPolicies(tenantId);
+    const yamlManifests = K8sNetworkPolicyService.generateYamlManifests(tenantId);
+    const deploymentScript = K8sNetworkPolicyService.generateDeploymentScript(tenantId);
+    
+    res.json({
+      tenantId,
+      networkPolicies: policies,
+      kubernetesManifests: yamlManifests,
+      deploymentScript,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("K8s NetworkPolicies generation error:", error);
+    res.status(500).json({ error: "Failed to generate NetworkPolicies" });
+  }
+});
+
 // =======================
 // GDPR COMPLIANCE ROUTES
 // =======================
