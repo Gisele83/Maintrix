@@ -98,6 +98,67 @@ export const gdprRequests = pgTable("gdpr_requests", {
   notes: text("notes"),
 });
 
+// SECURE ENTERPRISE ACCESS: Invitation System
+export const invitations = pgTable("invitations", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  role: varchar("role", { length: 30 }).notNull().default("technician"), // owner, admin, maintainer, viewer, technician
+  permissions: jsonb("permissions").default([]), // Specific permissions array
+  invitedBy: integer("invited_by").references(() => userProfiles.id), // Who sent the invitation
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(), // SHA-256 hash of invitation token
+  expiresAt: timestamp("expires_at").notNull(), // Invitation expiration (24h-7d)
+  usedAt: timestamp("used_at"), // When invitation was accepted
+  createdAt: timestamp("created_at").defaultNow(),
+  isRevoked: boolean("is_revoked").default(false), // Admin can revoke invitations
+  revokedAt: timestamp("revoked_at"),
+  revokedBy: integer("revoked_by").references(() => userProfiles.id),
+});
+
+// SECURE ENTERPRISE ACCESS: Domain Allowlist
+export const allowedDomains = pgTable("allowed_domains", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  domain: varchar("domain", { length: 100 }).notNull(), // e.g., "entreprise.com"
+  isVerified: boolean("is_verified").default(false), // DNS TXT verification status
+  verificationToken: varchar("verification_token", { length: 64 }),
+  verifiedAt: timestamp("verified_at"),
+  autoProvision: boolean("auto_provision").default(false), // Auto-create accounts for this domain
+  defaultRole: varchar("default_role", { length: 30 }).default("viewer"),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: integer("created_by").references(() => userProfiles.id),
+});
+
+// SECURE ENTERPRISE ACCESS: Session Management
+export const userSessions = pgTable("user_sessions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: integer("user_id").references(() => userProfiles.id, { onDelete: "cascade" }).notNull(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  sessionToken: varchar("session_token", { length: 128 }).notNull().unique(),
+  refreshToken: varchar("refresh_token", { length: 128 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at").notNull(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+  revokedReason: varchar("revoked_reason", { length: 100 }), // logout, timeout, security, admin
+});
+
+// SECURE ENTERPRISE ACCESS: Rate Limiting
+export const rateLimits = pgTable("rate_limits", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  identifier: varchar("identifier", { length: 100 }).notNull(), // IP, userID, tenantID
+  identifierType: varchar("identifier_type", { length: 20 }).notNull(), // ip, user, tenant
+  endpoint: varchar("endpoint", { length: 100 }).notNull(), // /api/auth/login, /api/diagnostic
+  requestCount: integer("request_count").default(0),
+  windowStart: timestamp("window_start").defaultNow(),
+  isBlocked: boolean("is_blocked").default(false),
+  blockExpiresAt: timestamp("block_expires_at"),
+  lastRequestAt: timestamp("last_request_at").defaultNow(),
+});
+
 // =======================
 // EXISTING TABLES (NOW MULTI-TENANT)
 // =======================

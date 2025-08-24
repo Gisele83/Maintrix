@@ -50,6 +50,8 @@ import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
+import enterpriseAuthRoutes from "./enterprise-auth-routes";
+import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -552,6 +554,20 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC IMMÉDIATEMENT
+  app.use(blockPublicAccess);
+  
+  // 🔐 PRIORITÉ 1: AUTHENTIFICATION OBLIGATOIRE SUR TOUTES LES ROUTES API
+  // Plus d'accès anonyme - fini le "guest mode"
+  app.use('/api', EnterpriseAuthMiddleware.requireAuthentication);
+  app.use('/gmao', EnterpriseAuthMiddleware.requireAuthentication);
+  
+  // 🔐 COOKIES SÉCURISÉS (HttpOnly + SameSite + Secure)
+  app.use(EnterpriseAuthMiddleware.configureSecureCookies);
+  
+  // 📧 PRIORITÉ 3: ROUTES D'INVITATIONS ENTERPRISE
+  app.use('/api/enterprise-auth', enterpriseAuthRoutes);
+  
   // Register authentication routes
   const { registerAuthRoutes } = await import("./auth-routes");
   registerAuthRoutes(app);

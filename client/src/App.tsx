@@ -170,6 +170,9 @@ function Router() {
       <Route path="/tenant-management">
         {(params) => <ProtectedRoute component={TenantManagement} {...params} />}
       </Route>
+      <Route path="/enterprise-auth-test">
+        {(params) => <ProtectedRoute component={lazy(() => import("./pages/enterprise-auth-test"))} {...params} />}
+      </Route>
       <Route path="/secure-validation">
         {(params) => <ProtectedRoute component={lazy(() => import("./pages/secure-validation"))} {...params} />}
       </Route>
