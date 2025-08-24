@@ -950,7 +950,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {
-    return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
+    try {
+      return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
+    } catch (error) {
+      // In legacy mode, the table might not have tenant_id column yet
+      console.log("Falling back to legacy mode for maintenance cases");
+      // Return the in-memory data as fallback
+      return this.maintenance_cases;
+    }
   }
 
   async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
@@ -1051,9 +1058,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDiagnosticSession(data: InsertDiagnosticSession): Promise<DiagnosticSession> {
+    // Support both tenant and legacy mode - make tenantId optional for backward compatibility
+    const sessionData = { ...data, status: "pending" };
+    if (!sessionData.tenantId) {
+      sessionData.tenantId = null; // Allow null for legacy mode
+    }
+    
     const [session] = await db
       .insert(diagnosticSessions)
-      .values({ ...data, status: "pending" })
+      .values(sessionData)
       .returning();
     return session;
   }

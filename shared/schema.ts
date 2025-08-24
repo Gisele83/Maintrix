@@ -209,6 +209,9 @@ export const userProfiles = pgTable("user_profiles", {
 export const insertMaintenanceCaseSchema = createInsertSchema(maintenanceCases).omit({
   id: true,
   createdAt: true,
+}).extend({
+  // Make tenantId optional for backward compatibility  
+  tenantId: z.string().nullable().optional(),
 });
 
 export const insertRepairProcedureSchema = createInsertSchema(repairProcedures).omit({
@@ -235,6 +238,8 @@ export const insertDiagnosticSessionSchema = createInsertSchema(diagnosticSessio
   }),
   // Make symptomsChecked optional since it can be derived from symptoms
   symptomsChecked: z.array(z.string()).optional(),
+  // Make tenantId optional for backward compatibility
+  tenantId: z.string().nullable().optional(),
 });
 
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
