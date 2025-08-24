@@ -1,0 +1,73 @@
+passer d’un accès public par lien à un accès contrôlé par identité + autorisation + périmètre entreprise (tenant). Voici un plan concret, classé par priorité, avec idées d’implémentation et snippets.
+0) Bloquer immédiatement l’accès public
+·	Désactive l’accès anonyme (no “guest mode”).
+·	Force login sur toutes les routes (reverse proxy ou middleware).
+·	Cache & CDN : interdits pour les pages privées sans entête Cache-Control: private.
+·	Robots: X-Robots-Tag: noindex, nofollow et robots.txt pour éviter l’indexation.
+1) Authentification (qui es-tu ?)
+·	Email+mot de passe sécurisé et MFA (TOTP/SMS/email-link).
+·	SSO OIDC/SAML (Azure AD/Okta/Google Workspace) pour les entreprises.
+·	Vérification d’email obligatoire avant premier accès.
+·	Politique mots de passe + bruteforce protection (rate limit + captcha).
+·	Sessions courtes, cookies HttpOnly, SameSite=Lax/Strict, TLS obligatoire.
+Middleware (FastAPI – schéma)
+def require_auth(request):
+    token = parse_bearer(request)
+    claims = verify_jwt(token)            # signature + aud + exp
+    request.user = claims["sub"]
+    request.tenant_id = claims["tenant_id"]
+
+2) Autorisation & multi-tenant (que peux-tu faire ?)
+·	Modèle RBAC : owner, admin, maintainer, viewer.
+·	Scope par entreprise (tenant) : toutes les requêtes filtrées par tenant_id.
+·	RLS PostgreSQL (si DB partagée) ou DB par tenant (isolation forte).
+PostgreSQL RLS (isolation par tenant)
+ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON work_orders
+USING (tenant_id = current_setting('app.tenant_id')::uuid);
+
+-- Côté API (par requête)
+SET app.tenant_id = '...';  -- issu du JWT
+3) Contrôler l’inscription et la création de comptes
+Choisis un de ces modèles d’onboarding (tu peux en combiner) :
+A) Sur invitation uniquement (recommandé au début)
+·	Un owner d’entreprise invite par email.
+·	Le lien d’invitation est à usage unique, expire, et scopé au tenant.
+·	Pas d’auto-inscription publique.
+B) Allowlist de domaine
+·	Autoriser les inscriptions uniquement depuis des domaines vérifiés (ex. @entreprise.com).
+·	Le domaine est validé par DNS TXT avant activation des comptes.
+C) Demande d’accès (workflow d’approbation)
+·	Formulaire → vérif manuelle/automatisée → approval → email d’activation.
+·	Empêche l’ouverture sauvage de comptes.
+Schéma d’invitation (table)
+invitations(id, tenant_id, email, role, expires_at, used_at, token_hash)
+
+Au signup, on exige un token d’invitation valide → on crée l’utilisateur dans le bon tenant.
+4) Parcours “Entreprise autorisée”
+1.	Création tenant par l’admin plateforme (ou self-service avec vérif domaine + billing).
+2.	Owner défini (contrat accepté, CGU/CLUF).
+3.	Vérif domaine (DNS TXT) → permet SSO et auto-provisionnement interne.
+4.	Invitations des collègues (rôles assignés).
+5.	SSO activé (OIDC/SAML) + MFA exigé.
+5) Limiter l’usage et protéger contre l’abus
+·	Rate limiting par IP, compte, et tenant (clé: tenant_id:route).
+·	Quotas & plans : nombre d’utilisateurs, appels API, stockage, jobs d’IA.
+·	Feature flags / entitlements liés au plan (ex.: module IA avancé).
+·	Pare-feu d’API (WAF) + détection d’anomalies (ex. spikes d’inférence).
+6) Cloisonnement réseau & secrets
+·	Namespaces K8s séparés par environnement (prod/staging) + NetworkPolicies (deny-all par défaut, allowlist par rôle).
+·	mTLS service-to-service.
+·	KMS pour secrets, rotation régulière.
+·	Objets/embeddings par tenant (préfixes/buckets séparés).
+7) Sécurité produit (front & API)
+·	Ne jamais rendre publiques les routes internes (swagger, debug).
+·	Désactiver les “liens magiques” permanents (signer, expirer, scope).
+·	CSRF pour les requêtes state-changing si cookies.
+·	Validation d’entrée stricte (OWASP API Top-10), mass-assignment & BOLA.
+8) Journalisation, audit, conformité
+·	Logs d’audit : connexion, création d’utilisateurs, changements de rôles, export de données.
+·	Redaction des PII (emails, numéros) dans les logs applicatifs.
+·	CGU/CLUF/DPA : inclure conditions d’accès, MFA, SSO, rétention, opt-in ML fédéré.
+
