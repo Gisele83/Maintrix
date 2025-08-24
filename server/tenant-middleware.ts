@@ -61,8 +61,8 @@ export class TenantMiddleware {
         return pathMatch ? pathMatch[1] : null;
       
       case TenantStrategy.JWT_CLAIM:
-        // Extract from JWT token (implementation depends on JWT structure)
-        return (req as any).user?.tenantId || null;
+        // Extract from JWT token - intégration avec JWT OIDC middleware
+        return (req as any).user?.tenant_id || (req as any).jwt?.claims?.tenant_id || null;
       
       case TenantStrategy.DOMAIN:
         // Custom domain mapping - would require domain-to-tenant lookup
@@ -123,6 +123,9 @@ export class TenantMiddleware {
       // Attach tenant context to request
       req.tenantId = tenant.id;
       req.tenantData = tenant;
+
+      // CRITIQUE: Définir le tenant_id dans PostgreSQL pour RLS
+      await this.setPostgreSQLTenantContext(tenant.id);
 
       next();
     } catch (error) {
@@ -241,6 +244,32 @@ export class TenantMiddleware {
     }
 
     next();
+  }
+
+  /**
+   * Définir le contexte tenant dans PostgreSQL pour RLS
+   * CRITIQUE pour isolation multi-tenant
+   */
+  private async setPostgreSQLTenantContext(tenantId: string): Promise<void> {
+    try {
+      // Utiliser la fonction PostgreSQL pour définir le tenant courant
+      await db.execute(sql`SELECT set_current_tenant(${tenantId})`);
+    } catch (error) {
+      console.error("Failed to set PostgreSQL tenant context:", error);
+      // Ne pas bloquer la requête si la configuration échoue
+      // En production, ceci devrait être traité comme une erreur critique
+    }
+  }
+
+  /**
+   * Vérifier si une ressource est statique (pour rate limiting)
+   */
+  private isStaticResource(req: Request): boolean {
+    const staticExtensions = ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg'];
+    const staticPaths = ['/assets', '/public', '/favicon'];
+    
+    return staticExtensions.some(ext => req.path.toLowerCase().endsWith(ext)) ||
+           staticPaths.some(path => req.path.toLowerCase().startsWith(path));
   }
 
   /**

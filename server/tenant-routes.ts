@@ -429,6 +429,81 @@ router.post('/api/tenant/federated-learning/update-model', async (req: TenantReq
 });
 
 // =======================
+// TESTS D'ISOLATION AUTOMATISÉS 
+// =======================
+
+// Test de sécurité multi-tenant - vérification isolation (Admin uniquement)
+router.post('/api/admin/security/test-isolation', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for security tests" });
+    }
+
+    const { TenantIsolationTester } = await import('./tenant-isolation-tests');
+    const testResults = await TenantIsolationTester.runAllTests();
+    
+    // Calculer score de sécurité
+    const passedTests = testResults.filter(t => t.passed).length;
+    const totalTests = testResults.length;
+    const securityScore = Math.round((passedTests / totalTests) * 100);
+    
+    res.json({
+      securityScore,
+      testResults,
+      isolationStatus: securityScore === 100 ? "SECURE" : "VULNERABLE", 
+      passedTests,
+      totalTests,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error("Security test error:", error);
+    res.status(500).json({ error: "Failed to run isolation tests" });
+  }
+});
+
+// Test de performance RLS (Admin uniquement)
+router.post('/api/admin/security/test-performance', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { TenantIsolationTester } = await import('./tenant-isolation-tests');
+    const performanceResult = await TenantIsolationTester.runPerformanceTest();
+    
+    res.json(performanceResult);
+  } catch (error) {
+    console.error("Performance test error:", error);
+    res.status(500).json({ error: "Failed to run performance test" });
+  }
+});
+
+// Évaluation complète multi-tenant (Admin uniquement)
+router.get('/api/admin/security/assessment', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required for security assessment" });
+    }
+
+    const { MultiTenantAssessment } = await import('./multi-tenant-assessment');
+    const fullAssessment = await MultiTenantAssessment.generateFullAssessment();
+    const validationResults = await MultiTenantAssessment.runSecurityValidation();
+    
+    res.json({
+      ...fullAssessment,
+      isolationValidation: validationResults,
+      reportGenerated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Security assessment error:", error);
+    res.status(500).json({ error: "Failed to generate security assessment" });
+  }
+});
+
+// =======================
 // GDPR COMPLIANCE ROUTES
 // =======================
 
