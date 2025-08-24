@@ -79,20 +79,7 @@ export function Header() {
                 <span>Accès</span>
               </Button>
             </Link>
-            <Link href="/security-dashboard">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`flex items-center space-x-2 transition-all duration-200 ${
-                  location === "/security-dashboard" 
-                    ? "bg-carbon-blue/20 text-carbon-blue" 
-                    : "text-carbon-gray-30 hover:text-white hover:bg-carbon-gray-70"
-                }`}
-              >
-                <Shield className="w-4 h-4" />
-                <span>Sécurité</span>
-              </Button>
-            </Link>
+            {/* ✅ MIGRATION COMPLÈTE : Sécurité intégrée dans enterprise auth */}
             <Link href="/support-chatbot">
               <Button
                 variant="ghost"

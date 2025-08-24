@@ -20,22 +20,22 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
-  // Check if user is authenticated by checking token
+  // ✅ ENTERPRISE AUTH: Use enterprise profile endpoint and sessionToken
   const { data: user, isLoading: queryLoading } = useQuery({
-    queryKey: ["/api/auth/profile"],
+    queryKey: ["/api/enterprise-auth/profile"],
     queryFn: async () => {
-      const token = localStorage.getItem("auth_token");
+      const token = localStorage.getItem("sessionToken");
       if (!token) {
-        throw new Error("No token");
+        throw new Error("No session token");
       }
-      return apiRequest("/api/auth/profile");
+      return apiRequest("/api/enterprise-auth/profile");
     },
     retry: false,
-    enabled: !!localStorage.getItem("auth_token"),
+    enabled: !!localStorage.getItem("sessionToken"),
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("sessionToken");
     if (!token && !queryLoading) {
       setIsLoading(false);
     } else if (token && !queryLoading) {
@@ -44,18 +44,18 @@ export function useAuth() {
   }, [queryLoading]);
 
   const login = (token: string, userData: User) => {
-    localStorage.setItem("auth_token", token);
+    localStorage.setItem("sessionToken", token);
     localStorage.setItem("user_data", JSON.stringify(userData));
-    queryClient.setQueryData(["/api/auth/profile"], userData);
+    queryClient.setQueryData(["/api/enterprise-auth/profile"], userData);
   };
 
   const logout = async () => {
     try {
-      await apiRequest("/api/auth/logout", { method: "POST" });
+      await apiRequest("/api/enterprise-auth/logout", { method: "POST" });
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
-      localStorage.removeItem("auth_token");
+      localStorage.removeItem("sessionToken");
       localStorage.removeItem("user_data");
       localStorage.removeItem("guestSession");
       queryClient.clear();
@@ -63,14 +63,12 @@ export function useAuth() {
     }
   };
 
-  // Check if guest session exists
-  const isGuestSession = localStorage.getItem('guestSession') === 'true';
-  const isAuthenticated = (!!user && !!localStorage.getItem("auth_token")) || isGuestSession;
+  // ✅ ENTERPRISE AUTH: Plus de guest session - authentification obligatoire
+  const isAuthenticated = !!user && !!localStorage.getItem("sessionToken");
 
   return {
     user,
     isAuthenticated,
-    isGuest: isGuestSession && !user,
     isLoading: isLoading || queryLoading,
     login,
     logout,

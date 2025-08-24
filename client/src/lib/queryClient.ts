@@ -19,8 +19,8 @@ export async function apiRequest(
   
   const headers: Record<string, string> = body ? { "Content-Type": "application/json" } : {};
   
-  // Add authorization header if token exists
-  const token = localStorage.getItem("auth_token");
+  // ✅ ENTERPRISE AUTH: Use sessionToken instead of legacy auth_token
+  const token = localStorage.getItem("sessionToken");
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -44,8 +44,8 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const headers: Record<string, string> = {};
     
-    // Add authorization header if token exists
-    const token = localStorage.getItem("auth_token");
+    // ✅ ENTERPRISE AUTH: Use sessionToken instead of legacy auth_token
+    const token = localStorage.getItem("sessionToken");
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }

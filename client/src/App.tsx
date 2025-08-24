@@ -19,7 +19,7 @@ import Payment from "@/pages/payment";
 import PaymentSecurity from "@/pages/payment-security";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
-import SecurityDashboard from "@/pages/security-dashboard";
+// ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
@@ -110,9 +110,7 @@ function Router() {
       <Route path="/access-management">
         {(params) => <ProtectedRoute component={AccessManagement} {...params} />}
       </Route>
-      <Route path="/security-dashboard">
-        {(params) => <ProtectedRoute component={SecurityDashboard} {...params} />}
-      </Route>
+      {/* ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé */}
       <Route path="/support-chatbot">
         {(params) => <ProtectedRoute component={SupportChatbot} {...params} />}
       </Route>

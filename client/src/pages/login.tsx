@@ -69,15 +69,15 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const response = await apiRequest("/api/auth/login", {
+      const response = await apiRequest("/api/enterprise-auth/login", {
         method: "POST",
-        body: data,
+        body: { email: data.username, password: data.password },
       });
       return response;
     },
     onSuccess: (data) => {
-      // Store token in localStorage
-      localStorage.setItem("auth_token", data.token);
+      // ✅ ENTERPRISE AUTH: Use sessionToken from enterprise auth response
+      localStorage.setItem("sessionToken", data.sessionToken);
       localStorage.setItem("user_data", JSON.stringify(data.user));
       
       queryClient.invalidateQueries();

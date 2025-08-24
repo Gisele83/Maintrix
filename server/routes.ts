@@ -17,7 +17,6 @@ import {
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, like } from "drizzle-orm";
-import { registerAuthRoutes } from "./auth-routes";
 import { 
   insertMaintenanceCaseSchema, 
   insertReportedCaseSchema, 
@@ -568,9 +567,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', EnterpriseAuthMiddleware.requireAuthentication);
   app.use('/gmao', EnterpriseAuthMiddleware.requireAuthentication);
   
-  // Register authentication routes
-  const { registerAuthRoutes } = await import("./auth-routes");
-  registerAuthRoutes(app);
+  // ✅ MIGRATION COMPLÈTE : Ancien système d'auth supprimé
+  // Plus de registerAuthRoutes legacy - système enterprise uniquement
   
   // Appliquer les mesures de sécurité globales
   app.use(securityHeaders);
@@ -578,9 +576,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(anomalyDetection);
   app.use(jsonErrorHandler);
   
-  // Register validation system authentication avec rate limiting
-  app.use('/api/auth', authRateLimit);
-  registerAuthRoutes(app);
+  // ✅ MIGRATION COMPLÈTE : Rate limiting pour routes enterprise uniquement
+  app.use('/api/enterprise-auth', authRateLimit);
   
   // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
   app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);

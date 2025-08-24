@@ -30,7 +30,7 @@ export function ModernNavigation() {
     { name: "GMAO", href: "/gmao", icon: Settings },
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
-    { name: "Sécurité", href: "/security-dashboard", icon: Shield },
+    // ✅ MIGRATION COMPLÈTE : Sécurité intégrée dans enterprise auth
   ];
 
   return (
