@@ -59,8 +59,34 @@ export function registerGMAORoutes(app: Express) {
       // First validate with Zod (expects strings for date fields)
       const validatedData = insertEquipmentRegistrySchema.parse(req.body);
       
+      // Generate unique equipmentId if not provided or if it already exists
+      let equipmentId = validatedData.equipmentId;
+      
+      if (!equipmentId || await gmaoStorage.getEquipmentByEquipmentId(equipmentId)) {
+        // Generate new unique equipmentId
+        let isUnique = false;
+        let attempts = 0;
+        
+        while (!isUnique && attempts < 10) {
+          equipmentId = `EQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const existing = await gmaoStorage.getEquipmentByEquipmentId(equipmentId);
+          isUnique = !existing;
+          attempts++;
+        }
+        
+        if (!isUnique) {
+          throw new Error("Failed to generate unique equipment ID after 10 attempts");
+        }
+        
+        console.log(`Generated unique equipmentId: ${equipmentId}`);
+      }
+      
       // Then convert date strings to Date objects for database storage
-      const processedData = { ...validatedData };
+      const processedData = { 
+        ...validatedData, 
+        equipmentId // Use the generated or validated unique ID
+      };
+      
       if (processedData.installationDate && typeof processedData.installationDate === 'string') {
         processedData.installationDate = new Date(processedData.installationDate);
       }

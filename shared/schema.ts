@@ -579,6 +579,7 @@ export const insertEquipmentRegistrySchema = createInsertSchema(equipmentRegistr
   createdAt: true,
   updatedAt: true,
 }).extend({
+  equipmentId: z.string().optional(), // Make equipmentId optional so it can be auto-generated
   installationDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
   warrantyExpiry: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
