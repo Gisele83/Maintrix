@@ -36,7 +36,10 @@ export default function EnterpriseAuthTest() {
    */
   const handleCreateInvitation = async () => {
     try {
-      const response = await apiRequest('POST', '/api/enterprise-auth/invitations/create', { body: invitationData });
+      const response = await apiRequest('/api/enterprise-auth/invitations/create', { 
+        method: 'POST',
+        body: invitationData 
+      });
       
       setInvitationResult(response);
       toast({
@@ -59,9 +62,14 @@ export default function EnterpriseAuthTest() {
    */
   const handleEnterpriseLogin = async () => {
     try {
-      const response = await apiRequest('POST', '/api/enterprise-auth/login', { body: loginData });
+      const response = await apiRequest('/api/enterprise-auth/login', { 
+        method: 'POST',
+        body: loginData 
+      });
       
       setSessionInfo(response);
+      // Sauvegarder le token avec la clé attendue par apiRequest
+      localStorage.setItem('auth_token', response.sessionToken);
       localStorage.setItem('sessionToken', response.sessionToken);
       
       toast({
@@ -84,7 +92,7 @@ export default function EnterpriseAuthTest() {
    */
   const handleVerifyInvitation = async () => {
     try {
-      const response = await apiRequest('GET', `/api/enterprise-auth/invitations/verify/${verifyToken}`);
+      const response = await apiRequest(`/api/enterprise-auth/invitations/verify/${verifyToken}`);
       
       setVerificationResult(response);
       toast({
@@ -107,9 +115,10 @@ export default function EnterpriseAuthTest() {
    */
   const handleLogout = async () => {
     try {
-      await apiRequest('POST', '/api/enterprise-auth/logout', {});
+      await apiRequest('/api/enterprise-auth/logout', { method: 'POST' });
       
       setSessionInfo(null);
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('sessionToken');
       
       toast({
