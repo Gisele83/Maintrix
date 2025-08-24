@@ -34,6 +34,9 @@ export class EnterpriseAuthMiddleware {
       '/api/auth/login',
       '/api/auth/register-invitation', 
       '/api/auth/verify-invitation',
+      '/api/enterprise-auth/login',
+      '/api/enterprise-auth/invitations/verify',
+      '/api/enterprise-auth/invitations/accept',
       '/api/health',
       '/api/ping'
     ];

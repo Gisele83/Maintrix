@@ -6,7 +6,7 @@ import {
   acceptInvitationSchema, 
   addDomainSchema 
 } from "./invitation-system";
-import { userSessions, userProfiles } from "@shared/schema";
+import { userSessions, userProfiles, invitations } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
@@ -288,7 +288,7 @@ router.post('/login',
       }
       
       // Vérifier le mot de passe
-      const passwordMatch = await bcrypt.compare(password, user.password);
+      const passwordMatch = await bcrypt.compare(password, user.password || '');
       if (!passwordMatch) {
         return res.status(401).json({
           error: "INVALID_CREDENTIALS",
@@ -303,7 +303,7 @@ router.post('/login',
       
       const [session] = await db.insert(userSessions).values({
         userId: user.id,
-        tenantId: user.tenantId,
+        tenantId: user.tenantId || 'default-tenant',
         sessionToken,
         refreshToken,
         ipAddress: req.ip || 'unknown',
@@ -461,14 +461,14 @@ router.get('/admin/invitations',
         });
       }
       
-      const invitations = await db
+      const invitationList = await db
         .select()
         .from(invitations)
         .where(eq(invitations.tenantId, req.tenantId));
       
       res.json({
         success: true,
-        invitations: invitations.map(inv => ({
+        invitations: invitationList.map((inv: any) => ({
           id: inv.id,
           email: inv.email,
           role: inv.role,

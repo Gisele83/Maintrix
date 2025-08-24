@@ -554,19 +554,19 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC IMMÉDIATEMENT
+  // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC IMMÉDIATEMENT (headers sécurité uniquement)
   app.use(blockPublicAccess);
-  
-  // 🔐 PRIORITÉ 1: AUTHENTIFICATION OBLIGATOIRE SUR TOUTES LES ROUTES API
-  // Plus d'accès anonyme - fini le "guest mode"
-  app.use('/api', EnterpriseAuthMiddleware.requireAuthentication);
-  app.use('/gmao', EnterpriseAuthMiddleware.requireAuthentication);
   
   // 🔐 COOKIES SÉCURISÉS (HttpOnly + SameSite + Secure)
   app.use(EnterpriseAuthMiddleware.configureSecureCookies);
   
-  // 📧 PRIORITÉ 3: ROUTES D'INVITATIONS ENTERPRISE
+  // 📧 PRIORITÉ 1: ROUTES D'AUTHENTIFICATION ENTERPRISE (AVANT le middleware d'auth global)
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
+  
+  // 🔐 PRIORITÉ 2: AUTHENTIFICATION OBLIGATOIRE SUR TOUTES LES AUTRES ROUTES API
+  // Plus d'accès anonyme - fini le "guest mode" (APRÈS les routes d'auth)
+  app.use('/api', EnterpriseAuthMiddleware.requireAuthentication);
+  app.use('/gmao', EnterpriseAuthMiddleware.requireAuthentication);
   
   // Register authentication routes
   const { registerAuthRoutes } = await import("./auth-routes");
