@@ -113,16 +113,12 @@ export default function SecureValidation() {
     mutationFn: async ({ orderId, action, comments }: { orderId: number; action: 'validate' | 'reject'; comments: string }) => {
       return await apiRequest("/api/validation/purchase-orders/validate", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           purchaseorderId: orderId,
           action,
           validationLevel: user?.validationLevel,
           validatorId: user?.matricule,
           comments
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`
         }
       });
     },
@@ -136,16 +132,12 @@ export default function SecureValidation() {
     mutationFn: async ({ workOrderId, action, comments }: { workOrderId: number; action: 'validate' | 'reject'; comments: string }) => {
       return await apiRequest("/api/validation/work-orders/validate", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           workOrderId,
           action,
           validationLevel: user?.validationLevel,
           validatorId: user?.matricule,
           comments
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`
         }
       });
     },
@@ -173,7 +165,15 @@ export default function SecureValidation() {
   };
 
   if (!user) {
-    return <ValidationLogin onLoginSuccess={handleLoginSuccess} />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Authentification requise</h2>
+          <p className="text-gray-600 mb-4">Veuillez vous connecter pour accéder à cette page.</p>
+          <Button onClick={() => window.location.href = "/login"}>Se connecter</Button>
+        </div>
+      </div>
+    );
   }
 
   return (

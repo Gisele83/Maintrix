@@ -80,16 +80,17 @@ export default function LoginPage() {
       localStorage.setItem("sessionToken", data.sessionToken);
       localStorage.setItem("user_data", JSON.stringify(data.user));
       
-      queryClient.invalidateQueries();
+      // ✅ FIX: Invalider spécifiquement la query d'auth
+      queryClient.setQueryData(["/api/enterprise-auth/profile"], data.user);
+      queryClient.invalidateQueries({ queryKey: ["/api/enterprise-auth/profile"] });
+      
       toast({
         title: "Connexion réussie",
         description: `Bienvenue ${data.user.firstName || data.user.username} !`,
       });
       
-      // Force page reload to ensure proper authentication state
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+      // ✅ FIX: Redirection immédiate sans délai
+      setLocation("/");
     },
     onError: (error: any) => {
       toast({
@@ -103,7 +104,7 @@ export default function LoginPage() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterForm) => {
       const { confirmPassword, ...registerData } = data;
-      const response = await apiRequest("/api/auth/register", {
+      const response = await apiRequest("/api/enterprise-auth/register", {
         method: "POST",
         body: registerData,
       });

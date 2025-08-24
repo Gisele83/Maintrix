@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 export function ModernNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
-  const { user, logout, isGuest } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -46,11 +46,7 @@ export function ModernNavigation() {
                 <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Smart GMAO
                 </span>
-                {isGuest && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-300">
-                    🚀 Mode Démonstration
-                  </span>
-                )}
+                {/* ✅ ENTERPRISE AUTH : Plus de mode démonstration */}
               </div>
             </Link>
           </div>
@@ -79,14 +75,9 @@ export function ModernNavigation() {
 
           {/* User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            {isGuest && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-300">
-                🚀 Mode Démonstration
-              </span>
-            )}
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <User className="w-4 h-4" />
-              <span>{isGuest ? "Utilisateur Invité" : (user?.firstName || user?.username)}</span>
+              <span>{user?.firstName || user?.username}</span>
             </div>
             <Button 
               variant="outline" 
@@ -95,7 +86,7 @@ export function ModernNavigation() {
               className="flex items-center space-x-2"
             >
               <LogOut className="w-4 h-4" />
-              <span>{isGuest ? "Quitter" : "Déconnexion"}</span>
+              <span>Déconnexion</span>
             </Button>
           </div>
 
@@ -160,7 +151,7 @@ export function ModernNavigation() {
                   className="flex items-center space-x-1"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>{isGuest ? "Quitter" : "Déconnexion"}</span>
+                  <span>Déconnexion</span>
                 </Button>
               </div>
             </div>
