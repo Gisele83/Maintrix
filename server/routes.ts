@@ -51,6 +51,7 @@ import tenantRoutes from "./tenant-routes";
 import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
+import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -553,6 +554,11 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // =====================================================
+  // 🚀 MULTI-TENANT SAAS ARCHITECTURE ACTIVATION
+  // =====================================================
+  setupCompleteMultiTenantArchitecture(app);
+  
   // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC IMMÉDIATEMENT (headers sécurité uniquement)
   app.use(blockPublicAccess);
   

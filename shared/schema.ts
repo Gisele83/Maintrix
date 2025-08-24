@@ -483,6 +483,7 @@ export const workOrders = pgTable("work_orders", {
 // Preventive Maintenance Plans
 export const preventiveMaintenancePlans = pgTable("preventive_maintenance_plans", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   planName: text("plan_name").notNull(),
   equipmentType: text("equipment_type").notNull(),
   equipmentIds: jsonb("equipment_ids"), // Array of equipment IDs covered by this plan
@@ -501,6 +502,7 @@ export const preventiveMaintenancePlans = pgTable("preventive_maintenance_plans"
 // Spare Parts Inventory Management
 export const spareParts = pgTable("spare_parts", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   partNumber: varchar("part_number", { length: 100 }).notNull().unique(),
   partName: text("part_name").notNull(),
   description: text("description"),
@@ -524,6 +526,7 @@ export const spareParts = pgTable("spare_parts", {
 // Stock Movements - Enhanced for complete inventory tracking
 export const stockMovements = pgTable("stock_movements", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   sparePartId: integer("spare_part_id").references(() => spareParts.id).notNull(),
   movementType: varchar("movement_type", { length: 20 }).notNull(), // 'IN', 'OUT', 'ADJUSTMENT', 'RETURN'
   quantity: integer("quantity").notNull(),
@@ -557,6 +560,7 @@ export const iotSensorData = pgTable("iot_sensor_data", {
 // Predictive Analytics Data
 export const predictiveAnalytics = pgTable("predictive_analytics", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   analysisType: varchar("analysis_type", { length: 50 }).notNull(), // rul, anomaly, pattern, trend
   predictionDate: timestamp("prediction_date").defaultNow(),
@@ -575,6 +579,7 @@ export const predictiveAnalytics = pgTable("predictive_analytics", {
 // KPI Metrics Tracking
 export const kpiMetrics = pgTable("kpi_metrics", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   metricType: varchar("metric_type", { length: 50 }).notNull(), // mtbf, mttr, availability, oee, cost
   metricValue: decimal("metric_value", { precision: 15, scale: 6 }).notNull(),
@@ -587,6 +592,7 @@ export const kpiMetrics = pgTable("kpi_metrics", {
 // ERP/MES Integration Log
 export const integrationLog = pgTable("integration_log", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   systemName: varchar("system_name", { length: 100 }).notNull(), // SAP, Maximo, MES, etc.
   operationType: varchar("operation_type", { length: 50 }).notNull(), // sync, push, pull, update
   entityType: varchar("entity_type", { length: 50 }).notNull(), // work_order, equipment, spare_part
@@ -601,6 +607,7 @@ export const integrationLog = pgTable("integration_log", {
 // Alerts and Notifications
 export const alertsNotifications = pgTable("alerts_notifications", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   alertType: varchar("alert_type", { length: 50 }).notNull(), // threshold, anomaly, maintenance_due, stock_low
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   severity: varchar("severity", { length: 20 }).default("medium"), // low, medium, high, critical
@@ -620,6 +627,7 @@ export const alertsNotifications = pgTable("alerts_notifications", {
 // Validation Logs table - Track all validation steps for audit
 export const validationLogs = pgTable("validation_logs", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   recordType: varchar("record_type", { length: 30 }).notNull(), // work_order, purchase_order
   recordId: integer("record_id").notNull(),
   validationLevel: integer("validation_level").notNull(), // 1, 2, 3
@@ -1019,6 +1027,7 @@ export type InsertUserChallengeProgress = z.infer<typeof insertUserChallengeProg
 // Suppliers/Manufacturers table
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   supplierCode: varchar("supplier_code", { length: 50 }).unique().notNull(),
   companyName: varchar("company_name", { length: 200 }).notNull(),
   supplierType: varchar("supplier_type", { length: 50 }).notNull(), // manufacturer, distributor, service_provider
