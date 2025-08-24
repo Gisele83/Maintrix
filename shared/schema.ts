@@ -619,20 +619,22 @@ export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
   completionNotes: z.string().optional(),
 });
 
-export const insertPreventiveMaintenancePlanSchema = z.object({
-  // Map frontend fields to database schema
+export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventiveMaintenancePlans).omit({
+  id: true,
+  createdAt: true,
+}).extend({
   planName: z.string().min(1, "Le nom du plan est requis"),
   equipmentType: z.string().min(1, "Le type d'équipement est requis"), 
-  equipmentIds: z.string().transform(val => [parseInt(val, 10)]), // Convert single equipmentId to array
+  equipmentIds: z.array(z.number()).or(z.number().transform(val => [val])).optional(), // Accept array or single number
   frequency: z.string().min(1, "La fréquence est requise"),
-  frequencyValue: z.string().transform(val => val ? parseInt(val, 10) : null).optional(),
-  tasks: z.string().transform(val => val ? val.split(',').map(t => t.trim()) : []).optional(),
-  estimatedDuration: z.string().transform(val => val ? parseInt(val, 10) : null).optional(),
-  requiredSkills: z.string().transform(val => val ? val.split(',').map(s => s.trim()) : []).optional(),
-  safetyRequirements: z.string().optional(),
+  frequencyValue: z.number().nullable().optional(),
+  tasks: z.array(z.string()).or(z.string().transform(val => val.split(',').map(t => t.trim()))).optional(), // Accept array or comma-separated string
+  estimatedDuration: z.number().nullable().optional(),
+  requiredSkills: z.array(z.string()).or(z.string().transform(val => val.split(',').map(s => s.trim()))).optional(), // Accept array or comma-separated string
+  safetyRequirements: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
-  lastExecuted: z.string().optional().transform((str) => str ? new Date(str) : null),
-  nextDue: z.string().optional().transform((str) => str ? new Date(str) : null),
+  lastExecuted: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  nextDue: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
 // Table des entreprises pour isolation des données
