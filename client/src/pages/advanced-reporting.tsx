@@ -102,13 +102,14 @@ export default function AdvancedReporting() {
           alerts: alerts.slice(0, 10)
         };
 
-        // Download comprehensive GMAO report PDF
-        const link = document.createElement('a');
-        link.href = `/pdf/comprehensive-report?period=${selectedPeriod}&department=${selectedDepartment}`;
-        link.download = `rapport-gmao-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Download comprehensive GMAO report PDF with cache busting
+        const timestamp = new Date().getTime();
+        const url = `/pdf/comprehensive-report?period=${selectedPeriod}&department=${selectedDepartment}&t=${timestamp}`;
+        
+        console.log('🎯 Opening Comprehensive PDF report:', url); // Debug log
+        
+        // Use window.open instead of download link for better compatibility
+        window.open(url, '_blank');
 
         toast({
           title: "Export PDF en cours",

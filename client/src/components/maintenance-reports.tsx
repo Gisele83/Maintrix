@@ -231,14 +231,19 @@ export function MaintenanceReports() {
   // Download intervention report as PDF
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
-      // Open the PDF report endpoint directly in browser
-      window.open(`/pdf/maintenance-reports/${report.id}`, '_blank');
+      // Add cache-busting parameter to force browser refresh
+      const timestamp = new Date().getTime();
+      const url = `/pdf/maintenance-reports/${report.id}?t=${timestamp}`;
+      
+      console.log('🎯 Opening PDF report:', url); // Debug log
+      window.open(url, '_blank');
 
       toast({
         title: "Génération du rapport PDF",
         description: `Le rapport d'intervention ${report.reportNumber} s'ouvre dans un nouvel onglet`,
       });
     } catch (error) {
+      console.error('❌ PDF Error:', error); // Debug log
       toast({
         title: "Erreur de téléchargement",
         description: "Impossible de générer le rapport d'intervention PDF",
@@ -407,14 +412,19 @@ export function MaintenanceReports() {
   // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
-      // Open the PDF report endpoint directly in browser
-      window.open(`/pdf/monthly-reports/1`, '_blank');
+      // Add cache-busting parameter to force browser refresh
+      const timestamp = new Date().getTime();
+      const url = `/pdf/monthly-reports/${report.id}?t=${timestamp}`;
+      
+      console.log('🎯 Opening Monthly PDF report:', url); // Debug log
+      window.open(url, '_blank');
 
       toast({
         title: "Génération du rapport PDF",
         description: `Le rapport mensuel ${report.reportNumber} s'ouvre dans un nouvel onglet`,
       });
     } catch (error) {
+      console.error('❌ Monthly PDF Error:', error); // Debug log
       toast({
         title: "Erreur de téléchargement",
         description: "Impossible de générer le rapport mensuel PDF",
