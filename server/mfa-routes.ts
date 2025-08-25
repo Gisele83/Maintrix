@@ -362,6 +362,15 @@ export async function mfaEnforcementMiddleware(req: any, res: Response, next: an
       });
     }
 
+    // 🔧 TENANT MANAGEMENT BYPASS : Permettre l'accès aux routes de gestion des tenants
+    const isTenantManagementRoute = req.path.startsWith('/api/admin/tenants') || 
+                                   req.path.startsWith('/api/admin/federated-analytics');
+    
+    if (isTenantManagementRoute) {
+      console.log(`🏢 TENANT MANAGEMENT ACCESS BYPASS: ${req.path} - MFA check skipped for tenant management`);
+      return next();
+    }
+
     // Vérifier si MFA est requis
     const isRequired = await MFAService.isMFARequired(userId);
     if (!isRequired) {
