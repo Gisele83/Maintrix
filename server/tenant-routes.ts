@@ -116,8 +116,12 @@ router.post('/api/admin/tenants', async (req: TenantRequest, res) => {
       .returning();
 
     // Envoyer notification email automatiquement si email de contact fourni
+    console.log(`🔍 TENANT CREATED: ${newTenant.name} | Contact Email: ${validatedData.contactEmail || 'NONE'}`);
+    
     if (validatedData.contactEmail) {
       try {
+        console.log(`📧 Tentative d'envoi d'email à ${validatedData.contactEmail}...`);
+        
         const emailSent = await sendTenantAccessNotification({
           name: newTenant.name,
           plan: newTenant.plan,
@@ -136,6 +140,8 @@ router.post('/api/admin/tenants', async (req: TenantRequest, res) => {
         console.error('Erreur envoi email de notification:', error);
         // Ne pas bloquer la création du tenant si l'email échoue
       }
+    } else {
+      console.log(`📭 Aucun email de contact fourni pour le tenant ${newTenant.name} - Aucun email envoyé`);
     }
 
     res.status(201).json(newTenant);
@@ -263,6 +269,8 @@ router.post('/api/admin/tenants/:tenantId/send-invitation', async (req: TenantRe
     const { tenantId } = req.params;
     const { contactEmail } = req.body;
 
+    console.log(`📧 MANUAL EMAIL REQUEST: Tenant ${tenantId} | Email: ${contactEmail}`);
+
     if (!contactEmail) {
       return res.status(400).json({ error: "Contact email is required" });
     }
@@ -277,6 +285,8 @@ router.post('/api/admin/tenants/:tenantId/send-invitation', async (req: TenantRe
     if (!tenant) {
       return res.status(404).json({ error: "Tenant not found" });
     }
+
+    console.log(`📧 Envoi manuel d'invitation pour ${tenant.name} vers ${contactEmail}...`);
 
     // Envoyer l'email d'invitation
     const emailSent = await sendTenantAccessNotification({
@@ -296,6 +306,7 @@ router.post('/api/admin/tenants/:tenantId/send-invitation', async (req: TenantRe
       console.log(`✅ Email d'invitation renvoyé à ${contactEmail} pour le tenant ${tenant.name}`);
     } else {
       res.status(500).json({ error: "Failed to send invitation email" });
+      console.log(`❌ Échec envoi manuel à ${contactEmail} pour le tenant ${tenant.name}`);
     }
   } catch (error) {
     console.error("Send invitation error:", error);
