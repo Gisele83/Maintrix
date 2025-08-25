@@ -11,7 +11,8 @@ import {
   Users, 
   Shield,
   LogOut,
-  User
+  User,
+  Building
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -28,6 +29,7 @@ export function ModernNavigation() {
     { name: "Accueil", href: "/", icon: BarChart3 },
     { name: "Diagnostic IA", href: "/smart-diagnostic", icon: Brain },
     { name: "GMAO", href: "/gmao", icon: Settings },
+    { name: "Administration SaaS", href: "/tenant-management", icon: Building },
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
     // ✅ MIGRATION COMPLÈTE : Sécurité intégrée dans enterprise auth
