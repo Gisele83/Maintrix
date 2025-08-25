@@ -25,7 +25,9 @@ import {
   Globe,
   Lock,
   Zap,
-  BarChart3
+  BarChart3,
+  Mail,
+  Send
 } from 'lucide-react';
 
 interface Tenant {
@@ -65,13 +67,13 @@ const TenantManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch tenants
-  const { data: tenants = [], isLoading, error } = useQuery({
+  const { data: tenants = [], isLoading, error } = useQuery<Tenant[]>({
     queryKey: ['/api/admin/tenants'],
     staleTime: 30000,
   });
 
   // Fetch federated learning analytics
-  const { data: federatedAnalytics } = useQuery({
+  const { data: federatedAnalytics } = useQuery<FederatedAnalytics>({
     queryKey: ['/api/admin/federated-analytics'],
     enabled: selectedTenant?.id !== undefined,
     staleTime: 60000,
@@ -107,6 +109,25 @@ const TenantManagement: React.FC = () => {
       toast({
         title: "Tenant mis à jour",
         description: "Les modifications ont été sauvegardées.",
+      });
+    },
+  });
+
+  // Send invitation email mutation
+  const sendInvitationMutation = useMutation({
+    mutationFn: ({ tenantId, contactEmail }: { tenantId: string; contactEmail: string }) => 
+      apiRequest('POST', `/api/admin/tenants/${tenantId}/send-invitation`, { contactEmail }),
+    onSuccess: (data: any) => {
+      toast({
+        title: "Invitation envoyée",
+        description: `Email d'accès envoyé à ${data.sentTo}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'envoyer l'invitation",
+        variant: "destructive",
       });
     },
   });
@@ -163,7 +184,7 @@ const TenantManagement: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Utilisateurs</p>
                 <p className="text-2xl font-bold">
-                  {tenants.reduce((sum: number, t: Tenant) => sum + t.currentUsers, 0)}
+                  {tenants.reduce((sum, t) => sum + t.currentUsers, 0)}
                 </p>
               </div>
             </div>
@@ -213,7 +234,7 @@ const TenantManagement: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {tenants.map((tenant: Tenant) => (
+              {tenants.map((tenant) => (
                 <div
                   key={tenant.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-all ${
@@ -423,25 +444,25 @@ const TenantManagement: React.FC = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-blue-50 rounded-lg">
                           <div className="text-2xl font-bold text-blue-600">
-                            {federatedAnalytics.totalContributions}
+                            {federatedAnalytics.totalContributions || 0}
                           </div>
                           <div className="text-sm text-gray-600">Contributions totales</div>
                         </div>
                         <div className="p-4 bg-green-50 rounded-lg">
                           <div className="text-2xl font-bold text-green-600">
-                            {Math.round(federatedAnalytics.acceptanceRate * 100)}%
+                            {Math.round((federatedAnalytics.acceptanceRate || 0) * 100)}%
                           </div>
                           <div className="text-sm text-gray-600">Taux d'acceptation</div>
                         </div>
                         <div className="p-4 bg-purple-50 rounded-lg">
                           <div className="text-2xl font-bold text-purple-600">
-                            {Math.round(federatedAnalytics.globalImpactScore)}
+                            {Math.round(federatedAnalytics.globalImpactScore || 0)}
                           </div>
                           <div className="text-sm text-gray-600">Score d'impact global</div>
                         </div>
                         <div className="p-4 bg-orange-50 rounded-lg">
                           <div className="text-2xl font-bold text-orange-600">
-                            {federatedAnalytics.improvementsBenefited}
+                            {federatedAnalytics.improvementsBenefited || 0}
                           </div>
                           <div className="text-sm text-gray-600">Améliorations bénéficiées</div>
                         </div>
@@ -534,6 +555,48 @@ const TenantManagement: React.FC = () => {
                           onChange={(e) => setSelectedTenant({...selectedTenant, maxUsers: parseInt(e.target.value)})}
                         />
                       </div>
+                    </div>
+
+                    {/* Email Invitation Section */}
+                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="font-semibold flex items-center gap-2">
+                            <Mail className="w-4 h-4" />
+                            Invitation d'accès
+                          </Label>
+                          <p className="text-sm text-gray-600">
+                            Envoyer le lien de connexion par email
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (selectedTenant.contactEmail) {
+                              sendInvitationMutation.mutate({
+                                tenantId: selectedTenant.id,
+                                contactEmail: selectedTenant.contactEmail
+                              });
+                            } else {
+                              toast({
+                                title: "Email requis",
+                                description: "Veuillez d'abord saisir un email de contact",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          disabled={sendInvitationMutation.isPending || !selectedTenant.contactEmail}
+                          className="flex items-center gap-2"
+                          size="sm"
+                        >
+                          <Send className="w-4 h-4" />
+                          {sendInvitationMutation.isPending ? 'Envoi...' : 'Envoyer'}
+                        </Button>
+                      </div>
+                      {selectedTenant.contactEmail && (
+                        <div className="text-xs text-purple-700 bg-purple-100 p-2 rounded">
+                          📧 Email sera envoyé à: <strong>{selectedTenant.contactEmail}</strong>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex gap-2">

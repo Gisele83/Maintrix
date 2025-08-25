@@ -22,6 +22,7 @@ import {
   rateLimitByTenant 
 } from "./tenant-middleware";
 import { federatedLearning as federatedService } from "./federated-learning";
+import { sendTenantAccessNotification, sendTenantAccessUpdateNotification } from "./notifications";
 
 const router = Router();
 
@@ -114,6 +115,29 @@ router.post('/api/admin/tenants', async (req: TenantRequest, res) => {
       })
       .returning();
 
+    // Envoyer notification email automatiquement si email de contact fourni
+    if (validatedData.contactEmail) {
+      try {
+        const emailSent = await sendTenantAccessNotification({
+          name: newTenant.name,
+          plan: newTenant.plan,
+          maxUsers: newTenant.maxUsers || 5,
+          contactEmail: validatedData.contactEmail,
+          domain: validatedData.domain || undefined,
+          tenantId: newTenant.id
+        });
+
+        if (emailSent) {
+          console.log(`✅ Email d'accès envoyé à ${validatedData.contactEmail} pour le tenant ${newTenant.name}`);
+        } else {
+          console.log(`⚠️ Échec envoi email à ${validatedData.contactEmail} pour le tenant ${newTenant.name}`);
+        }
+      } catch (error) {
+        console.error('Erreur envoi email de notification:', error);
+        // Ne pas bloquer la création du tenant si l'email échoue
+      }
+    }
+
     res.status(201).json(newTenant);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -146,6 +170,37 @@ router.put('/api/admin/tenants/:tenantId', async (req: TenantRequest, res) => {
 
     if (!updatedTenant) {
       return res.status(404).json({ error: "Tenant not found" });
+    }
+
+    // Envoyer notification de mise à jour si email de contact disponible
+    if (validatedData.contactEmail) {
+      try {
+        const changes = [];
+        if (validatedData.plan) changes.push(`Plan mis à jour vers ${validatedData.plan.toUpperCase()}`);
+        if (validatedData.maxUsers) changes.push(`Limite d'utilisateurs mise à jour: ${validatedData.maxUsers}`);
+        if (validatedData.encryptionEnabled !== undefined) {
+          changes.push(`Chiffrement ${validatedData.encryptionEnabled ? 'activé' : 'désactivé'}`);
+        }
+        if (validatedData.gdprCompliant !== undefined) {
+          changes.push(`Conformité RGPD ${validatedData.gdprCompliant ? 'activée' : 'désactivée'}`);
+        }
+
+        if (changes.length > 0) {
+          await sendTenantAccessUpdateNotification({
+            name: updatedTenant.name,
+            plan: updatedTenant.plan,
+            maxUsers: updatedTenant.maxUsers || 5,
+            contactEmail: validatedData.contactEmail,
+            domain: validatedData.domain || undefined,
+            tenantId: updatedTenant.id,
+            changes
+          });
+          console.log(`✅ Email de mise à jour envoyé à ${validatedData.contactEmail} pour le tenant ${updatedTenant.name}`);
+        }
+      } catch (error) {
+        console.error('Erreur envoi email de mise à jour:', error);
+        // Ne pas bloquer la mise à jour si l'email échoue
+      }
     }
 
     res.json(updatedTenant);
@@ -194,6 +249,57 @@ router.delete('/api/admin/tenants/:tenantId', async (req: TenantRequest, res) =>
   } catch (error) {
     console.error("Tenant deletion error:", error);
     res.status(500).json({ error: "Failed to delete tenant" });
+  }
+});
+
+// Send tenant access invitation email manually (Admin only)
+router.post('/api/admin/tenants/:tenantId/send-invitation', async (req: TenantRequest, res) => {
+  try {
+    const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const { tenantId } = req.params;
+    const { contactEmail } = req.body;
+
+    if (!contactEmail) {
+      return res.status(400).json({ error: "Contact email is required" });
+    }
+
+    // Récupérer les informations du tenant
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    if (!tenant) {
+      return res.status(404).json({ error: "Tenant not found" });
+    }
+
+    // Envoyer l'email d'invitation
+    const emailSent = await sendTenantAccessNotification({
+      name: tenant.name,
+      plan: tenant.plan,
+      maxUsers: tenant.maxUsers || 5,
+      contactEmail: contactEmail,
+      domain: tenant.domain || undefined,
+      tenantId: tenant.id
+    });
+
+    if (emailSent) {
+      res.json({ 
+        message: "Invitation email sent successfully",
+        sentTo: contactEmail
+      });
+      console.log(`✅ Email d'invitation renvoyé à ${contactEmail} pour le tenant ${tenant.name}`);
+    } else {
+      res.status(500).json({ error: "Failed to send invitation email" });
+    }
+  } catch (error) {
+    console.error("Send invitation error:", error);
+    res.status(500).json({ error: "Failed to send invitation" });
   }
 });
 
