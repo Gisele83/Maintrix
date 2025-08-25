@@ -185,6 +185,8 @@ function Router() {
       </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />
+      <Route path="/super-admin-login" component={SuperAdminLogin} />
+      <Route path="/super-admin" component={SuperAdminDashboard} />
       <Route path="/super-admin-dashboard" component={SuperAdminDashboard} />
       <Route component={NotFound} />
     </Switch>
