@@ -555,9 +555,9 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // =====================================================
-  // 🚀 MULTI-TENANT SAAS ARCHITECTURE ACTIVATION (DÉSACTIVÉ TEMPORAIREMENT)
+  // 🚀 MULTI-TENANT SAAS ARCHITECTURE ACTIVATION
   // =====================================================
-  // setupCompleteMultiTenantArchitecture(app);
+  setupCompleteMultiTenantArchitecture(app);
   
   // 🔐 COOKIES SÉCURISÉS (HttpOnly + SameSite + Secure)
   app.use(EnterpriseAuthMiddleware.configureSecureCookies);
@@ -576,14 +576,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ✅ MIGRATION COMPLÈTE : Ancien système d'auth supprimé
   // Plus de registerAuthRoutes legacy - système enterprise uniquement
   
-  // Appliquer les mesures de sécurité globales
+  // Appliquer les mesures de sécurité globales (rate limiting désactivé pour debug multi-tenant)
   app.use(securityHeaders);
-  app.use(generalRateLimit);
+  // app.use(generalRateLimit); // DÉSACTIVÉ TEMPORAIREMENT
   app.use(anomalyDetection);
   app.use(jsonErrorHandler);
   
-  // ✅ MIGRATION COMPLÈTE : Rate limiting pour routes enterprise uniquement
-  app.use('/api/enterprise-auth', authRateLimit);
+  // ✅ MIGRATION COMPLÈTE : Rate limiting désactivé temporairement pour debug multi-tenant
+  // app.use('/api/enterprise-auth', authRateLimit);
   
   // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
   app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);

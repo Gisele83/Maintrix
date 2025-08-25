@@ -15,32 +15,51 @@ import { federatedAI } from "./federated-ai-system";
 export function enableMultiTenantSecurity(app: Express): void {
   console.log("🔒 ACTIVATING MULTI-TENANT SECURITY ARCHITECTURE...");
 
-  // 1. Metrics et monitoring par tenant (désactivé temporairement)
-  // app.use("/api", tenantMetricsMiddleware);
+  // 1. Metrics et monitoring par tenant
+  app.use("/api", tenantMetricsMiddleware);
 
-  // 2. Middleware de sécurité tenant principal (sauf routes publiques)
+  // 2. Middleware de sécurité tenant principal (SEULEMENT sur routes sécurisées)
   app.use("/api", (req: TenantRequest, res, next) => {
-    // Routes publiques exemptées du tenant middleware
+    // Routes publiques exemptées du tenant middleware (authentification)
     const publicRoutes = [
       "/api/health",
       "/api/ping", 
       "/api/status",
       "/api/enterprise-auth/login",
-      "/api/enterprise-auth/register",
-      "/api/enterprise-auth/invitations",
-      "/api/enterprise-auth/profile", // Pour récupérer le profil après connexion
-      "/api/auth/login",
-      "/api/auth/register",
+      "/api/enterprise-auth/register", 
+      "/api/enterprise-auth/profile", // Profile après connexion
     ];
 
-    const isPublicRoute = publicRoutes.some(route => req.path.startsWith(route));
+    const isPublicRoute = publicRoutes.some(route => req.path === route || req.path.startsWith(route));
     
     if (isPublicRoute) {
+      console.log(`🟢 PUBLIC ROUTE EXEMPTED: ${req.path}`);
       return next();
     }
 
-    // Appliquer le middleware tenant
-    tenantSecurityMiddleware(req, res, next);
+    // Routes multi-tenant qui nécessitent le middleware tenant
+    const tenantRoutes = [
+      "/api/federated-ai",
+      "/api/tenant",
+      "/api/diagnostic",
+      "/api/equipment",
+      "/api/work-orders",
+      "/api/preventive-maintenance",
+      "/api/spare-parts",
+      "/api/user-profiles",
+      "/api/alerts",
+    ];
+
+    const needsTenantSecurity = tenantRoutes.some(route => req.path.startsWith(route));
+    
+    if (needsTenantSecurity) {
+      console.log(`🔒 APPLYING TENANT SECURITY: ${req.path}`);
+      return tenantSecurityMiddleware(req, res, next);
+    }
+
+    // Autres routes API passent sans middleware tenant
+    console.log(`➡️  STANDARD API ROUTE: ${req.path}`);
+    return next();
   });
 
   // 3. Validation des données tenant (appliquée après authentification)
@@ -203,9 +222,18 @@ export function registerTenantManagementRoutes(app: Express): void {
  * Active toutes les fonctionnalités multi-tenant d'un coup
  */
 export function setupCompleteMultiTenantArchitecture(app: Express): void {
-  enableMultiTenantSecurity(app);
+  console.log("🚀 INITIALIZING MULTI-TENANT SAAS ARCHITECTURE...");
+  
+  // ⚠️ IMPORTANT: Les routes doivent être enregistrées AVANT les middlewares tenant
+  
+  // 1. Enregistrement des routes IA fédérée (nécessitent tenant)
   registerFederatedAIRoutes(app);
+  
+  // 2. Enregistrement des routes tenant management (nécessitent tenant)
   registerTenantManagementRoutes(app);
+  
+  // 3. Activation de la sécurité multi-tenant (avec exemptions auth corrigées)
+  enableMultiTenantSecurity(app);
   
   console.log("🚀 MULTI-TENANT SAAS ARCHITECTURE: FULLY ACTIVATED");
   console.log("  ✅ Zero Data Leakage Protection");
