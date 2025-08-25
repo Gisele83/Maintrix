@@ -108,7 +108,7 @@ export default function SuperAdminDashboard() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (tenantData: { name: string; domain: string }) => {
-      return apiRequest("POST", "/api/super-admin/tenants", tenantData);
+      return apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
