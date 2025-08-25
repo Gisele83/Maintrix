@@ -48,7 +48,7 @@ interface FederatedStats {
 }
 
 export default function SuperAdminDashboard() {
-  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [superAdminUser, setSuperAdminUser] = useState<SuperAdminUser | null>(null);
@@ -58,16 +58,16 @@ export default function SuperAdminDashboard() {
     const user = localStorage.getItem('superAdminUser');
     
     if (!token || !user) {
-      navigate('/admin-login');
+      setLocation('/admin-login');
       return;
     }
     
     try {
       setSuperAdminUser(JSON.parse(user));
     } catch {
-      navigate('/admin-login');
+      setLocation('/admin-login');
     }
-  }, [navigate]);
+  }, [setLocation]);
 
   // Récupérer les tenants
   const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
@@ -84,7 +84,7 @@ export default function SuperAdminDashboard() {
   const logout = () => {
     localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdminUser');
-    navigate('/admin-login');
+    setLocation('/admin-login');
     toast({
       title: "Déconnexion",
       description: "Vous êtes déconnecté de l'interface d'administration",

@@ -22,7 +22,7 @@ type SuperAdminLoginForm = z.infer<typeof superAdminLoginSchema>;
 export default function SuperAdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
 
   const form = useForm<SuperAdminLoginForm>({
     resolver: zodResolver(superAdminLoginSchema),
@@ -47,7 +47,7 @@ export default function SuperAdminLogin() {
       localStorage.setItem('superAdminToken', response.token);
       localStorage.setItem('superAdminUser', JSON.stringify(response.user));
       
-      navigate('/super-admin-dashboard');
+      setLocation('/super-admin-dashboard');
     } catch (error: any) {
       toast({
         title: "Erreur de connexion",
@@ -173,7 +173,7 @@ export default function SuperAdminLogin() {
       
       <div className="absolute bottom-4 left-4 text-sm text-gray-400">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => setLocation('/')}
           className="hover:text-white transition-colors underline"
         >
           ← Retour à l'interface client

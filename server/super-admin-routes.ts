@@ -171,8 +171,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     const [newTenant] = await db.insert(tenants).values({
       name,
       domain,
-      status: 'active',
-      createdAt: new Date()
+      isActive: true
     }).returning();
 
     res.json({
@@ -194,7 +193,7 @@ router.get('/federated-stats', authenticateSuperAdmin, async (req, res) => {
     const stats = await db
       .select()
       .from(federatedLearning)
-      .orderBy(desc(federatedLearning.timestamp));
+      .orderBy(desc(federatedLearning.lastUpdated));
 
     res.json(stats);
   } catch (error) {
@@ -217,17 +216,17 @@ router.get('/platform-stats', authenticateSuperAdmin, async (req, res) => {
     
     // Statistiques d'apprentissage fédéré
     const federatedStats = await db.select().from(federatedLearning);
-    const totalDataPoints = federatedStats.reduce((sum, stat) => sum + (stat.dataPoints || 0), 0);
-    const avgAccuracyImprovement = federatedStats.length > 0 
-      ? federatedStats.reduce((sum, stat) => sum + (stat.accuracyImprovement || 0), 0) / federatedStats.length
+    const totalContributions = federatedStats.length;
+    const avgEffectiveness = federatedStats.length > 0 
+      ? federatedStats.reduce((sum, stat) => sum + (stat.solutionEffectiveness || 0), 0) / federatedStats.length
       : 0;
 
     res.json({
       tenants: tenantCount.count || 0,
       users: userCount.count || 0,
       federatedLearning: {
-        totalDataPoints,
-        avgAccuracyImprovement,
+        totalContributions,
+        avgEffectiveness,
         activeTenants: new Set(federatedStats.map(stat => stat.tenantId)).size
       }
     });
