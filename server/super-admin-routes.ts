@@ -179,7 +179,8 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     const adminEmail = req.body.adminEmail;
     if (adminEmail) {
       try {
-        const loginUrl = `${req.protocol}://${req.get('host')}/login?tenant=${newTenant.id}`;
+        const host = req.get('host') || 'localhost:5000';
+        const loginUrl = `${req.protocol}://${host}/login?tenant=${newTenant.id}`;
         
         const emailSent = await sendTenantInvitation({
           tenantName: newTenant.name,
