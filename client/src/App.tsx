@@ -174,6 +174,9 @@ function Router() {
       <Route path="/secure-validation">
         {(params) => <ProtectedRoute component={lazy(() => import("./pages/secure-validation"))} {...params} />}
       </Route>
+      <Route path="/security-mfa">
+        {(params) => <ProtectedRoute component={lazy(() => import("./pages/security-mfa"))} {...params} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

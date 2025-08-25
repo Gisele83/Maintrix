@@ -262,6 +262,10 @@ export const userProfiles = pgTable("user_profiles", {
   maxPurchaseAmount: decimal("max_purchase_amount", { precision: 12, scale: 2 }), // Maximum amount they can approve
   isActive: boolean("is_active").default(true),
   lastLogin: timestamp("last_login"),
+  // ✅ CHAMPS MFA POUR SÉCURITÉ ADMINISTRATEURS
+  mfaSecret: varchar("mfa_secret", { length: 100 }), // Secret TOTP base32
+  mfaEnabled: boolean("mfa_enabled").default(false), // MFA activé ou non
+  mfaBackupCodes: text("mfa_backup_codes"), // Codes de récupération chiffrés (JSON)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -1,0 +1,281 @@
+# 🔑 CONFIGURATION KMS ET ROTATION AUTOMATIQUE DES CLÉS
+# Gestion centralisée des clés de chiffrement avec rotation automatique
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kms-config
+  namespace: smart-gmao-diagfix
+data:
+  kms_provider: "aws"  # aws, azure, gcp
+  rotation_interval: "90d"
+  backup_retention: "1y"
+  
+---
+# External Secrets Operator - Intégration KMS
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: smart-gmao-kms-store
+  namespace: smart-gmao-diagfix
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-east-1
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: smart-gmao-service-account
+
+---
+# Secret externe pour MFA
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: mfa-encryption-keys-external
+  namespace: smart-gmao-diagfix
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: smart-gmao-kms-store
+    kind: SecretStore
+  target:
+    name: mfa-encryption-keys-managed
+    creationPolicy: Owner
+  data:
+  - secretKey: MFA_ENCRYPTION_KEY
+    remoteRef:
+      key: smart-gmao/mfa-encryption-key
+  - secretKey: BACKUP_CODES_KEY  
+    remoteRef:
+      key: smart-gmao/backup-codes-key
+  - secretKey: AUDIT_LOGS_KEY
+    remoteRef:
+      key: smart-gmao/audit-logs-key
+
+---
+# CronJob pour rotation automatique des clés
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: key-rotation
+  namespace: smart-gmao-diagfix
+spec:
+  schedule: "0 2 */90 * *"  # Tous les 90 jours à 2h du matin
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: smart-gmao-service-account
+          containers:
+          - name: key-rotation
+            image: smart-gmao-diagfix:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "🔄 Starting key rotation process..."
+              
+              # Générer nouvelle clé
+              NEW_KEY=$(openssl rand -hex 32)
+              
+              # Mettre à jour AWS Secrets Manager
+              aws secretsmanager put-secret-value \
+                --secret-id smart-gmao/mfa-encryption-key \
+                --secret-string "$NEW_KEY"
+              
+              # Déclencher rotation dans l'application
+              curl -X POST http://smart-gmao-service:5000/api/admin/key-rotation \
+                -H "Authorization: Bearer $ROTATION_TOKEN"
+              
+              echo "✅ Key rotation completed"
+            env:
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: ROTATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: rotation-tokens
+                  key: admin-token
+            volumeMounts:
+            - name: aws-credentials
+              mountPath: /root/.aws/
+              readOnly: true
+          volumes:
+          - name: aws-credentials
+            secret:
+              secretName: aws-credentials
+          restartPolicy: OnFailure
+
+---
+# Backup automatique des clés
+apiVersion: batch/v1
+kind: CronJob  
+metadata:
+  name: key-backup
+  namespace: smart-gmao-diagfix
+spec:
+  schedule: "0 1 * * 0"  # Chaque dimanche à 1h du matin
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: smart-gmao-service-account
+          containers:
+          - name: key-backup
+            image: smart-gmao-diagfix:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "💾 Starting key backup process..."
+              
+              # Créer backup horodaté
+              BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
+              
+              # Backup des secrets critiques
+              kubectl get secret mfa-encryption-keys-managed -o yaml > /backup/mfa-keys-$BACKUP_DATE.yaml
+              kubectl get secret audit-logs-keys -o yaml > /backup/audit-keys-$BACKUP_DATE.yaml
+              
+              # Chiffrer les backups
+              gpg --cipher-algo AES256 --compress-algo 1 --s2k-mode 3 \
+                --s2k-digest-algo SHA512 --s2k-count 65536 --force-mdc \
+                --quiet --no-greeting --batch --yes \
+                --passphrase "$BACKUP_PASSPHRASE" \
+                --symmetric /backup/*-$BACKUP_DATE.yaml
+              
+              # Upload vers stockage sécurisé
+              aws s3 cp /backup/ s3://smart-gmao-key-backups/$BACKUP_DATE/ --recursive --sse AES256
+              
+              # Nettoyer les fichiers locaux
+              rm -f /backup/*-$BACKUP_DATE.yaml*
+              
+              echo "✅ Key backup completed"
+            env:
+            - name: AWS_REGION
+              value: "us-east-1"  
+            - name: BACKUP_PASSPHRASE
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption
+                  key: passphrase
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+          volumes:
+          - name: backup-storage
+            emptyDir: {}
+          restartPolicy: OnFailure
+
+---
+# Service Monitor pour métriques KMS
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kms-metrics
+  namespace: smart-gmao-diagfix
+spec:
+  selector:
+    matchLabels:
+      app: smart-gmao-diagfix
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics/kms
+    
+---
+# Alert Manager - Alertes rotation clés
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kms-alerts
+  namespace: smart-gmao-diagfix
+spec:
+  groups:
+  - name: kms.rules
+    rules:
+    
+    # Alerte rotation en retard
+    - alert: KMSKeyRotationOverdue
+      expr: (time() - kms_last_rotation_timestamp) > (90 * 24 * 3600)
+      for: 1h
+      labels:
+        severity: critical
+      annotations:
+        summary: "KMS key rotation overdue"
+        description: "Key rotation is {{ $value | humanizeDuration }} overdue"
+    
+    # Alerte échec rotation
+    - alert: KMSRotationFailed
+      expr: kms_rotation_failures_total > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "KMS key rotation failed"
+        description: "{{ $value }} rotation failures detected"
+    
+    # Alerte backup manqué
+    - alert: KMSBackupMissed
+      expr: (time() - kms_last_backup_timestamp) > (7 * 24 * 3600)
+      for: 1h
+      labels:
+        severity: warning
+      annotations:
+        summary: "KMS backup overdue" 
+        description: "Key backup is {{ $value | humanizeDuration }} overdue"
+
+---
+# WAF (Web Application Firewall) - Protections applicatives  
+apiVersion: networking.istio.io/v1beta1
+kind: EnvoyFilter
+metadata:
+  name: smart-gmao-waf
+  namespace: smart-gmao-diagfix
+spec:
+  workloadSelector:
+    labels:
+      app: smart-gmao-diagfix
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+          config:
+            name: "smart_gmao_waf"
+            root_id: "smart_gmao_waf"
+            configuration:
+              "@type": type.googleapis.com/google.protobuf.StringValue
+              value: |
+                {
+                  "rules": [
+                    {
+                      "name": "Block SQLi",
+                      "pattern": "(?i)(union|select|insert|delete|drop|exec|script)",
+                      "action": "deny",
+                      "status": 403
+                    },
+                    {
+                      "name": "Block XSS", 
+                      "pattern": "(?i)(<script|javascript:|on\\w+\\s*=)",
+                      "action": "deny",
+                      "status": 403
+                    },
+                    {
+                      "name": "Rate limit by IP",
+                      "type": "rate_limit",
+                      "requests_per_minute": 100,
+                      "action": "delay"
+                    }
+                  ]
+                }

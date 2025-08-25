@@ -1,0 +1,176 @@
+# 🛡️ CONFIGURATIONS SÉCURITÉ INFRASTRUCTURE
+# Configurations pour déploiement production sécurisé
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-configs
+  namespace: smart-gmao-diagfix
+data:
+  security-level: "high"
+  pii-redaction: "enabled"
+  audit-logging: "comprehensive"
+
+---
+# Network Policy - Restriction accès réseau
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: smart-gmao-network-policy
+  namespace: smart-gmao-diagfix
+spec:
+  podSelector:
+    matchLabels:
+      app: smart-gmao-diagfix
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  # Règles d'entrée (Ingress)
+  ingress:
+  - from:
+    # Autoriser nginx-ingress uniquement
+    - namespaceSelector:
+        matchLabels:
+          name: nginx-ingress
+    - podSelector:
+        matchLabels:
+          app: nginx-ingress-controller
+    ports:
+    - protocol: TCP
+      port: 5000
+  
+  # Autoriser monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080  # Health check
+  
+  # Règles de sortie (Egress)  
+  egress:
+  # Autoriser DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Autoriser base de données PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  
+  # Autoriser HTTPS externe pour APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# Pod Security Policy
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: smart-gmao-psp
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+  seLinux:
+    rule: RunAsAny
+
+---
+# Service Account avec permissions minimales
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: smart-gmao-service-account
+  namespace: smart-gmao-diagfix
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: smart-gmao-diagfix
+  name: smart-gmao-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: smart-gmao-rolebinding
+  namespace: smart-gmao-diagfix
+subjects:
+- kind: ServiceAccount
+  name: smart-gmao-service-account
+  namespace: smart-gmao-diagfix
+roleRef:
+  kind: Role
+  name: smart-gmao-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Secret pour clés de chiffrement MFA
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mfa-encryption-keys
+  namespace: smart-gmao-diagfix
+type: Opaque
+data:
+  # En base64 - à générer en production
+  MFA_ENCRYPTION_KEY: c21hcnQtZ21hby1wcm9kdWN0aW9uLW1mYS1rZXktY2hhbmdlLWluLXByb2R1Y3Rpb24=
+
+---
+# ConfigMap pour configuration PII Redaction
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pii-redaction-config
+  namespace: smart-gmao-diagfix
+data:
+  config.json: |
+    {
+      "emails": true,
+      "ips": true,
+      "phones": true,
+      "names": true,
+      "identifiers": true,
+      "securityLevel": "high",
+      "auditLogging": true
+    }

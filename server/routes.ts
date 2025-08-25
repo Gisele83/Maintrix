@@ -3227,6 +3227,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return solution;
   }
 
+  // ✅ INTÉGRATION ROUTES MFA SÉCURISÉES
+  const { mfaRouter, mfaEnforcementMiddleware } = await import('./mfa-routes');
+  app.use('/api/mfa', mfaRouter);
+  
+  // Appliquer MFA enforcement sur les routes admin critiques
+  app.use('/api/admin/*', mfaEnforcementMiddleware);
+  app.use('/api/tenant/security-*', mfaEnforcementMiddleware);
+
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
 

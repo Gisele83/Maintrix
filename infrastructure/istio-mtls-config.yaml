@@ -1,0 +1,232 @@
+# 🔒 CONFIGURATION ISTIO mTLS
+# Configuration Service Mesh pour chiffrement inter-services
+
+# Politique TLS globale - chiffrement obligatoire
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: smart-gmao-diagfix
+spec:
+  mtls:
+    mode: STRICT  # mTLS obligatoire pour tous les services
+
+---
+# Destination Rule - Configuration TLS sortante
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: smart-gmao-mtls
+  namespace: smart-gmao-diagfix
+spec:
+  host: "*.smart-gmao-diagfix.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Utiliser les certificats Istio
+  exportTo:
+  - "."
+
+---
+# Service Entry pour bases de données externes
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-database
+  namespace: smart-gmao-diagfix
+spec:
+  hosts:
+  - neon-database.com
+  - *.neon.tech
+  ports:
+  - number: 5432
+    name: postgresql
+    protocol: TCP
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+# Authorization Policy - Contrôle d'accès granulaire
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: smart-gmao-authz
+  namespace: smart-gmao-diagfix
+spec:
+  selector:
+    matchLabels:
+      app: smart-gmao-diagfix
+  rules:
+  
+  # Autoriser nginx-ingress vers application
+  - from:
+    - source:
+        namespaces: ["nginx-ingress"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        paths: ["/api/*", "/health", "/metrics"]
+  
+  # Autoriser monitoring
+  - from:
+    - source:
+        namespaces: ["monitoring"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+  
+  # Autoriser communication interne
+  - from:
+    - source:
+        principals: ["cluster.local/ns/smart-gmao-diagfix/sa/smart-gmao-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+
+---
+# Gateway - Point d'entrée sécurisé
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: smart-gmao-gateway
+  namespace: smart-gmao-diagfix
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  
+  # HTTP redirect vers HTTPS
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - smart-gmao-diagfix.replit.app
+    - "*.smart-gmao-diagfix.com"
+    tls:
+      httpsRedirect: true
+  
+  # HTTPS avec certificat automatique
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - smart-gmao-diagfix.replit.app  
+    - "*.smart-gmao-diagfix.com"
+    tls:
+      mode: SIMPLE
+      credentialName: smart-gmao-tls-cert
+
+---
+# Virtual Service - Routing sécurisé
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: smart-gmao-vs
+  namespace: smart-gmao-diagfix
+spec:
+  hosts:
+  - smart-gmao-diagfix.replit.app
+  - "*.smart-gmao-diagfix.com"
+  gateways:
+  - smart-gmao-gateway
+  http:
+  
+  # Routes API avec authentification
+  - match:
+    - uri:
+        prefix: /api/
+    route:
+    - destination:
+        host: smart-gmao-service
+        port:
+          number: 5000
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-security-header: istio-mtls
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s  # Protection DDoS basique
+  
+  # Route health check
+  - match:
+    - uri:
+        exact: /health
+    route:
+    - destination:
+        host: smart-gmao-service
+        port:
+          number: 5000
+  
+  # Frontend
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: smart-gmao-service
+        port:
+          number: 5000
+
+---
+# Certificate Request - Cert automatique Let's Encrypt
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: smart-gmao-tls-cert
+  namespace: smart-gmao-diagfix
+spec:
+  secretName: smart-gmao-tls-cert
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: smart-gmao-diagfix.replit.app
+  dnsNames:
+  - smart-gmao-diagfix.replit.app
+  - "*.smart-gmao-diagfix.com"
+
+---
+# Request Authentication - JWT validation
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: smart-gmao-jwt
+  namespace: smart-gmao-diagfix
+spec:
+  selector:
+    matchLabels:
+      app: smart-gmao-diagfix
+  jwtRules:
+  - issuer: "smart-gmao-diagfix"
+    jwksUri: "https://smart-gmao-diagfix.replit.app/.well-known/jwks.json"
+    audiences:
+    - "smart-gmao-diagfix-api"
+    forwardOriginalToken: true
+
+---
+# Telemetry v2 - Métriques sécurité
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: smart-gmao-metrics
+  namespace: smart-gmao-diagfix
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        security_policy:
+          value: "mtls_enabled"
+        pii_redaction:
+          value: "active"

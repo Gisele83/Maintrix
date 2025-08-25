@@ -3,6 +3,7 @@ import { db } from "./db";
 import { userProfiles, userSessions, rateLimits, tenants } from "@shared/schema";
 import { eq, and, gt, lt } from "drizzle-orm";
 import crypto from "crypto";
+import { PIIRedactionService, logWithRedaction } from './pii-redaction-system';
 
 // Extended Request interface for enterprise auth
 interface EnterpriseAuthRequest extends Request {
@@ -128,7 +129,13 @@ export class EnterpriseAuthMiddleware {
       
       next();
     } catch (error) {
-      console.error("Session validation error:", error);
+      // ✅ INTÉGRATION REDACTION PII : Logs sécurisés 
+      logWithRedaction('error', "Session validation error:", {
+        error: error.message,
+        path: req.path,
+        ip: req.ip,
+        timestamp: new Date()
+      });
       return res.status(500).json({
         error: "SESSION_VALIDATION_ERROR",
         message: "Failed to validate session"
@@ -172,7 +179,7 @@ export class EnterpriseAuthMiddleware {
           }
           
           // Incrémenter le compteur
-          const newCount = existing.requestCount + 1;
+          const newCount = (existing.requestCount || 0) + 1;
           
           if (newCount > limits.requests) {
             // Bloquer et enregistrer
