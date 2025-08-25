@@ -238,9 +238,29 @@ export function MaintenanceReports() {
       
       console.log('🎯 [CACHE BYPASS] Opening PDF report:', url); // Enhanced debug log
       
-      // Clear any existing cache entries
+      // Force aggressive cache clearing
       if ('caches' in window) {
-        caches.delete('pdf-cache').catch(e => console.log('Cache clear attempt:', e));
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+      
+      // Clear localStorage and sessionStorage for PDF-related items
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('pdf') || key.includes('report')) {
+            localStorage.removeItem(key);
+          }
+        });
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.includes('pdf') || key.includes('report')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.log('Storage clear attempt:', e);
       }
       
       // Open with additional cache-busting headers
@@ -433,9 +453,29 @@ export function MaintenanceReports() {
       
       console.log('🎯 [CACHE BYPASS] Opening Monthly PDF report:', url); // Enhanced debug log
       
-      // Clear any existing cache entries
+      // Force aggressive cache clearing
       if ('caches' in window) {
-        caches.delete('pdf-cache').catch(e => console.log('Cache clear attempt:', e));
+        caches.keys().then(cacheNames => {
+          cacheNames.forEach(cacheName => {
+            caches.delete(cacheName);
+          });
+        });
+      }
+      
+      // Clear localStorage and sessionStorage for PDF-related items
+      try {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('pdf') || key.includes('report')) {
+            localStorage.removeItem(key);
+          }
+        });
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.includes('pdf') || key.includes('report')) {
+            sessionStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.log('Storage clear attempt:', e);
       }
       
       // Open with additional cache-busting headers
