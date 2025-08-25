@@ -72,14 +72,20 @@ export default function SuperAdminDashboard() {
     const token = localStorage.getItem('superAdminToken');
     const user = localStorage.getItem('superAdminUser');
     
+    console.log('🔍 Super-admin auth check:', { token: !!token, user: !!user });
+    
     if (!token || !user) {
+      console.log('❌ Missing token or user, redirecting to login');
       setLocation('/admin-login');
       return;
     }
     
     try {
-      setSuperAdminUser(JSON.parse(user));
-    } catch {
+      const parsedUser = JSON.parse(user);
+      console.log('✅ Parsed super-admin user:', parsedUser);
+      setSuperAdminUser(parsedUser);
+    } catch (error) {
+      console.error('❌ Failed to parse super-admin user:', error);
       setLocation('/admin-login');
     }
   }, [setLocation]);
