@@ -3348,12 +3348,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Appliquer MFA enforcement sur les routes admin critiques (SAUF tenant management)
   app.use('/api/admin', (req: any, res: any, next: any) => {
+    const fullPath = req.originalUrl || req.url || req.path;
     // Bypass MFA pour la gestion des tenants
-    if (req.path.startsWith('/api/admin/tenants') || req.path.startsWith('/api/admin/federated-analytics')) {
-      console.log(`🏢 ADMIN BYPASS: ${req.path} - MFA check skipped for tenant management`);
+    if (fullPath.includes('/tenants') || fullPath.includes('/federated-analytics') || req.path.includes('/tenants')) {
+      console.log(`🏢 ADMIN BYPASS: ${fullPath} (${req.path}) - MFA check skipped for tenant management`);
       return next();
     }
     // Autres routes admin nécessitent MFA
+    console.log(`🔒 MFA REQUIRED: ${fullPath} (${req.path}) - MFA enforcement applied`);
     return mfaEnforcementMiddleware(req, res, next);
   });
   app.use('/api/tenant/security-*', mfaEnforcementMiddleware);
