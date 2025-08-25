@@ -19,10 +19,18 @@ export async function apiRequest(
   
   const headers: Record<string, string> = body ? { "Content-Type": "application/json" } : {};
   
-  // ✅ ENTERPRISE AUTH: Use sessionToken instead of legacy auth_token
-  const token = localStorage.getItem("sessionToken");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  // 🚀 SUPER-ADMIN AUTH: Use superAdminToken for super-admin routes
+  if (url.includes('/api/super-admin')) {
+    const superAdminToken = localStorage.getItem("superAdminToken");
+    if (superAdminToken) {
+      headers["Authorization"] = `Bearer ${superAdminToken}`;
+    }
+  } else {
+    // ✅ ENTERPRISE AUTH: Use sessionToken for regular routes
+    const token = localStorage.getItem("sessionToken");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
   
   const res = await fetch(url, {
@@ -43,14 +51,23 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const headers: Record<string, string> = {};
+    const url = queryKey.join("/") as string;
     
-    // ✅ ENTERPRISE AUTH: Use sessionToken instead of legacy auth_token
-    const token = localStorage.getItem("sessionToken");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    // 🚀 SUPER-ADMIN AUTH: Use superAdminToken for super-admin routes
+    if (url.includes('/api/super-admin')) {
+      const superAdminToken = localStorage.getItem("superAdminToken");
+      if (superAdminToken) {
+        headers["Authorization"] = `Bearer ${superAdminToken}`;
+      }
+    } else {
+      // ✅ ENTERPRISE AUTH: Use sessionToken for regular routes
+      const token = localStorage.getItem("sessionToken");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
     }
     
-    const res = await fetch(queryKey.join("/") as string, {
+    const res = await fetch(url, {
       headers,
       credentials: "include",
     });
