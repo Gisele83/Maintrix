@@ -36,7 +36,7 @@ export default function SuperAdminLogin() {
   const onSubmit = async (data: SuperAdminLoginForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/super-admin/login", data);
+      const response = await apiRequest("/api/super-admin/login", { method: "POST", body: data });
       
       toast({
         title: "Connexion réussie",
