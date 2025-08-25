@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { db } from "./db";
 import { userProfiles, userSessions, tenants, federatedLearning } from "@shared/schema";
 import { eq, count, desc } from "drizzle-orm";
+import { sendTenantInvitation, sendTenantStatusNotification } from './email-service';
 
 const router = Router();
 
@@ -174,10 +175,45 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
       isActive: true
     }).returning();
 
-    res.json({
-      success: true,
-      tenant: newTenant
-    });
+    // Envoyer l'email d'invitation si une adresse est fournie
+    const adminEmail = req.body.adminEmail;
+    if (adminEmail) {
+      try {
+        const loginUrl = `${req.protocol}://${req.get('host')}/login?tenant=${newTenant.id}`;
+        
+        const emailSent = await sendTenantInvitation({
+          tenantName: newTenant.name,
+          tenantDomain: newTenant.domain,
+          adminEmail,
+          loginUrl,
+          superAdminName: 'Administrateur Plateforme'
+        });
+
+        res.json({
+          success: true,
+          tenant: newTenant,
+          emailSent,
+          message: emailSent 
+            ? `Tenant créé et invitation envoyée à ${adminEmail}`
+            : `Tenant créé mais échec envoi email à ${adminEmail}`
+        });
+      } catch (emailError) {
+        console.error('Erreur envoi email invitation:', emailError);
+        res.json({
+          success: true,
+          tenant: newTenant,
+          emailSent: false,
+          message: `Tenant créé mais échec envoi email à ${adminEmail}`
+        });
+      }
+    } else {
+      res.json({
+        success: true,
+        tenant: newTenant,
+        emailSent: false,
+        message: 'Tenant créé (aucun email fourni)'
+      });
+    }
   } catch (error) {
     console.error('Super-admin create tenant error:', error);
     res.status(500).json({
@@ -213,6 +249,20 @@ router.patch('/tenants/:tenantId/status', authenticateSuperAdmin, async (req, re
       })
       .where(eq(tenants.id, tenantId))
       .returning();
+
+    // Envoyer une notification par email si les settings contiennent un email admin
+    if (existingTenant.settings && (existingTenant.settings as any).adminEmail) {
+      try {
+        await sendTenantStatusNotification(
+          (existingTenant.settings as any).adminEmail,
+          existingTenant.name,
+          isActive ? 'activated' : 'deactivated',
+          reason
+        );
+      } catch (emailError) {
+        console.error('Erreur envoi notification email:', emailError);
+      }
+    }
 
     res.json({
       success: true,

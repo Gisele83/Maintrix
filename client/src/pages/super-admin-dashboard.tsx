@@ -108,14 +108,14 @@ export default function SuperAdminDashboard() {
   };
 
   const createTenantMutation = useMutation({
-    mutationFn: async (tenantData: { name: string; domain: string }) => {
+    mutationFn: async (tenantData: { name: string; domain: string; adminEmail?: string }) => {
       return await apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
       toast({
         title: "Tenant créé",
-        description: `Le tenant "${data.tenant.name}" a été créé avec succès`,
+        description: data.message || `Le tenant "${data.tenant.name}" a été créé avec succès`,
       });
     },
     onError: (error) => {
@@ -238,10 +238,16 @@ export default function SuperAdminDashboard() {
               <Button 
                 onClick={() => {
                   const name = prompt("Nom du tenant:");
-                  const domain = prompt("Domaine du tenant (optionnel):");
-                  if (name) {
-                    createTenantMutation.mutate({ name, domain: domain || `${name.toLowerCase().replace(/\s+/g, '-')}.example.com` });
-                  }
+                  if (!name) return;
+                  
+                  const domain = prompt("Domaine du tenant (optionnel):") || `${name.toLowerCase().replace(/\s+/g, '-')}.example.com`;
+                  const adminEmail = prompt("Email administrateur (pour l'invitation - optionnel):");
+                  
+                  createTenantMutation.mutate({ 
+                    name, 
+                    domain,
+                    adminEmail: adminEmail || undefined
+                  });
                 }}
                 disabled={createTenantMutation.isPending}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
