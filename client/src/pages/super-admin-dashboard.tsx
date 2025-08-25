@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -68,6 +71,12 @@ export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [superAdminUser, setSuperAdminUser] = useState<SuperAdminUser | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newTenantData, setNewTenantData] = useState({
+    name: '',
+    domain: '',
+    adminEmail: ''
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
@@ -235,26 +244,100 @@ export default function SuperAdminDashboard() {
           <TabsContent value="tenants" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-white">Gestion des Tenants</h2>
-              <Button 
-                onClick={() => {
-                  const name = prompt("Nom du tenant:");
-                  if (!name) return;
-                  
-                  const domain = prompt("Domaine du tenant (optionnel):") || `${name.toLowerCase().replace(/\s+/g, '-')}.example.com`;
-                  const adminEmail = prompt("Email administrateur (pour l'invitation - optionnel):");
-                  
-                  createTenantMutation.mutate({ 
-                    name, 
-                    domain,
-                    adminEmail: adminEmail || undefined
-                  });
-                }}
-                disabled={createTenantMutation.isPending}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Nouveau Tenant
-              </Button>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouveau Tenant
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-gray-900/95 backdrop-blur-xl border-gray-600">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Créer un nouveau tenant</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Créer un nouveau tenant avec invitation automatique par email
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name" className="text-white">Nom du tenant *</Label>
+                      <Input
+                        id="name"
+                        placeholder="Nom de l'entreprise"
+                        value={newTenantData.name}
+                        onChange={(e) => setNewTenantData({...newTenantData, name: e.target.value})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="domain" className="text-white">Domaine</Label>
+                      <Input
+                        id="domain"
+                        placeholder="exemple: entreprise.example.com"
+                        value={newTenantData.domain}
+                        onChange={(e) => setNewTenantData({...newTenantData, domain: e.target.value})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="adminEmail" className="text-white flex items-center">
+                        <Mail className="w-4 h-4 mr-2" />
+                        Email administrateur (pour invitation)
+                      </Label>
+                      <Input
+                        id="adminEmail"
+                        type="email"
+                        placeholder="admin@entreprise.com"
+                        value={newTenantData.adminEmail}
+                        onChange={(e) => setNewTenantData({...newTenantData, adminEmail: e.target.value})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Un email d'invitation avec lien de connexion sera envoyé automatiquement
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsCreateDialogOpen(false);
+                        setNewTenantData({ name: '', domain: '', adminEmail: '' });
+                      }}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                      Annuler
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        if (!newTenantData.name) {
+                          toast({
+                            title: "Erreur",
+                            description: "Le nom du tenant est requis",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        const domain = newTenantData.domain || `${newTenantData.name.toLowerCase().replace(/\s+/g, '-')}.example.com`;
+                        
+                        createTenantMutation.mutate({ 
+                          name: newTenantData.name, 
+                          domain,
+                          adminEmail: newTenantData.adminEmail || undefined
+                        });
+                        
+                        setIsCreateDialogOpen(false);
+                        setNewTenantData({ name: '', domain: '', adminEmail: '' });
+                      }}
+                      disabled={createTenantMutation.isPending}
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    >
+                      {createTenantMutation.isPending ? 'Création...' : 'Créer et Inviter'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
