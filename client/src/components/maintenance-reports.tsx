@@ -232,7 +232,7 @@ export function MaintenanceReports() {
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
       // Open the PDF report endpoint directly in browser
-      window.open(`/api/maintenance-reports/${report.id}/pdf`, '_blank');
+      window.open(`/pdf/maintenance-reports/${report.id}`, '_blank');
 
       toast({
         title: "Génération du rapport PDF",
@@ -408,7 +408,7 @@ export function MaintenanceReports() {
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
       // Open the PDF report endpoint directly in browser
-      window.open(`/api/monthly-report/pdf`, '_blank');
+      window.open(`/pdf/monthly-reports/1`, '_blank');
 
       toast({
         title: "Génération du rapport PDF",

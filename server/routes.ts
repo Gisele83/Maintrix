@@ -565,6 +565,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 📧 PRIORITÉ 1: ROUTES D'AUTHENTIFICATION ENTERPRISE (AVANT le middleware d'auth global)
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
+
+  // 🔓 ROUTES PDF PUBLIQUES (sans authentification) - AVANT le middleware d'auth global
+  app.get("/pdf/maintenance-reports/:id", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      const demoReport = {
+        reportNumber: "MR20250124001",
+        equipment: "Grue portique STS-01",
+        description: "Remplacement du roulement défaillant sur grue portique STS-01. Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
+        technician: "Jean Dupont",
+        date: "24 janvier 2025",
+        duration: 270,
+        status: "completed",
+        priority: "high",
+        workOrderNumber: "WO-001",
+        interventionType: "repair",
+        partsUsed: [
+          { name: "SKF-22228-E1", quantity: 1, unitCost: 890.50 },
+          { name: "SHELL-GADUS-S2", quantity: 2, unitCost: 45.00 }
+        ],
+        laborCost: 225.00,
+        totalCost: 1160.50,
+        nextMaintenanceDate: "24 février 2025",
+        recommendations: [
+          "Contrôle de la lubrification dans 1 mois",
+          "Surveillance des vibrations hebdomadaire",
+          "Vérification des couples de serrage"
+        ],
+        supervisor: "Marie Martin",
+        actualDuration: 270
+      };
+
+      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
+      const pdfGenerator = new PDFGeneratorFunctional();
+      await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
+    } catch (error) {
+      console.error("Error generating PDF maintenance report:", error);
+      res.status(500).json({ message: "Failed to generate PDF report" });
+    }
+  });
+
+  app.get("/pdf/monthly-reports/:id", async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id);
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      const demoMonthlyReport = {
+        reportNumber: "MM20250124001",
+        month: "Janvier",
+        year: 2025,
+        totalInterventions: 28,
+        completedInterventions: 24,
+        pendingInterventions: 4,
+        totalCost: 18750.00,
+        averageDuration: 195,
+        equipmentStats: [
+          { equipmentName: "Grue portique STS-01", interventionCount: 8, totalDowntime: 1260 },
+          { equipmentName: "Convoyeur CV-12", interventionCount: 6, totalDowntime: 840 },
+          { equipmentName: "Pompe hydraulique PH-03", interventionCount: 5, totalDowntime: 675 }
+        ],
+        monthlyKPIs: {
+          availability: 96.8,
+          mtbf: 168.5,
+          mttr: 5.2
+        }
+      };
+
+      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
+      const pdfGenerator = new PDFGeneratorFunctional();
+      await pdfGenerator.sendMonthlyReportHTML(res, demoMonthlyReport);
+    } catch (error) {
+      console.error("Error generating PDF monthly report:", error);
+      res.status(500).json({ message: "Failed to generate PDF monthly report" });
+    }
+  });
   
   // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC APRÈS avoir ajouté les routes d'auth
   app.use(blockPublicAccess);
