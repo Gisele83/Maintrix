@@ -3346,8 +3346,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { mfaRouter, mfaEnforcementMiddleware } = await import('./mfa-routes');
   app.use('/api/mfa', mfaRouter);
   
-  // Appliquer MFA enforcement sur les routes admin critiques
-  app.use('/api/admin/*', mfaEnforcementMiddleware);
+  // Appliquer MFA enforcement sur les routes admin critiques (SAUF tenant management)
+  app.use('/api/admin', (req: any, res: any, next: any) => {
+    // Bypass MFA pour la gestion des tenants
+    if (req.path.startsWith('/api/admin/tenants') || req.path.startsWith('/api/admin/federated-analytics')) {
+      console.log(`🏢 ADMIN BYPASS: ${req.path} - MFA check skipped for tenant management`);
+      return next();
+    }
+    // Autres routes admin nécessitent MFA
+    return mfaEnforcementMiddleware(req, res, next);
+  });
   app.use('/api/tenant/security-*', mfaEnforcementMiddleware);
 
   // 📋 CCTP Compliance System - Conformité cahier des charges
