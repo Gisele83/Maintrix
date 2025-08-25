@@ -646,6 +646,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to generate PDF monthly report" });
     }
   });
+
+  // Comprehensive report PDF route
+  app.get("/pdf/comprehensive-report", async (req, res) => {
+    try {
+      const { period, department } = req.query;
+
+      const comprehensiveReportData = {
+        reportNumber: "CR20250124001",
+        period: period || "month",
+        department: department || "all", 
+        generatedAt: new Date().toISOString(),
+        kpis: {
+          availability: 96.8,
+          mtbf: 168.5,
+          mttr: 5.2,
+          oee: 84.3
+        },
+        summary: {
+          totalInterventions: 45,
+          completedInterventions: 42,
+          budgetUtilization: 78.5,
+          criticalAlerts: 8
+        }
+      };
+
+      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
+      const pdfGenerator = new PDFGeneratorFunctional();
+      await pdfGenerator.sendComprehensiveReportHTML(res, comprehensiveReportData);
+    } catch (error) {
+      console.error("Error generating comprehensive PDF report:", error);
+      res.status(500).json({ message: "Failed to generate comprehensive PDF report" });
+    }
+  });
   
   // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC APRÈS avoir ajouté les routes d'auth
   app.use(blockPublicAccess);

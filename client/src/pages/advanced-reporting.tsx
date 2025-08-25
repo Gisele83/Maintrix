@@ -104,7 +104,7 @@ export default function AdvancedReporting() {
 
         // Download comprehensive GMAO report PDF
         const link = document.createElement('a');
-        link.href = `/api/comprehensive-report/pdf?period=${selectedPeriod}&department=${selectedDepartment}`;
+        link.href = `/pdf/comprehensive-report?period=${selectedPeriod}&department=${selectedDepartment}`;
         link.download = `rapport-gmao-${selectedPeriod}-${new Date().toISOString().split('T')[0]}.pdf`;
         document.body.appendChild(link);
         link.click();
