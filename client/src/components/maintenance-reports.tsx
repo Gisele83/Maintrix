@@ -231,16 +231,30 @@ export function MaintenanceReports() {
   // Download intervention report as PDF
   const downloadInterventionReport = (report: MaintenanceReport) => {
     try {
-      // Add cache-busting parameter to force browser refresh
+      // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
-      const url = `/pdf/maintenance-reports/${report.id}?t=${timestamp}`;
+      const randomId = Math.random().toString(36).substring(7);
+      const url = `/pdf/maintenance-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=2.0`;
       
-      console.log('🎯 Opening PDF report:', url); // Debug log
-      window.open(url, '_blank');
+      console.log('🎯 [CACHE BYPASS] Opening PDF report:', url); // Enhanced debug log
+      
+      // Clear any existing cache entries
+      if ('caches' in window) {
+        caches.delete('pdf-cache').catch(e => console.log('Cache clear attempt:', e));
+      }
+      
+      // Open with additional cache-busting headers
+      const newWindow = window.open('about:blank', '_blank');
+      if (newWindow) {
+        newWindow.location.href = url;
+      } else {
+        // Fallback if popup blocked
+        window.location.assign(url);
+      }
 
       toast({
         title: "Génération du rapport PDF",
-        description: `Le rapport d'intervention ${report.reportNumber} s'ouvre dans un nouvel onglet`,
+        description: `Le rapport d'intervention ${report.reportNumber} s'ouvre dans un nouvel onglet [CACHE BYPASS ACTIF]`,
       });
     } catch (error) {
       console.error('❌ PDF Error:', error); // Debug log
@@ -412,16 +426,30 @@ export function MaintenanceReports() {
   // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
     try {
-      // Add cache-busting parameter to force browser refresh
+      // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
-      const url = `/pdf/monthly-reports/${report.id}?t=${timestamp}`;
+      const randomId = Math.random().toString(36).substring(7);
+      const url = `/pdf/monthly-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=2.0`;
       
-      console.log('🎯 Opening Monthly PDF report:', url); // Debug log
-      window.open(url, '_blank');
+      console.log('🎯 [CACHE BYPASS] Opening Monthly PDF report:', url); // Enhanced debug log
+      
+      // Clear any existing cache entries
+      if ('caches' in window) {
+        caches.delete('pdf-cache').catch(e => console.log('Cache clear attempt:', e));
+      }
+      
+      // Open with additional cache-busting headers
+      const newWindow = window.open('about:blank', '_blank');
+      if (newWindow) {
+        newWindow.location.href = url;
+      } else {
+        // Fallback if popup blocked
+        window.location.assign(url);
+      }
 
       toast({
         title: "Génération du rapport PDF",
-        description: `Le rapport mensuel ${report.reportNumber} s'ouvre dans un nouvel onglet`,
+        description: `Le rapport mensuel ${report.reportNumber} s'ouvre dans un nouvel onglet [CACHE BYPASS ACTIF]`,
       });
     } catch (error) {
       console.error('❌ Monthly PDF Error:', error); // Debug log
