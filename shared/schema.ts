@@ -1309,4 +1309,113 @@ export const insertCompanyConfigSchema = createInsertSchema(companyConfig).omit(
 export type CompanyConfig = typeof companyConfig.$inferSelect;
 export type InsertCompanyConfig = z.infer<typeof insertCompanyConfigSchema>;
 
+// ========================================
+// POST-DEPLOYMENT ACCESS MANAGEMENT TABLES
+// ========================================
+
+// Table pour les logs d'accès détaillés (contrôle d'accès continu)
+export const accessLogs = pgTable("access_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => userProfiles.id, { onDelete: "cascade" }),
+  action: varchar("action", { length: 200 }).notNull(), // GET /api/diagnostic, POST /api/work-orders, etc.
+  resource: varchar("resource", { length: 200 }).notNull(), // Resource path accessed
+  result: varchar("result", { length: 20 }).notNull(), // granted, denied, challenged
+  reason: text("reason"), // Reason for denial/challenge
+  riskScore: integer("risk_score").default(0), // 0-100 risk assessment
+  trustScore: integer("trust_score").default(50), // 0-100 trust level
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  deviceFingerprint: varchar("device_fingerprint", { length: 32 }),
+  location: varchar("location", { length: 100 }), // Country:Region format
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Table pour les politiques de sécurité par tenant
+export const securityPolicies = pgTable("security_policies", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 200 }).notNull(),
+  description: text("description"),
+  rules: jsonb("rules").notNull(), // SecurityPolicy.rules object
+  enforcement: varchar("enforcement", { length: 20 }).default("moderate"), // strict, moderate, lenient
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Table pour les tâches de workflow (onboarding/offboarding)
+export const workflowTasks = pgTable("workflow_tasks", {
+  id: varchar("id", { length: 50 }).primaryKey(), // onboard-123456-abc, offboard-789012-def
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 20 }).notNull(), // onboarding, offboarding
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description"),
+  assignedTo: integer("assigned_to").references(() => userProfiles.id),
+  data: jsonb("data").notNull(), // Full workflow object (OnboardingWorkflow or OffboardingWorkflow)
+  status: varchar("status", { length: 20 }).default("active"), // active, completed, cancelled
+  priority: varchar("priority", { length: 10 }).default("medium"), // low, medium, high, critical
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Table pour l'audit trail (traçabilité complète)
+export const auditTrail = pgTable("audit_trail", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => userProfiles.id),
+  action: varchar("action", { length: 100 }).notNull(), // onboarding_initiated, access_revoked, etc.
+  resource: varchar("resource", { length: 100 }).notNull(), // user_lifecycle, security_policy, etc.
+  resourceId: varchar("resource_id", { length: 100 }),
+  details: jsonb("details"), // Action-specific details
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  severity: varchar("severity", { length: 20 }).default("info"), // info, warning, error, critical
+});
+
+// Table pour les rapports d'audit
+export const auditReports = pgTable("audit_reports", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // security_audit, access_review, compliance_check
+  title: varchar("title", { length: 200 }).notNull(),
+  summary: text("summary"),
+  findings: jsonb("findings"), // Array of findings
+  recommendations: jsonb("recommendations"), // Array of recommendations
+  severity: varchar("severity", { length: 20 }).default("low"), // low, medium, high, critical
+  status: varchar("status", { length: 20 }).default("draft"), // draft, completed, archived
+  generatedAt: timestamp("generated_at").defaultNow(),
+  generatedBy: integer("generated_by").references(() => userProfiles.id),
+});
+
+// Table pour les revues d'accès
+export const accessReviews = pgTable("access_reviews", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => userProfiles.id, { onDelete: "cascade" }),
+  reviewerId: integer("reviewer_id").references(() => userProfiles.id),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, approved, rejected, requires_attention
+  findings: jsonb("findings"), // AccessReviewFinding[]
+  recommendations: jsonb("recommendations"), // string[]
+  actions: jsonb("actions"), // AccessReviewAction[]
+  reviewDate: timestamp("review_date").defaultNow(),
+  dueDate: timestamp("due_date"),
+  completedDate: timestamp("completed_date"),
+});
+
+// Table pour les rapports de conformité
+export const complianceReports = pgTable("compliance_reports", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  framework: varchar("framework", { length: 20 }).notNull(), // GDPR, SOX, ISO27001, etc.
+  reportPeriod: jsonb("report_period").notNull(), // {start: Date, end: Date}
+  sections: jsonb("sections").notNull(), // ComplianceSection[]
+  overallScore: integer("overall_score"), // 0-100
+  status: varchar("status", { length: 20 }).notNull(), // compliant, non_compliant, partial_compliance
+  generatedAt: timestamp("generated_at").defaultNow(),
+  generatedBy: integer("generated_by").references(() => userProfiles.id),
+});
+
 // Authentication system cleaned up - now using userProfiles as the main user table
