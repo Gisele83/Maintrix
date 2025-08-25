@@ -114,19 +114,24 @@ export default function SuperAdminDashboard() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (tenantData: { name: string; domain: string }) => {
-      return apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
+      console.log('🚀 Creating tenant:', tenantData);
+      const result = await apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
+      console.log('✅ Tenant created:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ Mutation success:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
       toast({
         title: "Tenant créé",
-        description: "Le nouveau tenant a été créé avec succès",
+        description: `Le tenant "${data.tenant.name}" a été créé avec succès`,
       });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('❌ Mutation error:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de créer le tenant",
+        description: error.message || "Impossible de créer le tenant",
         variant: "destructive",
       });
     }
@@ -199,13 +204,20 @@ export default function SuperAdminDashboard() {
               <h2 className="text-2xl font-bold text-white">Gestion des Tenants</h2>
               <Button 
                 onClick={() => {
+                  console.log('🔘 Button clicked');
                   const name = prompt("Nom du tenant:");
-                  const domain = prompt("Domaine du tenant:");
-                  if (name && domain) {
-                    createTenantMutation.mutate({ name, domain });
+                  console.log('📝 Name entered:', name);
+                  const domain = prompt("Domaine du tenant (optionnel):");
+                  console.log('🌐 Domain entered:', domain);
+                  if (name) {
+                    console.log('🚀 Starting mutation...');
+                    createTenantMutation.mutate({ name, domain: domain || `${name.toLowerCase().replace(/\s+/g, '-')}.example.com` });
+                  } else {
+                    console.log('❌ No name provided');
                   }
                 }}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                disabled={createTenantMutation.isPending}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau Tenant
