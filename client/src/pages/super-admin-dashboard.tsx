@@ -72,20 +72,14 @@ export default function SuperAdminDashboard() {
     const token = localStorage.getItem('superAdminToken');
     const user = localStorage.getItem('superAdminUser');
     
-    console.log('🔍 Super-admin auth check:', { token: !!token, user: !!user });
-    
     if (!token || !user) {
-      console.log('❌ Missing token or user, redirecting to login');
       setLocation('/admin-login');
       return;
     }
     
     try {
-      const parsedUser = JSON.parse(user);
-      console.log('✅ Parsed super-admin user:', parsedUser);
-      setSuperAdminUser(parsedUser);
-    } catch (error) {
-      console.error('❌ Failed to parse super-admin user:', error);
+      setSuperAdminUser(JSON.parse(user));
+    } catch {
       setLocation('/admin-login');
     }
   }, [setLocation]);
@@ -96,10 +90,10 @@ export default function SuperAdminDashboard() {
     enabled: !!superAdminUser
   });
 
-  // Récupérer les stats d'apprentissage fédéré
+  // Récupérer les stats d'apprentissage fédéré (temporairement désactivé)
   const { data: federatedStats = [], isLoading: statsLoading } = useQuery<FederatedStats[]>({
     queryKey: ['/api/super-admin/federated-stats'],
-    enabled: !!superAdminUser
+    enabled: false // Temporairement désactivé
   });
 
   const logout = () => {
@@ -114,13 +108,9 @@ export default function SuperAdminDashboard() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (tenantData: { name: string; domain: string }) => {
-      console.log('🚀 Creating tenant:', tenantData);
-      const result = await apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
-      console.log('✅ Tenant created:', result);
-      return result;
+      return await apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
     },
     onSuccess: (data) => {
-      console.log('✅ Mutation success:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
       toast({
         title: "Tenant créé",
@@ -128,7 +118,6 @@ export default function SuperAdminDashboard() {
       });
     },
     onError: (error) => {
-      console.error('❌ Mutation error:', error);
       toast({
         title: "Erreur",
         description: error.message || "Impossible de créer le tenant",
@@ -204,16 +193,10 @@ export default function SuperAdminDashboard() {
               <h2 className="text-2xl font-bold text-white">Gestion des Tenants</h2>
               <Button 
                 onClick={() => {
-                  console.log('🔘 Button clicked');
                   const name = prompt("Nom du tenant:");
-                  console.log('📝 Name entered:', name);
                   const domain = prompt("Domaine du tenant (optionnel):");
-                  console.log('🌐 Domain entered:', domain);
                   if (name) {
-                    console.log('🚀 Starting mutation...');
                     createTenantMutation.mutate({ name, domain: domain || `${name.toLowerCase().replace(/\s+/g, '-')}.example.com` });
-                  } else {
-                    console.log('❌ No name provided');
                   }
                 }}
                 disabled={createTenantMutation.isPending}
