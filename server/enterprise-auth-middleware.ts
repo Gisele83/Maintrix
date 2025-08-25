@@ -38,6 +38,7 @@ export class EnterpriseAuthMiddleware {
       '/api/enterprise-auth/login',
       '/api/enterprise-auth/invitations/verify',
       '/api/enterprise-auth/invitations/accept',
+      '/api/super-admin', // Interface super-admin séparée
       '/api/health',
       '/api/ping'
     ];

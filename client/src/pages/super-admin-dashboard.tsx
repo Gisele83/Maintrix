@@ -206,7 +206,7 @@ export default function SuperAdminDashboard() {
               {tenantsLoading ? (
                 <div className="text-white">Chargement...</div>
               ) : (
-                tenants.map((tenant: Tenant) => (
+                tenants.map((tenant: SuperAdminTenant) => (
                   <Card key={tenant.id} className="bg-white/5 backdrop-blur-xl border-white/10">
                     <CardHeader>
                       <div className="flex justify-between items-start">
