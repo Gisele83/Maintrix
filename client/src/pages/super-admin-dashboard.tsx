@@ -38,13 +38,24 @@ interface Tenant {
   lastActivity: string;
 }
 
+interface SuperAdminTenant {
+  id: string;
+  name: string;
+  domain: string;
+  userCount: number;
+  lastActivity: string;
+  createdAt: Date;
+}
+
 interface FederatedStats {
-  id: number;
-  tenant_id: string;
-  contribution_type: string;
-  data_points: number;
-  accuracy_improvement: number;
-  timestamp: string;
+  id: string;
+  tenantId: string | null;
+  patternHash: string;
+  equipmentCategory: string;
+  solutionEffectiveness: number | null;
+  contributionWeight: number | null;
+  lastUpdated: Date | null;
+  createdAt: Date | null;
 }
 
 export default function SuperAdminDashboard() {
@@ -70,13 +81,13 @@ export default function SuperAdminDashboard() {
   }, [setLocation]);
 
   // Récupérer les tenants
-  const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
+  const { data: tenants = [], isLoading: tenantsLoading } = useQuery<SuperAdminTenant[]>({
     queryKey: ['/api/super-admin/tenants'],
     enabled: !!superAdminUser
   });
 
   // Récupérer les stats d'apprentissage fédéré
-  const { data: federatedStats = [], isLoading: statsLoading } = useQuery({
+  const { data: federatedStats = [], isLoading: statsLoading } = useQuery<FederatedStats[]>({
     queryKey: ['/api/super-admin/federated-stats'],
     enabled: !!superAdminUser
   });
@@ -244,7 +255,7 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-purple-400">
-                    {federatedStats.reduce((sum: number, stat: FederatedStats) => sum + stat.data_points, 0)}
+                    {federatedStats.length}
                   </div>
                   <p className="text-gray-400">Points de données</p>
                 </CardContent>
@@ -259,7 +270,7 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-green-400">
-                    {((federatedStats.reduce((sum: number, stat: FederatedStats) => sum + stat.accuracy_improvement, 0) / Math.max(federatedStats.length, 1)) * 100).toFixed(1)}%
+                    {((federatedStats.reduce((sum: number, stat: FederatedStats) => sum + (stat.solutionEffectiveness || 0), 0) / Math.max(federatedStats.length, 1)) * 100).toFixed(1)}%
                   </div>
                   <p className="text-gray-400">Précision IA</p>
                 </CardContent>
@@ -274,7 +285,7 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-blue-400">
-                    {new Set(federatedStats.map((stat: FederatedStats) => stat.tenant_id)).size}
+                    {new Set(federatedStats.map((stat: FederatedStats) => stat.tenantId)).size}
                   </div>
                   <p className="text-gray-400">Contributeurs</p>
                 </CardContent>
@@ -290,12 +301,12 @@ export default function SuperAdminDashboard() {
                   {federatedStats.map((stat: FederatedStats) => (
                     <div key={stat.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                       <div>
-                        <div className="text-white font-medium">{stat.tenant_id}</div>
-                        <div className="text-gray-400 text-sm">{stat.contribution_type}</div>
+                        <div className="text-white font-medium">{stat.tenantId || 'N/A'}</div>
+                        <div className="text-gray-400 text-sm">{stat.equipmentCategory}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-white">{stat.data_points} points</div>
-                        <div className="text-green-400 text-sm">+{(stat.accuracy_improvement * 100).toFixed(2)}%</div>
+                        <div className="text-white">{(stat.solutionEffectiveness || 0).toFixed(2)}</div>
+                        <div className="text-gray-400 text-sm">Efficacité</div>
                       </div>
                     </div>
                   ))}
