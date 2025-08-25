@@ -187,6 +187,77 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+// 🔄 Désactiver/Activer un tenant
+router.patch('/tenants/:tenantId/status', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const { isActive, reason } = req.body;
+
+    // Vérifier que le tenant existe
+    const [existingTenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!existingTenant) {
+      return res.status(404).json({
+        error: "TENANT_NOT_FOUND",
+        message: "Tenant introuvable"
+      });
+    }
+
+    // Mettre à jour le statut du tenant
+    const [updatedTenant] = await db
+      .update(tenants)
+      .set({ 
+        isActive,
+        updatedAt: new Date(),
+        // Ajouter la raison dans les settings si fournie
+        settings: reason ? { ...(existingTenant.settings || {}), deactivationReason: reason } : existingTenant.settings
+      })
+      .where(eq(tenants.id, tenantId))
+      .returning();
+
+    res.json({
+      success: true,
+      tenant: updatedTenant,
+      message: isActive ? 'Tenant réactivé avec succès' : 'Tenant désactivé avec succès'
+    });
+  } catch (error) {
+    console.error('Super-admin update tenant status error:', error);
+    res.status(500).json({
+      error: "SUPER_ADMIN_UPDATE_TENANT_STATUS_ERROR",
+      message: "Erreur lors de la mise à jour du statut du tenant"
+    });
+  }
+});
+
+// 🗑️ Supprimer un tenant
+router.delete('/tenants/:tenantId', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+
+    // Vérifier que le tenant existe
+    const [existingTenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!existingTenant) {
+      return res.status(404).json({
+        error: "TENANT_NOT_FOUND",
+        message: "Tenant introuvable"
+      });
+    }
+
+    // Supprimer le tenant (cascade supprimera automatiquement les données liées)
+    await db.delete(tenants).where(eq(tenants.id, tenantId));
+
+    res.json({
+      success: true,
+      message: `Tenant "${existingTenant.name}" supprimé définitivement`
+    });
+  } catch (error) {
+    console.error('Super-admin delete tenant error:', error);
+    res.status(500).json({
+      error: "SUPER_ADMIN_DELETE_TENANT_ERROR",
+      message: "Erreur lors de la suppression du tenant"
+    });
+  }
+});
+
 // 🧠 Récupérer les statistiques d'apprentissage fédéré
 router.get('/federated-stats', authenticateSuperAdmin, async (req, res) => {
   try {

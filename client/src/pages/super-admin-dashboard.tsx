@@ -19,7 +19,8 @@ import {
   Activity,
   TrendingUp,
   Lock,
-  Mail
+  Mail,
+  Trash2
 } from "lucide-react";
 
 interface SuperAdminUser {
@@ -121,6 +122,49 @@ export default function SuperAdminDashboard() {
       toast({
         title: "Erreur",
         description: error.message || "Impossible de créer le tenant",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTenantStatusMutation = useMutation({
+    mutationFn: async ({ tenantId, isActive, reason }: { tenantId: string; isActive: boolean; reason?: string }) => {
+      return await apiRequest(`/api/super-admin/tenants/${tenantId}/status`, { 
+        method: "PATCH", 
+        body: { isActive, reason } 
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
+      toast({
+        title: data.message,
+        description: `Statut mis à jour avec succès`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le statut",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      return await apiRequest(`/api/super-admin/tenants/${tenantId}`, { method: "DELETE" });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
+      toast({
+        title: "Tenant supprimé",
+        description: data.message,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le tenant",
         variant: "destructive",
       });
     }
@@ -242,6 +286,44 @@ export default function SuperAdminDashboard() {
                           <span>Dernière activité:</span>
                           <span>{new Date(tenant.lastActivity).toLocaleDateString()}</span>
                         </div>
+                      </div>
+                      
+                      {/* Actions Admin */}
+                      <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                        <Button
+                          size="sm"
+                          variant={tenant.isActive ? "destructive" : "default"}
+                          onClick={() => {
+                            const action = tenant.isActive ? "désactiver" : "réactiver";
+                            const reason = tenant.isActive ? prompt("Raison de la désactivation (optionnel):") : undefined;
+                            
+                            if (confirm(`Voulez-vous vraiment ${action} le tenant "${tenant.name}" ?`)) {
+                              updateTenantStatusMutation.mutate({
+                                tenantId: tenant.id,
+                                isActive: !tenant.isActive,
+                                reason: reason || undefined
+                              });
+                            }
+                          }}
+                          disabled={updateTenantStatusMutation.isPending}
+                          className="flex-1"
+                        >
+                          {tenant.isActive ? "Désactiver" : "Réactiver"}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm(`⚠️ ATTENTION: Supprimer définitivement le tenant "${tenant.name}" ?\n\nCette action est IRRÉVERSIBLE et supprimera toutes les données associées.`)) {
+                              deleteTenantMutation.mutate(tenant.id);
+                            }
+                          }}
+                          disabled={deleteTenantMutation.isPending}
+                          className="px-3"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
