@@ -234,9 +234,13 @@ export function MaintenanceReports() {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/maintenance-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=2.0`;
+      const url = `/pdf/maintenance-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
-      console.log('🎯 [CACHE BYPASS] Opening PDF report:', url); // Enhanced debug log
+      console.log('🚀 [INTERVENTION PDF] ===================================');
+      console.log('🚀 [INTERVENTION PDF] Report ID:', report.id);
+      console.log('🚀 [INTERVENTION PDF] URL généré:', url);
+      console.log('🚀 [INTERVENTION PDF] Function called for report:', report.reportNumber);
+      console.log('🚀 [INTERVENTION PDF] ===================================');
       
       // Force aggressive cache clearing
       if ('caches' in window) {
@@ -294,9 +298,13 @@ export function MaintenanceReports() {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/monthly-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=2.0`;
+      const url = `/pdf/monthly-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
-      console.log('🎯 [CACHE BYPASS] Opening Monthly PDF report:', url); // Enhanced debug log
+      console.log('📊 [MONTHLY PDF] ===================================');
+      console.log('📊 [MONTHLY PDF] Report ID:', report.id);
+      console.log('📊 [MONTHLY PDF] URL généré:', url);
+      console.log('📊 [MONTHLY PDF] Function called for report:', report.reportNumber);
+      console.log('📊 [MONTHLY PDF] ===================================');
       
       // Force aggressive cache clearing
       if ('caches' in window) {
