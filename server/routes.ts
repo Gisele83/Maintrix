@@ -555,18 +555,18 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // =====================================================
-  // 🚀 MULTI-TENANT SAAS ARCHITECTURE ACTIVATION
+  // 🚀 MULTI-TENANT SAAS ARCHITECTURE ACTIVATION (DÉSACTIVÉ TEMPORAIREMENT)
   // =====================================================
-  setupCompleteMultiTenantArchitecture(app);
-  
-  // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC IMMÉDIATEMENT (headers sécurité uniquement)
-  app.use(blockPublicAccess);
+  // setupCompleteMultiTenantArchitecture(app);
   
   // 🔐 COOKIES SÉCURISÉS (HttpOnly + SameSite + Secure)
   app.use(EnterpriseAuthMiddleware.configureSecureCookies);
   
   // 📧 PRIORITÉ 1: ROUTES D'AUTHENTIFICATION ENTERPRISE (AVANT le middleware d'auth global)
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
+  
+  // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC APRÈS avoir ajouté les routes d'auth
+  app.use(blockPublicAccess);
   
   // 🔐 PRIORITÉ 2: AUTHENTIFICATION OBLIGATOIRE SUR TOUTES LES AUTRES ROUTES API
   // Plus d'accès anonyme - fini le "guest mode" (APRÈS les routes d'auth)

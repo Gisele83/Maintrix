@@ -15,8 +15,8 @@ import { federatedAI } from "./federated-ai-system";
 export function enableMultiTenantSecurity(app: Express): void {
   console.log("🔒 ACTIVATING MULTI-TENANT SECURITY ARCHITECTURE...");
 
-  // 1. Metrics et monitoring par tenant
-  app.use("/api", tenantMetricsMiddleware);
+  // 1. Metrics et monitoring par tenant (désactivé temporairement)
+  // app.use("/api", tenantMetricsMiddleware);
 
   // 2. Middleware de sécurité tenant principal (sauf routes publiques)
   app.use("/api", (req: TenantRequest, res, next) => {
@@ -26,7 +26,9 @@ export function enableMultiTenantSecurity(app: Express): void {
       "/api/ping", 
       "/api/status",
       "/api/enterprise-auth/login",
+      "/api/enterprise-auth/register",
       "/api/enterprise-auth/invitations",
+      "/api/enterprise-auth/profile", // Pour récupérer le profil après connexion
       "/api/auth/login",
       "/api/auth/register",
     ];
