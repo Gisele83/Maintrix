@@ -35,6 +35,8 @@ import DataImport from "@/pages/data-import";
 import DownloadPage from "@/pages/download";
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import TenantManagement from "@/pages/tenant-management";
+import SuperAdminLogin from "@/pages/super-admin-login";
+import SuperAdminDashboard from "@/pages/super-admin-dashboard";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
@@ -181,6 +183,9 @@ function Router() {
       <Route path="/cctp-compliance">
         {(params) => <ProtectedRoute component={CCTPCompliancePage} {...params} />}
       </Route>
+      {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
+      <Route path="/admin-login" component={SuperAdminLogin} />
+      <Route path="/super-admin-dashboard" component={SuperAdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

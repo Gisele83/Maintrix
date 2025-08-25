@@ -29,10 +29,9 @@ export function ModernNavigation() {
     { name: "Accueil", href: "/", icon: BarChart3 },
     { name: "Diagnostic IA", href: "/smart-diagnostic", icon: Brain },
     { name: "GMAO", href: "/gmao", icon: Settings },
-    { name: "Administration SaaS", href: "/tenant-management", icon: Building },
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
-    // ✅ MIGRATION COMPLÈTE : Sécurité intégrée dans enterprise auth
+    // ✅ MIGRATION COMPLÈTE : Administration SaaS déplacée vers interface super-admin séparée (/admin-login)
   ];
 
   return (
@@ -132,18 +131,11 @@ export function ModernNavigation() {
             
             {/* Mobile User Info */}
             <div className="border-t border-gray-200 pt-3 mt-3">
-              {isGuest && (
-                <div className="px-3 py-2 mb-2">
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-300">
-                    🚀 Mode Démonstration
-                  </span>
-                </div>
-              )}
               <div className="flex items-center justify-between px-3 py-2">
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
                   <span className="text-sm text-gray-600">
-                    {isGuest ? "Utilisateur Invité" : (user?.firstName || user?.username)}
+                    {user?.firstName || user?.username}
                   </span>
                 </div>
                 <Button 

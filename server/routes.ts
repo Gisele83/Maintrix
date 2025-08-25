@@ -3363,6 +3363,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 📋 CCTP Compliance System - Conformité cahier des charges
   app.use("/api/cctp", cctpRoutes);
 
+  // 🚀 SUPER-ADMIN ROUTES - Interface d'administration plateforme séparée
+  const { superAdminRoutes } = await import('./super-admin-routes');
+  app.use('/api/super-admin', superAdminRoutes);
+
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
 
