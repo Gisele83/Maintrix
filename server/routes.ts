@@ -42,6 +42,7 @@ import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
+import { cctpRoutes } from "./cctp-routes";
 import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 import { registerDownloadRoutes } from "./download-routes";
@@ -3234,6 +3235,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appliquer MFA enforcement sur les routes admin critiques
   app.use('/api/admin/*', mfaEnforcementMiddleware);
   app.use('/api/tenant/security-*', mfaEnforcementMiddleware);
+
+  // 📋 CCTP Compliance System - Conformité cahier des charges
+  app.use("/api/cctp", cctpRoutes);
 
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);

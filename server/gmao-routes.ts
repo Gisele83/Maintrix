@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
+import { cctpComplianceService } from "./cctp-compliance-system";
 import {
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
@@ -294,6 +295,33 @@ export function registerGMAORoutes(app: Express) {
       }
       
       const workOrder = await gmaoStorage.updateWorkOrder(id, processedUpdates);
+      
+      // 🔄 CCTP AUTO-GENERATION: Déclencher génération automatique de rapport si OT terminé
+      if (processedUpdates.status === 'completed' && workOrder) {
+        try {
+          console.log(`🎯 OT ${workOrder.orderNumber} terminé - tentative auto-génération rapport`);
+          
+          // Récupérer le tenant ID depuis l'équipement ou default pour la démo
+          const equipment = await gmaoStorage.getEquipmentById(workOrder.equipmentId);
+          const tenantId = equipment?.tenantId || 'default-tenant';
+          
+          const reportHTML = await cctpComplianceService.checkAndGenerateWorkOrderReport(
+            tenantId,
+            workOrder.id
+          );
+          
+          if (reportHTML) {
+            console.log(`✅ Rapport d'intervention auto-généré pour OT ${workOrder.orderNumber}`);
+            // On pourrait sauvegarder le rapport en DB ou l'envoyer par email ici
+          } else {
+            console.log(`ℹ️ Auto-génération désactivée pour tenant ${tenantId}`);
+          }
+        } catch (error) {
+          console.error("Erreur auto-génération rapport:", error);
+          // Ne pas faire échouer la mise à jour de l'OT si la génération de rapport échoue
+        }
+      }
+      
       res.json(workOrder);
     } catch (error) {
       console.error("Error updating work order:", error);

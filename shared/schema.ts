@@ -34,6 +34,10 @@ export const tenants = pgTable("tenants", {
   // Settings
   settings: jsonb("settings").default({}), // Tenant-specific configuration
   features: jsonb("features").default({}), // Enabled features per tenant
+  // 🔧 CCTP COMPLIANCE: Bons de Commande Configuration
+  purchaseOrderConfig: jsonb("purchase_order_config").default({}), // PO header, logos, thresholds
+  workOrderConfig: jsonb("work_order_config").default({}), // WO header, validation levels
+  reportingConfig: jsonb("reporting_config").default({}), // Auto-report generation settings
 });
 
 // Federated Learning & AI Improvement

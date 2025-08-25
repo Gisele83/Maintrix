@@ -19,6 +19,7 @@ import Payment from "@/pages/payment";
 import PaymentSecurity from "@/pages/payment-security";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
+import CCTPCompliancePage from "@/pages/cctp-compliance";
 // ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
@@ -176,6 +177,9 @@ function Router() {
       </Route>
       <Route path="/security-mfa">
         {(params) => <ProtectedRoute component={lazy(() => import("./pages/security-mfa"))} {...params} />}
+      </Route>
+      <Route path="/cctp-compliance">
+        {(params) => <ProtectedRoute component={CCTPCompliancePage} {...params} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
