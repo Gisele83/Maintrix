@@ -41,10 +41,14 @@ interface Tenant {
 interface SuperAdminTenant {
   id: string;
   name: string;
-  domain: string;
+  domain: string | null;
+  plan: string;
+  isActive: boolean;
+  maxUsers: number;
+  currentUsers: number;
   userCount: number;
   lastActivity: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 interface FederatedStats {
@@ -211,27 +215,31 @@ export default function SuperAdminDashboard() {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-white">{tenant.name}</CardTitle>
-                        <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'}>
-                          {tenant.status}
+                        <Badge variant={tenant.isActive ? 'default' : 'secondary'}>
+                          {tenant.isActive ? 'Actif' : 'Inactif'}
                         </Badge>
                       </div>
                       <CardDescription className="text-gray-400">
-                        {tenant.domain}
+                        {tenant.domain || tenant.plan || 'Aucun domaine'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between text-gray-300">
                           <span>Utilisateurs:</span>
-                          <span>{tenant.userCount || 0}</span>
+                          <span>{tenant.currentUsers || tenant.userCount || 0}/{tenant.maxUsers}</span>
                         </div>
                         <div className="flex justify-between text-gray-300">
                           <span>Créé:</span>
                           <span>{new Date(tenant.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="flex justify-between text-gray-300">
+                          <span>Plan:</span>
+                          <span className="capitalize">{tenant.plan}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-300">
                           <span>Dernière activité:</span>
-                          <span>{tenant.lastActivity || 'N/A'}</span>
+                          <span>{new Date(tenant.lastActivity).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </CardContent>
