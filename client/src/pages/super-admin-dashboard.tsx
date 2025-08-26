@@ -77,6 +77,13 @@ export default function SuperAdminDashboard() {
     domain: '',
     adminEmail: ''
   });
+  
+  // États pour le test d'email
+  const [emailTestData, setEmailTestData] = useState({
+    toEmail: '',
+    fromEmail: 'test@example.com'
+  });
+  const [emailTestResult, setEmailTestResult] = useState<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
@@ -177,6 +184,52 @@ export default function SuperAdminDashboard() {
         variant: "destructive",
       });
     }
+  });
+
+  // Mutations pour les tests d'email
+  const testSendGridMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/super-admin/test-sendgrid', { method: 'GET' });
+    },
+    onSuccess: (data: any) => {
+      setEmailTestResult(data);
+      toast({
+        title: data.success ? "Configuration SendGrid OK ✅" : "Problème SendGrid ❌",
+        description: data.sendgridTest?.error || "Test de configuration réussi",
+        variant: data.success ? "default" : "destructive"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur test SendGrid",
+        description: error.message || "Impossible de tester SendGrid",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testEmailSendMutation = useMutation({
+    mutationFn: async (emailData: { toEmail: string; fromEmail: string }) => {
+      return await apiRequest('/api/super-admin/test-email', { 
+        method: 'POST', 
+        body: emailData 
+      });
+    },
+    onSuccess: (data: any) => {
+      setEmailTestResult(data);
+      toast({
+        title: data.success ? "Email envoyé ✅" : "Erreur envoi email ❌",
+        description: data.result?.error || "Test d'envoi réussi",
+        variant: data.success ? "default" : "destructive"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur envoi test email",
+        description: error.message || "Impossible d'envoyer l'email de test",
+        variant: "destructive",
+      });
+    },
   });
 
   if (!superAdminUser) {
@@ -508,14 +561,153 @@ export default function SuperAdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Notifications */}
+          {/* Diagnostic Email */}
           <TabsContent value="notifications" className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Système de Notifications</h2>
+            <h2 className="text-2xl font-bold text-white">Diagnostic Email SendGrid</h2>
+            
+            {/* Section test configuration */}
             <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-              <CardContent className="p-6">
-                <div className="text-center text-gray-400">
-                  <Mail className="w-12 h-12 mx-auto mb-4" />
-                  <p>Centre de notifications en développement</p>
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Test Configuration SendGrid
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Vérifier la configuration de la clé API SendGrid
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={() => testSendGridMutation.mutate()}
+                  disabled={testSendGridMutation.isPending}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  {testSendGridMutation.isPending ? 'Test en cours...' : '🧪 Tester Configuration'}
+                </Button>
+                
+                {emailTestResult?.sendgridTest && (
+                  <div className={`p-4 rounded-lg ${emailTestResult.sendgridTest.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
+                    <div className="text-sm text-white">
+                      <strong>Status:</strong> {emailTestResult.sendgridTest.success ? '✅ OK' : '❌ Erreur'}
+                    </div>
+                    {emailTestResult.sendgridTest.error && (
+                      <div className="text-sm text-red-300 mt-1">
+                        <strong>Erreur:</strong> {emailTestResult.sendgridTest.error}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-400 mt-2">
+                      {emailTestResult.timestamp}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Section test envoi email */}
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Test Envoi Email
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Tester l'envoi d'un email avec SendGrid
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fromEmail" className="text-white">Email expéditeur</Label>
+                    <Input
+                      id="fromEmail"
+                      type="email"
+                      placeholder="test@example.com"
+                      value={emailTestData.fromEmail}
+                      onChange={(e) => setEmailTestData({...emailTestData, fromEmail: e.target.value})}
+                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Cette adresse doit être vérifiée dans SendGrid
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="toEmail" className="text-white">Email destinataire</Label>
+                    <Input
+                      id="toEmail"
+                      type="email"
+                      placeholder="admin@example.com"
+                      value={emailTestData.toEmail}
+                      onChange={(e) => setEmailTestData({...emailTestData, toEmail: e.target.value})}
+                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    if (!emailTestData.toEmail || !emailTestData.fromEmail) {
+                      toast({
+                        title: "Erreur",
+                        description: "Les emails expéditeur et destinataire sont requis",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    testEmailSendMutation.mutate(emailTestData);
+                  }}
+                  disabled={testEmailSendMutation.isPending}
+                  className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                >
+                  {testEmailSendMutation.isPending ? 'Envoi en cours...' : '📧 Envoyer Email Test'}
+                </Button>
+                
+                {emailTestResult?.result && (
+                  <div className={`p-4 rounded-lg ${emailTestResult.result.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
+                    <div className="text-sm text-white">
+                      <strong>Status:</strong> {emailTestResult.result.success ? '✅ Envoyé' : '❌ Échec'}
+                    </div>
+                    {emailTestResult.result.error && (
+                      <div className="text-sm text-red-300 mt-1">
+                        <strong>Erreur:</strong> {emailTestResult.result.error}
+                      </div>
+                    )}
+                    {emailTestResult.result.details && (
+                      <details className="text-xs text-gray-300 mt-2">
+                        <summary className="cursor-pointer">Détails techniques</summary>
+                        <pre className="mt-1 p-2 bg-black/20 rounded text-xs overflow-auto">
+                          {JSON.stringify(emailTestResult.result.details, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    <div className="text-xs text-gray-400 mt-2">
+                      {emailTestResult.timestamp}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Guide de résolution */}
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">🔧 Guide de Résolution</CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-3">
+                <div>
+                  <strong className="text-white">1. Clé API SendGrid:</strong>
+                  <p className="text-sm">La clé doit commencer par "SG." et avoir les permissions d'envoi d'email</p>
+                </div>
+                <div>
+                  <strong className="text-white">2. Adresse expéditeur:</strong>
+                  <p className="text-sm">L'email expéditeur doit être vérifié dans SendGrid (Single Sender Verification ou Domain Authentication)</p>
+                </div>
+                <div>
+                  <strong className="text-white">3. Erreurs communes:</strong>
+                  <ul className="text-sm list-disc list-inside pl-4 space-y-1">
+                    <li>"API key does not start with 'SG.'" - Clé API invalide</li>
+                    <li>"From email address is not verified" - Email expéditeur non vérifié</li>
+                    <li>"Unauthorized" - Permissions insuffisantes sur la clé API</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>

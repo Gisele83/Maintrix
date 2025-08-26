@@ -5,6 +5,7 @@ import { db } from "./db";
 import { userProfiles, userSessions, tenants, federatedLearning } from "@shared/schema";
 import { eq, count, desc } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification } from './email-service';
+import { testSendGridConfiguration, testRealEmailSend } from './test-email';
 
 const router = Router();
 
@@ -142,6 +143,55 @@ router.get('/tenants', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+// 🧪 Route de test pour la configuration SendGrid
+router.get('/test-sendgrid', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const testResult = await testSendGridConfiguration();
+    
+    res.json({
+      success: true,
+      sendgridTest: testResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erreur test SendGrid:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du test SendGrid',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
+  }
+});
+
+// 📧 Route de test d'envoi d'email réel (pour diagnostic)
+router.post('/test-email', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { toEmail, fromEmail } = req.body;
+    
+    if (!toEmail || !fromEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'toEmail et fromEmail sont requis'
+      });
+    }
+
+    const testResult = await testRealEmailSend(toEmail, fromEmail);
+    
+    res.json({
+      success: testResult.success,
+      result: testResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Erreur test envoi email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors du test d\'envoi d\'email',
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
+    });
+  }
+});
+
 // 🏢 Créer un nouveau tenant
 router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
   try {
@@ -184,7 +234,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
         
         const emailSent = await sendTenantInvitation({
           tenantName: newTenant.name,
-          tenantDomain: newTenant.domain,
+          tenantDomain: newTenant.domain || domain,
           adminEmail,
           loginUrl,
           superAdminName: 'Administrateur Plateforme'
