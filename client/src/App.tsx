@@ -37,6 +37,7 @@ import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import TenantManagement from "@/pages/tenant-management";
 import SuperAdminLogin from "@/pages/super-admin-login";
 import SuperAdminDashboard from "@/pages/super-admin-dashboard";
+import EmailDiagnostic from "@/pages/email-diagnostic";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
