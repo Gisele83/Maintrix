@@ -47,8 +47,8 @@ export default function EmailDiagnostic() {
   const [diagnosticProgress, setDiagnosticProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [emailTestData, setEmailTestData] = useState({
-    toEmail: '',
-    fromEmail: 'noreply@smartgmao.com'
+    toEmail: 'test@example.com',
+    fromEmail: 'admin@smartgmao.com'
   });
 
   useEffect(() => {

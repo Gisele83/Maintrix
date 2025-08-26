@@ -257,15 +257,26 @@ export default function SuperAdminDashboard() {
                 <div className="text-sm font-medium text-white">{superAdminUser.email}</div>
                 <div className="text-xs text-gray-400">Super Administrateur</div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={logout}
-                className="bg-white/5 border-white/10 text-white hover:bg-white/10"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Déconnexion
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setLocation('/email-diagnostic')}
+                  className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Diagnostic Email
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={logout}
+                  className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -189,6 +189,7 @@ function Router() {
       <Route path="/super-admin-login" component={SuperAdminLogin} />
       <Route path="/super-admin" component={SuperAdminDashboard} />
       <Route path="/super-admin-dashboard" component={SuperAdminDashboard} />
+      <Route path="/email-diagnostic" component={EmailDiagnostic} />
       <Route component={NotFound} />
     </Switch>
   );

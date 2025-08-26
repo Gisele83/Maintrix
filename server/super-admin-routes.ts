@@ -13,7 +13,7 @@ const router = Router();
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET || "***REMOVED-SECRET***";
 const SUPER_ADMIN_ACCOUNTS = [
   {
-    email: "platform@admin.com",
+    email: "admin@smartgmao.com", // Domaine réel pour SendGrid
     password: "***REMOVED-SECRET***", // À hasher en production
     role: "super-admin"
   }
