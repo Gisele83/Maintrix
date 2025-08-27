@@ -48,7 +48,7 @@ export default function EmailDiagnostic() {
   const [currentStep, setCurrentStep] = useState(0);
   const [emailTestData, setEmailTestData] = useState({
     toEmail: 'test@example.com',
-    fromEmail: 'admin@smartgmao.com'
+    fromEmail: 'votre-email@gmail.com' // REMPLACER par votre vraie adresse email
   });
 
   useEffect(() => {
@@ -159,8 +159,36 @@ export default function EmailDiagnostic() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Avertissement important */}
+              <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>⚠️ Configuration requise</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p><strong>Vous devez utiliser votre VRAIE adresse email</strong> que vous possédez réellement.</p>
+                  <p>Les adresses fictives (platform@admin.com, admin@smartgmao.com) ne fonctionnent pas car SendGrid exige la vérification du propriétaire du domaine.</p>
+                  <p><strong>Exemples d'adresses valides :</strong> votre-nom@gmail.com, contact@monentreprise.com</p>
+                </AlertDescription>
+              </Alert>
+
               {/* Configuration du test */}
               <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="fromEmail" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-purple-600" />
+                    Votre vraie adresse email expéditeur
+                  </Label>
+                  <Input
+                    id="fromEmail"
+                    type="email"
+                    placeholder="votre-nom@gmail.com"
+                    value={emailTestData.fromEmail}
+                    onChange={(e) => setEmailTestData(prev => ({ ...prev, fromEmail: e.target.value }))}
+                    className="border-purple-200 focus:border-purple-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cette adresse doit être vérifiée dans votre console SendGrid
+                  </p>
+                </div>
                 <div>
                   <Label htmlFor="toEmail">Email de destination (test)</Label>
                   <Input
@@ -170,15 +198,9 @@ export default function EmailDiagnostic() {
                     value={emailTestData.toEmail}
                     onChange={(e) => setEmailTestData(prev => ({ ...prev, toEmail: e.target.value }))}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="fromEmail">Email expéditeur</Label>
-                  <Input
-                    id="fromEmail"
-                    type="email"
-                    value={emailTestData.fromEmail}
-                    onChange={(e) => setEmailTestData(prev => ({ ...prev, fromEmail: e.target.value }))}
-                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Adresse pour recevoir l'email de test
+                  </p>
                 </div>
               </div>
 
