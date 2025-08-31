@@ -543,6 +543,54 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Delete spare part (with security checks)
+  app.delete("/api/spare-parts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Vérifier que la pièce existe
+      const part = await gmaoStorage.getSparePartById(id);
+      if (!part) {
+        return res.status(404).json({ message: "Pièce détachée non trouvée" });
+      }
+
+      // Vérifier s'il y a des mouvements de stock associés
+      const movements = await gmaoStorage.getStockMovementsByPart(id);
+      if (movements.length > 0) {
+        return res.status(400).json({ 
+          message: "Impossible de supprimer cette pièce car elle a un historique de mouvements de stock",
+          details: `${movements.length} mouvement(s) trouvé(s)`,
+          suggestion: "Vous pouvez désactiver la pièce au lieu de la supprimer"
+        });
+      }
+
+      // Vérifier si la pièce est utilisée dans des ordres de travail actifs
+      // (Cette vérification pourrait être ajoutée plus tard selon les besoins)
+
+      // Supprimer la pièce
+      const success = await gmaoStorage.deleteSparePart(id);
+      
+      if (success) {
+        res.json({ 
+          message: "Pièce détachée supprimée avec succès",
+          deletedPart: {
+            id: part.id,
+            partNumber: part.partNumber,
+            partName: part.partName
+          }
+        });
+      } else {
+        res.status(500).json({ message: "Erreur lors de la suppression" });
+      }
+    } catch (error) {
+      console.error("Error deleting spare part:", error);
+      res.status(500).json({ 
+        message: "Erreur lors de la suppression de la pièce",
+        error: error instanceof Error ? error.message : "Erreur inconnue"
+      });
+    }
+  });
+
   // Get low stock parts
   app.get("/api/spare-parts/low-stock", async (req, res) => {
     try {

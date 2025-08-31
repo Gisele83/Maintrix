@@ -48,7 +48,8 @@ import {
   TrendingUp,
   TrendingDown,
   RotateCcw,
-  History
+  History,
+  Trash2
 } from "lucide-react";
 
 interface SparePart {
@@ -182,8 +183,42 @@ export default function InventorySimple() {
     },
   });
 
+  // Mutation de suppression
+  const deletePartMutation = useMutation({
+    mutationFn: async (partId: number) => {
+      return await apiRequest(`/api/spare-parts/${partId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: (response, partId) => {
+      toast({
+        title: "Succès",
+        description: response.message || "Pièce supprimée avec succès",
+      });
+      
+      // Simple refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur de suppression",
+        description: error.message || "Impossible de supprimer cette pièce",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: SparePartFormData) => {
     createPartMutation.mutate(data);
+  };
+
+  const handleDeletePart = (part: SparePart) => {
+    if (window.confirm(
+      `Êtes-vous sûr de vouloir supprimer la pièce "${part.partName}" (${part.partNumber}) ?\n\n` +
+      `Cette action est irréversible et la pièce sera définitivement supprimée de l'inventaire.`
+    )) {
+      deletePartMutation.mutate(part.id);
+    }
   };
 
   const handleRefresh = () => {
@@ -604,6 +639,17 @@ export default function InventorySimple() {
                       >
                         <History className="w-4 h-4 mr-1" />
                         Historique
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+                        onClick={() => handleDeletePart(part)}
+                        disabled={deletePartMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        {deletePartMutation.isPending ? "Suppression..." : "Supprimer"}
                       </Button>
                     </div>
                   </div>

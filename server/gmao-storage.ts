@@ -286,6 +286,16 @@ export class GMAOStorage {
     return part;
   }
 
+  async deleteSparePart(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(spareParts).where(eq(spareParts.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting spare part:", error);
+      return false;
+    }
+  }
+
   // Stock Movements Methods
   async getStockMovements(): Promise<StockMovement[]> {
     return await db.select().from(stockMovements).orderBy(desc(stockMovements.createdAt));
