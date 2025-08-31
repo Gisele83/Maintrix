@@ -808,6 +808,9 @@ export type InsertPreventiveMaintenancePlan = z.infer<typeof insertPreventiveMai
 export type SparePart = typeof spareParts.$inferSelect;
 export type InsertSparePart = z.infer<typeof insertSparePartSchema>;
 
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type InsertStockMovement = z.infer<typeof insertStockMovementSchema>;
+
 export type IotSensorData = typeof iotSensorData.$inferSelect;
 export type InsertIotSensorData = z.infer<typeof insertIotSensorDataSchema>;
 
