@@ -32,7 +32,7 @@ import MaintenanceDashboard from "@/pages/maintenance-dashboard";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
-import DownloadPage from "@/pages/download";
+
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import TenantManagement from "@/pages/tenant-management";
 import SuperAdminLogin from "@/pages/super-admin-login";
@@ -160,9 +160,7 @@ function Router() {
       <Route path="/import-data">
         {(params) => <ProtectedRoute component={DataImport} {...params} />}
       </Route>
-      <Route path="/download">
-        {(params) => <ProtectedRoute component={DownloadPage} {...params} />}
-      </Route>
+
       <Route path="/localhost-diagnostic">
         {(params) => <ProtectedRoute component={LocalhostDiagnostic} {...params} />}
       </Route>

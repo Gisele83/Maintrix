@@ -26,7 +26,7 @@ import {
   CheckCircle,
   PlayCircle,
   ArrowRight,
-  Download
+
 } from "lucide-react";
 
 export default function ModernHome() {
@@ -228,7 +228,7 @@ export default function ModernHome() {
         {/* Quick Access Section */}
         <div className="text-center">
           <h3 className="text-3xl font-bold text-gray-900 mb-8">Accès Rapide</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/profiles">
               <Button variant="outline" className="h-20 rounded-xl border-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200">
                 <div className="text-center">
@@ -253,17 +253,7 @@ export default function ModernHome() {
                 </div>
               </Button>
             </Link>
-            <Link href="/download">
-              <Button variant="outline" className="h-20 rounded-xl border-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200 relative">
-                <div className="text-center">
-                  <Download className="h-6 w-6 mx-auto mb-2 text-orange-600" />
-                  <span className="text-sm font-medium">Téléchargement</span>
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    NOUVEAU
-                  </div>
-                </div>
-              </Button>
-            </Link>
+
             <Link href="/pricing">
               <Button variant="outline" className="h-20 rounded-xl border-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200">
                 <div className="text-center">

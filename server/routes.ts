@@ -45,7 +45,7 @@ import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
 import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
-import { registerDownloadRoutes } from "./download-routes";
+
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
@@ -3044,8 +3044,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Register download routes
-  registerDownloadRoutes(app);
   
   // Register enhanced diagnostic routes with company data access
   registerEnhancedDiagnosticRoutes(app);
