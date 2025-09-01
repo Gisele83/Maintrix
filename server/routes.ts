@@ -2175,7 +2175,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Profile Management endpoints
   app.get("/api/user-profiles", async (req, res) => {
     try {
-      const profiles = await storage.getUserProfiles();
+      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
+      const profiles = await storage.getUserProfilesByTenant(tenantId as string);
       res.json(profiles);
     } catch (error) {
       console.error("Error fetching user profiles:", error);
@@ -2199,15 +2200,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/user-profiles", async (req, res) => {
     try {
-      const data = insertUserProfileSchema.parse(req.body);
+      let data;
       
-      // Check if username already exists
-      const existingProfile = await storage.getUserProfileByUsername(data.username);
-      if (existingProfile) {
+      // Handle JSON parsing safely
+      if (typeof req.body === 'string') {
+        try {
+          data = JSON.parse(req.body);
+        } catch (parseError) {
+          console.error("JSON Parse Error:", parseError);
+          return res.status(400).json({ error: "Invalid JSON format" });
+        }
+      } else {
+        data = req.body;
+      }
+      
+      // Add tenant context
+      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
+      data.tenantId = tenantId;
+      
+      const validatedData = insertUserProfileSchema.parse(data);
+      
+      // Check if username already exists within the tenant
+      const existingProfile = await storage.getUserProfileByUsername(validatedData.username);
+      if (existingProfile && existingProfile.tenantId === tenantId) {
         return res.status(400).json({ error: "Username already exists" });
       }
       
-      const profile = await storage.createUserProfile(data);
+      const profile = await storage.createUserProfile(validatedData);
       res.status(201).json(profile);
     } catch (error) {
       console.error("Error creating user profile:", error);
@@ -2222,17 +2241,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/user-profiles/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = req.body;
+      let updates;
+      
+      // Handle JSON parsing safely
+      if (typeof req.body === 'string') {
+        try {
+          updates = JSON.parse(req.body);
+        } catch (parseError) {
+          console.error("JSON Parse Error:", parseError);
+          return res.status(400).json({ error: "Invalid JSON format" });
+        }
+      } else {
+        updates = req.body;
+      }
       
       // Remove fields that shouldn't be updated directly
       delete updates.id;
       delete updates.createdAt;
+      delete updates.tenantId; // Prevent tenant switching
+      
+      // Ensure tenant isolation
+      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
+      const existingProfile = await storage.getUserProfileById(id);
+      
+      if (!existingProfile || (existingProfile.tenantId && existingProfile.tenantId !== tenantId)) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
       
       const profile = await storage.updateUserProfile(id, updates);
       res.json(profile);
     } catch (error) {
       console.error("Error updating user profile:", error);
-      if (error.message.includes("not found")) {
+      if (error.message && error.message.includes("not found")) {
         res.status(404).json({ error: "User profile not found" });
       } else {
         res.status(500).json({ error: "Failed to update user profile" });
