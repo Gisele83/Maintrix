@@ -57,17 +57,8 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password, secretKey } = req.body;
 
-    console.log('🔐 Super-admin login attempt:');
-    console.log('  Email reçu:', JSON.stringify(email));
-    console.log('  Email attendu:', JSON.stringify(SUPER_ADMIN_ACCOUNTS[0].email));
-    console.log('  Password reçu:', JSON.stringify(password));
-    console.log('  Password attendu:', JSON.stringify(SUPER_ADMIN_ACCOUNTS[0].password));
-    console.log('  Secret key reçu:', JSON.stringify(secretKey));
-    console.log('  Secret key attendu:', JSON.stringify(SUPER_ADMIN_SECRET));
-
     // Vérifier la clé secrète plateforme
     if (secretKey !== SUPER_ADMIN_SECRET) {
-      console.log('❌ Échec: Clé secrète incorrecte');
       return res.status(401).json({
         error: "INVALID_SECRET_KEY",
         message: "Clé secrète plateforme incorrecte"
@@ -77,7 +68,6 @@ router.post('/login', async (req, res) => {
     // Vérifier les identifiants super-admin
     const superAdminAccount = SUPER_ADMIN_ACCOUNTS.find(account => account.email === email);
     if (!superAdminAccount) {
-      console.log('❌ Échec: Email non trouvé');
       return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_CREDENTIALS",
         message: "Identifiants super-admin incorrects"
@@ -87,7 +77,6 @@ router.post('/login', async (req, res) => {
     // Vérifier le mot de passe (en production, utiliser bcrypt.compare)
     const passwordMatch = password === superAdminAccount.password;
     if (!passwordMatch) {
-      console.log('❌ Échec: Mot de passe incorrect');
       return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_CREDENTIALS",
         message: "Identifiants super-admin incorrects"

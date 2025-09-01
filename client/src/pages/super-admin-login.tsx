@@ -35,11 +35,8 @@ export default function SuperAdminLogin() {
 
   const onSubmit = async (data: SuperAdminLoginForm) => {
     setIsLoading(true);
-    console.log('🔍 Frontend - Données envoyées:', JSON.stringify(data, null, 2));
-    
     try {
       const response = await apiRequest("/api/super-admin/login", { method: "POST", body: data });
-      console.log('✅ Frontend - Réponse reçue:', response);
       
       toast({
         title: "Connexion réussie",
@@ -52,7 +49,6 @@ export default function SuperAdminLogin() {
       
       setLocation('/super-admin-dashboard');
     } catch (error: any) {
-      console.error('❌ Frontend - Erreur:', error);
       toast({
         title: "Erreur de connexion",
         description: error.message || "Identifiants super-admin incorrects",
