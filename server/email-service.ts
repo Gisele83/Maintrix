@@ -1,4 +1,5 @@
 import { MailService } from '@sendgrid/mail';
+import { CredentialNotification } from './credential-generator';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
@@ -204,6 +205,112 @@ export async function sendTenantStatusNotification(
     return true;
   } catch (error) {
     console.error('Erreur envoi notification statut tenant:', error);
+    return false;
+  }
+}
+
+/**
+ * 🔐 Envoyer les identifiants par défaut par email
+ */
+export async function sendTenantCredentials(notification: CredentialNotification): Promise<boolean> {
+  try {
+    const emailContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>🔐 Vos identifiants Smart GMAO DiagFix</title>
+    <style>
+        .container { max-width: 600px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }
+        .credentials { background: #f0f4ff; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 6px; }
+        .warning { background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .security-item { background: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .monospace { font-family: 'Courier New', monospace; font-size: 16px; font-weight: bold; color: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Identifiants de connexion</h1>
+            <p>Votre accès à Smart GMAO DiagFix - ${notification.tenantName}</p>
+        </div>
+        
+        <div class="content">
+            <h2>Bonjour ${notification.recipientName || ''},</h2>
+            
+            <p>Votre compte a été créé avec succès sur la plateforme <strong>Smart GMAO DiagFix</strong> pour le tenant <strong>"${notification.tenantName}"</strong>.</p>
+            
+            <div class="credentials">
+                <h3>🔑 Vos identifiants temporaires :</h3>
+                <p><strong>Nom d'utilisateur :</strong> <span class="monospace">${notification.username}</span></p>
+                <p><strong>Mot de passe temporaire :</strong> <span class="monospace">${notification.temporaryPassword}</span></p>
+                <p><strong>URL de connexion :</strong> <a href="${notification.loginUrl}" class="monospace">${notification.loginUrl}</a></p>
+                <p><strong>⏰ Expire le :</strong> ${notification.expiresAt.toLocaleDateString('fr-FR')} à ${notification.expiresAt.toLocaleTimeString('fr-FR')}</p>
+            </div>
+            
+            <div class="warning">
+                <h3>🚨 IMPORTANT - Sécurité obligatoire :</h3>
+                <p><strong>Vous DEVEZ changer votre mot de passe lors de votre première connexion.</strong></p>
+                <p>Ces identifiants sont temporaires et <strong>expireront automatiquement</strong> si vous ne vous connectez pas avant la date limite.</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="${notification.loginUrl}" class="btn">🚀 Se connecter maintenant</a>
+            </div>
+            
+            <h3>🛡️ Instructions de sécurité :</h3>
+            ${notification.securityInstructions.map(instruction => 
+              `<div class="security-item">✅ ${instruction}</div>`
+            ).join('')}
+            
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <p><strong>💡 Conseil :</strong> Une fois connecté, dirigez-vous vers les paramètres de votre profil pour :</p>
+                <ul>
+                    <li>Changer votre mot de passe</li>
+                    <li>Configurer l'authentification à deux facteurs (recommandé)</li>
+                    <li>Compléter vos informations de profil</li>
+                </ul>
+            </div>
+            
+            ${notification.isFirstLogin ? `
+            <div style="background: #fff4e6; border: 1px solid #fed7aa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <h3>🎯 Première connexion :</h3>
+                <p>En tant que ${notification.isFirstLogin ? 'administrateur' : 'utilisateur'} de ce tenant, vous pourrez :</p>
+                <ul>
+                    <li>📊 Configurer les équipements et zones</li>
+                    <li>👥 Inviter et gérer les utilisateurs</li>
+                    <li>🔧 Planifier la maintenance préventive</li>
+                    <li>🤖 Utiliser le diagnostic IA avancé</li>
+                </ul>
+            </div>
+            ` : ''}
+        </div>
+        
+        <div class="footer">
+            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p style="font-size: 12px; color: #6b7280;">
+                Cet email contient des informations confidentielles. Si vous l'avez reçu par erreur, veuillez le supprimer immédiatement.
+            </p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    await mailService.send({
+      to: notification.recipientEmail,
+      from: 'noreply@smart-gmao-diagfix.com',
+      subject: `🔐 Vos identifiants Smart GMAO DiagFix - ${notification.tenantName}`,
+      html: emailContent
+    });
+
+    console.log(`✅ Identifiants envoyés par email à ${notification.recipientEmail}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur envoi identifiants:', error);
     return false;
   }
 }

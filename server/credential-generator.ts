@@ -1,0 +1,247 @@
+/**
+ * 🔐 GÉNÉRATEUR D'IDENTIFIANTS PAR DÉFAUT SÉCURISÉ
+ * Système multi-niveaux pour super-admin → tenants → utilisateurs
+ */
+
+import crypto from "crypto";
+
+export interface DefaultCredentials {
+  username: string;
+  password: string;
+  mustChangePassword: boolean;
+  expiresAt?: Date;
+}
+
+export interface TenantCredentials extends DefaultCredentials {
+  tenantId: string;
+  email: string;
+  role: 'owner' | 'admin';
+}
+
+export interface UserCredentials extends DefaultCredentials {
+  tenantId: string;
+  email: string;
+  role: 'admin' | 'maintainer' | 'technician' | 'viewer';
+}
+
+/**
+ * Classe utilitaire pour générer des identifiants sécurisés par défaut
+ */
+export class CredentialGenerator {
+
+  /**
+   * Générer un nom d'utilisateur unique basé sur l'email et tenant
+   */
+  private static generateUsername(email: string, tenantPrefix?: string): string {
+    const emailPart = email.split('@')[0].toLowerCase();
+    // Nettoyer les caractères spéciaux
+    const cleanEmail = emailPart.replace(/[^a-z0-9]/g, '');
+    
+    if (tenantPrefix) {
+      const cleanTenant = tenantPrefix.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 6);
+      return `${cleanTenant}_${cleanEmail}`.substring(0, 20);
+    }
+    
+    return cleanEmail.substring(0, 15);
+  }
+
+  /**
+   * Générer un mot de passe sécurisé temporaire
+   */
+  private static generateSecurePassword(): string {
+    // Caractères autorisés (éviter ambiguïtés : 0,O,1,l,I)
+    const lowercase = 'abcdefghijkmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const numbers = '23456789';
+    const special = '@#$%&*';
+    
+    let password = '';
+    
+    // Assurer au moins un caractère de chaque type
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Compléter avec des caractères aléatoires
+    const allChars = lowercase + uppercase + numbers + special;
+    for (let i = 4; i < 12; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Mélanger les caractères
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  /**
+   * 🏢 NIVEAU 1: Générer identifiants par défaut pour admin tenant
+   * Utilisé par le super-admin lors de la création d'un tenant
+   */
+  static generateTenantAdminCredentials(
+    tenantName: string, 
+    contactEmail: string, 
+    tenantId: string
+  ): TenantCredentials {
+    const username = this.generateUsername(contactEmail, tenantName);
+    const password = this.generateSecurePassword();
+    
+    // Expiration forcée après 30 jours si pas changé
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    
+    return {
+      tenantId,
+      username,
+      password,
+      email: contactEmail,
+      role: 'owner', // Premier utilisateur = owner du tenant
+      mustChangePassword: true,
+      expiresAt
+    };
+  }
+
+  /**
+   * 👥 NIVEAU 2: Générer identifiants par défaut pour utilisateur tenant
+   * Utilisé par l'admin tenant lors de l'ajout d'utilisateurs
+   */
+  static generateTenantUserCredentials(
+    email: string, 
+    tenantId: string, 
+    tenantName: string,
+    role: 'admin' | 'maintainer' | 'technician' | 'viewer' = 'viewer'
+  ): UserCredentials {
+    const username = this.generateUsername(email, tenantName);
+    const password = this.generateSecurePassword();
+    
+    // Expiration forcée après 7 jours si pas changé
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    
+    return {
+      tenantId,
+      username,
+      password,
+      email,
+      role,
+      mustChangePassword: true,
+      expiresAt
+    };
+  }
+
+  /**
+   * 🔄 Générer nouveau mot de passe temporaire (récupération)
+   */
+  static generateTemporaryPassword(): string {
+    return this.generateSecurePassword();
+  }
+
+  /**
+   * ✅ Valider la force d'un nouveau mot de passe utilisateur
+   */
+  static validatePasswordStrength(password: string): {
+    isValid: boolean;
+    errors: string[];
+    score: number; // 0-100
+  } {
+    const errors: string[] = [];
+    let score = 0;
+    
+    // Longueur minimum
+    if (password.length < 8) {
+      errors.push("Le mot de passe doit contenir au moins 8 caractères");
+    } else {
+      score += 20;
+    }
+    
+    // Caractères obligatoires
+    if (!/[a-z]/.test(password)) {
+      errors.push("Le mot de passe doit contenir au moins une minuscule");
+    } else {
+      score += 20;
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Le mot de passe doit contenir au moins une majuscule");
+    } else {
+      score += 20;
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      errors.push("Le mot de passe doit contenir au moins un chiffre");
+    } else {
+      score += 20;
+    }
+    
+    if (!/[@#$%&*!?]/.test(password)) {
+      errors.push("Le mot de passe doit contenir au moins un caractère spécial (@#$%&*!?)");
+    } else {
+      score += 20;
+    }
+    
+    // Bonus pour longueur
+    if (password.length >= 12) score += 10;
+    if (password.length >= 16) score += 10;
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      score
+    };
+  }
+
+  /**
+   * 🔐 Hasher un mot de passe avec bcrypt
+   */
+  static async hashPassword(password: string): Promise<string> {
+    const bcrypt = require('bcrypt');
+    return await bcrypt.hash(password, 12);
+  }
+
+  /**
+   * 🔍 Vérifier un mot de passe hasher
+   */
+  static async verifyPassword(password: string, hash: string): Promise<boolean> {
+    const bcrypt = require('bcrypt');
+    return await bcrypt.compare(password, hash);
+  }
+}
+
+/**
+ * 📧 Interface pour notifications d'identifiants
+ */
+export interface CredentialNotification {
+  recipientEmail: string;
+  recipientName?: string;
+  username: string;
+  temporaryPassword: string;
+  loginUrl: string;
+  expiresAt: Date;
+  tenantName: string;
+  isFirstLogin: boolean;
+  securityInstructions: string[];
+}
+
+/**
+ * Créer une notification d'identifiants pour envoi par email
+ */
+export function createCredentialNotification(
+  credentials: TenantCredentials | UserCredentials,
+  tenantName: string,
+  loginUrl: string
+): CredentialNotification {
+  return {
+    recipientEmail: credentials.email,
+    username: credentials.username,
+    temporaryPassword: credentials.password,
+    loginUrl,
+    expiresAt: credentials.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    tenantName,
+    isFirstLogin: true,
+    securityInstructions: [
+      "Connectez-vous immédiatement et changez votre mot de passe",
+      "Ne partagez jamais vos identifiants",
+      "Utilisez un mot de passe unique et fort",
+      "Activez l'authentification à deux facteurs si disponible"
+    ]
+  };
+}

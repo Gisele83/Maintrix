@@ -38,6 +38,8 @@ import TenantManagement from "@/pages/tenant-management";
 import SuperAdminLogin from "@/pages/super-admin-login";
 import SuperAdminDashboard from "@/pages/super-admin-dashboard";
 import EmailDiagnostic from "@/pages/email-diagnostic";
+import ChangeCredentials from "@/pages/change-credentials";
+import UserManagement from "@/pages/user-management";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
@@ -68,6 +70,12 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/change-credentials">
+        {(params) => <ProtectedRoute component={ChangeCredentials} {...params} />}
+      </Route>
+      <Route path="/user-management">
+        {(params) => <ProtectedRoute component={UserManagement} {...params} />}
+      </Route>
       <Route path="/force-logout" component={ForceLogout} />
       <Route path="/">
         {(params) => <ProtectedRoute component={ModernHome} {...params} />}

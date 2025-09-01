@@ -4,8 +4,9 @@ import crypto from "crypto";
 import { db } from "./db";
 import { userProfiles, userSessions, tenants, federatedLearning } from "@shared/schema";
 import { eq, count, desc } from "drizzle-orm";
-import { sendTenantInvitation, sendTenantStatusNotification } from './email-service';
+import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
+import { CredentialGenerator, createCredentialNotification } from './credential-generator';
 
 const router = Router();
 
@@ -192,15 +193,15 @@ router.post('/test-email', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
-// 🏢 Créer un nouveau tenant
+// 🏢 Créer un nouveau tenant avec identifiants par défaut
 router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
   try {
-    const { name, domain } = req.body;
+    const { name, domain, adminEmail } = req.body;
 
-    if (!name || !domain) {
+    if (!name || !domain || !adminEmail) {
       return res.status(400).json({
         error: "TENANT_DATA_REQUIRED",
-        message: "Nom et domaine du tenant requis"
+        message: "Nom, domaine et email administrateur du tenant requis"
       });
     }
 
@@ -218,58 +219,136 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
       });
     }
 
+    // Vérifier si l'email admin existe déjà
+    const existingUser = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.email, adminEmail))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return res.status(400).json({
+        error: "ADMIN_EMAIL_EXISTS",
+        message: "Cet email est déjà utilisé par un autre utilisateur"
+      });
+    }
+
     // Créer le nouveau tenant
     const [newTenant] = await db.insert(tenants).values({
       name,
       domain,
+      isActive: true,
+      contactEmail: adminEmail,
+      plan: req.body.plan || 'pro'
+    }).returning();
+
+    console.log(`🏢 TENANT CRÉÉ: ${newTenant.name} (${newTenant.id})`);
+
+    // 🔐 ÉTAPE CRITIQUE: Générer identifiants par défaut pour l'admin tenant
+    const adminCredentials = CredentialGenerator.generateTenantAdminCredentials(
+      newTenant.name,
+      adminEmail,
+      newTenant.id
+    );
+
+    console.log(`🔐 IDENTIFIANTS GÉNÉRÉS pour ${adminEmail}:`, {
+      username: adminCredentials.username,
+      tenantId: adminCredentials.tenantId,
+      mustChangePassword: adminCredentials.mustChangePassword
+    });
+
+    // Hasher le mot de passe temporaire
+    const hashedPassword = await CredentialGenerator.hashPassword(adminCredentials.password);
+    
+    // Créer le premier utilisateur admin avec identifiants par défaut
+    const [adminUser] = await db.insert(userProfiles).values({
+      tenantId: newTenant.id,
+      username: adminCredentials.username,
+      email: adminCredentials.email,
+      password: hashedPassword,
+      role: 'owner', // Premier utilisateur = propriétaire du tenant
+      firstName: req.body.adminFirstName || '',
+      lastName: req.body.adminLastName || '',
+      // 🔐 FLAGS SÉCURITÉ: Forcer changement mot de passe
+      mustChangePassword: true,
+      isDefaultCredentials: true,
+      passwordExpiresAt: adminCredentials.expiresAt,
+      defaultCredentialsGeneratedAt: new Date(),
+      defaultCredentialsGeneratedBy: 1, // Super-admin ID (à récupérer dynamiquement)
       isActive: true
     }).returning();
 
-    // Envoyer l'email d'invitation si une adresse est fournie
-    const adminEmail = req.body.adminEmail;
-    if (adminEmail) {
-      try {
-        const host = req.get('host') || 'localhost:5000';
-        const loginUrl = `${req.protocol}://${host}/login?tenant=${newTenant.id}`;
-        
-        const emailSent = await sendTenantInvitation({
-          tenantName: newTenant.name,
-          tenantDomain: newTenant.domain || domain,
-          adminEmail,
-          loginUrl,
-          superAdminName: 'Administrateur Plateforme'
-        });
+    console.log(`👤 ADMIN CRÉÉ: ${adminUser.username} (${adminUser.id})`);
 
-        res.json({
-          success: true,
-          tenant: newTenant,
-          emailSent,
-          message: emailSent 
-            ? `Tenant créé et invitation envoyée à ${adminEmail}`
-            : `Tenant créé mais échec envoi email à ${adminEmail}`
-        });
-      } catch (emailError) {
-        console.error('Erreur envoi email invitation:', emailError);
-        res.json({
-          success: true,
-          tenant: newTenant,
-          emailSent: false,
-          message: `Tenant créé mais échec envoi email à ${adminEmail}`
-        });
-      }
-    } else {
+    // 📧 Envoyer les identifiants par email
+    try {
+      const host = req.get('host') || 'localhost:5000';
+      const loginUrl = `${req.protocol}://${host}/login`;
+      
+      // Créer la notification avec identifiants
+      const credentialNotification = createCredentialNotification(
+        adminCredentials,
+        newTenant.name,
+        loginUrl
+      );
+
+      // Envoyer email avec identifiants
+      const emailSent = await sendTenantCredentials(credentialNotification);
+
       res.json({
         success: true,
         tenant: newTenant,
-        emailSent: false,
-        message: 'Tenant créé (aucun email fourni)'
+        adminUser: {
+          id: adminUser.id,
+          username: adminUser.username,
+          email: adminUser.email,
+          role: adminUser.role,
+          mustChangePassword: adminUser.mustChangePassword
+        },
+        credentials: {
+          sent: emailSent,
+          expiresAt: adminCredentials.expiresAt,
+          loginUrl
+        },
+        message: emailSent 
+          ? `✅ Tenant créé et identifiants envoyés à ${adminEmail}`
+          : `⚠️ Tenant créé mais échec envoi email à ${adminEmail}`
+      });
+
+    } catch (emailError) {
+      console.error('Erreur envoi identifiants:', emailError);
+      
+      // En cas d'échec email, retourner les identifiants dans la réponse (sécurisé car super-admin)
+      res.json({
+        success: true,
+        tenant: newTenant,
+        adminUser: {
+          id: adminUser.id,
+          username: adminUser.username,
+          email: adminUser.email,
+          role: adminUser.role,
+          mustChangePassword: adminUser.mustChangePassword
+        },
+        credentials: {
+          sent: false,
+          // 🚨 ATTENTION: Identifiants en clair uniquement pour super-admin en cas d'échec email
+          temporaryCredentials: {
+            username: adminCredentials.username,
+            password: adminCredentials.password,
+            loginUrl: `${req.protocol}://${req.get('host') || 'localhost:5000'}/login`
+          },
+          expiresAt: adminCredentials.expiresAt
+        },
+        message: `⚠️ Tenant créé mais échec envoi email. Identifiants affichés ci-dessus (à transmettre manuellement)`
       });
     }
+
   } catch (error) {
     console.error('Super-admin create tenant error:', error);
     res.status(500).json({
       error: "SUPER_ADMIN_CREATE_TENANT_ERROR",
-      message: "Erreur lors de la création du tenant"
+      message: "Erreur lors de la création du tenant",
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
     });
   }
 });

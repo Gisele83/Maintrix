@@ -270,6 +270,15 @@ export const userProfiles = pgTable("user_profiles", {
   mfaSecret: varchar("mfa_secret", { length: 100 }), // Secret TOTP base32
   mfaEnabled: boolean("mfa_enabled").default(false), // MFA activé ou non
   mfaBackupCodes: text("mfa_backup_codes"), // Codes de récupération chiffrés (JSON)
+  // 🔐 SÉCURITÉ MULTI-NIVEAUX: Gestion identifiants par défaut
+  mustChangePassword: boolean("must_change_password").default(false), // Force changement mot de passe au prochain login
+  isDefaultCredentials: boolean("is_default_credentials").default(false), // Indique si utilise identifiants par défaut
+  passwordExpiresAt: timestamp("password_expires_at"), // Expiration mot de passe temporaire
+  defaultCredentialsGeneratedAt: timestamp("default_credentials_generated_at"), // Quand identifiants générés
+  defaultCredentialsGeneratedBy: integer("default_credentials_generated_by"), // Qui a généré (super-admin ID)
+  lastPasswordChange: timestamp("last_password_change"), // Dernière modification mot de passe
+  failedLoginAttempts: integer("failed_login_attempts").default(0), // Tentatives échouées
+  accountLockedUntil: timestamp("account_locked_until"), // Verrouillage temporaire compte
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

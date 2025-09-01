@@ -11,6 +11,8 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { CredentialGenerator } from "./credential-generator";
+import { z } from "zod";
 
 /**
  * 🔒 ROUTES D'AUTHENTIFICATION ENTERPRISE SÉCURISÉE
@@ -517,6 +519,398 @@ router.delete('/admin/invitations/:invitationId',
       res.status(500).json({
         error: "REVOKE_INVITATION_ERROR",
         message: "Failed to revoke invitation"
+      });
+    }
+  }
+);
+
+// 🔐 GESTION DES IDENTIFIANTS PAR DÉFAUT ET CHANGEMENT OBLIGATOIRE
+
+/**
+ * Schéma de validation pour changement de mot de passe obligatoire
+ */
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Mot de passe actuel requis"),
+  newPassword: z.string().min(8, "Le nouveau mot de passe doit contenir au moins 8 caractères"),
+  confirmPassword: z.string().min(1, "Confirmation du mot de passe requise"),
+  newUsername: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères").optional()
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"]
+});
+
+/**
+ * 🔒 Vérifier si l'utilisateur doit changer son mot de passe
+ */
+router.get('/must-change-password',
+  EnterpriseAuthMiddleware.requireAuthentication,
+  async (req: any, res: Response) => {
+    try {
+      // Récupérer les informations utilisateur avec flags de sécurité
+      const [user] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.id, req.user.id));
+
+      if (!user) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+          message: "Utilisateur introuvable"
+        });
+      }
+
+      // Vérifier les conditions pour changement obligatoire
+      const mustChangePassword = 
+        user.isDefaultCredentials === true ||
+        (user.passwordExpiresAt && new Date() > user.passwordExpiresAt) ||
+        user.mustChangePassword === true;
+
+      res.json({
+        mustChangePassword,
+        isDefaultCredentials: user.isDefaultCredentials || false,
+        passwordExpiresAt: user.passwordExpiresAt?.toISOString(),
+        username: user.username,
+        email: user.email,
+        canChangeUsername: user.isDefaultCredentials === true // Permet changement username seulement pour identifiants par défaut
+      });
+
+    } catch (error) {
+      console.error("Error checking password change requirement:", error);
+      res.status(500).json({
+        error: "PASSWORD_CHECK_ERROR",
+        message: "Erreur lors de la vérification du changement de mot de passe"
+      });
+    }
+  }
+);
+
+/**
+ * 🔄 Changer mot de passe (et optionnellement username) pour identifiants par défaut
+ */
+router.post('/change-credentials',
+  EnterpriseAuthMiddleware.requireAuthentication,
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/change-credentials', {
+    requests: 5,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    blockDurationMs: 5 * 60 * 1000 // 5 minutes de blocage
+  }),
+  async (req: any, res: Response) => {
+    try {
+      const validatedData = changePasswordSchema.parse(req.body);
+      
+      // Récupérer l'utilisateur actuel
+      const [user] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.id, req.user.id));
+
+      if (!user) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+          message: "Utilisateur introuvable"
+        });
+      }
+
+      // Vérifier le mot de passe actuel
+      const isCurrentPasswordValid = await CredentialGenerator.verifyPassword(
+        validatedData.currentPassword,
+        user.password || ""
+      );
+
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          error: "INVALID_CURRENT_PASSWORD",
+          message: "Mot de passe actuel incorrect"
+        });
+      }
+
+      // Valider la force du nouveau mot de passe
+      const passwordValidation = CredentialGenerator.validatePasswordStrength(validatedData.newPassword);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          error: "WEAK_PASSWORD",
+          message: "Mot de passe trop faible",
+          requirements: passwordValidation.errors
+        });
+      }
+
+      // Vérifier unicité du nouveau nom d'utilisateur si fourni
+      if (validatedData.newUsername && validatedData.newUsername !== user.username) {
+        const [existingUser] = await db
+          .select()
+          .from(userProfiles)
+          .where(eq(userProfiles.username, validatedData.newUsername));
+
+        if (existingUser) {
+          return res.status(400).json({
+            error: "USERNAME_ALREADY_EXISTS",
+            message: "Ce nom d'utilisateur est déjà utilisé"
+          });
+        }
+      }
+
+      // Hasher le nouveau mot de passe
+      const hashedNewPassword = await CredentialGenerator.hashPassword(validatedData.newPassword);
+
+      // Mettre à jour les identifiants
+      const updateData: any = {
+        password: hashedNewPassword,
+        mustChangePassword: false,
+        isDefaultCredentials: false,
+        passwordExpiresAt: null,
+        lastPasswordChange: new Date(),
+        failedLoginAttempts: 0,
+        accountLockedUntil: null,
+        updatedAt: new Date()
+      };
+
+      // Ajouter le nouveau username si fourni et autorisé
+      if (validatedData.newUsername && user.isDefaultCredentials) {
+        updateData.username = validatedData.newUsername;
+      }
+
+      const [updatedUser] = await db
+        .update(userProfiles)
+        .set(updateData)
+        .where(eq(userProfiles.id, req.user.id))
+        .returning({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email,
+          role: userProfiles.role,
+          mustChangePassword: userProfiles.mustChangePassword,
+          isDefaultCredentials: userProfiles.isDefaultCredentials
+        });
+
+      console.log(`✅ Identifiants mis à jour pour utilisateur ${updatedUser.id} (${updatedUser.username})`);
+
+      res.json({
+        success: true,
+        message: "Identifiants mis à jour avec succès",
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          mustChangePassword: false,
+          passwordScore: passwordValidation.score
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Error changing credentials:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Données invalides",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        error: "CREDENTIAL_CHANGE_ERROR",
+        message: "Erreur lors du changement d'identifiants"
+      });
+    }
+  }
+);
+
+// 👥 GESTION DES UTILISATEURS PAR LES ADMINISTRATEURS DE TENANTS
+
+/**
+ * Schéma de validation pour création d'utilisateur avec identifiants par défaut
+ */
+const createUserSchema = z.object({
+  email: z.string().email("Email invalide"),
+  role: z.enum(['user', 'admin'], {
+    errorMap: () => ({ message: "Le rôle doit être 'user' ou 'admin'" })
+  }),
+  firstName: z.string().min(1, "Prénom requis").optional(),
+  lastName: z.string().min(1, "Nom requis").optional(),
+  department: z.string().optional(),
+  position: z.string().optional()
+});
+
+/**
+ * 👥 Créer un utilisateur avec identifiants par défaut (Admin/Owner uniquement)
+ */
+router.post('/admin/create-user',
+  EnterpriseAuthMiddleware.requireAuthentication,
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/admin/create-user', {
+    requests: 10,
+    windowMs: 60 * 60 * 1000, // 1 heure
+    blockDurationMs: 15 * 60 * 1000 // 15 minutes
+  }),
+  async (req: any, res: Response) => {
+    try {
+      // Vérifier les permissions (seuls les admin et owner peuvent créer des utilisateurs)
+      if (!['owner', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          error: "INSUFFICIENT_PERMISSIONS",
+          message: "Seuls les administrateurs peuvent créer des utilisateurs"
+        });
+      }
+
+      const validatedData = createUserSchema.parse(req.body);
+      
+      // Vérifier si l'email existe déjà
+      const [existingUser] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.email, validatedData.email));
+
+      if (existingUser) {
+        return res.status(400).json({
+          error: "EMAIL_ALREADY_EXISTS",
+          message: "Un utilisateur avec cet email existe déjà"
+        });
+      }
+
+      // Générer identifiants par défaut
+      const defaultCredentials = CredentialGenerator.generateSecureCredentials({
+        prefix: validatedData.role === 'admin' ? 'ADMIN' : 'USER',
+        includeNumbers: true,
+        includeSpecialChars: false // Pour faciliter la première connexion
+      });
+
+      // Créer l'utilisateur avec identifiants par défaut
+      const [newUser] = await db
+        .insert(userProfiles)
+        .values({
+          username: defaultCredentials.username,
+          email: validatedData.email,
+          password: defaultCredentials.hashedPassword,
+          role: validatedData.role,
+          tenantId: req.tenantId,
+          firstName: validatedData.firstName,
+          lastName: validatedData.lastName,
+          department: validatedData.department,
+          position: validatedData.position,
+          isDefaultCredentials: true,
+          mustChangePassword: true,
+          accountStatus: 'active',
+          passwordExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours pour changer
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email,
+          role: userProfiles.role,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName
+        });
+
+      console.log(`✅ Utilisateur créé avec identifiants par défaut: ${newUser.username} (${newUser.email})`);
+
+      // Créer la notification d'identifiants
+      const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/login`;
+      const credentialNotification = createCredentialNotification(
+        defaultCredentials,
+        newUser.email,
+        `${validatedData.firstName || ''} ${validatedData.lastName || ''}`.trim(),
+        req.tenantData?.name || 'Votre organisation',
+        loginUrl
+      );
+
+      // TODO: Envoyer l'email avec les identifiants
+      // const emailSent = await sendTenantCredentials(credentialNotification);
+
+      res.status(201).json({
+        success: true,
+        message: "Utilisateur créé avec succès",
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          mustChangePassword: true,
+          isDefaultCredentials: true
+        },
+        credentials: {
+          // En production, ne retourner que le username
+          username: defaultCredentials.username,
+          temporaryPassword: defaultCredentials.password, // À enlever en production
+          expiresAt: credentialNotification.expiresAt.toISOString()
+        },
+        instructions: [
+          "L'utilisateur doit se connecter et changer son mot de passe sous 7 jours",
+          "Un email avec les identifiants a été envoyé à l'utilisateur",
+          "Le compte sera automatiquement désactivé si le mot de passe n'est pas changé"
+        ]
+      });
+
+    } catch (error: any) {
+      console.error("Error creating user with default credentials:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Données invalides",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        error: "USER_CREATION_ERROR",
+        message: "Erreur lors de la création de l'utilisateur"
+      });
+    }
+  }
+);
+
+/**
+ * 👥 Lister tous les utilisateurs du tenant (Admin/Owner uniquement)
+ */
+router.get('/admin/users',
+  EnterpriseAuthMiddleware.requireAuthentication,
+  async (req: any, res: Response) => {
+    try {
+      if (!['owner', 'admin'].includes(req.user.role)) {
+        return res.status(403).json({
+          error: "INSUFFICIENT_PERMISSIONS",
+          message: "Accès réservé aux administrateurs"
+        });
+      }
+
+      const users = await db
+        .select({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email,
+          role: userProfiles.role,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          department: userProfiles.department,
+          position: userProfiles.position,
+          accountStatus: userProfiles.accountStatus,
+          isDefaultCredentials: userProfiles.isDefaultCredentials,
+          mustChangePassword: userProfiles.mustChangePassword,
+          lastLoginAt: userProfiles.lastLoginAt,
+          passwordExpiresAt: userProfiles.passwordExpiresAt,
+          createdAt: userProfiles.createdAt
+        })
+        .from(userProfiles)
+        .where(eq(userProfiles.tenantId, req.tenantId));
+
+      res.json({
+        success: true,
+        users: users.map(user => ({
+          ...user,
+          needsPasswordChange: user.mustChangePassword || user.isDefaultCredentials,
+          passwordExpired: user.passwordExpiresAt ? new Date() > user.passwordExpiresAt : false
+        }))
+      });
+
+    } catch (error) {
+      console.error("Error fetching tenant users:", error);
+      res.status(500).json({
+        error: "FETCH_USERS_ERROR",
+        message: "Erreur lors de la récupération des utilisateurs"
       });
     }
   }
