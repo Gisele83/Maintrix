@@ -80,6 +80,20 @@ export function ModernNavigation() {
               <User className="w-4 h-4" />
               <span>{user?.firstName || user?.username}</span>
             </div>
+            
+            {/* Lien d'administration discret */}
+            <Link href="/admin-login">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+                title="Accès administration plateforme"
+              >
+                <Shield className="w-4 h-4" />
+                <span className="text-xs">Admin</span>
+              </Button>
+            </Link>
+            
             <Button 
               variant="outline" 
               size="sm" 
@@ -138,15 +152,29 @@ export function ModernNavigation() {
                     {user?.firstName || user?.username}
                   </span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Déconnexion</span>
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Link href="/admin-login">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex items-center space-x-1"
+                      title="Administration"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span className="text-xs">Admin</span>
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    className="flex items-center space-x-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Déconnexion</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

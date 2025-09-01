@@ -135,6 +135,15 @@ export default function ModernHome() {
               </div>
             )}
           </div>
+
+          {/* Lien d'accès administration plateforme (discret) */}
+          <div className="flex justify-center mt-8">
+            <Link href="/admin-login">
+              <button className="text-xs text-gray-400 hover:text-blue-600 transition-colors duration-200 px-3 py-1 rounded-md hover:bg-gray-50">
+                Administration Plateforme
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Quick Stats Dashboard */}
