@@ -13,7 +13,7 @@ const router = Router();
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET || "***REMOVED-SECRET***";
 const SUPER_ADMIN_ACCOUNTS = [
   {
-    email: "votre-email@gmail.com", // REMPLACER par votre vraie adresse email
+    email: "beatricesonfack@gmail.com", // Email réel de l'utilisateur
     password: "***REMOVED-SECRET***", // À hasher en production
     role: "super-admin"
   }

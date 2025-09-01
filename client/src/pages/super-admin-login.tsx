@@ -27,7 +27,7 @@ export default function SuperAdminLogin() {
   const form = useForm<SuperAdminLoginForm>({
     resolver: zodResolver(superAdminLoginSchema),
     defaultValues: {
-      email: "votre-email@gmail.com",
+      email: "beatricesonfack@gmail.com",
       password: "***REMOVED-SECRET***",
       secretKey: "***REMOVED-SECRET***"
     }
