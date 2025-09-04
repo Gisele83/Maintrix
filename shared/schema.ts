@@ -279,6 +279,10 @@ export const userProfiles = pgTable("user_profiles", {
   lastPasswordChange: timestamp("last_password_change"), // Dernière modification mot de passe
   failedLoginAttempts: integer("failed_login_attempts").default(0), // Tentatives échouées
   accountLockedUntil: timestamp("account_locked_until"), // Verrouillage temporaire compte
+  // 🔄 RÉINITIALISATION DE MOT DE PASSE
+  passwordResetToken: varchar("password_reset_token", { length: 128 }), // Token de réinitialisation sécurisé
+  passwordResetTokenExpiresAt: timestamp("password_reset_token_expires_at"), // Expiration du token (1h)
+  passwordResetRequestedAt: timestamp("password_reset_requested_at"), // Quand demande envoyée
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

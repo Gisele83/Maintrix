@@ -12,6 +12,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { CredentialGenerator } from "./credential-generator";
+import { sendTenantCredentials } from "./email-service";
 import { z } from "zod";
 
 /**
@@ -768,11 +769,11 @@ router.post('/admin/create-user',
       }
 
       // Générer identifiants par défaut
-      const defaultCredentials = CredentialGenerator.generateSecureCredentials({
-        prefix: validatedData.role === 'admin' ? 'ADMIN' : 'USER',
-        includeNumbers: true,
-        includeSpecialChars: false // Pour faciliter la première connexion
-      });
+      const defaultCredentials = CredentialGenerator.generateTenantUserCredentials(
+        validatedData.role,
+        validatedData.email,
+        req.tenantId
+      );
 
       // Créer l'utilisateur avec identifiants par défaut
       const [newUser] = await db
@@ -780,16 +781,14 @@ router.post('/admin/create-user',
         .values({
           username: defaultCredentials.username,
           email: validatedData.email,
-          password: defaultCredentials.hashedPassword,
+          password: await CredentialGenerator.hashPassword(defaultCredentials.password),
           role: validatedData.role,
           tenantId: req.tenantId,
           firstName: validatedData.firstName,
           lastName: validatedData.lastName,
           department: validatedData.department,
-          position: validatedData.position,
           isDefaultCredentials: true,
           mustChangePassword: true,
-          accountStatus: 'active',
           passwordExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours pour changer
           createdAt: new Date(),
           updatedAt: new Date()
@@ -805,15 +804,8 @@ router.post('/admin/create-user',
 
       console.log(`✅ Utilisateur créé avec identifiants par défaut: ${newUser.username} (${newUser.email})`);
 
-      // Créer la notification d'identifiants
+      // TODO: Créer la notification d'identifiants si nécessaire
       const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/login`;
-      const credentialNotification = createCredentialNotification(
-        defaultCredentials,
-        newUser.email,
-        `${validatedData.firstName || ''} ${validatedData.lastName || ''}`.trim(),
-        req.tenantData?.name || 'Votre organisation',
-        loginUrl
-      );
 
       // TODO: Envoyer l'email avec les identifiants
       // const emailSent = await sendTenantCredentials(credentialNotification);
@@ -835,7 +827,7 @@ router.post('/admin/create-user',
           // En production, ne retourner que le username
           username: defaultCredentials.username,
           temporaryPassword: defaultCredentials.password, // À enlever en production
-          expiresAt: credentialNotification.expiresAt.toISOString()
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         },
         instructions: [
           "L'utilisateur doit se connecter et changer son mot de passe sous 7 jours",
@@ -886,16 +878,14 @@ router.get('/admin/users',
           firstName: userProfiles.firstName,
           lastName: userProfiles.lastName,
           department: userProfiles.department,
-          position: userProfiles.position,
-          accountStatus: userProfiles.accountStatus,
           isDefaultCredentials: userProfiles.isDefaultCredentials,
           mustChangePassword: userProfiles.mustChangePassword,
-          lastLoginAt: userProfiles.lastLoginAt,
+          lastLogin: userProfiles.lastLogin,
           passwordExpiresAt: userProfiles.passwordExpiresAt,
           createdAt: userProfiles.createdAt
         })
         .from(userProfiles)
-        .where(eq(userProfiles.tenantId, req.tenantId));
+        .where(eq(userProfiles.tenantId, req.tenantId || ''));
 
       res.json({
         success: true,
@@ -915,5 +905,417 @@ router.get('/admin/users',
     }
   }
 );
+
+// 🔄 RÉINITIALISATION DE MOT DE PASSE
+
+/**
+ * Schéma de validation pour demande de réinitialisation
+ */
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Email invalide")
+});
+
+/**
+ * Schéma de validation pour nouvelle réinitialisation
+ */
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token requis"),
+  newPassword: z.string().min(8, "Le nouveau mot de passe doit contenir au moins 8 caractères"),
+  confirmPassword: z.string().min(1, "Confirmation du mot de passe requise")
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"]
+});
+
+/**
+ * 📧 Demander une réinitialisation de mot de passe
+ */
+router.post('/forgot-password',
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/forgot-password', {
+    requests: 3, // Limite stricte pour éviter le spam
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    blockDurationMs: 60 * 60 * 1000 // 1 heure de blocage
+  }),
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = forgotPasswordSchema.parse(req.body);
+      
+      // Rechercher l'utilisateur par email
+      const [user] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.email, validatedData.email));
+
+      // Toujours retourner succès pour éviter l'énumération d'emails
+      if (!user) {
+        console.log(`🔍 Tentative de réinitialisation pour email inexistant: ${validatedData.email}`);
+        return res.json({
+          success: true,
+          message: "Si cet email existe, un lien de réinitialisation a été envoyé"
+        });
+      }
+
+      // Vérifier que le compte est actif
+      if (!user.isActive) {
+        console.log(`🚫 Tentative de réinitialisation pour compte désactivé: ${user.email}`);
+        return res.json({
+          success: true,
+          message: "Si cet email existe, un lien de réinitialisation a été envoyé"
+        });
+      }
+
+      // Générer un token de réinitialisation sécurisé
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
+
+      // Sauvegarder le token dans la base de données
+      await db
+        .update(userProfiles)
+        .set({
+          passwordResetToken: resetToken,
+          passwordResetTokenExpiresAt: resetTokenExpiry,
+          passwordResetRequestedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(userProfiles.id, user.id));
+
+      // Créer le lien de réinitialisation
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+
+      // Envoyer l'email de réinitialisation
+      const emailSent = await sendPasswordResetEmail({
+        recipientEmail: user.email,
+        recipientName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+        resetUrl,
+        expiresAt: resetTokenExpiry,
+        userAgent: req.get('User-Agent') || 'Navigateur inconnu',
+        ipAddress: req.ip || 'IP inconnue'
+      });
+
+      if (emailSent) {
+        console.log(`✅ Email de réinitialisation envoyé à ${user.email}`);
+      } else {
+        console.error(`❌ Échec envoi email de réinitialisation à ${user.email}`);
+      }
+
+      res.json({
+        success: true,
+        message: "Si cet email existe, un lien de réinitialisation a été envoyé",
+        expiresIn: "1 heure"
+      });
+
+    } catch (error: any) {
+      console.error("Error processing forgot password request:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Email invalide",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        error: "FORGOT_PASSWORD_ERROR",
+        message: "Erreur lors du traitement de la demande"
+      });
+    }
+  }
+);
+
+/**
+ * 🔍 Vérifier la validité d'un token de réinitialisation
+ */
+router.get('/reset-password/verify/:token',
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/reset-password/verify', {
+    requests: 10,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 5 * 60 * 1000
+  }),
+  async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({
+          error: "INVALID_TOKEN",
+          message: "Token manquant"
+        });
+      }
+
+      // Rechercher l'utilisateur avec ce token
+      const [user] = await db
+        .select({
+          id: userProfiles.id,
+          email: userProfiles.email,
+          username: userProfiles.username,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          passwordResetTokenExpiresAt: userProfiles.passwordResetTokenExpiresAt,
+          isActive: userProfiles.isActive
+        })
+        .from(userProfiles)
+        .where(eq(userProfiles.passwordResetToken, token));
+
+      if (!user) {
+        return res.status(400).json({
+          error: "INVALID_TOKEN",
+          message: "Token de réinitialisation invalide"
+        });
+      }
+
+      // Vérifier l'expiration
+      if (!user.passwordResetTokenExpiresAt || new Date() > user.passwordResetTokenExpiresAt) {
+        return res.status(400).json({
+          error: "EXPIRED_TOKEN",
+          message: "Le token de réinitialisation a expiré"
+        });
+      }
+
+      // Vérifier que le compte est actif
+      if (!user.isActive) {
+        return res.status(400).json({
+          error: "ACCOUNT_DISABLED",
+          message: "Ce compte est désactivé"
+        });
+      }
+
+      res.json({
+        valid: true,
+        user: {
+          email: user.email,
+          username: user.username,
+          displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username
+        },
+        expiresAt: user.passwordResetTokenExpiresAt.toISOString()
+      });
+
+    } catch (error) {
+      console.error("Error verifying reset token:", error);
+      res.status(500).json({
+        error: "TOKEN_VERIFICATION_ERROR",
+        message: "Erreur lors de la vérification du token"
+      });
+    }
+  }
+);
+
+/**
+ * 🔄 Effectuer la réinitialisation du mot de passe
+ */
+router.post('/reset-password',
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/reset-password', {
+    requests: 5,
+    windowMs: 15 * 60 * 1000,
+    blockDurationMs: 30 * 60 * 1000 // 30 minutes de blocage
+  }),
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = resetPasswordSchema.parse(req.body);
+      
+      // Rechercher l'utilisateur avec ce token
+      const [user] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.passwordResetToken, validatedData.token));
+
+      if (!user) {
+        return res.status(400).json({
+          error: "INVALID_TOKEN",
+          message: "Token de réinitialisation invalide"
+        });
+      }
+
+      // Vérifier l'expiration
+      if (!user.passwordResetTokenExpiresAt || new Date() > user.passwordResetTokenExpiresAt) {
+        return res.status(400).json({
+          error: "EXPIRED_TOKEN",
+          message: "Le token de réinitialisation a expiré"
+        });
+      }
+
+      // Vérifier que le compte est actif
+      if (!user.isActive) {
+        return res.status(400).json({
+          error: "ACCOUNT_DISABLED",
+          message: "Ce compte est désactivé"
+        });
+      }
+
+      // Valider la force du nouveau mot de passe
+      const passwordValidation = CredentialGenerator.validatePasswordStrength(validatedData.newPassword);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          error: "WEAK_PASSWORD",
+          message: "Mot de passe trop faible",
+          requirements: passwordValidation.errors
+        });
+      }
+
+      // Hasher le nouveau mot de passe
+      const hashedNewPassword = await CredentialGenerator.hashPassword(validatedData.newPassword);
+
+      // Mettre à jour le mot de passe et nettoyer les tokens
+      await db
+        .update(userProfiles)
+        .set({
+          password: hashedNewPassword,
+          passwordResetToken: null,
+          passwordResetTokenExpiresAt: null,
+          passwordResetRequestedAt: null,
+          lastPasswordChange: new Date(),
+          mustChangePassword: false,
+          isDefaultCredentials: false,
+          failedLoginAttempts: 0,
+          accountLockedUntil: null,
+          updatedAt: new Date()
+        })
+        .where(eq(userProfiles.id, user.id));
+
+      console.log(`✅ Mot de passe réinitialisé avec succès pour ${user.email}`);
+
+      res.json({
+        success: true,
+        message: "Mot de passe réinitialisé avec succès",
+        passwordScore: passwordValidation.score
+      });
+
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Données invalides",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        error: "PASSWORD_RESET_ERROR",
+        message: "Erreur lors de la réinitialisation du mot de passe"
+      });
+    }
+  }
+);
+
+/**
+ * 📧 Fonction pour envoyer l'email de réinitialisation de mot de passe
+ */
+async function sendPasswordResetEmail(notification: {
+  recipientEmail: string;
+  recipientName: string;
+  resetUrl: string;
+  expiresAt: Date;
+  userAgent: string;
+  ipAddress: string;
+}): Promise<boolean> {
+  try {
+    const { MailService } = require('@sendgrid/mail');
+    
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error("SENDGRID_API_KEY not configured");
+      return false;
+    }
+
+    const mailService = new MailService();
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+
+    const emailContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>🔄 Réinitialisation de mot de passe</title>
+    <style>
+        .container { max-width: 600px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: white; padding: 30px; border: 1px solid #e0e0e0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; }
+        .warning { background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+        .security-info { background: #f0f9ff; border: 1px solid #e0f2fe; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .monospace { font-family: 'Courier New', monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Réinitialisation de mot de passe</h1>
+            <p>Smart GMAO DiagFix - Demande de réinitialisation</p>
+        </div>
+        
+        <div class="content">
+            <h2>Bonjour ${notification.recipientName},</h2>
+            
+            <p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>Smart GMAO DiagFix</strong>.</p>
+            
+            <div class="warning">
+                <h3>🚨 Important - Sécurité</h3>
+                <p><strong>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</strong></p>
+                <p>Votre mot de passe actuel reste inchangé jusqu'à ce que vous utilisiez le lien ci-dessous.</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="${notification.resetUrl}" class="btn">🔓 Réinitialiser mon mot de passe</a>
+            </div>
+            
+            <div class="security-info">
+                <h3>🛡️ Informations de sécurité :</h3>
+                <ul>
+                    <li><strong>⏰ Expire le :</strong> ${notification.expiresAt.toLocaleDateString('fr-FR')} à ${notification.expiresAt.toLocaleTimeString('fr-FR')}</li>
+                    <li><strong>🌐 Demande depuis :</strong> ${notification.userAgent}</li>
+                    <li><strong>📍 Adresse IP :</strong> <span class="monospace">${notification.ipAddress}</span></li>
+                </ul>
+            </div>
+            
+            <h3>📋 Étapes pour réinitialiser :</h3>
+            <ol>
+                <li>Cliquez sur le bouton "Réinitialiser mon mot de passe" ci-dessus</li>
+                <li>Vous serez redirigé vers une page sécurisée</li>
+                <li>Saisissez votre nouveau mot de passe (minimum 8 caractères)</li>
+                <li>Confirmez votre nouveau mot de passe</li>
+                <li>Connectez-vous avec vos nouveaux identifiants</li>
+            </ol>
+            
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <p><strong>💡 Conseils pour un mot de passe sécurisé :</strong></p>
+                <ul>
+                    <li>Au moins 8 caractères</li>
+                    <li>Mélange de lettres majuscules et minuscules</li>
+                    <li>Incluez des chiffres et des caractères spéciaux</li>
+                    <li>Évitez les informations personnelles</li>
+                    <li>Utilisez un mot de passe unique pour chaque service</li>
+                </ul>
+            </div>
+            
+            <p><strong>Le lien expire dans 1 heure.</strong> Si le lien a expiré, vous pouvez faire une nouvelle demande de réinitialisation.</p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p style="font-size: 12px; color: #6b7280;">
+                Si vous avez des questions, contactez notre support technique.<br>
+                Cet email contient des informations sensibles, ne le transférez pas.
+            </p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+    await mailService.send({
+      to: notification.recipientEmail,
+      from: 'noreply@smart-gmao-diagfix.com',
+      subject: `🔄 Réinitialisation de mot de passe - Smart GMAO DiagFix`,
+      html: emailContent
+    });
+
+    console.log(`✅ Email de réinitialisation envoyé à ${notification.recipientEmail}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur envoi email réinitialisation:', error);
+    return false;
+  }
+}
 
 export default router;

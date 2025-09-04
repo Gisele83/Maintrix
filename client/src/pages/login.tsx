@@ -232,6 +232,15 @@ export default function LoginPage() {
                     >
                       {loginMutation.isPending ? "Connexion..." : "Se connecter"}
                     </Button>
+                    
+                    {/* Lien mot de passe oublié */}
+                    <div className="text-center">
+                      <Link href="/forgot-password">
+                        <Button variant="link" className="text-sm text-gray-600 hover:text-blue-600">
+                          Mot de passe oublié ?
+                        </Button>
+                      </Link>
+                    </div>
                   </form>
                 </Form>
               ) : (

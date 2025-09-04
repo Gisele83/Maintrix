@@ -40,6 +40,8 @@ import SuperAdminDashboard from "@/pages/super-admin-dashboard";
 import EmailDiagnostic from "@/pages/email-diagnostic";
 import ChangeCredentials from "@/pages/change-credentials";
 import UserManagement from "@/pages/user-management";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
@@ -76,6 +78,8 @@ function Router() {
       <Route path="/user-management">
         {(params) => <ProtectedRoute component={UserManagement} {...params} />}
       </Route>
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/force-logout" component={ForceLogout} />
       <Route path="/">
         {(params) => <ProtectedRoute component={ModernHome} {...params} />}
