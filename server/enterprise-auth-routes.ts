@@ -67,6 +67,120 @@ router.post('/invitations/create',
   }
 );
 
+// 📝 SCHÉMA D'INSCRIPTION PUBLIQUE
+const registerSchema = z.object({
+  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
+  firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
+  lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  email: z.string().email("Email invalide"),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  department: z.string().optional(),
+  role: z.string().default("technician"),
+});
+
+/**
+ * 🆕 INSCRIPTION PUBLIQUE (sans invitation)
+ */
+router.post('/register',
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/register', {
+    requests: 10,
+    windowMs: 60 * 60 * 1000, // 1 heure
+    blockDurationMs: 15 * 60 * 1000 // 15 minutes
+  }),
+  async (req: Request, res: Response) => {
+    try {
+      const validatedData = registerSchema.parse(req.body);
+      
+      // Vérifier si l'email existe déjà
+      const [existingUser] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.email, validatedData.email));
+
+      if (existingUser) {
+        return res.status(400).json({
+          error: "EMAIL_ALREADY_EXISTS",
+          message: "Un utilisateur avec cet email existe déjà"
+        });
+      }
+
+      // Vérifier si le nom d'utilisateur existe déjà
+      const [existingUsername] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.username, validatedData.username));
+
+      if (existingUsername) {
+        return res.status(400).json({
+          error: "USERNAME_ALREADY_EXISTS",
+          message: "Ce nom d'utilisateur est déjà pris"
+        });
+      }
+
+      // Hacher le mot de passe
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+      // Créer l'utilisateur
+      const [newUser] = await db
+        .insert(userProfiles)
+        .values({
+          username: validatedData.username,
+          firstName: validatedData.firstName,
+          lastName: validatedData.lastName,
+          email: validatedData.email,
+          password: hashedPassword,
+          role: validatedData.role,
+          department: validatedData.department,
+          tenantId: 'default-tenant', // Assigner au tenant par défaut
+          isDefaultCredentials: false,
+          mustChangePassword: false,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email,
+          role: userProfiles.role,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName
+        });
+
+      console.log(`✅ Nouvel utilisateur inscrit: ${newUser.username} (${newUser.email})`);
+
+      res.status(201).json({
+        success: true,
+        message: "Compte créé avec succès",
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Error during registration:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Données d'inscription invalides",
+          details: error.errors
+        });
+      }
+
+      res.status(500).json({
+        error: "REGISTRATION_ERROR",
+        message: "Erreur lors de la création du compte"
+      });
+    }
+  }
+);
+
 /**
  * Vérifier un token d'invitation
  */
