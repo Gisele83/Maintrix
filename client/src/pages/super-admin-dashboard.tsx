@@ -77,6 +77,17 @@ export default function SuperAdminDashboard() {
     domain: '',
     adminEmail: ''
   });
+
+  // 👤 États pour la gestion des utilisateurs avec identifiants par défaut
+  const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    tenantId: '',
+    role: 'technician',
+    department: ''
+  });
   
   // États pour le test d'email
   const [emailTestData, setEmailTestData] = useState({
@@ -111,6 +122,12 @@ export default function SuperAdminDashboard() {
   const { data: federatedStats = [], isLoading: statsLoading } = useQuery<FederatedStats[]>({
     queryKey: ['/api/super-admin/federated-stats'],
     enabled: false // Temporairement désactivé
+  });
+
+  // 👤 Récupérer les utilisateurs avec identifiants par défaut
+  const { data: defaultCredentialUsers = { users: [], count: 0 }, isLoading: usersLoading } = useQuery({
+    queryKey: ['/api/super-admin/users-with-default-credentials'],
+    enabled: !!superAdminUser
   });
 
   const logout = () => {
@@ -289,6 +306,10 @@ export default function SuperAdminDashboard() {
             <TabsTrigger value="tenants" className="data-[state=active]:bg-purple-600">
               <Building2 className="w-4 h-4 mr-2" />
               Tenants
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-purple-600">
+              <Users className="w-4 h-4 mr-2" />
+              Utilisateurs
             </TabsTrigger>
             <TabsTrigger value="federated" className="data-[state=active]:bg-purple-600">
               <Brain className="w-4 h-4 mr-2" />
@@ -483,6 +504,283 @@ export default function SuperAdminDashboard() {
                 ))
               )}
             </div>
+          </TabsContent>
+
+          {/* 👤 Gestion des Utilisateurs avec Identifiants par Défaut */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Gestion des Utilisateurs</h2>
+              <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Créer Utilisateur
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg bg-gray-900/95 backdrop-blur-xl border-gray-600">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">Créer un nouvel utilisateur</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      🔐 Seul le super-administrateur peut créer des comptes avec identifiants par défaut
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName" className="text-white">Prénom *</Label>
+                        <Input
+                          id="firstName"
+                          placeholder="Jean"
+                          value={newUserData.firstName}
+                          onChange={(e) => setNewUserData({...newUserData, firstName: e.target.value})}
+                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName" className="text-white">Nom *</Label>
+                        <Input
+                          id="lastName"
+                          placeholder="Dupont"
+                          value={newUserData.lastName}
+                          onChange={(e) => setNewUserData({...newUserData, lastName: e.target.value})}
+                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="email" className="text-white">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="jean.dupont@entreprise.com"
+                        value={newUserData.email}
+                        onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="tenantId" className="text-white">Organisation *</Label>
+                      <select
+                        id="tenantId"
+                        value={newUserData.tenantId}
+                        onChange={(e) => setNewUserData({...newUserData, tenantId: e.target.value})}
+                        className="w-full px-3 py-2 bg-white/10 border border-gray-600 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                      >
+                        <option value="" className="bg-gray-800">Sélectionner une organisation</option>
+                        {tenants.map((tenant) => (
+                          <option key={tenant.id} value={tenant.id} className="bg-gray-800">
+                            {tenant.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="role" className="text-white">Rôle</Label>
+                        <select
+                          id="role"
+                          value={newUserData.role}
+                          onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
+                          className="w-full px-3 py-2 bg-white/10 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                        >
+                          <option value="technician" className="bg-gray-800">Technicien</option>
+                          <option value="maintainer" className="bg-gray-800">Mainteneur</option>
+                          <option value="admin" className="bg-gray-800">Administrateur</option>
+                          <option value="owner" className="bg-gray-800">Propriétaire</option>
+                          <option value="viewer" className="bg-gray-800">Observateur</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="department" className="text-white">Département</Label>
+                        <Input
+                          id="department"
+                          placeholder="Maintenance"
+                          value={newUserData.department}
+                          onChange={(e) => setNewUserData({...newUserData, department: e.target.value})}
+                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsCreateUserDialogOpen(false)}
+                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!newUserData.email || !newUserData.firstName || !newUserData.lastName || !newUserData.tenantId) {
+                          toast({
+                            title: "Erreur",
+                            description: "Veuillez remplir tous les champs obligatoires",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // API call pour créer l'utilisateur
+                        fetch('/api/super-admin/create-user', {
+                          method: 'POST',
+                          body: JSON.stringify(newUserData),
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`
+                          }
+                        }).then(res => res.json()).then((result) => {
+                          toast({
+                            title: "✅ Utilisateur créé",
+                            description: `Identifiants générés pour ${newUserData.firstName} ${newUserData.lastName}`,
+                          });
+                          setIsCreateUserDialogOpen(false);
+                          setNewUserData({
+                            email: '',
+                            firstName: '',
+                            lastName: '',
+                            tenantId: '',
+                            role: 'technician',
+                            department: ''
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
+                        }).catch((error) => {
+                          toast({
+                            title: "Erreur",
+                            description: error.message || "Erreur lors de la création de l'utilisateur",
+                            variant: "destructive"
+                          });
+                        });
+                      }}
+                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                    >
+                      🔐 Créer avec identifiants par défaut
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Statistiques Utilisateurs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Identifiants par défaut
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-orange-400">
+                    {defaultCredentialUsers?.users?.length || 0}
+                  </div>
+                  <p className="text-gray-400">Utilisateurs à modifier</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Activity className="w-5 h-5" />
+                    Total Utilisateurs  
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-400">
+                    {tenants.reduce((total, tenant) => total + tenant.currentUsers, 0)}
+                  </div>
+                  <p className="text-gray-400">Tous les tenants</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    Sécurité
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-400">
+                    {((tenants.reduce((total, tenant) => total + tenant.currentUsers, 0) - (defaultCredentialUsers?.users?.length || 0)) / Math.max(tenants.reduce((total, tenant) => total + tenant.currentUsers, 0), 1) * 100).toFixed(0)}%
+                  </div>
+                  <p className="text-gray-400">Comptes sécurisés</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Liste des utilisateurs avec identifiants par défaut */}
+            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">🔐 Utilisateurs avec identifiants par défaut</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Ces utilisateurs doivent changer leur mot de passe à la première connexion
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="text-center text-gray-400 py-8">Chargement des utilisateurs...</div>
+                ) : defaultCredentialUsers?.users?.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">
+                    ✅ Aucun utilisateur avec identifiants par défaut
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {defaultCredentialUsers?.users?.map((user: any) => (
+                      <div key={user.id} className="flex justify-between items-center p-4 bg-white/5 rounded-lg border border-orange-500/30">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">
+                              {user.firstName} {user.lastName}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                              {user.email} • {user.username} • {user.role}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              Tenant: {user.tenantId} • Créé: {user.defaultCredentialsGeneratedAt ? new Date(user.defaultCredentialsGeneratedAt).toLocaleDateString() : 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-orange-400 border-orange-400">
+                            🔐 Défaut
+                          </Badge>
+                          
+                          {user.passwordExpiresAt && new Date(user.passwordExpiresAt) < new Date() ? (
+                            <Badge variant="destructive">
+                              ⏰ Expiré
+                            </Badge>
+                          ) : user.passwordExpiresAt ? (
+                            <Badge variant="secondary" className="text-yellow-400 border-yellow-400">
+                              ⏰ Expire: {new Date(user.passwordExpiresAt).toLocaleDateString()}
+                            </Badge>
+                          ) : null}
+                          
+                          {user.lastLogin ? (
+                            <Badge variant="secondary" className="text-green-400 border-green-400">
+                              Connecté: {new Date(user.lastLogin).toLocaleDateString()}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-400 border-gray-400">
+                              Jamais connecté
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* IA Fédérée */}

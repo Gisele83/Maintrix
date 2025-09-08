@@ -42,6 +42,7 @@ import ChangeCredentials from "@/pages/change-credentials";
 import UserManagement from "@/pages/user-management";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import FirstLoginPasswordChange from "@/pages/first-login-password-change";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
@@ -72,6 +73,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/first-login-password-change" component={FirstLoginPasswordChange} />
       <Route path="/change-credentials">
         {(params) => <ProtectedRoute component={ChangeCredentials} {...params} />}
       </Route>
