@@ -7,8 +7,103 @@ import { eq, count, desc } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
+import { MailService } from '@sendgrid/mail';
 
 const router = Router();
+
+// 📧 Fonction d'envoi d'identifiants par email
+interface UserCredentialsEmailData {
+  toEmail: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  temporaryPassword: string;
+  tenantName: string;
+  expiresAt: Date;
+  loginUrl: string;
+}
+
+async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise<void> {
+  if (!process.env.SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY non configuré');
+  }
+
+  const mailService = new MailService();
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+
+  const emailContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+      <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #6366f1; margin: 0;">🔐 Smart GMAO DiagFix</h1>
+          <p style="color: #6b7280; margin: 5px 0;">Plateforme de maintenance intelligente</p>
+        </div>
+        
+        <h2 style="color: #374151; margin-bottom: 20px;">Bienvenue ${data.firstName} ${data.lastName} !</h2>
+        
+        <p style="color: #4b5563; line-height: 1.6;">
+          Votre compte a été créé avec succès sur <strong>${data.tenantName}</strong>. 
+          Voici vos identifiants temporaires pour votre première connexion :
+        </p>
+        
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #374151; margin-top: 0;">🔑 Vos identifiants de connexion :</h3>
+          <p style="margin: 8px 0;"><strong>Nom d'utilisateur :</strong> <code style="background-color: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${data.username}</code></p>
+          <p style="margin: 8px 0;"><strong>Mot de passe temporaire :</strong> <code style="background-color: #e5e7eb; padding: 2px 6px; border-radius: 4px;">${data.temporaryPassword}</code></p>
+          <p style="margin: 8px 0;"><strong>URL de connexion :</strong> <a href="${data.loginUrl}" style="color: #6366f1;">${data.loginUrl}</a></p>
+        </div>
+        
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+          <h4 style="color: #92400e; margin-top: 0;">⚠️ Première connexion obligatoire</h4>
+          <p style="color: #92400e; margin: 0;">
+            Vous <strong>devez changer votre mot de passe</strong> lors de votre première connexion pour des raisons de sécurité.
+            Ce mot de passe temporaire expire le <strong>${data.expiresAt.toLocaleDateString('fr-FR')}</strong>.
+          </p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+          <h4 style="color: #374151;">📋 Étapes suivantes :</h4>
+          <ol style="color: #4b5563; line-height: 1.6;">
+            <li>Cliquez sur le lien de connexion ci-dessus</li>
+            <li>Connectez-vous avec vos identifiants temporaires</li>
+            <li>Changez votre mot de passe (obligatoire)</li>
+            <li>Explorez votre espace Smart GMAO DiagFix</li>
+          </ol>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px;">
+          <p>Besoin d'aide ? Contactez votre administrateur système.</p>
+          <p><em>Smart GMAO DiagFix - Maintenance intelligente et prédictive</em></p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Utiliser une adresse vérifiée chez SendGrid
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@smartgmao.com';
+  
+  await mailService.send({
+    to: data.toEmail,
+    from: fromEmail, // Email vérifié chez SendGrid
+    subject: `🔐 Vos identifiants Smart GMAO DiagFix - ${data.tenantName}`,
+    html: emailContent,
+    text: `
+Bienvenue ${data.firstName} ${data.lastName} !
+
+Votre compte a été créé sur ${data.tenantName}.
+
+Identifiants de connexion :
+- Nom d'utilisateur : ${data.username}
+- Mot de passe temporaire : ${data.temporaryPassword}
+- URL de connexion : ${data.loginUrl}
+
+IMPORTANT : Vous devez changer votre mot de passe lors de votre première connexion.
+Ce mot de passe temporaire expire le ${data.expiresAt.toLocaleDateString('fr-FR')}.
+
+Smart GMAO DiagFix - Maintenance intelligente et prédictive
+    `
+  });
+}
 
 // Configuration super-admin
 const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET || "***REMOVED-SECRET***";
@@ -587,6 +682,36 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
     
     console.log(`✅ Super-admin: Utilisateur créé ${newUser.username} pour tenant ${validatedData.tenantId}`);
     
+    // 📧 ENVOYER LES IDENTIFIANTS PAR EMAIL
+    let emailSent = false;
+    console.log(`🚀 Tentative d'envoi d'email à ${validatedData.email}...`);
+    
+    try {
+      await sendUserCredentialsEmail({
+        toEmail: validatedData.email,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        username: credentials.username,
+        temporaryPassword: credentials.password,
+        tenantName: tenant.name,
+        expiresAt: credentials.passwordExpiresAt,
+        loginUrl: process.env.NODE_ENV === 'production' 
+          ? 'https://votre-domaine.com/login' 
+          : 'http://localhost:5000/login'
+      });
+      
+      emailSent = true;
+      console.log(`✅ Email d'identifiants envoyé avec succès à ${validatedData.email}`);
+    } catch (emailError: any) {
+      console.error('❌ ERREUR DÉTAILLÉE envoi email identifiants:');
+      console.error('Message:', emailError.message);
+      console.error('Stack:', emailError.stack);
+      if (emailError.response) {
+        console.error('Response body:', emailError.response.body);
+      }
+      // On continue même si l'email échoue - l'utilisateur est créé
+    }
+    
     // Retourner les identifiants temporaires (pour notification email)
     res.status(201).json({
       success: true,
@@ -597,7 +722,9 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
         expiresAt: credentials.passwordExpiresAt,
         mustChangePassword: true
       },
-      message: "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés."
+      message: emailSent 
+        ? "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés et envoyés par email."
+        : "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés. ⚠️ Email non envoyé - vérifiez la configuration SendGrid."
     });
     
   } catch (error: any) {
