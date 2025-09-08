@@ -80,21 +80,24 @@ export class TenantMiddleware {
    */
   public async resolveTenant(req: TenantRequest, res: Response, next: NextFunction) {
     try {
-      // Check if this is guest mode or legacy route that doesn't require tenant
-      const isGuestSession = req.session?.isGuest || req.headers.authorization?.includes('guest');
-      const isLegacyRoute = !req.path.startsWith('/api/tenant') && !req.path.startsWith('/api/admin');
+      // SÉCURITÉ CRITIQUE: Plus de contournement par defaultTenantId
+      // Tous les utilisateurs doivent avoir un tenantId valide
+
+      // 1. Essayer d'extraire tenantId depuis l'utilisateur authentifié (Enterprise Auth)
+      let tenantId = (req as any).user?.tenantId || (req as any).tenantId;
       
-      if (isGuestSession || isLegacyRoute) {
-        req.tenantId = this.defaultTenantId;
-        return next();
+      // 2. Si pas disponible, essayer les méthodes d'extraction configurées  
+      if (!tenantId) {
+        tenantId = this.extractTenantId(req);
       }
 
-      const tenantId = this.extractTenantId(req);
-      
+      // 3. SÉCURITÉ CRITIQUE: Si aucun tenantId trouvé, REJETER la requête
       if (!tenantId) {
+        console.error(`❌ TENANT SECURITY VIOLATION: No tenantId for path ${req.path}, user:`, (req as any).user?.username || 'anonymous');
         return res.status(400).json({
-          error: "TENANT_REQUIRED",
-          message: "Tenant identification required. Provide X-Tenant-ID header or use subdomain.",
+          error: "TENANT_REQUIRED", 
+          message: "Tenant context required for data access. Multi-tenant isolation enforced.",
+          details: "Each authenticated user must have a valid tenant assignment.",
           strategies: Object.values(TenantStrategy)
         });
       }

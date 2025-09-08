@@ -39,16 +39,32 @@ export function enableMultiTenantSecurity(app: Express): void {
     }
 
     // Routes multi-tenant qui nécessitent le middleware tenant
+    // SÉCURITÉ CRITIQUE: Élargir la protection à TOUTES les routes sensibles
     const tenantRoutes = [
       "/api/federated-ai",
       "/api/tenant",
       "/api/diagnostic",
-      "/api/equipment",
+      "/api/equipment", 
       "/api/work-orders",
       "/api/preventive-maintenance",
       "/api/spare-parts",
       "/api/user-profiles",
       "/api/alerts",
+      "/api/iot",
+      "/api/reports",
+      "/api/analytics", 
+      "/api/maintenance-cases",
+      "/api/reported-cases",
+      "/api/diagnostic-sessions",
+      "/api/equipment-registry",
+      "/api/stock-movements",
+      "/api/predictive-analytics",
+      "/api/kpi-metrics",
+      "/api/integration-logs",
+      "/api/gmao", // Routes GMAO principales
+      "/api/enhanced-diagnostic", // Diagnostic avancé
+      "/api/simple-validation", // Validation simple
+      "/api/equipment-health", // Santé des équipements
     ];
 
     const needsTenantSecurity = tenantRoutes.some(route => req.path.startsWith(route));
