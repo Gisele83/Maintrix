@@ -6,7 +6,7 @@ import { userProfiles, userSessions, tenants, federatedLearning } from "@shared/
 import { eq, count, desc } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
-import { CredentialGenerator, createCredentialNotification } from './credential-generator';
+import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 
 const router = Router();
 
@@ -52,6 +52,18 @@ const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
     });
   }
 };
+
+// Schema Zod pour validation création d'utilisateur par super-admin
+import { z } from "zod";
+
+const createUserByAdminSchema = z.object({
+  email: z.string().email("Email invalide"),
+  firstName: z.string().min(1, "Prénom requis"),
+  lastName: z.string().min(1, "Nom requis"),
+  tenantId: z.string().min(1, "ID Tenant requis"),
+  role: z.enum(['owner', 'admin', 'maintainer', 'technician', 'viewer']).default('technician'),
+  department: z.string().optional(),
+});
 
 // 🔐 Connexion super-admin
 router.post('/login', async (req, res) => {
@@ -486,6 +498,157 @@ router.get('/platform-stats', authenticateSuperAdmin, async (req, res) => {
     res.status(500).json({
       error: "SUPER_ADMIN_PLATFORM_STATS_ERROR",
       message: "Erreur lors de la récupération des statistiques plateforme"
+    });
+  }
+});
+
+/**
+ * 👤 CRÉER UN UTILISATEUR INDIVIDUEL (Super-Admin seulement)
+ * Nouvelle fonctionnalité: Seul le super-admin peut créer des comptes utilisateurs
+ */
+router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const validatedData = createUserByAdminSchema.parse(req.body);
+    
+    // Vérifier que le tenant existe
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, validatedData.tenantId))
+      .limit(1);
+      
+    if (!tenant) {
+      return res.status(404).json({
+        error: "TENANT_NOT_FOUND",
+        message: "Tenant non trouvé"
+      });
+    }
+    
+    // Vérifier que l'email n'existe pas déjà
+    const [existingUser] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.email, validatedData.email))
+      .limit(1);
+      
+    if (existingUser) {
+      return res.status(400).json({
+        error: "EMAIL_ALREADY_EXISTS",
+        message: "Un utilisateur avec cet email existe déjà"
+      });
+    }
+    
+    // 🔐 GÉNÉRER IDENTIFIANTS PAR DÉFAUT VIA SUPER-ADMIN
+    const credentials = CredentialGenerator.generateUserCredentialsForSuperAdmin(
+      validatedData.email,
+      validatedData.firstName,
+      validatedData.lastName,
+      validatedData.tenantId,
+      validatedData.role,
+      1 // Super-admin ID (à récupérer dynamiquement)
+    );
+    
+    // Hacher le mot de passe temporaire
+    const hashedPassword = await CredentialGenerator.hashPassword(credentials.password);
+    
+    // Créer l'utilisateur avec identifiants par défaut
+    const [newUser] = await db
+      .insert(userProfiles)
+      .values({
+        tenantId: validatedData.tenantId,
+        username: credentials.username,
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        email: validatedData.email,
+        password: hashedPassword,
+        role: validatedData.role,
+        department: validatedData.department,
+        isActive: true,
+        // 🔐 CHAMPS IDENTIFIANTS PAR DÉFAUT
+        mustChangePassword: true,
+        isDefaultCredentials: true,
+        passwordExpiresAt: credentials.passwordExpiresAt,
+        defaultCredentialsGeneratedAt: credentials.defaultCredentialsGeneratedAt,
+        defaultCredentialsGeneratedBy: 1, // Super-admin ID
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning({
+        id: userProfiles.id,
+        username: userProfiles.username,
+        email: userProfiles.email,
+        role: userProfiles.role,
+        firstName: userProfiles.firstName,
+        lastName: userProfiles.lastName
+      });
+    
+    console.log(`✅ Super-admin: Utilisateur créé ${newUser.username} pour tenant ${validatedData.tenantId}`);
+    
+    // Retourner les identifiants temporaires (pour notification email)
+    res.status(201).json({
+      success: true,
+      user: newUser,
+      temporaryCredentials: {
+        username: credentials.username,
+        password: credentials.password,
+        expiresAt: credentials.passwordExpiresAt,
+        mustChangePassword: true
+      },
+      message: "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés."
+    });
+    
+  } catch (error: any) {
+    console.error("Error creating user by super-admin:", error);
+    
+    if (error.name === 'ZodError') {
+      return res.status(400).json({
+        error: "VALIDATION_ERROR",
+        message: "Données invalides",
+        details: error.errors
+      });
+    }
+    
+    res.status(500).json({
+      error: "USER_CREATION_ERROR",
+      message: "Erreur lors de la création de l'utilisateur"
+    });
+  }
+});
+
+/**
+ * 📊 LISTER LES UTILISATEURS AVEC IDENTIFIANTS PAR DÉFAUT
+ */
+router.get('/users-with-default-credentials', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const usersWithDefaults = await db
+      .select({
+        id: userProfiles.id,
+        username: userProfiles.username,
+        firstName: userProfiles.firstName,
+        lastName: userProfiles.lastName,
+        email: userProfiles.email,
+        role: userProfiles.role,
+        tenantId: userProfiles.tenantId,
+        mustChangePassword: userProfiles.mustChangePassword,
+        isDefaultCredentials: userProfiles.isDefaultCredentials,
+        passwordExpiresAt: userProfiles.passwordExpiresAt,
+        defaultCredentialsGeneratedAt: userProfiles.defaultCredentialsGeneratedAt,
+        lastLogin: userProfiles.lastLogin
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.isDefaultCredentials, true));
+    
+    res.json({
+      success: true,
+      users: usersWithDefaults,
+      count: usersWithDefaults.length
+    });
+    
+  } catch (error) {
+    console.error("Error fetching users with default credentials:", error);
+    res.status(500).json({
+      error: "FETCH_USERS_ERROR",
+      message: "Erreur lors de la récupération des utilisateurs"
     });
   }
 });

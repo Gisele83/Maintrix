@@ -214,16 +214,17 @@ export interface CredentialNotification {
  * Créer une notification d'identifiants pour envoi par email
  */
 export function createCredentialNotification(
-  credentials: TenantCredentials | UserCredentials,
+  credentials: SuperAdminUserCredentials,
   tenantName: string,
   loginUrl: string
 ): CredentialNotification {
   return {
     recipientEmail: credentials.email,
+    recipientName: `${credentials.firstName} ${credentials.lastName}`,
     username: credentials.username,
     temporaryPassword: credentials.password,
     loginUrl,
-    expiresAt: credentials.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    expiresAt: credentials.passwordExpiresAt,
     tenantName,
     isFirstLogin: true,
     securityInstructions: [
