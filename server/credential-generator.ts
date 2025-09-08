@@ -12,16 +12,16 @@ export interface DefaultCredentials {
   expiresAt?: Date;
 }
 
-export interface TenantCredentials extends DefaultCredentials {
+export interface SuperAdminUserCredentials extends DefaultCredentials {
   tenantId: string;
   email: string;
-  role: 'owner' | 'admin';
-}
-
-export interface UserCredentials extends DefaultCredentials {
-  tenantId: string;
-  email: string;
-  role: 'admin' | 'maintainer' | 'technician' | 'viewer';
+  firstName: string;
+  lastName: string;
+  role: 'owner' | 'admin' | 'maintainer' | 'technician' | 'viewer';
+  isDefaultCredentials: boolean;
+  passwordExpiresAt: Date;
+  defaultCredentialsGeneratedBy: number;
+  defaultCredentialsGeneratedAt: Date;
 }
 
 /**
@@ -74,43 +74,18 @@ export class CredentialGenerator {
   }
 
   /**
-   * 🏢 NIVEAU 1: Générer identifiants par défaut pour admin tenant
-   * Utilisé par le super-admin lors de la création d'un tenant
+   * 🔐 SUPER-ADMIN SEULEMENT: Générer identifiants par défaut pour utilisateurs
+   * SÉCURITÉ CRITIQUE: Seul le super-administrateur peut créer des comptes utilisateurs
    */
-  static generateTenantAdminCredentials(
-    tenantName: string, 
-    contactEmail: string, 
-    tenantId: string
-  ): TenantCredentials {
-    const username = this.generateUsername(contactEmail, tenantName);
-    const password = this.generateSecurePassword();
-    
-    // Expiration forcée après 30 jours si pas changé
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-    
-    return {
-      tenantId,
-      username,
-      password,
-      email: contactEmail,
-      role: 'owner', // Premier utilisateur = owner du tenant
-      mustChangePassword: true,
-      expiresAt
-    };
-  }
-
-  /**
-   * 👥 NIVEAU 2: Générer identifiants par défaut pour utilisateur tenant
-   * Utilisé par l'admin tenant lors de l'ajout d'utilisateurs
-   */
-  static generateTenantUserCredentials(
-    email: string, 
-    tenantId: string, 
-    tenantName: string,
-    role: 'admin' | 'maintainer' | 'technician' | 'viewer' = 'viewer'
-  ): UserCredentials {
-    const username = this.generateUsername(email, tenantName);
+  static generateUserCredentialsForSuperAdmin(
+    email: string,
+    firstName: string,
+    lastName: string,
+    tenantId: string,
+    role: 'owner' | 'admin' | 'maintainer' | 'technician' | 'viewer' = 'technician',
+    superAdminId: number
+  ): SuperAdminUserCredentials {
+    const username = this.generateUsername(email);
     const password = this.generateSecurePassword();
     
     // Expiration forcée après 7 jours si pas changé
@@ -122,10 +97,24 @@ export class CredentialGenerator {
       username,
       password,
       email,
+      firstName,
+      lastName,
       role,
       mustChangePassword: true,
-      expiresAt
+      isDefaultCredentials: true,
+      passwordExpiresAt: expiresAt,
+      defaultCredentialsGeneratedBy: superAdminId,
+      defaultCredentialsGeneratedAt: new Date()
     };
+  }
+
+  /**
+   * 🚫 FONCTIONNALITÉ SUPPRIMÉE: Génération par admin tenant
+   * NOUVELLE SÉCURITÉ: Seul le super-admin peut créer des comptes utilisateurs
+   * Les admins tenant ne peuvent plus générer d'identifiants par défaut
+   */
+  static generateTenantUserCredentials(): never {
+    throw new Error("SECURITY_RESTRICTION: Only super-admin can generate user credentials. Tenant admins cannot create user accounts.");
   }
 
   /**
