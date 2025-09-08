@@ -4,6 +4,7 @@
  */
 
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 
 export interface DefaultCredentials {
   username: string;
@@ -182,7 +183,6 @@ export class CredentialGenerator {
    * 🔐 Hasher un mot de passe avec bcrypt
    */
   static async hashPassword(password: string): Promise<string> {
-    const bcrypt = require('bcrypt');
     return await bcrypt.hash(password, 12);
   }
 
@@ -190,7 +190,6 @@ export class CredentialGenerator {
    * 🔍 Vérifier un mot de passe hasher
    */
   static async verifyPassword(password: string, hash: string): Promise<boolean> {
-    const bcrypt = require('bcrypt');
     return await bcrypt.compare(password, hash);
   }
 }
