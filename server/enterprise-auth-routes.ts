@@ -413,7 +413,34 @@ router.post('/login',
         });
       }
       
-      // Créer une session sécurisée
+      // 🔐 VÉRIFICATION PREMIÈRE CONNEXION: Identifiants par défaut
+      if (user.mustChangePassword && user.isDefaultCredentials) {
+        return res.status(200).json({
+          requirePasswordChange: true,
+          message: "Première connexion détectée. Vous devez changer votre mot de passe avant d'accéder à la plateforme.",
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+          passwordExpiresAt: user.passwordExpiresAt,
+          isFirstLogin: true,
+          tempSessionToken: crypto.randomBytes(32).toString('hex') // Token temporaire pour changement de mot de passe
+        });
+      }
+
+      // 🕐 VÉRIFICATION EXPIRATION MOT DE PASSE
+      if (user.passwordExpiresAt && new Date() > user.passwordExpiresAt) {
+        return res.status(200).json({
+          requirePasswordChange: true,
+          message: "Votre mot de passe temporaire a expiré. Vous devez le changer.",
+          userId: user.id,
+          username: user.username,
+          email: user.email,
+          isExpired: true,
+          tempSessionToken: crypto.randomBytes(32).toString('hex')
+        });
+      }
+      
+      // Créer une session sécurisée (seulement si pas de changement de mot de passe requis)
       const sessionToken = crypto.randomBytes(64).toString('hex');
       const refreshToken = crypto.randomBytes(64).toString('hex');
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
@@ -431,7 +458,10 @@ router.post('/login',
       // Mettre à jour le dernier login
       await db
         .update(userProfiles)
-        .set({ lastLogin: new Date() })
+        .set({ 
+          lastLogin: new Date(),
+          updatedAt: new Date()
+        })
         .where(eq(userProfiles.id, user.id));
       
       // Configuration cookie sécurisé
@@ -461,6 +491,160 @@ router.post('/login',
       res.status(500).json({
         error: "LOGIN_ERROR",
         message: "Login failed"
+      });
+    }
+  }
+);
+
+/**
+ * 🔄 CHANGEMENT OBLIGATOIRE DE MOT DE PASSE (première connexion)
+ * Endpoint pour forcer le changement de mot de passe lors de la première connexion
+ */
+router.post('/force-password-change', 
+  EnterpriseAuthMiddleware.rateLimitByTenant('/api/enterprise-auth/force-password-change', {
+    requests: 5,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    blockDurationMs: 5 * 60 * 1000 // 5 minutes
+  }),
+  async (req: Request, res: Response) => {
+    try {
+      const { userId, currentPassword, newPassword, tempSessionToken } = req.body;
+      
+      // Schema de validation pour changement obligatoire de mot de passe
+      const passwordChangeSchema = z.object({
+        userId: z.number().int().positive("ID utilisateur invalide"),
+        currentPassword: z.string().min(1, "Mot de passe actuel requis"),
+        newPassword: z.string()
+          .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+          .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+                 "Le mot de passe doit contenir: majuscule, minuscule, chiffre et caractère spécial"),
+        tempSessionToken: z.string().min(1, "Token de session temporaire requis")
+      });
+      
+      const validatedData = passwordChangeSchema.parse(req.body);
+      
+      // Récupérer l'utilisateur
+      const [user] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.id, validatedData.userId))
+        .limit(1);
+        
+      if (!user) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+          message: "Utilisateur non trouvé"
+        });
+      }
+      
+      // Vérifier que l'utilisateur doit changer son mot de passe
+      if (!user.mustChangePassword || !user.isDefaultCredentials) {
+        return res.status(400).json({
+          error: "PASSWORD_CHANGE_NOT_REQUIRED",
+          message: "Le changement de mot de passe n'est pas requis pour cet utilisateur"
+        });
+      }
+      
+      // Vérifier l'ancien mot de passe
+      const isCurrentPasswordValid = await bcrypt.compare(validatedData.currentPassword, user.password!);
+      
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          error: "INVALID_CURRENT_PASSWORD",
+          message: "Mot de passe actuel incorrect"
+        });
+      }
+      
+      // Vérifier que le nouveau mot de passe est différent
+      const isSamePassword = await bcrypt.compare(validatedData.newPassword, user.password!);
+      if (isSamePassword) {
+        return res.status(400).json({
+          error: "SAME_PASSWORD",
+          message: "Le nouveau mot de passe doit être différent de l'ancien"
+        });
+      }
+      
+      // Hacher le nouveau mot de passe
+      const hashedNewPassword = await bcrypt.hash(validatedData.newPassword, 12);
+      
+      // Mettre à jour l'utilisateur - RETIRER LES FLAGS D'IDENTIFIANTS PAR DÉFAUT
+      await db
+        .update(userProfiles)
+        .set({
+          password: hashedNewPassword,
+          mustChangePassword: false,
+          isDefaultCredentials: false,
+          lastPasswordChange: new Date(),
+          passwordExpiresAt: null, // Supprimer l'expiration
+          updatedAt: new Date()
+        })
+        .where(eq(userProfiles.id, user.id));
+      
+      console.log(`✅ Utilisateur ${user.username} a changé son mot de passe par défaut avec succès`);
+      
+      // Créer une session normale maintenant que le mot de passe a été changé
+      const sessionToken = crypto.randomBytes(64).toString('hex');
+      const refreshToken = crypto.randomBytes(64).toString('hex');
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+      
+      const [session] = await db.insert(userSessions).values({
+        userId: user.id,
+        tenantId: user.tenantId || 'default-tenant',
+        sessionToken,
+        refreshToken,
+        ipAddress: req.ip || 'unknown',
+        userAgent: req.get('User-Agent') || 'unknown',
+        expiresAt
+      }).returning();
+      
+      // Mettre à jour lastLogin
+      await db
+        .update(userProfiles)
+        .set({ 
+          lastLogin: new Date() 
+        })
+        .where(eq(userProfiles.id, user.id));
+      
+      // Configuration cookie sécurisé
+      res.cookie('sessionToken', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+      
+      res.json({
+        success: true,
+        message: "Mot de passe changé avec succès. Bienvenue sur Smart GMAO DiagFix !",
+        sessionToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        expiresAt,
+        isFirstLogin: false
+      });
+      
+    } catch (error: any) {
+      console.error("Error in force password change:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({
+          error: "VALIDATION_ERROR",
+          message: "Données invalides",
+          details: error.errors
+        });
+      }
+      
+      res.status(500).json({
+        error: "PASSWORD_CHANGE_ERROR",
+        message: "Erreur lors du changement de mot de passe"
       });
     }
   }

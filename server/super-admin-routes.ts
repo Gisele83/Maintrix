@@ -257,10 +257,13 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     console.log(`🏢 TENANT CRÉÉ: ${newTenant.name} (${newTenant.id})`);
 
     // 🔐 ÉTAPE CRITIQUE: Générer identifiants par défaut pour l'admin tenant
-    const adminCredentials = CredentialGenerator.generateTenantAdminCredentials(
-      newTenant.name,
+    const adminCredentials = CredentialGenerator.generateUserCredentialsForSuperAdmin(
       adminEmail,
-      newTenant.id
+      req.body.adminFirstName || '',
+      req.body.adminLastName || '',
+      newTenant.id,
+      'owner', // Premier utilisateur = propriétaire du tenant
+      1 // Super-admin ID
     );
 
     console.log(`🔐 IDENTIFIANTS GÉNÉRÉS pour ${adminEmail}:`, {
