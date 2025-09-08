@@ -123,6 +123,10 @@ export class EnterpriseAuthMiddleware {
       req.tenantData = session.tenant;
       req.sessionId = session.session.id;
       
+      // SÉCURITÉ CRITIQUE: Enrichir le contexte utilisateur avec tenantId
+      // pour compatibilité avec le middleware tenant
+      req.user.tenantId = session.user.tenantId || session.tenant.id;
+      
       // Contexte de sécurité
       req.securityContext = {
         ipAddress: req.ip || req.connection.remoteAddress || 'unknown',
