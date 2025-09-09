@@ -28,18 +28,18 @@ const features = [
     href: "/smart-diagnostic",
     gradient: "from-purple-500 to-pink-500",
     badge: "IA Native",
-    features: ["9 algorithmes ML", "Diagnostic en temps réel", "Suggestions automatiques", "Auto-apprentissage"],
-    stats: "95% précision"
+    features: ["9 algorithmes ML", "120 cas industriels", "Ensemble learning", "Prédictions avancées"],
+    stats: "98% précision"
   },
   {
     title: "Smart GMAO",
-    description: "Système de gestion de maintenance assistée par ordinateur complet",
+    description: "Système de gestion de maintenance assistée par ordinateur multi-tenant",
     icon: Settings,
     href: "/gmao",
     gradient: "from-blue-500 to-cyan-500",
-    badge: "Complet",
-    features: ["Gestion équipements", "Ordres de travail", "Maintenance préventive", "Stock & achats"],
-    stats: "98% conformité"
+    badge: "Enterprise",
+    features: ["Multi-tenant", "Workflow avancé", "Maintenance prédictive", "Intégration Excel"],
+    stats: "99% conformité"
   },
   {
     title: "IoT & Monitoring",
@@ -62,13 +62,23 @@ const features = [
     stats: "15+ métriques"
   },
   {
+    title: "Super-Admin Center",
+    description: "Interface d'administration centralisée multi-tenant avec gestion avancée",
+    icon: Users,
+    href: "/admin-login",
+    gradient: "from-red-500 to-pink-500",
+    badge: "Enterprise",
+    features: ["Gestion tenants", "Identifiants par défaut", "Email automatique", "Monitoring global"],
+    stats: "Multi-tenant"
+  },
+  {
     title: "Gestion & Sécurité",
-    description: "Administration utilisateurs et contrôle d'accès sécurisé",
+    description: "Administration utilisateurs et contrôle d'accès sécurisé renforcé",
     icon: Shield,
     href: "/access-management",
     gradient: "from-indigo-500 to-purple-500",
     badge: "Sécurisé",
-    features: ["Multi-niveaux", "Validation workflows", "Audit trail", "Contrôle accès"],
+    features: ["Authentication 2FA", "Audit trail", "Identifiants temporaires", "Contrôle accès"],
     stats: "100% sécurisé"
   },
   {

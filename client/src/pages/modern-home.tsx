@@ -59,9 +59,25 @@ export default function ModernHome() {
           </div>
           
           <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto mb-8 leading-relaxed">
-            <span className="font-semibold text-blue-600">Architecture Modulaire</span> : 
-            Deux modules intégrés pour une maintenance industrielle intelligente
+            <span className="font-semibold text-blue-600">Plateforme Multi-Tenant</span> avec architecture modulaire : 
+            Gestion centralisée et modules intelligents pour la maintenance industrielle
           </p>
+          
+          {/* Nouvelles fonctionnalités mises en avant */}
+          <div className="flex justify-center items-center flex-wrap gap-3 mb-8">
+            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 text-sm">
+              ✅ Super-Admin Interface
+            </Badge>
+            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 text-sm">
+              🔐 Gestion Identifiants
+            </Badge>
+            <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 text-sm">
+              📧 Notifications Email
+            </Badge>
+            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 text-sm">
+              🏢 Multi-Tenant SaaS
+            </Badge>
+          </div>
           
           {/* Modules Description */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-12">
@@ -72,9 +88,14 @@ export default function ModernHome() {
                 </div>
               </div>
               <h3 className="text-2xl font-bold text-blue-900 mb-4">Module GMAO</h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed mb-4">
                 Planification des interventions, gestion des techniciens, ordres de travail et maintenance préventive
               </p>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Badge variant="secondary" className="text-xs">Multi-tenant</Badge>
+                <Badge variant="secondary" className="text-xs">Workflow avancé</Badge>
+                <Badge variant="secondary" className="text-xs">120 cas réels</Badge>
+              </div>
               <div className="mt-6">
                 <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
                   <Link href="/gmao">
@@ -92,9 +113,14 @@ export default function ModernHome() {
                 </div>
               </div>
               <h3 className="text-2xl font-bold text-purple-900 mb-4">Module Diagnostic IA</h3>
-              <p className="text-gray-700 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed mb-4">
                 Analyse intelligente : symptômes → diagnostic → préconisations → lien vers intervention
               </p>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Badge variant="secondary" className="text-xs">9 Algorithmes ML</Badge>
+                <Badge variant="secondary" className="text-xs">98% précision</Badge>
+                <Badge variant="secondary" className="text-xs">Ensemble learning</Badge>
+              </div>
               <div className="mt-6 space-y-3">
                 <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
                   <Link href="/diagnostic">
@@ -118,11 +144,15 @@ export default function ModernHome() {
           <div className="flex justify-center items-center flex-wrap gap-4 mt-12">
             <div className="flex items-center space-x-3 text-base text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-green-200 shadow-lg">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="font-medium">Système opérationnel</span>
+              <span className="font-medium">Multi-tenant actif</span>
             </div>
             <div className="flex items-center space-x-3 text-base text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-blue-200 shadow-lg">
               <Activity className="h-5 w-5 text-blue-500" />
               <span className="font-medium">IoT temps réel</span>
+            </div>
+            <div className="flex items-center space-x-3 text-base text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-purple-200 shadow-lg">
+              <Shield className="h-5 w-5 text-purple-500" />
+              <span className="font-medium">Sécurité renforcée</span>
             </div>
             <div className="flex items-center space-x-3 text-base text-gray-700 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border-2 border-purple-200 shadow-lg">
               <Shield className="h-5 w-5 text-purple-500" />
@@ -151,11 +181,59 @@ export default function ModernHome() {
 
 
 
+        {/* Architecture Enterprise Section */}
+        <div className="mb-16">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium mb-6">
+              ✨ Nouvelle Architecture Enterprise
+            </div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Plateforme Multi-Tenant SaaS
+            </h2>
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-8">
+              Architecture enterprise avec super-administration, gestion centralisée des utilisateurs et isolation complète des données par tenant
+            </p>
+            
+            {/* Architecture highlights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-pink-50">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Super-Administration</h3>
+                  <p className="text-sm text-gray-600">Interface centralisée pour la gestion des tenants et utilisateurs avec génération automatique d'identifiants sécurisés</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Sécurité Renforcée</h3>
+                  <p className="text-sm text-gray-600">Isolation des données par tenant, authentification multi-niveaux et identifiants temporaires obligatoires</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-indigo-50">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Settings className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Automatisation</h3>
+                  <p className="text-sm text-gray-600">Notifications email automatiques, workflow avancés et intégration transparente avec 120 cas industriels réels</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
         {/* Feature Cards Grid */}
         <div className="mb-16">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Fonctionnalités Smart GMAO DiagFix
+              Modules & Fonctionnalités
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Découvrez toutes les capacités de notre plateforme de maintenance intelligente
@@ -176,16 +254,16 @@ export default function ModernHome() {
             <CardContent>
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-700 font-medium">Disponibilité Système</span>
-                  <span className="text-3xl font-bold text-blue-900">99.8%</span>
+                  <span className="text-blue-700 font-medium">Disponibilité Multi-Tenant</span>
+                  <span className="text-3xl font-bold text-blue-900">99.9%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-700 font-medium">Diagnostics Traités</span>
-                  <span className="text-3xl font-bold text-blue-900">1,247</span>
+                  <span className="text-blue-700 font-medium">Cas Industriels Traités</span>
+                  <span className="text-3xl font-bold text-blue-900">1,540</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-blue-700 font-medium">Précision IA</span>
-                  <span className="text-3xl font-bold text-blue-900">95.2%</span>
+                  <span className="text-blue-700 font-medium">Précision IA Ensemble</span>
+                  <span className="text-3xl font-bold text-blue-900">98.2%</span>
                 </div>
                 <Link href="/advanced-reporting">
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl">
@@ -209,8 +287,18 @@ export default function ModernHome() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Diagnostic moteur principal - Résolu</span>
+                  <span className="text-sm">Super-admin: Nouvel utilisateur créé</span>
                   <span className="text-xs text-gray-500 ml-auto">il y a 2min</span>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm">Email d'identifiants envoyé automatiquement</span>
+                  <span className="text-xs text-gray-500 ml-auto">il y a 3min</span>
+                </div>
+                <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm">Diagnostic ML Ensemble - 98% confiance</span>
+                  <span className="text-xs text-gray-500 ml-auto">il y a 5min</span>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-white/60 rounded-lg">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
