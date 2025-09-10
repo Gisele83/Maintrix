@@ -31,42 +31,32 @@ export interface SuperAdminUserCredentials extends DefaultCredentials {
 export class CredentialGenerator {
 
   /**
-   * Générer un nom d'utilisateur unique basé sur l'email et tenant
+   * Générer un nom d'utilisateur : utilise directement l'email
    */
   private static generateUsername(email: string, tenantPrefix?: string): string {
-    const emailPart = email.split('@')[0].toLowerCase();
-    // Nettoyer les caractères spéciaux
-    const cleanEmail = emailPart.replace(/[^a-z0-9]/g, '');
-    
-    if (tenantPrefix) {
-      const cleanTenant = tenantPrefix.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 6);
-      return `${cleanTenant}_${cleanEmail}`.substring(0, 20);
-    }
-    
-    return cleanEmail.substring(0, 15);
+    // Utiliser directement l'email comme nom d'utilisateur
+    return email.toLowerCase();
   }
 
   /**
-   * Générer un mot de passe sécurisé temporaire
+   * Générer un mot de passe temporaire de 8 caractères (lettres et chiffres)
    */
   private static generateSecurePassword(): string {
-    // Caractères autorisés (éviter ambiguïtés : 0,O,1,l,I)
+    // Caractères autorisés : lettres et chiffres uniquement
     const lowercase = 'abcdefghijkmnopqrstuvwxyz';
     const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     const numbers = '23456789';
-    const special = '@#$%&*';
     
     let password = '';
     
-    // Assurer au moins un caractère de chaque type
+    // Assurer au moins une minuscule, une majuscule et un chiffre
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += special[Math.floor(Math.random() * special.length)];
     
-    // Compléter avec des caractères aléatoires
-    const allChars = lowercase + uppercase + numbers + special;
-    for (let i = 4; i < 12; i++) {
+    // Compléter avec des caractères aléatoires pour atteindre 8 caractères
+    const allChars = lowercase + uppercase + numbers;
+    for (let i = 3; i < 8; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
     
