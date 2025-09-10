@@ -23,7 +23,9 @@ import {
   TrendingUp,
   Lock,
   Mail,
-  Trash2
+  Trash2,
+  Copy,
+  Check
 } from "lucide-react";
 
 interface SuperAdminUser {
@@ -95,6 +97,36 @@ export default function SuperAdminDashboard() {
     fromEmail: 'test@example.com'
   });
   const [emailTestResult, setEmailTestResult] = useState<any>(null);
+  
+  // 📋 État pour afficher les identifiants générés (pour copie manuelle)
+  const [createdUserCredentials, setCreatedUserCredentials] = useState<{
+    user: any;
+    temporaryCredentials: any;
+    message: string;
+    emailSent: boolean;
+  } | null>(null);
+  
+  // 📋 État pour le bouton de copie
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  // 📋 Fonction pour copier dans le presse-papiers
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      toast({
+        title: "✅ Copié !",
+        description: `${fieldName} copié dans le presse-papiers`,
+      });
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      toast({
+        title: "❌ Erreur",
+        description: "Impossible de copier dans le presse-papiers",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
@@ -635,9 +667,13 @@ export default function SuperAdminDashboard() {
                             'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`
                           }
                         }).then(res => res.json()).then((result) => {
+                          // 📋 Stocker les identifiants pour affichage et copie
+                          setCreatedUserCredentials(result);
+                          
+                          const emailStatus = result.message?.includes('Email non envoyé') ? ' ⚠️ Email non envoyé' : ' ✅ Email envoyé';
                           toast({
                             title: "✅ Utilisateur créé",
-                            description: `Identifiants générés pour ${newUserData.firstName} ${newUserData.lastName}`,
+                            description: `Identifiants générés pour ${newUserData.firstName} ${newUserData.lastName}${emailStatus}`,
                           });
                           setIsCreateUserDialogOpen(false);
                           setNewUserData({
@@ -713,6 +749,160 @@ export default function SuperAdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* 📋 Section d'affichage des identifiants générés (pour copie manuelle) */}
+            {createdUserCredentials && (
+              <Card className="bg-gradient-to-r from-green-900/20 to-blue-900/20 backdrop-blur-xl border-green-500/30">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    🔐 Identifiants générés - Mode Manuel
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Copiez ces identifiants pour les transmettre à l'utilisateur {createdUserCredentials.emailSent ? '(Email envoyé automatiquement)' : '(Email non envoyé - transmission manuelle requise)'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white/10 rounded-lg p-4 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Nom d'utilisateur */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Nom d'utilisateur</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            value={createdUserCredentials.temporaryCredentials?.username || 'N/A'} 
+                            readOnly 
+                            className="bg-white/5 border-gray-600 text-white"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.username || '', 'Nom d\'utilisateur')}
+                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                          >
+                            {copiedField === 'Nom d\'utilisateur' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Mot de passe temporaire */}
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Mot de passe temporaire</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            value={createdUserCredentials.temporaryCredentials?.password || 'N/A'} 
+                            readOnly 
+                            className="bg-white/5 border-gray-600 text-white font-mono"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.password || '', 'Mot de passe')}
+                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                          >
+                            {copiedField === 'Mot de passe' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Informations utilisateur */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-white/10">
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Email utilisateur</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            value={createdUserCredentials.user?.email || 'N/A'} 
+                            readOnly 
+                            className="bg-white/5 border-gray-600 text-white"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(createdUserCredentials.user?.email || '', 'Email')}
+                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                          >
+                            {copiedField === 'Email' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-gray-300 text-sm">Expiration mot de passe</Label>
+                        <Input 
+                          value={createdUserCredentials.temporaryCredentials?.expiresAt ? 
+                            new Date(createdUserCredentials.temporaryCredentials.expiresAt).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : 'N/A'
+                          } 
+                          readOnly 
+                          className="bg-white/5 border-gray-600 text-white"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Bouton copie tout */}
+                    <div className="pt-3 border-t border-white/10">
+                      <Button
+                        onClick={() => {
+                          const credentials = `Smart GMAO DiagFix - Identifiants utilisateur
+                          
+Utilisateur: ${createdUserCredentials.user?.firstName} ${createdUserCredentials.user?.lastName}
+Email: ${createdUserCredentials.user?.email}
+Rôle: ${createdUserCredentials.user?.role}
+
+IDENTIFIANTS DE CONNEXION:
+Nom d'utilisateur: ${createdUserCredentials.temporaryCredentials?.username}
+Mot de passe temporaire: ${createdUserCredentials.temporaryCredentials?.password}
+
+IMPORTANT:
+- Ce mot de passe DOIT être changé lors de la première connexion
+- Expiration: ${createdUserCredentials.temporaryCredentials?.expiresAt ? new Date(createdUserCredentials.temporaryCredentials.expiresAt).toLocaleDateString('fr-FR') : 'N/A'}
+- URL de connexion: ${window.location.origin}/login
+
+Smart GMAO DiagFix - Maintenance intelligente et prédictive`;
+                          copyToClipboard(credentials, 'Toutes les informations');
+                        }}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      >
+                        📋 Copier toutes les informations
+                      </Button>
+                    </div>
+                    
+                    {/* État email */}
+                    <div className="bg-white/5 rounded-lg p-3 mt-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        {createdUserCredentials.message?.includes('Email non envoyé') ? (
+                          <>
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="text-orange-300">📧 Email non envoyé - Transmission manuelle requise</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-green-300">✅ Email envoyé automatiquement</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCreatedUserCredentials(null)}
+                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                    >
+                      Fermer
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Liste des utilisateurs avec identifiants par défaut */}
             <Card className="bg-white/5 backdrop-blur-xl border-white/10">
