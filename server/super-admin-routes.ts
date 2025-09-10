@@ -609,18 +609,31 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
   try {
     const validatedData = createUserByAdminSchema.parse(req.body);
     
-    // Vérifier que le tenant existe
-    const [tenant] = await db
+    // Vérifier si le tenant existe ou le créer automatiquement
+    let tenant;
+    
+    // D'abord, chercher par nom d'organisation
+    const [existingTenant] = await db
       .select()
       .from(tenants)
-      .where(eq(tenants.id, validatedData.tenantId))
+      .where(eq(tenants.name, validatedData.tenantId))
       .limit(1);
-      
-    if (!tenant) {
-      return res.status(404).json({
-        error: "TENANT_NOT_FOUND",
-        message: "Tenant non trouvé"
-      });
+    
+    if (existingTenant) {
+      tenant = existingTenant;
+    } else {
+      // Créer automatiquement un nouveau tenant
+      const [newTenant] = await db
+        .insert(tenants)
+        .values({
+          name: validatedData.tenantId,
+          domain: validatedData.tenantId.toLowerCase().replace(/\s+/g, '-'),
+          isActive: true,
+          plan: 'free'
+        })
+        .returning();
+      tenant = newTenant;
+      console.log(`✅ Super-admin: Nouveau tenant créé automatiquement: ${validatedData.tenantId}`);
     }
     
     // Vérifier que l'email n'existe pas déjà
@@ -642,7 +655,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       validatedData.email,
       validatedData.firstName,
       validatedData.lastName,
-      validatedData.tenantId,
+      tenant.id,
       validatedData.role,
       1 // Super-admin ID (à récupérer dynamiquement)
     );
@@ -654,7 +667,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
     const [newUser] = await db
       .insert(userProfiles)
       .values({
-        tenantId: validatedData.tenantId,
+        tenantId: tenant.id,
         username: credentials.username,
         firstName: validatedData.firstName,
         lastName: validatedData.lastName,

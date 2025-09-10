@@ -596,19 +596,13 @@ export default function SuperAdminDashboard() {
 
                     <div>
                       <Label htmlFor="tenantId" className="text-white">Organisation *</Label>
-                      <select
+                      <Input
                         id="tenantId"
+                        placeholder="Nom de l'organisation (ex: Entreprise ABC)"
                         value={newUserData.tenantId}
                         onChange={(e) => setNewUserData({...newUserData, tenantId: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/10 border border-gray-600 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                      >
-                        <option value="" className="bg-gray-800">Sélectionner une organisation</option>
-                        {tenants.map((tenant) => (
-                          <option key={tenant.id} value={tenant.id} className="bg-gray-800">
-                            {tenant.name}
-                          </option>
-                        ))}
-                      </select>
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
