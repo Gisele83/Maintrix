@@ -657,7 +657,16 @@ export default function SuperAdminDashboard() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`
                           }
-                        }).then(res => res.json()).then((result) => {
+                        }).then(async (res) => {
+                          const result = await res.json();
+                          
+                          if (!res.ok) {
+                            // Gestion des erreurs HTTP
+                            throw new Error(result.message || `Erreur ${res.status}: ${res.statusText}`);
+                          }
+                          
+                          return result;
+                        }).then((result) => {
                           // 📋 Stocker les identifiants pour affichage et copie
                           setCreatedUserCredentials(result);
                           
@@ -666,6 +675,8 @@ export default function SuperAdminDashboard() {
                             title: "✅ Utilisateur créé",
                             description: `Identifiants générés pour ${newUserData.firstName} ${newUserData.lastName}${emailStatus}`,
                           });
+                          
+                          // Fermer le dialog et réinitialiser le formulaire seulement en cas de succès
                           setIsCreateUserDialogOpen(false);
                           setNewUserData({
                             email: '',
@@ -675,11 +686,17 @@ export default function SuperAdminDashboard() {
                             role: '',
                             department: ''
                           });
+                          
+                          // Recharger la liste des utilisateurs
                           queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
                         }).catch((error) => {
+                          // Ne pas fermer le dialog en cas d'erreur pour permettre la correction
+                          // Effacer les identifiants affichés car la création a échoué
+                          setCreatedUserCredentials(null);
+                          
                           toast({
-                            title: "Erreur",
-                            description: error.message || "Erreur lors de la création de l'utilisateur",
+                            title: "❌ Erreur de création",
+                            description: error.message || "Impossible de créer l'utilisateur",
                             variant: "destructive"
                           });
                         });
