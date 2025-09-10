@@ -806,7 +806,7 @@ router.delete('/users/:id', authenticateSuperAdmin, async (req, res) => {
     }
 
     // Vérifier que l'utilisateur existe
-    const existingUser = await storage.getUserById(parseInt(id));
+    const existingUser = await storage.getUserProfileById(parseInt(id));
     if (!existingUser) {
       return res.status(404).json({
         error: "USER_NOT_FOUND",
@@ -815,7 +815,7 @@ router.delete('/users/:id', authenticateSuperAdmin, async (req, res) => {
     }
 
     // Supprimer l'utilisateur
-    await storage.deleteUser(parseInt(id));
+    await storage.deleteUserProfile(parseInt(id));
     
     console.log(`✅ Super-admin: Utilisateur supprimé ${existingUser.username} (ID: ${id})`);
     
