@@ -157,7 +157,7 @@ const createUserByAdminSchema = z.object({
   firstName: z.string().min(1, "Prénom requis"),
   lastName: z.string().min(1, "Nom requis"),
   tenantId: z.string().min(1, "ID Tenant requis"),
-  role: z.enum(['owner', 'admin', 'maintainer', 'technician', 'viewer']).default('technician'),
+  role: z.string().min(1, "Rôle requis"),
   department: z.string().optional(),
 });
 
