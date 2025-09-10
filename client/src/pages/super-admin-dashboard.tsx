@@ -25,7 +25,9 @@ import {
   Mail,
   Trash2,
   Copy,
-  Check
+  Check,
+  Edit,
+  AlertTriangle
 } from "lucide-react";
 
 interface SuperAdminUser {
@@ -157,7 +159,7 @@ export default function SuperAdminDashboard() {
   });
 
   // 👤 Récupérer les utilisateurs avec identifiants par défaut
-  const { data: defaultCredentialUsers = { users: [], count: 0 }, isLoading: usersLoading } = useQuery({
+  const { data: defaultCredentialUsers = { users: [], count: 0 }, isLoading: usersLoading } = useQuery<{users: any[], count: number}>({
     queryKey: ['/api/super-admin/users-with-default-credentials'],
     enabled: !!superAdminUser
   });
@@ -752,32 +754,32 @@ export default function SuperAdminDashboard() {
 
             {/* 📋 Section d'affichage des identifiants générés (pour copie manuelle) */}
             {createdUserCredentials && (
-              <Card className="bg-gradient-to-r from-green-900/20 to-blue-900/20 backdrop-blur-xl border-green-500/30">
+              <Card className="bg-gradient-to-r from-green-800/30 to-blue-800/30 backdrop-blur-xl border-green-400/50 shadow-xl">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     🔐 Identifiants générés - Mode Manuel
                   </CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Copiez ces identifiants pour les transmettre à l'utilisateur {createdUserCredentials.emailSent ? '(Email envoyé automatiquement)' : '(Email non envoyé - transmission manuelle requise)'}
+                  <CardDescription className="text-green-200">
+                    Copiez ces identifiants pour les transmettre à l'utilisateur {createdUserCredentials.message?.includes('Email non envoyé') ? '(Email non envoyé - transmission manuelle requise)' : '(Email envoyé automatiquement)'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="bg-white/10 rounded-lg p-4 space-y-3">
+                  <div className="bg-gray-800/50 rounded-lg p-4 space-y-3 border border-gray-600">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Nom d'utilisateur */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Nom d'utilisateur</Label>
+                        <Label className="text-green-200 text-sm font-medium">Nom d'utilisateur</Label>
                         <div className="flex items-center gap-2">
                           <Input 
-                            value={createdUserCredentials.temporaryCredentials?.username || 'N/A'} 
+                            value={createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || 'N/A'} 
                             readOnly 
-                            className="bg-white/5 border-gray-600 text-white"
+                            className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.username || '', 'Nom d\'utilisateur')}
-                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                            onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || '', 'Nom d\'utilisateur')}
+                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
                           >
                             {copiedField === 'Nom d\'utilisateur' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -786,18 +788,18 @@ export default function SuperAdminDashboard() {
                       
                       {/* Mot de passe temporaire */}
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Mot de passe temporaire</Label>
+                        <Label className="text-green-200 text-sm font-medium">Mot de passe temporaire</Label>
                         <div className="flex items-center gap-2">
                           <Input 
                             value={createdUserCredentials.temporaryCredentials?.password || 'N/A'} 
                             readOnly 
-                            className="bg-white/5 border-gray-600 text-white font-mono"
+                            className="bg-gray-800 border-gray-600 text-white font-mono placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.password || '', 'Mot de passe')}
-                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
                           >
                             {copiedField === 'Mot de passe' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -808,18 +810,18 @@ export default function SuperAdminDashboard() {
                     {/* Informations utilisateur */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-white/10">
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Email utilisateur</Label>
+                        <Label className="text-green-200 text-sm font-medium">Email utilisateur</Label>
                         <div className="flex items-center gap-2">
                           <Input 
                             value={createdUserCredentials.user?.email || 'N/A'} 
                             readOnly 
-                            className="bg-white/5 border-gray-600 text-white"
+                            className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.user?.email || '', 'Email')}
-                            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
                           >
                             {copiedField === 'Email' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -827,7 +829,7 @@ export default function SuperAdminDashboard() {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label className="text-gray-300 text-sm">Expiration mot de passe</Label>
+                        <Label className="text-green-200 text-sm font-medium">Expiration mot de passe</Label>
                         <Input 
                           value={createdUserCredentials.temporaryCredentials?.expiresAt ? 
                             new Date(createdUserCredentials.temporaryCredentials.expiresAt).toLocaleDateString('fr-FR', {
@@ -839,7 +841,7 @@ export default function SuperAdminDashboard() {
                             }) : 'N/A'
                           } 
                           readOnly 
-                          className="bg-white/5 border-gray-600 text-white"
+                          className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                         />
                       </div>
                     </div>
@@ -895,7 +897,7 @@ Smart GMAO DiagFix - Maintenance intelligente et prédictive`;
                       variant="outline"
                       size="sm"
                       onClick={() => setCreatedUserCredentials(null)}
-                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                      className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
                     >
                       Fermer
                     </Button>
@@ -941,29 +943,92 @@ Smart GMAO DiagFix - Maintenance intelligente et prédictive`;
                         </div>
                         
                         <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="text-orange-400 border-orange-400">
-                            🔐 Défaut
-                          </Badge>
-                          
-                          {user.passwordExpiresAt && new Date(user.passwordExpiresAt) < new Date() ? (
-                            <Badge variant="destructive">
-                              ⏰ Expiré
-                            </Badge>
-                          ) : user.passwordExpiresAt ? (
-                            <Badge variant="secondary" className="text-yellow-400 border-yellow-400">
-                              ⏰ Expire: {new Date(user.passwordExpiresAt).toLocaleDateString()}
-                            </Badge>
-                          ) : null}
-                          
-                          {user.lastLogin ? (
-                            <Badge variant="secondary" className="text-green-400 border-green-400">
-                              Connecté: {new Date(user.lastLogin).toLocaleDateString()}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-gray-400 border-gray-400">
-                              Jamais connecté
-                            </Badge>
-                          )}
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline" className="text-orange-400 border-orange-400">
+                                🔐 Défaut
+                              </Badge>
+                              
+                              {user.passwordExpiresAt && new Date(user.passwordExpiresAt) < new Date() ? (
+                                <Badge variant="destructive">
+                                  ⏰ Expiré
+                                </Badge>
+                              ) : user.passwordExpiresAt ? (
+                                <Badge variant="secondary" className="text-yellow-400 border-yellow-400">
+                                  ⏰ Expire: {new Date(user.passwordExpiresAt).toLocaleDateString()}
+                                </Badge>
+                              ) : null}
+                              
+                              {user.lastLogin ? (
+                                <Badge variant="secondary" className="text-green-400 border-green-400">
+                                  Connecté: {new Date(user.lastLogin).toLocaleDateString()}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-gray-400 border-gray-400">
+                                  Jamais connecté
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Boutons d'action */}
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // TODO: Implémenter l'édition
+                                  toast({
+                                    title: "Édition utilisateur",
+                                    description: "Fonctionnalité d'édition en cours de développement",
+                                  });
+                                }}
+                                className="bg-blue-600/20 border-blue-400 text-blue-300 hover:bg-blue-600/40"
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Éditer
+                              </Button>
+                              
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.firstName} ${user.lastName} ?`)) {
+                                    // API call pour supprimer l'utilisateur
+                                    fetch(`/api/super-admin/users/${user.id}`, {
+                                      method: 'DELETE',
+                                      headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`
+                                      }
+                                    }).then(res => res.json()).then((result) => {
+                                      if (result.success) {
+                                        toast({
+                                          title: "✅ Utilisateur supprimé",
+                                          description: `${user.firstName} ${user.lastName} a été supprimé avec succès`,
+                                        });
+                                        queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
+                                      } else {
+                                        toast({
+                                          title: "❌ Erreur",
+                                          description: result.message || "Impossible de supprimer l'utilisateur",
+                                          variant: "destructive"
+                                        });
+                                      }
+                                    }).catch((error) => {
+                                      toast({
+                                        title: "❌ Erreur",
+                                        description: "Erreur lors de la suppression",
+                                        variant: "destructive"
+                                      });
+                                    });
+                                  }
+                                }}
+                                className="bg-red-600/20 border-red-400 text-red-300 hover:bg-red-600/40"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Supprimer
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

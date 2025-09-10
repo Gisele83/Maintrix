@@ -792,4 +792,44 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// 🗑️ Route pour supprimer un utilisateur (super-admin seulement)
+router.delete('/users/:id', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        error: "USER_ID_REQUIRED",
+        message: "ID utilisateur requis"
+      });
+    }
+
+    // Vérifier que l'utilisateur existe
+    const existingUser = await storage.getUserById(parseInt(id));
+    if (!existingUser) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: "Utilisateur non trouvé"
+      });
+    }
+
+    // Supprimer l'utilisateur
+    await storage.deleteUser(parseInt(id));
+    
+    console.log(`✅ Super-admin: Utilisateur supprimé ${existingUser.username} (ID: ${id})`);
+    
+    res.status(200).json({
+      success: true,
+      message: `Utilisateur ${existingUser.firstName} ${existingUser.lastName} supprimé avec succès`
+    });
+    
+  } catch (error: any) {
+    console.error("Error deleting user by super-admin:", error);
+    res.status(500).json({
+      error: "USER_DELETION_ERROR",
+      message: "Erreur lors de la suppression de l'utilisateur"
+    });
+  }
+});
+
 export { router as superAdminRoutes };
