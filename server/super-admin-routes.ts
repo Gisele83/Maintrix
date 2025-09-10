@@ -8,6 +8,7 @@ import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentia
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 import { MailService } from '@sendgrid/mail';
+import { storage } from "./storage";
 
 const router = Router();
 
