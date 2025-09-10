@@ -89,7 +89,7 @@ export default function SuperAdminDashboard() {
     firstName: '',
     lastName: '',
     tenantId: '',
-    role: 'technician',
+    role: '',
     department: ''
   });
   
@@ -596,36 +596,25 @@ export default function SuperAdminDashboard() {
 
                     <div>
                       <Label htmlFor="tenantId" className="text-white">Organisation *</Label>
-                      <select
+                      <Input
                         id="tenantId"
+                        placeholder="Nom de l'organisation (ex: Entreprise ABC)"
                         value={newUserData.tenantId}
                         onChange={(e) => setNewUserData({...newUserData, tenantId: e.target.value})}
-                        className="w-full px-3 py-2 bg-white/10 border border-gray-600 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                      >
-                        <option value="" className="bg-gray-800">Sélectionner une organisation</option>
-                        {tenants.map((tenant) => (
-                          <option key={tenant.id} value={tenant.id} className="bg-gray-800">
-                            {tenant.name}
-                          </option>
-                        ))}
-                      </select>
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="role" className="text-white">Rôle</Label>
-                        <select
+                        <Input
                           id="role"
+                          placeholder="Rôle (ex: Technicien, Superviseur, Administrateur)"
                           value={newUserData.role}
                           onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
-                          className="w-full px-3 py-2 bg-white/10 border border-gray-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                        >
-                          <option value="technician" className="bg-gray-800">Technicien</option>
-                          <option value="maintainer" className="bg-gray-800">Mainteneur</option>
-                          <option value="admin" className="bg-gray-800">Administrateur</option>
-                          <option value="owner" className="bg-gray-800">Propriétaire</option>
-                          <option value="viewer" className="bg-gray-800">Observateur</option>
-                        </select>
+                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        />
                       </div>
                       
                       <div>
@@ -683,7 +672,7 @@ export default function SuperAdminDashboard() {
                             firstName: '',
                             lastName: '',
                             tenantId: '',
-                            role: 'technician',
+                            role: '',
                             department: ''
                           });
                           queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
