@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { LogIn, UserPlus, Brain, Factory } from "lucide-react";
+import { LogIn, UserPlus, Brain, Factory, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
@@ -37,6 +37,9 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function LoginPage() {
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -76,6 +79,30 @@ export default function LoginPage() {
       return response;
     },
     onSuccess: (data) => {
+      // ✅ PREMIÈRE CONNEXION: Vérifier si changement de mot de passe requis
+      if (data.requirePasswordChange) {
+        // Stocker les données temporaires pour le changement de mot de passe
+        localStorage.setItem("firstLoginData", JSON.stringify({
+          userId: data.userId,
+          username: data.username,
+          email: data.email,
+          tempSessionToken: data.tempSessionToken,
+          isFirstLogin: data.isFirstLogin || false,
+          isExpired: data.isExpired || false,
+          passwordExpiresAt: data.passwordExpiresAt
+        }));
+        
+        toast({
+          title: "Changement de mot de passe requis",
+          description: data.message,
+          variant: "default",
+        });
+        
+        // Rediriger vers la page de changement de mot de passe
+        setLocation("/first-login-password-change");
+        return;
+      }
+      
       // ✅ ENTERPRISE AUTH: Use sessionToken from enterprise auth response
       localStorage.setItem("sessionToken", data.sessionToken);
       localStorage.setItem("user_data", JSON.stringify(data.user));
@@ -218,7 +245,29 @@ export default function LoginPage() {
                         <FormItem>
                           <FormLabel>Mot de passe</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="Votre mot de passe" {...field} />
+                            <div className="relative">
+                              <Input 
+                                type={showLoginPassword ? "text" : "password"} 
+                                placeholder="Votre mot de passe" 
+                                {...field} 
+                                className="pr-10"
+                                data-testid="input-login-password"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                data-testid="toggle-login-password-visibility"
+                              >
+                                {showLoginPassword ? (
+                                  <EyeOff className="h-4 w-4 text-gray-400" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-gray-400" />
+                                )}
+                              </Button>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
