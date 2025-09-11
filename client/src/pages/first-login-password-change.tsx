@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ interface FirstLoginUser {
 export default function FirstLoginPasswordChange() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [firstLoginData, setFirstLoginData] = useState<FirstLoginUser | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -30,14 +32,24 @@ export default function FirstLoginPasswordChange() {
     new: false,
     confirm: false
   });
-  const [isLoading, setIsLoading] = useState(false);
   
-  // Récupérer les données utilisateur du localStorage (définies lors du login)
-  const firstLoginData: FirstLoginUser | null = JSON.parse(localStorage.getItem('firstLoginData') || 'null');
+  // Vérifier les données de première connexion dans useEffect
+  useEffect(() => {
+    const data = localStorage.getItem('firstLoginData');
+    if (!data) {
+      setLocation('/login');
+      return;
+    }
+    try {
+      const parsedData: FirstLoginUser = JSON.parse(data);
+      setFirstLoginData(parsedData);
+    } catch {
+      setLocation('/login');
+    }
+  }, [setLocation]);
   
   if (!firstLoginData) {
-    setLocation('/login');
-    return null;
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">Chargement...</div>;
   }
 
   // Validation du mot de passe
@@ -85,35 +97,41 @@ export default function FirstLoginPasswordChange() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/enterprise-auth/force-password-change', {
+      // Utiliser apiRequest pour une gestion d'erreur cohérente
+      const result = await apiRequest('/api/enterprise-auth/force-password-change', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           userId: firstLoginData.userId,
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
           tempSessionToken: firstLoginData.tempSessionToken
-        }),
-        headers: {
-          'Content-Type': 'application/json'
         }
       });
 
-      const result = await response.json();
+      // Vérifier explicitement le succès
+      if (result.success && result.sessionToken && result.user) {
+        // Stocker le nouveau token de session et les données utilisateur
+        localStorage.setItem('sessionToken', result.sessionToken);
+        localStorage.setItem('user_data', JSON.stringify(result.user));
+        
+        // Nettoyer les données de première connexion
+        localStorage.removeItem('firstLoginData');
 
-      // Stocker le nouveau token de session et les données utilisateur
-      localStorage.setItem('sessionToken', result.sessionToken);
-      localStorage.setItem('user_data', JSON.stringify(result.user));
-      
-      // Nettoyer les données de première connexion
-      localStorage.removeItem('firstLoginData');
+        toast({
+          title: "✅ Mot de passe changé",
+          description: "Bienvenue sur Smart GMAO DiagFix ! Votre compte est maintenant sécurisé.",
+        });
 
-      toast({
-        title: "✅ Mot de passe changé",
-        description: "Bienvenue sur Smart GMAO DiagFix ! Votre compte est maintenant sécurisé.",
-      });
-
-      // Rediriger vers le dashboard principal
-      setLocation('/dashboard');
+        // Rediriger vers le dashboard principal
+        setLocation('/');
+      } else {
+        // Gérer le cas où la réponse ne contient pas les bonnes données
+        toast({
+          title: "Erreur",
+          description: result.message || "Erreur lors du changement de mot de passe",
+          variant: "destructive"
+        });
+      }
       
     } catch (error: any) {
       console.error('Password change error:', error);
