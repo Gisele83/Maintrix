@@ -52,6 +52,9 @@ import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
 import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
+import { featureService } from "./feature-service.js";
+import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
+import { initializeERPSystem } from "./module-initializer.js";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -554,6 +557,14 @@ function jsonErrorHandler(err: any, req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 🔧 INITIALIZE ERP MODULE SYSTEM
+  try {
+    await initializeERPSystem();
+  } catch (error) {
+    console.error("❌ Warning: ERP System initialization failed:", error);
+    // Continue execution - the app can still work without the ERP system fully initialized
+  }
+
   // 🚀 SUPER-ADMIN ROUTES - Interface d'administration plateforme séparée (PRIORITÉ ABSOLUE)
   const { superAdminRoutes } = await import('./super-admin-routes');
   app.use('/api/super-admin', superAdminRoutes);
@@ -3402,6 +3413,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 📋 CCTP Compliance System - Conformité cahier des charges
   app.use("/api/cctp", cctpRoutes);
+
+  // 🔧 ERP MODULE CONFIGURATION ROUTES
+  app.get('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "TENANT_REQUIRED" });
+      }
+
+      const [availableModules, tenantConfig] = await Promise.all([
+        featureService.getAvailableModules(),
+        featureService.getTenantConfig(tenantId)
+      ]);
+
+      res.json({
+        availableModules,
+        enabledModules: tenantConfig.enabledModules,
+        moduleSettings: tenantConfig.moduleSettings,
+        sector: tenantConfig.sector
+      });
+    } catch (error) {
+      console.error("Error fetching tenant modules:", error);
+      res.status(500).json({ error: "FETCH_MODULES_FAILED" });
+    }
+  });
+
+  app.put('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "TENANT_REQUIRED" });
+      }
+
+      const { enabledModules, moduleSettings, sector } = req.body;
+
+      await featureService.updateTenantConfig(tenantId, {
+        enabledModules,
+        moduleSettings,
+        sector
+      });
+
+      res.json({ 
+        success: true,
+        message: "Module configuration updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating tenant modules:", error);
+      res.status(500).json({ error: "UPDATE_MODULES_FAILED" });
+    }
+  });
 
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);

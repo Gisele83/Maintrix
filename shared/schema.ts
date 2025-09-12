@@ -1442,4 +1442,146 @@ export const complianceReports = pgTable("compliance_reports", {
   generatedBy: integer("generated_by").references(() => userProfiles.id),
 });
 
+// =======================
+// PROGICIEL ERP CONFIGURATION
+// =======================
+
+// Module Catalog - Catalog of available ERP modules
+export const moduleCatalog = pgTable("module_catalog", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key", { length: 100 }).notNull().unique(), // unique module identifier
+  name: varchar("name", { length: 255 }).notNull(), // display name
+  description: text("description"), // module description
+  category: varchar("category", { length: 100 }).notNull(), // GMAO, ERP, Analytics, etc.
+  version: varchar("version", { length: 50 }).default("1.0.0"),
+  dependencies: jsonb("dependencies").default([]), // array of required module keys
+  defaultEnabled: boolean("default_enabled").default(false), // enabled by default for new tenants
+  isCore: boolean("is_core").default(false), // core modules cannot be disabled
+  routePaths: jsonb("route_paths").default([]), // array of frontend routes
+  apiEndpoints: jsonb("api_endpoints").default([]), // array of backend API paths
+  permissions: jsonb("permissions").default([]), // required permissions
+  configuration: jsonb("configuration").default({}), // default module configuration
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Workflow Definitions - Configurable workflows per tenant
+export const workflowDefinitions = pgTable("workflow_definitions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  entityType: varchar("entity_type", { length: 100 }).notNull(), // WorkOrder, PurchaseOrder, Equipment, etc.
+  name: varchar("name", { length: 255 }).notNull(), // workflow name
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  states: jsonb("states").notNull(), // workflow states definition
+  transitions: jsonb("transitions").notNull(), // allowed transitions
+  rolePermissions: jsonb("role_permissions").default({}), // role-based permissions per state
+  slaConfig: jsonb("sla_config").default({}), // SLA timers and escalation rules
+  webhooks: jsonb("webhooks").default([]), // webhook notifications
+  version: integer("version").default(1), // workflow version for history
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdBy: integer("created_by").references(() => userProfiles.id),
+});
+
+// Sector Templates - Pre-configured templates for different industries
+export const sectorTemplates = pgTable("sector_templates", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key", { length: 100 }).notNull().unique(), // industry, transport, energy, facilities
+  name: varchar("name", { length: 255 }).notNull(), // display name
+  description: text("description"),
+  enabledModules: jsonb("enabled_modules").notNull().default([]), // array of module keys
+  defaultWorkflows: jsonb("default_workflows").default({}), // workflow definitions per entity type
+  defaultSettings: jsonb("default_settings").default({}), // tenant settings
+  kpiConfig: jsonb("kpi_config").default({}), // default KPIs and dashboard configuration
+  rolePresets: jsonb("role_presets").default([]), // default roles and permissions
+  documentTemplates: jsonb("document_templates").default({}), // report and document templates
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// =======================
+// PROGICIEL ERP - ZOD SCHEMAS & TYPES
+// =======================
+
+// Module Catalog schemas
+export const insertModuleCatalogSchema = createInsertSchema(moduleCatalog).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectModuleCatalogSchema = createInsertSchema(moduleCatalog);
+
+export type InsertModuleCatalog = z.infer<typeof insertModuleCatalogSchema>;
+export type ModuleCatalog = typeof moduleCatalog.$inferSelect;
+
+// Workflow Definition schemas
+export const insertWorkflowDefinitionSchema = createInsertSchema(workflowDefinitions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectWorkflowDefinitionSchema = createInsertSchema(workflowDefinitions);
+
+export type InsertWorkflowDefinition = z.infer<typeof insertWorkflowDefinitionSchema>;
+export type WorkflowDefinition = typeof workflowDefinitions.$inferSelect;
+
+// Sector Template schemas
+export const insertSectorTemplateSchema = createInsertSchema(sectorTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectSectorTemplateSchema = createInsertSchema(sectorTemplates);
+
+export type InsertSectorTemplate = z.infer<typeof insertSectorTemplateSchema>;
+export type SectorTemplate = typeof sectorTemplates.$inferSelect;
+
+// ERP Module Configuration Types
+export interface ModuleManifest {
+  [moduleKey: string]: {
+    name: string;
+    category: string;
+    routes: string[];
+    apiEndpoints: string[];
+    dependencies: string[];
+    permissions: string[];
+    component?: React.ComponentType;
+  };
+}
+
+export interface TenantModuleConfig {
+  enabledModules: string[];
+  moduleSettings: Record<string, any>;
+  workflows: Record<string, WorkflowDefinition>;
+  sector?: string;
+}
+
+export interface WorkflowState {
+  id: string;
+  name: string;
+  type: 'initial' | 'intermediate' | 'final';
+  permissions: string[];
+  actions: string[];
+  sla?: {
+    timeLimit: number;
+    escalationRoles: string[];
+  };
+}
+
+export interface WorkflowTransition {
+  from: string;
+  to: string;
+  action: string;
+  guards?: {
+    roles?: string[];
+    conditions?: string[];
+  };
+  webhooks?: string[];
+}
+
 // Authentication system cleaned up - now using userProfiles as the main user table
