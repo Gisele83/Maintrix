@@ -248,8 +248,8 @@ router.post('/validate', upload.single('file'), async (req: Request, res: Respon
       format: fileFormat,
       size: req.file.size,
       estimatedRecords: 0,
-      warnings: [],
-      errors: []
+      warnings: [] as string[],
+      errors: [] as string[]
     };
 
     // Analyse rapide du contenu pour estimer le nombre d'enregistrements
@@ -266,8 +266,9 @@ router.post('/validate', upload.single('file'), async (req: Request, res: Respon
         const records = XLSX.utils.sheet_to_json(worksheet);
         validation.estimatedRecords = records.length;
       }
-    } catch (error: any) {
-      validation.errors.push(`Erreur d'analyse du fichier: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      validation.errors.push(`Erreur d'analyse du fichier: ${errorMessage}`);
       validation.success = false;
     }
 

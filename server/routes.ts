@@ -61,9 +61,8 @@ import { sectorTemplates } from "@shared/schema";
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(process.cwd(), 'server', scriptName);
-    const allArgs = ['python3', scriptPath, command, ...args];
     
-    const childProcess = spawn('bash', ['-c', allArgs.join(' ')], {
+    const childProcess = spawn('python3', [scriptPath, command, ...args], {
       cwd: process.cwd(),
       env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
     });
@@ -494,7 +493,9 @@ function generateContextualSolution(diagnosis: string, equipmentType: string, zo
       "utilites": " - Vérifier l'impact sur les services auxiliaires",
       "maintenance": " - Utiliser l'atelier pour les réparations complexes"
     };
-    baseSolution += zoneContext[zone] || "";
+    if (zone !== 'unknown' && zone in zoneContext) {
+      baseSolution += zoneContext[zone as keyof typeof zoneContext];
+    }
   }
   
   if (sector !== "unknown" && sector.includes("ligne")) {
@@ -877,13 +878,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               semanticSuggestions.push({
                 diagnosis: case_.diagnosis,
-                solution: generateContextualSolution(case_.diagnosis, case_.equipmentType, data.zone, data.sector),
+                solution: generateContextualSolution(case_.diagnosis, case_.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
                 confidence,
                 matchingCases: 1,
                 caseId: case_.id,
                 duration: case_.duration,
                 riskLevel: calculateRiskLevel(case_, data.urgency),
-                costEstimate: estimateRepairCost(case_.duration, case_.equipmentType),
+                costEstimate: estimateRepairCost(case_.duration ?? 60, case_.equipmentType),
                 aiInsights: generateAdvancedAIInsights(case_, semanticSimilarity, 0.5, contextualScore),
                 semanticMatch: true,
                 predictiveTips: generatePredictiveTips(case_.equipmentType, case_.diagnosis)
@@ -910,8 +911,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               semanticBoost: true
             });
           }
-        } catch (semanticError) {
-          console.log('Semantic analysis failed, falling back to ML:', semanticError.message);
+        } catch (semanticError: unknown) {
+          const errorMessage = semanticError instanceof Error ? semanticError.message : String(semanticError);
+          console.log('Semantic analysis failed, falling back to ML:', errorMessage);
         }
       }
       
@@ -933,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Generate fallback suggestions immediately
           const fallbackSuggestions = [{
             diagnosis: `Diagnostic ${data.equipmentType} - ${data.urgency}`,
-            solution: generateContextualSolution(`Problème ${data.equipmentType}`, data.equipmentType, data.zone, data.sector),
+            solution: generateContextualSolution(`Problème ${data.equipmentType}`, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
             confidence: 75,
             matchingCases: 1,
             caseId: 1001,
@@ -961,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Transform ML results to match expected format
         const suggestions = mlResult.predictions?.map((pred: any, index: number) => ({
           diagnosis: pred.diagnosis,
-          solution: generateContextualSolution(pred.diagnosis, data.equipmentType, data.zone, data.sector),
+          solution: generateContextualSolution(pred.diagnosis, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
           confidence: Math.round(pred.confidence * 100),
           matchingCases: 1,
           caseId: 1000 + index, // Temporary ID for ML predictions
@@ -987,12 +989,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           featureImportance: mlResult.feature_importance
         });
         
-      } catch (mlError) {
-        console.error('ML Engine call failed:', mlError);
+      } catch (mlError: unknown) {
+        const errorMessage = mlError instanceof Error ? mlError.message : String(mlError);
+        console.error('ML Engine call failed:', errorMessage);
         // Generate immediate fallback suggestions
         const fallbackSuggestions = [{
           diagnosis: `Diagnostic système - ${data.equipmentType}`,
-          solution: generateContextualSolution(`Analyse ${data.equipmentType}`, data.equipmentType, data.zone, data.sector),
+          solution: generateContextualSolution(`Analyse ${data.equipmentType}`, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
           confidence: 70,
           matchingCases: 1,
           caseId: 1002,
@@ -1017,8 +1020,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-    } catch (error) {
-      console.error("ML Diagnostic error:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("ML Diagnostic error:", errorMessage);
       res.status(400).json({ message: "Invalid ML diagnostic request" });
     }
   });

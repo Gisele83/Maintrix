@@ -34,6 +34,8 @@ export interface CloudDiagnosticResponse {
   searchPerformed: boolean;
   confidence: number;
   aiInsights: string;
+  similarSymptoms?: string[];
+  suggestedKeywords?: string[];
 }
 
 export async function performCloudDiagnostic(request: CloudDiagnosticRequest): Promise<CloudDiagnosticResponse> {
