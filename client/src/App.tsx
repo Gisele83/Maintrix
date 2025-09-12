@@ -17,6 +17,7 @@ import LearningDashboard from "@/pages/learning-dashboard";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import CCTPCompliancePage from "@/pages/cctp-compliance";
+import ERPConfiguration from "@/pages/erp-configuration";
 // ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
@@ -183,6 +184,12 @@ function Router() {
       </Route>
       <Route path="/cctp-compliance">
         {(params) => <ProtectedRoute component={CCTPCompliancePage} {...params} />}
+      </Route>
+      <Route path="/erp-configuration">
+        {(params) => <ProtectedRoute component={ERPConfiguration} {...params} />}
+      </Route>
+      <Route path="/configuration-erp">
+        {(params) => <ProtectedRoute component={ERPConfiguration} {...params} />}
       </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />

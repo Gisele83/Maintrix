@@ -55,6 +55,7 @@ import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
 import { featureService } from "./feature-service.js";
 import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
 import { initializeERPSystem } from "./module-initializer.js";
+import { sectorTemplates } from "@shared/schema";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -3461,6 +3462,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating tenant modules:", error);
       res.status(500).json({ error: "UPDATE_MODULES_FAILED" });
+    }
+  });
+
+  // 🏭 SECTOR TEMPLATES ROUTES
+  app.get('/api/tenant/sector-templates', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+    try {
+      const templates = await db.select().from(sectorTemplates);
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching sector templates:", error);
+      res.status(500).json({ error: "FETCH_TEMPLATES_FAILED" });
+    }
+  });
+
+  app.post('/api/tenant/apply-sector-template', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "TENANT_REQUIRED" });
+      }
+
+      const { sectorKey } = req.body;
+      
+      // Récupérer le template sectoriel
+      const [template] = await db
+        .select()
+        .from(sectorTemplates)
+        .where(eq(sectorTemplates.key, sectorKey));
+
+      if (!template) {
+        return res.status(404).json({ error: "TEMPLATE_NOT_FOUND" });
+      }
+
+      // Appliquer la configuration du template
+      await featureService.updateTenantConfig(tenantId, {
+        enabledModules: template.enabledModules as string[],
+        moduleSettings: template.defaultSettings as any,
+        sector: sectorKey,
+        workflows: template.defaultWorkflows as any
+      });
+
+      res.json({ 
+        success: true,
+        message: `Sector template '${template.name}' applied successfully`,
+        appliedTemplate: template
+      });
+    } catch (error) {
+      console.error("Error applying sector template:", error);
+      res.status(500).json({ error: "APPLY_TEMPLATE_FAILED" });
     }
   });
 

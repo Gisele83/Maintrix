@@ -4,7 +4,7 @@
  */
 
 import { db } from "./db.js";
-import { moduleCatalog, tenants } from "@shared/schema";
+import { moduleCatalog, tenants, sectorTemplates } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { InsertModuleCatalog } from "@shared/schema";
 
@@ -247,11 +247,255 @@ export async function migrateTenantModules(): Promise<void> {
 }
 
 /**
+ * Initialise les templates sectoriels dans la base de données
+ */
+export async function initializeSectorTemplates(): Promise<void> {
+  try {
+    console.log("🏭 Initializing Sector Templates...");
+
+    // Vérifier si des templates existent déjà
+    const existingTemplates = await db.select().from(sectorTemplates);
+    
+    if (existingTemplates.length > 0) {
+      console.log(`✅ Sector templates already initialized with ${existingTemplates.length} templates`);
+      return;
+    }
+
+    // Templates sectoriels prédéfinis
+    const sectorTemplatesData = [
+      {
+        key: "industry",
+        name: "Industrie Manufacturière",
+        description: "Template optimisé pour les environnements industriels avec production continue, maintenance préventive avancée et gestion des actifs critiques",
+        enabledModules: [
+          "equipment-management",
+          "work-orders", 
+          "preventive-maintenance",
+          "inventory-simple",
+          "smart-diagnostic",
+          "maintenance-dashboard",
+          "iot-integration",
+          "reporting"
+        ],
+        defaultWorkflows: {
+          work_order: {
+            states: ["created", "assigned", "in_progress", "quality_check", "completed", "closed"],
+            transitions: {
+              created: ["assigned", "cancelled"],
+              assigned: ["in_progress", "reassigned"],
+              in_progress: ["quality_check", "blocked"],
+              quality_check: ["completed", "rejected"],
+              completed: ["closed"],
+              blocked: ["in_progress"],
+              rejected: ["in_progress"]
+            },
+            sla: { max_response_hours: 2, max_resolution_hours: 24 }
+          },
+          equipment_maintenance: {
+            states: ["scheduled", "preparation", "execution", "verification", "documentation"],
+            critical_path: true,
+            quality_gates: ["safety_check", "performance_validation"]
+          }
+        },
+        defaultSettings: {
+          maintenance_mode: "predictive",
+          quality_control: "mandatory", 
+          safety_protocols: "strict",
+          reporting_frequency: "daily",
+          alert_escalation: "immediate"
+        },
+        kpiConfig: {
+          primary: ["oee", "mtbf", "mttr", "availability"],
+          secondary: ["maintenance_cost_ratio", "breakdown_frequency", "spare_parts_turnover"],
+          thresholds: {
+            oee_target: 85,
+            availability_target: 95,
+            mtbf_target: 720
+          }
+        },
+        complianceRequirements: ["iso_9001", "iso_14001", "iso_45001"],
+        industrySpecifics: {
+          equipment_criticality: "high",
+          safety_level: "critical",
+          environmental_impact: "monitored",
+          production_continuity: "essential"
+        }
+      },
+      
+      {
+        key: "transport",
+        name: "Transport et Logistique",
+        description: "Solution adaptée pour les flottes de véhicules, équipements portuaires et infrastructure de transport avec traçabilité complète",
+        enabledModules: [
+          "equipment-management",
+          "work-orders",
+          "preventive-maintenance", 
+          "inventory-simple",
+          "smart-diagnostic",
+          "maintenance-dashboard",
+          "procurement"
+        ],
+        defaultWorkflows: {
+          vehicle_maintenance: {
+            states: ["scheduled", "pre_inspection", "maintenance", "road_test", "approved"],
+            mandatory_docs: ["inspection_report", "maintenance_log", "compliance_check"],
+            regulatory_compliance: true
+          },
+          equipment_inspection: {
+            states: ["planned", "inspection", "evaluation", "action_required", "validated"],
+            inspection_intervals: "regulatory_based",
+            safety_critical: true
+          }
+        },
+        defaultSettings: {
+          maintenance_mode: "preventive_regulatory",
+          compliance_tracking: "mandatory",
+          fleet_optimization: "enabled",
+          fuel_monitoring: "active",
+          route_planning: "integrated"
+        },
+        kpiConfig: {
+          primary: ["fleet_availability", "fuel_efficiency", "maintenance_cost_per_km", "regulatory_compliance"],
+          secondary: ["breakdown_incidents", "route_optimization", "driver_satisfaction"],
+          thresholds: {
+            fleet_availability: 98,
+            compliance_rate: 100,
+            fuel_efficiency_target: 8.5
+          }
+        },
+        complianceRequirements: ["transport_regulations", "environmental_standards", "safety_protocols"],
+        industrySpecifics: {
+          fleet_management: "integrated", 
+          regulatory_compliance: "strict",
+          route_optimization: "advanced",
+          fuel_management: "monitored"
+        }
+      },
+
+      {
+        key: "energy",
+        name: "Énergie et Utilities",
+        description: "Template spécialisé pour les installations énergétiques, réseaux de distribution et infrastructures critiques avec haute disponibilité",
+        enabledModules: [
+          "equipment-management",
+          "work-orders",
+          "preventive-maintenance",
+          "inventory-simple", 
+          "smart-diagnostic",
+          "maintenance-dashboard",
+          "iot-integration",
+          "reporting",
+          "procurement"
+        ],
+        defaultWorkflows: {
+          critical_equipment: {
+            states: ["monitoring", "alert", "investigation", "intervention", "restoration", "analysis"],
+            response_time: "immediate",
+            escalation_levels: 3,
+            regulatory_notification: true
+          },
+          outage_management: {
+            states: ["detection", "assessment", "isolation", "repair", "testing", "restoration"],
+            priority_matrix: "grid_impact_based",
+            stakeholder_communication: "automated"
+          }
+        },
+        defaultSettings: {
+          maintenance_mode: "condition_based",
+          monitoring: "continuous",
+          redundancy: "n_plus_one",
+          emergency_response: "24_7",
+          regulatory_reporting: "automated"
+        },
+        kpiConfig: {
+          primary: ["grid_availability", "equipment_reliability", "response_time", "energy_efficiency"],
+          secondary: ["maintenance_efficiency", "cost_optimization", "environmental_impact"],
+          thresholds: {
+            grid_availability: 99.95,
+            equipment_reliability: 99.5,
+            max_response_time: 15
+          }
+        },
+        complianceRequirements: ["grid_code", "environmental_regulations", "safety_standards", "iso_50001"],
+        industrySpecifics: {
+          grid_integration: "critical",
+          renewable_sources: "integrated",
+          demand_response: "active",
+          storage_management: "optimized"
+        }
+      },
+
+      {
+        key: "facilities",
+        name: "Facilities Management",
+        description: "Gestion complète des infrastructures et espaces de travail avec focus sur le confort, la sécurité et l'efficacité énergétique",
+        enabledModules: [
+          "equipment-management",
+          "work-orders",
+          "preventive-maintenance",
+          "inventory-simple",
+          "smart-diagnostic", 
+          "maintenance-dashboard",
+          "procurement"
+        ],
+        defaultWorkflows: {
+          facility_maintenance: {
+            states: ["requested", "scheduled", "assigned", "completed", "verified"],
+            request_types: ["corrective", "preventive", "improvement"],
+            occupant_communication: true
+          },
+          space_management: {
+            states: ["available", "reserved", "occupied", "maintenance", "unavailable"],
+            booking_integration: true,
+            utilization_tracking: true
+          }
+        },
+        defaultSettings: {
+          maintenance_mode: "planned_reactive",
+          occupant_comfort: "priority",
+          energy_efficiency: "optimized",
+          security_integration: "enabled",
+          cleaning_standards: "high"
+        },
+        kpiConfig: {
+          primary: ["space_utilization", "energy_consumption", "occupant_satisfaction", "maintenance_efficiency"],
+          secondary: ["response_time", "cost_per_sqm", "sustainability_index"],
+          thresholds: {
+            space_utilization: 75,
+            energy_efficiency: 20,
+            occupant_satisfaction: 85
+          }
+        },
+        complianceRequirements: ["building_codes", "fire_safety", "accessibility", "environmental_standards"],
+        industrySpecifics: {
+          space_optimization: "dynamic",
+          smart_building: "integrated", 
+          sustainability: "focus",
+          occupant_experience: "enhanced"
+        }
+      }
+    ];
+
+    // Insérer tous les templates sectoriels
+    for (const template of sectorTemplatesData) {
+      await db.insert(sectorTemplates).values(template);
+      console.log(`  ✓ Sector template added: ${template.name} (${template.key})`);
+    }
+
+    console.log(`✅ Sector templates initialized with ${sectorTemplatesData.length} templates`);
+  } catch (error) {
+    console.error("❌ Error initializing sector templates:", error);
+    throw error;
+  }
+}
+
+/**
  * Initialisation complète du système de modules ERP
  */
 export async function initializeERPSystem(): Promise<void> {
   try {
     await initializeModuleCatalog();
+    await initializeSectorTemplates();
     await migrateTenantModules();
     console.log("🎉 ERP Module System fully initialized!");
   } catch (error) {
