@@ -227,11 +227,9 @@ export default function TrialDashboard() {
                 <CardTitle>Actions rapides</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link href="/pricing">
-                  <Button className="w-full">
-                    Voir les tarifs
-                  </Button>
-                </Link>
+                <Button className="w-full" disabled>
+                  Fonctionnalité désactivée
+                </Button>
                 <Link href="/dashboard">
                   <Button variant="outline" className="w-full">
                     Continuer l'essai

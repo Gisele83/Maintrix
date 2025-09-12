@@ -321,10 +321,10 @@ export default function DataImport() {
                       L'importation d'historique d'équipements personnalisé est réservée aux abonnés Premium (19€/mois).
                     </p>
                     <Button 
-                      onClick={() => window.location.href = '/pricing'}
-                      className="bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                      disabled
+                      className="bg-gray-400 text-white text-sm"
                     >
-                      Voir les Plans Premium
+                      Fonctionnalité désactivée
                     </Button>
                   </div>
                 )}

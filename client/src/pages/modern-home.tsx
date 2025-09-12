@@ -351,14 +351,12 @@ export default function ModernHome() {
               </Button>
             </Link>
 
-            <Link href="/pricing">
-              <Button variant="outline" className="h-20 rounded-xl border-2 hover:shadow-lg transform hover:scale-105 transition-all duration-200">
-                <div className="text-center">
-                  <CheckCircle className="h-6 w-6 mx-auto mb-2 text-indigo-600" />
-                  <span className="text-sm font-medium">Tarifs</span>
-                </div>
-              </Button>
-            </Link>
+            <Button variant="outline" disabled className="h-20 rounded-xl border-2 opacity-50">
+              <div className="text-center">
+                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                <span className="text-sm font-medium">Fonctionnalité désactivée</span>
+              </div>
+            </Button>
           </div>
         </div>
         

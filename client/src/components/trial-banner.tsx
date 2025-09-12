@@ -51,15 +51,13 @@ export function TrialBanner({
                   Période d'essai expirée
                 </h3>
                 <p className="text-sm text-red-700 dark:text-red-300">
-                  Abonnez-vous pour continuer à utiliser Smart GMAO DiagFix
+                  Contactez l'administrateur pour accéder à Smart GMAO DiagFix
                 </p>
               </div>
             </div>
-            <Link href="/pricing">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700">
-                Voir les tarifs
-              </Button>
-            </Link>
+            <Button size="sm" className="bg-red-600 hover:bg-red-700" disabled>
+              Fonctionnalité désactivée
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -99,11 +97,9 @@ export function TrialBanner({
                 ⚠️ Expiration proche
               </Badge>
             )}
-            <Link href="/pricing">
-              <Button size="sm" variant="outline">
-                S'abonner maintenant
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" disabled>
+              Fonctionnalité désactivée
+            </Button>
           </div>
         </div>
         

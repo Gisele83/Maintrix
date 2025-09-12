@@ -14,9 +14,6 @@ import UserProfiles from "@/pages/user-profiles";
 import Documentation from "@/pages/documentation";
 import Training from "@/pages/training";
 import LearningDashboard from "@/pages/learning-dashboard";
-import Pricing from "@/pages/pricing";
-import Payment from "@/pages/payment";
-import PaymentSecurity from "@/pages/payment-security";
 import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import CCTPCompliancePage from "@/pages/cctp-compliance";
@@ -112,15 +109,6 @@ function Router() {
       </Route>
       <Route path="/learning">
         {(params) => <ProtectedRoute component={LearningDashboard} {...params} />}
-      </Route>
-      <Route path="/pricing">
-        {(params) => <ProtectedRoute component={Pricing} {...params} />}
-      </Route>
-      <Route path="/payment">
-        {(params) => <ProtectedRoute component={Payment} {...params} />}
-      </Route>
-      <Route path="/payment-security">
-        {(params) => <ProtectedRoute component={PaymentSecurity} {...params} />}
       </Route>
       <Route path="/iot-gamification">
         {(params) => <ProtectedRoute component={IoTGamificationDashboard} {...params} />}

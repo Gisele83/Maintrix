@@ -43,7 +43,6 @@ import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
-import { registerPaymentRoutes } from "./payment-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
@@ -2694,7 +2693,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Intégration des routes de paiement sécurisées (VERSION FREEMIUM - désactivées)
   console.log("🔒 Initializing secure payment infrastructure (FREEMIUM MODE)...");
-  registerPaymentRoutes(app);
   console.log("✅ Payment routes registered (disabled for freemium version)");
 
   // ==================== GESTION DES MOUVEMENTS DE STOCK ====================

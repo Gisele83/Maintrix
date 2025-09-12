@@ -235,12 +235,6 @@ export default function Dashboard() {
 
   const utilityLinks = [
     {
-      href: "/pricing",
-      label: "Tarifs",
-      icon: Shield,
-      description: "Formules d'abonnement"
-    },
-    {
       href: "/secure-validation",
       label: "Validation",
       icon: Factory,
