@@ -80,10 +80,10 @@ export function HistoryManagement() {
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('importType', importType);
+    formData.append('type', importType);
 
     try {
-      const response = await fetch('/api/data-import', {
+      const response = await fetch('/api/data/import', {
         method: 'POST',
         body: formData,
       });
@@ -122,7 +122,7 @@ export function HistoryManagement() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`/api/data-export?type=${exportType}`, {
+      const response = await fetch(`/api/data/export?type=${exportType}&format=excel`, {
         method: 'GET',
       });
 
@@ -157,7 +157,7 @@ export function HistoryManagement() {
   };
 
   const importTypeOptions = [
-    { value: "equipment", label: "Équipements", icon: Settings },
+    { value: "equipments", label: "Équipements", icon: Settings },
     { value: "spare-parts", label: "Pièces de rechange", icon: Package },
     { value: "work-orders", label: "Ordres de travail", icon: Wrench },
     { value: "users", label: "Utilisateurs", icon: Users },
