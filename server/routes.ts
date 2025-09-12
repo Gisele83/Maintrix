@@ -3416,7 +3416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/cctp", cctpRoutes);
 
   // 🔧 ERP MODULE CONFIGURATION ROUTES
-  app.get('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+  app.get('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
     try {
       const tenantId = req.user?.tenantId;
       if (!tenantId) {
@@ -3440,7 +3440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+  app.put('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
     try {
       const tenantId = req.user?.tenantId;
       if (!tenantId) {
@@ -3476,7 +3476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/tenant/apply-sector-template', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+  app.post('/api/tenant/apply-sector-template', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
     try {
       const tenantId = req.user?.tenantId;
       if (!tenantId) {
