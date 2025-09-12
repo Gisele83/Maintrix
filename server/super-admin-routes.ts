@@ -238,7 +238,13 @@ router.get('/tenants', authenticateSuperAdmin, async (req, res) => {
         return {
           ...tenant,
           userCount: userCount.count || 0,
-          lastActivity: new Date().toISOString() // À implémenter avec vraies données
+          lastActivity: new Date().toISOString(), // À implémenter avec vraies données
+          // 📜 INFORMATIONS DE LICENCE (déjà dans tenant)
+          licenseType: tenant.licenseType,
+          licensedUsers: tenant.licensedUsers,
+          licenseKey: tenant.licenseKey,
+          licenseGeneratedAt: tenant.licenseGeneratedAt,
+          licenseUpdatedAt: tenant.licenseUpdatedAt
         };
       })
     );

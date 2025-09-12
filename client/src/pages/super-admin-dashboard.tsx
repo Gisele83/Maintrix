@@ -57,6 +57,12 @@ interface SuperAdminTenant {
   userCount: number;
   lastActivity: string;
   createdAt: string;
+  // 📜 INFORMATIONS DE LICENCE
+  licenseType: string | null;
+  licensedUsers: number | null;
+  licenseKey: string | null;
+  licenseGeneratedAt: string | null;
+  licenseUpdatedAt: string | null;
 }
 
 interface FederatedStats {
@@ -504,6 +510,27 @@ export default function SuperAdminDashboard() {
                           <span>Plan:</span>
                           <span className="capitalize">{tenant.plan}</span>
                         </div>
+                        
+                        {/* 📜 INFORMATIONS DE LICENCE */}
+                        <div className="flex justify-between text-gray-300">
+                          <span>Type Licence:</span>
+                          <span className="text-purple-300">{tenant.licenseType || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-300">
+                          <span>Utilisateurs Licenciés:</span>
+                          <span className="text-blue-300">{tenant.licensedUsers || 'Illimité'}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-300">
+                          <span>Clé Licence:</span>
+                          <span className="text-gray-400 font-mono text-xs">
+                            {tenant.licenseKey ? '••••••••••••••••' : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-gray-300">
+                          <span>MàJ Licence:</span>
+                          <span>{tenant.licenseUpdatedAt ? new Date(tenant.licenseUpdatedAt).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                        
                         <div className="flex justify-between text-gray-300">
                           <span>Dernière activité:</span>
                           <span>{new Date(tenant.lastActivity).toLocaleDateString()}</span>
