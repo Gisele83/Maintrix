@@ -28,6 +28,7 @@ import { CompanyLetterheadConfig } from "@/components/company-letterhead-config"
 import ThresholdConfiguration from "@/components/threshold-configuration";
 import PurchaseOrderCreator from "@/components/purchase-order-creator";
 import { EquipmentHealthDashboard } from "@/components/equipment-health-dashboard";
+import { HistoryManagement } from "@/components/history-management";
 
 
 interface GMAODashboardData {
@@ -42,7 +43,7 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "procurement" | "reports" | "analytics" | "alerts" | "health-dashboard" | "validation" | "company-config";
+type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "history" | "procurement" | "reports" | "analytics" | "alerts" | "health-dashboard" | "validation" | "company-config";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
@@ -80,6 +81,11 @@ export default function GMAODashboard() {
       id: "inventory" as GMAOTab,
       label: "Inventaire",
       icon: Package,
+    },
+    {
+      id: "history" as GMAOTab,
+      label: "Historique",
+      icon: FileText,
     },
     {
       id: "procurement" as GMAOTab,
@@ -419,7 +425,11 @@ export default function GMAODashboard() {
         )}
 
         {activeTab === "inventory" && (
-          <InventoryManagement />
+          <InventorySimple />
+        )}
+
+        {activeTab === "history" && (
+          <HistoryManagement />
         )}
 
         {activeTab === "procurement" && (
