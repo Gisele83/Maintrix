@@ -171,10 +171,40 @@ export default function ERPConfiguration() {
   };
 
   const handleModuleToggle = (moduleKey: string, enabled: boolean) => {
-    setModuleConfig(prev => ({
-      ...prev,
-      [moduleKey]: enabled
-    }));
+    if (!moduleData) return;
+
+    let newConfig = { ...moduleConfig };
+
+    if (enabled) {
+      // Si on active le module, activer aussi ses dépendances
+      const module = moduleData.availableModules.find(m => m.key === moduleKey);
+      if (module && module.dependencies.length > 0) {
+        module.dependencies.forEach(depKey => {
+          const dependency = moduleData.availableModules.find(m => m.key === depKey);
+          if (dependency) {
+            newConfig[depKey] = true;
+          }
+        });
+      }
+      newConfig[moduleKey] = true;
+    } else {
+      // Si on désactive le module, vérifier qu'aucun autre module activé ne dépend de lui
+      const dependentModules = moduleData.availableModules.filter(m => 
+        m.dependencies.includes(moduleKey) && newConfig[m.key]
+      );
+      
+      if (dependentModules.length > 0) {
+        toast({
+          title: "Impossible de désactiver le module",
+          description: `Ce module est requis par: ${dependentModules.map(m => m.name).join(', ')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      newConfig[moduleKey] = false;
+    }
+
+    setModuleConfig(newConfig);
     setHasUnsavedChanges(true);
   };
 

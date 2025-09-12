@@ -11,6 +11,8 @@ import type { ModuleCatalog, TenantModuleConfig } from "@shared/schema";
 interface CachedTenantConfig {
   enabledModules: string[];
   moduleSettings: Record<string, any>;
+  sector?: string;
+  workflows: Record<string, any>;
   lastUpdated: Date;
 }
 
@@ -94,8 +96,8 @@ export class FeatureService {
       return {
         enabledModules: cached.enabledModules,
         moduleSettings: cached.moduleSettings,
-        workflows: {},
-        sector: undefined
+        workflows: cached.workflows,
+        sector: cached.sector
       };
     }
 
@@ -126,6 +128,8 @@ export class FeatureService {
       this.cache.set(tenantId, {
         enabledModules: config.enabledModules,
         moduleSettings: config.moduleSettings,
+        sector: config.sector,
+        workflows: config.workflows,
         lastUpdated: new Date()
       });
 
