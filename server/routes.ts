@@ -776,8 +776,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register IoT and Gamification routes
   registerIoTGamificationRoutes(app);
   
-  // Data Import/Export routes
-  app.use('/api/data', dataImportExportRoutes);
+  // Data Import/Export routes - Compatible avec le frontend  
+  app.use('/api/data-import-export', dataImportExportRoutes);
 
   // Initialize enterprise integrations
   const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");

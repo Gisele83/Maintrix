@@ -1,6 +1,6 @@
 import { stockMovements, spareParts, type StockMovement, type InsertStockMovement } from "@shared/schema";
 import { db } from "./db.js";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export class StockManager {
   
