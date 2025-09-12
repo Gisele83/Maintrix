@@ -346,7 +346,7 @@ export class DataImportExportService {
     const detectedERP = this.detectERPFormat(record);
     const allMappings = this.getERPColumnMappings();
     const mapping = allMappings[detectedERP]?.[type] || this.getSageColumnMapping()[type];
-    const normalized: any = {};
+    let normalized: any = {};
 
     // Mapper les colonnes SAGE vers nos champs
     for (const [sageColumn, ourField] of Object.entries(mapping)) {

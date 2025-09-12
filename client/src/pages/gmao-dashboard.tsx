@@ -5,7 +5,7 @@ import {
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
-  PieChart, DollarSign, Gauge, ClipboardCheck
+  PieChart, DollarSign, Gauge, ClipboardCheck, FileText
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

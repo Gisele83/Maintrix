@@ -1389,10 +1389,6 @@ export class GMAOStorage {
   }
 
   // User Profile Methods
-  async getUserProfile(id: number): Promise<UserProfile | undefined> {
-    const [user] = await this.db.select().from(userProfiles).where(eq(userProfiles.id, id));
-    return user;
-  }
 
   async updateUserValidationPermissions(userId: number, updates: {
     validationLevel?: number;
