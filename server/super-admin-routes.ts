@@ -783,6 +783,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
         .where(eq(tenants.id, tenant.id))
         .limit(1);
         
+      console.log(`🔍 DEBUG: Tenant License Info pour ${tenant.id}:`, tenantLicense);
       tenantWithLicense = tenantLicense;
     } catch (licenseInfoError) {
       console.error('❌ Erreur récupération info licence:', licenseInfoError);
