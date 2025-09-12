@@ -9,6 +9,7 @@ import { testSendGridConfiguration, testRealEmailSend } from './test-email';
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 import { MailService } from '@sendgrid/mail';
 import { storage } from "./storage";
+import { LicenseService } from './license-service';
 
 const router = Router();
 
@@ -391,6 +392,15 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
 
     console.log(`👤 ADMIN CRÉÉ: ${adminUser.username} (${adminUser.id})`);
 
+    // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs)
+    try {
+      await LicenseService.initializeTenantLicense(newTenant.id, 1); // 1 utilisateur initial (admin)
+      console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name}`);
+    } catch (licenseError) {
+      console.error('❌ Erreur initialisation licence:', licenseError);
+      // On continue même si l'initialisation de licence échoue
+    }
+
     // 📧 Envoyer les identifiants par email
     try {
       const host = req.get('host') || 'localhost:5000';
@@ -656,7 +666,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       validatedData.firstName,
       validatedData.lastName,
       tenant.id,
-      validatedData.role as "technician" | "supervisor" | "manager" | "director" | "admin",
+      validatedData.role as "technician" | "viewer" | "owner" | "admin" | "maintainer",
       1 // Super-admin ID (à récupérer dynamiquement)
     );
     
@@ -695,6 +705,15 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       });
     
     console.log(`✅ Super-admin: Utilisateur créé ${newUser.username} pour tenant ${validatedData.tenantId}`);
+    
+    // 📜 METTRE À JOUR LA LICENCE DU TENANT (nouveau utilisateur ajouté)
+    try {
+      await LicenseService.updateTenantLicense(tenant.id, "user_added", 1); // Super-admin ID
+      console.log(`📜 LICENCE MISE À JOUR pour tenant ${tenant.name} après ajout utilisateur`);
+    } catch (licenseError) {
+      console.error('❌ Erreur mise à jour licence:', licenseError);
+      // On continue même si la mise à jour de licence échoue
+    }
     
     // 📧 ENVOYER LES IDENTIFIANTS PAR EMAIL
     let emailSent = false;
