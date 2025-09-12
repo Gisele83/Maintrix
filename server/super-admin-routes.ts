@@ -401,7 +401,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
 
     // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs défini)
     try {
-      const maxUsers = validatedData.maxUsers || req.body.maxUsers || 1;
+      const maxUsers = req.body.maxUsers || 1;
       await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1); // maxUsers défini, 1 utilisateur initial (admin)
       console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
     } catch (licenseError) {
@@ -767,7 +767,28 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       // On continue même si l'email échoue - l'utilisateur est créé
     }
     
-    // Retourner les identifiants temporaires (pour notification email)
+    // 📜 RÉCUPÉRER LES INFORMATIONS DE LICENCE DU TENANT MIS À JOUR
+    let tenantWithLicense = null;
+    try {
+      const [tenantLicense] = await db
+        .select({
+          id: tenants.id,
+          name: tenants.name,
+          maxUsers: tenants.maxUsers,
+          currentUsers: tenants.currentUsers,
+          licenseType: tenants.licenseType,
+          licenseKey: tenants.licenseKey
+        })
+        .from(tenants)
+        .where(eq(tenants.id, tenant.id))
+        .limit(1);
+        
+      tenantWithLicense = tenantLicense;
+    } catch (licenseInfoError) {
+      console.error('❌ Erreur récupération info licence:', licenseInfoError);
+    }
+
+    // Retourner les identifiants temporaires avec les informations de licence
     res.status(201).json({
       success: true,
       user: newUser,
@@ -777,6 +798,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
         expiresAt: credentials.passwordExpiresAt,
         mustChangePassword: true
       },
+      tenant: tenantWithLicense,
       message: emailSent 
         ? "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés et envoyés par email."
         : "Utilisateur créé avec succès par le super-admin. Identifiants temporaires générés. ⚠️ Email non envoyé - vérifiez la configuration SendGrid."
