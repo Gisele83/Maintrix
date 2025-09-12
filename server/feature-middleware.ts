@@ -62,39 +62,37 @@ export function routeFeatureGuard(requiredModule?: string) {
 /**
  * Middleware pour vérifier l'accès aux endpoints API
  */
-export function apiFeatureGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  return async () => {
-    try {
-      const tenantId = req.tenantId || req.user?.tenantId;
-      
-      if (!tenantId) {
-        return res.status(400).json({
-          error: "TENANT_REQUIRED",
-          message: "Tenant context required for API access"
-        });
-      }
-
-      // Vérifier si l'endpoint API est accessible pour ce tenant
-      const hasAccess = await featureService.isApiEndpointAccessible(tenantId, req.path);
-      
-      if (!hasAccess) {
-        return res.status(403).json({
-          error: "API_ACCESS_DENIED",
-          message: `API endpoint '${req.path}' is not available for this tenant`,
-          endpoint: req.path,
-          availableUpgrade: true
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error("API feature guard error:", error);
-      res.status(500).json({
-        error: "FEATURE_CHECK_FAILED",
-        message: "Unable to verify API access"
+export async function apiFeatureGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    
+    if (!tenantId) {
+      return res.status(400).json({
+        error: "TENANT_REQUIRED",
+        message: "Tenant context required for API access"
       });
     }
-  };
+
+    // Vérifier si l'endpoint API est accessible pour ce tenant
+    const hasAccess = await featureService.isApiEndpointAccessible(tenantId, req.path);
+    
+    if (!hasAccess) {
+      return res.status(403).json({
+        error: "API_ACCESS_DENIED",
+        message: `API endpoint '${req.path}' is not available for this tenant`,
+        endpoint: req.path,
+        availableUpgrade: true
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("API feature guard error:", error);
+    res.status(500).json({
+      error: "FEATURE_CHECK_FAILED",
+      message: "Unable to verify API access"
+    });
+  }
 }
 
 /**
