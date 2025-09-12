@@ -203,6 +203,21 @@ export class InvitationSystem {
       const invitation = verification.invitation;
       const tenant = verification.tenant;
       
+      // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
+      try {
+        const { LicenseService } = await import('./license-service');
+        await LicenseService.enforceUserLimit(invitation.tenantId);
+      } catch (error: any) {
+        if (error.code === "USER_LIMIT_REACHED") {
+          const limitError = new Error("Nombre d'utilisateurs atteint pour votre licence");
+          (limitError as any).code = "USER_LIMIT_REACHED";
+          (limitError as any).status = 403;
+          (limitError as any).details = error.details;
+          throw limitError;
+        }
+        throw error; // Re-lancer les autres erreurs
+      }
+
       // Créer le compte utilisateur
       const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(userData.password, 12);

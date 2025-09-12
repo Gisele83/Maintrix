@@ -281,6 +281,48 @@ export class LicenseService {
     }
   }
 
+  /**
+   * Vérifier si un tenant peut ajouter un nouvel utilisateur
+   * @param tenantId - ID du tenant
+   * @returns Promise<void> - Lève une erreur si la limite est atteinte
+   */
+  static async enforceUserLimit(tenantId: string): Promise<void> {
+    try {
+      // Récupérer les informations du tenant
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+      if (!tenant) {
+        const error = new Error("Tenant introuvable");
+        (error as any).code = "TENANT_NOT_FOUND";
+        throw error;
+      }
+
+      // Compter les utilisateurs actuels
+      const [userCount] = await db
+        .select({ count: count() })
+        .from(userProfiles)
+        .where(eq(userProfiles.tenantId, tenantId));
+
+      const currentUsers = userCount.count || 0;
+      const maxUsers = tenant.maxUsers || tenant.licensedUsers || 1;
+
+      if (currentUsers >= maxUsers) {
+        const error = new Error("Nombre d'utilisateurs atteint pour votre licence");
+        (error as any).code = "USER_LIMIT_REACHED";
+        (error as any).details = {
+          currentUsers,
+          maxUsers,
+          licenseType: tenant.licenseType
+        };
+        throw error;
+      }
+
+      console.log(`✅ User limit check passed for tenant ${tenantId}: ${currentUsers}/${maxUsers} users`);
+    } catch (error) {
+      console.error(`❌ User limit check failed for tenant ${tenantId}:`, error);
+      throw error;
+    }
+  }
+
   // 📈 RÉCUPÉRER L'HISTORIQUE DES LICENCES D'UN TENANT
   static async getTenantLicenseHistory(tenantId: string): Promise<any[]> {
     try {

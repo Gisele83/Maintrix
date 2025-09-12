@@ -668,24 +668,17 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
     }
     
     // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
-    const currentUserCount = await db
-      .select({ count: count() })
-      .from(userProfiles)
-      .where(eq(userProfiles.tenantId, tenant.id));
-    
-    const tenantUserCount = currentUserCount[0]?.count || 0;
-    const maxUsers = tenant.maxUsers || tenant.licensedUsers || 1;
-    
-    if (tenantUserCount >= maxUsers) {
-      return res.status(403).json({
-        error: "USER_LIMIT_REACHED",
-        message: "Nombre d'utilisateurs atteint pour votre licence",
-        details: {
-          currentUsers: tenantUserCount,
-          maxUsers: maxUsers,
-          licenseType: tenant.licenseType
-        }
-      });
+    try {
+      await LicenseService.enforceUserLimit(tenant.id);
+    } catch (error: any) {
+      if (error.code === "USER_LIMIT_REACHED") {
+        return res.status(403).json({
+          error: "USER_LIMIT_REACHED",
+          message: error.message,
+          details: error.details
+        });
+      }
+      throw error; // Re-lancer les autres erreurs
     }
     
     // 🔐 GÉNÉRER IDENTIFIANTS PAR DÉFAUT VIA SUPER-ADMIN

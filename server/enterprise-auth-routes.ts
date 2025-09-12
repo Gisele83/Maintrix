@@ -13,6 +13,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { CredentialGenerator } from "./credential-generator";
 import { sendTenantCredentials } from "./email-service";
+import { LicenseService } from "./license-service";
 import { z } from "zod";
 
 /**
@@ -115,6 +116,20 @@ router.post('/register',
           error: "USERNAME_ALREADY_EXISTS",
           message: "Ce nom d'utilisateur est déjà pris"
         });
+      }
+
+      // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
+      try {
+        await LicenseService.enforceUserLimit('default-tenant');
+      } catch (error: any) {
+        if (error.code === "USER_LIMIT_REACHED") {
+          return res.status(403).json({
+            error: "USER_LIMIT_REACHED",
+            message: error.message,
+            details: error.details
+          });
+        }
+        throw error; // Re-lancer les autres erreurs
       }
 
       // Hacher le mot de passe
@@ -1064,6 +1079,20 @@ router.post('/admin/create-user',
           error: "EMAIL_ALREADY_EXISTS",
           message: "Un utilisateur avec cet email existe déjà"
         });
+      }
+
+      // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
+      try {
+        await LicenseService.enforceUserLimit(req.tenantId);
+      } catch (error: any) {
+        if (error.code === "USER_LIMIT_REACHED") {
+          return res.status(403).json({
+            error: "USER_LIMIT_REACHED",
+            message: error.message,
+            details: error.details
+          });
+        }
+        throw error; // Re-lancer les autres erreurs
       }
 
       // Générer identifiants par défaut
