@@ -85,7 +85,8 @@ export default function SuperAdminDashboard() {
   const [newTenantData, setNewTenantData] = useState({
     name: '',
     domain: '',
-    adminEmail: ''
+    adminEmail: '',
+    maxUsers: 1
   });
 
   // 👤 États pour la gestion des utilisateurs avec identifiants par défaut
@@ -116,6 +117,11 @@ export default function SuperAdminDashboard() {
   
   // 📋 État pour le bouton de copie
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  // 📜 États pour la modification de la limite d'utilisateurs
+  const [isEditLimitDialogOpen, setIsEditLimitDialogOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<SuperAdminTenant | null>(null);
+  const [newUserLimit, setNewUserLimit] = useState<number>(1);
   
   // 📋 Fonction pour copier dans le presse-papiers
   const copyToClipboard = async (text: string, fieldName: string) => {
@@ -182,7 +188,7 @@ export default function SuperAdminDashboard() {
   };
 
   const createTenantMutation = useMutation({
-    mutationFn: async (tenantData: { name: string; domain: string; adminEmail?: string }) => {
+    mutationFn: async (tenantData: { name: string; domain: string; adminEmail?: string; maxUsers?: number }) => {
       return await apiRequest("/api/super-admin/tenants", { method: "POST", body: tenantData });
     },
     onSuccess: (data) => {
@@ -239,6 +245,29 @@ export default function SuperAdminDashboard() {
       toast({
         title: "Erreur",
         description: error.message || "Impossible de supprimer le tenant",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateTenantLimitMutation = useMutation({
+    mutationFn: async ({ tenantId, maxUsers }: { tenantId: string; maxUsers: number }) => {
+      return await apiRequest(`/api/super-admin/tenants/${tenantId}/limit`, { 
+        method: "PATCH", 
+        body: { maxUsers } 
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
+      toast({
+        title: "Limite mise à jour",
+        description: data.message || "La limite d'utilisateurs a été mise à jour avec succès",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors de la modification de la limite",
         variant: "destructive",
       });
     }
@@ -435,13 +464,32 @@ export default function SuperAdminDashboard() {
                         Un email d'invitation avec lien de connexion sera envoyé automatiquement
                       </p>
                     </div>
+                    <div>
+                      <Label htmlFor="maxUsers" className="text-white flex items-center">
+                        <Users className="w-4 h-4 mr-2" />
+                        Nombre d'utilisateurs autorisés
+                      </Label>
+                      <Input
+                        id="maxUsers"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        placeholder="1"
+                        value={newTenantData.maxUsers}
+                        onChange={(e) => setNewTenantData({...newTenantData, maxUsers: parseInt(e.target.value) || 1})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Définit le nombre maximum d'utilisateurs pour ce tenant (génère automatiquement la licence)
+                      </p>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button 
                       variant="outline" 
                       onClick={() => {
                         setIsCreateDialogOpen(false);
-                        setNewTenantData({ name: '', domain: '', adminEmail: '' });
+                        setNewTenantData({ name: '', domain: '', adminEmail: '', maxUsers: 1 });
                       }}
                       className="border-gray-600 text-gray-300 hover:bg-gray-800"
                     >
@@ -463,11 +511,12 @@ export default function SuperAdminDashboard() {
                         createTenantMutation.mutate({ 
                           name: newTenantData.name, 
                           domain,
-                          adminEmail: newTenantData.adminEmail || undefined
+                          adminEmail: newTenantData.adminEmail || undefined,
+                          maxUsers: newTenantData.maxUsers
                         });
                         
                         setIsCreateDialogOpen(false);
-                        setNewTenantData({ name: '', domain: '', adminEmail: '' });
+                        setNewTenantData({ name: '', domain: '', adminEmail: '', maxUsers: 1 });
                       }}
                       disabled={createTenantMutation.isPending}
                       className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
@@ -562,6 +611,19 @@ export default function SuperAdminDashboard() {
                         
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedTenant(tenant);
+                            setNewUserLimit(tenant.maxUsers || tenant.licensedUsers || 1);
+                            setIsEditLimitDialogOpen(true);
+                          }}
+                          className="px-3 border-purple-500 text-purple-300 hover:bg-purple-500/10"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        
+                        <Button
+                          size="sm"
                           variant="destructive"
                           onClick={() => {
                             if (confirm(`⚠️ ATTENTION: Supprimer définitivement le tenant "${tenant.name}" ?\n\nCette action est IRRÉVERSIBLE et supprimera toutes les données associées.`)) {
@@ -579,6 +641,71 @@ export default function SuperAdminDashboard() {
                 ))
               )}
             </div>
+            
+            {/* 📜 MODAL DE MODIFICATION DE LA LIMITE D'UTILISATEURS */}
+            <Dialog open={isEditLimitDialogOpen} onOpenChange={setIsEditLimitDialogOpen}>
+              <DialogContent className="sm:max-w-md bg-gray-900/95 backdrop-blur-xl border-gray-600">
+                <DialogHeader>
+                  <DialogTitle className="text-white">Modifier la limite d'utilisateurs</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Modifier le nombre maximum d'utilisateurs pour le tenant "{selectedTenant?.name}"
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="userLimit" className="text-white flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      Nombre maximum d'utilisateurs
+                    </Label>
+                    <Input
+                      id="userLimit"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={newUserLimit}
+                      onChange={(e) => setNewUserLimit(parseInt(e.target.value) || 1)}
+                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Actuel: {selectedTenant?.currentUsers || 0} utilisateurs
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditLimitDialogOpen(false);
+                      setSelectedTenant(null);
+                    }}
+                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                  >
+                    Annuler
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (selectedTenant && newUserLimit >= (selectedTenant.currentUsers || 0)) {
+                        updateTenantLimitMutation.mutate({
+                          tenantId: selectedTenant.id,
+                          maxUsers: newUserLimit
+                        });
+                        setIsEditLimitDialogOpen(false);
+                        setSelectedTenant(null);
+                      } else {
+                        toast({
+                          title: "Erreur",
+                          description: "La nouvelle limite doit être supérieure ou égale au nombre d'utilisateurs actuels",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    Modifier
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* 👤 Gestion des Utilisateurs avec Identifiants par Défaut */}

@@ -2,7 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { db } from "./db";
-import { userProfiles, userSessions, tenants, federatedLearning } from "@shared/schema";
+import { userProfiles, userSessions, tenants, federatedLearning, licenseHistory } from "@shared/schema";
 import { eq, count, desc } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
@@ -398,10 +398,11 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
 
     console.log(`👤 ADMIN CRÉÉ: ${adminUser.username} (${adminUser.id})`);
 
-    // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs)
+    // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs défini)
     try {
-      await LicenseService.initializeTenantLicense(newTenant.id, 1); // 1 utilisateur initial (admin)
-      console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name}`);
+      const maxUsers = req.body.maxUsers || 1;
+      await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1); // maxUsers défini, 1 utilisateur initial (admin)
+      console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
     } catch (licenseError) {
       console.error('❌ Erreur initialisation licence:', licenseError);
       // On continue même si l'initialisation de licence échoue
@@ -666,6 +667,27 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       });
     }
     
+    // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
+    const currentUserCount = await db
+      .select({ count: count() })
+      .from(userProfiles)
+      .where(eq(userProfiles.tenantId, tenant.id));
+    
+    const tenantUserCount = currentUserCount[0]?.count || 0;
+    const maxUsers = tenant.maxUsers || tenant.licensedUsers || 1;
+    
+    if (tenantUserCount >= maxUsers) {
+      return res.status(403).json({
+        error: "USER_LIMIT_REACHED",
+        message: "Nombre d'utilisateurs atteint pour votre licence",
+        details: {
+          currentUsers: tenantUserCount,
+          maxUsers: maxUsers,
+          licenseType: tenant.licenseType
+        }
+      });
+    }
+    
     // 🔐 GÉNÉRER IDENTIFIANTS PAR DÉFAUT VIA SUPER-ADMIN
     const credentials = CredentialGenerator.generateUserCredentialsForSuperAdmin(
       validatedData.email,
@@ -867,6 +889,97 @@ router.delete('/users/:id', authenticateSuperAdmin, async (req, res) => {
     res.status(500).json({
       error: "USER_DELETION_ERROR",
       message: "Erreur lors de la suppression de l'utilisateur"
+    });
+  }
+});
+
+// 📜 MODIFIER LA LIMITE D'UTILISATEURS D'UN TENANT
+router.patch('/tenants/:tenantId/limit', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const { maxUsers } = req.body;
+
+    // Validation avec Zod
+    const updateLimitSchema = z.object({
+      maxUsers: z.number().int().min(1).max(1000)
+    });
+    
+    const validation = updateLimitSchema.safeParse({ maxUsers });
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "INVALID_MAX_USERS",
+        message: "Le nombre d'utilisateurs doit être un entier entre 1 et 1000"
+      });
+    }
+
+    // Vérifier que le tenant existe
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!tenant) {
+      return res.status(404).json({
+        error: "TENANT_NOT_FOUND",
+        message: "Tenant introuvable"
+      });
+    }
+
+    // Vérifier que la nouvelle limite est supérieure ou égale au nombre d'utilisateurs actuels
+    const [userCount] = await db
+      .select({ count: count() })
+      .from(userProfiles)
+      .where(eq(userProfiles.tenantId, tenantId));
+
+    const currentUsers = userCount.count || 0;
+    if (maxUsers < currentUsers) {
+      return res.status(400).json({
+        error: "LIMIT_BELOW_CURRENT_USERS",
+        message: `La nouvelle limite (${maxUsers}) ne peut pas être inférieure au nombre d'utilisateurs actuels (${currentUsers})`
+      });
+    }
+
+    // Générer une nouvelle clé de licence
+    const newLicenseKey = LicenseService.generateLicenseKey(tenantId, maxUsers);
+
+    // Mettre à jour le tenant
+    await db
+      .update(tenants)
+      .set({
+        maxUsers: maxUsers,
+        licensedUsers: maxUsers,
+        licenseType: "custom",
+        licenseKey: newLicenseKey,
+        licenseUpdatedAt: new Date(),
+      })
+      .where(eq(tenants.id, tenantId));
+
+    // Enregistrer dans l'historique
+    await db.insert(licenseHistory).values({
+      tenantId: tenantId,
+      previousLicenseType: tenant.licenseType,
+      newLicenseType: "custom",
+      userCountAtChange: currentUsers,
+      reason: "manual_upgrade",
+      changedBy: 1, // Super-admin ID
+      automaticUpdate: false,
+    });
+
+    console.log(`✅ Super-admin updated tenant ${tenantId} user limit to ${maxUsers}`);
+
+    res.json({
+      success: true,
+      message: `Limite d'utilisateurs mise à jour à ${maxUsers} pour le tenant "${tenant.name}"`,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        maxUsers: maxUsers,
+        currentUsers: currentUsers,
+        licenseKey: newLicenseKey
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating tenant user limit:', error);
+    res.status(500).json({
+      error: "UPDATE_LIMIT_ERROR",
+      message: "Erreur lors de la mise à jour de la limite d'utilisateurs"
     });
   }
 });

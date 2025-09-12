@@ -182,44 +182,57 @@ export class LicenseService {
       // 3. Déterminer la nouvelle licence
       const newLicense = this.determineLicenseType(currentUserCount);
 
-      // 4. Vérifier si une mise à jour est nécessaire
-      if (tenant.licenseType !== newLicense.type) {
-        // 5. Générer une nouvelle clé de licence
-        const newLicenseKey = this.generateLicenseKey(tenantId, newLicense.type);
-
-        // 6. Enregistrer l'historique des licences
-        await db.insert(licenseHistory).values({
-          tenantId: tenantId,
-          previousLicenseType: tenant.licenseType,
-          newLicenseType: newLicense.type,
-          userCountAtChange: currentUserCount,
-          reason: reason,
-          changedBy: changedBy || null,
-          automaticUpdate: changedBy === undefined,
-        });
-
-        // 7. Mettre à jour le tenant avec la nouvelle licence
+      // 4. Vérifier le type de licence et agir en conséquence
+      if (tenant.licenseType === "custom") {
+        // 🚨 LICENCE PERSONNALISÉE : Ne pas changer automatiquement, juste mettre à jour le count
         await db
           .update(tenants)
           .set({
-            licenseType: newLicense.type,
-            licensedUsers: newLicense.licensedUsers,
             currentUsers: currentUserCount,
-            maxUsers: newLicense.maxUsers || 999999, // Très grand nombre pour illimité
-            licenseKey: newLicenseKey,
-            licenseUpdatedAt: new Date(),
           })
           .where(eq(tenants.id, tenantId));
-
-        console.log(`✅ Updated tenant ${tenantId} license from ${tenant.licenseType} to ${newLicense.type} (${currentUserCount} users)`);
+        
+        console.log(`✅ Updated custom license tenant ${tenantId} user count to ${currentUserCount} (max: ${tenant.maxUsers})`);
       } else {
-        // Juste mettre à jour le nombre d'utilisateurs actuels
-        await db
-          .update(tenants)
-          .set({
-            currentUsers: currentUserCount,
-          })
-          .where(eq(tenants.id, tenantId));
+        // 5. Pour les licences automatiques, vérifier si une mise à jour est nécessaire
+        if (tenant.licenseType !== newLicense.type) {
+          // 6. Générer une nouvelle clé de licence
+          const newLicenseKey = this.generateLicenseKey(tenantId, newLicense.licensedUsers);
+
+          // 7. Enregistrer l'historique des licences
+          await db.insert(licenseHistory).values({
+            tenantId: tenantId,
+            previousLicenseType: tenant.licenseType,
+            newLicenseType: newLicense.type,
+            userCountAtChange: currentUserCount,
+            reason: reason,
+            changedBy: changedBy || null,
+            automaticUpdate: changedBy === undefined,
+          });
+
+          // 8. Mettre à jour le tenant avec la nouvelle licence
+          await db
+            .update(tenants)
+            .set({
+              licenseType: newLicense.type,
+              licensedUsers: newLicense.licensedUsers,
+              currentUsers: currentUserCount,
+              maxUsers: newLicense.maxUsers || 999999, // Très grand nombre pour illimité
+              licenseKey: newLicenseKey,
+              licenseUpdatedAt: new Date(),
+            })
+            .where(eq(tenants.id, tenantId));
+
+          console.log(`✅ Updated tenant ${tenantId} license from ${tenant.licenseType} to ${newLicense.type} (${currentUserCount} users)`);
+        } else {
+          // Juste mettre à jour le nombre d'utilisateurs actuels
+          await db
+            .update(tenants)
+            .set({
+              currentUsers: currentUserCount,
+            })
+            .where(eq(tenants.id, tenantId));
+        }
       }
 
     } catch (error) {
@@ -228,13 +241,16 @@ export class LicenseService {
     }
   }
 
-  // 🔑 GÉNÉRER UNE CLÉ DE LICENCE UNIQUE
-  static generateLicenseKey(tenantId: string, licenseType: string): string {
-    const prefix = licenseType.toUpperCase().substring(0, 3);
-    const random = randomBytes(16).toString('hex').toUpperCase();
-    const tenantHash = tenantId.substring(0, 8).toUpperCase();
+  // 🔑 GÉNÉRER UNE CLÉ DE LICENCE UNIQUE (Format: SM + 13 chiffres)
+  static generateLicenseKey(tenantId: string, maxUsers: number): string {
+    // Génération d'un nombre à 13 chiffres basé sur tenant et nombre d'utilisateurs
+    const usersPadded = maxUsers.toString().padStart(4, '0');
+    const tenantHash = parseInt(tenantId.slice(-8), 16) % 1000000; // 6 chiffres du tenant
+    const tenantPadded = tenantHash.toString().padStart(6, '0');
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
-    return `${prefix}-${tenantHash}-${random}`;
+    // Format: SM + 4 chiffres (maxUsers) + 6 chiffres (tenant) + 3 chiffres (random)
+    return `SM${usersPadded}${tenantPadded}${randomSuffix}`;
   }
 
   // 📊 RÉCUPÉRER LES INFORMATIONS DE LICENCE D'UN TENANT
@@ -279,18 +295,18 @@ export class LicenseService {
     }
   }
 
-  // 🎯 INITIALISER LA LICENCE LORS DE LA CRÉATION D'UN TENANT
-  static async initializeTenantLicense(tenantId: string, initialUserCount: number = 1): Promise<void> {
-    const license = this.determineLicenseType(initialUserCount);
-    const licenseKey = this.generateLicenseKey(tenantId, license.type);
+  // 🎯 INITIALISER LA LICENCE LORS DE LA CRÉATION D'UN TENANT avec nombre d'utilisateurs personnalisé
+  static async initializeTenantLicense(tenantId: string, maxUsers: number, initialUserCount: number = 1): Promise<void> {
+    // Utiliser le nombre max défini par l'admin au lieu de déterminer automatiquement
+    const licenseKey = this.generateLicenseKey(tenantId, maxUsers);
 
     await db
       .update(tenants)
       .set({
-        licenseType: license.type,
-        licensedUsers: license.licensedUsers,
+        licenseType: "custom", // Licence personnalisée basée sur le nombre défini
+        licensedUsers: maxUsers,
         currentUsers: initialUserCount,
-        maxUsers: license.maxUsers || 999999,
+        maxUsers: maxUsers,
         licenseKey: licenseKey,
         licenseGeneratedAt: new Date(),
         licenseUpdatedAt: new Date(),
@@ -301,13 +317,13 @@ export class LicenseService {
     await db.insert(licenseHistory).values({
       tenantId: tenantId,
       previousLicenseType: null,
-      newLicenseType: license.type,
+      newLicenseType: "custom",
       userCountAtChange: initialUserCount,
       reason: "tenant_created",
       changedBy: null,
       automaticUpdate: true,
     });
 
-    console.log(`✅ Initialized license for tenant ${tenantId}: ${license.displayName} (${initialUserCount} users)`);
+    console.log(`✅ Initialized custom license for tenant ${tenantId}: ${maxUsers} users max (${initialUserCount} initial)`);
   }
 }
