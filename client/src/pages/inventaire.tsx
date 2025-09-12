@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import InventorySimple from "@/components/inventory-simple";
 import { EquipmentManagement } from "@/components/equipment-management";
+import StockAlertsDashboard from "@/components/stock-alerts-dashboard";
 import { 
   Package,
   Download, 
@@ -30,7 +31,7 @@ export default function Inventaire() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState("parts");
+  const [activeTab, setActiveTab] = useState("alerts");
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importType, setImportType] = useState<"equipments" | "spare-parts">("spare-parts");
   const [isExporting, setIsExporting] = useState(false);
@@ -171,11 +172,13 @@ export default function Inventaire() {
   const getCurrentTypeLabel = () => {
     if (activeTab === "parts") return "Pièces Détachées";
     if (activeTab === "equipment") return "Équipements";
+    if (activeTab === "alerts") return "Alertes de Stock";
     return "";
   };
 
   const getCurrentImportType = (): "equipments" | "spare-parts" => {
-    return activeTab === "equipment" ? "equipments" : "spare-parts";
+    if (activeTab === "equipment") return "equipments";
+    return "spare-parts";
   };
 
   return (
@@ -354,7 +357,11 @@ export default function Inventaire() {
 
       {/* Onglets de gestion */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="alerts" className="flex items-center gap-2" data-testid="tab-alerts">
+            <AlertTriangle className="h-4 w-4" />
+            Alertes de Stock
+          </TabsTrigger>
           <TabsTrigger value="parts" className="flex items-center gap-2" data-testid="tab-parts">
             <Package className="h-4 w-4" />
             Pièces Détachées
@@ -364,6 +371,20 @@ export default function Inventaire() {
             Équipements
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Surveillance des Stocks - Alertes et Recommandations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StockAlertsDashboard />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="parts" className="space-y-4">
           <Card>

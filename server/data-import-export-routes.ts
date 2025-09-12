@@ -4,11 +4,13 @@ import { dataImportExportService } from "./data-import-export";
 
 const router = Router();
 
-// Configuration multer pour l'upload de fichiers
+// Configuration multer pour l'upload de fichiers avec limites de sécurité renforcées
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max
+    fileSize: 5 * 1024 * 1024, // 5MB max (réduit pour la sécurité)
+    files: 1, // Un seul fichier à la fois
+    fieldSize: 1024 * 1024, // 1MB max pour les champs
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -18,11 +20,26 @@ const upload = multer({
       'application/json'
     ];
     
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Type de fichier non supporté. Utilisez CSV, Excel ou JSON.'));
+    // Vérification stricte du type MIME
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Type de fichier non supporté. Utilisez CSV, Excel ou JSON.'));
     }
+    
+    // Vérification de l'extension de fichier pour éviter les uploads malveillants
+    const allowedExtensions = ['.csv', '.xlsx', '.xls', '.json'];
+    const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      return cb(new Error('Extension de fichier non autorisée.'));
+    }
+    
+    // Vérification du nom de fichier (pas de caractères dangereux)
+    const dangerousChars = /[<>:"/\\|?*]/;
+    if (dangerousChars.test(file.originalname)) {
+      return cb(new Error('Nom de fichier contient des caractères non autorisés.'));
+    }
+    
+    cb(null, true);
   }
 });
 

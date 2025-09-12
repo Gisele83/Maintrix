@@ -98,6 +98,47 @@ async function callMLEngine(command: string, args: string[] = [], scriptName: st
   });
 }
 
+// Helper functions for maintenance history mapping
+function mapOrderTypeToMaintenanceType(orderType: string): "preventive" | "corrective" | "emergency" {
+  switch (orderType?.toLowerCase()) {
+    case 'preventive':
+    case 'préventive':
+      return 'preventive';
+    case 'emergency':
+    case 'urgence':
+    case 'urgent':
+      return 'emergency';
+    case 'corrective':
+    case 'curative':
+    case 'corrective':
+    default:
+      return 'corrective';
+  }
+}
+
+function mapWorkOrderStatus(status: string): "completed" | "in_progress" | "cancelled" {
+  switch (status?.toLowerCase()) {
+    case 'completed':
+    case 'terminé':
+    case 'fini':
+    case 'done':
+      return 'completed';
+    case 'cancelled':
+    case 'annulé':
+    case 'rejected':
+    case 'rejeté':
+      return 'cancelled';
+    case 'in_progress':
+    case 'en_cours':
+    case 'progress':
+    case 'started':
+    case 'pending':
+    case 'en_attente':
+    default:
+      return 'in_progress';
+  }
+}
+
 // AI Helper Functions
 function calculateTextSimilarity(text1: string, text2: string): number {
   // Simple Jaccard similarity for text comparison
@@ -1562,6 +1603,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get maintenance history for the historical dashboard
+  app.get("/api/maintenance-history", async (req, res) => {
+    try {
+      const { gmaoStorage } = await import("./gmao-storage");
+      const workOrders = await gmaoStorage.getWorkOrders();
+      
+      // Transform work orders to match MaintenanceHistoryItem interface
+      const maintenanceHistory = workOrders.map(wo => ({
+        id: wo.id,
+        workOrderNumber: wo.orderNumber || `WO-${wo.id}`,
+        equipmentName: wo.equipmentName || "Équipement inconnu",
+        equipmentId: wo.equipmentId?.toString() || "",
+        maintenanceType: mapOrderTypeToMaintenanceType(wo.orderType),
+        description: wo.description || wo.title || "",
+        technicianName: "Technicien", // TODO: Join with user profile when available
+        startDate: wo.actualStart || wo.scheduledStart || wo.createdAt,
+        endDate: wo.actualEnd || wo.scheduledEnd || wo.updatedAt,
+        duration: wo.actualDuration || wo.estimatedDuration || 0,
+        status: mapWorkOrderStatus(wo.status),
+        cost: parseFloat(wo.cost || "0"),
+        spareParts: [], // TODO: Add spare parts relationship
+        notes: wo.notes || wo.completionNotes || "",
+        createdAt: wo.createdAt
+      }));
+      
+      res.json(maintenanceHistory);
+    } catch (error) {
+      console.error("Error fetching maintenance history:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance history" });
+    }
+  });
+
   // Get all maintenance cases for ML training
   app.get("/api/maintenance-cases", async (req, res) => {
     try {

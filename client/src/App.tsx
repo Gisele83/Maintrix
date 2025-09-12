@@ -22,7 +22,6 @@ import ERPConfiguration from "@/pages/erp-configuration";
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
-import InventoryManagement from "@/pages/inventory-management";
 import WorkOrders from "@/pages/work-orders";
 import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
@@ -134,9 +133,6 @@ function Router() {
       </Route>
       <Route path="/advanced-reporting">
         {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}
-      </Route>
-      <Route path="/inventory">
-        {(params) => <ProtectedRoute component={InventoryManagement} {...params} />}
       </Route>
       <Route path="/equipment">
         {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
