@@ -185,11 +185,19 @@ export class LicenseService {
       // 4. Vérifier le type de licence et agir en conséquence
       if (tenant.licenseType === "custom") {
         // 🚨 LICENCE PERSONNALISÉE : Ne pas changer automatiquement, juste mettre à jour le count
+        const updateData: any = {
+          currentUsers: currentUserCount,
+        };
+        
+        // 🔑 Si la clé de licence est manquante, la générer
+        if (!tenant.licenseKey) {
+          updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
+          console.log(`🔑 Generated missing license key for custom tenant ${tenantId}`);
+        }
+        
         await db
           .update(tenants)
-          .set({
-            currentUsers: currentUserCount,
-          })
+          .set(updateData)
           .where(eq(tenants.id, tenantId));
         
         console.log(`✅ Updated custom license tenant ${tenantId} user count to ${currentUserCount} (max: ${tenant.maxUsers})`);
@@ -225,12 +233,20 @@ export class LicenseService {
 
           console.log(`✅ Updated tenant ${tenantId} license from ${tenant.licenseType} to ${newLicense.type} (${currentUserCount} users)`);
         } else {
-          // Juste mettre à jour le nombre d'utilisateurs actuels
+          // Juste mettre à jour le nombre d'utilisateurs actuels, mais vérifier si la clé de licence existe
+          const updateData: any = {
+            currentUsers: currentUserCount,
+          };
+          
+          // 🔑 Si la clé de licence est manquante, la générer
+          if (!tenant.licenseKey) {
+            updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
+            console.log(`🔑 Generated missing license key for tenant ${tenantId}`);
+          }
+          
           await db
             .update(tenants)
-            .set({
-              currentUsers: currentUserCount,
-            })
+            .set(updateData)
             .where(eq(tenants.id, tenantId));
         }
       }
