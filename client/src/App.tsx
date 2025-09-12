@@ -30,6 +30,8 @@ import MaintenanceDashboard from "@/pages/maintenance-dashboard";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
+import Historique from "@/pages/historique";
+import Inventaire from "@/pages/inventaire";
 
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import TenantManagement from "@/pages/tenant-management";
@@ -123,6 +125,12 @@ function Router() {
       </Route>
       <Route path="/data-import-export">
         {(params) => <ProtectedRoute component={DataImportExport} {...params} />}
+      </Route>
+      <Route path="/historique">
+        {(params) => <ProtectedRoute component={Historique} {...params} />}
+      </Route>
+      <Route path="/inventaire">
+        {(params) => <ProtectedRoute component={Inventaire} {...params} />}
       </Route>
       <Route path="/advanced-reporting">
         {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}

@@ -51,6 +51,137 @@ const ImportSparePartsSchema = z.object({
 
 export class DataImportExportService {
   
+  // Mappings pour la compatibilité SAGE et autres ERP
+  private getSageColumnMapping(): Record<string, Record<string, string>> {
+    return {
+      equipment: {
+        'Code Article': 'equipmentId',
+        'Désignation': 'equipmentName',
+        'Type': 'equipmentType',
+        'Famille': 'category',
+        'Fabricant': 'manufacturer',
+        'Modèle': 'model',
+        'N° Série': 'serialNumber',
+        'Zone': 'zone',
+        'Secteur': 'sector',
+        'Criticité': 'criticalityLevel',
+        'État': 'operationalState',
+        'Emplacement': 'location'
+      },
+      spareParts: {
+        'Code Article': 'partNumber',
+        'Désignation': 'partName',
+        'Description': 'description',
+        'Famille': 'category',
+        'Fabricant': 'manufacturer',
+        'Fournisseur': 'supplier',
+        'Prix Unitaire': 'unitPrice',
+        'Stock Actuel': 'currentStock',
+        'Stock Min': 'minStock',
+        'Stock Max': 'maxStock',
+        'Emplacement': 'location'
+      },
+      maintenance: {
+        'N° OT': 'orderNumber',
+        'Code Équipement': 'equipmentId',
+        'Type Intervention': 'orderType',
+        'Titre': 'title',
+        'Description': 'description',
+        'Priorité': 'priority',
+        'Statut': 'status',
+        'Technicien': 'assignedTo',
+        'Date Début': 'scheduledStart',
+        'Durée': 'actualDuration',
+        'Coût': 'cost',
+        'Notes': 'notes'
+      }
+    };
+  }
+
+  // Normalisation des données pour compatibilité SAGE
+  private normalizeRecordForImport(record: any, type: 'equipment' | 'spareParts' | 'maintenance'): any {
+    const mapping = this.getSageColumnMapping()[type];
+    const normalized: any = {};
+
+    // Mapper les colonnes SAGE vers nos champs
+    for (const [sageColumn, ourField] of Object.entries(mapping)) {
+      if (record[sageColumn] !== undefined) {
+        normalized[ourField] = record[sageColumn];
+      }
+    }
+
+    // Copier les champs qui correspondent déjà
+    for (const [key, value] of Object.entries(record)) {
+      if (!normalized[key] && Object.values(mapping).includes(key)) {
+        normalized[key] = value;
+      }
+    }
+
+    // Normalisation des valeurs spécifiques à SAGE
+    if (type === 'equipment') {
+      // Mapper les états SAGE vers nos états
+      if (normalized.operationalState) {
+        const stateMapping = {
+          'En Service': 'operational',
+          'En Maintenance': 'maintenance', 
+          'Arrêté': 'offline',
+          'Décommissionné': 'decommissioned'
+        };
+        normalized.operationalState = stateMapping[normalized.operationalState] || normalized.operationalState;
+      }
+
+      // Mapper les niveaux de criticité
+      if (normalized.criticalityLevel) {
+        const criticalityMapping = {
+          'Faible': 'low',
+          'Moyen': 'medium',
+          'Fort': 'high',
+          'Critique': 'critical'
+        };
+        normalized.criticalityLevel = criticalityMapping[normalized.criticalityLevel] || normalized.criticalityLevel;
+      }
+    }
+
+    if (type === 'maintenance') {
+      // Mapper les types d'intervention SAGE
+      if (normalized.orderType) {
+        const typeMapping = {
+          'Préventif': 'preventive',
+          'Correctif': 'corrective',
+          'Prédictif': 'predictive',
+          'Urgence': 'emergency'
+        };
+        normalized.orderType = typeMapping[normalized.orderType] || normalized.orderType;
+      }
+
+      // Mapper les priorités
+      if (normalized.priority) {
+        const priorityMapping = {
+          'Faible': 'low',
+          'Normale': 'medium',
+          'Élevée': 'high',
+          'Urgente': 'urgent'
+        };
+        normalized.priority = priorityMapping[normalized.priority] || normalized.priority;
+      }
+
+      // Mapper les statuts
+      if (normalized.status) {
+        const statusMapping = {
+          'En Attente': 'pending',
+          'Assigné': 'assigned',
+          'En Cours': 'in_progress',
+          'Suspendu': 'paused',
+          'Terminé': 'completed',
+          'Annulé': 'cancelled'
+        };
+        normalized.status = statusMapping[normalized.status] || normalized.status;
+      }
+    }
+
+    return { ...record, ...normalized };
+  }
+
   // Import des équipements
   async importEquipments(file: Buffer, format: 'csv' | 'excel'): Promise<{
     success: boolean;
@@ -76,17 +207,22 @@ export class DataImportExportService {
       for (let i = 0; i < records.length; i++) {
         try {
           const record = records[i];
+          
+          // Normalisation pour SAGE et autres ERP
+          const normalizedRecord = this.normalizeRecordForImport(record, 'equipment');
+          
+          // Fallback pour les anciens formats
           const equipmentData = {
-            equipmentId: record.equipmentId || record['ID Équipement'] || record['Equipment ID'],
-            equipmentName: record.equipmentName || record['Nom Équipement'] || record['Equipment Name'],
-            equipmentType: record.equipmentType || record['Type Équipement'] || record['Equipment Type'],
-            manufacturer: record.manufacturer || record['Fabricant'] || record['Manufacturer'],
-            model: record.model || record['Modèle'] || record['Model'],
-            serialNumber: record.serialNumber || record['Numéro Série'] || record['Serial Number'],
-            zone: record.zone || record['Zone'],
-            sector: record.sector || record['Secteur'] || record['Sector'],
-            criticalityLevel: this.parseCriticality(record.criticalityLevel || record['Niveau Criticité'] || record['Criticality Level']),
-            operationalState: this.parseOperationalState(record.operationalState || record['État Opérationnel'] || record['Operational State']),
+            equipmentId: normalizedRecord.equipmentId || record.equipmentId || record['ID Équipement'] || record['Equipment ID'],
+            equipmentName: normalizedRecord.equipmentName || record.equipmentName || record['Nom Équipement'] || record['Equipment Name'],
+            equipmentType: normalizedRecord.equipmentType || record.equipmentType || record['Type Équipement'] || record['Equipment Type'],
+            manufacturer: normalizedRecord.manufacturer || record.manufacturer || record['Fabricant'] || record['Manufacturer'],
+            model: normalizedRecord.model || record.model || record['Modèle'] || record['Model'],
+            serialNumber: normalizedRecord.serialNumber || record.serialNumber || record['Numéro Série'] || record['Serial Number'],
+            zone: normalizedRecord.zone || record.zone || record['Zone'],
+            sector: normalizedRecord.sector || record.sector || record['Secteur'] || record['Sector'],
+            criticalityLevel: normalizedRecord.criticalityLevel || this.parseCriticality(record.criticalityLevel || record['Niveau Criticité'] || record['Criticality Level']),
+            operationalState: normalizedRecord.operationalState || this.parseOperationalState(record.operationalState || record['État Opérationnel'] || record['Operational State']),
           };
 
           const validatedData = ImportEquipmentSchema.parse(equipmentData);

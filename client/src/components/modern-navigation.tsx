@@ -13,7 +13,9 @@ import {
   LogOut,
   User,
   Building,
-  ArrowLeft
+  ArrowLeft,
+  History,
+  Package
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -61,6 +63,8 @@ export function ModernNavigation() {
     { name: "Accueil", href: "/", icon: BarChart3 },
     { name: "Diagnostic IA", href: "/smart-diagnostic", icon: Brain },
     { name: "GMAO", href: "/gmao", icon: Settings },
+    { name: "Inventaire", href: "/inventaire", icon: Package },
+    { name: "Historique", href: "/historique", icon: History },
     { name: "Configuration ERP", href: "/erp-configuration", icon: Building },
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
