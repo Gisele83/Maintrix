@@ -19,7 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export function ModernNavigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const [showReturnToAdmin, setShowReturnToAdmin] = useState(false);
 
@@ -37,7 +37,7 @@ export function ModernNavigation() {
   const handleReturnToAdmin = () => {
     // Nettoyer le marqueur de contexte et retourner au dashboard super-admin
     localStorage.removeItem('superAdminContext');
-    window.location.href = '/super-admin';
+    setLocation('/super-admin');
   };
 
   // Écouter les changements de localStorage pour synchroniser l'état
