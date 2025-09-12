@@ -27,7 +27,7 @@ import {
   Copy,
   Check,
   Edit,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 
 interface SuperAdminUser {
@@ -97,7 +97,8 @@ export default function SuperAdminDashboard() {
     lastName: '',
     tenantId: '',
     role: '',
-    department: ''
+    department: '',
+    maxUsers: 1
   });
   
   // États pour le test d'email
@@ -773,6 +774,26 @@ export default function SuperAdminDashboard() {
                       />
                     </div>
 
+                    <div>
+                      <Label htmlFor="maxUsers" className="text-white flex items-center">
+                        <Users className="w-4 h-4 mr-2" />
+                        Nombre maximum d'utilisateurs *
+                      </Label>
+                      <Input
+                        id="maxUsers"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        placeholder="Ex: 5"
+                        value={newUserData.maxUsers || ''}
+                        onChange={(e) => setNewUserData({...newUserData, maxUsers: parseInt(e.target.value) || 1})}
+                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        ⚡ Une licence personnalisée "SM" + 13 chiffres sera générée automatiquement
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="role" className="text-white">Rôle</Label>
@@ -852,7 +873,8 @@ export default function SuperAdminDashboard() {
                             lastName: '',
                             tenantId: '',
                             role: '',
-                            department: ''
+                            department: '',
+                            maxUsers: 1
                           });
                           
                           // Recharger la liste des utilisateurs
@@ -1034,6 +1056,11 @@ IDENTIFIANTS DE CONNEXION:
 Nom d'utilisateur: ${createdUserCredentials.temporaryCredentials?.username}
 Mot de passe temporaire: ${createdUserCredentials.temporaryCredentials?.password}
 
+LICENCE PERSONNALISÉE:
+Clé de licence: ${createdUserCredentials.tenant?.licenseKey || 'N/A'}
+Limite d'utilisateurs: ${createdUserCredentials.tenant?.maxUsers || 1} utilisateurs max
+Type de licence: ${createdUserCredentials.tenant?.licenseType || 'custom'}
+
 IMPORTANT:
 - Ce mot de passe DOIT être changé lors de la première connexion
 - Expiration: ${createdUserCredentials.temporaryCredentials?.expiresAt ? new Date(createdUserCredentials.temporaryCredentials.expiresAt).toLocaleDateString('fr-FR') : 'N/A'}
@@ -1047,6 +1074,60 @@ Smart GMAO DiagFix - Maintenance intelligente et prédictive`;
                         📋 Copier toutes les informations
                       </Button>
                     </div>
+                    
+                    {/* 📜 INFORMATIONS DE LICENCE GÉNÉRÉE */}
+                    {createdUserCredentials.tenant && (
+                      <div className="bg-purple-900/20 rounded-lg p-4 mt-4 border border-purple-500/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Shield className="w-5 h-5 text-purple-400" />
+                          <Label className="text-purple-200 font-medium">Licence personnalisée générée</Label>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Clé de licence */}
+                          <div className="space-y-2">
+                            <Label className="text-purple-200 text-sm">Clé de licence</Label>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                value={createdUserCredentials.tenant?.licenseKey || 'N/A'} 
+                                readOnly 
+                                className="bg-purple-800/20 border-purple-600 text-white font-mono text-sm"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(createdUserCredentials.tenant?.licenseKey || '', 'Clé de licence')}
+                                className="bg-purple-700 border-purple-500 text-white hover:bg-purple-600"
+                              >
+                                {copiedField === 'Clé de licence' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Limite d'utilisateurs */}
+                          <div className="space-y-2">
+                            <Label className="text-purple-200 text-sm">Limite d'utilisateurs</Label>
+                            <div className="flex items-center gap-2">
+                              <Input 
+                                value={`${createdUserCredentials.tenant?.currentUsers || 1}/${createdUserCredentials.tenant?.maxUsers || 1} utilisateurs`} 
+                                readOnly 
+                                className="bg-purple-800/20 border-purple-600 text-white"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyToClipboard(`${createdUserCredentials.tenant?.maxUsers || 1}`, 'Limite utilisateurs')}
+                                className="bg-purple-700 border-purple-500 text-white hover:bg-purple-600"
+                              >
+                                {copiedField === 'Limite utilisateurs' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-purple-300 text-xs mt-2">
+                          ⚡ Licence au format "SM" + 13 chiffres - Type: {createdUserCredentials.tenant?.licenseType || 'custom'}
+                        </p>
+                      </div>
+                    )}
                     
                     {/* État email */}
                     <div className="bg-white/5 rounded-lg p-3 mt-3">

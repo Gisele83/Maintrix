@@ -160,6 +160,7 @@ const createUserByAdminSchema = z.object({
   tenantId: z.string().min(1, "ID Tenant requis"),
   role: z.string().min(1, "Rôle requis"),
   department: z.string().optional(),
+  maxUsers: z.number().int().min(1).max(1000).optional(),
 });
 
 // 🔐 Connexion super-admin
@@ -400,7 +401,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
 
     // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs défini)
     try {
-      const maxUsers = req.body.maxUsers || 1;
+      const maxUsers = validatedData.maxUsers || req.body.maxUsers || 1;
       await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1); // maxUsers défini, 1 utilisateur initial (admin)
       console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
     } catch (licenseError) {
