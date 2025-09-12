@@ -262,11 +262,14 @@ export default function Historique() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="text-sm text-gray-600">
-                  <p>Formats supportés :</p>
+                  <p>Formats et ERP supportés :</p>
                   <ul className="list-disc list-inside mt-2">
-                    <li>Excel (.xlsx, .xls)</li>
-                    <li>CSV</li>
-                    <li>Export SAGE (format Excel)</li>
+                    <li>Excel (.xlsx, .xls) et CSV</li>
+                    <li><strong>SAGE X3/100</strong> - Détection automatique</li>
+                    <li><strong>SAP ECC/S4HANA</strong> - Mapping complet</li>
+                    <li><strong>Oracle ERP Cloud/JDE</strong> - Compatible</li>
+                    <li><strong>Microsoft Dynamics 365</strong> - Supporté</li>
+                    <li><strong>IBM Maximo</strong> - Intégration native</li>
                   </ul>
                 </div>
                 

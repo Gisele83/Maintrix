@@ -233,12 +233,14 @@ export default function Inventaire() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="text-sm text-gray-600">
-                  <p>Formats supportés :</p>
+                  <p>ERP et formats supportés :</p>
                   <ul className="list-disc list-inside mt-2">
-                    <li>Excel (.xlsx, .xls)</li>
-                    <li>CSV</li>
-                    <li>Export SAGE (format Excel)</li>
-                    <li>Formats ERP standards</li>
+                    <li>Excel (.xlsx, .xls) et CSV</li>
+                    <li><strong>SAGE X3/100</strong> - Détection automatique</li>
+                    <li><strong>SAP ECC/S4HANA</strong> - Mapping complet</li>
+                    <li><strong>Oracle ERP Cloud/JDE</strong> - Compatible</li>
+                    <li><strong>Microsoft Dynamics 365</strong> - Supporté</li>
+                    <li><strong>IBM Maximo</strong> - Intégration native</li>
                   </ul>
                 </div>
                 
@@ -266,10 +268,10 @@ export default function Inventaire() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-50 rounded-lg text-sm">
-                  <p className="font-medium text-blue-900">Compatible SAGE</p>
+                <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg text-sm">
+                  <p className="font-medium text-blue-900">🚀 Compatibilité ERP Universal</p>
                   <p className="text-blue-700 mt-1">
-                    Exportez directement depuis SAGE au format Excel et importez ici
+                    Détection automatique du format : SAGE, SAP, Oracle, Dynamics, Maximo
                   </p>
                 </div>
 
@@ -424,24 +426,31 @@ export default function Inventaire() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Import depuis SAGE</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">🔵 SAGE X3/100</h3>
               <ol className="text-sm text-blue-800 space-y-1">
-                <li>1. Exportez vos données depuis SAGE au format Excel</li>
-                <li>2. Téléchargez notre template pour vérifier la structure</li>
-                <li>3. Adaptez vos colonnes si nécessaire</li>
-                <li>4. Importez le fichier via le bouton "Importer Données"</li>
+                <li>1. Export Excel standard depuis SAGE</li>
+                <li>2. Colonnes françaises reconnues automatiquement</li>
+                <li>3. Import direct sans modification</li>
               </ol>
             </div>
             
             <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">Autres Progiciels</h3>
+              <h3 className="font-semibold text-green-900 mb-2">🟢 SAP/Oracle/Dynamics</h3>
               <ol className="text-sm text-green-800 space-y-1">
-                <li>1. Exportez au format Excel ou CSV</li>
-                <li>2. Utilisez notre template comme référence</li>
-                <li>3. Mappez vos champs aux colonnes requises</li>
-                <li>4. Testez avec un petit échantillon d'abord</li>
+                <li>1. Export depuis votre ERP (Excel/CSV)</li>
+                <li>2. Format détecté et converti automatiquement</li>
+                <li>3. Codes statuts/priorités normalisés</li>
+              </ol>
+            </div>
+
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <h3 className="font-semibold text-purple-900 mb-2">🟣 IBM Maximo</h3>
+              <ol className="text-sm text-purple-800 space-y-1">
+                <li>1. Export Asset/Item/WorkOrder depuis Maximo</li>
+                <li>2. Mapping natif des champs Maximo</li>
+                <li>3. Statuts WAPPR/INPRG convertis</li>
               </ol>
             </div>
           </div>

@@ -51,7 +51,225 @@ const ImportSparePartsSchema = z.object({
 
 export class DataImportExportService {
   
-  // Mappings pour la compatibilité SAGE et autres ERP
+  // Mappings pour la compatibilité multi-ERP (SAGE, SAP, Oracle, Dynamics, Maximo, etc.)
+  private getERPColumnMappings(): Record<string, Record<string, Record<string, string>>> {
+    return {
+      // SAGE X3 / 100
+      sage: {
+        equipment: {
+          'Code Article': 'equipmentId',
+          'Désignation': 'equipmentName',
+          'Type': 'equipmentType',
+          'Famille': 'category',
+          'Fabricant': 'manufacturer',
+          'Modèle': 'model',
+          'N° Série': 'serialNumber',
+          'Zone': 'zone',
+          'Secteur': 'sector',
+          'Criticité': 'criticalityLevel',
+          'État': 'operationalState',
+          'Emplacement': 'location'
+        },
+        spareParts: {
+          'Code Article': 'partNumber',
+          'Désignation': 'partName',
+          'Description': 'description',
+          'Famille': 'category',
+          'Fabricant': 'manufacturer',
+          'Fournisseur': 'supplier',
+          'Prix Unitaire': 'unitPrice',
+          'Stock Actuel': 'currentStock',
+          'Stock Min': 'minStock',
+          'Stock Max': 'maxStock',
+          'Emplacement': 'location'
+        },
+        maintenance: {
+          'N° OT': 'orderNumber',
+          'Code Équipement': 'equipmentId',
+          'Type Intervention': 'orderType',
+          'Titre': 'title',
+          'Description': 'description',
+          'Priorité': 'priority',
+          'Statut': 'status',
+          'Technicien': 'assignedTo',
+          'Date Début': 'scheduledStart',
+          'Durée': 'actualDuration',
+          'Coût': 'cost',
+          'Notes': 'notes'
+        }
+      },
+      
+      // SAP ECC / S/4HANA
+      sap: {
+        equipment: {
+          'Equipment': 'equipmentId',
+          'EquipmentDescr': 'equipmentName',
+          'TechnicalObjectType': 'equipmentType',
+          'EquipmentCategory': 'category',
+          'Manufacturer': 'manufacturer',
+          'Model': 'model',
+          'SerialNumber': 'serialNumber',
+          'FunctionalLocation': 'zone',
+          'PlannerGroup': 'sector',
+          'ABCIndicator': 'criticalityLevel',
+          'SystemStatus': 'operationalState',
+          'Room': 'location'
+        },
+        spareParts: {
+          'Material': 'partNumber',
+          'MaterialDescription': 'partName',
+          'MaterialType': 'category',
+          'Manufacturer': 'manufacturer',
+          'Vendor': 'supplier',
+          'StandardPrice': 'unitPrice',
+          'UnrestrictedStock': 'currentStock',
+          'SafetyStock': 'minStock',
+          'MaximumStock': 'maxStock',
+          'StorageLocation': 'location'
+        },
+        maintenance: {
+          'OrderNumber': 'orderNumber',
+          'Equipment': 'equipmentId',
+          'OrderType': 'orderType',
+          'ShortText': 'title',
+          'LongText': 'description',
+          'Priority': 'priority',
+          'UserStatus': 'status',
+          'ResponsiblePerson': 'assignedTo',
+          'BasicStartDate': 'scheduledStart',
+          'ActualWork': 'actualDuration',
+          'ActualCosts': 'cost',
+          'SystemStatus': 'notes'
+        }
+      },
+      
+      // Oracle ERP Cloud / JD Edwards
+      oracle: {
+        equipment: {
+          'AssetNumber': 'equipmentId',
+          'Description': 'equipmentName',
+          'AssetType': 'equipmentType',
+          'AssetCategory': 'category',
+          'ManufacturerName': 'manufacturer',
+          'ModelNumber': 'model',
+          'SerialNumber': 'serialNumber',
+          'Location': 'zone',
+          'Department': 'sector',
+          'Criticality': 'criticalityLevel',
+          'Status': 'operationalState',
+          'Room': 'location'
+        },
+        spareParts: {
+          'ItemNumber': 'partNumber',
+          'ItemDescription': 'partName',
+          'ItemType': 'category',
+          'SupplierName': 'supplier',
+          'UnitCost': 'unitPrice',
+          'QuantityOnHand': 'currentStock',
+          'MinimumQuantity': 'minStock',
+          'MaximumQuantity': 'maxStock',
+          'Warehouse': 'location'
+        },
+        maintenance: {
+          'WorkOrderNumber': 'orderNumber',
+          'AssetNumber': 'equipmentId',
+          'WorkOrderType': 'orderType',
+          'Description': 'title',
+          'Priority': 'priority',
+          'Status': 'status',
+          'AssignedTo': 'assignedTo',
+          'ScheduledStartDate': 'scheduledStart',
+          'ActualHours': 'actualDuration',
+          'ActualCost': 'cost',
+          'Comments': 'notes'
+        }
+      },
+      
+      // Microsoft Dynamics 365
+      dynamics: {
+        equipment: {
+          'FixedAssetId': 'equipmentId',
+          'Name': 'equipmentName',
+          'FixedAssetGroup': 'equipmentType',
+          'Make': 'manufacturer',
+          'Model': 'model',
+          'SerialNumber': 'serialNumber',
+          'Location': 'zone',
+          'Department': 'sector',
+          'CriticalityLevel': 'criticalityLevel',
+          'Status': 'operationalState'
+        },
+        spareParts: {
+          'ItemNumber': 'partNumber',
+          'ProductName': 'partName',
+          'ItemGroup': 'category',
+          'VendorAccount': 'supplier',
+          'Price': 'unitPrice',
+          'AvailPhysical': 'currentStock',
+          'MinimumInventory': 'minStock',
+          'MaximumInventory': 'maxStock',
+          'WarehouseId': 'location'
+        },
+        maintenance: {
+          'MaintenanceRequestId': 'orderNumber',
+          'FixedAssetId': 'equipmentId',
+          'MaintenanceRequestType': 'orderType',
+          'Subject': 'title',
+          'Description': 'description',
+          'Priority': 'priority',
+          'StateCode': 'status',
+          'OwnerId': 'assignedTo',
+          'ScheduledStart': 'scheduledStart',
+          'ActualDurationMinutes': 'actualDuration',
+          'TotalCost': 'cost',
+          'Notes': 'notes'
+        }
+      },
+      
+      // IBM Maximo
+      maximo: {
+        equipment: {
+          'AssetNum': 'equipmentId',
+          'Description': 'equipmentName',
+          'AssetType': 'equipmentType',
+          'Manufacturer': 'manufacturer',
+          'Model': 'model',
+          'SerialNum': 'serialNumber',
+          'Location': 'zone',
+          'Parent': 'sector',
+          'Priority': 'criticalityLevel',
+          'Status': 'operationalState'
+        },
+        spareParts: {
+          'ItemNum': 'partNumber',
+          'Description': 'partName',
+          'ItemType': 'category',
+          'Manufacturer': 'manufacturer',
+          'Vendor': 'supplier',
+          'AvgCost': 'unitPrice',
+          'CurBal': 'currentStock',
+          'MinLevel': 'minStock',
+          'MaxLevel': 'maxStock',
+          'Location': 'location'
+        },
+        maintenance: {
+          'WONum': 'orderNumber',
+          'AssetNum': 'equipmentId',
+          'WorkType': 'orderType',
+          'Description': 'title',
+          'Priority': 'priority',
+          'Status': 'status',
+          'Lead': 'assignedTo',
+          'ScheduledStart': 'scheduledStart',
+          'ActLaborHrs': 'actualDuration',
+          'ActLaborCost': 'cost',
+          'LongDescription': 'notes'
+        }
+      }
+    };
+  }
+
+  // Méthode de compatibility SAGE maintenue pour rétrocompatibilité
   private getSageColumnMapping(): Record<string, Record<string, string>> {
     return {
       equipment: {
@@ -98,9 +316,36 @@ export class DataImportExportService {
     };
   }
 
-  // Normalisation des données pour compatibilité SAGE
+  // Détection automatique du format ERP basé sur les colonnes
+  private detectERPFormat(record: any): string {
+    const allMappings = this.getERPColumnMappings();
+    const columnNames = Object.keys(record);
+    
+    let maxMatches = 0;
+    let detectedERP = 'sage'; // par défaut
+    
+    for (const [erpName, erpMappings] of Object.entries(allMappings)) {
+      for (const [dataType, columnMapping] of Object.entries(erpMappings)) {
+        const erpColumns = Object.keys(columnMapping);
+        const matches = columnNames.filter(col => erpColumns.includes(col)).length;
+        
+        if (matches > maxMatches) {
+          maxMatches = matches;
+          detectedERP = erpName;
+        }
+      }
+    }
+    
+    console.log(`📊 Format ERP détecté: ${detectedERP.toUpperCase()} (${maxMatches} colonnes correspondantes)`);
+    return detectedERP;
+  }
+
+  // Normalisation des données pour compatibilité multi-ERP
   private normalizeRecordForImport(record: any, type: 'equipment' | 'spareParts' | 'maintenance'): any {
-    const mapping = this.getSageColumnMapping()[type];
+    // Détecter automatiquement le format ERP
+    const detectedERP = this.detectERPFormat(record);
+    const allMappings = this.getERPColumnMappings();
+    const mapping = allMappings[detectedERP]?.[type] || this.getSageColumnMapping()[type];
     const normalized: any = {};
 
     // Mapper les colonnes SAGE vers nos champs
@@ -117,69 +362,182 @@ export class DataImportExportService {
       }
     }
 
-    // Normalisation des valeurs spécifiques à SAGE
+    // Normalisation des valeurs spécifiques selon l'ERP détecté
+    normalized = this.normalizeERPValues(normalized, type, detectedERP);
+    
+    return { ...record, ...normalized };
+  }
+
+  // Normalisation des valeurs selon le format ERP
+  private normalizeERPValues(normalized: any, type: string, erpFormat: string): any {
     if (type === 'equipment') {
-      // Mapper les états SAGE vers nos états
+      // Mapper les états selon l'ERP
       if (normalized.operationalState) {
-        const stateMapping = {
-          'En Service': 'operational',
-          'En Maintenance': 'maintenance', 
-          'Arrêté': 'offline',
-          'Décommissionné': 'decommissioned'
+        const stateMappings = {
+          sage: {
+            'En Service': 'operational',
+            'En Maintenance': 'maintenance', 
+            'Arrêté': 'offline',
+            'Décommissionné': 'decommissioned'
+          },
+          sap: {
+            'TECO': 'operational', // Technically Complete
+            'MAINT': 'maintenance',
+            'INACT': 'offline',
+            'DEACT': 'decommissioned'
+          },
+          oracle: {
+            'OPERATING': 'operational',
+            'MAINTENANCE': 'maintenance',
+            'NOT OPERATING': 'offline',
+            'RETIRED': 'decommissioned'
+          },
+          dynamics: {
+            'Active': 'operational',
+            'Under maintenance': 'maintenance',
+            'Inactive': 'offline',
+            'Disposed': 'decommissioned'
+          },
+          maximo: {
+            'OPERATING': 'operational',
+            'DOWNMAINT': 'maintenance',
+            'NOT READY': 'offline',
+            'DECOMMISSIONED': 'decommissioned'
+          }
         };
-        normalized.operationalState = stateMapping[normalized.operationalState] || normalized.operationalState;
+        
+        const mapping = stateMappings[erpFormat];
+        if (mapping) {
+          normalized.operationalState = mapping[normalized.operationalState] || normalized.operationalState;
+        }
       }
 
       // Mapper les niveaux de criticité
       if (normalized.criticalityLevel) {
-        const criticalityMapping = {
-          'Faible': 'low',
-          'Moyen': 'medium',
-          'Fort': 'high',
-          'Critique': 'critical'
+        const criticalityMappings = {
+          sage: { 'Faible': 'low', 'Moyen': 'medium', 'Fort': 'high', 'Critique': 'critical' },
+          sap: { 'A': 'critical', 'B': 'high', 'C': 'medium', 'D': 'low' },
+          oracle: { 'HIGH': 'critical', 'MEDIUM': 'medium', 'LOW': 'low' },
+          dynamics: { '1': 'critical', '2': 'high', '3': 'medium', '4': 'low' },
+          maximo: { '1': 'critical', '2': 'high', '3': 'medium', '4': 'low' }
         };
-        normalized.criticalityLevel = criticalityMapping[normalized.criticalityLevel] || normalized.criticalityLevel;
+        
+        const mapping = criticalityMappings[erpFormat];
+        if (mapping) {
+          normalized.criticalityLevel = mapping[normalized.criticalityLevel] || normalized.criticalityLevel;
+        }
       }
     }
 
     if (type === 'maintenance') {
-      // Mapper les types d'intervention SAGE
+      // Mapper les types d'intervention selon l'ERP
       if (normalized.orderType) {
-        const typeMapping = {
-          'Préventif': 'preventive',
-          'Correctif': 'corrective',
-          'Prédictif': 'predictive',
-          'Urgence': 'emergency'
+        const typeMappings = {
+          sage: {
+            'Préventif': 'preventive',
+            'Correctif': 'corrective',
+            'Prédictif': 'predictive',
+            'Urgence': 'emergency'
+          },
+          sap: {
+            'PM01': 'preventive', // Preventive Maintenance
+            'PM02': 'corrective', // Corrective Maintenance
+            'PM03': 'predictive', // Predictive Maintenance
+            'PM05': 'emergency'   // Emergency
+          },
+          oracle: {
+            'PREVENTIVE': 'preventive',
+            'CORRECTIVE': 'corrective',
+            'PREDICTIVE': 'predictive',
+            'EMERGENCY': 'emergency'
+          },
+          dynamics: {
+            'Preventive': 'preventive',
+            'Corrective': 'corrective',
+            'Predictive': 'predictive',
+            'Emergency': 'emergency'
+          },
+          maximo: {
+            'PM': 'preventive',
+            'CM': 'corrective',
+            'PdM': 'predictive',
+            'EM': 'emergency'
+          }
         };
-        normalized.orderType = typeMapping[normalized.orderType] || normalized.orderType;
+        
+        const mapping = typeMappings[erpFormat];
+        if (mapping) {
+          normalized.orderType = mapping[normalized.orderType] || normalized.orderType;
+        }
       }
 
       // Mapper les priorités
       if (normalized.priority) {
-        const priorityMapping = {
-          'Faible': 'low',
-          'Normale': 'medium',
-          'Élevée': 'high',
-          'Urgente': 'urgent'
+        const priorityMappings = {
+          sage: { 'Faible': 'low', 'Normale': 'medium', 'Élevée': 'high', 'Urgente': 'urgent' },
+          sap: { '1': 'urgent', '2': 'high', '3': 'medium', '4': 'low' },
+          oracle: { 'URGENT': 'urgent', 'HIGH': 'high', 'MEDIUM': 'medium', 'LOW': 'low' },
+          dynamics: { '1': 'urgent', '2': 'high', '3': 'medium', '4': 'low' },
+          maximo: { '1': 'urgent', '2': 'high', '3': 'medium', '4': 'low' }
         };
-        normalized.priority = priorityMapping[normalized.priority] || normalized.priority;
+        
+        const mapping = priorityMappings[erpFormat];
+        if (mapping) {
+          normalized.priority = mapping[normalized.priority] || normalized.priority;
+        }
       }
 
       // Mapper les statuts
       if (normalized.status) {
-        const statusMapping = {
-          'En Attente': 'pending',
-          'Assigné': 'assigned',
-          'En Cours': 'in_progress',
-          'Suspendu': 'paused',
-          'Terminé': 'completed',
-          'Annulé': 'cancelled'
+        const statusMappings = {
+          sage: {
+            'En Attente': 'pending',
+            'Assigné': 'assigned',
+            'En Cours': 'in_progress',
+            'Suspendu': 'paused',
+            'Terminé': 'completed',
+            'Annulé': 'cancelled'
+          },
+          sap: {
+            'CRTD': 'pending',      // Created
+            'REL': 'assigned',      // Released
+            'PREL': 'in_progress',  // Partially Released
+            'TECO': 'completed',    // Technically Complete
+            'CLSD': 'completed',    // Closed
+            'DLT': 'cancelled'      // Deleted
+          },
+          oracle: {
+            'OPEN': 'pending',
+            'INWORK': 'in_progress',
+            'ONHOLD': 'paused',
+            'CLOSE': 'completed',
+            'CANCELLED': 'cancelled'
+          },
+          dynamics: {
+            'Active': 'assigned',
+            'In Progress': 'in_progress',
+            'On Hold': 'paused',
+            'Completed': 'completed',
+            'Cancelled': 'cancelled'
+          },
+          maximo: {
+            'WAPPR': 'pending',     // Waiting on Approval
+            'APPR': 'assigned',     // Approved
+            'INPRG': 'in_progress', // In Progress
+            'ONHOLD': 'paused',     // On Hold
+            'COMP': 'completed',    // Complete
+            'CAN': 'cancelled'      // Cancelled
+          }
         };
-        normalized.status = statusMapping[normalized.status] || normalized.status;
+        
+        const mapping = statusMappings[erpFormat];
+        if (mapping) {
+          normalized.status = mapping[normalized.status] || normalized.status;
+        }
       }
     }
 
-    return { ...record, ...normalized };
+    return normalized;
   }
 
   // Import des équipements
