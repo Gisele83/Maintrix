@@ -38,6 +38,41 @@ export const tenants = pgTable("tenants", {
   purchaseOrderConfig: jsonb("purchase_order_config").default({}), // PO header, logos, thresholds
   workOrderConfig: jsonb("work_order_config").default({}), // WO header, validation levels
   reportingConfig: jsonb("reporting_config").default({}), // Auto-report generation settings
+  // 📜 LICENCE SYSTEM: Automatic licensing based on user count
+  licenseType: varchar("license_type", { length: 50 }).default("solo"), // solo, team, enterprise_s, enterprise_m, enterprise_l
+  licensedUsers: integer("licensed_users").default(1), // Number of users the license allows
+  licenseGeneratedAt: timestamp("license_generated_at").defaultNow(),
+  licenseUpdatedAt: timestamp("license_updated_at").defaultNow(),
+  licenseKey: varchar("license_key", { length: 100 }), // Unique license identifier
+});
+
+// 📜 LICENSE MANAGEMENT SYSTEM
+export const licenseTypes = pgTable("license_types", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 50 }).notNull().unique(), // solo, team, enterprise_s, enterprise_m, enterprise_l
+  displayName: varchar("display_name", { length: 100 }).notNull(), // "Licence Solo", "Licence Équipe", etc.
+  description: text("description").notNull(),
+  minUsers: integer("min_users").notNull(), // Minimum users for this license
+  maxUsers: integer("max_users"), // Maximum users (null = unlimited for enterprise_l)
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }), // Price per month
+  yearlyPrice: decimal("yearly_price", { precision: 10, scale: 2 }), // Price per year
+  features: jsonb("features").default({}), // Available features for this license
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 📜 LICENSE HISTORY & AUDIT
+export const licenseHistory = pgTable("license_history", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  previousLicenseType: varchar("previous_license_type", { length: 50 }),
+  newLicenseType: varchar("new_license_type", { length: 50 }).notNull(),
+  userCountAtChange: integer("user_count_at_change").notNull(),
+  reason: varchar("reason", { length: 100 }).notNull(), // "user_added", "user_removed", "manual_upgrade", "tenant_created"
+  changedBy: integer("changed_by"), // User ID who triggered the change (null for automatic)
+  automaticUpdate: boolean("automatic_update").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Federated Learning & AI Improvement
@@ -296,6 +331,24 @@ export const insertMaintenanceCaseSchema = createInsertSchema(maintenanceCases).
   tenantId: z.string().nullable().optional(),
 });
 
+// 📜 LICENSE SCHEMAS
+export const insertLicenseTypeSchema = createInsertSchema(licenseTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLicenseHistorySchema = createInsertSchema(licenseHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+// LICENSE TYPES
+export type LicenseType = typeof licenseTypes.$inferSelect;
+export type InsertLicenseType = z.infer<typeof insertLicenseTypeSchema>;
+export type LicenseHistory = typeof licenseHistory.$inferSelect;
+export type InsertLicenseHistory = z.infer<typeof insertLicenseHistorySchema>;
+
 export const insertRepairProcedureSchema = createInsertSchema(repairProcedures).omit({
   id: true,
 });
@@ -334,6 +387,8 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({
 // Types
 export type MaintenanceCase = typeof maintenanceCases.$inferSelect;
 export type InsertMaintenanceCase = z.infer<typeof insertMaintenanceCaseSchema>;
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
 
 export type RepairProcedure = typeof repairProcedures.$inferSelect;
 export type InsertRepairProcedure = z.infer<typeof insertRepairProcedureSchema>;

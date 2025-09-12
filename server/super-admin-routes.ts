@@ -656,7 +656,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       validatedData.firstName,
       validatedData.lastName,
       tenant.id,
-      validatedData.role,
+      validatedData.role as "technician" | "supervisor" | "manager" | "director" | "admin",
       1 // Super-admin ID (à récupérer dynamiquement)
     );
     

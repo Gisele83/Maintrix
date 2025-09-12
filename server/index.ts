@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { advancedIoTConnector } from './integrations/advanced-iot-connector';
 import { smartNotificationEngine } from './integrations/smart-notification-engine';
 import { gamificationEngine } from './integrations/gamification-engine';
+import { LicenseService } from './license-service';
 
 const app = express();
 
@@ -81,6 +82,15 @@ app.use((req, res, next) => {
     console.log('✅ Advanced IoT and gamification systems initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing advanced systems:', error);
+  }
+
+  // 📜 INITIALIZE LICENSE SYSTEM
+  try {
+    console.log('🔄 Initializing license system...');
+    await LicenseService.initializeLicenseTypes();
+    console.log('✅ License system initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing license system:', error);
   }
 
   const server = await registerRoutes(app);
