@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { 
@@ -12,7 +12,8 @@ import {
   Shield,
   LogOut,
   User,
-  Building
+  Building,
+  ArrowLeft
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,10 +21,41 @@ export function ModernNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const [showReturnToAdmin, setShowReturnToAdmin] = useState(false);
 
   const handleLogout = () => {
     logout();
   };
+
+  // Vérifier si l'utilisateur vient du contexte super-admin
+  useEffect(() => {
+    const superAdminContext = localStorage.getItem('superAdminContext');
+    const superAdminToken = localStorage.getItem('superAdminToken');
+    setShowReturnToAdmin(superAdminContext === 'true' && !!superAdminToken);
+  }, []);
+
+  const handleReturnToAdmin = () => {
+    // Nettoyer le marqueur de contexte et retourner au dashboard super-admin
+    localStorage.removeItem('superAdminContext');
+    window.location.href = '/super-admin';
+  };
+
+  // Écouter les changements de localStorage pour synchroniser l'état
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const superAdminContext = localStorage.getItem('superAdminContext');
+      const superAdminToken = localStorage.getItem('superAdminToken');
+      setShowReturnToAdmin(superAdminContext === 'true' && !!superAdminToken);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
+  }, []);
 
   const navigation = [
     { name: "Accueil", href: "/", icon: BarChart3 },
@@ -82,18 +114,34 @@ export function ModernNavigation() {
               <span>{user?.firstName || user?.username}</span>
             </div>
             
-            {/* Lien d'administration discret */}
-            <Link href="/admin-login">
+            {/* Bouton de retour au super-admin si venant de ce contexte */}
+            {showReturnToAdmin && (
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                className="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
-                title="Accès administration plateforme"
+                onClick={handleReturnToAdmin}
+                className="flex items-center space-x-2 bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                title="Retourner à l'interface super-admin"
               >
-                <Shield className="w-4 h-4" />
-                <span className="text-xs">Admin</span>
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-xs">Retour Admin</span>
               </Button>
-            </Link>
+            )}
+            
+            {/* Lien d'administration discret */}
+            {!showReturnToAdmin && (
+              <Link href="/admin-login">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="flex items-center space-x-2 text-gray-500 hover:text-blue-600"
+                  title="Accès administration plateforme"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="text-xs">Admin</span>
+                </Button>
+              </Link>
+            )}
             
             <Button 
               variant="outline" 
@@ -154,18 +202,39 @@ export function ModernNavigation() {
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Link href="/admin-login">
+                  {/* Bouton de retour au super-admin si venant de ce contexte */}
+                  {showReturnToAdmin && (
                     <Button 
-                      variant="ghost" 
+                      variant="outline" 
                       size="sm" 
-                      className="flex items-center space-x-1"
-                      title="Administration"
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        handleReturnToAdmin();
+                        setIsOpen(false);
+                      }}
+                      className="flex items-center space-x-1 bg-purple-50 text-purple-700"
+                      title="Retourner à l'interface super-admin"
                     >
-                      <Shield className="w-4 h-4" />
-                      <span className="text-xs">Admin</span>
+                      <ArrowLeft className="w-4 h-4" />
+                      <span className="text-xs">Retour Admin</span>
                     </Button>
-                  </Link>
+                  )}
+                  
+                  {/* Lien d'administration discret */}
+                  {!showReturnToAdmin && (
+                    <Link href="/admin-login">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex items-center space-x-1"
+                        title="Administration"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span className="text-xs">Admin</span>
+                      </Button>
+                    </Link>
+                  )}
+                  
                   <Button 
                     variant="outline" 
                     size="sm" 

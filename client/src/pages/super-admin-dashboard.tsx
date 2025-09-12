@@ -167,6 +167,7 @@ export default function SuperAdminDashboard() {
   const logout = () => {
     localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdminUser');
+    localStorage.removeItem('superAdminContext'); // Nettoyer aussi le contexte
     setLocation('/admin-login');
     toast({
       title: "Déconnexion",
@@ -309,6 +310,19 @@ export default function SuperAdminDashboard() {
                 <div className="text-xs text-gray-400">Super Administrateur</div>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    // Marquer la provenance super-admin pour permettre le retour
+                    localStorage.setItem('superAdminContext', 'true');
+                    setLocation('/');
+                  }}
+                  className="bg-green-600/20 border-green-400/30 text-green-300 hover:bg-green-600/30"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Interface Utilisateur
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
