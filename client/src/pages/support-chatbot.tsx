@@ -28,7 +28,7 @@ interface ChatMessage {
   type: 'user' | 'bot';
   content: string;
   timestamp: Date;
-  category?: 'diagnostic' | 'gmao' | 'security' | 'payment' | 'general';
+  category?: 'diagnostic' | 'gmao' | 'security' | 'general';
   helpful?: boolean;
 }
 
@@ -46,7 +46,7 @@ export default function SupportChatbot() {
     {
       id: '1',
       type: 'bot',
-      content: "Bonjour ! Je suis l'assistant technique de Smart GMAO DiagFix. Comment puis-je vous aider aujourd'hui ? Je peux vous assister avec :\n\n• Problèmes de diagnostic IA\n• Difficultés GMAO\n• Questions de sécurité\n• Problèmes de paiement\n• Erreurs techniques diverses",
+      content: "Bonjour ! Je suis l'assistant technique de Smart GMAO DiagFix. Comment puis-je vous aider aujourd'hui ? Je peux vous assister avec :\n\n• Problèmes de diagnostic IA\n• Difficultés GMAO\n• Questions de sécurité\n• Erreurs techniques diverses",
       timestamp: new Date(),
       category: 'general'
     }
@@ -84,20 +84,6 @@ export default function SupportChatbot() {
         "Contactez l'administrateur si vous n'avez pas les bonnes permissions"
       ],
       severity: 'high'
-    },
-    {
-      id: '3',
-      title: "Problème de paiement ou facturation",
-      category: "payment",
-      description: "Erreurs lors du processus de paiement ou problèmes de facturation",
-      steps: [
-        "Vérifiez les détails de votre carte bancaire",
-        "Assurez-vous que votre compte a les fonds suffisants",
-        "Vérifiez que votre plan d'essai n'a pas expiré",
-        "Contactez votre banque si la transaction est refusée",
-        "Utilisez un autre moyen de paiement si disponible"
-      ],
-      severity: 'medium'
     },
     {
       id: '4',
@@ -145,8 +131,6 @@ export default function SupportChatbot() {
       return 'diagnostic';
     } else if (lowerMessage.includes('gmao') || lowerMessage.includes('équipement') || lowerMessage.includes('maintenance')) {
       return 'gmao';
-    } else if (lowerMessage.includes('paiement') || lowerMessage.includes('facture') || lowerMessage.includes('carte')) {
-      return 'payment';
     } else if (lowerMessage.includes('sécurité') || lowerMessage.includes('connexion') || lowerMessage.includes('login')) {
       return 'security';
     }
@@ -175,8 +159,6 @@ export default function SupportChatbot() {
       case 'gmao':
         return "Pour les problèmes GMAO, voici les vérifications courantes :\n\n• Vérifiez vos permissions d'accès\n• Assurez-vous que vos données sont synchronisées\n• Vérifiez la connexion IoT si applicable\n• Redémarrez votre session si nécessaire\n\nQuel type d'erreur ou de dysfonctionnement observez-vous exactement ?";
       
-      case 'payment':
-        return "Pour les problèmes de paiement :\n\n• Vérifiez les détails de votre carte\n• Assurez-vous que votre essai gratuit n'a pas expiré\n• Vérifiez avec votre banque\n• Essayez un autre moyen de paiement\n\nQuel message d'erreur recevez-vous lors du paiement ?";
       
       case 'security':
         return "Pour les problèmes de sécurité et connexion :\n\n• Vérifiez vos identifiants\n• Effacez le cache de votre navigateur\n• Vérifiez que votre IP n'est pas bloquée\n• Contactez l'administrateur si nécessaire\n\nRencontrez-vous des erreurs 401, 403 ou d'autres codes d'erreur ?";
@@ -249,7 +231,6 @@ export default function SupportChatbot() {
       case 'diagnostic': return <Wrench className="h-4 w-4" />;
       case 'gmao': return <Bug className="h-4 w-4" />;
       case 'security': return <AlertCircle className="h-4 w-4" />;
-      case 'payment': return <CheckCircle className="h-4 w-4" />;
       default: return <HelpCircle className="h-4 w-4" />;
     }
   };
@@ -259,7 +240,6 @@ export default function SupportChatbot() {
       case 'diagnostic': return 'bg-blue-100 text-blue-800';
       case 'gmao': return 'bg-green-100 text-green-800';
       case 'security': return 'bg-red-100 text-red-800';
-      case 'payment': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
