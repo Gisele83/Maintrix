@@ -1,10 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
+
+// Extend Express Request type for CSRF token
+declare global {
+  namespace Express {
+    interface Request {
+      csrfToken?: string;
+    }
+  }
+}
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { advancedIoTConnector } from './integrations/advanced-iot-connector';
 import { smartNotificationEngine } from './integrations/smart-notification-engine';
 import { gamificationEngine } from './integrations/gamification-engine';
 import { LicenseService } from './license-service';
+import crypto from 'crypto';
+import cookieParser from 'cookie-parser';
+import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
 
 const app = express();
 
@@ -12,6 +24,76 @@ const app = express();
 app.set('trust proxy', 1); // Important pour rate limiting et sécurité
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser()); // CRITIQUE: Parsing des cookies
+
+// 🔒 Configure cookies sécurisés globalement
+app.use(EnterpriseAuthMiddleware.configureSecureCookies);
+
+// 🔒 CSRF Protection Middleware
+app.use((req, res, next) => {
+  // Generate CSRF token for all requests
+  if (!req.cookies?.csrfToken) {
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    res.cookie('csrfToken', csrfToken, {
+      httpOnly: false, // Readable by frontend for X-CSRF-Token header
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    req.csrfToken = csrfToken;
+  } else {
+    req.csrfToken = req.cookies.csrfToken;
+  }
+
+  // Validate CSRF token on unsafe methods
+  const unsafeMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+  const isUnsafeMethod = unsafeMethods.includes(req.method);
+  const isApiRoute = req.path.startsWith('/api');
+  
+  if (isUnsafeMethod && isApiRoute) {
+    const tokenFromHeader = req.headers['x-csrf-token'];
+    const tokenFromCookie = req.cookies?.csrfToken;
+    
+    if (!tokenFromHeader || !tokenFromCookie || tokenFromHeader !== tokenFromCookie) {
+      return res.status(403).json({
+        error: 'CSRF_TOKEN_INVALID',
+        message: 'CSRF token validation failed'
+      });
+    }
+  }
+
+  // Extra Origin validation for auth endpoints
+  if (isApiRoute && (req.path.includes('/auth/') || req.path.includes('/enterprise-auth/'))) {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+    const allowedOrigins = [
+      'http://localhost:5000',
+      'http://localhost:5173', // Vite dev server
+      'https://localhost:5000',
+      'https://localhost:5173'
+    ];
+    
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({
+        error: 'ORIGIN_NOT_ALLOWED',
+        message: 'Request origin not allowed for auth endpoints'
+      });
+    }
+    
+    // Fallback: Validate Referer if no Origin
+    if (!origin && referer) {
+      const refererValid = allowedOrigins.some(allowed => referer.startsWith(allowed));
+      if (!refererValid) {
+        return res.status(403).json({
+          error: 'REFERER_NOT_ALLOWED',
+          message: 'Request referer not allowed for auth endpoints'
+        });
+      }
+    }
+  }
+
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

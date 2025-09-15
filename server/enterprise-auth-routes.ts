@@ -278,7 +278,6 @@ router.post('/invitations/accept',
       res.status(201).json({
         success: true,
         message: "Account created and activated successfully",
-        sessionToken,
         user: {
           id: userId,
           tenantId
@@ -489,8 +488,6 @@ router.post('/login',
       
       res.json({
         success: true,
-        sessionToken,
-        refreshToken,
         user: {
           id: user.id,
           username: user.username,
@@ -498,7 +495,7 @@ router.post('/login',
           role: user.role,
           tenantId: user.tenantId
         },
-        expiresAt
+        message: "Login successful. Session stored in secure cookie."
       });
       
     } catch (error) {
@@ -631,8 +628,6 @@ router.post('/force-password-change',
       res.json({
         success: true,
         message: "Mot de passe changé avec succès. Bienvenue sur Smart GMAO DiagFix !",
-        sessionToken,
-        refreshToken,
         user: {
           id: user.id,
           username: user.username,
@@ -746,8 +741,7 @@ router.post('/refresh',
       
       res.json({
         success: true,
-        sessionToken: newSessionToken,
-        refreshToken: newRefreshToken,
+        message: "Session refreshed successfully. New session stored in secure cookie.",
         expiresAt: newExpiresAt
       });
       

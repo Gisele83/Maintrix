@@ -7,6 +7,18 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// 🔒 Read CSRF token from cookies
+function getCsrfToken(): string | null {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrfToken') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 export async function apiRequest(
   url: string,
   options?: {
@@ -19,25 +31,30 @@ export async function apiRequest(
   
   const headers: Record<string, string> = body ? { "Content-Type": "application/json" } : {};
   
-  // 🚀 SUPER-ADMIN AUTH: Use superAdminToken for super-admin routes
+  // 🔒 Add CSRF token for unsafe methods
+  const unsafeMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+  if (unsafeMethods.includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
+  
+  // 🔒 SECURE AUTH: Only cookies for super-admin routes (if applicable)
   if (url.includes('/api/super-admin')) {
+    // Super-admin routes still use Authorization header for now
     const superAdminToken = localStorage.getItem("superAdminToken");
     if (superAdminToken) {
       headers["Authorization"] = `Bearer ${superAdminToken}`;
     }
-  } else {
-    // ✅ ENTERPRISE AUTH: Use sessionToken for regular routes
-    const token = localStorage.getItem("sessionToken");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
   }
+  // ✅ ENTERPRISE AUTH: Use ONLY secure cookies (no localStorage)
   
   const res = await fetch(url, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
+    credentials: "include", // Send secure cookies
   });
 
   await throwIfResNotOk(res);
@@ -53,23 +70,18 @@ export const getQueryFn: <T>(options: {
     const headers: Record<string, string> = {};
     const url = queryKey.join("/") as string;
     
-    // 🚀 SUPER-ADMIN AUTH: Use superAdminToken for super-admin routes
+    // 🔒 SECURE AUTH: Only Authorization header for super-admin routes
     if (url.includes('/api/super-admin')) {
       const superAdminToken = localStorage.getItem("superAdminToken");
       if (superAdminToken) {
         headers["Authorization"] = `Bearer ${superAdminToken}`;
       }
-    } else {
-      // ✅ ENTERPRISE AUTH: Use sessionToken for regular routes
-      const token = localStorage.getItem("sessionToken");
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
     }
+    // ✅ ENTERPRISE AUTH: Use ONLY secure cookies (no localStorage)
     
     const res = await fetch(url, {
       headers,
-      credentials: "include",
+      credentials: "include", // Send secure cookies
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

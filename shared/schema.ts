@@ -494,6 +494,7 @@ export const companyConfig = pgTable("company_config", {
 // Equipment Registry - Complete asset management
 export const equipmentRegistry = pgTable("equipment_registry", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   equipmentId: varchar("equipment_id", { length: 100 }).notNull().unique(),
   equipmentName: text("equipment_name").notNull(),
   equipmentType: text("equipment_type").notNull(),
@@ -519,6 +520,7 @@ export const equipmentRegistry = pgTable("equipment_registry", {
 // Work Orders (Ordres de Travail) - Core GMAO functionality
 export const workOrders = pgTable("work_orders", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   orderType: varchar("order_type", { length: 30 }).notNull(), // preventive, corrective, predictive, emergency

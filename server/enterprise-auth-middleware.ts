@@ -52,9 +52,8 @@ export class EnterpriseAuthMiddleware {
       return next();
     }
     
-    // CRITIQUE: Plus d'accès anonyme - token obligatoire
-    const sessionToken = req.headers.authorization?.replace('Bearer ', '') || 
-                        req.cookies?.sessionToken;
+    // 🔒 CRITIQUE: SEULEMENT cookies sécurisés - plus de Bearer tokens
+    const sessionToken = req.cookies?.sessionToken;
     
     if (!sessionToken) {
       return res.status(401).json({
@@ -73,8 +72,8 @@ export class EnterpriseAuthMiddleware {
    */
   static async validateSession(req: EnterpriseAuthRequest, res: Response, next: NextFunction) {
     try {
-      const sessionToken = req.headers.authorization?.replace('Bearer ', '') || 
-                          req.cookies?.sessionToken;
+      // 🔒 SÉCURITÉ: SEULEMENT cookies HttpOnly/Secure/SameSite
+      const sessionToken = req.cookies?.sessionToken;
       
       if (!sessionToken) {
         return res.status(401).json({
@@ -270,10 +269,10 @@ export class EnterpriseAuthMiddleware {
       apply: (target, thisArg, args) => {
         const [name, value, options = {}] = args;
         
-        // Force les paramètres de sécurité
+        // Force les paramètres de sécurité (EXCEPTION: csrfToken doit être lisible par frontend)
         const secureOptions = {
           ...options,
-          httpOnly: true,
+          httpOnly: name === 'csrfToken' ? false : true, // CSRF token lisible, autres HttpOnly
           secure: process.env.NODE_ENV === 'production', // HTTPS en production
           sameSite: 'strict' as const,
           domain: process.env.COOKIE_DOMAIN,

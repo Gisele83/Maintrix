@@ -64,18 +64,22 @@ import {
 
 export class GMAOStorage {
   private db = db;
-  // Equipment Registry Methods
-  async getEquipmentRegistry(): Promise<EquipmentRegistry[]> {
-    return await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
+  // Equipment Registry Methods - TENANT ISOLATED
+  async getEquipmentRegistry(tenantId: string): Promise<EquipmentRegistry[]> {
+    return await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.tenantId, tenantId))
+      .orderBy(desc(equipmentRegistry.createdAt));
   }
 
-  async getEquipmentById(id: number): Promise<EquipmentRegistry | undefined> {
-    const [equipment] = await db.select().from(equipmentRegistry).where(eq(equipmentRegistry.id, id));
+  async getEquipmentById(id: number, tenantId: string): Promise<EquipmentRegistry | undefined> {
+    const [equipment] = await db.select().from(equipmentRegistry)
+      .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)));
     return equipment;
   }
 
-  async getEquipmentByEquipmentId(equipmentId: string): Promise<EquipmentRegistry | undefined> {
-    const [equipment] = await db.select().from(equipmentRegistry).where(eq(equipmentRegistry.equipmentId, equipmentId));
+  async getEquipmentByEquipmentId(equipmentId: string, tenantId: string): Promise<EquipmentRegistry | undefined> {
+    const [equipment] = await db.select().from(equipmentRegistry)
+      .where(and(eq(equipmentRegistry.equipmentId, equipmentId), eq(equipmentRegistry.tenantId, tenantId)));
     return equipment;
   }
 
@@ -84,18 +88,17 @@ export class GMAOStorage {
     return equipment;
   }
 
-  async updateEquipment(id: number, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
+  async updateEquipment(id: number, tenantId: string, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
     const [equipment] = await db
       .update(equipmentRegistry)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(equipmentRegistry.id, id))
+      .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)))
       .returning();
     return equipment;
   }
 
-  async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string; equipmentName?: string }): Promise<EquipmentRegistry[]> {
-    let whereCondition = undefined;
-    const conditions = [];
+  async searchEquipment(tenantId: string, query: { equipmentType?: string; zone?: string; sector?: string; equipmentName?: string }): Promise<EquipmentRegistry[]> {
+    const conditions = [eq(equipmentRegistry.tenantId, tenantId)];
 
     if (query.equipmentType) {
       conditions.push(eq(equipmentRegistry.equipmentType, query.equipmentType));
@@ -110,17 +113,13 @@ export class GMAOStorage {
       conditions.push(eq(equipmentRegistry.equipmentName, query.equipmentName));
     }
 
-    if (conditions.length > 0) {
-      whereCondition = conditions.length === 1 ? conditions[0] : and(...conditions);
-    }
-
     return await db.select().from(equipmentRegistry)
-      .where(whereCondition)
+      .where(and(...conditions))
       .orderBy(desc(equipmentRegistry.createdAt));
   }
 
-  // Work Orders Methods
-  async getWorkOrders(): Promise<any[]> {
+  // Work Orders Methods - TENANT ISOLATED
+  async getWorkOrders(tenantId: string): Promise<any[]> {
     return await db
       .select({
         id: workOrders.id,
@@ -153,30 +152,35 @@ export class GMAOStorage {
         location: equipmentRegistry.location
       })
       .from(workOrders)
-      .leftJoin(equipmentRegistry, eq(workOrders.equipmentId, equipmentRegistry.id))
+      .leftJoin(equipmentRegistry, and(
+        eq(workOrders.equipmentId, equipmentRegistry.id),
+        eq(equipmentRegistry.tenantId, tenantId)
+      ))
+      .where(eq(workOrders.tenantId, tenantId))
       .orderBy(desc(workOrders.createdAt));
   }
 
-  async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {
-    const [workOrder] = await db.select().from(workOrders).where(eq(workOrders.id, id));
+  async getWorkOrderById(id: number, tenantId: string): Promise<WorkOrder | undefined> {
+    const [workOrder] = await db.select().from(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)));
     return workOrder;
   }
 
-  async getWorkOrdersByEquipment(equipmentId: number): Promise<WorkOrder[]> {
+  async getWorkOrdersByEquipment(equipmentId: number, tenantId: string): Promise<WorkOrder[]> {
     return await db.select().from(workOrders)
-      .where(eq(workOrders.equipmentId, equipmentId))
+      .where(and(eq(workOrders.equipmentId, equipmentId), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
-  async getWorkOrdersByStatus(status: string): Promise<WorkOrder[]> {
+  async getWorkOrdersByStatus(status: string, tenantId: string): Promise<WorkOrder[]> {
     return await db.select().from(workOrders)
-      .where(eq(workOrders.status, status))
+      .where(and(eq(workOrders.status, status), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
-  async getWorkOrdersByAssignee(userId: number): Promise<WorkOrder[]> {
+  async getWorkOrdersByAssignee(userId: number, tenantId: string): Promise<WorkOrder[]> {
     return await db.select().from(workOrders)
-      .where(eq(workOrders.assignedTo, userId))
+      .where(and(eq(workOrders.assignedTo, userId), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
@@ -190,7 +194,7 @@ export class GMAOStorage {
     return workOrder;
   }
 
-  async updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+  async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
     // Remove any fields that might cause FK constraint violations for now
     const safeUpdates = { ...updates };
     delete safeUpdates.level1ValidatedBy;
@@ -199,31 +203,34 @@ export class GMAOStorage {
     const [workOrder] = await db
       .update(workOrders)
       .set({ ...safeUpdates, updatedAt: new Date() })
-      .where(eq(workOrders.id, id))
+      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
     return workOrder;
   }
 
-  // Work Orders by Validation Status (same procedure as Purchase Orders)
-  async getWorkOrdersByValidationStatus(status: string): Promise<WorkOrder[]> {
+  // Work Orders by Validation Status (same procedure as Purchase Orders) - TENANT ISOLATED
+  async getWorkOrdersByValidationStatus(status: string, tenantId: string): Promise<WorkOrder[]> {
     return await db.select().from(workOrders)
-      .where(eq(workOrders.validationStatus, status))
+      .where(and(eq(workOrders.validationStatus, status), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
-  // Preventive Maintenance Methods
-  async getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]> {
-    return await db.select().from(preventiveMaintenancePlans).orderBy(desc(preventiveMaintenancePlans.createdAt));
+  // Preventive Maintenance Methods - TENANT ISOLATED
+  async getPreventiveMaintenancePlans(tenantId: string): Promise<PreventiveMaintenancePlan[]> {
+    return await db.select().from(preventiveMaintenancePlans)
+      .where(eq(preventiveMaintenancePlans.tenantId, tenantId))
+      .orderBy(desc(preventiveMaintenancePlans.createdAt));
   }
 
-  async getPreventiveMaintenancePlanById(id: number): Promise<PreventiveMaintenancePlan | undefined> {
-    const [plan] = await db.select().from(preventiveMaintenancePlans).where(eq(preventiveMaintenancePlans.id, id));
+  async getPreventiveMaintenancePlanById(id: number, tenantId: string): Promise<PreventiveMaintenancePlan | undefined> {
+    const [plan] = await db.select().from(preventiveMaintenancePlans)
+      .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)));
     return plan;
   }
 
-  async getPreventiveMaintenancePlansByEquipmentType(equipmentType: string): Promise<PreventiveMaintenancePlan[]> {
+  async getPreventiveMaintenancePlansByEquipmentType(equipmentType: string, tenantId: string): Promise<PreventiveMaintenancePlan[]> {
     return await db.select().from(preventiveMaintenancePlans)
-      .where(eq(preventiveMaintenancePlans.equipmentType, equipmentType))
+      .where(and(eq(preventiveMaintenancePlans.equipmentType, equipmentType), eq(preventiveMaintenancePlans.tenantId, tenantId)))
       .orderBy(desc(preventiveMaintenancePlans.createdAt));
   }
 
@@ -232,17 +239,18 @@ export class GMAOStorage {
     return plan;
   }
 
-  async updatePreventiveMaintenancePlan(id: number, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan> {
+  async updatePreventiveMaintenancePlan(id: number, tenantId: string, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan> {
     const [plan] = await db
       .update(preventiveMaintenancePlans)
       .set(updates)
-      .where(eq(preventiveMaintenancePlans.id, id))
+      .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)))
       .returning();
     return plan;
   }
 
-  async deletePreventiveMaintenancePlan(id: number): Promise<void> {
-    await db.delete(preventiveMaintenancePlans).where(eq(preventiveMaintenancePlans.id, id));
+  async deletePreventiveMaintenancePlan(id: number, tenantId: string): Promise<void> {
+    await db.delete(preventiveMaintenancePlans)
+      .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)));
   }
 
   // Spare Parts Methods
