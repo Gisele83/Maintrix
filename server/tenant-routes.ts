@@ -23,6 +23,8 @@ import {
 } from "./tenant-middleware";
 import { federatedLearning as federatedService } from "./federated-learning";
 import { sendTenantAccessNotification, sendTenantAccessUpdateNotification } from "./notifications";
+// 🔒 VALIDATION SÉCURISÉE GDPR
+import { validateInput } from "./security-middleware";
 
 const router = Router();
 
@@ -44,6 +46,18 @@ const createTenantSchema = z.object({
 });
 
 const updateTenantSchema = createTenantSchema.partial();
+
+// 🔒 SCHEMAS GDPR SÉCURISÉS
+const gdprExportRequestSchema = z.object({
+  subjectEmail: z.string().email().optional(),
+  format: z.enum(["json", "csv"]).optional().default("json"),
+  includeAuditLogs: z.boolean().optional().default(false)
+});
+
+const gdprDeleteRequestSchema = z.object({
+  subjectEmail: z.string().email(),
+  reason: z.string().min(3).max(500).optional()
+});
 
 // =======================
 // ADMIN ROUTES (Super Admin Only)
@@ -743,7 +757,10 @@ router.get('/api/admin/k8s/network-policies/:tenantId', async (req: TenantReques
 // =======================
 
 // Data export (GDPR Article 20 - Right to data portability)
-router.get('/api/tenant/gdpr/export', async (req: TenantRequest, res) => {
+// 🔒 SÉCURISÉ avec validation Zod
+router.get('/api/tenant/gdpr/export', 
+  validateInput(gdprExportRequestSchema),
+  async (req: TenantRequest, res) => {
   try {
     if (!req.tenantId || !req.tenantData?.gdprCompliant) {
       return res.status(400).json({ error: "GDPR compliance required" });
@@ -753,7 +770,7 @@ router.get('/api/tenant/gdpr/export', async (req: TenantRequest, res) => {
     const [exportRequest] = await db.insert(gdprRequests).values({
       tenantId: req.tenantId,
       requestType: "portability",
-      subjectEmail: req.tenantData.contactEmail || "no-email@tenant.local",
+      subjectEmail: req.body.subjectEmail || "no-email@tenant.local",
       status: "processing",
       requestData: { format: "json", scope: "all_tenant_data" },
     }).returning();
@@ -772,7 +789,10 @@ router.get('/api/tenant/gdpr/export', async (req: TenantRequest, res) => {
 });
 
 // Data deletion request (GDPR Article 17 - Right to erasure)
-router.post('/api/tenant/gdpr/delete-request', async (req: TenantRequest, res) => {
+// 🔒 SÉCURISÉ avec validation Zod stricte
+router.post('/api/tenant/gdpr/delete-request', 
+  validateInput(gdprDeleteRequestSchema),
+  async (req: TenantRequest, res) => {
   try {
     if (!req.tenantId || !req.tenantData?.gdprCompliant) {
       return res.status(400).json({ error: "GDPR compliance required" });
@@ -783,7 +803,7 @@ router.post('/api/tenant/gdpr/delete-request', async (req: TenantRequest, res) =
     const [deletionRequest] = await db.insert(gdprRequests).values({
       tenantId: req.tenantId,
       requestType: "deletion",
-      subjectEmail: req.tenantData.contactEmail || "no-email@tenant.local",
+      subjectEmail: req.body.subjectEmail || "no-email@tenant.local",
       status: "pending",
       requestData: { reason, scope },
       notes: "Tenant-initiated deletion request",
