@@ -254,29 +254,33 @@ export class GMAOStorage {
   }
 
   // Spare Parts Methods
-  async getSpareParts(): Promise<SparePart[]> {
-    return await db.select().from(spareParts).orderBy(desc(spareParts.createdAt));
-  }
-
-  async getSparePartById(id: number): Promise<SparePart | undefined> {
-    const [part] = await db.select().from(spareParts).where(eq(spareParts.id, id));
-    return part;
-  }
-
-  async getSparePartByPartNumber(partNumber: string): Promise<SparePart | undefined> {
-    const [part] = await db.select().from(spareParts).where(eq(spareParts.partNumber, partNumber));
-    return part;
-  }
-
-  async getSparePartsByCategory(category: string): Promise<SparePart[]> {
+  async getSpareParts(tenantId: string): Promise<SparePart[]> {
     return await db.select().from(spareParts)
-      .where(eq(spareParts.category, category))
+      .where(eq(spareParts.tenantId, tenantId))
       .orderBy(desc(spareParts.createdAt));
   }
 
-  async getLowStockParts(): Promise<SparePart[]> {
+  async getSparePartById(id: number, tenantId: string): Promise<SparePart | undefined> {
+    const [part] = await db.select().from(spareParts)
+      .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)));
+    return part;
+  }
+
+  async getSparePartByPartNumber(partNumber: string, tenantId: string): Promise<SparePart | undefined> {
+    const [part] = await db.select().from(spareParts)
+      .where(and(eq(spareParts.partNumber, partNumber), eq(spareParts.tenantId, tenantId)));
+    return part;
+  }
+
+  async getSparePartsByCategory(category: string, tenantId: string): Promise<SparePart[]> {
     return await db.select().from(spareParts)
-      .where(sql`${spareParts.currentStock} <= ${spareParts.reorderPoint}`)
+      .where(and(eq(spareParts.category, category), eq(spareParts.tenantId, tenantId)))
+      .orderBy(desc(spareParts.createdAt));
+  }
+
+  async getLowStockParts(tenantId: string): Promise<SparePart[]> {
+    return await db.select().from(spareParts)
+      .where(and(sql`${spareParts.currentStock} <= ${spareParts.reorderPoint}`, eq(spareParts.tenantId, tenantId)))
       .orderBy(desc(spareParts.createdAt));
   }
 
@@ -285,18 +289,19 @@ export class GMAOStorage {
     return part;
   }
 
-  async updateSparePart(id: number, updates: Partial<SparePart>): Promise<SparePart> {
+  async updateSparePart(id: number, tenantId: string, updates: Partial<SparePart>): Promise<SparePart> {
     const [part] = await db
       .update(spareParts)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(spareParts.id, id))
+      .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)))
       .returning();
     return part;
   }
 
-  async deleteSparePart(id: number): Promise<boolean> {
+  async deleteSparePart(id: number, tenantId: string): Promise<boolean> {
     try {
-      const result = await db.delete(spareParts).where(eq(spareParts.id, id));
+      const result = await db.delete(spareParts)
+        .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)));
       return result.rowCount > 0;
     } catch (error) {
       console.error("Error deleting spare part:", error);
@@ -315,12 +320,12 @@ export class GMAOStorage {
       .orderBy(desc(stockMovements.createdAt));
   }
 
-  async createStockMovement(data: InsertStockMovement): Promise<StockMovement> {
+  async createStockMovement(data: InsertStockMovement, tenantId: string): Promise<StockMovement> {
     const [movement] = await db.insert(stockMovements).values(data).returning();
     
     // Update spare part stock
     if (data.sparePartId) {
-      const part = await this.getSparePartById(data.sparePartId);
+      const part = await this.getSparePartById(data.sparePartId, tenantId);
       if (part) {
         let newStock = part.currentStock || 0;
         if (data.movementType === 'in' || data.movementType === 'return') {
@@ -331,7 +336,7 @@ export class GMAOStorage {
           newStock = data.quantity;
         }
         
-        await this.updateSparePart(data.sparePartId, { currentStock: Math.max(0, newStock) });
+        await this.updateSparePart(data.sparePartId, tenantId, { currentStock: Math.max(0, newStock) });
       }
     }
     
@@ -635,13 +640,13 @@ export class GMAOStorage {
   }
 
   // Stock monitoring and automatic reorder
-  async checkStockLevelsAndTriggerReorders(): Promise<{ triggeredRules: ReorderRule[], createdOrders: PurchaseOrder[] }> {
+  async checkStockLevelsAndTriggerReorders(tenantId: string): Promise<{ triggeredRules: ReorderRule[], createdOrders: PurchaseOrder[] }> {
     const rules = await this.getReorderRules();
     const triggeredRules: ReorderRule[] = [];
     const createdOrders: PurchaseOrder[] = [];
 
     for (const rule of rules) {
-      const part = await this.getSparePartById(rule.sparePartId);
+      const part = await this.getSparePartById(rule.sparePartId, tenantId);
       if (!part) continue;
 
       // Check if stock is below reorder point
