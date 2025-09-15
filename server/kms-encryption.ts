@@ -41,7 +41,7 @@ export enum SensitiveDataType {
 export class KMSEncryptionService {
   private static readonly ALGORITHM = 'aes-256-gcm';
   private static readonly KEY_LENGTH = 32; // 256 bits
-  private static readonly IV_LENGTH = 16; // 128 bits
+  private static readonly IV_LENGTH = 12; // 96 bits (GCM standard)
   private static readonly TAG_LENGTH = 16; // 128 bits
 
   /**
@@ -87,19 +87,34 @@ export class KMSEncryptionService {
         throw new Error(`No active KMS key found for tenant: ${tenantId}`);
       }
       
-      // Générer IV aléatoire
+      // Générer IV aléatoire (12 bytes pour GCM)
       const iv = crypto.randomBytes(this.IV_LENGTH);
       
       // Récupérer la clé de chiffrement
       const keyBuffer = await this.retrieveEncryptionKey(tenantKey.keyId);
       
-      // Chiffrer avec AES-256-GCM
-      const cipher = crypto.createCipher(this.ALGORITHM, keyBuffer);
-      cipher.setAutoPadding(true);
+      // AAD étendue pour sécurité renforcée
+      const aadData = JSON.stringify({
+        tenantId,
+        keyId: tenantKey.keyId,
+        keyVersion: tenantKey.keyVersion,
+        dataType,
+        purpose: 'data_encryption'
+      });
       
-      let encrypted = '';
-      encrypted += cipher.update(data, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
+      // Chiffrer avec AES-256-GCM moderne (binary-safe)
+      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, iv);
+      cipher.setAAD(Buffer.from(aadData));
+      
+      // Traitement binary-safe des données
+      const inputBuffer = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
+      const encryptedBuffer = Buffer.concat([
+        cipher.update(inputBuffer),
+        cipher.final()
+      ]);
+      
+      // Récupérer le tag d'authentification GCM
+      const authTag = cipher.getAuthTag();
       
       // Créer les métadonnées de chiffrement
       const metadata: EncryptionMetadata = {
@@ -111,8 +126,16 @@ export class KMSEncryptionService {
         encryptedAt: new Date()
       };
       
-      // Combiner IV + encrypted data + auth tag
-      const encryptedData = iv.toString('hex') + encrypted;
+      // Structure JSON sécurisée (binary-safe)
+      const encryptedPayload = {
+        iv: iv.toString('base64'),
+        data: encryptedBuffer.toString('base64'),
+        tag: authTag.toString('base64'),
+        aad: aadData,
+        algorithm: this.ALGORITHM
+      };
+      
+      const encryptedData = JSON.stringify(encryptedPayload);
       
       // Audit log pour traçabilité (sans exposer les données)
       await this.logEncryptionActivity(tenantId, dataType, 'ENCRYPT', metadata.keyId);
@@ -145,16 +168,25 @@ export class KMSEncryptionService {
       // Récupérer la clé de chiffrement
       const keyBuffer = await this.retrieveEncryptionKey(metadata.keyId);
       
-      // Extraire IV et données chiffrées
-      const iv = Buffer.from(encryptedData.substring(0, this.IV_LENGTH * 2), 'hex');
-      const encrypted = encryptedData.substring(this.IV_LENGTH * 2);
+      // Parser la structure JSON sécurisée
+      const encryptedPayload = JSON.parse(encryptedData);
+      const iv = Buffer.from(encryptedPayload.iv, 'base64');
+      const ciphertext = Buffer.from(encryptedPayload.data, 'base64');
+      const authTag = Buffer.from(encryptedPayload.tag, 'base64');
+      const aadData = encryptedPayload.aad;
       
-      // Déchiffrer
-      const decipher = crypto.createDecipher(this.ALGORITHM, keyBuffer);
+      // Déchiffrer avec vérification d'authenticité GCM
+      const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+      decipher.setAAD(Buffer.from(aadData));
+      decipher.setAuthTag(authTag);
       
-      let decrypted = '';
-      decrypted += decipher.update(encrypted, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
+      // Déchiffrement binary-safe
+      const decryptedBuffer = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final()
+      ]);
+      
+      const decrypted = decryptedBuffer.toString('utf8');
       
       // Audit log
       await this.logEncryptionActivity(
@@ -262,23 +294,23 @@ export class KMSEncryptionService {
    * Récupérer une clé de chiffrement
    */
   private static async retrieveEncryptionKey(keyId: string): Promise<Buffer> {
-    const [result] = await db.execute(sql`
+    const results = await db.execute(sql`
       SELECT encrypted_key FROM tenant_encryption_keys WHERE key_id = ${keyId} AND is_active = true
     `);
     
-    if (!result) {
+    if (results.rows.length === 0) {
       throw new Error(`Encryption key not found: ${keyId}`);
     }
     
     // Déchiffrer la clé stockée
-    return this.decryptKeyFromStorage((result as any).encrypted_key);
+    return this.decryptKeyFromStorage(results.rows[0].encrypted_key as string);
   }
   
   /**
    * Obtenir la clé active d'un tenant
    */
   private static async getTenantActiveKey(tenantId: string): Promise<TenantKMSKey | null> {
-    const [result] = await db.execute(sql`
+    const results = await db.execute(sql`
       SELECT key_id, key_version, created_at, is_active 
       FROM tenant_encryption_keys 
       WHERE tenant_id = ${tenantId} AND is_active = true 
@@ -286,17 +318,18 @@ export class KMSEncryptionService {
       LIMIT 1
     `);
     
-    if (!result) {
+    if (results.rows.length === 0) {
       return null;
     }
     
+    const row = results.rows[0];
     return {
       tenantId,
-      keyId: (result as any).key_id,
-      keyVersion: (result as any).key_version || 1,
+      keyId: row.key_id as string,
+      keyVersion: (row.key_version as number) || 1,
       algorithm: this.ALGORITHM,
-      createdAt: (result as any).created_at,
-      isActive: (result as any).is_active
+      createdAt: row.created_at as Date,
+      isActive: row.is_active as boolean
     };
   }
   
@@ -304,8 +337,8 @@ export class KMSEncryptionService {
    * Obtenir tenant actuel depuis contexte PostgreSQL
    */
   private static async getCurrentTenant(): Promise<string> {
-    const [result] = await db.execute(sql`SELECT get_current_tenant() as tenant_id`);
-    return (result as any)?.tenant_id || '';
+    const results = await db.execute(sql`SELECT get_current_tenant() as tenant_id`);
+    return results.rows.length > 0 ? (results.rows[0].tenant_id as string) || '' : '';
   }
   
   /**
@@ -329,13 +362,13 @@ export class KMSEncryptionService {
       WHERE tenant_id = ${tenantId}
     `);
     
-    return results.map(r => ({
+    return results.rows.map(r => ({
       tenantId,
-      keyId: (r as any).key_id,
-      keyVersion: (r as any).key_version,
+      keyId: r.key_id as string,
+      keyVersion: r.key_version as number,
       algorithm: this.ALGORITHM,
-      createdAt: (r as any).created_at,
-      isActive: (r as any).is_active
+      createdAt: r.created_at as Date,
+      isActive: r.is_active as boolean
     }));
   }
   
@@ -396,11 +429,24 @@ export class KMSEncryptionService {
    * Chiffrer une clé pour stockage (master key)
    */
   private static encryptKeyForStorage(keyBuffer: Buffer): string {
-    const masterKey = process.env.KMS_MASTER_KEY || 'default-master-key-change-in-production';
-    const cipher = crypto.createCipher('aes-256-cbc', masterKey);
+    const masterKey = process.env.KMS_MASTER_KEY;
+    if (!masterKey || masterKey.length < 32) {
+      throw new Error('KMS_MASTER_KEY environment variable must be set and at least 32 characters');
+    }
     
-    let encrypted = cipher.update(keyBuffer, 'binary', 'hex');
+    // Dériver KEK sécurisé avec HKDF
+    const salt = crypto.randomBytes(32);
+    const kek = Buffer.from(crypto.hkdfSync('sha256', Buffer.from(masterKey), salt, Buffer.from('smart-gmao-kms'), 32));
+    
+    const iv = crypto.randomBytes(12); // GCM standard
+    const cipher = crypto.createCipheriv('aes-256-gcm', kek, iv);
+    
+    let encrypted = cipher.update(keyBuffer, undefined, 'hex');
     encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag();
+    
+    // Structure sécurisée : salt + IV + encrypted + authTag
+    encrypted = salt.toString('hex') + iv.toString('hex') + encrypted + authTag.toString('hex');
     
     return encrypted;
   }
@@ -409,13 +455,28 @@ export class KMSEncryptionService {
    * Déchiffrer une clé depuis le stockage
    */
   private static decryptKeyFromStorage(encryptedKey: string): Buffer {
-    const masterKey = process.env.KMS_MASTER_KEY || 'default-master-key-change-in-production';
-    const decipher = crypto.createDecipher('aes-256-cbc', masterKey);
+    const masterKey = process.env.KMS_MASTER_KEY;
+    if (!masterKey || masterKey.length < 32) {
+      throw new Error('KMS_MASTER_KEY environment variable must be set and at least 32 characters');
+    }
     
-    let decrypted = decipher.update(encryptedKey, 'hex', 'binary');
-    decrypted += decipher.final('binary');
+    // Extraire salt, IV, données et authTag
+    const salt = Buffer.from(encryptedKey.substring(0, 64), 'hex'); // 32 bytes salt
+    const iv = Buffer.from(encryptedKey.substring(64, 88), 'hex'); // 12 bytes IV
+    const authTagStart = encryptedKey.length - 32;
+    const ciphertext = encryptedKey.substring(88, authTagStart);
+    const authTag = Buffer.from(encryptedKey.substring(authTagStart), 'hex');
     
-    return Buffer.from(decrypted, 'binary');
+    // Redériver KEK avec même sel
+    const kek = Buffer.from(crypto.hkdfSync('sha256', Buffer.from(masterKey), salt, Buffer.from('smart-gmao-kms'), 32));
+    
+    const decipher = crypto.createDecipheriv('aes-256-gcm', kek, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(ciphertext, 'hex');
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    
+    return decrypted;
   }
   
   /**
