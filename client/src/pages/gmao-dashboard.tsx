@@ -43,11 +43,14 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "equipment" | "work-orders" | "maintenance" | "inventory" | "history" | "procurement" | "reports" | "analytics" | "alerts" | "health-dashboard" | "validation" | "company-config";
+type GMAOTab = "overview" | "work-orders" | "equipment" | "inventory" | "alerts";
+type AdminTab = "maintenance" | "history" | "procurement" | "reports" | "analytics" | "health-dashboard" | "validation" | "company-config";
 
 export default function GMAODashboard() {
   const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<GMAOTab>("overview");
+  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab | null>(null);
+  const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
 
@@ -63,19 +66,14 @@ export default function GMAODashboard() {
       icon: BarChart3,
     },
     {
-      id: "equipment" as GMAOTab,
-      label: "Équipements",
-      icon: Factory,
-    },
-    {
       id: "work-orders" as GMAOTab,
       label: "Ordres de Travail",
       icon: Wrench,
     },
     {
-      id: "maintenance" as GMAOTab,
-      label: "Maintenance Préventive",
-      icon: CalendarCheck,
+      id: "equipment" as GMAOTab,
+      label: "Équipements",
+      icon: Factory,
     },
     {
       id: "inventory" as GMAOTab,
@@ -83,45 +81,21 @@ export default function GMAODashboard() {
       icon: Package,
     },
     {
-      id: "history" as GMAOTab,
-      label: "Historique",
-      icon: FileText,
-    },
-    {
-      id: "procurement" as GMAOTab,
-      label: "Achats",
-      icon: ShoppingCart,
-    },
-    {
-      id: "reports" as GMAOTab,
-      label: "Rapports",
-      icon: BarChart3,
-    },
-    {
-      id: "analytics" as GMAOTab,
-      label: "Analytiques",
-      icon: TrendingUp,
-    },
-    {
       id: "alerts" as GMAOTab,
       label: "Alertes",
       icon: Bell,
     },
-    {
-      id: "health-dashboard" as GMAOTab,
-      label: "Santé Équipements",
-      icon: Activity,
-    },
-    {
-      id: "validation" as GMAOTab,
-      label: "Validation Multi-Niveaux",
-      icon: ClipboardCheck,
-    },
-    {
-      id: "company-config" as GMAOTab,
-      label: "Configuration Entreprise",
-      icon: Cog,
-    },
+  ];
+
+  const adminTabs = [
+    { id: "maintenance" as AdminTab, label: "Maintenance Préventive", icon: CalendarCheck },
+    { id: "history" as AdminTab, label: "Historique", icon: FileText },
+    { id: "procurement" as AdminTab, label: "Achats", icon: ShoppingCart },
+    { id: "reports" as AdminTab, label: "Rapports", icon: BarChart3 },
+    { id: "analytics" as AdminTab, label: "Analytiques", icon: TrendingUp },
+    { id: "health-dashboard" as AdminTab, label: "Santé Équipements", icon: Activity },
+    { id: "validation" as AdminTab, label: "Validation Multi-Niveaux", icon: ClipboardCheck },
+    { id: "company-config" as AdminTab, label: "Configuration Entreprise", icon: Cog },
   ];
 
   const getStatusColor = (status: string) => {
@@ -159,23 +133,6 @@ export default function GMAODashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <Header />
       
-      {/* GMAO Hero Section */}
-      <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center space-x-2 bg-blue-500/10 text-blue-600 px-4 py-2 rounded-full text-sm font-medium">
-              <Factory className="w-4 h-4" />
-              <span>GMAO Intelligente</span>
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight">
-              SMDiagFix GMAO
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Plateforme complète de gestion de maintenance assistée par ordinateur avec IA prédictive
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Navigation Tabs */}
       <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
@@ -186,23 +143,76 @@ export default function GMAODashboard() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setShowAdminModal(false);
+                    setActiveAdminTab(null);
+                  }}
                   className={`flex items-center space-x-2 px-3 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                    activeTab === tab.id
+                    activeTab === tab.id && !showAdminModal
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                   }`}
                 >
                   <Icon className={`w-4 h-4 ${
-                    activeTab === tab.id ? "text-primary" : "text-muted-foreground"
+                    activeTab === tab.id && !showAdminModal ? "text-primary" : "text-muted-foreground"
                   }`} />
                   <span>{tab.label}</span>
                 </button>
               );
             })}
+            
+            {/* Menu Plus/Admin */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowAdminModal(!showAdminModal);
+                  if (!showAdminModal) {
+                    setActiveAdminTab("maintenance");
+                  }
+                }}
+                className={`flex items-center space-x-2 px-3 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  showAdminModal
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                }`}
+              >
+                <Cog className={`w-4 h-4 ${
+                  showAdminModal ? "text-primary" : "text-muted-foreground"
+                }`} />
+                <span>Plus</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* Menu Admin Dropdown */}
+      {showAdminModal && (
+        <div className="bg-card border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex space-x-4 py-3 overflow-x-auto">
+              {adminTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveAdminTab(tab.id)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors ${
+                      activeAdminTab === tab.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -281,28 +291,27 @@ export default function GMAODashboard() {
 
             {/* Charts and Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Equipment by Type Chart */}
+              {/* Work Orders by Status - Simplified */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Factory className="w-5 h-5" />
-                    <span>Équipements par Type</span>
+                    <Wrench className="w-5 h-5" />
+                    <span>Statut des OT</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {dashboardData?.equipmentByType && Object.entries(dashboardData.equipmentByType).map(([type, count]) => (
-                      <div key={type} className="flex items-center justify-between">
-                        <span className="text-sm font-medium capitalize">{type}</span>
+                  <div className="space-y-3">
+                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => (
+                      <div key={status} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <div className="w-32 bg-muted rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full" 
-                              style={{ width: `${Math.min((count / Math.max(...Object.values(dashboardData.equipmentByType))) * 100, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-muted-foreground w-8 text-right">{count}</span>
+                          <div className={`w-2 h-2 rounded-full ${
+                            status === 'pending' ? 'bg-orange-500' :
+                            status === 'in_progress' ? 'bg-blue-500' :
+                            status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
+                          }`} />
+                          <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
                         </div>
+                        <span className="text-sm font-bold">{count}</span>
                       </div>
                     ))}
                   </div>
@@ -319,7 +328,7 @@ export default function GMAODashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {dashboardData?.recentWorkOrders?.slice(0, 5).map((order) => (
+                    {dashboardData?.recentWorkOrders?.slice(0, 3).map((order) => (
                       <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div className="space-y-1">
                           <p className="text-sm font-medium">{order.title}</p>
@@ -353,7 +362,7 @@ export default function GMAODashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {dashboardData?.recentAlerts?.slice(0, 5).map((alert) => (
+                    {dashboardData?.recentAlerts?.slice(0, 3).map((alert) => (
                       <div key={alert.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
                         <AlertTriangle className={`w-4 h-4 mt-1 ${
                           alert.severity === 'critical' ? 'text-red-500' :
@@ -382,32 +391,6 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
 
-              {/* Work Orders by Status */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="w-5 h-5" />
-                    <span>OT par Statut</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => (
-                      <div key={status} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            status === 'pending' ? 'bg-orange-500' :
-                            status === 'in_progress' ? 'bg-blue-500' :
-                            status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
-                          }`} />
-                          <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
-                        </div>
-                        <span className="text-sm font-bold">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         )}
@@ -420,30 +403,31 @@ export default function GMAODashboard() {
           <WorkOrderManagement />
         )}
 
-        {activeTab === "maintenance" && (
+        {activeTab === "inventory" && (
+          <InventoryManagement />
+        )}
+
+        {/* Admin Tabs - Only show if activeAdminTab is set */}
+        {showAdminModal && activeAdminTab === "maintenance" && (
           <PreventiveMaintenance />
         )}
 
-        {activeTab === "inventory" && (
-          <InventorySimple />
-        )}
-
-        {activeTab === "history" && (
+        {showAdminModal && activeAdminTab === "history" && (
           <HistoryManagement />
         )}
 
-        {activeTab === "procurement" && (
+        {showAdminModal && activeAdminTab === "procurement" && (
           <div className="space-y-6">
             <PurchaseOrderCreator />
             <ProcurementDashboard />
           </div>
         )}
 
-        {activeTab === "reports" && (
+        {showAdminModal && activeAdminTab === "reports" && (
           <MaintenanceReports />
         )}
 
-        {activeTab === "analytics" && (
+        {showAdminModal && activeAdminTab === "analytics" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Analytiques et KPI</h2>
             
@@ -622,33 +606,58 @@ export default function GMAODashboard() {
 
         {activeTab === "alerts" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Centre d'Alertes</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Alertes</h2>
+              <Button 
+                variant="outline"
+                onClick={() => setShowAlertsModal(true)}
+              >
+                Voir toutes les alertes
+              </Button>
+            </div>
             
             <Card>
-              <CardContent className="p-6">
-                <div className="text-center py-12">
-                  <Bell className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Système d'Alertes Intelligent</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Notifications temps réel basées sur les seuils IoT et prédictions IA
-                  </p>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setShowAlertsModal(true)}
-                  >
-                    Voir les alertes
-                  </Button>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Bell className="w-5 h-5" />
+                  <span>Alertes Récentes</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {dashboardData?.recentAlerts?.slice(0, 6).map((alert) => (
+                    <div key={alert.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{alert.title}</p>
+                        <p className="text-xs text-muted-foreground">{alert.message}</p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={`${
+                          alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
+                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
+                          alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {alert.severity}
+                        </Badge>
+                      </div>
+                    </div>
+                  )) || (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Aucune alerte récente
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {activeTab === "health-dashboard" && (
+        {showAdminModal && activeAdminTab === "health-dashboard" && (
           <EquipmentHealthDashboard />
         )}
 
-        {activeTab === "validation" && (
+        {showAdminModal && activeAdminTab === "validation" && (
           <div className="space-y-6">
             <PurchaseOrderWorkflowDemo 
               currentUserRole="Chef de Service"
@@ -664,13 +673,80 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {activeTab === "company-config" && (
+        {showAdminModal && activeAdminTab === "health-dashboard" && (
+          <EquipmentHealthDashboard />
+        )}
+
+        {showAdminModal && activeAdminTab === "validation" && (
+          <div className="space-y-6">
+            <PurchaseOrderWorkflowDemo 
+              currentUserRole="Chef de Service"
+              validationLevel={1}
+            />
+            <ValidationDashboard
+              userId={1}
+              userRole="Chef de Service"
+              validationLevel={1}
+              canValidateWorkOrders={true}
+              canValidatePurchaseOrders={true}
+            />
+          </div>
+        )}
+
+        {showAdminModal && activeAdminTab === "company-config" && (
           <div className="space-y-6">
             <ThresholdConfiguration />
             <CompanyLetterheadConfig />
           </div>
         )}
       </main>
+
+      {/* Alerts Modal */}
+      <Dialog open={showAlertsModal} onOpenChange={setShowAlertsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Toutes les Alertes
+            </DialogTitle>
+            <DialogDescription>
+              Centre de gestion des alertes et notifications IoT
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {dashboardData?.recentAlerts?.map((alert) => (
+              <Card key={alert.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h4 className="font-semibold">{alert.title}</h4>
+                      <p className="text-sm text-muted-foreground">{alert.message}</p>
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                        <span>#{alert.id}</span>
+                        <span>•</span>
+                        <span>{new Date(alert.timestamp).toLocaleString('fr-FR')}</span>
+                      </div>
+                    </div>
+                    <Badge className={`${
+                      alert.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                      alert.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
+                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                    }`}>
+                      {alert.severity}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            )) || (
+              <p className="text-center py-8 text-muted-foreground">
+                Aucune alerte disponible
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Analytics Modal */}
       <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
