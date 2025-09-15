@@ -14,6 +14,8 @@ import { PIIRedactionService } from './pii-redaction-system';
 import { db } from './db';
 import { userProfiles } from '../shared/schema';
 import { eq } from 'drizzle-orm';
+// 🔒 VALIDATION SÉCURISÉE
+import { commonSchemas, validateInput, mfaVerifyRateLimit } from './security-middleware';
 
 export const mfaRouter = Router();
 
@@ -32,7 +34,9 @@ interface MFARequest extends Request {
  * POST /api/mfa/setup/init
  * Initialise le setup MFA (génération QR code)
  */
-mfaRouter.post('/setup/init', async (req: MFARequest, res: Response) => {
+mfaRouter.post('/setup/init', 
+  validateInput(commonSchemas.mfaSetupInit), // 🔒 VALIDATION ZOD STRICT
+  async (req: MFARequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const userEmail = req.user?.email;
@@ -87,11 +91,14 @@ mfaRouter.post('/setup/init', async (req: MFARequest, res: Response) => {
 /**
  * POST /api/mfa/setup/complete
  * Finalise le setup MFA avec vérification code
+ * 🔒 SÉCURISÉ avec validation Zod
  */
-mfaRouter.post('/setup/complete', async (req: MFARequest, res: Response) => {
+mfaRouter.post('/setup/complete', 
+  validateInput(commonSchemas.mfaSetupComplete), // 🔒 VALIDATION ZOD
+  async (req: MFARequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { secret, token, backupCodes } = req.body;
+    const { secret, token, backupCodes } = req.body; // Déjà validé par Zod
 
     if (!userId) {
       return res.status(401).json({
@@ -99,13 +106,8 @@ mfaRouter.post('/setup/complete', async (req: MFARequest, res: Response) => {
         message: 'Authentification requise'
       });
     }
-
-    if (!secret || !token || !backupCodes) {
-      return res.status(400).json({
-        success: false,
-        message: 'Paramètres manquants (secret, token, backupCodes)'
-      });
-    }
+    
+    // Plus de validation manuelle nécessaire - Zod s'en charge
 
     // Finaliser le setup
     const result = await MFAService.setupMFA(userId, secret, token, backupCodes);
@@ -143,11 +145,15 @@ mfaRouter.post('/setup/complete', async (req: MFARequest, res: Response) => {
 /**
  * POST /api/mfa/verify
  * Vérifie un code MFA (TOTP ou backup)
+ * 🔒 SÉCURISÉ avec validation Zod
  */
-mfaRouter.post('/verify', async (req: MFARequest, res: Response) => {
+mfaRouter.post('/verify', 
+  mfaVerifyRateLimit, // 🔒 ANTI-BRUTE FORCE (5 tentatives/5min)
+  validateInput(commonSchemas.mfaVerify), // 🔒 VALIDATION ZOD STRICT
+  async (req: MFARequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { token, isBackupCode } = req.body;
+    const { token, isBackupCode } = req.body; // Déjà validé par Zod
 
     if (!userId) {
       return res.status(401).json({
@@ -155,13 +161,8 @@ mfaRouter.post('/verify', async (req: MFARequest, res: Response) => {
         message: 'Authentification requise'
       });
     }
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: 'Code MFA requis'
-      });
-    }
+    
+    // Plus de validation manuelle - Zod garantit format 6 chiffres
 
     // Vérifier le code
     const result = await MFAService.verifyMFA(userId, token, isBackupCode);
@@ -200,8 +201,11 @@ mfaRouter.post('/verify', async (req: MFARequest, res: Response) => {
 /**
  * POST /api/mfa/backup-codes/regenerate
  * Régénère les codes de backup
+ * 🔒 SÉCURISÉ avec validation Zod
  */
-mfaRouter.post('/backup-codes/regenerate', async (req: MFARequest, res: Response) => {
+mfaRouter.post('/backup-codes/regenerate', 
+  validateInput(commonSchemas.mfaSetupInit), // 🔒 VALIDATION ZOD (body vide OK)
+  async (req: MFARequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -292,8 +296,11 @@ mfaRouter.get('/status', async (req: MFARequest, res: Response) => {
 /**
  * POST /api/mfa/disable
  * Désactive MFA (pour les utilisateurs non-admin uniquement)
+ * 🔒 SÉCURISÉ avec validation Zod
  */
-mfaRouter.post('/disable', async (req: MFARequest, res: Response) => {
+mfaRouter.post('/disable', 
+  validateInput(commonSchemas.mfaDisable), // 🔒 VALIDATION ZOD
+  async (req: MFARequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const userRole = req.user?.role;

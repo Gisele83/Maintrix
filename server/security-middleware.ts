@@ -64,6 +64,18 @@ export const authRateLimit = rateLimit({
   skipSuccessfulRequests: true
 });
 
+// 🔒 RATE LIMITING MFA CRITIQUE (Anti-brute force)
+export const mfaVerifyRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // Maximum 5 tentatives MFA par IP et utilisateur
+  message: {
+    error: 'Trop de tentatives MFA',
+    retryAfter: '5 minutes'
+  },
+  // IPv6 compatible - utilise IP standard sans custom keyGenerator
+  skipSuccessfulRequests: true
+});
+
 export const generalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // Maximum 1000 requêtes par IP par fenêtre
@@ -311,6 +323,9 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
 // Export de la classe SecurityLogger pour utilisation dans d'autres modules
 export { SecurityLogger };
 
+// 🔒 MIDDLEWARE DE VALIDATION SÉCURISÉE (Export après définition schemas)
+// Ces middleware seront exportés individuellement quand nécessaire
+
 // Schemas de validation courants
 export const commonSchemas = {
   diagnosticInput: z.object({
@@ -335,5 +350,82 @@ export const commonSchemas = {
     type: z.string().min(1).max(50),
     location: z.string().max(100).optional(),
     serialNumber: z.string().max(50).optional()
+  }),
+
+  // 🔒 SCHÉMAS MFA (SÉCURITÉ CRITIQUE) - STRICT MODE
+  mfaSetupInit: z.object({
+    // Pas de body requis pour init
+  }).strict(),
+  
+  mfaSetupComplete: z.object({
+    secret: z.string().min(16).max(100),
+    token: z.string().length(6).regex(/^\d{6}$/, 'Token doit être 6 chiffres'),
+    backupCodes: z.array(z.string().length(8).regex(/^[A-Za-z0-9]{8}$/, 'Code backup 8 caractères alphanum')).length(8)
+  }).strict(),
+  
+  mfaVerify: z.object({
+    token: z.string().min(6).max(8), // 6 chiffres OU 8 alphanum backup
+    isBackupCode: z.boolean().optional().default(false)
+  }).strict().superRefine((data, ctx) => {
+    if (data.isBackupCode) {
+      // Backup code: 8 caractères alphanumériques
+      if (!/^[A-Za-z0-9]{8}$/.test(data.token)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['token'],
+          message: 'Code backup doit être 8 caractères alphanumériques'
+        });
+      }
+    } else {
+      // TOTP: exactement 6 chiffres
+      if (!/^\d{6}$/.test(data.token)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['token'],
+          message: 'Code TOTP doit être 6 chiffres'
+        });
+      }
+    }
+  }),
+  
+  mfaDisable: z.object({
+    confirmDisable: z.boolean().refine(val => val === true, 'Confirmation requise'),
+    currentPassword: z.string().min(1).optional()
+  }).strict(),
+  
+  mfaBackupRegenerate: z.object({
+    // Aucun body requis
+  }).strict(),
+  
+  // 🔒 SCHÉMAS GDPR
+  gdprExportRequest: z.object({
+    format: z.enum(['json', 'csv', 'xml']).default('json'),
+    scope: z.enum(['all_data', 'personal_only', 'maintenance_only']).default('all_data')
+  }),
+  
+  gdprDeleteRequest: z.object({
+    reason: z.string().min(10).max(500),
+    confirmDelete: z.boolean(),
+    retainPeriod: z.number().min(0).max(365).default(30)
+  }),
+  
+  // 🔒 SCHÉMAS WORK ORDERS & MAINTENANCE
+  workOrderInput: z.object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(2000).optional(),
+    priority: z.enum(['low', 'medium', 'high', 'critical']),
+    equipmentId: z.string().min(1).max(50),
+    assignedTo: z.string().max(50).optional(),
+    requestedBy: z.string().max(50),
+    dueDate: z.string().datetime().optional()
+  }),
+  
+  maintenancePlanInput: z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().max(1000).optional(),
+    equipmentIds: z.array(z.string().max(50)).min(1).max(20),
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'yearly']),
+    tasks: z.array(z.string().max(200)).min(1).max(50),
+    requiredSkills: z.array(z.string().max(50)).max(10)
   })
 };
