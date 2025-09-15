@@ -57,6 +57,11 @@ import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-
 import { initializeERPSystem } from "./module-initializer.js";
 import { sectorTemplates } from "@shared/schema";
 
+// ⚡ NOUVELLES ROUTES SÉCURITÉ ET CONFORMITÉ 2025
+import { enhancedAuditRoutes } from "./enhanced-audit-monitoring";
+import { tenantIsolationTestRoutes } from "./tenant-isolation-tests";
+import { optimizedGDPRRoutes } from "./gdpr-api-ergonomics";
+
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -765,6 +770,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register GMAO routes
   registerGMAORoutes(app);
+  
+  // ⚡ NOUVELLES ROUTES SÉCURITÉ ET CONFORMITÉ 2025
+  // Security Monitoring Dashboard & Alerts  
+  app.get('/api/security/dashboard', enhancedAuditRoutes.getDashboard);
+  app.get('/api/security/metrics', enhancedAuditRoutes.getMetrics);
+  app.get('/api/security/alerts', enhancedAuditRoutes.getAlerts);
+  app.post('/api/security/alerts/:alertId/resolve', enhancedAuditRoutes.resolveAlert);
+  
+  // Tenant Isolation Tests (Admin only)
+  app.post('/api/security/tenant-isolation-test', tenantIsolationTestRoutes.runIsolationTests);
+  app.get('/api/security/compliance-report/:testSuiteId', tenantIsolationTestRoutes.getComplianceReport);
+  
+  // GDPR API Ergonomics Optimized
+  app.post('/api/gdpr/request', optimizedGDPRRoutes.createRequest);
+  app.get('/api/gdpr/dashboard', optimizedGDPRRoutes.getDashboard);
+  app.get('/api/gdpr/track/:requestId', optimizedGDPRRoutes.trackRequest);
+  app.get('/api/gdpr/download/:requestId', optimizedGDPRRoutes.downloadData);
   
   // Register Budget Management routes
   const { registerBudgetRoutes } = await import("./budget-management");
