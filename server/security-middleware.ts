@@ -6,12 +6,17 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 
 // Configuration des headers de sécurité
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Pour Vite en dev
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      // 🔒 CSP strict en production, relaxé pour Vite dev
+      scriptSrc: isProduction 
+        ? ["'self'"] 
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Vite dev seulement
+      styleSrc: ["'self'", "'unsafe-inline'"], // Nécessaire pour CSS-in-JS
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       connectSrc: ["'self'", "wss:", "ws:"],
       fontSrc: ["'self'", "https:"],
@@ -20,6 +25,8 @@ export const securityHeaders = helmet({
       frameSrc: ["'none'"],
     },
   },
+  // 🔒 Protection clickjacking explicite
+  frameguard: { action: 'deny' }, // X-Frame-Options: DENY
   crossOriginEmbedderPolicy: false,
   hsts: {
     maxAge: 31536000,
@@ -27,7 +34,7 @@ export const securityHeaders = helmet({
     preload: true
   },
   noSniff: true,
-  xssFilter: true,
+  // Supprimé xssFilter (deprecated), protection via CSP
   referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 });
 

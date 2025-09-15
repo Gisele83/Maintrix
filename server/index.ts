@@ -17,11 +17,15 @@ import { LicenseService } from './license-service';
 import crypto from 'crypto';
 import cookieParser from 'cookie-parser';
 import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
+import { securityHeaders } from './security-middleware';
 
 const app = express();
 
 // Configure Express middleware et sécurité
 app.set('trust proxy', 1); // Important pour rate limiting et sécurité
+// 🛡️ SECURITY HEADERS - Protection contre XSS, clickjacking, MIME sniffing
+app.use(securityHeaders);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser()); // CRITIQUE: Parsing des cookies
