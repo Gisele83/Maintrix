@@ -54,8 +54,7 @@ router.post('/invitations/create',
         success: true,
         invitationId,
         message: `Invitation sent to ${validatedData.email}`,
-        // En production, ne pas retourner le token !
-        invitationLink: `${process.env.FRONTEND_URL}/auth/accept-invitation?token=${token}`
+        instructions: "The user will receive an email with a secure invitation link"
       });
       
     } catch (error: any) {
