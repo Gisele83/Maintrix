@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { ModernNavigation } from "@/components/modern-navigation";
 import FeatureCards, { QuickStats } from "@/components/feature-cards";
-import { TrialBanner } from "@/components/trial-banner";
 
 import {
   Brain,
@@ -360,10 +359,6 @@ export default function ModernHome() {
           </div>
         </div>
         
-        {/* Déplacement de la bannière d'essai en bas de page */}
-        <div className="mt-16">
-          <TrialBanner />
-        </div>
       </main>
     </div>
   );
