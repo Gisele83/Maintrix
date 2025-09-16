@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { db } from "./db";
 import { userProfiles, userSessions, tenants, federatedLearning, licenseHistory } from "@shared/schema";
-import { eq, count, desc } from "drizzle-orm";
+import { eq, count, desc, sql } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { testSendGridConfiguration, testRealEmailSend } from './test-email';
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
@@ -997,6 +997,114 @@ router.patch('/tenants/:tenantId/limit', authenticateSuperAdmin, async (req, res
     res.status(500).json({
       error: "UPDATE_LIMIT_ERROR",
       message: "Erreur lors de la mise à jour de la limite d'utilisateurs"
+    });
+  }
+});
+
+// 🔧 Route pour réinitialiser les flags de changement de mot de passe (migration de sécurité)
+router.post('/reset-password-flags', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const { userIds, resetAll } = req.body;
+    
+    if (!userIds && !resetAll) {
+      return res.status(400).json({
+        error: "USER_IDS_OR_RESET_ALL_REQUIRED",
+        message: "Spécifiez les IDs utilisateurs ou resetAll=true"
+      });
+    }
+
+    let result;
+    
+    if (resetAll) {
+      // Réinitialiser tous les utilisateurs avec must_change_password = true
+      result = await db
+        .update(userProfiles)
+        .set({
+          mustChangePassword: false,
+          isDefaultCredentials: false,
+          passwordExpiresAt: null,
+          updatedAt: new Date()
+        })
+        .where(eq(userProfiles.mustChangePassword, true))
+        .returning({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email
+        });
+        
+      console.log(`✅ Super-admin: Réinitialisation de ${result.length} utilisateurs avec changement obligatoire`);
+      
+    } else {
+      // Réinitialiser uniquement les utilisateurs spécifiés
+      const userIdArray = Array.isArray(userIds) ? userIds : [userIds];
+      
+      result = await db
+        .update(userProfiles)
+        .set({
+          mustChangePassword: false,
+          isDefaultCredentials: false,
+          passwordExpiresAt: null,
+          updatedAt: new Date()
+        })
+        .where(sql`id = ANY(${userIdArray})`)
+        .returning({
+          id: userProfiles.id,
+          username: userProfiles.username,
+          email: userProfiles.email
+        });
+        
+      console.log(`✅ Super-admin: Réinitialisation de ${result.length} utilisateurs spécifiques`);
+    }
+
+    res.json({
+      success: true,
+      message: `${result.length} utilisateur(s) réinitialisé(s) avec succès`,
+      resetUsers: result,
+      count: result.length
+    });
+    
+  } catch (error) {
+    console.error("Error resetting password flags:", error);
+    res.status(500).json({
+      error: "RESET_PASSWORD_FLAGS_ERROR",
+      message: "Erreur lors de la réinitialisation des flags"
+    });
+  }
+});
+
+// 🧹 Route pour nettoyer les anciennes sessions expirées
+router.post('/cleanup-expired-sessions', authenticateSuperAdmin, async (req, res) => {
+  try {
+    // Supprimer les sessions expirées
+    const deletedSessions = await db
+      .delete(userSessions)
+      .where(sql`expires_at < NOW()`)
+      .returning({ id: userSessions.id });
+    
+    // Désactiver les sessions inactives depuis plus de 7 jours
+    const inactiveSessions = await db
+      .update(userSessions)
+      .set({ 
+        isActive: false,
+        updatedAt: new Date()
+      })
+      .where(sql`last_activity_at < NOW() - INTERVAL '7 days' AND is_active = true`)
+      .returning({ id: userSessions.id });
+    
+    console.log(`✅ Super-admin: ${deletedSessions.length} sessions expirées supprimées, ${inactiveSessions.length} sessions inactives désactivées`);
+    
+    res.json({
+      success: true,
+      message: `Nettoyage terminé: ${deletedSessions.length} sessions supprimées, ${inactiveSessions.length} désactivées`,
+      deleted: deletedSessions.length,
+      deactivated: inactiveSessions.length
+    });
+    
+  } catch (error) {
+    console.error("Error cleaning up sessions:", error);
+    res.status(500).json({
+      error: "CLEANUP_SESSIONS_ERROR",
+      message: "Erreur lors du nettoyage des sessions"
     });
   }
 });
