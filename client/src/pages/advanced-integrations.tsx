@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { 
   Settings, 
   Database, 
@@ -76,8 +84,31 @@ interface PowerBiWorkspace {
   syncStatus: string;
 }
 
+// Form schemas
+const erpSystemSchema = z.object({
+  systemName: z.string().min(2, "Le nom du système doit faire au moins 2 caractères"),
+  systemType: z.string().min(1, "Veuillez sélectionner un type de système"),
+  connectionUrl: z.string().url("L'URL de connexion doit être valide"),
+  authMethod: z.string().min(1, "Veuillez sélectionner une méthode d'authentification"),
+  username: z.string().optional(),
+  password: z.string().optional(),
+  apiKey: z.string().optional(),
+  syncInterval: z.coerce.number().min(30).max(86400).optional(),
+});
+
+const scadaConnectionSchema = z.object({
+  connectionName: z.string().min(2, "Le nom de connexion doit faire au moins 2 caractères"),
+  protocol: z.string().min(1, "Veuillez sélectionner un protocole"),
+  endpoint: z.string().min(1, "L'endpoint est requis"),
+  pollInterval: z.coerce.number().min(1000).max(300000).optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+
 export default function AdvancedIntegrationsPage() {
   const { toast } = useToast();
+  const [isERPModalOpen, setIsERPModalOpen] = useState(false);
+  const [isSCADAModalOpen, setIsSCADAModalOpen] = useState(false);
 
   // Queries for data
   const { data: erpSystems, isLoading: erpLoading } = useQuery({
@@ -153,6 +184,112 @@ export default function AdvancedIntegrationsPage() {
       });
     }
   });
+
+  // Form hooks
+  const erpForm = useForm<z.infer<typeof erpSystemSchema>>({
+    resolver: zodResolver(erpSystemSchema),
+    defaultValues: {
+      systemName: "",
+      systemType: "",
+      connectionUrl: "",
+      authMethod: "",
+      syncInterval: 300,
+    },
+  });
+
+  const scadaForm = useForm<z.infer<typeof scadaConnectionSchema>>({
+    resolver: zodResolver(scadaConnectionSchema),
+    defaultValues: {
+      connectionName: "",
+      protocol: "",
+      endpoint: "",
+      pollInterval: 5000,
+    },
+  });
+
+  // Create ERP System mutation
+  const createERPMutation = useMutation({
+    mutationFn: (data: z.infer<typeof erpSystemSchema>) => {
+      const credentials = {
+        username: data.username,
+        password: data.password,
+        apiKey: data.apiKey,
+      };
+      
+      return apiRequest('/api/erp-systems', {
+        method: 'POST',
+        body: {
+          systemName: data.systemName,
+          systemType: data.systemType,
+          connectionUrl: data.connectionUrl,
+          authMethod: data.authMethod,
+          credentials,
+          syncInterval: data.syncInterval,
+        }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Système ERP créé",
+        description: "Le système ERP a été créé avec succès"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/erp-systems'] });
+      setIsERPModalOpen(false);
+      erpForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le système ERP",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Create SCADA Connection mutation
+  const createSCADAMutation = useMutation({
+    mutationFn: (data: z.infer<typeof scadaConnectionSchema>) => {
+      const configuration = {
+        username: data.username,
+        password: data.password,
+      };
+      
+      return apiRequest('/api/scada-connections', {
+        method: 'POST',
+        body: {
+          connectionName: data.connectionName,
+          protocol: data.protocol,
+          endpoint: data.endpoint,
+          pollInterval: data.pollInterval,
+          configuration,
+        }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Connexion SCADA créée",
+        description: "La connexion SCADA a été créée avec succès"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/scada-connections'] });
+      setIsSCADAModalOpen(false);
+      scadaForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la connexion SCADA",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onERPSubmit = (data: z.infer<typeof erpSystemSchema>) => {
+    createERPMutation.mutate(data);
+  };
+
+  const onSCADASubmit = (data: z.infer<typeof scadaConnectionSchema>) => {
+    createSCADAMutation.mutate(data);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
@@ -261,10 +398,171 @@ export default function AdvancedIntegrationsPage() {
                       <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       <CardTitle>Systèmes ERP</CardTitle>
                     </div>
-                    <Button size="sm" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Ajouter
-                    </Button>
+                    <Dialog open={isERPModalOpen} onOpenChange={setIsERPModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700" data-testid="button-add-erp">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Ajouter
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Ajouter un système ERP</DialogTitle>
+                          <DialogDescription>
+                            Configurez une nouvelle connexion vers un système ERP (SAP, Oracle, Maximo, etc.)
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...erpForm}>
+                          <form onSubmit={erpForm.handleSubmit(onERPSubmit)} className="space-y-4">
+                            <FormField
+                              control={erpForm.control}
+                              name="systemName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nom du système</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ex: SAP Production" {...field} data-testid="input-erp-name" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={erpForm.control}
+                              name="systemType"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Type de système</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-erp-type">
+                                        <SelectValue placeholder="Sélectionnez un type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="erp">ERP</SelectItem>
+                                      <SelectItem value="mes">MES</SelectItem>
+                                      <SelectItem value="plc">PLC</SelectItem>
+                                      <SelectItem value="scada">SCADA</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={erpForm.control}
+                              name="connectionUrl"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>URL de connexion</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="https://erp.company.com/api" {...field} data-testid="input-erp-url" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={erpForm.control}
+                              name="authMethod"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Méthode d'authentification</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-erp-auth">
+                                        <SelectValue placeholder="Sélectionnez une méthode" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="basic">Authentification basique</SelectItem>
+                                      <SelectItem value="oauth">OAuth 2.0</SelectItem>
+                                      <SelectItem value="api_key">Clé API</SelectItem>
+                                      <SelectItem value="certificate">Certificat</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={erpForm.control}
+                                name="username"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Nom d'utilisateur</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Optionnel" {...field} data-testid="input-erp-username" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={erpForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Mot de passe</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Optionnel" {...field} data-testid="input-erp-password" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <FormField
+                              control={erpForm.control}
+                              name="apiKey"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Clé API</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Optionnel" {...field} data-testid="input-erp-api-key" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={erpForm.control}
+                              name="syncInterval"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Intervalle de synchronisation (secondes)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="300" {...field} data-testid="input-erp-sync-interval" />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Entre 30 et 86400 secondes (1 jour)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="flex justify-end space-x-2 pt-4">
+                              <Button type="button" variant="outline" onClick={() => setIsERPModalOpen(false)} data-testid="button-cancel-erp">
+                                Annuler
+                              </Button>
+                              <Button type="submit" disabled={createERPMutation.isPending} data-testid="button-save-erp">
+                                {createERPMutation.isPending ? "Création..." : "Créer le système"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   <CardDescription>
                     Connecteurs vers SAP, Oracle, Maximo et autres systèmes ERP
@@ -340,10 +638,137 @@ export default function AdvancedIntegrationsPage() {
                       <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                       <CardTitle>Connexions SCADA</CardTitle>
                     </div>
-                    <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Ajouter
-                    </Button>
+                    <Dialog open={isSCADAModalOpen} onOpenChange={setIsSCADAModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700" data-testid="button-add-scada">
+                          <Plus className="h-4 w-4 mr-1" />
+                          Ajouter
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Ajouter une connexion SCADA</DialogTitle>
+                          <DialogDescription>
+                            Configurez une nouvelle connexion SCADA (OPC-UA, Modbus, MQTT, etc.)
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...scadaForm}>
+                          <form onSubmit={scadaForm.handleSubmit(onSCADASubmit)} className="space-y-4">
+                            <FormField
+                              control={scadaForm.control}
+                              name="connectionName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nom de la connexion</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ex: Ligne Production A" {...field} data-testid="input-scada-name" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={scadaForm.control}
+                              name="protocol"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Protocole</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-scada-protocol">
+                                        <SelectValue placeholder="Sélectionnez un protocole" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="opcua">OPC-UA</SelectItem>
+                                      <SelectItem value="modbus">Modbus</SelectItem>
+                                      <SelectItem value="mqtt">MQTT</SelectItem>
+                                      <SelectItem value="bacnet">BACnet</SelectItem>
+                                      <SelectItem value="ethernet_ip">EtherNet/IP</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={scadaForm.control}
+                              name="endpoint"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Endpoint</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="opc.tcp://192.168.1.100:4840" {...field} data-testid="input-scada-endpoint" />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Format: protocole://adresse:port
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={scadaForm.control}
+                              name="pollInterval"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Intervalle de polling (millisecondes)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="5000" {...field} data-testid="input-scada-poll-interval" />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Entre 1000 et 300000 ms (5 minutes)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={scadaForm.control}
+                                name="username"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Nom d'utilisateur</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Optionnel" {...field} data-testid="input-scada-username" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={scadaForm.control}
+                                name="password"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Mot de passe</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Optionnel" {...field} data-testid="input-scada-password" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            
+                            <div className="flex justify-end space-x-2 pt-4">
+                              <Button type="button" variant="outline" onClick={() => setIsSCADAModalOpen(false)} data-testid="button-cancel-scada">
+                                Annuler
+                              </Button>
+                              <Button type="submit" disabled={createSCADAMutation.isPending} data-testid="button-save-scada">
+                                {createSCADAMutation.isPending ? "Création..." : "Créer la connexion"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   <CardDescription>
                     Connexions OPC-UA, Modbus, MQTT et autres protocoles industriels
