@@ -39,95 +39,109 @@ export default function ModernHome() {
   const activeAlerts = (alerts as any[]).filter((alert: any) => alert.status === 'active').length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-100/50 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-32 w-96 h-96 bg-gradient-to-r from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-float" style={{animationDelay: '3s'}}></div>
+      </div>
+      
       <ModernNavigation />
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <div className="relative inline-block mb-8">
-            <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight">
+        {/* Enhanced Hero Section */}
+        <div className="text-center mb-20">
+          <div className="relative inline-block mb-12">
+            {/* Main title with enhanced animations */}
+            <h1 className="text-6xl sm:text-8xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight animate-float">
               Smart GMAO DiagFix
             </h1>
-            <div className="absolute -top-4 right-0 sm:-right-8 lg:-right-12">
-              <div className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-xl animate-bounce">
-                Interface Unifiée
+            
+            {/* Enhanced badge with glassmorphism */}
+            <div className="absolute -top-6 right-0 sm:-right-8 lg:-right-12">
+              <div className="inline-flex items-center px-4 py-2 sm:px-5 sm:py-2.5 md:px-6 md:py-3 rounded-2xl text-sm md:text-base font-semibold bg-white/20 backdrop-blur-md border border-white/30 text-gray-700 shadow-2xl animate-pulse hover:animate-bounce transition-all duration-300">
+                ✨ Interface Unifiée
               </div>
             </div>
+            
+            {/* Decorative elements */}
+            <div className="absolute -top-8 -left-8 w-4 h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-ping"></div>
+            <div className="absolute -bottom-4 -right-4 w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
           </div>
           
-          <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto mb-8 leading-relaxed">
-            <span className="font-semibold text-blue-600">Plateforme Multi-Tenant</span> avec architecture modulaire : 
-            Gestion centralisée et modules intelligents pour la maintenance industrielle
+          <p className="text-xl sm:text-3xl text-gray-700 max-w-5xl mx-auto mb-12 leading-relaxed font-light">
+            <span className="font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Plateforme Multi-Tenant</span> avec architecture modulaire : 
+            <br className="hidden sm:block" />
+            Gestion centralisée et modules intelligents pour la maintenance industrielle de nouvelle génération
           </p>
           
-          {/* Nouvelles fonctionnalités mises en avant */}
-          <div className="flex justify-center items-center flex-wrap gap-3 mb-8">
-            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 text-sm">
+          {/* Enhanced feature badges */}
+          <div className="flex justify-center items-center flex-wrap gap-4 mb-16">
+            <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 text-sm rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm border border-white/20">
               ✅ Super-Admin Interface
             </Badge>
-            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 text-sm">
+            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 text-sm rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm border border-white/20">
               🔐 Gestion Identifiants
             </Badge>
-            <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 text-sm">
+            <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 text-sm rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm border border-white/20">
               📧 Notifications Email
             </Badge>
-            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 text-sm">
+            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 text-sm rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 backdrop-blur-sm border border-white/20">
               🏢 Multi-Tenant SaaS
             </Badge>
           </div>
           
-          {/* Modules Description */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-12">
-            <div className="bg-white/60 backdrop-blur-sm border border-blue-200 rounded-2xl p-8 shadow-xl">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <Settings className="w-8 h-8 text-white" />
+          {/* Enhanced Modules Description */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
+            <div className="group bg-white/20 backdrop-blur-lg border border-white/30 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-105 hover:bg-white/30 card-hover">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Settings className="w-10 h-10 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-blue-900 mb-4">Module GMAO</h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-6 text-center">Module GMAO</h3>
+              <p className="text-gray-700 leading-relaxed mb-6 text-center text-lg">
                 Planification des interventions, gestion des techniciens, ordres de travail et maintenance préventive
               </p>
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary" className="text-xs">Multi-tenant</Badge>
-                <Badge variant="secondary" className="text-xs">Workflow avancé</Badge>
-                <Badge variant="secondary" className="text-xs">120 cas réels</Badge>
+              <div className="flex flex-wrap gap-3 mb-8 justify-center">
+                <Badge variant="secondary" className="text-xs bg-blue-100/80 text-blue-700 px-3 py-1 rounded-full">Multi-tenant</Badge>
+                <Badge variant="secondary" className="text-xs bg-indigo-100/80 text-indigo-700 px-3 py-1 rounded-full">Workflow avancé</Badge>
+                <Badge variant="secondary" className="text-xs bg-purple-100/80 text-purple-700 px-3 py-1 rounded-full">120 cas réels</Badge>
               </div>
-              <div className="mt-6">
-                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+              <div className="mt-8">
+                <Button asChild className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl py-3 shadow-lg hover:shadow-xl transition-all duration-300">
                   <Link href="/gmao">
-                    <Settings className="w-4 h-4 mr-2" />
+                    <Settings className="w-5 h-5 mr-2" />
                     Accéder au GMAO
                   </Link>
                 </Button>
               </div>
             </div>
             
-            <div className="bg-white/60 backdrop-blur-sm border border-purple-200 rounded-2xl p-8 shadow-xl">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Brain className="w-8 h-8 text-white" />
+            <div className="group bg-white/20 backdrop-blur-lg border border-white/30 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-105 hover:bg-white/30 card-hover">
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Brain className="w-10 h-10 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-purple-900 mb-4">Module Diagnostic IA</h3>
-              <p className="text-gray-700 leading-relaxed mb-4">
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent mb-6 text-center">Module Diagnostic IA</h3>
+              <p className="text-gray-700 leading-relaxed mb-6 text-center text-lg">
                 Analyse intelligente : symptômes → diagnostic → préconisations → lien vers intervention
               </p>
-              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary" className="text-xs">9 Algorithmes ML</Badge>
-                <Badge variant="secondary" className="text-xs">98% précision</Badge>
-                <Badge variant="secondary" className="text-xs">Ensemble learning</Badge>
+              <div className="flex flex-wrap gap-3 mb-8 justify-center">
+                <Badge variant="secondary" className="text-xs bg-purple-100/80 text-purple-700 px-3 py-1 rounded-full">9 Algorithmes ML</Badge>
+                <Badge variant="secondary" className="text-xs bg-pink-100/80 text-pink-700 px-3 py-1 rounded-full">98% précision</Badge>
+                <Badge variant="secondary" className="text-xs bg-indigo-100/80 text-indigo-700 px-3 py-1 rounded-full">Ensemble learning</Badge>
               </div>
-              <div className="mt-6 space-y-3">
-                <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+              <div className="mt-8 space-y-4">
+                <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl py-3 shadow-lg hover:shadow-xl transition-all duration-300">
                   <Link href="/diagnostic">
-                    <Brain className="w-4 h-4 mr-2" />
+                    <Brain className="w-5 h-5 mr-2" />
                     Diagnostic IA
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="w-full border-purple-500 text-purple-600 hover:bg-purple-50">
+                <Button asChild variant="outline" className="w-full border-purple-300/50 bg-white/10 backdrop-blur-sm text-purple-700 hover:bg-purple-50/50 rounded-xl py-3 transition-all duration-300">
                   <Link href="/voice-diagnostic">
                     <div className="w-4 h-4 mr-2 rounded-full bg-red-500 animate-pulse flex items-center justify-center">
                       <div className="w-2 h-2 bg-white rounded-full"></div>
