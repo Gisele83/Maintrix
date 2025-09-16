@@ -27,7 +27,12 @@ import {
   ShoppingCart,
   FileText,
   Download,
-  Upload
+  Upload,
+  Globe,
+  Smartphone,
+  CreditCard,
+  Server,
+  Network
 } from 'lucide-react';
 import { ModernNavigation } from '@/components/modern-navigation';
 
@@ -82,7 +87,14 @@ const moduleIcons = {
   'maintenance-dashboard': BarChart3,
   'procurement': ShoppingCart,
   'reporting': FileText,
-  'iot-integration': Zap
+  'iot-integration': Zap,
+  'advanced-integrations': Network,
+  'ensemble-ai': Brain,
+  'mobile-access': Smartphone,
+  'multi-tenant-saas': Globe,
+  'payment-management': CreditCard,
+  'advanced-reporting': FileText,
+  'local-deployment': Server
 };
 
 export default function ERPConfiguration() {

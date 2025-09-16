@@ -172,6 +172,133 @@ const defaultModules: InsertModuleCatalog[] = [
       features: ["sensor_monitoring", "automatic_alerts", "threshold_config", "data_visualization"],
       limits: { max_sensors: 100, data_retention_days: 90 }
     }
+  },
+
+  // MODULES AVANCÉS - INTÉGRATIONS ENTERPRISE
+  {
+    key: "advanced-integrations",
+    name: "Intégrations Avancées",
+    description: "Connecteurs ERP (SAP, Oracle), SCADA, Power BI et API externes avancées",
+    category: "ENTERPRISE_INTEGRATION",
+    version: "2.0.0",
+    dependencies: ["equipment-management", "work-orders"],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: ["/advanced-integrations"],
+    apiEndpoints: ["/api/integrations/sap", "/api/integrations/scada", "/api/integrations/powerbi"],
+    permissions: ["integration:read", "integration:configure", "integration:sync"],
+    configuration: {
+      features: ["sap_connector", "oracle_connector", "scada_integration", "powerbi_reports", "rest_api_gateway"],
+      limits: { max_connections: 10, sync_frequency_minutes: 15 }
+    }
+  },
+
+  {
+    key: "ensemble-ai",
+    name: "IA Ensemble Avancée",
+    description: "Système IA multi-modèles avec 9 algorithmes ML et apprentissage fédéré",
+    category: "ADVANCED_AI",
+    version: "2.0.0",
+    dependencies: ["smart-diagnostic", "equipment-management"],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: ["/smart-diagnostic"],
+    apiEndpoints: ["/api/diagnostic-ensemble-ml", "/api/federated-ai/diagnostic-feedback"],
+    permissions: ["ai:advanced", "ai:ensemble", "ai:federated"],
+    configuration: {
+      features: ["ensemble_voting", "neural_networks", "anomaly_detection", "federated_learning"],
+      limits: { max_models: 9, accuracy_threshold: 0.95 }
+    }
+  },
+
+  {
+    key: "mobile-access",
+    name: "Accès Mobile",
+    description: "Application mobile React Native avec mode hors-ligne et scanner QR",
+    category: "MOBILE_PLATFORM",
+    version: "1.0.0",
+    dependencies: ["equipment-management", "work-orders", "smart-diagnostic"],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: [],
+    apiEndpoints: ["/api/mobile/sync", "/api/mobile/equipment/qr"],
+    permissions: ["mobile:access", "mobile:offline", "mobile:qr"],
+    configuration: {
+      features: ["offline_mode", "qr_scanner", "field_technician", "data_sync"],
+      limits: { offline_data_days: 30, max_offline_records: 1000 }
+    }
+  },
+
+  {
+    key: "multi-tenant-saas",
+    name: "Multi-Tenant SaaS",
+    description: "Architecture SaaS multi-tenant avec isolation des données et gestion enterprise",
+    category: "ENTERPRISE_PLATFORM",
+    version: "1.0.0",
+    dependencies: [],
+    defaultEnabled: true,
+    isCore: true,
+    routePaths: ["/tenant-management"],
+    apiEndpoints: ["/api/tenant", "/api/enterprise-auth"],
+    permissions: ["tenant:manage", "tenant:create", "enterprise:admin"],
+    configuration: {
+      features: ["data_isolation", "tenant_metrics", "federated_ai", "security_middleware"],
+      limits: { max_tenants: 100, max_users_per_tenant: 50 }
+    }
+  },
+
+  {
+    key: "payment-management",
+    name: "Gestion des Paiements",
+    description: "Système de paiement PCI-DSS avec Stripe et PayPal pour abonnements SaaS",
+    category: "PAYMENT_SYSTEM",
+    version: "1.0.0",
+    dependencies: ["multi-tenant-saas"],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: ["/payment-management", "/subscription"],
+    apiEndpoints: ["/api/payments/stripe", "/api/payments/paypal", "/api/subscriptions"],
+    permissions: ["payment:read", "payment:process", "subscription:manage"],
+    configuration: {
+      features: ["stripe_integration", "paypal_integration", "subscription_plans", "invoice_generation"],
+      limits: { max_transactions_per_month: 10000 }
+    }
+  },
+
+  {
+    key: "advanced-reporting",
+    name: "Rapports Avancés PDF",
+    description: "Génération avancée de rapports PDF avec analyses prédictives et KPIs industriels",
+    category: "ADVANCED_ANALYTICS",
+    version: "2.0.0",
+    dependencies: ["reporting", "maintenance-dashboard"],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: ["/advanced-reporting"],
+    apiEndpoints: ["/api/pdf-reports", "/api/maintenance-reports", "/api/monthly-reports"],
+    permissions: ["reports:advanced", "reports:pdf", "analytics:predictive"],
+    configuration: {
+      features: ["pdf_generation", "predictive_analytics", "kpi_dashboards", "automated_reports"],
+      limits: { max_pdf_reports_per_month: 500 }
+    }
+  },
+
+  {
+    key: "local-deployment",
+    name: "Déploiement Local",
+    description: "Installation locale avec Docker et scripts automatisés pour environnements on-premise",
+    category: "DEPLOYMENT",
+    version: "1.0.0",
+    dependencies: [],
+    defaultEnabled: false,
+    isCore: false,
+    routePaths: ["/deployment-management"],
+    apiEndpoints: ["/api/deployment/status", "/api/deployment/backup"],
+    permissions: ["deploy:local", "deploy:backup", "system:admin"],
+    configuration: {
+      features: ["docker_containers", "automated_scripts", "nginx_proxy", "ssl_configuration"],
+      limits: { max_backup_retention_days: 30 }
+    }
   }
 ];
 
@@ -185,8 +312,15 @@ export async function initializeModuleCatalog(): Promise<void> {
     // Vérifier si des modules existent déjà
     const existingModules = await db.select().from(moduleCatalog);
     
-    if (existingModules.length > 0) {
-      console.log(`✅ Module catalog already initialized with ${existingModules.length} modules`);
+    // Si nous avons moins de modules que prévu, mettre à jour le catalogue
+    if (existingModules.length > 0 && existingModules.length < defaultModules.length) {
+      console.log(`🔄 Updating module catalog from ${existingModules.length} to ${defaultModules.length} modules`);
+      
+      // Supprimer les anciens modules pour une mise à jour complète
+      await db.delete(moduleCatalog);
+      console.log("  ✓ Cleared existing modules");
+    } else if (existingModules.length >= defaultModules.length) {
+      console.log(`✅ Module catalog already up-to-date with ${existingModules.length} modules`);
       return;
     }
 
