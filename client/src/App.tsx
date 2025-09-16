@@ -31,6 +31,7 @@ import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
 import Historique from "@/pages/historique";
 import Inventaire from "@/pages/inventaire";
+import AdvancedIntegrations from "@/pages/advanced-integrations";
 
 import LocalhostDiagnostic from "@/pages/localhost-diagnostic";
 import TenantManagement from "@/pages/tenant-management";
@@ -130,6 +131,9 @@ function Router() {
       </Route>
       <Route path="/inventaire">
         {(params) => <ProtectedRoute component={Inventaire} {...params} />}
+      </Route>
+      <Route path="/advanced-integrations">
+        {(params) => <ProtectedRoute component={AdvancedIntegrations} {...params} />}
       </Route>
       <Route path="/advanced-reporting">
         {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}
