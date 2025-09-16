@@ -600,7 +600,14 @@ export default function ERPConfiguration() {
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {getCategoryModules('ERP_PROCUREMENT').concat(
                         getCategoryModules('ANALYTICS'),
-                        getCategoryModules('IOT_AUTOMATION')
+                        getCategoryModules('IOT_AUTOMATION'),
+                        getCategoryModules('ENTERPRISE_INTEGRATION'),
+                        getCategoryModules('ADVANCED_AI'),
+                        getCategoryModules('MOBILE_PLATFORM'),
+                        getCategoryModules('ENTERPRISE_PLATFORM'),
+                        getCategoryModules('PAYMENT_SYSTEM'),
+                        getCategoryModules('ADVANCED_ANALYTICS'),
+                        getCategoryModules('DEPLOYMENT')
                       ).map((module) => {
                         const Icon = moduleIcons[module.key as keyof typeof moduleIcons] || Package;
                         const isEnabled = moduleConfig[module.key] || false;
@@ -678,7 +685,14 @@ export default function ERPConfiguration() {
                     <span className="font-semibold text-blue-600">
                       {getCategoryModules('ERP_PROCUREMENT').concat(
                         getCategoryModules('ANALYTICS'),
-                        getCategoryModules('IOT_AUTOMATION')
+                        getCategoryModules('IOT_AUTOMATION'),
+                        getCategoryModules('ENTERPRISE_INTEGRATION'),
+                        getCategoryModules('ADVANCED_AI'),
+                        getCategoryModules('MOBILE_PLATFORM'),
+                        getCategoryModules('ENTERPRISE_PLATFORM'),
+                        getCategoryModules('PAYMENT_SYSTEM'),
+                        getCategoryModules('ADVANCED_ANALYTICS'),
+                        getCategoryModules('DEPLOYMENT')
                       ).filter(m => moduleConfig[m.key]).length}
                     </span>
                   </div>
