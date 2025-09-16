@@ -54,7 +54,17 @@ app.use((req, res, next) => {
   const isUnsafeMethod = unsafeMethods.includes(req.method);
   const isApiRoute = req.path.startsWith('/api');
   
-  if (isUnsafeMethod && isApiRoute) {
+  // Exempter les endpoints de login et register de la vérification CSRF
+  const exemptPaths = [
+    '/api/enterprise-auth/login',
+    '/api/enterprise-auth/register',
+    '/api/auth/login',
+    '/api/auth/register',
+    '/api/super-admin'
+  ];
+  const isExemptPath = exemptPaths.some(path => req.path.startsWith(path));
+  
+  if (isUnsafeMethod && isApiRoute && !isExemptPath) {
     const tokenFromHeader = req.headers['x-csrf-token'];
     const tokenFromCookie = req.cookies?.csrfToken;
     
