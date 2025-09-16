@@ -105,10 +105,28 @@ const scadaConnectionSchema = z.object({
   password: z.string().optional(),
 });
 
+const aiModelSchema = z.object({
+  modelName: z.string().min(2, "Le nom du modèle doit faire au moins 2 caractères"),
+  modelType: z.string().min(1, "Veuillez sélectionner un type de modèle"),
+  algorithmType: z.string().min(1, "Veuillez sélectionner un algorithme"),
+  equipmentCategory: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const powerBiWorkspaceSchema = z.object({
+  workspaceName: z.string().min(2, "Le nom du workspace doit faire au moins 2 caractères"),
+  workspaceId: z.string().min(1, "L'ID du workspace est requis"),
+  description: z.string().optional(),
+  tenantDomain: z.string().optional(),
+  powerBiAppId: z.string().optional(),
+});
+
 export default function AdvancedIntegrationsPage() {
   const { toast } = useToast();
   const [isERPModalOpen, setIsERPModalOpen] = useState(false);
   const [isSCADAModalOpen, setIsSCADAModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isPowerBIModalOpen, setIsPowerBIModalOpen] = useState(false);
 
   // Queries for data
   const { data: erpSystems, isLoading: erpLoading } = useQuery({
@@ -207,6 +225,28 @@ export default function AdvancedIntegrationsPage() {
     },
   });
 
+  const aiForm = useForm<z.infer<typeof aiModelSchema>>({
+    resolver: zodResolver(aiModelSchema),
+    defaultValues: {
+      modelName: "",
+      modelType: "",
+      algorithmType: "",
+      equipmentCategory: "",
+      description: "",
+    },
+  });
+
+  const powerBiForm = useForm<z.infer<typeof powerBiWorkspaceSchema>>({
+    resolver: zodResolver(powerBiWorkspaceSchema),
+    defaultValues: {
+      workspaceName: "",
+      workspaceId: "",
+      description: "",
+      tenantDomain: "",
+      powerBiAppId: "",
+    },
+  });
+
   // Create ERP System mutation
   const createERPMutation = useMutation({
     mutationFn: (data: z.infer<typeof erpSystemSchema>) => {
@@ -289,6 +329,80 @@ export default function AdvancedIntegrationsPage() {
 
   const onSCADASubmit = (data: z.infer<typeof scadaConnectionSchema>) => {
     createSCADAMutation.mutate(data);
+  };
+
+  // Create AI Model mutation
+  const createAIMutation = useMutation({
+    mutationFn: (data: z.infer<typeof aiModelSchema>) => {
+      return apiRequest('/api/ai-models', {
+        method: 'POST',
+        body: {
+          modelName: data.modelName,
+          modelType: data.modelType,
+          algorithmType: data.algorithmType,
+          equipmentCategory: data.equipmentCategory,
+          trainDataSource: { type: "historical", source: "maintenance_cases" },
+          modelParameters: {},
+          featureSet: ["vibration", "temperature", "pressure"],
+        }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Modèle IA créé",
+        description: "Le modèle d'IA prédictive a été créé avec succès"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-models'] });
+      setIsAIModalOpen(false);
+      aiForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le modèle IA",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Create Power BI Workspace mutation
+  const createPowerBIMutation = useMutation({
+    mutationFn: (data: z.infer<typeof powerBiWorkspaceSchema>) => {
+      return apiRequest('/api/power-bi/workspaces', {
+        method: 'POST',
+        body: {
+          workspaceName: data.workspaceName,
+          workspaceId: data.workspaceId,
+          description: data.description,
+          tenantDomain: data.tenantDomain,
+          powerBiAppId: data.powerBiAppId,
+        }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Workspace Power BI connecté",
+        description: "Le workspace Power BI a été connecté avec succès"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/power-bi/workspaces'] });
+      setIsPowerBIModalOpen(false);
+      powerBiForm.reset();
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de connecter le workspace Power BI",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onAISubmit = (data: z.infer<typeof aiModelSchema>) => {
+    createAIMutation.mutate(data);
+  };
+
+  const onPowerBISubmit = (data: z.infer<typeof powerBiWorkspaceSchema>) => {
+    createPowerBIMutation.mutate(data);
   };
 
   return (
@@ -836,10 +950,141 @@ export default function AdvancedIntegrationsPage() {
                     <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     <CardTitle>Modèles IA Prédictive</CardTitle>
                   </div>
-                  <Button size="sm" className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Nouveau Modèle
-                  </Button>
+                  <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700" data-testid="button-add-ai-model">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Nouveau Modèle
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Créer un nouveau modèle IA</DialogTitle>
+                        <DialogDescription>
+                          Configurez un nouveau modèle d'intelligence artificielle pour la prédiction de pannes
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...aiForm}>
+                        <form onSubmit={aiForm.handleSubmit(onAISubmit)} className="space-y-4">
+                          <FormField
+                            control={aiForm.control}
+                            name="modelName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nom du modèle</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ex: Prédiction Pompes Hydrauliques" {...field} data-testid="input-ai-name" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={aiForm.control}
+                            name="modelType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Type de modèle</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-ai-type">
+                                      <SelectValue placeholder="Sélectionnez un type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="predictive">Prédictif</SelectItem>
+                                    <SelectItem value="classification">Classification</SelectItem>
+                                    <SelectItem value="anomaly_detection">Détection d'anomalies</SelectItem>
+                                    <SelectItem value="regression">Régression</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={aiForm.control}
+                            name="algorithmType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Algorithme</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-ai-algorithm">
+                                      <SelectValue placeholder="Sélectionnez un algorithme" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="random_forest">Random Forest</SelectItem>
+                                    <SelectItem value="gradient_boosting">Gradient Boosting</SelectItem>
+                                    <SelectItem value="neural_network">Réseau de Neurones</SelectItem>
+                                    <SelectItem value="svm">Support Vector Machine</SelectItem>
+                                    <SelectItem value="isolation_forest">Isolation Forest</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={aiForm.control}
+                            name="equipmentCategory"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Catégorie d'équipement (optionnel)</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-ai-equipment">
+                                      <SelectValue placeholder="Toutes catégories" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="">Toutes catégories</SelectItem>
+                                    <SelectItem value="moteur">Moteurs</SelectItem>
+                                    <SelectItem value="pompe">Pompes</SelectItem>
+                                    <SelectItem value="compresseur">Compresseurs</SelectItem>
+                                    <SelectItem value="grue">Grues</SelectItem>
+                                    <SelectItem value="transformateur">Transformateurs</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={aiForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description (optionnel)</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Description du modèle et de son utilisation..." 
+                                    {...field} 
+                                    data-testid="textarea-ai-description"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="flex justify-end space-x-2 pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsAIModalOpen(false)} data-testid="button-cancel-ai">
+                              Annuler
+                            </Button>
+                            <Button type="submit" disabled={createAIMutation.isPending} data-testid="button-save-ai">
+                              {createAIMutation.isPending ? "Création..." : "Créer le modèle"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <CardDescription>
                   Modèles d'apprentissage automatique pour la prédiction de pannes et l'optimisation
@@ -927,10 +1172,114 @@ export default function AdvancedIntegrationsPage() {
                     <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
                     <CardTitle>Workspaces Power BI</CardTitle>
                   </div>
-                  <Button size="sm" className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Connecter Workspace
-                  </Button>
+                  <Dialog open={isPowerBIModalOpen} onOpenChange={setIsPowerBIModalOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700" data-testid="button-add-powerbi">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Connecter Workspace
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Connecter un workspace Power BI</DialogTitle>
+                        <DialogDescription>
+                          Configurez la connexion à un workspace Microsoft Power BI pour les rapports avancés
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...powerBiForm}>
+                        <form onSubmit={powerBiForm.handleSubmit(onPowerBISubmit)} className="space-y-4">
+                          <FormField
+                            control={powerBiForm.control}
+                            name="workspaceName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nom du workspace</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Ex: GMAO Production Reports" {...field} data-testid="input-powerbi-name" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={powerBiForm.control}
+                            name="workspaceId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>ID du workspace Power BI</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="f089354e-8366-4e18-aea3-4cb4a3a50b48" {...field} data-testid="input-powerbi-id" />
+                                </FormControl>
+                                <FormDescription>
+                                  GUID du workspace disponible dans les paramètres Power BI
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={powerBiForm.control}
+                            name="tenantDomain"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Domaine tenant (optionnel)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="votreentreprise.onmicrosoft.com" {...field} data-testid="input-powerbi-tenant" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={powerBiForm.control}
+                            name="powerBiAppId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>ID de l'application Power BI (optionnel)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="12345678-1234-1234-1234-123456789abc" {...field} data-testid="input-powerbi-app-id" />
+                                </FormControl>
+                                <FormDescription>
+                                  Pour l'authentification via Azure AD
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={powerBiForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description (optionnel)</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder="Description du workspace et de son utilisation..." 
+                                    {...field} 
+                                    data-testid="textarea-powerbi-description"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="flex justify-end space-x-2 pt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsPowerBIModalOpen(false)} data-testid="button-cancel-powerbi">
+                              Annuler
+                            </Button>
+                            <Button type="submit" disabled={createPowerBIMutation.isPending} data-testid="button-save-powerbi">
+                              {createPowerBIMutation.isPending ? "Connexion..." : "Connecter le workspace"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <CardDescription>
                   Intégration avec Microsoft Power BI pour les rapports et tableaux de bord avancés
