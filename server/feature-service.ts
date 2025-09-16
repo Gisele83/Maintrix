@@ -20,6 +20,12 @@ export class FeatureService {
   private cache = new Map<string, CachedTenantConfig>();
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
 
+  constructor() {
+    // Invalider tout le cache au démarrage pour s'assurer des modules les plus récents
+    this.invalidateAllCache();
+    console.log("🔄 FeatureService initialized - cache cleared for fresh module data");
+  }
+
   /**
    * Vérifie si un module est activé pour un tenant
    */
@@ -190,7 +196,8 @@ export class FeatureService {
       "preventive-maintenance",
       "inventory-simple",
       "smart-diagnostic",
-      "maintenance-dashboard"
+      "maintenance-dashboard",
+      "multi-tenant-saas"
     ];
   }
 
@@ -213,9 +220,12 @@ export class FeatureService {
    */
   async getAvailableModules(): Promise<ModuleCatalog[]> {
     try {
-      return await db
+      console.log("🔄 Fetching available modules from database...");
+      const modules = await db
         .select()
         .from(moduleCatalog);
+      console.log(`✅ Found ${modules.length} available modules in database`);
+      return modules;
     } catch (error) {
       console.error("Error getting available modules:", error);
       return [];
