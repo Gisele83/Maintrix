@@ -1042,7 +1042,7 @@ export default function AdvancedIntegrationsPage() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">Toutes catégories</SelectItem>
+                                    <SelectItem value="all">Toutes catégories</SelectItem>
                                     <SelectItem value="moteur">Moteurs</SelectItem>
                                     <SelectItem value="pompe">Pompes</SelectItem>
                                     <SelectItem value="compresseur">Compresseurs</SelectItem>
