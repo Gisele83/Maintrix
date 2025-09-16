@@ -95,32 +95,40 @@ const features = [
 
 export default function FeatureCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-8">
       {features.map((feature) => {
         const IconComponent = feature.icon;
         return (
-          <Card key={feature.title} className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 bg-white/80 backdrop-blur-sm">
+          <Card key={feature.title} className="group relative overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-4 hover:scale-105 bg-white/10 backdrop-blur-lg card-hover">
             
-            {/* Gradient background */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+            {/* Enhanced gradient background with animation */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-20 transition-all duration-500`} />
             
-            {/* Badge */}
-            <div className="absolute top-4 right-4">
-              <Badge className={`bg-gradient-to-r ${feature.gradient} text-white border-0 font-medium`}>
+            {/* Glassmorphism overlay */}
+            <div className="absolute inset-0 bg-white/5 backdrop-blur-sm group-hover:bg-white/10 transition-all duration-300" />
+            
+            {/* Floating particles effect */}
+            <div className="absolute top-2 left-2 w-2 h-2 bg-white/30 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute bottom-4 right-6 w-1 h-1 bg-white/40 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{animationDelay: '0.5s'}} />
+            
+            {/* Enhanced Badge */}
+            <div className="absolute top-4 right-4 z-10">
+              <Badge className={`bg-gradient-to-r ${feature.gradient} text-white border-0 font-semibold px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm`}>
                 {feature.badge}
               </Badge>
             </div>
 
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 relative z-10">
               <div className="flex items-center space-x-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-                  <IconComponent className="h-6 w-6 text-white" />
+                <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300`}>
+                  <IconComponent className="h-8 w-8 text-white" />
+                  <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-gray-900 group-hover:to-gray-600 transition-all duration-300">
+                  <CardTitle className="text-2xl font-bold text-gray-800 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-gray-800 group-hover:to-gray-600 transition-all duration-300">
                     {feature.title}
                   </CardTitle>
-                  <p className="text-sm text-gray-600 mt-1">{feature.description}</p>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{feature.description}</p>
                 </div>
               </div>
             </CardHeader>
