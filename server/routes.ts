@@ -2035,12 +2035,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/history", async (req, res) => {
     try {
       const { equipmentType, period, status, search } = req.query;
+      const tenantId = (req as any).tenantId;
       
+      // Get diagnostic sessions
       let sessions = await storage.getDiagnosticSessions();
+      
+      // Get completed work orders to add to history
+      let completedWorkOrders = await gmaoStorage.getWorkOrders(tenantId);
+      completedWorkOrders = completedWorkOrders.filter(wo => wo.status === 'completed');
+      
+      // Transform work orders to match session format
+      const workOrderSessions = completedWorkOrders.map(wo => {
+        // Get equipment details for the work order
+        const equipment = wo.equipmentId ? { type: 'unknown', id: wo.equipmentId.toString() } : null;
+        
+        return {
+          id: `wo-${wo.id}`,
+          equipmentType: equipment?.type || 'unknown',
+          equipmentId: equipment?.id || wo.equipmentId?.toString() || '',
+          zone: wo.location || '',
+          symptoms: wo.description || 'Ordre de travail',
+          diagnosis: `Ordre de travail ${wo.orderNumber}`,
+          selectedDiagnosis: `Intervention: ${wo.title || wo.description}`,
+          solution: wo.completionNotes || 'Travaux terminés',
+          duration: wo.actualDuration || wo.estimatedDuration || 0,
+          resolved: wo.status === 'completed',
+          urgency: wo.priority || 'medium',
+          confidence: 1.0,
+          status: 'completed',
+          createdAt: wo.updatedAt || wo.createdAt || new Date(),
+          source: 'work_order'
+        };
+      });
+      
+      // Get preventive maintenance plans (recent executions)
+      const maintenancePlans = await gmaoStorage.getPreventiveMaintenancePlans(tenantId);
+      const recentPlanExecutions = maintenancePlans
+        .filter(plan => plan.lastExecuted && new Date(plan.lastExecuted) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) // Last 90 days
+        .map(plan => ({
+          id: `pm-${plan.id}`,
+          equipmentType: plan.equipmentType || 'unknown',
+          equipmentId: plan.equipmentId?.toString() || '',
+          zone: '',
+          symptoms: 'Maintenance préventive planifiée',
+          diagnosis: `Plan de maintenance: ${plan.planName}`,
+          selectedDiagnosis: `Maintenance préventive: ${plan.planName}`,
+          solution: Array.isArray(plan.tasks) ? plan.tasks.join(', ') : (plan.tasks || 'Maintenance effectuée'),
+          duration: plan.estimatedDuration || 120,
+          resolved: true,
+          urgency: plan.priority || 'medium',
+          confidence: 1.0,
+          status: 'completed',
+          createdAt: new Date(plan.lastExecuted),
+          source: 'preventive_maintenance'
+        }));
+      
+      // Combine all sessions
+      let allSessions = [...sessions, ...workOrderSessions, ...recentPlanExecutions];
       
       // Apply filters
       if (equipmentType && equipmentType !== "") {
-        sessions = sessions.filter(s => s.equipmentType === equipmentType);
+        allSessions = allSessions.filter(s => s.equipmentType === equipmentType);
       }
       
       if (period) {
@@ -2059,26 +2114,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
         }
         
-        sessions = sessions.filter(s => s.createdAt >= filterDate);
+        allSessions = allSessions.filter(s => new Date(s.createdAt) >= filterDate);
       }
       
       if (status && status !== "") {
-        sessions = sessions.filter(s => s.status === status);
+        allSessions = allSessions.filter(s => s.status === status);
       }
       
       if (search && search !== "") {
         const searchTerm = (search as string).toLowerCase();
-        sessions = sessions.filter(s => 
+        allSessions = allSessions.filter(s => 
           s.equipmentId?.toLowerCase().includes(searchTerm) ||
           s.symptoms.toLowerCase().includes(searchTerm) ||
-          s.selectedDiagnosis?.toLowerCase().includes(searchTerm)
+          s.selectedDiagnosis?.toLowerCase().includes(searchTerm) ||
+          s.solution?.toLowerCase().includes(searchTerm)
         );
       }
       
       // Sort by creation date (newest first)
-      sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      allSessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      res.json(sessions);
+      res.json(allSessions);
     } catch (error) {
       console.error("History error:", error);
       res.status(500).json({ message: "Failed to get history" });

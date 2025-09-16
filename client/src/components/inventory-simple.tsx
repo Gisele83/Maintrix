@@ -351,6 +351,7 @@ export default function InventorySimple() {
                                   <SelectItem value="seal">Joint</SelectItem>
                                   <SelectItem value="filter">Filtre</SelectItem>
                                   <SelectItem value="belt">Courroie</SelectItem>
+                                  <SelectItem value="other">Autre</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
