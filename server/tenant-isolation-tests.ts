@@ -441,3 +441,87 @@ export class TenantIsolationTester {
     }
   }
 }
+
+// Route handlers for Express integration
+export const tenantIsolationTestRoutes = {
+  async runIsolationTests(req: any, res: any) {
+    try {
+      // Admin access check
+      const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Admin access required for isolation tests" });
+      }
+
+      const results = await TenantIsolationTester.runAllTests();
+      const passedTests = results.filter(r => r.passed).length;
+      const totalTests = results.length;
+      
+      res.json({
+        success: true,
+        summary: {
+          totalTests,
+          passedTests,
+          failedTests: totalTests - passedTests,
+          overallStatus: passedTests === totalTests ? 'PASS' : 'FAIL'
+        },
+        results
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
+  async getComplianceReport(req: any, res: any) {
+    try {
+      // Admin access check
+      const isAdmin = req.headers['x-admin-key'] === process.env.ADMIN_SECRET_KEY;
+      if (!isAdmin) {
+        return res.status(403).json({ error: "Admin access required for compliance reports" });
+      }
+
+      const { testSuiteId } = req.params;
+      
+      // Run comprehensive tests for compliance report
+      const isolationResults = await TenantIsolationTester.runAllTests();
+      const performanceResult = await TenantIsolationTester.runPerformanceTest();
+      
+      const allResults = [...isolationResults, performanceResult];
+      const passedTests = allResults.filter(r => r.passed).length;
+      const totalTests = allResults.length;
+      
+      const complianceReport = {
+        reportId: testSuiteId || `compliance-${Date.now()}`,
+        generatedAt: new Date().toISOString(),
+        compliance: {
+          status: passedTests === totalTests ? 'COMPLIANT' : 'NON_COMPLIANT',
+          score: Math.round((passedTests / totalTests) * 100),
+          passedTests,
+          totalTests
+        },
+        categories: {
+          dataIsolation: {
+            status: isolationResults.every(r => r.passed) ? 'PASS' : 'FAIL',
+            tests: isolationResults
+          },
+          performance: {
+            status: performanceResult.passed ? 'PASS' : 'FAIL',
+            tests: [performanceResult]
+          }
+        },
+        recommendations: allResults
+          .filter(r => !r.passed)
+          .map(r => `Fix: ${r.testName} - ${r.details}`)
+      };
+      
+      res.json(complianceReport);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+};
