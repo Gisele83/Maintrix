@@ -1641,4 +1641,290 @@ export interface WorkflowTransition {
   webhooks?: string[];
 }
 
+// =======================
+// ADVANCED ERP/SCADA CONNECTORS
+// =======================
+
+export const erpSystems = pgTable("erp_systems", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  systemName: varchar("system_name", { length: 100 }).notNull(), // SAP, Oracle, Maximo, etc.
+  systemType: varchar("system_type", { length: 50 }).notNull(), // "erp", "scada", "mes", "plc"
+  connectionUrl: varchar("connection_url", { length: 500 }).notNull(),
+  authMethod: varchar("auth_method", { length: 50 }).notNull(), // "basic", "oauth", "api_key", "certificate"
+  credentials: jsonb("credentials").notNull(), // Encrypted credentials
+  syncInterval: integer("sync_interval").default(300), // seconds
+  lastSyncAt: timestamp("last_sync_at"),
+  isActive: boolean("is_active").default(true),
+  configParams: jsonb("config_params").default({}), // System-specific parameters
+  mappingRules: jsonb("mapping_rules").default({}), // Data field mappings
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const scadaConnections = pgTable("scada_connections", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  connectionName: varchar("connection_name", { length: 100 }).notNull(),
+  protocol: varchar("protocol", { length: 20 }).notNull(), // "opcua", "modbus", "mqtt", "bacnet"
+  endpoint: varchar("endpoint", { length: 500 }).notNull(),
+  plcAddresses: jsonb("plc_addresses").default([]), // Array of PLC addresses
+  tagMappings: jsonb("tag_mappings").default({}), // Tag to equipment mappings
+  pollInterval: integer("poll_interval").default(5000), // milliseconds
+  isConnected: boolean("is_connected").default(false),
+  lastHeartbeat: timestamp("last_heartbeat"),
+  errorCount: integer("error_count").default(0),
+  configuration: jsonb("configuration").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const dataIntegrationLogs = pgTable("data_integration_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  sourceSystem: varchar("source_system", { length: 100 }).notNull(),
+  operationType: varchar("operation_type", { length: 50 }).notNull(), // "sync", "import", "export", "update"
+  entityType: varchar("entity_type", { length: 100 }).notNull(), // "work_order", "equipment", "spare_part"
+  entityId: varchar("entity_id", { length: 100 }),
+  recordCount: integer("record_count").default(0),
+  successCount: integer("success_count").default(0),
+  errorCount: integer("error_count").default(0),
+  status: varchar("status", { length: 20 }).notNull(), // "success", "failed", "partial"
+  errorDetails: jsonb("error_details"),
+  executionTime: integer("execution_time"), // milliseconds
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// =======================
+// ADVANCED PREDICTIVE AI SYSTEM
+// =======================
+
+export const aiModels = pgTable("ai_models", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  modelName: varchar("model_name", { length: 100 }).notNull(),
+  modelType: varchar("model_type", { length: 50 }).notNull(), // "failure_prediction", "rul_estimation", "anomaly_detection", "optimization"
+  algorithmType: varchar("algorithm_type", { length: 50 }).notNull(), // "neural_network", "random_forest", "svm", "lstm", "transformer"
+  equipmentCategory: varchar("equipment_category", { length: 100 }),
+  trainDataSource: jsonb("train_data_source").notNull(), // Data sources used for training
+  modelParameters: jsonb("model_parameters").default({}), // Hyperparameters
+  featureSet: jsonb("feature_set").default([]), // Features used by the model
+  accuracy: real("accuracy"), // Model accuracy 0-1
+  precision: real("precision"),
+  recall: real("recall"),
+  f1Score: real("f1_score"),
+  lastTrainingDate: timestamp("last_training_date"),
+  trainingDuration: integer("training_duration"), // seconds
+  isActive: boolean("is_active").default(true),
+  version: varchar("version", { length: 20 }).default("1.0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const predictivePredictions = pgTable("predictive_predictions", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }),
+  modelId: varchar("model_id", { length: 36 }).references(() => aiModels.id, { onDelete: "cascade" }),
+  predictionType: varchar("prediction_type", { length: 50 }).notNull(), // "failure_risk", "remaining_useful_life", "anomaly_score", "maintenance_window"
+  predictedValue: real("predicted_value"), // Numeric prediction
+  predictedCategory: varchar("predicted_category", { length: 100 }), // Categorical prediction
+  confidenceScore: real("confidence_score"), // 0-1
+  predictionHorizon: integer("prediction_horizon"), // Days/hours ahead
+  inputFeatures: jsonb("input_features"), // Features used for this prediction
+  riskLevel: varchar("risk_level", { length: 20 }), // "low", "medium", "high", "critical"
+  recommendedActions: jsonb("recommended_actions"), // Array of recommended actions
+  explanationFactors: jsonb("explanation_factors"), // Feature importance/explanation
+  validUntil: timestamp("valid_until"),
+  actualOutcome: varchar("actual_outcome", { length: 100 }), // For feedback learning
+  outcomeDate: timestamp("outcome_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const aiTrainingJobs = pgTable("ai_training_jobs", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  modelId: varchar("model_id", { length: 36 }).references(() => aiModels.id, { onDelete: "cascade" }),
+  jobType: varchar("job_type", { length: 50 }).notNull(), // "initial_training", "retraining", "incremental_learning"
+  status: varchar("status", { length: 20 }).notNull(), // "pending", "running", "completed", "failed"
+  dataSize: integer("data_size"), // Number of training samples
+  hyperParameters: jsonb("hyper_parameters"),
+  metrics: jsonb("metrics"), // Training metrics
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  errorMessage: text("error_message"),
+  resourceUsage: jsonb("resource_usage"), // CPU, memory usage during training
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// =======================
+// POWER BI INTEGRATION SYSTEM
+// =======================
+
+export const powerBiWorkspaces = pgTable("power_bi_workspaces", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  workspaceName: varchar("workspace_name", { length: 100 }).notNull(),
+  workspaceId: varchar("workspace_id", { length: 100 }).notNull().unique(), // Power BI workspace ID
+  description: text("description"),
+  powerBiAppId: varchar("power_bi_app_id", { length: 100 }), // Azure AD App ID
+  tenantDomain: varchar("tenant_domain", { length: 100 }), // Power BI tenant domain
+  accessToken: text("access_token"), // Encrypted OAuth token
+  refreshToken: text("refresh_token"), // Encrypted refresh token
+  tokenExpiresAt: timestamp("token_expires_at"),
+  isActive: boolean("is_active").default(true),
+  lastSyncAt: timestamp("last_sync_at"),
+  syncStatus: varchar("sync_status", { length: 20 }).default("pending"), // "pending", "syncing", "completed", "failed"
+  errorDetails: jsonb("error_details"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const powerBiReports = pgTable("power_bi_reports", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id", { length: 36 }).references(() => powerBiWorkspaces.id, { onDelete: "cascade" }),
+  reportName: varchar("report_name", { length: 100 }).notNull(),
+  reportId: varchar("report_id", { length: 100 }).notNull(), // Power BI report ID
+  reportUrl: varchar("report_url", { length: 500 }),
+  embedUrl: varchar("embed_url", { length: 500 }), // URL for embedding
+  datasetId: varchar("dataset_id", { length: 100 }), // Associated dataset
+  reportType: varchar("report_type", { length: 50 }), // "maintenance", "kpi", "predictive", "financial"
+  description: text("description"),
+  refreshSchedule: jsonb("refresh_schedule"), // Refresh timing configuration
+  lastRefreshed: timestamp("last_refreshed"),
+  isPublic: boolean("is_public").default(false),
+  permissions: jsonb("permissions"), // User/role permissions
+  customParameters: jsonb("custom_parameters"), // Report-specific parameters
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const powerBiDatasets = pgTable("power_bi_datasets", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: varchar("workspace_id", { length: 36 }).references(() => powerBiWorkspaces.id, { onDelete: "cascade" }),
+  datasetName: varchar("dataset_name", { length: 100 }).notNull(),
+  datasetId: varchar("dataset_id", { length: 100 }).notNull(), // Power BI dataset ID
+  description: text("description"),
+  dataSource: varchar("data_source", { length: 100 }).notNull(), // "gmao_database", "predictive_analytics", "iot_sensors"
+  tables: jsonb("tables").default([]), // Array of table configurations
+  refreshMode: varchar("refresh_mode", { length: 20 }).default("scheduled"), // "manual", "scheduled", "streaming"
+  refreshSchedule: jsonb("refresh_schedule"),
+  lastRefreshed: timestamp("last_refreshed"),
+  nextRefresh: timestamp("next_refresh"),
+  rowCount: integer("row_count"),
+  sizeMB: real("size_mb"),
+  status: varchar("status", { length: 20 }).default("active"), // "active", "failed", "processing"
+  errorDetails: jsonb("error_details"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const reportingSchedules = pgTable("reporting_schedules", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  reportType: varchar("report_type", { length: 50 }).notNull(), // "daily", "weekly", "monthly", "custom"
+  recipientEmails: jsonb("recipient_emails").default([]), // Array of email addresses
+  reportFormats: jsonb("report_formats").default(["pdf"]), // ["pdf", "excel", "powerbi"]
+  includeCharts: boolean("include_charts").default(true),
+  includeKPIs: boolean("include_kpis").default(true),
+  includePredictiveInsights: boolean("include_predictive_insights").default(false),
+  customQueries: jsonb("custom_queries"), // Custom data queries for report
+  schedule: jsonb("schedule").notNull(), // Cron-like schedule configuration
+  timezone: varchar("timezone", { length: 50 }).default("UTC"),
+  isActive: boolean("is_active").default(true),
+  lastExecuted: timestamp("last_executed"),
+  nextExecution: timestamp("next_execution"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema exports for new tables
+export const insertERPSystemSchema = createInsertSchema(erpSystems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSCADAConnectionSchema = createInsertSchema(scadaConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDataIntegrationLogSchema = createInsertSchema(dataIntegrationLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAIModelSchema = createInsertSchema(aiModels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPredictivePredictionSchema = createInsertSchema(predictivePredictions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAITrainingJobSchema = createInsertSchema(aiTrainingJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPowerBiWorkspaceSchema = createInsertSchema(powerBiWorkspaces).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPowerBiReportSchema = createInsertSchema(powerBiReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPowerBiDatasetSchema = createInsertSchema(powerBiDatasets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertReportingScheduleSchema = createInsertSchema(reportingSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for the new schemas
+export type InsertERPSystem = z.infer<typeof insertERPSystemSchema>;
+export type ERPSystem = typeof erpSystems.$inferSelect;
+
+export type InsertSCADAConnection = z.infer<typeof insertSCADAConnectionSchema>;
+export type SCADAConnection = typeof scadaConnections.$inferSelect;
+
+export type InsertDataIntegrationLog = z.infer<typeof insertDataIntegrationLogSchema>;
+export type DataIntegrationLog = typeof dataIntegrationLogs.$inferSelect;
+
+export type InsertAIModel = z.infer<typeof insertAIModelSchema>;
+export type AIModel = typeof aiModels.$inferSelect;
+
+export type InsertPredictivePrediction = z.infer<typeof insertPredictivePredictionSchema>;
+export type PredictivePrediction = typeof predictivePredictions.$inferSelect;
+
+export type InsertAITrainingJob = z.infer<typeof insertAITrainingJobSchema>;
+export type AITrainingJob = typeof aiTrainingJobs.$inferSelect;
+
+export type InsertPowerBiWorkspace = z.infer<typeof insertPowerBiWorkspaceSchema>;
+export type PowerBiWorkspace = typeof powerBiWorkspaces.$inferSelect;
+
+export type InsertPowerBiReport = z.infer<typeof insertPowerBiReportSchema>;
+export type PowerBiReport = typeof powerBiReports.$inferSelect;
+
+export type InsertPowerBiDataset = z.infer<typeof insertPowerBiDatasetSchema>;
+export type PowerBiDataset = typeof powerBiDatasets.$inferSelect;
+
+export type InsertReportingSchedule = z.infer<typeof insertReportingScheduleSchema>;
+export type ReportingSchedule = typeof reportingSchedules.$inferSelect;
+
 // Authentication system cleaned up - now using userProfiles as the main user table

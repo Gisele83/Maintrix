@@ -44,6 +44,7 @@ import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
+import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-routes";
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
@@ -797,6 +798,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register IoT and Gamification routes
   registerIoTGamificationRoutes(app);
+  
+  // Register Advanced Integration routes (ERP/SCADA, AI, Power BI)
+  registerAdvancedIntegrationRoutes(app);
   
   // Data Import/Export routes - Compatible avec le frontend  
   app.use('/api/data-import-export', dataImportExportRoutes);
