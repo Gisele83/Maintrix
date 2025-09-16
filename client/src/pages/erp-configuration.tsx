@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +25,9 @@ import {
   Brain,
   BarChart3,
   ShoppingCart,
-  FileText
+  FileText,
+  Download,
+  Upload
 } from 'lucide-react';
 import { ModernNavigation } from '@/components/modern-navigation';
 
@@ -89,6 +91,7 @@ export default function ERPConfiguration() {
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available modules
   const { data: moduleData, isLoading: loadingModules } = useQuery<{
@@ -220,6 +223,117 @@ export default function ERPConfiguration() {
       moduleSettings: moduleData.moduleSettings,
       sector: selectedSector || undefined
     });
+  };
+
+  // Export configuration function
+  const handleExportConfig = () => {
+    if (!moduleData) {
+      toast({
+        title: "Erreur d'export",
+        description: "Aucune configuration à exporter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const enabledModules = Object.entries(moduleConfig)
+      .filter(([key, enabled]) => enabled)
+      .map(([key]) => key);
+
+    const configData = {
+      exportDate: new Date().toISOString(),
+      version: "1.0",
+      tenantConfig: {
+        enabledModules,
+        moduleSettings: moduleData.moduleSettings,
+        sector: selectedSector,
+        availableModules: moduleData.availableModules.map(m => ({
+          key: m.key,
+          name: m.name,
+          version: m.version,
+          configuration: m.configuration
+        }))
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(configData, null, 2)], {
+      type: 'application/json'
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `erp-config-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Configuration exportée",
+      description: "Le fichier de configuration a été téléchargé.",
+    });
+  };
+
+  // Restore configuration function
+  const handleRestoreConfig = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json') {
+      toast({
+        title: "Format de fichier invalide",
+        description: "Veuillez sélectionner un fichier JSON valide.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const configData = JSON.parse(e.target?.result as string);
+        
+        if (!configData.tenantConfig || !configData.tenantConfig.enabledModules) {
+          throw new Error("Format de configuration invalide");
+        }
+
+        // Apply the imported configuration
+        const importedConfig: Record<string, boolean> = {};
+        if (moduleData) {
+          moduleData.availableModules.forEach(module => {
+            importedConfig[module.key] = configData.tenantConfig.enabledModules.includes(module.key);
+          });
+        }
+
+        setModuleConfig(importedConfig);
+        setSelectedSector(configData.tenantConfig.sector || null);
+        setHasUnsavedChanges(true);
+
+        toast({
+          title: "Configuration restaurée",
+          description: "La configuration a été importée avec succès. N'oubliez pas de sauvegarder.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur d'import",
+          description: "Impossible de lire le fichier de configuration.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const getCategoryModules = (category: string) => {
@@ -582,17 +696,40 @@ export default function ERPConfiguration() {
                     onClick={handleSaveChanges}
                     disabled={!hasUnsavedChanges || updateModulesMutation.isPending}
                     className="w-full"
+                    data-testid="button-save-config"
                   >
                     {updateModulesMutation.isPending ? "Sauvegarde..." : "Sauvegarder Configuration"}
                   </Button>
                   
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleExportConfig}
+                    disabled={!moduleData}
+                    data-testid="button-export-config"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
                     Exporter Configuration
                   </Button>
                   
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleRestoreConfig}
+                    data-testid="button-restore-config"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
                     Restaurer Configuration
                   </Button>
+                  
+                  {/* Hidden file input for configuration import */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
                 </CardContent>
               </Card>
             </div>
