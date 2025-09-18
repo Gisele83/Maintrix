@@ -54,13 +54,6 @@ interface ReorderRule {
   isActive: boolean;
 }
 
-interface PartNeedingReorder {
-  id: number;
-  partNumber: string;
-  partName: string;
-  currentStock: number;
-  reorderRule?: ReorderRule;
-}
 
 export function ProcurementDashboard() {
   const { toast } = useToast();
@@ -81,9 +74,6 @@ export function ProcurementDashboard() {
     queryKey: ['/api/reorder-rules'],
   });
 
-  const { data: partsNeedingReorder = [] } = useQuery({
-    queryKey: ['/api/parts-needing-reorder'],
-  });
 
   // Mutations
   const triggerReorderMutation = useMutation({
@@ -94,7 +84,6 @@ export function ProcurementDashboard() {
         description: `${data.triggeredRules} règles déclenchées, ${data.createdOrders} commandes créées`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/purchase-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/parts-needing-reorder'] });
     },
     onError: () => {
       toast({
@@ -192,7 +181,7 @@ export function ProcurementDashboard() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Fournisseurs actifs</CardTitle>
@@ -221,18 +210,6 @@ export function ProcurementDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pièces à réapprovisionner</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{partsNeedingReorder.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Stock critique atteint
-            </p>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -250,44 +227,6 @@ export function ProcurementDashboard() {
         </Card>
       </div>
 
-      {/* Parts Needing Reorder */}
-      {partsNeedingReorder.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Pièces nécessitant un réapprovisionnement
-            </CardTitle>
-            <CardDescription>
-              Pièces dont le stock est en dessous du seuil de réapprovisionnement
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {partsNeedingReorder.map((part: PartNeedingReorder) => (
-                <div key={part.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{part.partName}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {part.partNumber} - Stock actuel: {part.currentStock}
-                    </p>
-                    {part.reorderRule && (
-                      <p className="text-xs text-orange-600">
-                        Seuil: {part.reorderRule.reorderPoint} | 
-                        Quantité de commande: {part.reorderRule.reorderQuantity} |
-                        Auto: {part.reorderRule.autoOrder ? '✅' : '❌'}
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="text-orange-600 border-orange-200">
-                    Stock critique
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Recent Purchase Orders */}
       <Card>
