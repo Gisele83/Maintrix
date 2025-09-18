@@ -242,7 +242,7 @@ export function EquipmentHealthDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Score Santé Global</CardTitle>
@@ -270,18 +270,6 @@ export function EquipmentHealthDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertes Actives</CardTitle>
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{warningEquipmentCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Surveillance requise
-            </p>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -299,11 +287,10 @@ export function EquipmentHealthDashboard() {
 
       {/* Main Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="trends">Tendances</TabsTrigger>
           <TabsTrigger value="predictions">Prédictions</TabsTrigger>
-          <TabsTrigger value="alerts">Alertes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -538,49 +525,6 @@ export function EquipmentHealthDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Alertes Récentes</CardTitle>
-              <p className="text-sm text-gray-600">
-                Historique des alertes pour la période sélectionnée
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {alerts.map((alert) => (
-                  <div key={alert.id} className="flex items-start space-x-3 p-3 border rounded-lg">
-                    <div className="flex-shrink-0 mt-1">
-                      {alert.severity === 'critical' && <XCircle className="w-5 h-5 text-red-500" />}
-                      {alert.severity === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
-                      {alert.severity === 'info' && <Activity className="w-5 h-5 text-blue-500" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{alert.message}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        {new Date(alert.timestamp).toLocaleString('fr-FR')}
-                      </p>
-                    </div>
-                    <Badge 
-                      variant={alert.severity === 'critical' ? 'destructive' : alert.severity === 'warning' ? 'secondary' : 'default'}
-                      className="text-xs"
-                    >
-                      {alert.severity}
-                    </Badge>
-                  </div>
-                ))}
-                
-                {alerts.length === 0 && (
-                  <div className="text-center py-8">
-                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune alerte</h3>
-                    <p className="text-gray-600">Tous les équipements fonctionnent normalement</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
