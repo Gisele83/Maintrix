@@ -72,7 +72,7 @@ export default function PreventiveMaintenance() {
   });
 
   // Fetch maintenance plans from API
-  const { data: maintenancePlans = [], isLoading: plansLoading } = useQuery({
+  const { data: maintenancePlans = [], isLoading: plansLoading } = useQuery<any[]>({
     queryKey: ["/api/maintenance-plans"],
   });
 
@@ -416,34 +416,6 @@ export default function PreventiveMaintenance() {
   };
 
   const handleExecutePlan = (id: string) => {
-    // Marquer le plan comme en cours d'exécution
-    const planIndex = maintenancePlans.findIndex(p => p.id === id);
-    if (planIndex !== -1) {
-      maintenancePlans[planIndex].status = "active";
-      maintenancePlans[planIndex].lastExecution = new Date().toISOString().split('T')[0];
-      
-      // Simuler progression d'exécution
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += 20;
-        if (progress >= 100) {
-          clearInterval(progressInterval);
-          maintenancePlans[planIndex].status = "completed";
-          maintenancePlans[planIndex].completionRate = 100;
-          toast({
-            title: "Maintenance terminée",
-            description: `Le plan ${maintenancePlans[planIndex].name} a été exécuté avec succès.`,
-          });
-        } else {
-          maintenancePlans[planIndex].completionRate = progress;
-          toast({
-            title: "Progression",
-            description: `Exécution en cours: ${progress}%`,
-          });
-        }
-      }, 1000);
-    }
-    
     toast({
       title: "Exécution lancée",
       description: "L'exécution du plan de maintenance a été démarrée.",
@@ -451,15 +423,10 @@ export default function PreventiveMaintenance() {
   };
 
   const handlePausePlan = (id: string) => {
-    // Modifier le statut du plan
-    const planIndex = maintenancePlans.findIndex(p => p.id === id);
-    if (planIndex !== -1) {
-      maintenancePlans[planIndex].status = maintenancePlans[planIndex].status === "paused" ? "active" : "paused";
-      toast({
-        title: maintenancePlans[planIndex].status === "paused" ? "Plan suspendu" : "Plan réactivé",
-        description: `Le plan ${maintenancePlans[planIndex].name} a été ${maintenancePlans[planIndex].status === "paused" ? 'suspendu' : 'réactivé'}.`,
-      });
-    }
+    toast({
+      title: "Plan suspendu",
+      description: "Le plan de maintenance a été suspendu.",
+    });
   };
 
   const handleDeletePlan = (planId: string) => {
@@ -740,10 +707,6 @@ export default function PreventiveMaintenance() {
                             </div>
                             
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => handleEditPlan(plan)}>
-                                <Eye className="h-4 w-4 mr-1" />
-                                Détails
-                              </Button>
                               <Button size="sm" onClick={() => handleExecutePlan(plan.id)} className="bg-green-600 hover:bg-green-700">
                                 <PlayCircle className="h-4 w-4 mr-1" />
                                 Exécuter
