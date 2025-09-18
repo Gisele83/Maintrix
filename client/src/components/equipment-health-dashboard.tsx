@@ -219,7 +219,7 @@ export function EquipmentHealthDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les équipements</SelectItem>
-              {equipment.map((eq: any) => (
+              {healthData.map((eq) => (
                 <SelectItem key={eq.id} value={eq.id.toString()}>
                   {eq.equipmentName}
                 </SelectItem>
