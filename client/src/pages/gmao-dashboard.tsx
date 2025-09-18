@@ -352,44 +352,6 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
 
-              {/* Recent Alerts */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Bell className="w-5 h-5" />
-                    <span>Alertes Récentes</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {dashboardData?.recentAlerts?.slice(0, 3).map((alert) => (
-                      <div key={alert.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg">
-                        <AlertTriangle className={`w-4 h-4 mt-1 ${
-                          alert.severity === 'critical' ? 'text-red-500' :
-                          alert.severity === 'high' ? 'text-orange-500' :
-                          alert.severity === 'medium' ? 'text-yellow-500' : 'text-blue-500'
-                        }`} />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{alert.title}</p>
-                          <p className="text-xs text-muted-foreground">{alert.message}</p>
-                        </div>
-                        <Badge className={
-                          alert.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
-                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
-                          alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                        }>
-                          {alert.severity}
-                        </Badge>
-                      </div>
-                    )) || (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Aucune alerte récente
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
 
             </div>
           </div>
