@@ -55,9 +55,14 @@ export default function AdvancedReporting() {
     queryKey: ["/api/equipment"],
   });
 
-  const { data: alerts = [] } = useQuery({
+  const { data: allAlerts = [] } = useQuery({
     queryKey: ["/api/alerts"],
   });
+
+  // Filter alerts to only show counter-based maintenance alerts, not generic IoT alerts
+  const alerts = allAlerts.filter((alert: any) => 
+    alert.category === 'counter' || alert.scope === 'maintenance'
+  );
 
   // Calculate KPIs
   const calculateKPIs = () => {
