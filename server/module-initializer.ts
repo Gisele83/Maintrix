@@ -123,11 +123,11 @@ const defaultModules: InsertModuleCatalog[] = [
   {
     key: "procurement",
     name: "Achats et Approvisionnement",
-    description: "Gestion des achats, bons de commande et relations fournisseurs",
+    description: "Gestion complète des commandes, fournisseurs et validation multi-niveaux avec intégration budgétaire",
     category: "ERP_PROCUREMENT",
     version: "1.0.0",
-    dependencies: ["inventory-simple"],
-    defaultEnabled: false,
+    dependencies: ["equipment-management", "inventory-simple"],
+    defaultEnabled: true,
     isCore: false,
     routePaths: ["/procurement", "/purchase-orders"],
     apiEndpoints: ["/api/purchase-orders", "/api/suppliers", "/api/procurement"],
@@ -182,9 +182,9 @@ const defaultModules: InsertModuleCatalog[] = [
     category: "ENTERPRISE_INTEGRATION",
     version: "2.0.0",
     dependencies: ["equipment-management", "work-orders"],
-    defaultEnabled: false,
+    defaultEnabled: true,
     isCore: false,
-    routePaths: ["/advanced-integrations"],
+    routePaths: ["/advanced-integrations", "/erp-configuration"],
     apiEndpoints: ["/api/integrations/sap", "/api/integrations/scada", "/api/integrations/powerbi"],
     permissions: ["integration:read", "integration:configure", "integration:sync"],
     configuration: {
@@ -312,16 +312,13 @@ export async function initializeModuleCatalog(): Promise<void> {
     // Vérifier si des modules existent déjà
     const existingModules = await db.select().from(moduleCatalog);
     
-    // Si nous avons moins de modules que prévu, mettre à jour le catalogue
-    if (existingModules.length > 0 && existingModules.length < defaultModules.length) {
-      console.log(`🔄 Updating module catalog from ${existingModules.length} to ${defaultModules.length} modules`);
+    // Toujours mettre à jour le catalogue pour appliquer les modifications des modules
+    if (existingModules.length > 0) {
+      console.log(`🔄 Updating module catalog - forcing refresh to apply latest module configurations`);
       
       // Supprimer les anciens modules pour une mise à jour complète
       await db.delete(moduleCatalog);
       console.log("  ✓ Cleared existing modules");
-    } else if (existingModules.length >= defaultModules.length) {
-      console.log(`✅ Module catalog already up-to-date with ${existingModules.length} modules`);
-      return;
     }
 
     // Insérer tous les modules par défaut
@@ -354,7 +351,7 @@ export async function migrateTenantModules(): Promise<void> {
     for (const tenant of existingTenants) {
       const currentFeatures = tenant.features as any || {};
       
-      // Si le tenant n'a pas encore de configuration de modules
+      // Si le tenant n'a pas encore de configuration de modules OU pour forcer la mise à jour ERP
       if (!currentFeatures.enabledModules) {
         const updatedFeatures = {
           ...currentFeatures,
@@ -370,6 +367,29 @@ export async function migrateTenantModules(): Promise<void> {
           .where(eq(tenants.id, tenant.id));
 
         console.log(`  ✓ Tenant migrated: ${tenant.name} (${defaultEnabledModules.length} modules enabled)`);
+      } else {
+        // Forcer l'ajout des modules ERP récemment activés
+        const currentModules = currentFeatures.enabledModules || [];
+        const missingERPModules = ["procurement", "advanced-integrations"].filter(
+          module => !currentModules.includes(module)
+        );
+        
+        if (missingERPModules.length > 0) {
+          const updatedFeatures = {
+            ...currentFeatures,
+            enabledModules: [...currentModules, ...missingERPModules]
+          };
+
+          await db
+            .update(tenants)
+            .set({ 
+              features: updatedFeatures,
+              updatedAt: new Date()
+            })
+            .where(eq(tenants.id, tenant.id));
+
+          console.log(`  ✓ Tenant ERP modules added: ${tenant.name} (${missingERPModules.join(', ')})`);
+        }
       }
     }
 
