@@ -581,13 +581,17 @@ export const preventiveMaintenancePlans = pgTable("preventive_maintenance_plans"
 export const maintenanceCounters = pgTable("maintenance_counters", {
   id: serial("id").primaryKey(),
   tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  planId: integer("plan_id").references(() => preventiveMaintenancePlans.id, { onDelete: "cascade" }),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }),
   equipmentName: text("equipment_name").notNull(),
   counterType: varchar("counter_type", { length: 20 }).notNull(), // hours, cycles, kilometers, units
   currentValue: real("current_value").default(0),
   thresholdValue: real("threshold_value").notNull(),
+  intervalValue: real("interval_value").default(1000), // Maintenance interval (e.g., every 500 hours)
+  warningThresholdPct: real("warning_threshold_pct").default(10), // Percentage before interval to warn
   lastResetDate: timestamp("last_reset_date").defaultNow(),
   lastResetValue: real("last_reset_value").default(0),
+  lastServiceValue: real("last_service_value").default(0), // Value at last service
   isActive: boolean("is_active").default(true),
   maintenanceType: text("maintenance_type").notNull(),
   description: text("description"),
@@ -832,6 +836,8 @@ export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCoun
     errorMap: () => ({ message: "Type de compteur invalide" })
   }),
   currentValue: z.number().min(0, "La valeur actuelle doit être positive"),
+  intervalValue: z.number().min(1, "L'intervalle doit être supérieur à 0"),
+  warningThresholdPct: z.number().min(0).max(50).default(10), // Percentage before interval
   thresholdValue: z.number().min(1, "Le seuil doit être supérieur à 0"),
   maintenanceType: z.string().min(1, "Le type de maintenance est requis"),
   description: z.string().optional(),
@@ -839,6 +845,17 @@ export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCoun
   warningThreshold: z.number().min(0).max(100).optional(), // Percentage
   criticalThreshold: z.number().min(0).max(100).optional(), // Percentage
   incrementRate: z.number().min(0).optional(), // For simulation
+});
+
+// Schema pour la configuration des compteurs dans les plans de maintenance
+export const counterConfigSchema = z.object({
+  counterType: z.enum(["hours", "kilometers"], {
+    errorMap: () => ({ message: "Type de compteur invalide" })
+  }),
+  intervalValue: z.number().min(1, "L'intervalle doit être supérieur à 0"),
+  warningThresholdPct: z.number().min(5).max(50).default(10),
+  currentValue: z.number().min(0).default(0),
+  description: z.string().optional()
 });
 
 export const insertCounterHistorySchema = createInsertSchema(counterHistory).omit({
