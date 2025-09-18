@@ -294,25 +294,6 @@ export function WorkOrderManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Ordres de Travail</h2>
           <p className="text-gray-600">Gérez les demandes de maintenance et réparations</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => form.reset()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvel Ordre de Travail
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Créer un Nouvel Ordre de Travail</DialogTitle>
-            </DialogHeader>
-            <WorkOrderForm
-              form={form}
-              onSubmit={onSubmit}
-              isLoading={addWorkOrderMutation.isPending}
-              equipment={equipment}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Search and Filters */}
@@ -436,11 +417,22 @@ export function WorkOrderManagement() {
           </p>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => form.reset()}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer un Ordre de Travail
               </Button>
             </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Créer un Nouvel Ordre de Travail</DialogTitle>
+              </DialogHeader>
+              <WorkOrderForm
+                form={form}
+                onSubmit={onSubmit}
+                isLoading={addWorkOrderMutation.isPending}
+                equipment={equipment}
+              />
+            </DialogContent>
           </Dialog>
         </div>
       )}
