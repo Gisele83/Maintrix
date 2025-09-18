@@ -43,7 +43,6 @@ interface EquipmentHealth {
   sensors: SensorReading[];
   trends: TrendData[];
   predictions: PredictionData[];
-  alerts: AlertData[];
 }
 
 interface SensorReading {
