@@ -577,7 +577,36 @@ export const preventiveMaintenancePlans = pgTable("preventive_maintenance_plans"
   nextDue: timestamp("next_due"),
 });
 
+// Maintenance Counters - For tracking equipment usage metrics
+export const maintenanceCounters = pgTable("maintenance_counters", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  counterName: varchar("counter_name", { length: 100 }).notNull(),
+  counterType: varchar("counter_type", { length: 50 }).notNull(), // hours, cycles, kilometers, etc.
+  currentValue: integer("current_value").default(0),
+  lastResetValue: integer("last_reset_value").default(0),
+  thresholdWarning: integer("threshold_warning"),
+  thresholdCritical: integer("threshold_critical"),
+  alertLevel: varchar("alert_level", { length: 20 }).default("info"), // info, warning, critical
+  alertEmailSent: boolean("alert_email_sent").default(false),
+  lastResetDate: timestamp("last_reset_date"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
+// Counter History - Track counter reset history
+export const counterHistory = pgTable("counter_history", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  counterId: integer("counter_id").references(() => maintenanceCounters.id, { onDelete: "cascade" }),
+  previousValue: integer("previous_value").notNull(),
+  resetReason: text("reset_reason").notNull(),
+  performedBy: integer("performed_by").references(() => userProfiles.id),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Spare Parts Inventory Management
 export const spareParts = pgTable("spare_parts", {
@@ -786,8 +815,21 @@ export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventi
   nextDue: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
+export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCounters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  counterName: z.string().min(1, "Le nom du compteur est requis"),
+  counterType: z.string().min(1, "Le type de compteur est requis"),
+});
 
-
+export const insertCounterHistorySchema = createInsertSchema(counterHistory).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  resetReason: z.string().min(1, "La raison de remise à zéro est requise"),
+});
 
 // Table des entreprises pour isolation des données
 export const companies = pgTable("companies", {
@@ -880,6 +922,11 @@ export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
 export type PreventiveMaintenancePlan = typeof preventiveMaintenancePlans.$inferSelect;
 export type InsertPreventiveMaintenancePlan = z.infer<typeof insertPreventiveMaintenancePlanSchema>;
 
+export type MaintenanceCounter = typeof maintenanceCounters.$inferSelect;
+export type InsertMaintenanceCounter = z.infer<typeof insertMaintenanceCounterSchema>;
+
+export type CounterHistory = typeof counterHistory.$inferSelect;
+export type InsertCounterHistory = z.infer<typeof insertCounterHistorySchema>;
 
 export type SparePart = typeof spareParts.$inferSelect;
 export type InsertSparePart = z.infer<typeof insertSparePartSchema>;
