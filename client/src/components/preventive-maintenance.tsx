@@ -267,25 +267,6 @@ export function PreventiveMaintenance() {
           <h2 className="text-2xl font-bold text-gray-900">Maintenance Préventive</h2>
           <p className="text-gray-600">Planifiez et gérez la maintenance préventive de vos équipements</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => form.reset()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau Plan de Maintenance
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Créer un Nouveau Plan de Maintenance</DialogTitle>
-            </DialogHeader>
-            <MaintenancePlanForm
-              form={form}
-              onSubmit={onSubmit}
-              isLoading={addPlanMutation.isPending}
-              equipment={equipment as any[]}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Search and Filters */}
@@ -426,11 +407,22 @@ export function PreventiveMaintenance() {
           </p>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => form.reset()}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer un Plan de Maintenance
               </Button>
             </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Créer un Nouveau Plan de Maintenance</DialogTitle>
+              </DialogHeader>
+              <MaintenancePlanForm
+                form={form}
+                onSubmit={onSubmit}
+                isLoading={addPlanMutation.isPending}
+                equipment={equipment as any[]}
+              />
+            </DialogContent>
           </Dialog>
         </div>
       )}
