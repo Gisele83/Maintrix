@@ -73,13 +73,6 @@ interface PredictionData {
   riskLevel: 'low' | 'medium' | 'high';
 }
 
-interface AlertData {
-  id: number;
-  severity: 'info' | 'warning' | 'critical';
-  message: string;
-  timestamp: string;
-  equipmentId: number;
-}
 
 export function EquipmentHealthDashboard() {
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
@@ -91,15 +84,7 @@ export function EquipmentHealthDashboard() {
     queryKey: ["/api/equipment/health", selectedEquipment, timeRange],
   });
 
-  // Fetch equipment list for filtering
-  const { data: equipment = [] } = useQuery({
-    queryKey: ["/api/equipment"],
-  });
 
-  // Fetch recent alerts
-  const { data: alerts = [] } = useQuery<AlertData[]>({
-    queryKey: ["/api/equipment/alerts", timeRange],
-  });
 
   const getHealthScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600";
@@ -265,7 +250,7 @@ export function EquipmentHealthDashboard() {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{healthyEquipmentCount}</div>
             <p className="text-xs text-muted-foreground">
-              {Math.round((healthyEquipmentCount / healthData.length) * 100)}% du parc
+              {healthData.length > 0 ? Math.round((healthyEquipmentCount / healthData.length) * 100) : 0}% du parc
             </p>
           </CardContent>
         </Card>
