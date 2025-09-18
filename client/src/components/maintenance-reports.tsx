@@ -846,7 +846,7 @@ export function MaintenanceReports() {
           {selectedMonthlyReport && (
             <div className="space-y-6">
               {/* KPI Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 {renderKpiCard(
                   "Score Performance", 
                   `${selectedMonthlyReport.performanceScore}/100`,
@@ -864,12 +864,6 @@ export function MaintenanceReports() {
                   formatPercentage(selectedMonthlyReport.plannedMaintenanceRatio),
                   <CheckCircle className="w-5 h-5 text-purple-600" />,
                   "bg-purple-100"
-                )}
-                {renderKpiCard(
-                  "Alertes Critiques", 
-                  selectedMonthlyReport.criticalAlerts || 0,
-                  <AlertCircle className="w-5 h-5 text-red-600" />,
-                  "bg-red-100"
                 )}
               </div>
 

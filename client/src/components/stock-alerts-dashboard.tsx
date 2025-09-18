@@ -140,35 +140,6 @@ export default function StockAlertsDashboard() {
         </Card>
       </div>
 
-      {/* Alertes critiques */}
-      {criticalAlerts.length > 0 && (
-        <Card className="border-red-200">
-          <CardHeader className="bg-red-50">
-            <CardTitle className="text-red-700 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Alertes Critiques - Stock Épuisé
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              {criticalAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
-                  <div className="flex items-center gap-3">
-                    <Package className="h-4 w-4 text-red-500" />
-                    <div>
-                      <p className="font-semibold">{alert.partName}</p>
-                      <p className="text-sm text-gray-600">{alert.partNumber}</p>
-                    </div>
-                  </div>
-                  <Badge variant="destructive">
-                    Stock: {alert.currentStock}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Recommandations de commande */}
       {recommendations.length > 0 && (
