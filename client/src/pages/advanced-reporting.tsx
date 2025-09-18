@@ -193,60 +193,6 @@ export default function AdvancedReporting() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Executive Summary KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-600">Disponibilité</p>
-                  <p className="text-3xl font-bold text-green-900">{kpis.availability.toFixed(1)}%</p>
-                  <p className="text-xs text-green-600 mt-1">↗ +2.3% vs mois dernier</p>
-                </div>
-                <div className="p-3 bg-green-200 rounded-full">
-                  <TrendingUp className="h-6 w-6 text-green-700" />
-                </div>
-              </div>
-              <Progress value={kpis.availability} className="mt-4" />
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-600">MTBF</p>
-                  <p className="text-3xl font-bold text-blue-900">{kpis.mtbf.toFixed(0)}h</p>
-                  <p className="text-xs text-blue-600 mt-1">Target: 200h</p>
-                </div>
-                <div className="p-3 bg-blue-200 rounded-full">
-                  <Clock className="h-6 w-6 text-blue-700" />
-                </div>
-              </div>
-              <Progress value={(kpis.mtbf / 200) * 100} className="mt-4" />
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-orange-600">MTTR</p>
-                  <p className="text-3xl font-bold text-orange-900">{kpis.mttr.toFixed(1)}h</p>
-                  <p className="text-xs text-orange-600 mt-1">Target: 3.0h</p>
-                </div>
-                <div className="p-3 bg-orange-200 rounded-full">
-                  <Wrench className="h-6 w-6 text-orange-700" />
-                </div>
-              </div>
-              <Progress value={(3 / kpis.mttr) * 100} className="mt-4" />
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="text-sm font-medium text-purple-600">OEE</p>
                   <p className="text-3xl font-bold text-purple-900">{kpis.oee.toFixed(1)}%</p>
                   <p className="text-xs text-purple-600 mt-1">Target: 90%</p>

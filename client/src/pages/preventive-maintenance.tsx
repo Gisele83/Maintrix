@@ -861,60 +861,6 @@ export default function PreventiveMaintenance() {
                     </div>
                   </div>
 
-                  {/* KPI Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-700">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">MTBF</p>
-                            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{Math.round(120 + Math.random() * 80)}h</p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400">+12% vs mois dernier</p>
-                          </div>
-                          <Clock className="h-8 w-8 text-blue-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-700">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-green-600 dark:text-green-400">MTTR</p>
-                            <p className="text-2xl font-bold text-green-900 dark:text-green-100">{(2 + Math.random() * 3).toFixed(1)}h</p>
-                            <p className="text-xs text-green-600 dark:text-green-400">-8% vs mois dernier</p>
-                          </div>
-                          <Wrench className="h-8 w-8 text-green-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-700">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Disponibilité</p>
-                            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{(95 + Math.random() * 4).toFixed(1)}%</p>
-                            <p className="text-xs text-purple-600 dark:text-purple-400">+2.3% vs mois dernier</p>
-                          </div>
-                          <TrendingUp className="h-8 w-8 text-purple-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-700">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Coûts</p>
-                            <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{Math.round(2500 + Math.random() * 1000)}€</p>
-                            <p className="text-xs text-orange-600 dark:text-orange-400">-15% vs mois dernier</p>
-                          </div>
-                          <DollarSign className="h-8 w-8 text-orange-600" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
 
                   {/* Charts Section */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
