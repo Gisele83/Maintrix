@@ -26,7 +26,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all equipment
   app.get("/api/equipment", async (req, res) => {
     try {
-      const equipment = await gmaoStorage.getEquipmentRegistry();
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
       res.json(equipment);
     } catch (error) {
       console.error("Error fetching equipment:", error);
@@ -41,7 +42,8 @@ export function registerGMAORoutes(app: Express) {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid equipment ID" });
       }
-      const equipment = await gmaoStorage.getEquipmentById(id);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.getEquipmentById(id, tenantId);
       if (!equipment) {
         return res.status(404).json({ message: "Equipment not found" });
       }
@@ -63,14 +65,16 @@ export function registerGMAORoutes(app: Express) {
       // Generate unique equipmentId if not provided or if it already exists
       let equipmentId = validatedData.equipmentId;
       
-      if (!equipmentId || await gmaoStorage.getEquipmentByEquipmentId(equipmentId)) {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      
+      if (!equipmentId || await gmaoStorage.getEquipmentByEquipmentId(equipmentId, tenantId)) {
         // Generate new unique equipmentId
         let isUnique = false;
         let attempts = 0;
         
         while (!isUnique && attempts < 10) {
           equipmentId = `EQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-          const existing = await gmaoStorage.getEquipmentByEquipmentId(equipmentId);
+          const existing = await gmaoStorage.getEquipmentByEquipmentId(equipmentId, tenantId);
           isUnique = !existing;
           attempts++;
         }
@@ -85,20 +89,15 @@ export function registerGMAORoutes(app: Express) {
       // Then convert date strings to Date objects for database storage
       const processedData = { 
         ...validatedData, 
-        equipmentId // Use the generated or validated unique ID
+        equipmentId, // Use the generated or validated unique ID
+        tenantId // Add tenantId to the processed data
       };
       
       if (processedData.installationDate && typeof processedData.installationDate === 'string') {
         processedData.installationDate = new Date(processedData.installationDate);
       }
-      if (processedData.lastMaintenanceDate && typeof processedData.lastMaintenanceDate === 'string') {
-        processedData.lastMaintenanceDate = new Date(processedData.lastMaintenanceDate);
-      }
-      if (processedData.nextMaintenanceDate && typeof processedData.nextMaintenanceDate === 'string') {
-        processedData.nextMaintenanceDate = new Date(processedData.nextMaintenanceDate);
-      }
-      if (processedData.warrantyEnd && typeof processedData.warrantyEnd === 'string') {
-        processedData.warrantyEnd = new Date(processedData.warrantyEnd);
+      if (processedData.warrantyExpiry && typeof processedData.warrantyExpiry === 'string') {
+        processedData.warrantyExpiry = new Date(processedData.warrantyExpiry);
       }
       
       const equipment = await gmaoStorage.createEquipment(processedData);
@@ -128,17 +127,12 @@ export function registerGMAORoutes(app: Express) {
       if (processedUpdates.installationDate && typeof processedUpdates.installationDate === 'string') {
         processedUpdates.installationDate = new Date(processedUpdates.installationDate);
       }
-      if (processedUpdates.lastMaintenanceDate && typeof processedUpdates.lastMaintenanceDate === 'string') {
-        processedUpdates.lastMaintenanceDate = new Date(processedUpdates.lastMaintenanceDate);
-      }
-      if (processedUpdates.nextMaintenanceDate && typeof processedUpdates.nextMaintenanceDate === 'string') {
-        processedUpdates.nextMaintenanceDate = new Date(processedUpdates.nextMaintenanceDate);
-      }
-      if (processedUpdates.warrantyEnd && typeof processedUpdates.warrantyEnd === 'string') {
-        processedUpdates.warrantyEnd = new Date(processedUpdates.warrantyEnd);
+      if (processedUpdates.warrantyExpiry && typeof processedUpdates.warrantyExpiry === 'string') {
+        processedUpdates.warrantyExpiry = new Date(processedUpdates.warrantyExpiry);
       }
       
-      const equipment = await gmaoStorage.updateEquipment(id, processedUpdates);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.updateEquipment(id, tenantId, processedUpdates);
       res.json(equipment);
     } catch (error) {
       console.error("Error updating equipment:", error);
@@ -153,11 +147,12 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/equipment/search", async (req, res) => {
     try {
       const { equipmentType, zone, sector } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
       const equipment = await gmaoStorage.searchEquipment({
         equipmentType: equipmentType as string,
         zone: zone as string,
         sector: sector as string
-      });
+      }, tenantId);
       res.json(equipment);
     } catch (error) {
       console.error("Error searching equipment:", error);
@@ -170,7 +165,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all work orders
   app.get("/api/work-orders", async (req, res) => {
     try {
-      const workOrders = await gmaoStorage.getWorkOrders();
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrders = await gmaoStorage.getWorkOrders(tenantId);
       res.json(workOrders);
     } catch (error) {
       console.error("Error fetching work orders:", error);
@@ -182,7 +178,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/work-orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const workOrder = await gmaoStorage.getWorkOrderById(id);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
       if (!workOrder) {
         return res.status(404).json({ message: "Work order not found" });
       }
@@ -209,12 +206,14 @@ export function registerGMAORoutes(app: Express) {
       let equipmentId = null;
       if (req.body.equipmentName) {
         // Try to find existing equipment by name
-        const existingEquipment = await gmaoStorage.searchEquipment({ equipmentName: req.body.equipmentName });
+        const tenantId = (req as any).tenantId || 'default-tenant';
+        const existingEquipment = await gmaoStorage.searchEquipment({ equipmentName: req.body.equipmentName }, tenantId);
         if (existingEquipment && existingEquipment.length > 0) {
           equipmentId = existingEquipment[0].id;
         } else {
           // Create new equipment entry
           const newEquipment = await gmaoStorage.createEquipment({
+            tenantId,
             equipmentId: `EQ-${Date.now()}`,
             equipmentName: req.body.equipmentName,
             equipmentType: 'Generic',
@@ -244,7 +243,8 @@ export function registerGMAORoutes(app: Express) {
       const validatedData = insertWorkOrderSchema.parse(cleanedData);
       
       // Then convert date strings to Date objects for database storage
-      const processedData = { ...validatedData };
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const processedData = { ...validatedData, tenantId };
       if (processedData.scheduledStart && typeof processedData.scheduledStart === 'string') {
         processedData.scheduledStart = new Date(processedData.scheduledStart);
       }
@@ -294,7 +294,8 @@ export function registerGMAORoutes(app: Express) {
         processedUpdates.completedAt = new Date(processedUpdates.completedAt);
       }
       
-      const workOrder = await gmaoStorage.updateWorkOrder(id, processedUpdates);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
       
       // 🔄 CCTP AUTO-GENERATION: Déclencher génération automatique de rapport si OT terminé
       if (processedUpdates.status === 'completed' && workOrder) {
@@ -302,7 +303,7 @@ export function registerGMAORoutes(app: Express) {
           console.log(`🎯 OT ${workOrder.orderNumber} terminé - tentative auto-génération rapport`);
           
           // Récupérer le tenant ID depuis l'équipement ou default pour la démo
-          const equipment = await gmaoStorage.getEquipmentById(workOrder.equipmentId);
+          const equipment = await gmaoStorage.getEquipmentById(workOrder.equipmentId, tenantId);
           const tenantId = equipment?.tenantId || 'default-tenant';
           
           const reportHTML = await cctpComplianceService.checkAndGenerateWorkOrderReport(
@@ -336,7 +337,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/equipment/:equipmentId/work-orders", async (req, res) => {
     try {
       const equipmentId = parseInt(req.params.equipmentId);
-      const workOrders = await gmaoStorage.getWorkOrdersByEquipment(equipmentId);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrders = await gmaoStorage.getWorkOrdersByEquipment(equipmentId, tenantId);
       res.json(workOrders);
     } catch (error) {
       console.error("Error fetching work orders:", error);
@@ -348,7 +350,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/work-orders/status/:status", async (req, res) => {
     try {
       const status = req.params.status;
-      const workOrders = await gmaoStorage.getWorkOrdersByStatus(status);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrders = await gmaoStorage.getWorkOrdersByStatus(status, tenantId);
       res.json(workOrders);
     } catch (error) {
       console.error("Error fetching work orders:", error);
@@ -360,7 +363,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/users/:userId/work-orders", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const workOrders = await gmaoStorage.getWorkOrdersByAssignee(userId);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const workOrders = await gmaoStorage.getWorkOrdersByAssignee(userId, tenantId);
       res.json(workOrders);
     } catch (error) {
       console.error("Error fetching work orders:", error);
@@ -373,7 +377,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all preventive maintenance plans
   app.get("/api/preventive-maintenance-plans", async (req, res) => {
     try {
-      const plans = await gmaoStorage.getPreventiveMaintenancePlans();
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const plans = await gmaoStorage.getPreventiveMaintenancePlans(tenantId);
       res.json(plans);
     } catch (error) {
       console.error("Error fetching maintenance plans:", error);
@@ -385,8 +390,10 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/preventive-maintenance-plans", async (req, res) => {
     try {
       console.log("Received maintenance plan data:", req.body);
+      const tenantId = (req as any).tenantId || 'default-tenant';
       const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
-      const plan = await gmaoStorage.createPreventiveMaintenancePlan(data);
+      const planData = { ...data, tenantId };
+      const plan = await gmaoStorage.createPreventiveMaintenancePlan(planData);
       res.status(201).json(plan);
     } catch (error) {
       console.error("Error creating maintenance plan:", error);
@@ -407,7 +414,8 @@ export function registerGMAORoutes(app: Express) {
       const partialSchema = insertPreventiveMaintenancePlanSchema.partial();
       const validatedData = partialSchema.parse(updateData);
       
-      const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, validatedData);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, tenantId, validatedData);
       res.json(plan);
     } catch (error) {
       console.error("Error updating maintenance plan:", error);
@@ -427,7 +435,8 @@ export function registerGMAORoutes(app: Express) {
       const id = parseInt(req.params.id);
       console.log("Deleting maintenance plan:", id);
       
-      const result = await gmaoStorage.deletePreventiveMaintenancePlan(id);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const result = await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
       res.json({ success: true, message: "Plan de maintenance supprimé avec succès" });
     } catch (error) {
       console.error("Error deleting maintenance plan:", error);
