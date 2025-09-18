@@ -577,47 +577,7 @@ export const preventiveMaintenancePlans = pgTable("preventive_maintenance_plans"
   nextDue: timestamp("next_due"),
 });
 
-// Maintenance Counters with Alert System
-export const maintenanceCounters = pgTable("maintenance_counters", {
-  id: serial("id").primaryKey(),
-  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
-  planId: integer("plan_id").references(() => preventiveMaintenancePlans.id, { onDelete: "cascade" }),
-  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }),
-  equipmentName: text("equipment_name").notNull(),
-  counterType: varchar("counter_type", { length: 20 }).notNull(), // hours, cycles, kilometers, units
-  currentValue: real("current_value").default(0),
-  thresholdValue: real("threshold_value").notNull(),
-  intervalValue: real("interval_value").default(1000), // Maintenance interval (e.g., every 500 hours)
-  warningThresholdPct: real("warning_threshold_pct").default(10), // Percentage before interval to warn
-  lastResetDate: timestamp("last_reset_date").defaultNow(),
-  lastResetValue: real("last_reset_value").default(0),
-  lastServiceValue: real("last_service_value").default(0), // Value at last service
-  isActive: boolean("is_active").default(true),
-  maintenanceType: text("maintenance_type").notNull(),
-  description: text("description"),
-  alertLevel: varchar("alert_level", { length: 10 }).default("info"), // info, warning, critical
-  autoReset: boolean("auto_reset").default(true),
-  incrementRate: real("increment_rate").default(1), // For real-time simulation
-  warningThreshold: real("warning_threshold"), // Percentage of threshold for warning (e.g., 90%)
-  criticalThreshold: real("critical_threshold"), // Percentage of threshold for critical (e.g., 98%)
-  alertEmailSent: boolean("alert_email_sent").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
-// Counter History for audit and tracking resets
-export const counterHistory = pgTable("counter_history", {
-  id: serial("id").primaryKey(),
-  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
-  counterId: integer("counter_id").references(() => maintenanceCounters.id, { onDelete: "cascade" }),
-  resetDate: timestamp("reset_date").defaultNow(),
-  previousValue: real("previous_value").notNull(),
-  resetReason: text("reset_reason"),
-  maintenancePerformed: text("maintenance_performed"),
-  performedBy: integer("performed_by"), // User ID who performed the reset
-  workOrderId: integer("work_order_id"), // Link to work order if maintenance was done
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
 // Spare Parts Inventory Management
 export const spareParts = pgTable("spare_parts", {
@@ -826,49 +786,8 @@ export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventi
   nextDue: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
-export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCounters).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  equipmentName: z.string().min(1, "Le nom de l'équipement est requis"),
-  counterType: z.enum(["hours", "cycles", "kilometers", "units"], {
-    errorMap: () => ({ message: "Type de compteur invalide" })
-  }),
-  currentValue: z.number().min(0, "La valeur actuelle doit être positive"),
-  intervalValue: z.number().min(1, "L'intervalle doit être supérieur à 0"),
-  warningThresholdPct: z.number().min(0).max(50).default(10), // Percentage before interval
-  thresholdValue: z.number().min(1, "Le seuil doit être supérieur à 0"),
-  maintenanceType: z.string().min(1, "Le type de maintenance est requis"),
-  description: z.string().optional(),
-  alertLevel: z.enum(["info", "warning", "critical"]).default("info"),
-  warningThreshold: z.number().min(0).max(100).optional(), // Percentage
-  criticalThreshold: z.number().min(0).max(100).optional(), // Percentage
-  incrementRate: z.number().min(0).optional(), // For simulation
-});
 
-// Schema pour la configuration des compteurs dans les plans de maintenance
-export const counterConfigSchema = z.object({
-  counterType: z.enum(["hours", "kilometers"], {
-    errorMap: () => ({ message: "Type de compteur invalide" })
-  }),
-  intervalValue: z.number().min(1, "L'intervalle doit être supérieur à 0"),
-  warningThresholdPct: z.number().min(5).max(50).default(10),
-  currentValue: z.number().min(0).default(0),
-  description: z.string().optional()
-});
 
-export const insertCounterHistorySchema = createInsertSchema(counterHistory).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  counterId: z.number().min(1, "ID du compteur requis"),
-  previousValue: z.number().min(0, "La valeur précédente doit être positive"),
-  resetReason: z.string().optional(),
-  maintenancePerformed: z.string().optional(),
-  performedBy: z.number().optional(),
-  workOrderId: z.number().optional(),
-});
 
 // Table des entreprises pour isolation des données
 export const companies = pgTable("companies", {
@@ -961,11 +880,6 @@ export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
 export type PreventiveMaintenancePlan = typeof preventiveMaintenancePlans.$inferSelect;
 export type InsertPreventiveMaintenancePlan = z.infer<typeof insertPreventiveMaintenancePlanSchema>;
 
-export type MaintenanceCounter = typeof maintenanceCounters.$inferSelect;
-export type InsertMaintenanceCounter = z.infer<typeof insertMaintenanceCounterSchema>;
-
-export type CounterHistory = typeof counterHistory.$inferSelect;
-export type InsertCounterHistory = z.infer<typeof insertCounterHistorySchema>;
 
 export type SparePart = typeof spareParts.$inferSelect;
 export type InsertSparePart = z.infer<typeof insertSparePartSchema>;
