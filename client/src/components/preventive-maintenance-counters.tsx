@@ -26,32 +26,9 @@ import {
   Activity
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import type { MaintenanceCounter, CounterHistory, InsertMaintenanceCounter } from "@shared/schema";
 
-interface MaintenanceCounter {
-  id: string;
-  equipmentId: string;
-  equipmentName: string;
-  counterType: "hours" | "cycles" | "kilometers" | "units";
-  currentValue: number;
-  thresholdValue: number;
-  lastResetDate: string;
-  lastResetValue: number;
-  isActive: boolean;
-  maintenanceType: string;
-  description: string;
-  alertLevel: "info" | "warning" | "critical";
-  autoReset: boolean;
-  incrementRate: number; // Pour simulation en temps réel
-}
-
-interface CounterHistory {
-  id: string;
-  counterId: string;
-  resetDate: string;
-  previousValue: number;
-  resetReason: string;
-  maintenancePerformed: string;
-}
+// Types are now imported from shared schema
 
 export default function PreventiveMaintenanceCounters() {
   const { toast } = useToast();
@@ -60,120 +37,87 @@ export default function PreventiveMaintenanceCounters() {
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
-  // Sample data - simule des compteurs en temps réel
-  const [counters, setCounters] = useState<MaintenanceCounter[]>([
-    {
-      id: "1",
-      equipmentId: "EQ001",
-      equipmentName: "Moteur Principal L1",
-      counterType: "hours",
-      currentValue: 1850,
-      thresholdValue: 2000,
-      lastResetDate: "2024-01-01",
-      lastResetValue: 0,
-      isActive: true,
-      maintenanceType: "Vidange moteur",
-      description: "Vidange complète + changement filtres",
-      alertLevel: "warning",
-      autoReset: true,
-      incrementRate: 0.5 // heures par minute en simulation
-    },
-    {
-      id: "2",
-      equipmentId: "EQ002",
-      equipmentName: "Pompe Hydraulique P-001",
-      counterType: "cycles",
-      currentValue: 45800,
-      thresholdValue: 50000,
-      lastResetDate: "2023-12-15",
-      lastResetValue: 0,
-      isActive: true,
-      maintenanceType: "Révision pompe",
-      description: "Contrôle étanchéité + changement joints",
-      alertLevel: "warning",
-      autoReset: true,
-      incrementRate: 15 // cycles par minute
-    },
-    {
-      id: "3",
-      equipmentId: "EQ003",
-      equipmentName: "Compresseur Air",
-      counterType: "hours",
-      currentValue: 980,
-      thresholdValue: 1000,
-      lastResetDate: "2024-01-10",
-      lastResetValue: 500,
-      isActive: true,
-      maintenanceType: "Maintenance compresseur",
-      description: "Nettoyage filtres + contrôle pression",
-      alertLevel: "critical",
-      autoReset: false,
-      incrementRate: 0.3
-    },
-    {
-      id: "4",
-      equipmentId: "EQ004",
-      equipmentName: "Convoyeur L2",
-      counterType: "kilometers",
-      currentValue: 2850,
-      thresholdValue: 3000,
-      lastResetDate: "2024-01-05",
-      lastResetValue: 2000,
-      isActive: true,
-      maintenanceType: "Graissage convoyeur",
-      description: "Graissage roulements + contrôle bande",
-      alertLevel: "info",
-      autoReset: true,
-      incrementRate: 2 // km par minute
-    }
-  ]);
+  // Fetch maintenance counters from API
+  const { data: counters = [], isLoading } = useQuery<MaintenanceCounter[]>({
+    queryKey: ["/api/maintenance-counters"],
+  });
 
-  const counterHistory: CounterHistory[] = [
-    {
-      id: "1",
-      counterId: "1",
-      resetDate: "2024-01-01",
-      previousValue: 2000,
-      resetReason: "Maintenance planifiée",
-      maintenancePerformed: "Vidange complète, changement filtres à huile et carburant"
+  // Fetch counter history when a counter is selected
+  const { data: counterHistory = [] } = useQuery<CounterHistory[]>({
+    queryKey: ["/api/maintenance-counters", selectedCounter?.id, "history"],
+    enabled: !!selectedCounter,
+  });
+
+  // Create mutations for counter operations
+  const incrementCounterMutation = useMutation({
+    mutationFn: ({ id, incrementValue }: { id: number; incrementValue: number }) =>
+      apiRequest(`/api/maintenance-counters/${id}/increment`, {
+        method: "POST",
+        body: JSON.stringify({ incrementValue }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-counters"] });
+      toast({
+        title: "Compteur mis à jour",
+        description: "Le compteur a été incrémenté avec succès",
+      });
     },
-    {
-      id: "2",
-      counterId: "2",
-      resetDate: "2023-12-15",
-      previousValue: 50000,
-      resetReason: "Révision majeure",
-      maintenancePerformed: "Remplacement joints d'étanchéité, contrôle circuit hydraulique"
-    }
-  ];
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le compteur",
+        variant: "destructive",
+      });
+    },
+  });
 
-  // Simulation temps réel des compteurs
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCounters(prev => 
-        prev.map(counter => {
-          if (!counter.isActive) return counter;
-          
-          const newValue = counter.currentValue + counter.incrementRate;
-          let alertLevel = counter.alertLevel;
-          
-          // Calcul automatique du niveau d'alerte
-          const percentage = (newValue / counter.thresholdValue) * 100;
-          if (percentage >= 98) alertLevel = "critical";
-          else if (percentage >= 90) alertLevel = "warning";
-          else alertLevel = "info";
-          
-          return {
-            ...counter,
-            currentValue: Math.min(newValue, counter.thresholdValue + 100), // Permet de dépasser un peu
-            alertLevel
-          };
-        })
-      );
-    }, 60000); // Mise à jour chaque minute
+  const resetCounterMutation = useMutation({
+    mutationFn: ({ id, resetReason, workOrderId }: { id: number; resetReason?: string; workOrderId?: number }) =>
+      apiRequest(`/api/maintenance-counters/${id}/reset`, {
+        method: "POST",
+        body: JSON.stringify({ resetReason, workOrderId }),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-counters"] });
+      toast({
+        title: "Compteur remis à zéro",
+        description: "Le compteur a été réinitialisé après maintenance",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de remettre le compteur à zéro",
+        variant: "destructive",
+      });
+    },
+  });
 
-    return () => clearInterval(interval);
-  }, []);
+  const updateCounterMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<MaintenanceCounter> }) => 
+      apiRequest(`/api/maintenance-counters/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-counters"] });
+      setShowConfigDialog(false);
+      toast({
+        title: "Configuration sauvegardée",
+        description: "Les paramètres du compteur ont été mis à jour.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder la configuration.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getAlertColor = (level: string) => {
     switch (level) {
@@ -215,55 +159,49 @@ export default function PreventiveMaintenanceCounters() {
     return Math.min((current / threshold) * 100, 100);
   };
 
-  const getDaysRemaining = (current: number, threshold: number, incrementRate: number) => {
+  const getDaysRemaining = (current: number, threshold: number, incrementRate: number = 1) => {
     if (current >= threshold) return 0;
     const remaining = threshold - current;
-    const daysRemaining = remaining / (incrementRate * 60 * 24); // minutes par jour
+    // Estimation basée sur le taux d'incrémentation (par jour)
+    const daysRemaining = remaining / Math.max(incrementRate || 1, 0.1);
     return Math.max(0, Math.round(daysRemaining));
   };
 
-  const handleResetCounter = async (counterId: string) => {
+  const handleResetCounter = async (counterId: number) => {
     try {
-      setCounters(prev => 
-        prev.map(counter => 
-          counter.id === counterId 
-            ? {
-                ...counter,
-                currentValue: counter.lastResetValue,
-                lastResetDate: new Date().toISOString().split('T')[0],
-                alertLevel: "info"
-              }
-            : counter
-        )
-      );
+      await resetCounterMutation.mutateAsync({ 
+        id: counterId, 
+        resetReason: "Maintenance manuelle" 
+      });
+    } catch (error) {
+      // Error handling is done in the mutation
+    }
+  };
+
+  const handleToggleCounter = async (counterId: number) => {
+    const counter = counters.find(c => c.id === counterId);
+    if (!counter) return;
+    
+    try {
+      await apiRequest(`/api/maintenance-counters/${counterId}`, {
+        method: "PUT",
+        body: JSON.stringify({ isActive: !counter.isActive }),
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-counters"] });
       
       toast({
-        title: "Compteur remis à zéro",
-        description: "Le compteur a été réinitialisé après maintenance.",
+        title: !counter.isActive ? "Compteur activé" : "Compteur arrêté",
+        description: `Le compteur pour ${counter.equipmentName} a été ${!counter.isActive ? 'activé' : 'arrêté'}.`,
       });
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "Impossible de remettre le compteur à zéro.",
+        description: "Impossible de modifier l'état du compteur",
         variant: "destructive",
       });
     }
-  };
-
-  const handleToggleCounter = (counterId: string) => {
-    setCounters(prev => 
-      prev.map(counter => 
-        counter.id === counterId 
-          ? { ...counter, isActive: !counter.isActive }
-          : counter
-      )
-    );
-    
-    const counter = counters.find(c => c.id === counterId);
-    toast({
-      title: counter?.isActive ? "Compteur arrêté" : "Compteur activé",
-      description: `Le compteur pour ${counter?.equipmentName} a été ${counter?.isActive ? 'arrêté' : 'activé'}.`,
-    });
   };
 
   const handleConfigureCounter = (counter: MaintenanceCounter) => {
@@ -274,18 +212,28 @@ export default function PreventiveMaintenanceCounters() {
   const handleSaveConfiguration = () => {
     if (!selectedCounter) return;
     
-    setCounters(prev => 
-      prev.map(counter => 
-        counter.id === selectedCounter.id ? selectedCounter : counter
-      )
-    );
-    
-    setShowConfigDialog(false);
-    toast({
-      title: "Configuration sauvegardée",
-      description: "Les paramètres du compteur ont été mis à jour.",
-    });
+    const { id, ...data } = selectedCounter;
+    updateCounterMutation.mutate({ id, data });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Compteurs Maintenance Préventive</h2>
+            <p className="text-gray-600 dark:text-gray-400">Suivi automatique des heures de fonctionnement et cycles d'utilisation</p>
+          </div>
+        </div>
+        <div className="flex justify-center items-center p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Chargement des compteurs de maintenance...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -303,7 +251,20 @@ export default function PreventiveMaintenanceCounters() {
 
       {/* Compteurs Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {counters.map((counter) => {
+        {counters.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Timer className="h-16 w-16 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Aucun compteur configuré</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">Commencez par ajouter un compteur de maintenance pour vos équipements.</p>
+            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Créer votre premier compteur
+            </Button>
+          </div>
+        ) : (
+          counters.map((counter) => {
           const IconComponent = getCounterIcon(counter.counterType);
           const progress = calculateProgress(counter.currentValue, counter.thresholdValue);
           const daysRemaining = getDaysRemaining(counter.currentValue, counter.thresholdValue, counter.incrementRate);
@@ -437,7 +398,8 @@ export default function PreventiveMaintenanceCounters() {
               </CardContent>
             </Card>
           );
-        })}
+          })
+        )}
       </div>
 
       {/* Dialog de configuration */}
