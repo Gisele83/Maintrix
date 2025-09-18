@@ -4,6 +4,8 @@ import {
   equipmentRegistry,
   workOrders,
   preventiveMaintenancePlans,
+  maintenanceCounters,
+  counterHistory,
   spareParts,
   stockMovements,
   iotSensorData,
@@ -23,6 +25,10 @@ import {
   type InsertWorkOrder,
   type PreventiveMaintenancePlan,
   type InsertPreventiveMaintenancePlan,
+  type MaintenanceCounter,
+  type InsertMaintenanceCounter,
+  type CounterHistory,
+  type InsertCounterHistory,
   type SparePart,
   type InsertSparePart,
   type StockMovement,
@@ -260,6 +266,151 @@ export class GMAOStorage {
   async deletePreventiveMaintenancePlan(id: number, tenantId: string): Promise<void> {
     await db.delete(preventiveMaintenancePlans)
       .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)));
+  }
+
+  // Maintenance Counters Methods - TENANT ISOLATED
+  async getMaintenanceCounters(tenantId: string): Promise<MaintenanceCounter[]> {
+    return await db.select().from(maintenanceCounters)
+      .where(eq(maintenanceCounters.tenantId, tenantId))
+      .orderBy(desc(maintenanceCounters.createdAt));
+  }
+
+  async getMaintenanceCounterById(id: number, tenantId: string): Promise<MaintenanceCounter | undefined> {
+    const [counter] = await db.select().from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)));
+    return counter;
+  }
+
+  async getMaintenanceCountersByEquipment(equipmentId: number, tenantId: string): Promise<MaintenanceCounter[]> {
+    return await db.select().from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.equipmentId, equipmentId), eq(maintenanceCounters.tenantId, tenantId)))
+      .orderBy(desc(maintenanceCounters.createdAt));
+  }
+
+  async createMaintenanceCounter(data: InsertMaintenanceCounter): Promise<MaintenanceCounter> {
+    const [counter] = await db.insert(maintenanceCounters).values(data).returning();
+    return counter;
+  }
+
+  async updateMaintenanceCounter(id: number, tenantId: string, updates: Partial<MaintenanceCounter>): Promise<MaintenanceCounter> {
+    const [counter] = await db
+      .update(maintenanceCounters)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+      .returning();
+    return counter;
+  }
+
+  async incrementCounter(id: number, tenantId: string, incrementValue: number): Promise<MaintenanceCounter> {
+    const [counter] = await db
+      .update(maintenanceCounters)
+      .set({ 
+        currentValue: sql`${maintenanceCounters.currentValue} + ${incrementValue}`,
+        updatedAt: new Date()
+      })
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+      .returning();
+    
+    // Check if alert needs to be generated
+    if (counter) {
+      await this.checkAndGenerateCounterAlert(counter);
+    }
+    
+    return counter;
+  }
+
+  async resetCounter(id: number, tenantId: string, resetReason?: string, performedBy?: number, workOrderId?: number): Promise<MaintenanceCounter> {
+    const counter = await this.getMaintenanceCounterById(id, tenantId);
+    if (!counter) {
+      throw new Error("Counter not found");
+    }
+
+    // Create history record
+    await db.insert(counterHistory).values({
+      tenantId,
+      counterId: id,
+      previousValue: counter.currentValue,
+      resetReason: resetReason || "Manual reset",
+      performedBy,
+      workOrderId
+    });
+
+    // Reset counter
+    const [updatedCounter] = await db
+      .update(maintenanceCounters)
+      .set({ 
+        currentValue: counter.lastResetValue,
+        lastResetDate: new Date(),
+        alertLevel: "info",
+        alertEmailSent: false,
+        updatedAt: new Date()
+      })
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+      .returning();
+    
+    return updatedCounter;
+  }
+
+  async deleteMaintenanceCounter(id: number, tenantId: string): Promise<void> {
+    // Delete history first due to foreign key constraints
+    await db.delete(counterHistory)
+      .where(and(eq(counterHistory.counterId, id), eq(counterHistory.tenantId, tenantId)));
+    
+    // Delete counter
+    await db.delete(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)));
+  }
+
+  // Counter History Methods
+  async getCounterHistory(counterId: number, tenantId: string): Promise<CounterHistory[]> {
+    return await db.select().from(counterHistory)
+      .where(and(eq(counterHistory.counterId, counterId), eq(counterHistory.tenantId, tenantId)))
+      .orderBy(desc(counterHistory.createdAt));
+  }
+
+  // Helper method to check and generate alerts for counters
+  private async checkAndGenerateCounterAlert(counter: MaintenanceCounter): Promise<void> {
+    const percentage = (counter.currentValue / counter.thresholdValue) * 100;
+    let alertLevel: "info" | "warning" | "critical" = "info";
+    let shouldGenerateAlert = false;
+
+    // Determine alert level based on thresholds
+    const criticalThreshold = counter.criticalThreshold || 98;
+    const warningThreshold = counter.warningThreshold || 90;
+
+    if (percentage >= criticalThreshold) {
+      alertLevel = "critical";
+      shouldGenerateAlert = true;
+    } else if (percentage >= warningThreshold) {
+      alertLevel = "warning";
+      shouldGenerateAlert = percentage >= 95; // Generate warning at 95%
+    }
+
+    // Update counter alert level if changed
+    if (counter.alertLevel !== alertLevel) {
+      await db.update(maintenanceCounters)
+        .set({ alertLevel, updatedAt: new Date() })
+        .where(eq(maintenanceCounters.id, counter.id));
+    }
+
+    // Generate alert if needed and not already sent
+    if (shouldGenerateAlert && !counter.alertEmailSent) {
+      await this.createAlert({
+        tenantId: counter.tenantId,
+        alertType: "maintenance_due",
+        equipmentId: counter.equipmentId,
+        severity: alertLevel,
+        title: `Maintenance due: ${counter.equipmentName}`,
+        message: `${counter.maintenanceType} is due for ${counter.equipmentName}. Current value: ${counter.currentValue}/${counter.thresholdValue} ${counter.counterType}`,
+        triggerValue: counter.currentValue,
+        thresholdValue: counter.thresholdValue
+      });
+
+      // Mark email as sent
+      await db.update(maintenanceCounters)
+        .set({ alertEmailSent: true, updatedAt: new Date() })
+        .where(eq(maintenanceCounters.id, counter.id));
+    }
   }
 
   // Spare Parts Methods
