@@ -673,26 +673,6 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {showAdminModal && activeAdminTab === "health-dashboard" && (
-          <EquipmentHealthDashboard />
-        )}
-
-        {showAdminModal && activeAdminTab === "validation" && (
-          <div className="space-y-6">
-            <PurchaseOrderWorkflowDemo 
-              currentUserRole="Chef de Service"
-              validationLevel={1}
-            />
-            <ValidationDashboard
-              userId={1}
-              userRole="Chef de Service"
-              validationLevel={1}
-              canValidateWorkOrders={true}
-              canValidatePurchaseOrders={true}
-            />
-          </div>
-        )}
-
         {showAdminModal && activeAdminTab === "company-config" && (
           <div className="space-y-6">
             <ThresholdConfiguration />
