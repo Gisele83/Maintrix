@@ -284,7 +284,8 @@ export class AdvancedIoTConnector extends EventEmitter {
       threshold
     };
 
-    console.log(`🚨 ${severity.toUpperCase()} Alert: ${alert.message}`);
+    // Supprimer ces logs génériques pour éviter le bruit d'alerte
+    // console.log(`🚨 ${severity.toUpperCase()} Alert: ${alert.message}`);
     
     this.emit('thresholdAlert', alert);
   }

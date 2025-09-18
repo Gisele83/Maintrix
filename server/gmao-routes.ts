@@ -1984,5 +1984,112 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // ============= MAINTENANCE COUNTERS ROUTES (NEW) =============
+  
+  // Create maintenance counter linked to a plan
+  app.post("/api/maintenance-counters", async (req, res) => {
+    try {
+      const counterData = {
+        tenantId: req.body.tenantId || "default-tenant",
+        planId: req.body.planId,
+        equipmentId: req.body.equipmentId,
+        equipmentName: req.body.equipmentName,
+        counterType: req.body.counterType,
+        currentValue: req.body.currentValue || 0,
+        intervalValue: req.body.intervalValue,
+        warningThresholdPct: req.body.warningThresholdPct || 10,
+        thresholdValue: req.body.intervalValue, // For compatibility
+        lastServiceValue: req.body.currentValue || 0,
+        maintenanceType: `Maintenance basée sur ${req.body.counterType}`,
+        description: req.body.description || "",
+        isActive: true
+      };
+
+      console.log("Creating maintenance counter:", counterData);
+      
+      // Simple direct database insertion
+      const [counter] = await db.insert(maintenanceCounters).values(counterData).returning();
+      res.json(counter);
+    } catch (error) {
+      console.error("Error creating maintenance counter:", error);
+      res.status(500).json({ 
+        message: "Failed to create maintenance counter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Update counter value and check for alerts
+  app.patch("/api/maintenance-counters/:id/value", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { currentValue } = req.body;
+      const tenantId = "default-tenant"; // TODO: Get from auth
+      
+      // Update counter
+      const [counter] = await db
+        .update(maintenanceCounters)
+        .set({ 
+          currentValue: currentValue,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(maintenanceCounters.id, id),
+          eq(maintenanceCounters.tenantId, tenantId)
+        ))
+        .returning();
+
+      if (!counter) {
+        return res.status(404).json({ message: "Counter not found" });
+      }
+
+      // Calculate remaining until maintenance
+      const usageThisInterval = currentValue - (counter.lastServiceValue || 0);
+      const remaining = (counter.intervalValue || 0) - usageThisInterval;
+      const warningThreshold = (counter.intervalValue || 0) * (100 - (counter.warningThresholdPct || 10)) / 100;
+      
+      // Generate counter-specific alerts
+      let alertGenerated = false;
+      
+      if (remaining <= 0) {
+        // Maintenance due
+        await db.insert(alertsNotifications).values({
+          tenantId,
+          title: `Maintenance Due: ${counter.equipmentName}`,
+          message: `Equipment ${counter.equipmentName} has reached ${currentValue} ${counter.counterType}. Maintenance is due.`,
+          category: "counter",
+          scope: "maintenance",
+          severity: "critical",
+          equipmentId: counter.equipmentId,
+          metadata: { counterId: id, planId: counter.planId }
+        });
+        alertGenerated = true;
+      } else if (usageThisInterval >= warningThreshold) {
+        // Warning threshold reached
+        await db.insert(alertsNotifications).values({
+          tenantId,
+          title: `Maintenance Warning: ${counter.equipmentName}`,
+          message: `Equipment ${counter.equipmentName} approaching maintenance interval. ${remaining} ${counter.counterType} remaining.`,
+          category: "counter", 
+          scope: "maintenance",
+          severity: "warning",
+          equipmentId: counter.equipmentId,
+          metadata: { counterId: id, planId: counter.planId }
+        });
+        alertGenerated = true;
+      }
+
+      res.json({ 
+        counter, 
+        remaining,
+        warningThreshold: warningThreshold,
+        alertGenerated 
+      });
+    } catch (error) {
+      console.error("Error updating counter value:", error);
+      res.status(500).json({ message: "Failed to update counter value" });
+    }
+  });
+
   console.log("✅ GMAO routes registered successfully");
 }

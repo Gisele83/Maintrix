@@ -68,7 +68,13 @@ export default function PreventiveMaintenance() {
     customEquipment: "",
     frequency: "",
     description: "",
-    duration: 2
+    duration: 2,
+    // Champs compteurs pour maintenance basée sur l'usage
+    counterType: "" as "" | "hours" | "kilometers",
+    intervalValue: 500,
+    warningThresholdPct: 10,
+    currentValue: 0,
+    counterDescription: ""
   });
 
   // Fetch maintenance plans from API
@@ -363,7 +369,50 @@ export default function PreventiveMaintenance() {
       nextDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
     
-    createPlanMutation.mutate(planData);
+    createPlanMutation.mutate(planData, {
+      onSuccess: (createdPlan) => {
+        // Si c'est une maintenance basée sur l'usage, créer un compteur automatiquement
+        if (addFormData.frequency === "hours_based" || addFormData.frequency === "kilometers_based") {
+          const selectedEquipmentName = addFormData.equipment === "autre" ? addFormData.customEquipment : addFormData.equipment;
+          const counterData = {
+            planId: createdPlan.id,
+            equipmentId: 1, // TODO: Get from equipment selection
+            equipmentName: selectedEquipmentName,
+            counterType: addFormData.counterType,
+            intervalValue: addFormData.intervalValue,
+            warningThresholdPct: addFormData.warningThresholdPct,
+            currentValue: addFormData.currentValue,
+            description: addFormData.counterDescription || `Compteur ${addFormData.counterType} pour ${selectedEquipmentName}`
+          };
+
+          // Créer le compteur via API
+          fetch('/api/maintenance-counters', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(counterData)
+          }).then(response => {
+            if (response.ok) {
+              toast({
+                title: "Plan créé avec compteur",
+                description: `Plan de maintenance et compteur ${addFormData.counterType} créés avec succès.`,
+              });
+            } else {
+              toast({
+                title: "Attention",
+                description: "Plan créé mais erreur lors de la création du compteur.",
+                variant: "destructive",
+              });
+            }
+          }).catch(() => {
+            toast({
+              title: "Attention",
+              description: "Plan créé mais erreur lors de la création du compteur.",
+              variant: "destructive",
+            });
+          });
+        }
+      }
+    });
   };
 
   const resetAddForm = () => {
@@ -373,7 +422,12 @@ export default function PreventiveMaintenance() {
       customEquipment: "",
       frequency: "",
       description: "",
-      duration: 2
+      duration: 2,
+      counterType: "" as "" | "hours" | "kilometers",
+      intervalValue: 500,
+      warningThresholdPct: 10,
+      currentValue: 0,
+      counterDescription: ""
     });
     setShowAddModal(false);
   };
@@ -1098,8 +1152,82 @@ export default function PreventiveMaintenance() {
                     <option value="Mensuelle">Mensuelle</option>
                     <option value="Trimestrielle">Trimestrielle</option>
                     <option value="Annuelle">Annuelle</option>
+                    <option value="hours_based">Basée sur heures d'usage</option>
+                    <option value="kilometers_based">Basée sur kilométrage</option>
                   </select>
                 </div>
+                
+                {/* Section Compteur d'Usage - Conditionnelle */}
+                {(addFormData.frequency === "hours_based" || addFormData.frequency === "kilometers_based") && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+                    <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Configuration du Compteur d'Usage
+                    </h4>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="intervalValue">
+                          Intervalle de maintenance ({addFormData.frequency === "hours_based" ? "heures" : "kilomètres"})
+                        </Label>
+                        <Input 
+                          id="intervalValue"
+                          type="number"
+                          value={addFormData.intervalValue}
+                          onChange={(e) => setAddFormData({
+                            ...addFormData, 
+                            intervalValue: parseInt(e.target.value) || 500,
+                            counterType: addFormData.frequency === "hours_based" ? "hours" : "kilometers"
+                          })}
+                          placeholder={addFormData.frequency === "hours_based" ? "500" : "10000"} 
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {addFormData.frequency === "hours_based" 
+                            ? "Ex: 500 (maintenance toutes les 500 heures de fonctionnement)"
+                            : "Ex: 10000 (maintenance tous les 10 000 kilomètres)"
+                          }
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="warningThresholdPct">Seuil d'alerte (% avant échéance)</Label>
+                        <Input 
+                          id="warningThresholdPct"
+                          type="number"
+                          min="5"
+                          max="50"
+                          value={addFormData.warningThresholdPct}
+                          onChange={(e) => setAddFormData({...addFormData, warningThresholdPct: parseInt(e.target.value) || 10})}
+                          placeholder="10" 
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Alerte à {100 - addFormData.warningThresholdPct}% de l'intervalle 
+                          ({Math.round(addFormData.intervalValue * (100 - addFormData.warningThresholdPct) / 100)} {addFormData.frequency === "hours_based" ? "heures" : "km"})
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="currentValue">
+                          Valeur actuelle ({addFormData.frequency === "hours_based" ? "heures" : "kilomètres"})
+                        </Label>
+                        <Input 
+                          id="currentValue"
+                          type="number"
+                          min="0"
+                          value={addFormData.currentValue}
+                          onChange={(e) => setAddFormData({...addFormData, currentValue: parseInt(e.target.value) || 0})}
+                          placeholder="0" 
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Compteur actuel de l'équipement (optionnel, par défaut 0)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div>
                   <Label htmlFor="duration">Durée estimée (heures)</Label>
                   <Input 
