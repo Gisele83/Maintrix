@@ -224,7 +224,8 @@ export class IoTConnector {
       await gmaoStorage.createAlert(alert);
       this.alertCooldowns.set(alertKey, new Date());
 
-      console.log(`Alert generated for equipment ${reading.equipmentId}: ${alert.message}`);
+      // Supprimer ces logs d'alertes IoT pour éviter le bruit dans toutes les pages
+      // console.log(`Alert generated for equipment ${reading.equipmentId}: ${alert.message}`);
     }
   }
 
