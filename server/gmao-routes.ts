@@ -6,6 +6,8 @@ import {
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
   insertPreventiveMaintenancePlanSchema,
+  insertMaintenanceCounterSchema,
+  insertCounterHistorySchema,
   insertSparePartSchema,
   insertStockMovementSchema,
   insertIotSensorDataSchema,
@@ -435,6 +437,207 @@ export function registerGMAORoutes(app: Express) {
         message: "Failed to delete maintenance plan",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // ============= MAINTENANCE COUNTERS ROUTES =============
+  
+  // Get all maintenance counters for tenant
+  app.get("/api/maintenance-counters", async (req, res) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      const counters = await gmaoStorage.getMaintenanceCounters(tenantId);
+      res.json(counters);
+    } catch (error) {
+      console.error("Error fetching maintenance counters:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance counters" });
+    }
+  });
+
+  // Get maintenance counter by ID
+  app.get("/api/maintenance-counters/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+      const counter = await gmaoStorage.getMaintenanceCounterById(id, tenantId);
+      if (!counter) {
+        return res.status(404).json({ message: "Counter not found" });
+      }
+      res.json(counter);
+    } catch (error) {
+      console.error("Error fetching maintenance counter:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance counter" });
+    }
+  });
+
+  // Get maintenance counters by equipment
+  app.get("/api/equipment/:equipmentId/counters", async (req, res) => {
+    try {
+      const equipmentId = parseInt(req.params.equipmentId);
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(equipmentId)) {
+        return res.status(400).json({ message: "Invalid equipment ID" });
+      }
+      const counters = await gmaoStorage.getMaintenanceCountersByEquipment(equipmentId, tenantId);
+      res.json(counters);
+    } catch (error) {
+      console.error("Error fetching equipment counters:", error);
+      res.status(500).json({ message: "Failed to fetch equipment counters" });
+    }
+  });
+
+  // Create maintenance counter
+  app.post("/api/maintenance-counters", async (req, res) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      console.log("Creating maintenance counter with data:", req.body);
+      const data = insertMaintenanceCounterSchema.parse({ ...req.body, tenantId });
+      const counter = await gmaoStorage.createMaintenanceCounter(data);
+      res.status(201).json(counter);
+    } catch (error) {
+      console.error("Error creating maintenance counter:", error);
+      res.status(400).json({ message: "Failed to create maintenance counter" });
+    }
+  });
+
+  // Update maintenance counter
+  app.put("/api/maintenance-counters/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+      console.log("Updating maintenance counter:", id, "with data:", req.body);
+      
+      const updateData = req.body.data || req.body;
+      const partialSchema = insertMaintenanceCounterSchema.partial();
+      const validatedData = partialSchema.parse(updateData);
+      
+      const counter = await gmaoStorage.updateMaintenanceCounter(id, tenantId, validatedData);
+      res.json(counter);
+    } catch (error) {
+      console.error("Error updating maintenance counter:", error);
+      res.status(400).json({ 
+        message: "Failed to update maintenance counter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Increment counter
+  app.post("/api/maintenance-counters/:id/increment", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      const { incrementValue = 1 } = req.body;
+      
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+      if (typeof incrementValue !== "number" || incrementValue <= 0) {
+        return res.status(400).json({ message: "Invalid increment value" });
+      }
+
+      console.log(`Incrementing counter ${id} by ${incrementValue}`);
+      const counter = await gmaoStorage.incrementCounter(id, tenantId, incrementValue);
+      res.json(counter);
+    } catch (error) {
+      console.error("Error incrementing counter:", error);
+      res.status(400).json({ message: "Failed to increment counter" });
+    }
+  });
+
+  // Reset counter
+  app.post("/api/maintenance-counters/:id/reset", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      const { resetReason, performedBy, workOrderId } = req.body;
+      
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+
+      console.log(`Resetting counter ${id} with reason: ${resetReason}`);
+      const counter = await gmaoStorage.resetCounter(id, tenantId, resetReason, performedBy, workOrderId);
+      res.json(counter);
+    } catch (error) {
+      console.error("Error resetting counter:", error);
+      res.status(400).json({ 
+        message: "Failed to reset counter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Delete maintenance counter
+  app.delete("/api/maintenance-counters/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+
+      console.log("Deleting maintenance counter:", id);
+      await gmaoStorage.deleteMaintenanceCounter(id, tenantId);
+      res.json({ success: true, message: "Compteur de maintenance supprimé avec succès" });
+    } catch (error) {
+      console.error("Error deleting maintenance counter:", error);
+      res.status(400).json({ 
+        message: "Failed to delete maintenance counter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Get counter history
+  app.get("/api/maintenance-counters/:id/history", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = req.tenantId;
+      
+      if (!tenantId) {
+        return res.status(400).json({ message: "Tenant ID required" });
+      }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid counter ID" });
+      }
+
+      const history = await gmaoStorage.getCounterHistory(id, tenantId);
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching counter history:", error);
+      res.status(500).json({ message: "Failed to fetch counter history" });
     }
   });
 
