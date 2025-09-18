@@ -503,54 +503,6 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {activeTab === "alerts" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Alertes</h2>
-              <Button 
-                variant="outline"
-                onClick={() => setShowAlertsModal(true)}
-              >
-                Voir toutes les alertes
-              </Button>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Bell className="w-5 h-5" />
-                  <span>Alertes Récentes</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {dashboardData?.recentAlerts?.slice(0, 6).map((alert) => (
-                    <div key={alert.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{alert.title}</p>
-                        <p className="text-xs text-muted-foreground">{alert.message}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={`${
-                          alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                          alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {alert.severity}
-                        </Badge>
-                      </div>
-                    </div>
-                  )) || (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Aucune alerte récente
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {showAdminModal && activeAdminTab === "health-dashboard" && (
           <EquipmentHealthDashboard />
@@ -870,42 +822,6 @@ export default function GMAODashboard() {
               </Card>
             </div>
 
-            {/* Recent Alerts */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Alertes Récentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 border border-red-200 bg-red-50 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <div className="flex-1">
-                      <p className="font-medium">Pression hydraulique critique - Grue STS-01</p>
-                      <p className="text-sm text-muted-foreground">Seuil dépassé: 6.74 bar (limite: 4.0 bar)</p>
-                    </div>
-                    <Badge variant="destructive">Critique</Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-                    <Clock className="w-5 h-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <p className="font-medium">Maintenance préventive due - RTG-02</p>
-                      <p className="text-sm text-muted-foreground">Échéance dans 2 jours</p>
-                    </div>
-                    <Badge variant="outline" className="border-yellow-600 text-yellow-600">Important</Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                    <Brain className="w-5 h-5 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="font-medium">Prédiction de panne - Reach Stacker RS-01</p>
-                      <p className="text-sm text-muted-foreground">Probabilité de panne dans 7 jours: 78%</p>
-                    </div>
-                    <Badge variant="outline" className="border-blue-600 text-blue-600">Prédictive</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </DialogContent>
       </Dialog>
