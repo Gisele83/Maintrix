@@ -18,6 +18,7 @@ import IoTGamificationDashboard from "@/pages/iot-gamification-dashboard";
 import AccessManagement from "@/pages/access-management";
 import CCTPCompliancePage from "@/pages/cctp-compliance";
 import ERPConfiguration from "@/pages/erp-configuration";
+import TenantPermissions from "@/pages/tenant-permissions";
 // ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé
 import SupportChatbot from "@/pages/support-chatbot";
 import DataImportExport from "@/pages/data-import-export";
@@ -195,6 +196,9 @@ function Router() {
       </Route>
       <Route path="/erp-configuration">
         {(params) => <ProtectedRoute component={ERPConfiguration} {...params} />}
+      </Route>
+      <Route path="/tenant-permissions">
+        {(params) => <ProtectedRoute component={TenantPermissions} {...params} />}
       </Route>
       <Route path="/configuration-erp">
         {(params) => <ProtectedRoute component={ERPConfiguration} {...params} />}

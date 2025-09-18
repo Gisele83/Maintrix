@@ -49,6 +49,7 @@ import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-route
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
+import tenantPermissionsRoutes from "./tenant-permissions-routes";
 import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
@@ -3675,6 +3676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
+  app.use(tenantPermissionsRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

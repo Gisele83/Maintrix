@@ -68,6 +68,8 @@ export function ModernNavigation() {
     { name: "Intégrations Avancées", href: "/advanced-integrations", icon: Database },
     { name: "Historique", href: "/historique", icon: History },
     { name: "Configuration ERP", href: "/erp-configuration", icon: Building },
+    // Gestion Permissions - visible seulement pour les admins et directeurs
+    ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Gestion Permissions", href: "/tenant-permissions", icon: Shield }] : []),
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
     // ✅ MIGRATION COMPLÈTE : Administration SaaS déplacée vers interface super-admin séparée (/admin-login)
