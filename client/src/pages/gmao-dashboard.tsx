@@ -392,69 +392,6 @@ export default function GMAODashboard() {
         {showAdminModal && activeAdminTab === "analytics" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Analytiques et KPI</h2>
-            
-            {/* KPI Summary Cards */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="border-l-4 border-l-green-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Disponibilité Globale</p>
-                      <p className="text-3xl font-bold text-green-600">94.7%</p>
-                      <p className="text-xs text-green-600 mt-1">+2.3% ce mois</p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <Activity className="w-6 h-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-blue-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">MTBF Moyen</p>
-                      <p className="text-3xl font-bold text-blue-600">168h</p>
-                      <p className="text-xs text-blue-600 mt-1">+12h ce mois</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Clock className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-purple-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">MTTR Moyen</p>
-                      <p className="text-3xl font-bold text-purple-600">4.2h</p>
-                      <p className="text-xs text-purple-600 mt-1">-0.8h ce mois</p>
-                    </div>
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <Wrench className="w-6 h-6 text-purple-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-l-4 border-l-yellow-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Coût Maintenance</p>
-                      <p className="text-3xl font-bold text-yellow-600">€47.2K</p>
-                      <p className="text-xs text-yellow-600 mt-1">-8% ce mois</p>
-                    </div>
-                    <div className="p-3 bg-yellow-100 rounded-lg">
-                      <DollarSign className="w-6 h-6 text-yellow-600" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
             {/* Performance Trends */}
             <div className="grid md:grid-cols-2 gap-6">

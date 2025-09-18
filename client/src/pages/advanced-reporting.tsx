@@ -192,19 +192,6 @@ export default function AdvancedReporting() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-                  <p className="text-sm font-medium text-purple-600">OEE</p>
-                  <p className="text-3xl font-bold text-purple-900">{kpis.oee.toFixed(1)}%</p>
-                  <p className="text-xs text-purple-600 mt-1">Target: 90%</p>
-                </div>
-                <div className="p-3 bg-purple-200 rounded-full">
-                  <Target className="h-6 w-6 text-purple-700" />
-                </div>
-              </div>
-              <Progress value={kpis.oee} className="mt-4" />
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Budget Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
