@@ -60,13 +60,15 @@ export function registerGMAORoutes(app: Express) {
     try {
       console.log("Creating equipment with data:", req.body);
       
+      // Add tenantId BEFORE validation
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const dataToValidate = { ...req.body, tenantId };
+      
       // First validate with Zod (expects strings for date fields)
-      const validatedData = insertEquipmentRegistrySchema.parse(req.body);
+      const validatedData = insertEquipmentRegistrySchema.parse(dataToValidate);
       
       // Generate unique equipmentId if not provided or if it already exists
       let equipmentId = validatedData.equipmentId;
-      
-      const tenantId = (req as any).tenantId || 'default-tenant';
       
       if (!equipmentId || await gmaoStorage.getEquipmentByEquipmentId(equipmentId, tenantId)) {
         // Generate new unique equipmentId
@@ -90,8 +92,7 @@ export function registerGMAORoutes(app: Express) {
       // Then convert date strings to Date objects for database storage
       const processedData = { 
         ...validatedData, 
-        equipmentId, // Use the generated or validated unique ID
-        tenantId // Add tenantId to the processed data
+        equipmentId // Use the generated or validated unique ID
       };
       
       if (processedData.installationDate && typeof processedData.installationDate === 'string') {
