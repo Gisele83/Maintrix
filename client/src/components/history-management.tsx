@@ -83,7 +83,7 @@ export function HistoryManagement() {
     formData.append('type', importType);
 
     try {
-      const response = await fetch('/api/data/import', {
+      const response = await fetch('/api/data-import-export/import', {
         method: 'POST',
         body: formData,
       });
@@ -122,7 +122,7 @@ export function HistoryManagement() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`/api/data/export?type=${exportType}&format=excel`, {
+      const response = await fetch(`/api/data-import-export/export?type=${exportType}&format=excel`, {
         method: 'GET',
       });
 

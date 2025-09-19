@@ -1,3 +1,0 @@
-orderNumber,orderType,title,description,priority,status
-WO-TEST-001,corrective,Test Maintenance 1,Test de maintenance corrective,medium,completed
-WO-TEST-002,preventive,Test Maintenance 2,Test de maintenance préventive,high,completed
