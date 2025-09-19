@@ -242,9 +242,6 @@ export function registerGMAORoutes(app: Express) {
 
       // Add tenantId BEFORE validation
       const tenantId = (req as any).tenantId || 'default-tenant';
-      console.log("DEBUG: req.tenantId =", (req as any).tenantId);
-      console.log("DEBUG: resolved tenantId =", tenantId);
-      console.log("DEBUG: req.user =", (req as any).user);
       cleanedData.tenantId = tenantId;
 
       // First validate with Zod (expects strings for date fields)
