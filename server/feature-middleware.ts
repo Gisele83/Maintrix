@@ -100,7 +100,7 @@ export async function apiFeatureGuard(req: AuthenticatedRequest, res: Response, 
  */
 export function adminConfigGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   // Vérifier que l'utilisateur a les permissions admin
-  if (!req.user || !["admin", "owner"].includes(req.user.role)) {
+  if (!req.user || !["admin", "owner", "Super-admin"].includes(req.user.role)) {
     return res.status(403).json({
       error: "ADMIN_ACCESS_REQUIRED",
       message: "Administrator privileges required for configuration access"
