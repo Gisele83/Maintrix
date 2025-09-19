@@ -92,9 +92,42 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
       type as 'letter' | 'purchase_order' | undefined
     );
     
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.send(result.documentHTML);
+    // Convert HTML to PDF using Puppeteer
+    const puppeteer = await import('puppeteer');
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor'
+      ]
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set content and generate PDF
+    await page.setContent(result.documentHTML, { waitUntil: 'networkidle0' });
+    
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      }
+    });
+    
+    await browser.close();
+    
+    // Send actual PDF file
+    const documentType = result.type === 'purchase_order' ? 'bon_commande' : 'lettre_commande';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${documentType}_${purchaseOrderId}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
     console.error("Error generating purchase document:", error);
     res.status(500).json({ error: "Erreur lors de la génération du document" });
