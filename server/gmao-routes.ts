@@ -1751,51 +1751,102 @@ export function registerGMAORoutes(app: Express) {
       
       const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId, demoOrder);
       
-      // Import Puppeteer for PDF generation
-      const puppeteer = await import('puppeteer');
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-gpu',
-          '--disable-dev-tools',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ],
-        ignoreHTTPSErrors: true,
-        ignoreDefaultArgs: ['--disable-extensions']
-      });
+      // Generate a print-optimized HTML that can be saved as PDF by the browser
+      const printOptimizedHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bon de Commande ${demoOrder.orderNumber}</title>
+  <style>
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none !important; }
+    }
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20mm; 
+      background: white;
+    }
+    .print-header {
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .print-instructions {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      border-left: 4px solid #2196f3;
+    }
+    .auto-download-btn {
+      background: #4CAF50;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px;
+    }
+    .auto-download-btn:hover {
+      background: #45a049;
+    }
+    .document-content {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print">
+    <div class="print-header">
+      <h1>📄 Génération du PDF - Bon de Commande ${demoOrder.orderNumber}</h1>
+      <div class="print-instructions">
+        <h3>🖨️ Instructions pour télécharger le PDF :</h3>
+        <p><strong>1.</strong> Cliquez sur le bouton "Télécharger PDF" ci-dessous</p>
+        <p><strong>2.</strong> Ou utilisez Ctrl+P (Cmd+P sur Mac) et choisissez "Enregistrer au format PDF"</p>
+        <p><strong>3.</strong> Le document s'imprimera automatiquement au format A4</p>
+      </div>
+      <button class="auto-download-btn" onclick="downloadPDF()">📥 Télécharger PDF</button>
+      <button class="auto-download-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer PDF</button>
+    </div>
+  </div>
+  
+  <div class="document-content">
+    ${html}
+  </div>
+
+  <script>
+    function downloadPDF() {
+      // Hide no-print elements
+      const noPrintElements = document.querySelectorAll('.no-print');
+      noPrintElements.forEach(el => el.style.display = 'none');
       
-      const page = await browser.newPage();
+      // Trigger print dialog
+      window.print();
       
-      // Set content and generate PDF
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
-        }
-      });
-      
-      await browser.close();
-      
-      // Send actual PDF file
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
-      res.send(pdfBuffer);
+      // Restore no-print elements after a short delay
+      setTimeout(() => {
+        noPrintElements.forEach(el => el.style.display = 'block');
+      }, 1000);
+    }
+    
+    // Auto-focus on the download button
+    document.addEventListener('DOMContentLoaded', function() {
+      const downloadBtn = document.querySelector('.auto-download-btn');
+      if (downloadBtn) downloadBtn.focus();
+    });
+  </script>
+</body>
+</html>`;
+
+      // Send HTML optimized for PDF generation
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.send(printOptimizedHtml);
     } catch (error) {
       console.error("Error generating purchase order with letterhead:", error);
       res.status(500).json({ message: "Failed to generate purchase order with letterhead" });
