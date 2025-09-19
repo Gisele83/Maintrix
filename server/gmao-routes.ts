@@ -1749,104 +1749,23 @@ export function registerGMAORoutes(app: Express) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
       
-      const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId, demoOrder);
+      // Import PDFKit generator
+      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit.js');
       
-      // Generate a print-optimized HTML that can be saved as PDF by the browser
-      const printOptimizedHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Bon de Commande ${demoOrder.orderNumber}</title>
-  <style>
-    @media print {
-      body { margin: 0; }
-      .no-print { display: none !important; }
-    }
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 20mm; 
-      background: white;
-    }
-    .print-header {
-      text-align: center;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      margin-bottom: 30px;
-    }
-    .print-instructions {
-      background: #e3f2fd;
-      padding: 15px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      border-left: 4px solid #2196f3;
-    }
-    .auto-download-btn {
-      background: #4CAF50;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
-      margin: 10px;
-    }
-    .auto-download-btn:hover {
-      background: #45a049;
-    }
-    .document-content {
-      margin-top: 30px;
-    }
-  </style>
-</head>
-<body>
-  <div class="no-print">
-    <div class="print-header">
-      <h1>📄 Génération du PDF - Bon de Commande ${demoOrder.orderNumber}</h1>
-      <div class="print-instructions">
-        <h3>🖨️ Instructions pour télécharger le PDF :</h3>
-        <p><strong>1.</strong> Cliquez sur le bouton "Télécharger PDF" ci-dessous</p>
-        <p><strong>2.</strong> Ou utilisez Ctrl+P (Cmd+P sur Mac) et choisissez "Enregistrer au format PDF"</p>
-        <p><strong>3.</strong> Le document s'imprimera automatiquement au format A4</p>
-      </div>
-      <button class="auto-download-btn" onclick="downloadPDF()">📥 Télécharger PDF</button>
-      <button class="auto-download-btn" onclick="window.print()">🖨️ Imprimer / Enregistrer PDF</button>
-    </div>
-  </div>
-  
-  <div class="document-content">
-    ${html}
-  </div>
-
-  <script>
-    function downloadPDF() {
-      // Hide no-print elements
-      const noPrintElements = document.querySelectorAll('.no-print');
-      noPrintElements.forEach(el => el.style.display = 'none');
+      // Get company config for letterhead
+      const companyConfig = await gmaoStorage.getCompanyConfig();
       
-      // Trigger print dialog
-      window.print();
+      // Generate PDF using PDFKit
+      const pdfDoc = generatePurchaseOrderPDF(demoOrder, companyConfig || undefined);
       
-      // Restore no-print elements after a short delay
-      setTimeout(() => {
-        noPrintElements.forEach(el => el.style.display = 'block');
-      }, 1000);
-    }
-    
-    // Auto-focus on the download button
-    document.addEventListener('DOMContentLoaded', function() {
-      const downloadBtn = document.querySelector('.auto-download-btn');
-      if (downloadBtn) downloadBtn.focus();
-    });
-  </script>
-</body>
-</html>`;
-
-      // Send HTML optimized for PDF generation
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      // Set PDF headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.send(printOptimizedHtml);
+      
+      // Stream PDF to response
+      pdfDoc.pipe(res);
+      pdfDoc.end();
     } catch (error) {
       console.error("Error generating purchase order with letterhead:", error);
       res.status(500).json({ message: "Failed to generate purchase order with letterhead" });
@@ -1901,53 +1820,65 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId);
       
-      // Import Puppeteer for PDF generation
-      const puppeteer = await import('puppeteer');
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--disable-gpu',
-          '--disable-dev-tools',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ],
-        ignoreHTTPSErrors: true,
-        ignoreDefaultArgs: ['--disable-extensions']
-      });
-      
-      const page = await browser.newPage();
-      
-      // Set content and generate PDF
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20mm',
-          right: '15mm',
-          bottom: '20mm',
-          left: '15mm'
+      // For demo purposes, use demo data directly
+      const demoPurchaseOrders = [
+        {
+          id: 1,
+          orderNumber: "PO-2025-001",
+          orderType: "Pièces de rechange",
+          description: "Commande de roulements et joints pour maintenance préventive",
+          supplier: "Roulement Industriel SA",
+          items: [
+            { partNumber: "RLT-001", description: "Roulement SKF 6308", quantity: 4, unitPrice: 125.50 },
+            { partNumber: "JNT-045", description: "Joint hydraulique NBR", quantity: 10, unitPrice: 15.20 }
+          ],
+          totalAmount: "654.00",
+          currency: "EUR",
+          validationStatus: "pending",
+          priority: "medium",
+          requestedBy: "Jean Martin",
+          deliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          createdAt: new Date()
+        },
+        {
+          id: 2,
+          orderNumber: "PO-2025-002",
+          orderType: "Équipement",
+          description: "Acquisition d'un nouveau moteur électrique haute performance",
+          supplier: "Moteurs Électriques Pro", 
+          items: [
+            { partNumber: "MOT-HP-75", description: "Moteur 75kW IP55 IE4", quantity: 1, unitPrice: 4250.00 }
+          ],
+          totalAmount: "4250.00",
+          currency: "EUR",
+          validationStatus: "pending",
+          priority: "high",
+          requestedBy: "Marie Dupont",
+          deliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
+          createdAt: new Date()
         }
-      });
+      ];
       
-      await browser.close();
+      const demoOrder = demoPurchaseOrders.find(order => order.id === purchaseOrderId) || demoPurchaseOrders[0];
       
-      // Send actual PDF file
+      // Import PDFKit generator
+      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit.js');
+      
+      // Get company config for letterhead
+      const companyConfig = await gmaoStorage.getCompanyConfig();
+      
+      // Generate PDF using PDFKit
+      const pdfDoc = generatePurchaseOrderPDF(demoOrder, companyConfig || undefined);
+      
+      // Set PDF headers
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${purchaseOrderId}.pdf"`);
-      res.send(pdfBuffer);
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      
+      // Stream PDF to response
+      pdfDoc.pipe(res);
+      pdfDoc.end();
       
     } catch (error) {
       console.error("Error generating PDF:", error);
