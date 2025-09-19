@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { dataImportExportService } from "./data-import-export";
+import { simpleImportService } from "./simple-import-service";
 
 const router = Router();
 
@@ -69,7 +70,7 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
         result = await dataImportExportService.importEquipments(req.file.buffer, fileFormat);
         break;
       case 'maintenance-history':
-        result = await dataImportExportService.importMaintenanceHistory(req.file.buffer, fileFormat);
+        result = await simpleImportService.simpleImportMaintenanceHistory(req.file.buffer, fileFormat);
         break;
       case 'spare-parts':
         result = await dataImportExportService.importSpareParts(req.file.buffer, fileFormat);
