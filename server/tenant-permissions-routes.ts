@@ -354,80 +354,8 @@ router.post("/api/tenant/roles", async (req: any, res) => {
   }
 });
 
-/**
- * GET /api/tenant/modules
- * Récupère tous les modules disponibles pour le tenant
- */
-router.get("/api/tenant/modules", async (req: any, res) => {
-  try {
-    const tenantId = req.tenantId || req.user?.tenantId;
-
-    if (!tenantId) {
-      return res.status(400).json({
-        error: "TENANT_REQUIRED",
-        message: "Tenant context required"
-      });
-    }
-
-    // Modules disponibles dans la plateforme
-    const availableModules = [
-      {
-        id: "gmao_core",
-        name: "GMAO Core",
-        description: "Gestion de maintenance assistée par ordinateur de base",
-        category: "core"
-      },
-      {
-        id: "diagnostic_ai",
-        name: "Diagnostic IA",
-        description: "Intelligence artificielle pour diagnostic de maintenance",
-        category: "ai"
-      },
-      {
-        id: "erp_procurement",
-        name: "Approvisionnement ERP",
-        description: "Gestion des achats et approvisionnements",
-        category: "erp"
-      },
-      {
-        id: "analytics",
-        name: "Analytics",
-        description: "Tableaux de bord et analytiques avancées",
-        category: "analytics"
-      },
-      {
-        id: "enterprise_integration",
-        name: "Intégrations Entreprise",
-        description: "Connecteurs SAP, ERP, et systèmes tiers",
-        category: "integration"
-      },
-      {
-        id: "advanced_ai",
-        name: "IA Avancée",
-        description: "Machine learning et prédictions avancées",
-        category: "ai"
-      },
-      {
-        id: "mobile_platform",
-        name: "Plateforme Mobile",
-        description: "Applications mobiles pour techniciens terrain",
-        category: "mobile"
-      }
-    ];
-
-    res.json({
-      modules: availableModules,
-      totalModules: availableModules.length
-    });
-
-  } catch (error) {
-    console.error("Error fetching tenant modules:", error);
-    res.status(500).json({
-      error: "FETCH_MODULES_ERROR",
-      message: "Failed to fetch tenant modules"
-    });
-  }
-});
+// ROUTE SUPPRIMÉE - Cette route dupliquée permettait de contourner les contrôles de sécurité
+// La route sécurisée se trouve dans server/routes.ts avec le middleware adminConfigGuard
 
 /**
  * GET /api/tenant/roles
