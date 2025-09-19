@@ -216,10 +216,11 @@ export default function GMAODashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Vue d'ensemble uniquement */}
         {activeTab === "overview" && (
           <div className="space-y-8">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
@@ -357,16 +358,27 @@ export default function GMAODashboard() {
           </div>
         )}
 
+        {/* Équipements uniquement */}
         {activeTab === "equipment" && (
           <EquipmentManagement />
         )}
 
+        {/* Ordres de travail uniquement */}
         {activeTab === "work-orders" && (
           <WorkOrderManagement />
         )}
 
+        {/* Inventaire uniquement */}
         {activeTab === "inventory" && (
           <InventoryManagement />
+        )}
+        
+        {/* Alertes uniquement */}
+        {activeTab === "alerts" && (
+          <div className="text-center py-8">
+            <h2 className="text-2xl font-bold">Centre d'Alertes</h2>
+            <p className="text-gray-600 mt-2">Gestion des alertes système en cours de développement</p>
+          </div>
         )}
 
         {/* Admin Tabs - Only show if activeAdminTab is set */}
