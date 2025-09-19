@@ -3577,7 +3577,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 🔧 ERP MODULE CONFIGURATION ROUTES
   app.get('/api/tenant/modules', EnterpriseAuthMiddleware.requireAuthentication, adminConfigGuard, async (req: any, res) => {
-    console.log("🚨 ROUTE REACHED: /api/tenant/modules - User:", req.user?.username, "Role:", req.user?.role, "TenantID:", req.user?.tenantId);
     try {
       const tenantId = req.user?.tenantId;
       if (!tenantId) {
