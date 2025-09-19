@@ -180,6 +180,10 @@ export function registerSimpleValidationRoutes(app: Express) {
       const { workorderId, orderId, action, validationLevel, comments, validatorId } = req.body;
       const workOrderId = workorderId || orderId; // Handle both field names
       
+      // 🔧 CORRECTION CRITIQUE: Récupérer le tenant ID depuis la requête
+      const tenantId = (req as any).tenantId || 'b5c85c4a-b8a1-49c9-9138-dae0b3dff7fa';
+      console.log(`🔧 DIAGNOSTIC: tenant ID extracted: ${tenantId}`);
+      
       console.log(`Validating work order ${workOrderId} at level ${validationLevel} with action ${action}`);
       
       if (action === "validate") {
@@ -197,7 +201,8 @@ export function registerSimpleValidationRoutes(app: Express) {
 
         updateData.validationStatus = newValidationStatus;
 
-        await gmaoStorage.updateWorkOrder(workOrderId, updateData);
+        // 🔧 CORRECTION: Passer le tenant ID à updateWorkOrder
+        await gmaoStorage.updateWorkOrder(workOrderId, tenantId, updateData);
         
         console.log(`Work order ${workOrderId} validated at level ${validationLevel}, new status: ${newValidationStatus}`);
         
@@ -214,7 +219,8 @@ export function registerSimpleValidationRoutes(app: Express) {
           rejectionReason: comments || "Rejet sans commentaire"
         };
 
-        await gmaoStorage.updateWorkOrder(workOrderId, updateData);
+        // 🔧 CORRECTION: Passer le tenant ID à updateWorkOrder  
+        await gmaoStorage.updateWorkOrder(workOrderId, tenantId, updateData);
         
         console.log(`Work order ${workOrderId} rejected: ${comments}`);
         res.json({
