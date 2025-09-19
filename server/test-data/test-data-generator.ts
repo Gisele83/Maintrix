@@ -3,12 +3,12 @@
  * Crée des données réalistes pour tester toutes les fonctionnalités
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { 
   userProfiles, equipmentRegistry, workOrders, preventiveMaintenancePlans, 
   spareParts, stockMovements, maintenanceCounters, alertsNotifications,
-  diagnosticSessions, tenants
+  diagnosticSessions, tenants, reorderRules
 } from '../../shared/schema';
 import bcrypt from 'bcrypt';
 
@@ -66,17 +66,15 @@ export class TestDataGenerator {
   private static async clearExistingData(): Promise<void> {
     console.log('🧹 Nettoyage des données existantes...');
     
-    // Ordre inverse des dépendances
-    await db.delete(stockMovements);
-    await db.delete(alertsNotifications);
-    await db.delete(maintenanceCounters);
-    await db.delete(diagnosticSessions);
-    await db.delete(workOrders);
-    await db.delete(preventiveMaintenancePlans);
-    await db.delete(spareParts);
-    await db.delete(equipmentRegistry);
-    await db.delete(userProfiles);
-    await db.delete(tenants);
+    try {
+      // Utiliser SQL raw pour supprimer en cascade et éviter les contraintes FK
+      console.log('  → Suppression des données de test existantes...');
+      await db.execute(sql`DELETE FROM tenants WHERE name LIKE '%Test%' OR domain LIKE '%test%'`);
+      
+      console.log('  → Nettoyage terminé');
+    } catch (error) {
+      console.warn('  ⚠️ Certaines données peuvent déjà être supprimées:', error.message);
+    }
   }
 
   /**
@@ -144,10 +142,11 @@ export class TestDataGenerator {
       const userData = testUsers[i % testUsers.length];
       const userIndex = Math.floor(i / testUsers.length) + 1;
       
+      const timestamp = Date.now();
       const [user] = await db.insert(userProfiles).values({
         tenantId,
-        username: userIndex > 1 ? `${userData.username}_${userIndex}` : userData.username,
-        email: userIndex > 1 ? userData.email.replace('@', `${userIndex}@`) : userData.email,
+        username: `${userData.username}_${timestamp}_${userIndex}`,
+        email: userData.email.replace('@', `${timestamp}_${userIndex}@`),
         password: passwordHash,
         firstName: userData.fullName.split(' ')[0],
         lastName: userData.fullName.split(' ')[1] || '',
@@ -187,7 +186,7 @@ export class TestDataGenerator {
       
       const [created] = await db.insert(equipmentRegistry).values({
         tenantId,
-        equipmentId: `EQ${equipmentNumber.toString().padStart(3, '0')}`,
+        equipmentId: `EQ${Date.now()}_${equipmentNumber.toString().padStart(3, '0')}`,
         equipmentName: `${equipment.type} ${equipmentNumber.toString().padStart(3, '0')}`,
         equipmentType: equipment.type,
         manufacturer: equipment.brand,
@@ -231,7 +230,7 @@ export class TestDataGenerator {
       
       const [created] = await db.insert(spareParts).values({
         tenantId,
-        partNumber: `SP${partNumber.toString().padStart(4, '0')}`,
+        partNumber: `SP${Date.now()}_${partNumber.toString().padStart(4, '0')}`,
         partName: `${part.name} ${partNumber > partTypes.length ? Math.ceil(partNumber / partTypes.length) : ''}`.trim(),
         description: `Pièce détachée pour maintenance - ${part.name}`,
         category: part.category,
@@ -302,12 +301,10 @@ export class TestDataGenerator {
       await db.insert(preventiveMaintenancePlans).values({
         tenantId,
         planName: `Plan maintenance ${i + 1}`,
-        description: `Plan de maintenance préventive pour équipement ${i + 1}`,
-        equipmentId: equipmentIds[i],
-        maintenanceType: 'preventive',
+        equipmentType: ['Compresseur', 'Pompe', 'Moteur électrique', 'Convoyeur'][i % 4],
+        equipmentIds: [equipmentIds[i]],
         frequency: ['daily', 'weekly', 'monthly', 'quarterly'][Math.floor(Math.random() * 4)],
         nextDue: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
-        assignedTo: userIds[Math.floor(Math.random() * userIds.length)],
         estimatedDuration: Math.floor(Math.random() * 4) + 1,
         isActive: true,
       });
@@ -417,8 +414,8 @@ export class TestDataGenerator {
   }
 }
 
-// Script d'exécution directe
-if (require.main === module) {
+// Script d'exécution directe (ES modules)
+if (import.meta.url === `file://${process.argv[1]}`) {
   TestDataGenerator.generateTestData({
     clearExisting: true,
     equipmentCount: 25,
