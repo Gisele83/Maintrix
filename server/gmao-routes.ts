@@ -240,12 +240,18 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
 
+      // Add tenantId BEFORE validation
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      console.log("DEBUG: req.tenantId =", (req as any).tenantId);
+      console.log("DEBUG: resolved tenantId =", tenantId);
+      console.log("DEBUG: req.user =", (req as any).user);
+      cleanedData.tenantId = tenantId;
+
       // First validate with Zod (expects strings for date fields)
       const validatedData = insertWorkOrderSchema.parse(cleanedData);
       
       // Then convert date strings to Date objects for database storage
-      const tenantId = (req as any).tenantId || 'default-tenant';
-      const processedData = { ...validatedData, tenantId };
+      const processedData = { ...validatedData };
       if (processedData.scheduledStart && typeof processedData.scheduledStart === 'string') {
         processedData.scheduledStart = new Date(processedData.scheduledStart);
       }
