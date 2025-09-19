@@ -1427,12 +1427,12 @@ export class GMAOStorage {
       );
     } else if (validationLevel === 2) {
       query = and(
-        eq(purchaseOrders.validationStatus, "level1_validated"),
+        eq(purchaseOrders.validationStatus, "chef_service_validated"),
         isNull(purchaseOrders.level2ValidatedBy)
       );
     } else if (validationLevel === 3) {
       query = and(
-        eq(purchaseOrders.validationStatus, "level2_validated"),
+        eq(purchaseOrders.validationStatus, "directeur_validated"),
         isNull(purchaseOrders.level3ValidatedBy)
       );
     } else {
@@ -1477,11 +1477,18 @@ export class GMAOStorage {
           chefServiceValidatedAt: currentDate
         });
       } else if (data.validationLevel === 2) {
-        // Directeur Général valide - bon prêt pour impression
+        // Directeur Général valide - Passe au niveau 3 ou prêt pour impression si c'est le dernier niveau
+        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
+          validationStatus: "directeur_validated",
+          directeurValidatedBy: data.validatorId,
+          directeurValidatedAt: currentDate
+        });
+      } else if (data.validationLevel === 3) {
+        // Validation finale - bon prêt pour impression
         updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
           validationStatus: "ready_for_print",
-          directeurValidatedBy: data.validatorId,
-          directeurValidatedAt: currentDate,
+          level3ValidatedBy: data.validatorId,
+          level3ValidatedAt: currentDate,
           canPrint: true
         });
       }
