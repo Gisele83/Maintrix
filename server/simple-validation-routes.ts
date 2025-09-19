@@ -7,21 +7,14 @@ export function registerSimpleValidationRoutes(app: Express) {
   // Get pending work orders for validation based on authenticated user level  
   app.get("/api/validation/work-orders/pending", async (req, res) => {
     try {
-      const { validationLevel, userToken } = req.query;
+      const { validationLevel, validatorId } = req.query;
       let userLevel = parseInt(validationLevel as string) || 1;
       
       console.log(`Fetching work orders for validation level ${userLevel}`);
       
-      // Get work orders based on validation status and level
-      let targetStatus;
-      switch (userLevel) {
-        case 1: targetStatus = "pending"; break;
-        case 2: targetStatus = "level1_validated"; break;
-        case 3: targetStatus = "level2_validated"; break;
-        default: targetStatus = "pending";
-      }
-      
-      const workOrders = await gmaoStorage.getWorkOrdersByValidationStatus(targetStatus);
+      // 🔧 CORRECTION: Utiliser le système de validation principal au lieu du système simple
+      const validatorIdNum = parseInt(validatorId as string) || 1;
+      const workOrders = await gmaoStorage.getPendingWorkOrdersForValidation(validatorIdNum, userLevel);
       
       // Format for frontend display
       const formattedOrders = workOrders.map(order => ({
