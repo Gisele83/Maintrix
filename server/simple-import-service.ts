@@ -45,11 +45,11 @@ export class SimpleImportService {
 
           await db.insert(workOrders).values(orderData as any);
           result.imported++;
-        } catch (error) {
+        } catch (error: any) {
           result.errors.push(`Ligne ${i + 1}: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       result.success = false;
       result.errors.push(`Erreur générale: ${error instanceof Error ? error.message : String(error)}`);
     }

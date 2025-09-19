@@ -60,7 +60,8 @@ app.use((req, res, next) => {
     '/api/enterprise-auth/register',
     '/api/auth/login',
     '/api/auth/register',
-    '/api/super-admin'
+    '/api/super-admin',
+    '/api/data-import-export/import' // Exemption pour l'importation de fichiers
   ];
   const isExemptPath = exemptPaths.some(path => req.path.startsWith(path));
   
