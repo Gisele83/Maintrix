@@ -3674,12 +3674,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 🤖 AI ASSISTANT CHAT ROUTES
+  // 🤖 AI ASSISTANT CHAT ROUTES - Smart local assistant with optional Anthropic upgrade
+  const { smartAssistantService } = await import("./smart-assistant-service");
+  
+  // Try to import Anthropic service if API key is available
+  let anthropicService = null;
   if (process.env.ANTHROPIC_API_KEY) {
-    const { anthropicService } = await import("./anthropic-service");
+    try {
+      const { anthropicService: antService } = await import("./anthropic-service");
+      anthropicService = antService;
+      console.log("🤖 Anthropic AI service enabled");
+    } catch (error) {
+      console.log("⚡ Using smart local assistant (Anthropic not available)");
+    }
+  } else {
+    console.log("⚡ Smart local assistant active (no Anthropic API key)");
+  }
     
-    // AI Chat endpoint
-    app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
+  // AI Chat endpoint - Always available with local assistant
+  app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
     try {
       const { message } = req.body;
       
@@ -3697,10 +3710,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const response = await anthropicService.chat(message);
+      let response;
+      let model = "maintrix-smart-assistant";
+
+      if (anthropicService) {
+        // Use Anthropic AI if available
+        response = await anthropicService.chat(message);
+        model = "claude-sonnet-4-20250514";
+      } else {
+        // Use local smart assistant
+        const result = await smartAssistantService.chat(message);
+        response = result.response;
+        if (result.suggestions) {
+          response += `\n\n**Suggestions :**\n${result.suggestions.map(s => `• ${s}`).join('\n')}`;
+        }
+      }
       
       res.json({ 
         response,
+        model,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -3712,7 +3740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Equipment Analysis endpoint
+  // AI Equipment Analysis endpoint - Always available with local assistant
   app.post('/api/ai-equipment-analysis', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
     try {
       const { equipmentType, symptoms, context } = req.body;
@@ -3724,12 +3752,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const response = await anthropicService.analyzeEquipmentIssue(equipmentType, symptoms, context);
+      let response;
+      let model = "maintrix-smart-assistant";
+
+      if (anthropicService) {
+        // Use Anthropic AI if available
+        response = await anthropicService.analyzeEquipmentIssue(equipmentType, symptoms, context);
+        model = "claude-sonnet-4-20250514";
+      } else {
+        // Use local smart assistant
+        response = await smartAssistantService.analyzeEquipment(equipmentType, symptoms, context);
+      }
       
       res.json({ 
         analysis: response,
         equipmentType,
         symptoms,
+        model,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -3741,25 +3780,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Maintenance Schedule endpoint
+  // AI Maintenance Schedule endpoint - Always available with local assistant
   app.post('/api/ai-maintenance-schedule', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
     try {
       const { equipmentType, currentCondition, usage } = req.body;
       
-      if (!equipmentType || !currentCondition || !usage) {
+      if (!equipmentType || !currentCondition) {
         return res.status(400).json({ 
           error: "MISSING_PARAMETERS", 
-          message: "Equipment type, current condition, and usage are required" 
+          message: "Equipment type and current condition are required" 
         });
       }
 
-      const response = await anthropicService.suggestMaintenanceSchedule(equipmentType, currentCondition, usage);
+      let response;
+      let model = "maintrix-smart-assistant";
+
+      if (anthropicService) {
+        // Use Anthropic AI if available
+        response = await anthropicService.suggestMaintenanceSchedule(equipmentType, currentCondition, usage);
+        model = "claude-sonnet-4-20250514";
+      } else {
+        // Use local smart assistant
+        response = await smartAssistantService.suggestMaintenanceSchedule(equipmentType, currentCondition, usage || "normal");
+      }
       
       res.json({ 
         schedule: response,
         equipmentType,
         currentCondition,
-        usage,
+        usage: usage || "normal",
+        model,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -3770,29 +3820,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  } else {
-    // AI routes not available without API key
-    app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
-      res.status(503).json({ 
-        error: "AI_SERVICE_UNAVAILABLE", 
-        message: "AI assistant service is not configured. Please contact your administrator." 
-      });
-    });
-
-    app.post('/api/ai-equipment-analysis', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
-      res.status(503).json({ 
-        error: "AI_SERVICE_UNAVAILABLE", 
-        message: "AI equipment analysis service is not configured. Please contact your administrator." 
-      });
-    });
-
-    app.post('/api/ai-maintenance-schedule', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
-      res.status(503).json({ 
-        error: "AI_SERVICE_UNAVAILABLE", 
-        message: "AI maintenance schedule service is not configured. Please contact your administrator." 
-      });
-    });
-  }
 
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
