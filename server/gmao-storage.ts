@@ -1377,18 +1377,23 @@ export class GMAOStorage {
         });
       } else if (data.validationLevel === 2) {
         // Chef Département Maintenance - Final validation
+        // L'ordre retourne dans la liste principale avec status "assigned" pour exécution par les techniciens
         updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
           validationStatus: "validated",
+          status: "assigned", // 🔧 CORRECTION: Retour dans liste principale
           canExecute: true
         });
+        console.log(`Work order ${data.workOrderId} fully validated, status changed to 'assigned' for technician execution`);
       }
     } else {
       updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
         validationStatus: "rejected",
+        status: "cancelled", // 🔧 CORRECTION: Status cohérent pour rejet
         rejectedBy: data.validatorId,
         rejectedAt: currentDate,
         rejectionReason: data.comments
       });
+      console.log(`Work order ${data.workOrderId} rejected and cancelled`);
     }
 
     // Log the validation action
