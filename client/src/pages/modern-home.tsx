@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { ModernNavigation } from "@/components/modern-navigation";
 import FeatureCards, { QuickStats } from "@/components/feature-cards";
+import maintrixLogo from "@assets/ChatGPT Image 19 sept. 2025, 17_52_08_1758301845251.png";
 
 import {
   Brain,
@@ -53,6 +54,15 @@ export default function ModernHome() {
         {/* Enhanced Hero Section */}
         <div className="text-center mb-20">
           <div className="relative inline-block mb-12">
+            {/* Logo Maintrix */}
+            <div className="flex justify-center mb-8">
+              <img 
+                src={maintrixLogo} 
+                alt="Maintrix Logo" 
+                className="h-24 sm:h-32 lg:h-40 w-auto animate-float hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+            
             {/* Main title with enhanced animations */}
             <h1 className="text-6xl sm:text-8xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight animate-float">
               Maintrix
