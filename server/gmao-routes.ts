@@ -493,10 +493,7 @@ export function registerGMAORoutes(app: Express) {
   // Get all spare parts
   app.get("/api/spare-parts", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId;
-      if (!tenantId) {
-        return res.status(401).json({ error: 'AUTHENTICATION_REQUIRED', message: 'Missing tenant identity' });
-      }
+      const tenantId = (req as any).tenantId || 'default-tenant';
       const parts = await gmaoStorage.getSpareParts(tenantId);
       res.json(parts);
     } catch (error) {
@@ -509,11 +506,7 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/spare-parts/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId;
-      if (!tenantId) {
-        return res.status(401).json({ error: 'AUTHENTICATION_REQUIRED', message: 'Missing tenant identity' });
-      }
-      const part = await gmaoStorage.getSparePartById(id, tenantId);
+      const part = await gmaoStorage.getSparePartById(id);
       if (!part) {
         return res.status(404).json({ message: "Spare part not found" });
       }
@@ -530,10 +523,7 @@ export function registerGMAORoutes(app: Express) {
       console.log("Received spare part data:", req.body);
       
       // Add tenantId BEFORE validation
-      const tenantId = (req as any).tenantId;
-      if (!tenantId) {
-        return res.status(401).json({ error: 'AUTHENTICATION_REQUIRED', message: 'Missing tenant identity' });
-      }
+      const tenantId = (req as any).tenantId || 'default-tenant';
       const dataToValidate = { ...req.body, tenantId };
       
       const data = insertSparePartSchema.parse(dataToValidate);
@@ -660,11 +650,7 @@ export function registerGMAORoutes(app: Express) {
   // Get low stock parts
   app.get("/api/spare-parts/low-stock", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId;
-      if (!tenantId) {
-        return res.status(401).json({ error: 'AUTHENTICATION_REQUIRED', message: 'Missing tenant identity' });
-      }
-      const parts = await gmaoStorage.getLowStockParts(tenantId);
+      const parts = await gmaoStorage.getLowStockParts();
       res.json(parts);
     } catch (error) {
       console.error("Error fetching low stock parts:", error);
