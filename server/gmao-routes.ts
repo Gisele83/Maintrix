@@ -1751,8 +1751,41 @@ export function registerGMAORoutes(app: Express) {
       
       const html = await gmaoStorage.generatePurchaseOrderWithLetterhead(purchaseOrderId, demoOrder);
       
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send(html);
+      // Import Puppeteer for PDF generation
+      const puppeteer = await import('puppeteer');
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
+      });
+      
+      const page = await browser.newPage();
+      
+      // Set content and generate PDF
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20mm',
+          right: '15mm',
+          bottom: '20mm',
+          left: '15mm'
+        }
+      });
+      
+      await browser.close();
+      
+      // Send actual PDF file
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
+      res.send(pdfBuffer);
     } catch (error) {
       console.error("Error generating purchase order with letterhead:", error);
       res.status(500).json({ message: "Failed to generate purchase order with letterhead" });
