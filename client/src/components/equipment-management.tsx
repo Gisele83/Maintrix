@@ -246,6 +246,7 @@ export function EquipmentManagement() {
               form={form}
               onSubmit={onSubmit}
               isLoading={addEquipmentMutation.isPending}
+              onCancel={() => setIsAddDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>
@@ -356,6 +357,7 @@ export function EquipmentManagement() {
             form={form}
             onSubmit={onSubmit}
             isLoading={updateEquipmentMutation.isPending}
+            onCancel={() => setIsEditDialogOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -367,11 +369,13 @@ export function EquipmentManagement() {
 function EquipmentForm({ 
   form, 
   onSubmit, 
-  isLoading 
+  isLoading,
+  onCancel 
 }: { 
   form: any; 
   onSubmit: (data: EquipmentFormData) => void; 
-  isLoading: boolean; 
+  isLoading: boolean;
+  onCancel?: () => void; 
 }) {
   return (
     <Form {...form}>
@@ -636,7 +640,7 @@ function EquipmentForm({
         />
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
           <Button type="submit" disabled={isLoading}>
