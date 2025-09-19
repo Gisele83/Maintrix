@@ -811,8 +811,8 @@ export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventi
   requiredSkills: z.array(z.string()).or(z.string().transform(val => val.split(',').map(s => s.trim()))).optional(), // Accept array or comma-separated string
   safetyRequirements: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
-  lastExecuted: z.string().optional().transform((str) => str ? new Date(str) : undefined),
-  nextDue: z.string().optional().transform((str) => str ? new Date(str) : undefined),
+  lastExecuted: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
+  nextDue: z.string().nullable().optional().transform((str) => str ? new Date(str) : undefined),
 });
 
 export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCounters).omit({
