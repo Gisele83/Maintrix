@@ -99,14 +99,35 @@ export async function apiFeatureGuard(req: AuthenticatedRequest, res: Response, 
  * Middleware spécialisé pour les routes de configuration admin
  */
 export function adminConfigGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  // Logs de débogage pour comprendre le problème
+  console.log("🔍 DEBUG adminConfigGuard - req.user:", req.user ? {
+    id: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    tenantId: req.user.tenantId
+  } : "USER NOT FOUND");
+  
   // Vérifier que l'utilisateur a les permissions admin
-  if (!req.user || !["admin", "owner", "Super-admin"].includes(req.user.role)) {
+  const allowedRoles = ["admin", "owner", "Super-admin"];
+  const hasPermission = req.user && allowedRoles.includes(req.user.role);
+  
+  console.log("🔍 DEBUG adminConfigGuard - allowedRoles:", allowedRoles);
+  console.log("🔍 DEBUG adminConfigGuard - hasPermission:", hasPermission);
+  
+  if (!hasPermission) {
+    console.log("❌ DEBUG adminConfigGuard - Access denied for role:", req.user?.role);
     return res.status(403).json({
       error: "ADMIN_ACCESS_REQUIRED",
-      message: "Administrator privileges required for configuration access"
+      message: "Administrator privileges required for configuration access",
+      debug: {
+        userRole: req.user?.role,
+        allowedRoles: allowedRoles,
+        hasUser: !!req.user
+      }
     });
   }
-
+  
+  console.log("✅ DEBUG adminConfigGuard - Access granted for role:", req.user?.role);
   next();
 }
 
