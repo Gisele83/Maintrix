@@ -106,13 +106,14 @@ export default function ERPConfiguration() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available modules
-  const { data: moduleData, isLoading: loadingModules } = useQuery<{
+  const { data: moduleData, isLoading: loadingModules, error: moduleError } = useQuery<{
     availableModules: Module[];
     enabledModules: string[];
     moduleSettings: Record<string, any>;
     sector?: string;
   }>({
     queryKey: ['/api/tenant/modules'],
+    retry: false, // Ne pas réessayer automatiquement en cas d'erreur 403
   });
 
   // Fetch sector templates
@@ -536,6 +537,19 @@ export default function ERPConfiguration() {
 
           {/* Modules Tab */}
           <TabsContent value="modules" className="space-y-6">
+            {/* Gestion des erreurs de permissions */}
+            {moduleError && (moduleError as any)?.message?.includes('ADMIN_ACCESS_REQUIRED') && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">Permissions administrateur requises</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  L'accès à la configuration des modules ERP nécessite des privilèges administrateur. 
+                  Contactez votre administrateur système pour obtenir ces permissions ou pour configurer les modules.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Affichage du contenu normal si les données sont disponibles */}
             {moduleData && (
               <>
                 {/* Core Modules */}
