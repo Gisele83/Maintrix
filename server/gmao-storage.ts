@@ -211,12 +211,11 @@ export class GMAOStorage {
     delete safeUpdates.level1ValidatedBy;
     delete safeUpdates.level2ValidatedBy;
     
-    // TODO: Re-enable tenant isolation after database migration
+    // 🔧 CORRECTION: Activer le filtrage par tenant pour les mises à jour
     const [workOrder] = await db
       .update(workOrders)
       .set({ ...safeUpdates, updatedAt: new Date() })
-      .where(eq(workOrders.id, id))
-      // .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
+      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
     return workOrder;
   }
@@ -1371,13 +1370,13 @@ export class GMAOStorage {
     if (data.action === "validate") {
       if (data.validationLevel === 1) {
         // Chef de Service validation
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
+        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, workOrder.tenantId, {
           validationStatus: "level1_validated"
         });
       } else if (data.validationLevel === 2) {
         // Chef Département Maintenance - Final validation
         // L'ordre retourne dans la liste principale avec status "assigned" pour exécution par les techniciens
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
+        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, workOrder.tenantId, {
           validationStatus: "validated",
           status: "assigned", // 🔧 CORRECTION: Retour dans liste principale
           canExecute: true
@@ -1385,7 +1384,7 @@ export class GMAOStorage {
         console.log(`Work order ${data.workOrderId} fully validated, status changed to 'assigned' for technician execution`);
       }
     } else {
-      updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, {
+      updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, workOrder.tenantId, {
         validationStatus: "rejected",
         status: "cancelled", // 🔧 CORRECTION: Status cohérent pour rejet
         rejectedBy: data.validatorId,
