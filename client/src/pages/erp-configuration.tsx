@@ -538,13 +538,15 @@ export default function ERPConfiguration() {
           {/* Modules Tab */}
           <TabsContent value="modules" className="space-y-6">
             {/* Gestion des erreurs de permissions */}
-            {moduleError && (moduleError as any)?.message?.includes('ADMIN_ACCESS_REQUIRED') && (
+            {moduleError && (
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
                 <AlertTitle className="text-amber-800">Permissions administrateur requises</AlertTitle>
                 <AlertDescription className="text-amber-700">
                   L'accès à la configuration des modules ERP nécessite des privilèges administrateur. 
                   Contactez votre administrateur système pour obtenir ces permissions ou pour configurer les modules.
+                  <br/><br/>
+                  <strong>Erreur technique :</strong> {String((moduleError as any)?.message || moduleError)}
                 </AlertDescription>
               </Alert>
             )}
