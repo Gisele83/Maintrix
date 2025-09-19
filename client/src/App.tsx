@@ -21,6 +21,7 @@ import ERPConfiguration from "@/pages/erp-configuration";
 import TenantPermissions from "@/pages/tenant-permissions";
 // ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé
 import SupportChatbot from "@/pages/support-chatbot";
+import AIAssistantPage from "@/pages/ai-assistant";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import WorkOrders from "@/pages/work-orders";
@@ -123,6 +124,9 @@ function Router() {
       {/* ✅ MIGRATION COMPLÈTE : Security dashboard legacy supprimé */}
       <Route path="/support-chatbot">
         {(params) => <ProtectedRoute component={SupportChatbot} {...params} />}
+      </Route>
+      <Route path="/ai-assistant">
+        {(params) => <ProtectedRoute component={AIAssistantPage} {...params} />}
       </Route>
       <Route path="/data-import-export">
         {(params) => <ProtectedRoute component={DataImportExport} {...params} />}
