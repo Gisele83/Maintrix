@@ -170,7 +170,7 @@ export default function LoginPage() {
         <div className="text-center lg:text-left space-y-8">
           <div>
             <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight mb-4">
-              Smart GMAO DiagFix
+              Maintrix
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Plateforme de maintenance industrielle intelligente
@@ -214,7 +214,7 @@ export default function LoginPage() {
               </CardTitle>
               <CardDescription>
                 {isRegistering 
-                  ? "Rejoignez la plateforme Smart GMAO DiagFix" 
+                  ? "Rejoignez la plateforme Maintrix" 
                   : ""
                 }
               </CardDescription>

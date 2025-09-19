@@ -3675,10 +3675,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 🤖 AI ASSISTANT CHAT ROUTES
-  const { anthropicService } = await import("./anthropic-service");
-  
-  // AI Chat endpoint
-  app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
+  if (process.env.ANTHROPIC_API_KEY) {
+    const { anthropicService } = await import("./anthropic-service");
+    
+    // AI Chat endpoint
+    app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
     try {
       const { message } = req.body;
       
@@ -3769,6 +3770,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  } else {
+    // AI routes not available without API key
+    app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
+      res.status(503).json({ 
+        error: "AI_SERVICE_UNAVAILABLE", 
+        message: "AI assistant service is not configured. Please contact your administrator." 
+      });
+    });
+
+    app.post('/api/ai-equipment-analysis', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
+      res.status(503).json({ 
+        error: "AI_SERVICE_UNAVAILABLE", 
+        message: "AI equipment analysis service is not configured. Please contact your administrator." 
+      });
+    });
+
+    app.post('/api/ai-maintenance-schedule', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, (req: any, res) => {
+      res.status(503).json({ 
+        error: "AI_SERVICE_UNAVAILABLE", 
+        message: "AI maintenance schedule service is not configured. Please contact your administrator." 
+      });
+    });
+  }
 
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);

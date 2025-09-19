@@ -260,7 +260,7 @@ export default function Dashboard() {
               <span>Assistant de Diagnostic IA</span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight">
-              SMDiagFix
+              Maintrix
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Plateforme avancée de diagnostic et maintenance industrielle propulsée par l'intelligence artificielle

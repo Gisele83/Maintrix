@@ -46,7 +46,7 @@ export default function SupportChatbot() {
     {
       id: '1',
       type: 'bot',
-      content: "Bonjour ! Je suis l'assistant technique de Smart GMAO DiagFix. Comment puis-je vous aider aujourd'hui ? Je peux vous assister avec :\n\n• Problèmes de diagnostic IA\n• Difficultés GMAO\n• Questions de sécurité\n• Erreurs techniques diverses",
+      content: "Bonjour ! Je suis l'assistant technique de Maintrix. Comment puis-je vous aider aujourd'hui ? Je peux vous assister avec :\n\n• Problèmes de diagnostic IA\n• Difficultés GMAO\n• Questions de sécurité\n• Erreurs techniques diverses",
       timestamp: new Date(),
       category: 'general'
     }

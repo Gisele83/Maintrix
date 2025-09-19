@@ -106,7 +106,7 @@ export default function Training() {
   const trainingModules: TrainingModule[] = [
     {
       id: "intro-basics",
-      title: "Introduction Smart GMAO DiagFix",
+      title: "Introduction Maintrix",
       description: "Découvrez la plateforme intégrée Smart Diagnostic + Smart GMAO avec IoT et sécurité avancée",
       duration: "50 min",
       difficulty: "Débutant",
@@ -115,7 +115,7 @@ export default function Training() {
       lessons: 6,
       category: "Introduction",
       icon: Play,
-      skills: ["Interface unifiée Smart GMAO DiagFix", "Smart Diagnostic IA", "Smart GMAO maintenance", "IoT temps réel", "Sécurité avancée", "Chatbot support"]
+      skills: ["Interface unifiée Maintrix", "Smart Diagnostic IA", "Maintrix maintenance", "IoT temps réel", "Sécurité avancée", "Chatbot support"]
     },
     {
       id: "diagnostic-ai-advanced",
@@ -293,7 +293,7 @@ export default function Training() {
     {
       id: "complete-path",
       title: "Parcours Complet",
-      description: "Maîtrise complète de tous les aspects de SMDiagFix",
+      description: "Maîtrise complète de tous les aspects de Maintrix",
       modules: ["intro-basics", "diagnostic-fundamentals", "advanced-ai", "maintenance-procedures", "data-management", "system-administration"],
       totalDuration: "14h 45min",
       targetAudience: "Responsables maintenance, formateurs",
@@ -346,7 +346,7 @@ export default function Training() {
               <span>Centre de Formation</span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight">
-              Formation SMDiagFix
+              Formation Maintrix
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Parcours d'apprentissage personnalisés pour maîtriser toutes les fonctionnalités

@@ -50,12 +50,12 @@ export interface ModuleContent {
 export const trainingModulesContent: ModuleContent[] = [
   {
     id: "intro-basics",
-    title: "Introduction Smart GMAO DiagFix",
+    title: "Introduction Maintrix",
     description: "Découvrez la plateforme intégrée Smart Diagnostic + Smart GMAO avec IoT et sécurité avancée",
     totalDuration: "50 min",
     prerequisites: ["Aucun prérequis"],
     outcomes: [
-      "Comprendre l'architecture unifiée Smart GMAO DiagFix",
+      "Comprendre l'architecture unifiée Maintrix",
       "Naviguer dans l'interface utilisateur",
       "Utiliser les fonctionnalités de base du diagnostic IA",
       "Accéder aux modules GMAO essentiels"
@@ -63,10 +63,10 @@ export const trainingModulesContent: ModuleContent[] = [
     lessons: [
       {
         id: "lesson-1",
-        title: "Vue d'ensemble de Smart GMAO DiagFix",
+        title: "Vue d'ensemble de Maintrix",
         duration: "10 min",
         content: {
-          introduction: "Smart GMAO DiagFix est une plateforme révolutionnaire qui unifie l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance assistée par ordinateur (GMAO). Cette leçon vous présente l'interface moderne avec glassmorphisme, la page dédiée Smart Diagnostic et l'architecture globale unifiée.",
+          introduction: "Maintrix est une plateforme révolutionnaire qui unifie l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance assistée par ordinateur (GMAO). Cette leçon vous présente l'interface moderne avec glassmorphisme, la page dédiée Smart Diagnostic et l'architecture globale unifiée.",
           objectives: [
             "Comprendre la vision unifiée Smart Diagnostic + Smart GMAO",
             "Naviguer vers la page dédiée Smart Diagnostic IA",
@@ -76,7 +76,7 @@ export const trainingModulesContent: ModuleContent[] = [
           steps: [
             {
               title: "Architecture unifiée",
-              description: "Smart GMAO DiagFix combine deux systèmes puissants : Smart Diagnostic (assistant IA) et Smart GMAO (gestion maintenance) dans une interface unique.",
+              description: "Maintrix combine deux systèmes puissants : Smart Diagnostic (assistant IA) et Smart GMAO (gestion maintenance) dans une interface unique.",
               animation: "🔄 Animation : Fusion des modules Diagnostic IA ↔ GMAO",
               tips: [
                 "Un seul tableau de bord pour toutes les opérations",

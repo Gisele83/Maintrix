@@ -89,7 +89,7 @@ export function ModernNavigation() {
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent group-hover:from-purple-600 group-hover:via-pink-600 group-hover:to-blue-600 transition-all duration-500">
-                  Smart GMAO DiagFix
+                  Maintrix
                 </span>
                 <span className="text-xs text-gray-500 font-medium tracking-wider uppercase">
                   Interface Unifiée

@@ -55,7 +55,7 @@ export default function ModernHome() {
           <div className="relative inline-block mb-12">
             {/* Main title with enhanced animations */}
             <h1 className="text-6xl sm:text-8xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight animate-float">
-              Smart GMAO DiagFix
+              Maintrix
             </h1>
             
             {/* Enhanced badge with glassmorphism */}

@@ -28,7 +28,7 @@ class AnthropicService {
   async chat(message: string, context?: string): Promise<string> {
     try {
       const systemPrompt = context || 
-        `You are a helpful AI assistant integrated into Smart GMAO DiagFix, a maintenance management system. 
+        `You are a helpful AI assistant integrated into Maintrix, a maintenance management system. 
         You can help users with:
         - General questions about equipment maintenance
         - GMAO (Computerized Maintenance Management System) guidance

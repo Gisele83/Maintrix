@@ -94,13 +94,13 @@ export default function Documentation() {
   const guides: GuideSection[] = [
     {
       id: "getting-started",
-      title: "Premiers pas avec Smart GMAO DiagFix",
+      title: "Premiers pas avec Maintrix",
       description: "Guide d'introduction complet pour débuter avec la plateforme intégrée Smart Diagnostic + Smart GMAO",
       duration: "20 min",
       difficulty: "Débutant",
       icon: Play,
       content: [
-        "Connexion à Smart GMAO DiagFix et découverte de l'interface moderne avec glassmorphisme",
+        "Connexion à Maintrix et découverte de l'interface moderne avec glassmorphisme",
         "Navigation vers la page dédiée Smart Diagnostic via le bouton principal ou les cartes fonctionnalités",
         "Création de votre premier diagnostic avec l'interface Smart Diagnostic IA dédiée",
         "Intégration automatique des diagnostics dans Smart GMAO pour générer des ordres de travail",
@@ -212,7 +212,7 @@ export default function Documentation() {
   const videoTutorials: VideoTutorial[] = [
     {
       id: "intro-video",
-      title: "Introduction à SMDiagFix",
+      title: "Introduction à Maintrix",
       description: "Découvrez les fonctionnalités principales en 5 minutes",
       duration: "5:30",
       thumbnail: "🎬",
@@ -263,8 +263,8 @@ export default function Documentation() {
   const faqs: FAQ[] = [
     {
       id: "what-is-smdiagfix",
-      question: "Qu'est-ce que SMDiagFix ?",
-      answer: "SMDiagFix est une plateforme intelligente de diagnostic et maintenance industrielle qui utilise l'IA pour aider les techniciens à identifier rapidement les problèmes d'équipements et proposer des solutions adaptées.",
+      question: "Qu'est-ce que Maintrix ?",
+      answer: "Maintrix est une plateforme intelligente de diagnostic et maintenance industrielle qui utilise l'IA pour aider les techniciens à identifier rapidement les problèmes d'équipements et proposer des solutions adaptées.",
       category: "Général"
     },
     {
@@ -281,14 +281,14 @@ export default function Documentation() {
     },
     {
       id: "offline-usage",
-      question: "Puis-je utiliser SMDiagFix hors ligne ?",
+      question: "Puis-je utiliser Maintrix hors ligne ?",
       answer: "Certaines fonctionnalités de base sont disponibles hors ligne. Pour les diagnostics IA avancés, une connexion internet est requise.",
       category: "Technique"
     },
     {
       id: "equipment-types",
       question: "Quels types d'équipements sont supportés ?",
-      answer: "SMDiagFix supporte une large gamme : moteurs, pompes, convoyeurs, compresseurs, systèmes hydrauliques, équipements électriques, et plus encore.",
+      answer: "Maintrix supporte une large gamme : moteurs, pompes, convoyeurs, compresseurs, systèmes hydrauliques, équipements électriques, et plus encore.",
       category: "Équipements"
     },
     {
@@ -306,13 +306,13 @@ export default function Documentation() {
     {
       id: "mobile-access",
       question: "L'application est-elle disponible sur mobile ?",
-      answer: "SMDiagFix est une application web responsive qui fonctionne parfaitement sur tablettes et smartphones pour les interventions terrain.",
+      answer: "Maintrix est une application web responsive qui fonctionne parfaitement sur tablettes et smartphones pour les interventions terrain.",
       category: "Mobile"
     },
     {
       id: "integration-erp",
-      question: "Peut-on intégrer SMDiagFix avec notre ERP/GMAO ?",
-      answer: "Oui, nous proposons des API et connecteurs pour intégrer SMDiagFix avec les principaux systèmes ERP et GMAO du marché.",
+      question: "Peut-on intégrer Maintrix avec notre ERP/GMAO ?",
+      answer: "Oui, nous proposons des API et connecteurs pour intégrer Maintrix avec les principaux systèmes ERP et GMAO du marché.",
       category: "Intégration"
     },
     {
@@ -359,7 +359,7 @@ export default function Documentation() {
               Support & Formation
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Guides complets, tutoriels vidéo et support technique pour maîtriser SMDiagFix
+              Guides complets, tutoriels vidéo et support technique pour maîtriser Maintrix
             </p>
           </div>
         </div>
@@ -688,13 +688,13 @@ export default function Documentation() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-green-700 dark:text-green-300">
-                  Nouveau sur SMDiagFix ? Suivez ces étapes pour être opérationnel en 15 minutes :
+                  Nouveau sur Maintrix ? Suivez ces étapes pour être opérationnel en 15 minutes :
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     variant="ghost"
                     className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
-                    onClick={() => handleWatchVideo("intro-video", "Vidéo d'introduction Smart GMAO DiagFix")}
+                    onClick={() => handleWatchVideo("intro-video", "Vidéo d'introduction Maintrix")}
                   >
                     <div>
                       <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
