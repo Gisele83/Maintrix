@@ -217,7 +217,7 @@ export default function GMAODashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Vue d'ensemble uniquement */}
-        {activeTab === "overview" && (
+        {!showAdminModal && activeTab === "overview" && (
           <div className="space-y-8">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -359,22 +359,22 @@ export default function GMAODashboard() {
         )}
 
         {/* Équipements uniquement */}
-        {activeTab === "equipment" && (
+        {!showAdminModal && activeTab === "equipment" && (
           <EquipmentManagement />
         )}
 
         {/* Ordres de travail uniquement */}
-        {activeTab === "work-orders" && (
+        {!showAdminModal && activeTab === "work-orders" && (
           <WorkOrderManagement />
         )}
 
         {/* Inventaire uniquement */}
-        {activeTab === "inventory" && (
+        {!showAdminModal && activeTab === "inventory" && (
           <InventorySimple />
         )}
         
         {/* Alertes uniquement */}
-        {activeTab === "alerts" && (
+        {!showAdminModal && activeTab === "alerts" && (
           <div className="text-center py-8">
             <h2 className="text-2xl font-bold">Centre d'Alertes</h2>
             <p className="text-gray-600 mt-2">Gestion des alertes système en cours de développement</p>
