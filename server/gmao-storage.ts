@@ -223,10 +223,9 @@ export class GMAOStorage {
 
   // Work Orders by Validation Status (same procedure as Purchase Orders) - TENANT ISOLATED
   async getWorkOrdersByValidationStatus(status: string, tenantId: string): Promise<WorkOrder[]> {
-    // TODO: Re-enable tenant isolation after database migration
+    // 🔧 CORRECTION: Activer le filtrage par tenant ET par status
     return await db.select().from(workOrders)
-      .where(eq(workOrders.validationStatus, status))
-      // .where(and(eq(workOrders.validationStatus, status), eq(workOrders.tenantId, tenantId)))
+      .where(and(eq(workOrders.validationStatus, status), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
