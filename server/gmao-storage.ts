@@ -1359,8 +1359,9 @@ export class GMAOStorage {
     validationLevel: number;
     comments?: string;
     validatorId: number;
-  }) {
-    const workOrder = await this.getWorkOrderById(data.workOrderId);
+  }, tenantId: string) {
+    // 🔧 CORRECTION: Passer le tenant ID à getWorkOrderById  
+    const workOrder = await this.getWorkOrderById(data.workOrderId, tenantId);
     if (!workOrder) {
       throw new Error("Work order not found");
     }

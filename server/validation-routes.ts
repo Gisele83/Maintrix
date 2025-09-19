@@ -50,7 +50,10 @@ router.post("/work-orders/validate", async (req, res) => {
   try {
     const validatedData = workOrderValidationSchema.parse(req.body);
     
-    const result = await gmaoStorage.validateWorkOrder(validatedData);
+    // 🔧 CORRECTION: Récupérer le tenant ID depuis la requête
+    const tenantId = (req as any).tenantId || 'b5c85c4a-b8a1-49c9-9138-dae0b3dff7fa';
+    
+    const result = await gmaoStorage.validateWorkOrder(validatedData, tenantId);
     
     res.json({
       success: true,
