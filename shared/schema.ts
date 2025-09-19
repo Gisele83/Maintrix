@@ -582,18 +582,23 @@ export const maintenanceCounters = pgTable("maintenance_counters", {
   id: serial("id").primaryKey(),
   tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
-  counterName: varchar("counter_name", { length: 100 }).notNull(),
+  equipmentName: text("equipment_name"),
   counterType: varchar("counter_type", { length: 50 }).notNull(), // hours, cycles, kilometers, etc.
-  currentValue: integer("current_value").default(0),
-  lastResetValue: integer("last_reset_value").default(0),
-  thresholdWarning: integer("threshold_warning"),
-  thresholdCritical: integer("threshold_critical"),
-  alertLevel: varchar("alert_level", { length: 20 }).default("info"), // info, warning, critical
-  alertEmailSent: boolean("alert_email_sent").default(false),
+  currentValue: real("current_value").default(0),
+  thresholdValue: real("threshold_value"),
   lastResetDate: timestamp("last_reset_date"),
+  lastResetValue: real("last_reset_value").default(0),
   isActive: boolean("is_active").default(true),
+  maintenanceType: text("maintenance_type"),
+  description: text("description"),
+  incrementRate: real("increment_rate"),
+  alertLevel: varchar("alert_level", { length: 20 }).default("info"), // info, warning, critical
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  planId: integer("plan_id"),
+  intervalValue: real("interval_value"),
+  warningThresholdPct: real("warning_threshold_pct"),
+  lastServiceValue: real("last_service_value"),
 });
 
 // Counter History - Track counter reset history
@@ -820,7 +825,6 @@ export const insertMaintenanceCounterSchema = createInsertSchema(maintenanceCoun
   createdAt: true,
   updatedAt: true,
 }).extend({
-  counterName: z.string().min(1, "Le nom du compteur est requis"),
   counterType: z.string().min(1, "Le type de compteur est requis"),
 });
 
@@ -928,11 +932,11 @@ export type InsertMaintenanceCounter = z.infer<typeof insertMaintenanceCounterSc
 // Schema de validation pour la création de compteurs depuis les plans de maintenance
 export const createCounterFromPlanSchema = z.object({
   equipmentId: z.number().positive("ID d'équipement requis"),
-  counterName: z.string().min(1, "Nom du compteur requis"),
   counterType: z.enum(["hours", "cycles", "kilometers", "units"]),
   currentValue: z.number().min(0, "Valeur actuelle doit être positive").default(0),
-  thresholdWarning: z.number().min(0, "Seuil d'alerte doit être positif"),
-  thresholdCritical: z.number().min(0, "Seuil critique doit être positif")
+  thresholdValue: z.number().min(0, "Seuil critique doit être positif"),
+  equipmentName: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export type CounterHistory = typeof counterHistory.$inferSelect;
