@@ -86,16 +86,22 @@ export class TestDataGenerator {
     const [tenant] = await db.insert(tenants).values({
       name: 'Entreprise Test GMAO',
       domain: 'test.smartgmao.com',
-      status: 'active',
-      subscriptionPlan: 'enterprise',
+      plan: 'enterprise',
+      isActive: true,
       maxUsers: 100,
-      features: ['equipment-management', 'work-orders', 'preventive-maintenance', 'inventory-simple'],
-      billingEmail: 'test@smartgmao.com',
+      features: { modules: ['equipment-management', 'work-orders', 'preventive-maintenance', 'inventory-simple'] },
       contactEmail: 'contact@test.smartgmao.com',
-      phoneNumber: '+33 1 23 45 67 89',
-      address: '123 Rue de la Maintenance, 75001 Paris',
-      industry: 'Industrie manufacturière',
-      companySize: '51-200 employés',
+      contactPhone: '+33 1 23 45 67 89',
+      billingAddress: { 
+        street: '123 Rue de la Maintenance', 
+        city: 'Paris', 
+        postalCode: '75001', 
+        country: 'France' 
+      },
+      settings: { 
+        industry: 'Industrie manufacturière',
+        companySize: '51-200 employés' 
+      },
     }).returning({ id: tenants.id });
 
     return tenant.id;
@@ -138,25 +144,17 @@ export class TestDataGenerator {
       const userData = testUsers[i % testUsers.length];
       const userIndex = Math.floor(i / testUsers.length) + 1;
       
-      const [user] = await db.insert(users).values({
+      const [user] = await db.insert(userProfiles).values({
+        tenantId,
         username: userIndex > 1 ? `${userData.username}_${userIndex}` : userData.username,
         email: userIndex > 1 ? userData.email.replace('@', `${userIndex}@`) : userData.email,
-        passwordHash,
-        fullName: userIndex > 1 ? `${userData.fullName} ${userIndex}` : userData.fullName,
-        role: userData.role,
-        isActive: true,
-      }).returning({ id: users.id });
-
-      // Créer l'utilisateur enterprise
-      await db.insert(enterpriseUsers).values({
-        id: user.id,
-        tenantId,
-        email: userIndex > 1 ? userData.email.replace('@', `${userIndex}@`) : userData.email,
-        fullName: userIndex > 1 ? `${userData.fullName} ${userIndex}` : userData.fullName,
+        password: passwordHash,
+        firstName: userData.fullName.split(' ')[0],
+        lastName: userData.fullName.split(' ')[1] || '',
         role: userData.role,
         department: userData.department,
         isActive: true,
-      });
+      }).returning({ id: userProfiles.id });
 
       userIds.push(user.id);
     }
@@ -187,20 +185,20 @@ export class TestDataGenerator {
       const equipment = equipmentTypes[i % equipmentTypes.length];
       const equipmentNumber = i + 1;
       
-      const [created] = await db.insert(equipments).values({
-        name: `${equipment.type} ${equipmentNumber.toString().padStart(3, '0')}`,
-        type: equipment.type,
+      const [created] = await db.insert(equipmentRegistry).values({
+        tenantId,
+        equipmentId: `EQ${equipmentNumber.toString().padStart(3, '0')}`,
+        equipmentName: `${equipment.type} ${equipmentNumber.toString().padStart(3, '0')}`,
+        equipmentType: equipment.type,
         manufacturer: equipment.brand,
         model: equipment.model,
         serialNumber: `SN${Date.now()}${equipmentNumber}`,
         location: equipment.location,
         installationDate: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000 * 3), // 0-3 ans
         warrantyExpiry: new Date(Date.now() + Math.random() * 365 * 24 * 60 * 60 * 1000 * 2), // 0-2 ans
-        status: Math.random() > 0.1 ? 'operational' : 'maintenance',
-        criticality: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-        operatingHours: Math.floor(Math.random() * 8760), // 0-8760 heures par an
-        tenantId,
-      }).returning({ id: equipments.id });
+        operationalState: Math.random() > 0.1 ? 'operational' : 'maintenance',
+        criticalityLevel: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+      }).returning({ id: equipmentRegistry.id });
 
       equipmentIds.push(created.id);
     }
@@ -232,16 +230,15 @@ export class TestDataGenerator {
       const partNumber = i + 1;
       
       const [created] = await db.insert(spareParts).values({
-        reference: `SP${partNumber.toString().padStart(4, '0')}`,
-        name: `${part.name} ${partNumber > partTypes.length ? Math.ceil(partNumber / partTypes.length) : ''}`.trim(),
+        tenantId,
+        partNumber: `SP${partNumber.toString().padStart(4, '0')}`,
+        partName: `${part.name} ${partNumber > partTypes.length ? Math.ceil(partNumber / partTypes.length) : ''}`.trim(),
         description: `Pièce détachée pour maintenance - ${part.name}`,
         category: part.category,
-        unitPrice: part.cost + (Math.random() - 0.5) * part.cost * 0.3, // ±30% de variation
-        unit: part.unit,
+        unitPrice: (part.cost + (Math.random() - 0.5) * part.cost * 0.3).toString(), // ±30% de variation
         currentStock: Math.floor(Math.random() * part.minStock * 3),
-        minimumStock: part.minStock,
+        minStock: part.minStock,
         supplier: ['Fournisseur A', 'Fournisseur B', 'Fournisseur C'][Math.floor(Math.random() * 3)],
-        tenantId,
       }).returning({ id: spareParts.id });
 
       sparePartIds.push(created.id);
@@ -275,17 +272,18 @@ export class TestDataGenerator {
       const createdBy = userIds[Math.floor(Math.random() * userIds.length)];
       
       await db.insert(workOrders).values({
+        tenantId,
+        orderNumber: `WO${Date.now()}${i}`,
         title: `${workOrder.title} - Équipement ${i + 1}`,
         description: `Description détaillée de l'ordre de travail ${i + 1}`,
         equipmentId,
-        type: workOrder.type as any,
-        priority: workOrder.priority as any,
-        status: ['open', 'in_progress', 'completed'][Math.floor(Math.random() * 3)] as any,
+        orderType: workOrder.type,
+        priority: workOrder.priority,
+        orderStatus: ['open', 'in_progress', 'completed'][Math.floor(Math.random() * 3)],
         assignedTo,
-        createdBy,
-        scheduledDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // 0-30 jours
+        requestedBy: createdBy,
+        scheduledStartDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // 0-30 jours
         estimatedDuration: Math.floor(Math.random() * 8) + 1, // 1-8 heures
-        tenantId,
       });
     }
   }
@@ -301,16 +299,17 @@ export class TestDataGenerator {
     console.log('🔄 Création des plans de maintenance préventive...');
     
     for (let i = 0; i < Math.min(10, equipmentIds.length); i++) {
-      await db.insert(preventiveMaintenanceTable).values({
-        name: `Plan maintenance ${i + 1}`,
+      await db.insert(preventiveMaintenancePlans).values({
+        tenantId,
+        planName: `Plan maintenance ${i + 1}`,
         description: `Plan de maintenance préventive pour équipement ${i + 1}`,
         equipmentId: equipmentIds[i],
-        frequency: ['daily', 'weekly', 'monthly', 'quarterly'][Math.floor(Math.random() * 4)] as any,
+        maintenanceType: 'preventive',
+        frequency: ['daily', 'weekly', 'monthly', 'quarterly'][Math.floor(Math.random() * 4)],
         nextDue: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000),
         assignedTo: userIds[Math.floor(Math.random() * userIds.length)],
         estimatedDuration: Math.floor(Math.random() * 4) + 1,
         isActive: true,
-        tenantId,
       });
     }
   }
@@ -323,15 +322,16 @@ export class TestDataGenerator {
     
     for (let i = 0; i < Math.min(15, equipmentIds.length); i++) {
       await db.insert(maintenanceCounters).values({
-        equipmentId: equipmentIds[i],
-        counterType: ['hours', 'cycles', 'kilometers'][Math.floor(Math.random() * 3)] as any,
-        currentValue: Math.floor(Math.random() * 1000),
-        warningThreshold: 800 + Math.floor(Math.random() * 200),
-        criticalThreshold: 950 + Math.floor(Math.random() * 50),
-        resetValue: 0,
-        lastReset: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
-        isActive: true,
         tenantId,
+        equipmentId: equipmentIds[i],
+        counterName: `Compteur ${i + 1}`,
+        counterType: ['hours', 'cycles', 'kilometers'][Math.floor(Math.random() * 3)],
+        currentValue: Math.floor(Math.random() * 1000),
+        thresholdWarning: 800 + Math.floor(Math.random() * 200),
+        thresholdCritical: 950 + Math.floor(Math.random() * 50),
+        lastResetValue: 0,
+        lastResetDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
+        isActive: true,
       });
     }
   }
@@ -352,15 +352,16 @@ export class TestDataGenerator {
       const alert = alertTypes[i % alertTypes.length];
       const equipmentId = equipmentIds[Math.floor(Math.random() * equipmentIds.length)];
       
-      await db.insert(alerts).values({
+      await db.insert(alertsNotifications).values({
+        tenantId,
+        type: 'alert',
         title: alert.message,
         message: `${alert.message} pour équipement`,
-        alertType: alert.type as any,
-        level: alert.level as any,
+        severity: alert.level,
+        category: alert.type,
         equipmentId,
         isRead: Math.random() > 0.3,
         isResolved: Math.random() > 0.7,
-        tenantId,
       });
     }
   }
@@ -372,14 +373,15 @@ export class TestDataGenerator {
     console.log('🔍 Création des diagnostics de test...');
     
     for (let i = 0; i < 15; i++) {
-      await db.insert(diagnostics).values({
+      await db.insert(diagnosticSessions).values({
+        tenantId,
         equipmentId: equipmentIds[Math.floor(Math.random() * equipmentIds.length)],
+        sessionType: 'automatic',
         symptoms: `Symptômes observés pour diagnostic ${i + 1}`,
         diagnosis: `Diagnostic établi ${i + 1}`,
         recommendations: `Recommandations d'intervention ${i + 1}`,
         confidence: 0.7 + Math.random() * 0.3, // 70-100%
-        diagnosisDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-        tenantId,
+        sessionStatus: 'completed',
       });
     }
   }
@@ -395,15 +397,21 @@ export class TestDataGenerator {
     console.log('📦 Création des mouvements de stock...');
     
     for (let i = 0; i < 50; i++) {
+      const sparePartId = sparePartIds[Math.floor(Math.random() * sparePartIds.length)];
+      const quantity = Math.floor(Math.random() * 10) + 1;
+      const isIn = Math.random() > 0.5;
       await db.insert(stockMovements).values({
-        sparePartId: sparePartIds[Math.floor(Math.random() * sparePartIds.length)],
-        movementType: ['in', 'out'][Math.floor(Math.random() * 2)] as any,
-        quantity: Math.floor(Math.random() * 10) + 1,
-        unitPrice: 10 + Math.random() * 100,
-        reference: `MOV${Date.now()}${i}`,
-        reason: ['Réception fournisseur', 'Consommation maintenance', 'Retour défectueux'][Math.floor(Math.random() * 3)],
-        performedBy: userIds[Math.floor(Math.random() * userIds.length)],
         tenantId,
+        sparePartId: sparePartId,
+        movementType: isIn ? 'IN' : 'OUT',
+        quantity: quantity,
+        previousStock: Math.floor(Math.random() * 50),
+        newStock: Math.floor(Math.random() * 50) + quantity * (isIn ? 1 : -1),
+        reason: ['PURCHASE', 'MAINTENANCE', 'RETURN'][Math.floor(Math.random() * 3)],
+        reference: `MOV${Date.now()}${i}`,
+        performedBy: userIds[Math.floor(Math.random() * userIds.length)],
+        unitCost: (10 + Math.random() * 100).toString(),
+        totalCost: ((10 + Math.random() * 100) * quantity).toString(),
       });
     }
   }

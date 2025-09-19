@@ -8,6 +8,7 @@
 import { TestDataGenerator } from '../server/test-data/test-data-generator';
 import { config } from '../server/config/environment';
 import { db } from '../server/db';
+import { userProfiles } from '../shared/schema';
 
 async function setupTestEnvironment() {
   console.log('🚀 Configuration de l\'environnement de test Smart GMAO DiagFix...\n');
@@ -22,7 +23,7 @@ async function setupTestEnvironment() {
   try {
     // Test de connexion à la base de données
     console.log('🔗 Test de connexion à la base de données...');
-    await db.execute(db => db.select().from(db.users).limit(1));
+    await db.select().from(userProfiles).limit(1);
     console.log('✅ Connexion à la base de données réussie\n');
 
     // Génération des données de test
