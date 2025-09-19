@@ -206,14 +206,12 @@ export class GMAOStorage {
   }
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
-    console.log(`🔧 DIAGNOSTIC: updateWorkOrder called with id=${id}, tenantId=${tenantId}, updates=`, JSON.stringify(updates, null, 2));
     
     // Remove any fields that might cause FK constraint violations for now
     const safeUpdates = { ...updates };
     delete safeUpdates.level1ValidatedBy;
     delete safeUpdates.level2ValidatedBy;
     
-    console.log(`🔧 DIAGNOSTIC: Safe updates after cleanup:`, JSON.stringify(safeUpdates, null, 2));
     
     // 🔧 CORRECTION: Activer le filtrage par tenant pour les mises à jour
     const [workOrder] = await db
@@ -222,7 +220,6 @@ export class GMAOStorage {
       .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
     
-    console.log(`🔧 DIAGNOSTIC: Work order after update:`, JSON.stringify(workOrder, null, 2));
     return workOrder;
   }
 
@@ -1366,14 +1363,6 @@ export class GMAOStorage {
       throw new Error("Work order not found");
     }
 
-    // 🔧 DIAGNOSTIC COMPLET: Examiner la structure de l'objet workOrder
-    console.log(`🔧 DIAGNOSTIC WORKORDER:`, JSON.stringify(workOrder, null, 2));
-    console.log(`🔧 DIAGNOSTIC WORKORDER KEYS:`, Object.keys(workOrder || {}));
-    console.log(`🔧 DIAGNOSTIC tenantId attempts:`, {
-      'workOrder.tenantId': (workOrder as any).tenantId,
-      'workOrder.tenant_id': (workOrder as any).tenant_id,
-      'received_tenantId': tenantId
-    });
 
     const user = await this.getUserProfile(data.validatorId);
     if (!user || !user.canValidateWorkOrders) {
