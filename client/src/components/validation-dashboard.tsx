@@ -67,6 +67,8 @@ export default function ValidationDashboard({
   const [validationComments, setValidationComments] = useState("");
   const [activeTab, setActiveTab] = useState("work-orders");
   const [loading, setLoading] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showValidateModal, setShowValidateModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -143,10 +145,17 @@ export default function ValidationDashboard({
         variant: "default",
       });
 
+      // 🔧 CORRECTION: Fermer les modals et nettoyer les états
       setValidationComments("");
       setSelectedRecord(null);
-      loadPendingItems();
-      loadValidationHistory();
+      setShowRejectModal(false);
+      setShowValidateModal(false);
+      
+      // 🔧 CORRECTION: Délai pour laisser la base de données se mettre à jour
+      setTimeout(() => {
+        loadPendingItems();
+        loadValidationHistory();
+      }, 500);
     } catch (error) {
       console.error("Validation error:", error);
       toast({
@@ -310,12 +319,15 @@ export default function ValidationDashboard({
                       </div>
 
                       <div className="flex items-center gap-2 pt-2">
-                        <Dialog>
+                        <Dialog open={showValidateModal && selectedRecord?.id === workOrder.id} onOpenChange={setShowValidateModal}>
                           <DialogTrigger asChild>
                             <Button 
                               size="sm" 
                               variant="default"
-                              onClick={() => setSelectedRecord(workOrder)}
+                              onClick={() => {
+                                setSelectedRecord(workOrder);
+                                setShowValidateModal(true);
+                              }}
                               className="bg-green-600 hover:bg-green-700"
                             >
                               <Check className="h-4 w-4 mr-1" />
@@ -338,11 +350,13 @@ export default function ValidationDashboard({
                               <div className="flex justify-end gap-2">
                                 <Button
                                   variant="outline"
-                                  onClick={() => handleValidation("work_order", workOrder.id, "reject")}
+                                  onClick={() => {
+                                    setShowValidateModal(false);
+                                    setValidationComments("");
+                                  }}
                                   disabled={loading}
                                 >
-                                  <X className="h-4 w-4 mr-1" />
-                                  Rejeter
+                                  Annuler
                                 </Button>
                                 <Button
                                   onClick={() => handleValidation("work_order", workOrder.id, "validate")}
@@ -357,12 +371,15 @@ export default function ValidationDashboard({
                           </DialogContent>
                         </Dialog>
 
-                        <Dialog>
+                        <Dialog open={showRejectModal && selectedRecord?.id === workOrder.id} onOpenChange={setShowRejectModal}>
                           <DialogTrigger asChild>
                             <Button 
                               size="sm" 
                               variant="destructive"
-                              onClick={() => setSelectedRecord(workOrder)}
+                              onClick={() => {
+                                setSelectedRecord(workOrder);
+                                setShowRejectModal(true);
+                              }}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Rejeter
@@ -383,7 +400,14 @@ export default function ValidationDashboard({
                                 />
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setSelectedRecord(null)}>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => {
+                                    setShowRejectModal(false);
+                                    setValidationComments("");
+                                    setSelectedRecord(null);
+                                  }}
+                                >
                                   Annuler
                                 </Button>
                                 <Button
@@ -500,12 +524,15 @@ export default function ValidationDashboard({
                           </Button>
                         )}
                         
-                        <Dialog>
+                        <Dialog open={showValidateModal && selectedRecord?.id === purchaseOrder.id} onOpenChange={setShowValidateModal}>
                           <DialogTrigger asChild>
                             <Button 
                               size="sm" 
                               variant="default"
-                              onClick={() => setSelectedRecord(purchaseOrder)}
+                              onClick={() => {
+                                setSelectedRecord(purchaseOrder);
+                                setShowValidateModal(true);
+                              }}
                               className="bg-green-600 hover:bg-green-700"
                             >
                               <Check className="h-4 w-4 mr-1" />
@@ -528,11 +555,13 @@ export default function ValidationDashboard({
                               <div className="flex justify-end gap-2">
                                 <Button
                                   variant="outline"
-                                  onClick={() => handleValidation("purchase_order", purchaseOrder.id, "reject")}
+                                  onClick={() => {
+                                    setShowValidateModal(false);
+                                    setValidationComments("");
+                                  }}
                                   disabled={loading}
                                 >
-                                  <X className="h-4 w-4 mr-1" />
-                                  Rejeter
+                                  Annuler
                                 </Button>
                                 <Button
                                   onClick={() => handleValidation("purchase_order", purchaseOrder.id, "validate")}
@@ -547,12 +576,15 @@ export default function ValidationDashboard({
                           </DialogContent>
                         </Dialog>
 
-                        <Dialog>
+                        <Dialog open={showRejectModal && selectedRecord?.id === purchaseOrder.id} onOpenChange={setShowRejectModal}>
                           <DialogTrigger asChild>
                             <Button 
                               size="sm" 
                               variant="destructive"
-                              onClick={() => setSelectedRecord(purchaseOrder)}
+                              onClick={() => {
+                                setSelectedRecord(purchaseOrder);
+                                setShowRejectModal(true);
+                              }}
                             >
                               <X className="h-4 w-4 mr-1" />
                               Rejeter
@@ -573,7 +605,14 @@ export default function ValidationDashboard({
                                 />
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setSelectedRecord(null)}>
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => {
+                                    setShowRejectModal(false);
+                                    setValidationComments("");
+                                    setSelectedRecord(null);
+                                  }}
+                                >
                                   Annuler
                                 </Button>
                                 <Button
