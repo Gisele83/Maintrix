@@ -206,10 +206,14 @@ export class GMAOStorage {
   }
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+    console.log(`🔧 DIAGNOSTIC: updateWorkOrder called with id=${id}, tenantId=${tenantId}, updates=`, JSON.stringify(updates, null, 2));
+    
     // Remove any fields that might cause FK constraint violations for now
     const safeUpdates = { ...updates };
     delete safeUpdates.level1ValidatedBy;
     delete safeUpdates.level2ValidatedBy;
+    
+    console.log(`🔧 DIAGNOSTIC: Safe updates after cleanup:`, JSON.stringify(safeUpdates, null, 2));
     
     // 🔧 CORRECTION: Activer le filtrage par tenant pour les mises à jour
     const [workOrder] = await db
@@ -217,6 +221,8 @@ export class GMAOStorage {
       .set({ ...safeUpdates, updatedAt: new Date() })
       .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
+    
+    console.log(`🔧 DIAGNOSTIC: Work order after update:`, JSON.stringify(workOrder, null, 2));
     return workOrder;
   }
 
