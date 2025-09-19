@@ -102,7 +102,7 @@ export function adminConfigGuard(req: AuthenticatedRequest, res: Response, next:
   // Logs de débogage pour comprendre le problème
   console.log("🔍 DEBUG adminConfigGuard - req.user:", req.user ? {
     id: req.user.id,
-    email: req.user.email,
+    username: req.user.username,
     role: req.user.role,
     tenantId: req.user.tenantId
   } : "USER NOT FOUND");
