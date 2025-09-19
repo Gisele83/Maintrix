@@ -67,19 +67,10 @@ export default function AIAssistantChat({
   // AI chat mutation
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest('/api/ai-chat', {
+      return await apiRequest('/api/ai-chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message })
+        body: { message }
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
-      }
-      
-      return response.json();
     },
     onSuccess: (data) => {
       setMessages(prev => [

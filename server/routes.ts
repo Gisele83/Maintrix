@@ -3674,6 +3674,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🤖 AI ASSISTANT CHAT ROUTES
+  const { anthropicService } = await import("./anthropic-service");
+  
+  // AI Chat endpoint
+  app.post('/api/ai-chat', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return res.status(400).json({ 
+          error: "INVALID_MESSAGE", 
+          message: "Message is required and must be a non-empty string" 
+        });
+      }
+
+      if (message.length > 4000) {
+        return res.status(400).json({ 
+          error: "MESSAGE_TOO_LONG", 
+          message: "Message must be less than 4000 characters" 
+        });
+      }
+
+      const response = await anthropicService.chat(message);
+      
+      res.json({ 
+        response,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("AI Chat error:", error);
+      res.status(500).json({ 
+        error: "AI_CHAT_FAILED", 
+        message: "Failed to get AI response. Please try again." 
+      });
+    }
+  });
+
+  // AI Equipment Analysis endpoint
+  app.post('/api/ai-equipment-analysis', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
+    try {
+      const { equipmentType, symptoms, context } = req.body;
+      
+      if (!equipmentType || !symptoms) {
+        return res.status(400).json({ 
+          error: "MISSING_PARAMETERS", 
+          message: "Equipment type and symptoms are required" 
+        });
+      }
+
+      const response = await anthropicService.analyzeEquipmentIssue(equipmentType, symptoms, context);
+      
+      res.json({ 
+        analysis: response,
+        equipmentType,
+        symptoms,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("AI Equipment Analysis error:", error);
+      res.status(500).json({ 
+        error: "AI_ANALYSIS_FAILED", 
+        message: "Failed to analyze equipment issue. Please try again." 
+      });
+    }
+  });
+
+  // AI Maintenance Schedule endpoint
+  app.post('/api/ai-maintenance-schedule', EnterpriseAuthMiddleware.requireAuthentication, generalRateLimit, async (req: any, res) => {
+    try {
+      const { equipmentType, currentCondition, usage } = req.body;
+      
+      if (!equipmentType || !currentCondition || !usage) {
+        return res.status(400).json({ 
+          error: "MISSING_PARAMETERS", 
+          message: "Equipment type, current condition, and usage are required" 
+        });
+      }
+
+      const response = await anthropicService.suggestMaintenanceSchedule(equipmentType, currentCondition, usage);
+      
+      res.json({ 
+        schedule: response,
+        equipmentType,
+        currentCondition,
+        usage,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("AI Maintenance Schedule error:", error);
+      res.status(500).json({ 
+        error: "AI_SCHEDULE_FAILED", 
+        message: "Failed to generate maintenance schedule. Please try again." 
+      });
+    }
+  });
+
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);
