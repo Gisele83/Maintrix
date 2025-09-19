@@ -250,19 +250,43 @@ export function CompanyLetterheadConfig() {
   };
 
   const downloadTemplate = () => {
-    const template = previewMode === "letterhead" 
-      ? generateLetterheadTemplate() 
-      : generatePurchaseOrderExample();
-    
-    const blob = new Blob([template], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${previewMode === "letterhead" ? "letterhead" : "purchase_order"}_template.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    if (previewMode === "purchase_order") {
+      // Use server route for purchase order PDF generation
+      const timestamp = new Date().getTime();
+      const randomId = Math.random().toString(36).substring(7);
+      const url = `/api/purchase-orders/1/letterhead?cache_bust=${timestamp}&rand=${randomId}`;
+      
+      const newWindow = window.open('about:blank', '_blank');
+      if (newWindow) {
+        newWindow.location.href = url;
+      } else {
+        // Fallback if popup blocked
+        window.location.assign(url);
+      }
+
+      toast({
+        title: "Génération du PDF",
+        description: "Le bon de commande exemple s'ouvre en PDF dans un nouvel onglet",
+      });
+    } else {
+      // Keep HTML download for letterhead template
+      const template = generateLetterheadTemplate();
+      
+      const blob = new Blob([template], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `letterhead_template.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Template téléchargé",
+        description: "Le template d'en-tête a été téléchargé en HTML",
+      });
+    }
   };
 
   return (
