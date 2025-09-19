@@ -101,8 +101,18 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
-      ]
+        '--disable-features=VizDisplayCompositor',
+        '--disable-gpu',
+        '--disable-dev-tools',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
+      ],
+      ignoreHTTPSErrors: true,
+      ignoreDefaultArgs: ['--disable-extensions']
     });
     
     const page = await browser.newPage();
