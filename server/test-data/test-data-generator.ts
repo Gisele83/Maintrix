@@ -48,7 +48,7 @@ export class TestDataGenerator {
     const sparePartIds = await this.createTestSpareParts(opts.sparePartsCount, tenantId);
     await this.createTestWorkOrders(opts.workOrderCount, userIds, equipmentIds, tenantId);
     await this.createTestPreventiveMaintenance(equipmentIds, userIds, tenantId);
-    await this.createTestCounters(equipmentIds, tenantId);
+    // await this.createTestCounters(equipmentIds, tenantId); // Temporairement désactivé en attendant la synchronisation DB
     await this.createTestAlerts(equipmentIds, tenantId);
     await this.createTestDiagnostics(equipmentIds, tenantId);
     await this.createTestStockMovements(sparePartIds, userIds, tenantId);
@@ -164,7 +164,7 @@ export class TestDataGenerator {
   /**
    * Crée des équipements de test
    */
-  private static async createTestEquipments(count: number, tenantId: string): Promise<string[]> {
+  private static async createTestEquipments(count: number, tenantId: string): Promise<number[]> {
     console.log(`🏭 Création de ${count} équipements de test...`);
     
     const equipmentTypes = [
@@ -178,7 +178,7 @@ export class TestDataGenerator {
       { type: 'Climatisation', brand: 'Daikin', model: 'VRV IV', location: 'Bureaux' },
     ];
 
-    const equipmentIds: string[] = [];
+    const equipmentIds: number[] = [];
 
     for (let i = 0; i < count; i++) {
       const equipment = equipmentTypes[i % equipmentTypes.length];
@@ -251,8 +251,8 @@ export class TestDataGenerator {
    */
   private static async createTestWorkOrders(
     count: number,
-    userIds: string[],
-    equipmentIds: string[],
+    userIds: number[],
+    equipmentIds: number[],
     tenantId: string
   ): Promise<void> {
     console.log(`📋 Création de ${count} ordres de travail de test...`);
@@ -291,8 +291,8 @@ export class TestDataGenerator {
    * Crée des plans de maintenance préventive
    */
   private static async createTestPreventiveMaintenance(
-    equipmentIds: string[],
-    userIds: string[],
+    equipmentIds: number[],
+    userIds: number[],
     tenantId: string
   ): Promise<void> {
     console.log('🔄 Création des plans de maintenance préventive...');
@@ -314,7 +314,7 @@ export class TestDataGenerator {
   /**
    * Crée des compteurs de maintenance
    */
-  private static async createTestCounters(equipmentIds: string[], tenantId: string): Promise<void> {
+  private static async createTestCounters(equipmentIds: number[], tenantId: string): Promise<void> {
     console.log('⏱️ Création des compteurs de maintenance...');
     
     for (let i = 0; i < Math.min(15, equipmentIds.length); i++) {
@@ -336,7 +336,7 @@ export class TestDataGenerator {
   /**
    * Crée des alertes de test
    */
-  private static async createTestAlerts(equipmentIds: string[], tenantId: string): Promise<void> {
+  private static async createTestAlerts(equipmentIds: number[], tenantId: string): Promise<void> {
     console.log('🚨 Création des alertes de test...');
     
     const alertTypes = [
@@ -351,14 +351,12 @@ export class TestDataGenerator {
       
       await db.insert(alertsNotifications).values({
         tenantId,
-        type: 'alert',
+        alertType: alert.type,
         title: alert.message,
         message: `${alert.message} pour équipement`,
         severity: alert.level,
-        category: alert.type,
         equipmentId,
-        isRead: Math.random() > 0.3,
-        isResolved: Math.random() > 0.7,
+        status: Math.random() > 0.7 ? 'resolved' : 'active',
       });
     }
   }
@@ -366,19 +364,21 @@ export class TestDataGenerator {
   /**
    * Crée des diagnostics de test
    */
-  private static async createTestDiagnostics(equipmentIds: string[], tenantId: string): Promise<void> {
+  private static async createTestDiagnostics(equipmentIds: number[], tenantId: string): Promise<void> {
     console.log('🔍 Création des diagnostics de test...');
+    
+    const equipmentTypes = ['Compresseur', 'Pompe', 'Moteur électrique', 'Convoyeur'];
+    const urgencyLevels = ['low', 'medium', 'high', 'critical'];
     
     for (let i = 0; i < 15; i++) {
       await db.insert(diagnosticSessions).values({
         tenantId,
-        equipmentId: equipmentIds[Math.floor(Math.random() * equipmentIds.length)],
-        sessionType: 'automatic',
+        equipmentType: equipmentTypes[i % equipmentTypes.length],
+        equipmentId: equipmentIds[Math.floor(Math.random() * equipmentIds.length)].toString(),
         symptoms: `Symptômes observés pour diagnostic ${i + 1}`,
-        diagnosis: `Diagnostic établi ${i + 1}`,
-        recommendations: `Recommandations d'intervention ${i + 1}`,
+        urgency: urgencyLevels[Math.floor(Math.random() * urgencyLevels.length)],
         confidence: 0.7 + Math.random() * 0.3, // 70-100%
-        sessionStatus: 'completed',
+        status: 'completed',
       });
     }
   }
@@ -388,7 +388,7 @@ export class TestDataGenerator {
    */
   private static async createTestStockMovements(
     sparePartIds: string[],
-    userIds: string[],
+    userIds: number[],
     tenantId: string
   ): Promise<void> {
     console.log('📦 Création des mouvements de stock...');
