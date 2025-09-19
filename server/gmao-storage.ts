@@ -1366,6 +1366,15 @@ export class GMAOStorage {
       throw new Error("Work order not found");
     }
 
+    // 🔧 DIAGNOSTIC COMPLET: Examiner la structure de l'objet workOrder
+    console.log(`🔧 DIAGNOSTIC WORKORDER:`, JSON.stringify(workOrder, null, 2));
+    console.log(`🔧 DIAGNOSTIC WORKORDER KEYS:`, Object.keys(workOrder || {}));
+    console.log(`🔧 DIAGNOSTIC tenantId attempts:`, {
+      'workOrder.tenantId': (workOrder as any).tenantId,
+      'workOrder.tenant_id': (workOrder as any).tenant_id,
+      'received_tenantId': tenantId
+    });
+
     const user = await this.getUserProfile(data.validatorId);
     if (!user || !user.canValidateWorkOrders) {
       throw new Error("User does not have validation permissions");
