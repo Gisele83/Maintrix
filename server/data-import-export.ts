@@ -22,7 +22,9 @@ const ImportEquipmentSchema = z.object({
 
 const ImportMaintenanceHistorySchema = z.object({
   orderNumber: z.string().min(1),
-  equipmentId: z.string().min(1),
+  equipmentId: z.string().optional(),
+  equipmentName: z.string().optional(),
+  equipmentType: z.string().optional(),
   orderType: z.enum(["preventive", "corrective", "predictive", "emergency"]),
   title: z.string().min(1),
   description: z.string().min(1),

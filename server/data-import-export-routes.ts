@@ -70,7 +70,7 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
         result = await dataImportExportService.importEquipments(req.file.buffer, fileFormat);
         break;
       case 'maintenance-history':
-        result = await simpleImportService.simpleImportMaintenanceHistory(req.file.buffer, fileFormat);
+        result = await dataImportExportService.importMaintenanceHistory(req.file.buffer, fileFormat);
         break;
       case 'spare-parts':
         result = await dataImportExportService.importSpareParts(req.file.buffer, fileFormat);
