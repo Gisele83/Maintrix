@@ -99,6 +99,8 @@ export async function apiFeatureGuard(req: AuthenticatedRequest, res: Response, 
  * Middleware spécialisé pour les routes de configuration admin
  */
 export function adminConfigGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  console.log("🚨 MIDDLEWARE CALLED: adminConfigGuard - PATH:", req.path, "METHOD:", req.method);
+  
   // Logs de débogage pour comprendre le problème
   console.log("🔍 DEBUG adminConfigGuard - req.user:", req.user ? {
     id: req.user.id,
