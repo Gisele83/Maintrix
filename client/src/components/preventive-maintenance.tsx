@@ -30,7 +30,22 @@ const maintenancePlanSchema = z.object({
   nextMaintenance: z.string().optional(),
   instructions: z.string().optional(),
   requiredParts: z.string().optional(),
-  safetyNotes: z.string().optional()
+  safetyNotes: z.string().optional(),
+  // Nouveaux champs pour les compteurs
+  enableCounter: z.boolean().default(false),
+  counterType: z.enum(["hours", "cycles", "kilometers", "units"]).optional(),
+  counterName: z.string().optional(),
+  thresholdWarning: z.number().min(0, "Seuil d'alerte doit être positif").optional(),
+  thresholdCritical: z.number().min(0, "Seuil critique doit être positif").optional(),
+  currentValue: z.number().min(0, "Valeur actuelle doit être positive").optional()
+}).refine((data) => {
+  // Si enableCounter est true, les champs de compteur sont requis
+  if (data.enableCounter) {
+    return data.counterType && data.thresholdWarning !== undefined && data.thresholdCritical !== undefined;
+  }
+  return true;
+}, {
+  message: "Les champs de compteur sont requis quand le suivi par compteur est activé"
 });
 
 type MaintenancePlanFormData = z.infer<typeof maintenancePlanSchema>;
@@ -141,7 +156,14 @@ export function PreventiveMaintenance() {
       nextMaintenance: "",
       instructions: "",
       requiredParts: "",
-      safetyNotes: ""
+      safetyNotes: "",
+      // Valeurs par défaut pour les compteurs
+      enableCounter: false,
+      counterType: "hours",
+      counterName: "",
+      thresholdWarning: 0,
+      thresholdCritical: 0,
+      currentValue: 0
     }
   });
 
@@ -168,7 +190,16 @@ export function PreventiveMaintenance() {
       safetyRequirements: data.safetyNotes || null,
       lastExecuted: data.lastMaintenance ? new Date(data.lastMaintenance).toISOString() : null,
       nextDue: data.nextMaintenance ? new Date(data.nextMaintenance).toISOString() : null,
-      isActive: data.isActive
+      isActive: data.isActive,
+      // Inclure les données du compteur si activé
+      counter: data.enableCounter ? {
+        counterName: data.counterName || `Compteur ${data.counterType}`,
+        counterType: data.counterType || "hours",
+        currentValue: parseInt(data.currentValue || "0", 10),
+        thresholdWarning: parseInt(data.thresholdWarning || "0", 10),
+        thresholdCritical: parseInt(data.thresholdCritical || "0", 10),
+        equipmentId: parseInt(data.equipmentId, 10)
+      } : null
     };
 
     if (selectedPlan) {
@@ -299,7 +330,7 @@ export function PreventiveMaintenance() {
             (typeof plan.nextDue === 'string' ? plan.nextDue : new Date(plan.nextDue).toISOString().split('T')[0]) : 
             calculateNextMaintenance(plan.lastExecuted ? 
               (typeof plan.lastExecuted === 'string' ? plan.lastExecuted : new Date(plan.lastExecuted).toISOString().split('T')[0]) : "", 
-              plan.frequency, plan.frequencyValue);
+              plan.frequency, plan.frequencyValue || 0);
           const isMaintenanceOverdue = isOverdue(nextMaintenanceDate);
           
           return (
@@ -710,6 +741,136 @@ function MaintenancePlanForm({
             </FormItem>
           )}
         />
+
+        {/* Section Configuration des Compteurs */}
+        <div className="border-t pt-6 mt-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Configuration des Compteurs d'Heures de Fonctionnement
+          </h3>
+          
+          <FormField
+            control={form.control}
+            name="enableCounter"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                  <FormLabel>Activer le suivi par compteur</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Générer des alertes basées sur les heures de fonctionnement
+                  </div>
+                </div>
+                <FormControl>
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={field.onChange}
+                    className="h-4 w-4"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          {form.watch("enableCounter") && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <FormField
+                control={form.control}
+                name="counterType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type de compteur</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="hours">Heures de fonctionnement</SelectItem>
+                        <SelectItem value="cycles">Cycles d'utilisation</SelectItem>
+                        <SelectItem value="kilometers">Kilomètres parcourus</SelectItem>
+                        <SelectItem value="units">Unités produites</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="counterName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom du compteur</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Compteur vidange réservoir" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="currentValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valeur actuelle</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="0" 
+                        value={field.value || 0}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="thresholdWarning"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seuil d'alerte (avertissement)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Ex: 800" 
+                        value={field.value || 0}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="thresholdCritical"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seuil critique</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Ex: 1000" 
+                        value={field.value || 0}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline">

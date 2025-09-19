@@ -925,6 +925,16 @@ export type InsertPreventiveMaintenancePlan = z.infer<typeof insertPreventiveMai
 export type MaintenanceCounter = typeof maintenanceCounters.$inferSelect;
 export type InsertMaintenanceCounter = z.infer<typeof insertMaintenanceCounterSchema>;
 
+// Schema de validation pour la création de compteurs depuis les plans de maintenance
+export const createCounterFromPlanSchema = z.object({
+  equipmentId: z.number().positive("ID d'équipement requis"),
+  counterName: z.string().min(1, "Nom du compteur requis"),
+  counterType: z.enum(["hours", "cycles", "kilometers", "units"]),
+  currentValue: z.number().min(0, "Valeur actuelle doit être positive").default(0),
+  thresholdWarning: z.number().min(0, "Seuil d'alerte doit être positif"),
+  thresholdCritical: z.number().min(0, "Seuil critique doit être positif")
+});
+
 export type CounterHistory = typeof counterHistory.$inferSelect;
 export type InsertCounterHistory = z.infer<typeof insertCounterHistorySchema>;
 

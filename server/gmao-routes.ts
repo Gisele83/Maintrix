@@ -14,7 +14,8 @@ import {
   insertIntegrationLogSchema,
   insertAlertsNotificationsSchema,
   insertMaintenanceReportSchema,
-  insertMonthlyReportSchema
+  insertMonthlyReportSchema,
+  createCounterFromPlanSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { createValidationDemo } from "./create-validation-demo";
@@ -393,7 +394,42 @@ export function registerGMAORoutes(app: Express) {
       const tenantId = (req as any).tenantId || 'default-tenant';
       const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
       const planData = { ...data, tenantId };
+      
+      // Créer le plan de maintenance
       const plan = await gmaoStorage.createPreventiveMaintenancePlan(planData);
+      
+      // Si un compteur est configuré, le créer aussi
+      if (req.body.counter && req.body.counter.counterType) {
+        try {
+          // Valider les données du compteur avec Zod
+          const validatedCounter = createCounterFromPlanSchema.parse(req.body.counter);
+          
+          const counterData = {
+            tenantId,
+            equipmentId: validatedCounter.equipmentId,
+            counterName: validatedCounter.counterName,
+            counterType: validatedCounter.counterType,
+            currentValue: validatedCounter.currentValue,
+            thresholdWarning: validatedCounter.thresholdWarning,
+            thresholdCritical: validatedCounter.thresholdCritical,
+            isActive: true
+          };
+          
+          console.log("Creating validated counter:", counterData);
+          const newCounter = await gmaoStorage.createMaintenanceCounter(counterData);
+          
+          // Générer une alerte immédiate si la valeur actuelle dépasse déjà les seuils
+          if (validatedCounter.currentValue >= validatedCounter.thresholdCritical || 
+              validatedCounter.currentValue >= validatedCounter.thresholdWarning) {
+            await gmaoStorage.checkAndGenerateCounterAlert(newCounter);
+          }
+          
+        } catch (counterError) {
+          console.error("Counter validation error:", counterError);
+          // On continue sans créer le compteur plutôt que de faire échouer toute la création
+        }
+      }
+      
       res.status(201).json(plan);
     } catch (error) {
       console.error("Error creating maintenance plan:", error);
