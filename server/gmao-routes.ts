@@ -493,7 +493,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all spare parts
   app.get("/api/spare-parts", async (req, res) => {
     try {
-      const parts = await gmaoStorage.getSpareParts();
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const parts = await gmaoStorage.getSpareParts(tenantId);
       res.json(parts);
     } catch (error) {
       console.error("Error fetching spare parts:", error);
@@ -520,7 +521,12 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/spare-parts", async (req, res) => {
     try {
       console.log("Received spare part data:", req.body);
-      const data = insertSparePartSchema.parse(req.body);
+      
+      // Add tenantId BEFORE validation
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const dataToValidate = { ...req.body, tenantId };
+      
+      const data = insertSparePartSchema.parse(dataToValidate);
       
       // Générer un numéro de pièce unique si conflit détecté
       let uniquePartNumber = data.partNumber;
