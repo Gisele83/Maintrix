@@ -1750,7 +1750,7 @@ export function registerGMAORoutes(app: Express) {
       }
       
       // Import PDFKit generator
-      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit.js');
+      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit');
       
       // Get company config for letterhead
       const companyConfig = await gmaoStorage.getCompanyConfig();
@@ -1863,7 +1863,7 @@ export function registerGMAORoutes(app: Express) {
       const demoOrder = demoPurchaseOrders.find(order => order.id === purchaseOrderId) || demoPurchaseOrders[0];
       
       // Import PDFKit generator
-      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit.js');
+      const { generatePurchaseOrderPDF } = await import('./pdf-generator-pdfkit');
       
       // Get company config for letterhead
       const companyConfig = await gmaoStorage.getCompanyConfig();
