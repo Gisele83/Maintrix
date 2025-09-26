@@ -384,7 +384,7 @@ export function PreventiveMaintenance() {
                 <div>
                   <p className="font-medium text-sm text-gray-900 mb-1">Tâches:</p>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {Array.isArray(plan.tasks) ? plan.tasks.join(', ') : (plan.tasks || 'Aucune tâche définie')}
+                    {Array.isArray(plan.tasks) ? plan.tasks.join(', ') : 'Aucune tâche définie'}
                   </p>
                 </div>
 
