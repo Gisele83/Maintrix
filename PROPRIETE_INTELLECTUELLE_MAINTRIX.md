@@ -117,7 +117,7 @@ L'intégralité du code source est protégée par le droit d'auteur, incluant :
 - **Slogan :** [À définir selon votre communication]
 
 ### 4.3 Noms de Domaine
-- **maintrix.com** (recommandé à réserver)
+- **maintrix-t.com** (recommandé à réserver)
 - **smart-gmao.com** (si disponible)
 - **diagfix.com** (si pertinent)
 

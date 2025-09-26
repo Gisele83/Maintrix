@@ -539,7 +539,7 @@ Erreurs: $($errors.Count)
 ## RESSOURCES
 - Documentation Windows: INSTALLATION_WINDOWS_GUIDE.md
 - Script d'installation: install-maintrix.ps1
-- Support: support-windows@maintrix.com
+- Support: support-windows@maintrix-t.com
 "@
 
     if ([string]::IsNullOrEmpty($ReportPath)) {

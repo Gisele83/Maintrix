@@ -105,7 +105,7 @@ cd maintrix
 .\install-maintrix.ps1
 
 # Option 2: Téléchargement direct
-Invoke-WebRequest -Uri "https://releases.maintrix.com/install-maintrix.ps1" -OutFile "install-maintrix.ps1"
+Invoke-WebRequest -Uri "https://releases.maintrix-t.com/install-maintrix.ps1" -OutFile "install-maintrix.ps1"
 .\install-maintrix.ps1
 ```
 
@@ -680,14 +680,14 @@ docker-compose logs --tail 20 maintrix-app
 - **PowerShell Docs**: https://docs.microsoft.com/en-us/powershell/
 
 ### **Support Technique**
-- **Email**: support-windows@maintrix.com
-- **Forum**: https://community.maintrix.com/windows
+- **Email**: support-windows@maintrix-t.com
+- **Forum**: https://community.maintrix-t.com/windows
 - **Issues**: https://github.com/maintrix/maintrix/issues
 
 ### **Formation Windows**
-- **Guide PowerShell**: https://training.maintrix.com/powershell
-- **Admin Windows**: https://training.maintrix.com/windows-admin
-- **Docker sur Windows**: https://training.maintrix.com/docker-windows
+- **Guide PowerShell**: https://training.maintrix-t.com/powershell
+- **Admin Windows**: https://training.maintrix-t.com/windows-admin
+- **Docker sur Windows**: https://training.maintrix-t.com/docker-windows
 
 ---
 

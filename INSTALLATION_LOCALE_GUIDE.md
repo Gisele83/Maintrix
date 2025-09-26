@@ -34,7 +34,7 @@ Guide complet pour l'installation et le déploiement de Maintrix sur vos serveur
 
 ```bash
 # Téléchargement du script
-wget https://releases.maintrix.com/install-maintrix.sh
+wget https://releases.maintrix-t.com/install-maintrix.sh
 chmod +x install-maintrix.sh
 
 # Installation interactive
@@ -61,9 +61,9 @@ sudo chown $USER:$USER /opt/maintrix
 cd /opt/maintrix
 
 # 2. Téléchargement des fichiers
-wget https://releases.maintrix.com/latest/docker-compose.local.yml
-wget https://releases.maintrix.com/latest/Dockerfile
-wget https://releases.maintrix.com/latest/.env.local.template
+wget https://releases.maintrix-t.com/latest/docker-compose.local.yml
+wget https://releases.maintrix-t.com/latest/Dockerfile
+wget https://releases.maintrix-t.com/latest/.env.local.template
 
 # 3. Configuration
 cp .env.local.template .env.local
@@ -357,7 +357,7 @@ maintrix backup
 
 # 2. Téléchargement nouvelle version
 cd /opt/maintrix
-wget https://releases.maintrix.com/latest/docker-compose.local.yml -O docker-compose.yml.new
+wget https://releases.maintrix-t.com/latest/docker-compose.local.yml -O docker-compose.yml.new
 
 # 3. Arrêt et mise à jour
 maintrix stop
@@ -424,17 +424,17 @@ docker stats
 ## 📞 **Support et Contact**
 
 ### **Documentation**
-- **Site web**: https://maintrix.com
-- **Documentation**: https://docs.maintrix.com
-- **FAQ**: https://maintrix.com/faq
+- **Site web**: https://maintrix-t.com
+- **Documentation**: https://docs.maintrix-t.com
+- **FAQ**: https://maintrix-t.com/faq
 
 ### **Support Technique**
-- **Email**: support@maintrix.com
+- **Email**: support@maintrix-t.com
 - **Slack**: maintrix-community.slack.com
 - **Issues GitHub**: https://github.com/maintrix/issues
 
 ### **Formation**
-- **Formations en ligne**: https://training.maintrix.com
+- **Formations en ligne**: https://training.maintrix-t.com
 - **Webinaires**: Tous les mardis 14h
 - **Certification**: Programme certifié disponible
 

@@ -423,7 +423,7 @@ EXEMPLES:
     maintrix config edit
     maintrix ssl generate
 
-Pour plus d'informations: https://maintrix.com/docs
+Pour plus d'informations: https://maintrix-t.com/docs
 EOF
 }
 

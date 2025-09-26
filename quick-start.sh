@@ -78,7 +78,7 @@ EOF
         echo -e "${YELLOW}⚠️  Changez le mot de passe lors de la première connexion${NC}"
     else
         echo -e "${YELLOW}❌ Fichiers de configuration Docker non trouvés${NC}"
-        echo -e "${BLUE}Téléchargez l'archive complète depuis https://maintrix.com/download${NC}"
+        echo -e "${BLUE}Téléchargez l'archive complète depuis https://maintrix-t.com/download${NC}"
     fi
 fi
 
