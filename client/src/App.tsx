@@ -103,6 +103,9 @@ function Router() {
       <Route path="/dashboard/gmao">
         {(params) => <ProtectedRoute component={GMAODashboard} {...params} />}
       </Route>
+      <Route path="/gmao-dashboard">
+        {(params) => <ProtectedRoute component={GMAODashboard} {...params} />}
+      </Route>
       <Route path="/profiles">
         {(params) => <ProtectedRoute component={UserProfiles} {...params} />}
       </Route>
