@@ -1,0 +1,203 @@
+Write-Host "`n🔍 INSPECTION DU HEALTH CHECK:" -ForegroundColor Cyan
+docker inspect maintrix-maintrix-application-1 --format='{{json .State.Health}}' | ConvertFrom-Json | ConvertTo-Json -Depth 5
+📋 LOGS COMPLETS DE L'APPLICATION DOCKER:
+docker :   },
+Au caractère Ligne:3 : 1
++ docker logs maintrix-maintrix-application-1 --tail 100
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (  },:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED 172.18.0.2:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '172.18.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.18.0.2:443'
+}
+Error processing sensor reading: ErrorEvent {
+  [Symbol(kTarget)]: WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://maintrix-database/v2',
+    _req: null,
+    [Symbol(shapeMode)]: false,
+    [Symbol(kCapture)]: false
+  },
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED 172.18.0.2:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '172.18.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.18.0.2:443'
+}
+Error processing sensor reading: ErrorEvent {
+  [Symbol(kTarget)]: WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://maintrix-database/v2',
+    _req: null,
+    [Symbol(shapeMode)]: false,
+    [Symbol(kCapture)]: false
+  },
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED 172.18.0.2:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '172.18.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.18.0.2:443'
+}
+
+📋 LOGS POSTGRES:
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down....2025-09-30 21:47:00.989 UTC [41] LOG:  received fast shutdown request
+2025-09-30 21:47:00.997 UTC [41] LOG:  aborting any active transactions
+2025-09-30 21:47:00.999 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+2025-09-30 21:47:00.999 UTC [42] LOG:  shutting down
+2025-09-30 21:47:01.011 UTC [42] LOG:  checkpoint starting: shutdown immediate
+2025-09-30 21:47:01.171 UTC [42] LOG:  checkpoint complete: wrote 921 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.022 
+s, sync=0.118 s, total=0.172 s; sync files=301, longest=0.010 s, average=0.001 s; distance=4239 kB, estimate=4239 kB
+2025-09-30 21:47:01.178 UTC [41] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+docker : 2025-09-30 21:47:01.217 UTC [1] LOG:  starting PostgreSQL 15.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 
+64-bit
+Au caractère Ligne:6 : 1
++ docker logs maintrix-maintrix-database-1 --tail 20
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2025-09-30 21:4... 14.2.0, 64-bit:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2025-09-30 21:47:01.217 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2025-09-30 21:47:01.217 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2025-09-30 21:47:01.227 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2025-09-30 21:47:01.237 UTC [57] LOG:  database system was shut down at 2025-09-30 21:47:01 UTC
+2025-09-30 21:47:01.246 UTC [1] LOG:  database system is ready to accept connections
+
+📊 ÉTAT DES CONTENEURS:
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                          PORTS                
+                         NAMES
+35ebc2842018   maintrix-maintrix-application   "docker-entrypoint.sâ€¦"   54 minutes ago   Up 3 minutes (unhealthy)        0.0.0.0:8080->8080/
+tcp, [::]:8080->8080/tcp   maintrix-maintrix-application-1
+616542d5533d   maintrix-maintrix-app           "docker-entrypoint.sâ€¦"   54 minutes ago   Created                                            
+                           maintrix-application
+581f0fcc0ada   node:20-alpine                  "docker-entrypoint.sâ€¦"   54 minutes ago   Restarting (1) 26 seconds ago                      
+                           maintrix-database
+4997b722d48d   postgres:15-alpine              "docker-entrypoint.sâ€¦"   54 minutes ago   Up 3 minutes (healthy)          0.0.0.0:5432->5432/
+tcp, [::]:5432->5432/tcp   maintrix-maintrix-database-1
+
+🔍 INSPECTION DU HEALTH CHECK:
+{
+    "Status":  "unhealthy",
+    "FailingStreak":  7,
+    "Log":  [
+                {
+                    "Start":  "2025-09-30T21:48:56.163159969Z",
+                    "End":  "2025-09-30T21:48:56.226876872Z",
+                    "ExitCode":  1,
+                    "Output":  "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                             
+    Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0 
+   0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (7) Failed to connect to localhost port 3000 after 0 ms: Could not
+ connect to server\n"
+                },
+                {
+                    "Start":  "2025-09-30T21:49:23.806952873Z",
+                    "End":  "2025-09-30T21:49:23.893731613Z",
+                    "ExitCode":  1,
+                    "Output":  "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                             
+    Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0 
+   0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (7) Failed to connect to localhost port 3000 after 0 ms: Could not
+ connect to server\n"
+                },
+                {
+                    "Start":  "2025-09-30T21:49:50.920864579Z",
+                    "End":  "2025-09-30T21:49:51.016078397Z",
+                    "ExitCode":  1,
+                    "Output":  "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                             
+    Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0 
+   0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (7) Failed to connect to localhost port 3000 after 0 ms: Could not
+ connect to server\n"
+                },
+                {
+                    "Start":  "2025-09-30T21:50:18.56254796Z",
+                    "End":  "2025-09-30T21:50:18.638029501Z",
+                    "ExitCode":  1,
+                    "Output":  "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                             
+    Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0 
+   0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (7) Failed to connect to localhost port 3000 after 0 ms: Could not
+ connect to server\n"
+                },
+                {
+                    "Start":  "2025-09-30T21:50:45.660971877Z",
+                    "End":  "2025-09-30T21:50:45.74092965Z",
+                    "ExitCode":  1,
+                    "Output":  "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                             
+    Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r  0     0 
+   0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\ncurl: (7) Failed to connect to localhost port 3000 after 0 ms: Could not
+ connect to server\n"
+                }
+            ]
