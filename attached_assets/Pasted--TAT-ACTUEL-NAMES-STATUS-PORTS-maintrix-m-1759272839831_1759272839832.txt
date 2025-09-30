@@ -1,0 +1,81 @@
+📊 ÉTAT ACTUEL:
+NAMES                             STATUS                          PORTS
+maintrix-maintrix-application-1   Up 3 minutes (unhealthy)        0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+maintrix-application              Created                         
+maintrix-database                 Restarting (1) 17 seconds ago   
+maintrix-maintrix-database-1      Up 3 minutes (healthy)          0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+
+📋 LOGS APPLICATION (50 dernières lignes):
+docker :     syscall: 'connect',
+Au caractère Ligne:7 : 1
++ docker logs maintrix-maintrix-application-1 --tail 50
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    syscall: 'connect',:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    address: '172.18.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.18.0.2:443'
+}
+Error processing sensor reading: ErrorEvent {
+  [Symbol(kTarget)]: WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://maintrix-database/v2',
+    _req: null,
+    [Symbol(shapeMode)]: false,
+    [Symbol(kCapture)]: false
+  },
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED 172.18.0.2:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '172.18.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.18.0.2:443'
+}
+
+🔌 MAPPING DES PORTS:
+8080/tcp -> 0.0.0.0:8080
+8080/tcp -> [::]:8080
+
+🧪 TEST DEPUIS L'INTÉRIEUR DU CONTENEUR:
+docker : Connecting to localhost:5000 ([::1]:5000)
+Au caractère Ligne:15 : 1
++ docker exec maintrix-maintrix-application-1 wget -O- http://localhost ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Connecting to l...00 ([::1]:5000):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+wget: can't connect to remote host: Connection refused
+
+🧪 TEST DEPUIS WINDOWS:
+❌ Échec: La connexion sous-jacente a été fermée : La connexion a été interrompue de manière inattendue.
