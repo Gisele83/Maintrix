@@ -1,0 +1,45 @@
+🏥 Test manuel du health check:
+✅ Error response from daemon: Container 102607d0295873a465dcbd39c7e1975c00a45a08566266e5f3a3e55db46e23ce is restarting, wait until the contain
+er is running
+
+🚀 Démarrage de l'application...
+docker-compose :  Network maintrix_default  Creating
+Au caractère Ligne:39 : 5
++     docker-compose -f docker-compose.local.yml up -d
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( Network maintrix_default  Creating:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ Network maintrix_default  Created
+ Container maintrix-maintrix-database-1  Creating
+ Container maintrix-application  Creating
+ Container maintrix-application  Created
+ Container maintrix-maintrix-database-1  Created
+ Container maintrix-maintrix-application-1  Creating
+ Container maintrix-maintrix-application-1  Created
+ Container maintrix-database  Starting
+ Container maintrix-maintrix-database-1  Starting
+ Container maintrix-database  Started
+ Container maintrix-database  Waiting
+ Container maintrix-maintrix-database-1  Started
+ Container maintrix-maintrix-application-1  Starting
+ Container maintrix-maintrix-application-1  Started
+ Container maintrix-database  Error
+dependency failed to start: container maintrix-database is unhealthy
+⏳ Attente (45 secondes)...
+
+📊 État final:
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS                             PORTS             
+                            NAMES
+4a1b39484ae3   maintrix-maintrix-application   "docker-entrypoint.sâ€¦"   51 minutes ago   Up 45 seconds (health: starting)   0.0.0.0:8080->80
+80/tcp, [::]:8080->8080/tcp   maintrix-maintrix-application-1
+c9e83ec61065   postgres:15-alpine              "docker-entrypoint.sâ€¦"   51 minutes ago   Up 45 seconds (healthy)            0.0.0.0:5432->54
+32/tcp, [::]:5432->5432/tcp   maintrix-maintrix-database-1
+102607d02958   node:20-alpine                  "docker-entrypoint.sâ€¦"   52 minutes ago   Restarting (1) 27 seconds ago                      
+                              maintrix-database
+
+🔌 Test de l'application...
+⚠️ Application pas encore prête
+Logs: docker logs maintrix-application --tail 50
+
+🎯 Diagnostic terminé!
