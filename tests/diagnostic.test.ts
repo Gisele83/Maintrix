@@ -1,29 +1,16 @@
-import request from 'supertest';
 import { describe, it, expect, beforeAll } from '@jest/globals';
-
-const API_BASE = process.env.API_URL || 'http://localhost:5000';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
 
 describe('Diagnostic Module Integration Tests', () => {
-  let authToken: string;
+  let auth: AuthenticatedAgent;
 
   beforeAll(async () => {
-    const loginResponse = await request(API_BASE)
-      .post('/api/login')
-      .send({
-        username: 'admin@maintrix.local',
-        password: 'Maintrix2024!'
-      });
-
-    if (loginResponse.status === 200) {
-      authToken = loginResponse.body.token;
-    }
+    auth = await authenticateUser('admin@maintrix.local', 'Maintrix2024!');
   });
 
   describe('Standard Diagnostic API', () => {
     it('should perform standard diagnostic', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic', auth)
         .send({
           equipmentType: 'Grue portuaire',
           symptoms: 'Bruit anormal, vibrations excessives',
@@ -46,9 +33,7 @@ describe('Diagnostic Module Integration Tests', () => {
     });
 
     it('should return historical matches', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic', auth)
         .send({
           equipmentType: 'Transformateur',
           symptoms: 'Surchauffe, odeur de brûlé',
@@ -64,9 +49,7 @@ describe('Diagnostic Module Integration Tests', () => {
 
   describe('Advanced ML Diagnostic API', () => {
     it('should perform advanced ML diagnostic', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic-advanced-ml')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic-advanced-ml', auth)
         .send({
           equipmentType: 'Moteur électrique',
           symptoms: 'Perte de puissance, échauffement',
@@ -85,9 +68,7 @@ describe('Diagnostic Module Integration Tests', () => {
 
   describe('Ensemble ML Diagnostic API', () => {
     it('should perform ensemble ML diagnostic', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic-ensemble-ml')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic-ensemble-ml', auth)
         .send({
           equipmentType: 'Pompe hydraulique',
           symptoms: 'Fuite, pression insuffisante',
@@ -105,9 +86,7 @@ describe('Diagnostic Module Integration Tests', () => {
 
   describe('Diagnostic Session Management', () => {
     it('should save diagnostic session', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic-sessions')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic-sessions', auth)
         .send({
           equipmentType: 'Compresseur',
           symptoms: 'Bruit métallique',
@@ -125,9 +104,7 @@ describe('Diagnostic Module Integration Tests', () => {
     });
 
     it('should retrieve diagnostic sessions', async () => {
-      const response = await request(API_BASE)
-        .get('/api/diagnostic-sessions')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await createAuthenticatedRequest('get', '/api/diagnostic-sessions', auth);
 
       expect([200, 401]).toContain(response.status);
       if (response.status === 200) {
@@ -138,9 +115,7 @@ describe('Diagnostic Module Integration Tests', () => {
 
   describe('Feedback System', () => {
     it('should submit diagnostic feedback', async () => {
-      const response = await request(API_BASE)
-        .post('/api/diagnostic-feedback')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/diagnostic-feedback', auth)
         .send({
           sessionId: 1,
           rating: 5,
