@@ -1,0 +1,43 @@
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:98 : 1
++ }
++ ~
+Jeton inattendu « } » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 99
++ ... replace 'if\s*\(\s*!process\.env\.SENDGRID_API_KEY\s*\)\s*\{[^}]*thro ...
++                                                                  ~
+Nom de type manquant après « [ ».
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 171
++ ... w Error\("SENDGRID_API_KEY environment variable must be set"\);[^}]*\ ...
++                                                                 ~
+Jeton inattendu « \ » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 171
++ ... ew Error\("SENDGRID_API_KEY environment variable must be set"\);[^}]* ...
++                                                                  ~
+Parenthèse fermante « ) » manquante dans l’expression.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 172
++ ...  Error\("SENDGRID_API_KEY environment variable must be set"\);[^}]*\} ...
++                                                                 ~
+Jeton inattendu « ) » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 175
++ ... rror\("SENDGRID_API_KEY environment variable must be set"\);[^}]*\}', ...
++                                                                  ~
+Nom de type manquant après « [ ».
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 176
++ ... or\("SENDGRID_API_KEY environment variable must be set"\);[^}]*\}', ' ...
++                                                                 ~
+Jeton inattendu « } » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 180
++ ... "SENDGRID_API_KEY environment variable must be set"\);[^}]*\}', 'cons ...
++                                                                 ~
+Jeton inattendu « } » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 185
++ ... _API_KEY environment variable must be set"\);[^}]*\}', 'const SENDGRI ...
++                                                             ~~~~~
+Jeton inattendu « const » dans l’expression ou l’instruction.
+Au caractère C:\Maintrix\fix-maintrix-windows.ps1:127 : 334
++ ... NDGRID_ENABLED) { mailService2 = new import_mail.MailService(); mailS ...
++                                                                  ~
+Une expression est attendue après « ( ».
+Les erreurs d’analyse n’ont pas toutes été signalées. Corrigez les erreurs signalées, puis recommencez.
+    + CategoryInfo          : ParserError: (:) [], ParseException
+    + FullyQualifiedErrorId : UnexpectedToken
