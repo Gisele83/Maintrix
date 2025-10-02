@@ -11,12 +11,24 @@ describe('Multi-Tenant Module Integration Tests', () => {
   let testTenantId: string;
 
   beforeAll(async () => {
-    const { csrfToken, cookies } = await getCsrfToken();
     const agent = request.agent(API_BASE);
+    
+    const healthResponse = await agent.get('/api/health');
+    
+    const rawCookies = healthResponse.headers['set-cookie'];
+    const cookies = Array.isArray(rawCookies) ? rawCookies : [];
+    let csrfToken = '';
+    
+    for (const cookie of cookies) {
+      const match = cookie.match(/csrfToken=([^;]+)/);
+      if (match) {
+        csrfToken = decodeURIComponent(match[1]);
+        break;
+      }
+    }
     
     const superAdminLogin = await agent
       .post('/api/super-admin/login')
-      .set('Cookie', cookies.join('; '))
       .set('X-CSRF-Token', csrfToken)
       .send({
         email: 'platform@admin.com',
@@ -24,10 +36,11 @@ describe('Multi-Tenant Module Integration Tests', () => {
       });
 
     if (superAdminLogin.status === 200) {
-      const sessionCookies = superAdminLogin.headers['set-cookie'] || cookies;
+      const rawSessionCookies = superAdminLogin.headers['set-cookie'];
+      const sessionCookies = Array.isArray(rawSessionCookies) ? rawSessionCookies : cookies;
       superAdminAuth = {
         agent,
-        cookies: Array.isArray(sessionCookies) ? sessionCookies : [sessionCookies as string],
+        cookies: sessionCookies,
         csrfToken,
         userId: superAdminLogin.body.user?.id
       };

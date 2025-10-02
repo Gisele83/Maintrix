@@ -26,7 +26,7 @@ export async function getCsrfToken(): Promise<{ csrfToken: string; cookies: stri
   let csrfToken = '';
   
   for (const cookie of cookies) {
-    const match = cookie.match(/XSRF-TOKEN=([^;]+)/);
+    const match = cookie.match(/csrfToken=([^;]+)/);
     if (match) {
       csrfToken = decodeURIComponent(match[1]);
       break;
@@ -37,16 +37,27 @@ export async function getCsrfToken(): Promise<{ csrfToken: string; cookies: stri
 }
 
 export async function authenticateUser(
-  username: string,
+  email: string,
   password: string,
   tenantId?: number
 ): Promise<AuthenticatedAgent> {
   const agent = request.agent(API_BASE);
   
-  const { csrfToken, cookies } = await getCsrfToken();
+  const healthResponse = await agent.get('/api/health');
+  
+  const rawCookies = healthResponse.headers['set-cookie'];
+  const cookies = Array.isArray(rawCookies) ? rawCookies : [];
+  let csrfToken = '';
+  
+  for (const cookie of cookies) {
+    const match = cookie.match(/csrfToken=([^;]+)/);
+    if (match) {
+      csrfToken = decodeURIComponent(match[1]);
+      break;
+    }
+  }
   
   const loginHeaders: Record<string, string> = {
-    'Cookie': cookies.join('; '),
     'X-CSRF-Token': csrfToken,
   };
   
@@ -55,9 +66,9 @@ export async function authenticateUser(
   }
   
   const loginResponse = await agent
-    .post('/api/login')
+    .post('/api/enterprise-auth/login')
     .set(loginHeaders)
-    .send({ username, password });
+    .send({ email, password });
   
   if (loginResponse.status !== 200) {
     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
