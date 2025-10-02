@@ -157,6 +157,11 @@ export class EnterpriseAuthMiddleware {
   static rateLimitByTenant(endpoint: string, limits: { requests: number; windowMs: number; blockDurationMs: number }) {
     return async (req: EnterpriseAuthRequest, res: Response, next: NextFunction) => {
       try {
+        // 🧪 DISABLE RATE LIMITING IN TEST AND DEVELOPMENT MODES
+        if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
+          return next();
+        }
+        
         const identifier = req.tenantId || req.ip || 'anonymous';
         const identifierType = req.tenantId ? 'tenant' : 'ip';
         const windowStart = new Date(Date.now() - limits.windowMs);

@@ -1,0 +1,534 @@
+🧪 Maintrix Integration Test Suite
+==================================
+
+🚀 Running all integration tests...
+npm warn config production Use `--omit=dev` instead.
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in /home/runner/workspace/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in /home/runner/workspace/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in /home/runner/workspace/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    [dotenv@17.2.3] injecting env (0) from .env.test -- tip: ⚙️  write to custom object with { processEnv: myObject }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.log
+    🧪 Starting integration tests...
+
+      at Object.<anonymous> (tests/setup.ts:106:11)
+
+  console.log
+    [dotenv@17.2.3] injecting env (0) from .env.test -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.log
+    [dotenv@17.2.3] injecting env (0) from .env.test -- tip: ⚙️  suppress all logs with { quiet: true }
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.log
+    🧪 Starting integration tests...
+
+      at Object.<anonymous> (tests/setup.ts:106:11)
+
+  console.log
+    🧪 Starting integration tests...
+
+      at Object.<anonymous> (tests/setup.ts:106:11)
+
+  console.log
+    ✅ Integration tests completed
+
+      at Object.<anonymous> (tests/setup.ts:110:11)
+
+FAIL tests/diagnostic.test.ts
+  Diagnostic Module Integration Tests
+    Standard Diagnostic API
+      ✕ should perform standard diagnostic (6 ms)
+      ✕ should return historical matches
+    Advanced ML Diagnostic API
+      ✕ should perform advanced ML diagnostic
+    Ensemble ML Diagnostic API
+      ✕ should perform ensemble ML diagnostic
+    Diagnostic Session Management
+      ✕ should save diagnostic session (1 ms)
+      ✕ should retrieve diagnostic sessions
+    Feedback System
+      ✕ should submit diagnostic feedback
+
+  ● Diagnostic Module Integration Tests › Standard Diagnostic API › should perform standard diagnostic
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Standard Diagnostic API › should return historical matches
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Advanced ML Diagnostic API › should perform advanced ML diagnostic
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Ensemble ML Diagnostic API › should perform ensemble ML diagnostic
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Diagnostic Session Management › should save diagnostic session
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Diagnostic Session Management › should retrieve diagnostic sessions
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Diagnostic Module Integration Tests › Feedback System › should submit diagnostic feedback
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  console.log
+    ✅ Integration tests completed
+
+      at Object.<anonymous> (tests/setup.ts:110:11)
+
+FAIL tests/multi-tenant.test.ts
+  Multi-Tenant Module Integration Tests
+    Tenant Management API
+      ✕ should create a new tenant (9 ms)
+      ✓ should retrieve all tenants (1 ms)
+      ✓ should update tenant settings (1 ms)
+    Tenant Isolation Tests
+      ✕ should isolate tenant 1 data (190 ms)
+      ✓ should prevent cross-tenant data access (2 ms)
+    Tenant User Management
+      ✓ should create user for tenant (1 ms)
+    Tenant Feature Flags
+      ✓ should enable feature for tenant
+      ✓ should check tenant feature access (2 ms)
+
+  ● Multi-Tenant Module Integration Tests › Tenant Management API › should create a new tenant
+
+    Super admin not authenticated
+
+      51 |     it('should create a new tenant', async () => {
+      52 |       if (!superAdminAuth) {
+    > 53 |         throw new Error('Super admin not authenticated');
+         |               ^
+      54 |       }
+      55 |
+      56 |       const response = await superAdminAuth.agent
+
+      at tests/multi-tenant.test.ts:53:15
+      at tests/multi-tenant.test.ts:8:71
+      at __awaiter (tests/multi-tenant.test.ts:4:12)
+      at Object.<anonymous> (tests/multi-tenant.test.ts:51:49)
+
+  ● Multi-Tenant Module Integration Tests › Tenant Isolation Tests › should isolate tenant 1 data
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  console.log
+    ✅ Integration tests completed
+
+      at Object.<anonymous> (tests/setup.ts:110:11)
+
+FAIL tests/inter-module-communication.test.ts
+  Inter-Module Communication Tests
+    GMAO → Diagnostic Communication
+      ✕ should create equipment and use it in diagnostic (6 ms)
+    Diagnostic → Work Order Communication
+      ✕ should create work order from diagnostic result (1 ms)
+    Work Order → Inventory Communication
+      ✕ should reserve spare parts for work order (1 ms)
+    Preventive → Work Order Automation
+      ✕ should generate work order from preventive plan
+    Multi-Tenant → All Modules Isolation
+      ✕ should ensure tenant isolation across modules
+    Email → Diagnostic Integration
+      ✕ should send email notification after diagnostic (3 ms)
+    IoT → Preventive Trigger
+      ✕ should trigger preventive maintenance based on IoT data
+
+  ● Inter-Module Communication Tests › GMAO → Diagnostic Communication › should create equipment and use it in diagnostic
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › Diagnostic → Work Order Communication › should create work order from diagnostic result
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › Work Order → Inventory Communication › should reserve spare parts for work order
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › Preventive → Work Order Automation › should generate work order from preventive plan
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › Multi-Tenant → All Modules Isolation › should ensure tenant isolation across modules
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › Email → Diagnostic Integration › should send email notification after diagnostic
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● Inter-Module Communication Tests › IoT → Preventive Trigger › should trigger preventive maintenance based on IoT data
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  console.log
+    [dotenv@17.2.3] injecting env (0) from .env.test -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.log
+    🧪 Starting integration tests...
+
+      at Object.<anonymous> (tests/setup.ts:106:11)
+
+  console.log
+    ✅ Integration tests completed
+
+      at Object.<anonymous> (tests/setup.ts:110:11)
+
+FAIL tests/gmao.test.ts
+  GMAO Module Integration Tests
+    Equipment Management API
+      ✕ should create a new equipment (2 ms)
+      ✕ should retrieve equipment list (1 ms)
+      ✕ should update equipment status (1 ms)
+    Work Orders API
+      ✕ should create a work order (1 ms)
+      ✕ should retrieve work orders (1 ms)
+    Preventive Maintenance API
+      ✕ should create preventive maintenance plan (1 ms)
+      ✕ should retrieve preventive plans (1 ms)
+    Spare Parts Inventory API
+      ✕ should create spare part
+      ✕ should retrieve spare parts
+
+  ● GMAO Module Integration Tests › Equipment Management API › should create a new equipment
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Equipment Management API › should retrieve equipment list
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Equipment Management API › should update equipment status
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Work Orders API › should create a work order
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Work Orders API › should retrieve work orders
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Preventive Maintenance API › should create preventive maintenance plan
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Preventive Maintenance API › should retrieve preventive plans
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Spare Parts Inventory API › should create spare part
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+  ● GMAO Module Integration Tests › Spare Parts Inventory API › should retrieve spare parts
+
+    Login failed with status 429: {"error":"RATE_LIMITED","message":"Too many requests. Blocked until Thu Oct 02 2025 15:46:51 GMT+0000 (Coordinated Universal Time)","retryAfter":1800}
+
+      72 |   
+      73 |   if (loginResponse.status !== 200) {
+    > 74 |     throw new Error(`Login failed with status ${loginResponse.status}: ${JSON.stringify(loginResponse.body)}`);
+         |           ^
+      75 |   }
+      76 |   
+      77 |   const rawSessionCookies = loginResponse.headers['set-cookie'];
+
+      at tests/setup.ts:74:11
+      at fulfilled (tests/setup.ts:5:58)
+
+Test Suites: 4 failed, 4 total
+Tests:       25 failed, 6 passed, 31 total
+Snapshots:   0 total
+Time:        3.399 s, estimated 5 s
+Ran all test suites.

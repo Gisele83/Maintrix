@@ -28,11 +28,11 @@ describe('Multi-Tenant Module Integration Tests', () => {
     }
     
     const superAdminLogin = await agent
-      .post('/api/super-admin/login')
+      .post('/api/enterprise-auth/login')
       .set('X-CSRF-Token', csrfToken)
       .send({
-        email: 'platform@admin.com',
-        password: 'SuperAdmin2024!'
+        email: 'admin@maintrix.local',
+        password: 'Maintrix2024!'
       });
 
     if (superAdminLogin.status === 200) {
