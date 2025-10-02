@@ -57,6 +57,9 @@ services:
       # Sécurité
       SESSION_SECRET: maintrix_session_key_change_in_production_2024
       
+      # Email (optionnel - clé factice pour installation locale)
+      SENDGRID_API_KEY: "SG.local_deployment_fake_key_emails_disabled"
+      
       # Installation locale
       LOCAL_DEPLOYMENT: "true"
       DISABLE_TELEMETRY: "true"
