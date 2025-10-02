@@ -1,0 +1,133 @@
+
+
+PS C:\Maintrix> .\rebuild-docker.ps1
+.\rebuild-docker.ps1 : Le terme «.\rebuild-docker.ps1» n'est pas reconnu comme nom d'applet de commande, fonction, fichier de script ou 
+programme exécutable. Vérifiez l'orthographe du nom, ou si un chemin d'accès existe, vérifiez que le chemin d'accès est correct et réessayez.
+Au caractère Ligne:1 : 1
++ .\rebuild-docker.ps1
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (.\rebuild-docker.ps1:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+PS C:\Maintrix> # Étape 1 : Recompiler le code
+Remove-Item -Recurse -Force dist
+npm run build
+
+# Étape 2 : Reconstruire et démarrer
+docker-compose -p maintrix-local -f docker-compose.local.yml down -v
+docker-compose -p maintrix-local -f docker-compose.local.yml build --no-cache app
+docker-compose -p maintrix-local -f docker-compose.local.yml up -d
+
+# Étape 3 : Attendre et tester (après 60 secondes)
+Start-Sleep -Seconds 60
+Start-Process "http://localhost:8080"
+Remove-Item : Impossible de trouver le chemin d'accès « C:\Maintrix\dist », car il n'existe pas.
+Au caractère Ligne:2 : 1
++ Remove-Item -Recurse -Force dist
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Maintrix\dist:String) [Remove-Item], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand
+ 
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+[36mvite v5.4.20 [32mbuilding for production...[36m[39m
+transforming...
+node.exe : Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+Au caractère C:\Program Files\nodejs\npm.ps1:29 : 3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Browserslist: b...ld. Please run::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+[32mâœ“[39m 3554 modules transformed.
+rendering chunks...
+[1m[33m[plugin:vite:reporter][39m[22m [33m[plugin vite:reporter] 
+(!) C:/Maintrix/client/src/lib/queryClient.ts is dynamically imported by C:/Maintrix/client/src/lib/offline-storage.ts but also statically 
+imported by C:/Maintrix/client/src/App.tsx, C:/Maintrix/client/src/components/MFASetup.tsx, 
+C:/Maintrix/client/src/components/ai-assistant-chat.tsx, C:/Maintrix/client/src/components/case-reporting.tsx, 
+C:/Maintrix/client/src/components/company-letterhead-config.tsx, C:/Maintrix/client/src/components/data-import.tsx, 
+C:/Maintrix/client/src/components/equipment-management.tsx, C:/Maintrix/client/src/components/feedback-modal.tsx, 
+C:/Maintrix/client/src/components/inventory-simple.tsx, C:/Maintrix/client/src/components/preventive-maintenance.tsx, 
+C:/Maintrix/client/src/components/procurement-dashboard.tsx, C:/Maintrix/client/src/components/purchase-order-creator.tsx, 
+C:/Maintrix/client/src/components/repair-guidance.tsx, C:/Maintrix/client/src/components/stock-movement-modal.tsx, 
+C:/Maintrix/client/src/components/threshold-configuration.tsx, C:/Maintrix/client/src/components/validation-dashboard-simple.tsx, 
+C:/Maintrix/client/src/components/voice-diagnostic-assistant.tsx, C:/Maintrix/client/src/components/work-order-management.tsx, 
+C:/Maintrix/client/src/hooks/useAuth.ts, C:/Maintrix/client/src/pages/advanced-integrations.tsx, 
+C:/Maintrix/client/src/pages/cctp-compliance.tsx, C:/Maintrix/client/src/pages/change-credentials.tsx, 
+C:/Maintrix/client/src/pages/dashboard.tsx, C:/Maintrix/client/src/pages/email-diagnostic.tsx, 
+C:/Maintrix/client/src/pages/enterprise-auth-test.tsx, C:/Maintrix/client/src/pages/erp-configuration.tsx, 
+C:/Maintrix/client/src/pages/first-login-password-change.tsx, C:/Maintrix/client/src/pages/forgot-password.tsx, 
+C:/Maintrix/client/src/pages/historique.tsx, C:/Maintrix/client/src/pages/inventaire.tsx, 
+C:/Maintrix/client/src/pages/iot-gamification-dashboard.tsx, C:/Maintrix/client/src/pages/learning-dashboard.tsx, 
+C:/Maintrix/client/src/pages/login.tsx, C:/Maintrix/client/src/pages/preventive-maintenance.tsx, 
+C:/Maintrix/client/src/pages/reset-password.tsx, C:/Maintrix/client/src/pages/secure-validation.tsx, 
+C:/Maintrix/client/src/pages/smart-diagnostic.tsx, C:/Maintrix/client/src/pages/super-admin-dashboard.tsx, 
+C:/Maintrix/client/src/pages/super-admin-login.tsx, C:/Maintrix/client/src/pages/tenant-management.tsx, 
+C:/Maintrix/client/src/pages/tenant-permissions.tsx, C:/Maintrix/client/src/pages/user-management.tsx, 
+C:/Maintrix/client/src/pages/user-profiles.tsx, dynamic import will not move module into another chunk.
+[39m
+computing gzip size...
+[2m../dist/public/[22m[32mindex.html                                                               [39m[1m[2m    1.20 kB[22m[1m[22m[
+2m â”‚ gzip:   0.58 kB[22m
+[2m../dist/public/[22m[32massets/ChatGPT Image 19 sept. 2025_ 17_52_08_1758301845251-ispKLAFi.png  [39m[1m[2m2,155.59 kB[22m[1m[22m
+[2m../dist/public/[22m[35massets/index-BHTIozby.css                                                [39m[1m[2m  132.28 kB[22m[1m[22m[
+2m â”‚ gzip:  20.21 kB[22m
+[2m../dist/public/[22m[36massets/secure-validation-O-lMt4zz.js                                     [39m[1m[2m    8.57 kB[22m[1m[22m[
+2m â”‚ gzip:   2.21 kB[22m
+[2m../dist/public/[22m[36massets/enterprise-auth-test-D8iGHJ5D.js                                  [39m[1m[2m   12.44 kB[22m[1m[22m[
+2m â”‚ gzip:   3.02 kB[22m
+[2m../dist/public/[22m[36massets/security-mfa-CBDB7Y13.js                                          [39m[1m[2m   15.42 kB[22m[1m[22m[
+2m â”‚ gzip:   4.02 kB[22m
+[2m../dist/public/[22m[36massets/index-CcTtKkH7.js                                                 [39m[1m[33m1,940.50 kB[39m[22m[2m 
+â”‚ gzip: 483.12 kB[22m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32mâœ“ built in 12.55s[39m
+â–² [WARNING] This case clause will never be evaluated because it duplicates an earlier case clause [duplicate-case]
+    server/routes.ts:120:9:
+      120 â”‚     case 'corrective':
+          â•µ          ~~~~~~~~~~~~
+  The earlier case clause is here:
+    server/routes.ts:118:9:
+      118 â”‚     case 'corrective':
+          â•µ          ~~~~~~~~~~~~
+1 warning
+  dist\index.js  1.2mb
+Done in 714ms
+docker-compose : time="2025-10-02T12:14:54+01:00" level=warning msg="C:\\Maintrix\\docker-compose.local.yml: the attribute `version` is 
+obsolete, it will be ignored, please remove it to avoid potential confusion"
+Au caractère Ligne:6 : 1
++ docker-compose -p maintrix-local -f docker-compose.local.yml down -v
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2025-10-0...tial confusion":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+docker-compose : time="2025-10-02T12:14:54+01:00" level=warning msg="C:\\Maintrix\\docker-compose.local.yml: the attribute `version` is 
+obsolete, it will be ignored, please remove it to avoid potential confusion"
+Au caractère Ligne:7 : 1
++ docker-compose -p maintrix-local -f docker-compose.local.yml build -- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2025-10-0...tial confusion":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+no such service: app
+docker-compose : time="2025-10-02T12:14:54+01:00" level=warning msg="C:\\Maintrix\\docker-compose.local.yml: the attribute `version` is 
+obsolete, it will be ignored, please remove it to avoid potential confusion"
+Au caractère Ligne:8 : 1
++ docker-compose -p maintrix-local -f docker-compose.local.yml up -d
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2025-10-0...tial confusion":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ Network maintrix-local_maintrix-local  Creating
+ Network maintrix-local_maintrix-local  Error
+failed to create network maintrix-local_maintrix-local: Error response from daemon: invalid pool request: Pool overlaps with other one on 
+this address space
