@@ -1,32 +1,19 @@
-import request from 'supertest';
 import { describe, it, expect, beforeAll } from '@jest/globals';
-
-const API_BASE = process.env.API_URL || 'http://localhost:5000';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
 
 describe('Inter-Module Communication Tests', () => {
-  let authToken: string;
+  let auth: AuthenticatedAgent;
   let equipmentId: string;
   let diagnosticSessionId: number;
   let workOrderId: number;
 
   beforeAll(async () => {
-    const loginResponse = await request(API_BASE)
-      .post('/api/login')
-      .send({
-        username: 'admin@maintrix.local',
-        password: 'Maintrix2024!'
-      });
-
-    if (loginResponse.status === 200) {
-      authToken = loginResponse.body.token;
-    }
+    auth = await authenticateUser('admin@maintrix.local', 'Maintrix2024!');
   });
 
   describe('GMAO → Diagnostic Communication', () => {
     it('should create equipment and use it in diagnostic', async () => {
-      const equipmentResponse = await request(API_BASE)
-        .post('/api/equipment')
-        .set('Authorization', `Bearer ${authToken}`)
+      const equipmentResponse = await createAuthenticatedRequest('post', '/api/equipment', auth)
         .send({
           equipmentId: `INTER-EQ-${Date.now()}`,
           equipmentName: 'Inter-Module Test Equipment',
@@ -40,9 +27,7 @@ describe('Inter-Module Communication Tests', () => {
       if (equipmentResponse.body.equipment) {
         equipmentId = equipmentResponse.body.equipment.equipmentId;
 
-        const diagnosticResponse = await request(API_BASE)
-          .post('/api/diagnostic')
-          .set('Authorization', `Bearer ${authToken}`)
+        const diagnosticResponse = await createAuthenticatedRequest('post', '/api/diagnostic', auth)
           .send({
             equipmentType: 'Transformateur',
             equipmentId: equipmentId,
@@ -61,9 +46,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Diagnostic → Work Order Communication', () => {
     it('should create work order from diagnostic result', async () => {
-      const diagnosticResponse = await request(API_BASE)
-        .post('/api/diagnostic')
-        .set('Authorization', `Bearer ${authToken}`)
+      const diagnosticResponse = await createAuthenticatedRequest('post', '/api/diagnostic', auth)
         .send({
           equipmentType: 'Moteur électrique',
           symptoms: 'Perte de puissance, vibrations',
@@ -74,9 +57,7 @@ describe('Inter-Module Communication Tests', () => {
         const diagnosis = diagnosticResponse.body.suggestions?.[0];
 
         if (diagnosis) {
-          const workOrderResponse = await request(API_BASE)
-            .post('/api/work-orders')
-            .set('Authorization', `Bearer ${authToken}`)
+          const workOrderResponse = await createAuthenticatedRequest('post', '/api/work-orders', auth)
             .send({
               orderNumber: `WO-DIAG-${Date.now()}`,
               orderType: 'corrective',
@@ -98,9 +79,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Work Order → Inventory Communication', () => {
     it('should reserve spare parts for work order', async () => {
-      const sparePartResponse = await request(API_BASE)
-        .post('/api/spare-parts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const sparePartResponse = await createAuthenticatedRequest('post', '/api/spare-parts', auth)
         .send({
           partName: `Test Part ${Date.now()}`,
           category: 'Électrique',
@@ -113,9 +92,7 @@ describe('Inter-Module Communication Tests', () => {
         const partId = sparePartResponse.body.sparePart?.id;
 
         if (partId && workOrderId) {
-          const reservationResponse = await request(API_BASE)
-            .post('/api/spare-parts/reserve')
-            .set('Authorization', `Bearer ${authToken}`)
+          const reservationResponse = await createAuthenticatedRequest('post', '/api/spare-parts/reserve', auth)
             .send({
               partId: partId,
               workOrderId: workOrderId,
@@ -130,9 +107,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Preventive → Work Order Automation', () => {
     it('should generate work order from preventive plan', async () => {
-      const preventiveResponse = await request(API_BASE)
-        .post('/api/preventive-maintenance')
-        .set('Authorization', `Bearer ${authToken}`)
+      const preventiveResponse = await createAuthenticatedRequest('post', '/api/preventive-maintenance', auth)
         .send({
           planName: `Auto Plan ${Date.now()}`,
           equipmentType: 'Compresseur',
@@ -146,9 +121,7 @@ describe('Inter-Module Communication Tests', () => {
         const planId = preventiveResponse.body.plan?.id;
 
         if (planId) {
-          const triggerResponse = await request(API_BASE)
-            .post(`/api/preventive-maintenance/${planId}/trigger`)
-            .set('Authorization', `Bearer ${authToken}`);
+          const triggerResponse = await createAuthenticatedRequest('post', `/api/preventive-maintenance/${planId}/trigger`, auth);
 
           expect([200, 201, 404]).toContain(triggerResponse.status);
           if (triggerResponse.body.workOrder) {
@@ -162,20 +135,23 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Multi-Tenant → All Modules Isolation', () => {
     it('should ensure tenant isolation across modules', async () => {
-      const equipmentCheck = await request(API_BASE)
+      const equipmentCheck = await auth.agent
         .get('/api/equipment')
-        .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Tenant-ID', 'tenant-test-isolation');
+        .set('Cookie', auth.cookies.join('; '))
+        .set('X-CSRF-Token', auth.csrfToken)
+        .set('X-Tenant-Id', 'tenant-test-isolation');
 
-      const diagnosticCheck = await request(API_BASE)
+      const diagnosticCheck = await auth.agent
         .get('/api/diagnostic-sessions')
-        .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Tenant-ID', 'tenant-test-isolation');
+        .set('Cookie', auth.cookies.join('; '))
+        .set('X-CSRF-Token', auth.csrfToken)
+        .set('X-Tenant-Id', 'tenant-test-isolation');
 
-      const workOrderCheck = await request(API_BASE)
+      const workOrderCheck = await auth.agent
         .get('/api/work-orders')
-        .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Tenant-ID', 'tenant-test-isolation');
+        .set('Cookie', auth.cookies.join('; '))
+        .set('X-CSRF-Token', auth.csrfToken)
+        .set('X-Tenant-Id', 'tenant-test-isolation');
 
       [equipmentCheck, diagnosticCheck, workOrderCheck].forEach(response => {
         expect([200, 401, 403]).toContain(response.status);
@@ -188,9 +164,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Email → Diagnostic Integration', () => {
     it('should send email notification after diagnostic', async () => {
-      const diagnosticResponse = await request(API_BASE)
-        .post('/api/diagnostic')
-        .set('Authorization', `Bearer ${authToken}`)
+      const diagnosticResponse = await createAuthenticatedRequest('post', '/api/diagnostic', auth)
         .send({
           equipmentType: 'Pompe hydraulique',
           symptoms: 'Fuite importante, pression faible',
@@ -204,9 +178,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('IoT → Preventive Trigger', () => {
     it('should trigger preventive maintenance based on IoT data', async () => {
-      const iotDataResponse = await request(API_BASE)
-        .post('/api/iot/sensor-data')
-        .set('Authorization', `Bearer ${authToken}`)
+      const iotDataResponse = await createAuthenticatedRequest('post', '/api/iot/sensor-data', auth)
         .send({
           equipmentId: equipmentId || 'TEST-EQ-001',
           sensorType: 'vibration',
