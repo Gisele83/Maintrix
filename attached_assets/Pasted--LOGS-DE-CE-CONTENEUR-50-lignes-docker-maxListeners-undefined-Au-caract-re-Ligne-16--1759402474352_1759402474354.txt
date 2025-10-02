@@ -1,0 +1,65 @@
+📋 LOGS DE CE CONTENEUR (50 lignes):
+docker :     _maxListeners: undefined,
+Au caractère Ligne:16 : 5
++     docker logs $appContainer --tail 50
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    _maxListeners: undefined,:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://maintrix-database/v2',
+    _req: null,
+    [Symbol(shapeMode)]: false,
+    [Symbol(kCapture)]: false
+  },
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED 172.31.0.2:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '172.31.0.2',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED 172.31.0.2:443'
+}
+file:///app/dist/index.js:8282
+      throw new Error("SENDGRID_API_KEY environment variable must be set");
+            ^
+Error: SENDGRID_API_KEY environment variable must be set
+    at server/email-service.ts (file:///app/dist/index.js:8282:13)
+    at __init (file:///app/dist/index.js:12:56)
+    at server/super-admin-routes.ts (file:///app/dist/index.js:8487:5)
+    at __init (file:///app/dist/index.js:12:56)
+    at file:///app/dist/index.js:28948:68
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async registerRoutes (file:///app/dist/index.js:28948:32)
+    at async file:///app/dist/index.js:31809:18
+Node.js v20.19.5
+
+🔌 PORTS DE CE CONTENEUR:
+
+📦 PROJETS DOCKER-COMPOSE:
+docker : failed to parse template: template: :1: function "com" not defined
+Au caractère Ligne:26 : 1
++ docker ps --format "{{.Label `"com.docker.compose.project`"}}" | Sort ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (failed to parse...om" not defined:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError

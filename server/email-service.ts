@@ -1,12 +1,18 @@
 import { MailService } from '@sendgrid/mail';
 import { CredentialNotification } from './credential-generator';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
+// SendGrid optionnel pour déploiement local
+const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY;
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+let mailService: MailService | null = null;
+
+if (SENDGRID_ENABLED) {
+  mailService = new MailService();
+  mailService.setApiKey(process.env.SENDGRID_API_KEY!);
+  console.log('✅ SendGrid email service enabled');
+} else {
+  console.log('⚠️ SendGrid disabled (SENDGRID_API_KEY not set) - Email notifications will be skipped');
+}
 
 export interface TenantInvitationData {
   tenantName: string;
@@ -17,6 +23,11 @@ export interface TenantInvitationData {
 }
 
 export async function sendTenantInvitation(data: TenantInvitationData): Promise<boolean> {
+  if (!SENDGRID_ENABLED || !mailService) {
+    console.log('⚠️ SendGrid not configured - Skipping tenant invitation email');
+    return false;
+  }
+  
   try {
     const emailContent = `
 <!DOCTYPE html>
@@ -127,6 +138,11 @@ export async function sendTenantStatusNotification(
   newStatus: 'activated' | 'deactivated' | 'deleted',
   reason?: string
 ): Promise<boolean> {
+  if (!SENDGRID_ENABLED || !mailService) {
+    console.log('⚠️ SendGrid not configured - Skipping tenant status notification');
+    return false;
+  }
+  
   try {
     const statusMessages = {
       activated: {
@@ -213,6 +229,11 @@ export async function sendTenantStatusNotification(
  * 🔐 Envoyer les identifiants par défaut par email
  */
 export async function sendTenantCredentials(notification: CredentialNotification): Promise<boolean> {
+  if (!SENDGRID_ENABLED || !mailService) {
+    console.log('⚠️ SendGrid not configured - Skipping credentials email');
+    return false;
+  }
+  
   try {
     const emailContent = `
 <!DOCTYPE html>
