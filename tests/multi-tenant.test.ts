@@ -1,32 +1,49 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll } from '@jest/globals';
+import { getCsrfToken, authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
 
 const API_BASE = process.env.API_URL || 'http://localhost:5000';
 
 describe('Multi-Tenant Module Integration Tests', () => {
-  let superAdminToken: string;
-  let tenant1Token: string;
-  let tenant2Token: string;
+  let superAdminAuth: AuthenticatedAgent;
+  let tenant1Auth: AuthenticatedAgent;
+  let tenant2Auth: AuthenticatedAgent;
   let testTenantId: string;
 
   beforeAll(async () => {
-    const superAdminLogin = await request(API_BASE)
+    const { csrfToken, cookies } = await getCsrfToken();
+    const agent = request.agent(API_BASE);
+    
+    const superAdminLogin = await agent
       .post('/api/super-admin/login')
+      .set('Cookie', cookies.join('; '))
+      .set('X-CSRF-Token', csrfToken)
       .send({
         email: 'platform@admin.com',
         password: 'SuperAdmin2024!'
       });
 
     if (superAdminLogin.status === 200) {
-      superAdminToken = superAdminLogin.body.token;
+      const sessionCookies = superAdminLogin.headers['set-cookie'] || cookies;
+      superAdminAuth = {
+        agent,
+        cookies: Array.isArray(sessionCookies) ? sessionCookies : [sessionCookies as string],
+        csrfToken,
+        userId: superAdminLogin.body.user?.id
+      };
     }
   });
 
   describe('Tenant Management API', () => {
     it('should create a new tenant', async () => {
-      const response = await request(API_BASE)
+      if (!superAdminAuth) {
+        throw new Error('Super admin not authenticated');
+      }
+
+      const response = await superAdminAuth.agent
         .post('/api/tenants')
-        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken)
         .send({
           name: `Test Tenant ${Date.now()}`,
           domain: `test-${Date.now()}.maintrix.local`,
@@ -45,9 +62,12 @@ describe('Multi-Tenant Module Integration Tests', () => {
     });
 
     it('should retrieve all tenants', async () => {
-      const response = await request(API_BASE)
+      if (!superAdminAuth) return;
+
+      const response = await superAdminAuth.agent
         .get('/api/tenants')
-        .set('Authorization', `Bearer ${superAdminToken}`);
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken);
 
       expect([200, 401]).toContain(response.status);
       if (response.status === 200) {
@@ -56,11 +76,12 @@ describe('Multi-Tenant Module Integration Tests', () => {
     });
 
     it('should update tenant settings', async () => {
-      if (!testTenantId) return;
+      if (!superAdminAuth || !testTenantId) return;
 
-      const response = await request(API_BASE)
+      const response = await superAdminAuth.agent
         .patch(`/api/tenants/${testTenantId}`)
-        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken)
         .send({
           maxUsers: 20,
           plan: 'business'
@@ -75,42 +96,30 @@ describe('Multi-Tenant Module Integration Tests', () => {
     let tenant2EquipmentId: string;
 
     it('should isolate tenant 1 data', async () => {
-      const tenant1Login = await request(API_BASE)
-        .post('/api/login')
+      tenant1Auth = await authenticateUser('admin@maintrix.local', 'Maintrix2024!');
+
+      const createEquipment = await createAuthenticatedRequest('post', '/api/equipment', tenant1Auth)
         .send({
-          username: 'admin@maintrix.local',
-          password: 'Maintrix2024!'
+          equipmentId: `TENANT1-EQ-${Date.now()}`,
+          equipmentName: 'Tenant 1 Equipment',
+          equipmentType: 'Grue',
+          zone: 'Zone T1'
         });
 
-      if (tenant1Login.status === 200) {
-        tenant1Token = tenant1Login.body.token;
-
-        const createEquipment = await request(API_BASE)
-          .post('/api/equipment')
-          .set('Authorization', `Bearer ${tenant1Token}`)
-          .send({
-            equipmentId: `TENANT1-EQ-${Date.now()}`,
-            equipmentName: 'Tenant 1 Equipment',
-            equipmentType: 'Grue',
-            zone: 'Zone T1'
-          });
-
-        if (createEquipment.status === 200 || createEquipment.status === 201) {
-          tenant1EquipmentId = createEquipment.body.equipment?.equipmentId;
-        }
+      if (createEquipment.status === 200 || createEquipment.status === 201) {
+        tenant1EquipmentId = createEquipment.body.equipment?.equipmentId;
       }
 
-      expect(tenant1Token).toBeDefined();
+      expect(tenant1Auth).toBeDefined();
+      expect(tenant1Auth.cookies).toBeDefined();
     });
 
     it('should prevent cross-tenant data access', async () => {
-      if (!tenant1EquipmentId || !tenant2Token) {
+      if (!tenant1EquipmentId || !tenant2Auth) {
         return;
       }
 
-      const response = await request(API_BASE)
-        .get(`/api/equipment/${tenant1EquipmentId}`)
-        .set('Authorization', `Bearer ${tenant2Token}`);
+      const response = await createAuthenticatedRequest('get', `/api/equipment/${tenant1EquipmentId}`, tenant2Auth);
 
       expect([404, 403, 401]).toContain(response.status);
     });
@@ -118,11 +127,12 @@ describe('Multi-Tenant Module Integration Tests', () => {
 
   describe('Tenant User Management', () => {
     it('should create user for tenant', async () => {
-      if (!testTenantId) return;
+      if (!superAdminAuth || !testTenantId) return;
 
-      const response = await request(API_BASE)
+      const response = await superAdminAuth.agent
         .post('/api/tenants/users')
-        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken)
         .send({
           tenantId: testTenantId,
           email: `user-${Date.now()}@test-tenant.com`,
@@ -138,11 +148,12 @@ describe('Multi-Tenant Module Integration Tests', () => {
 
   describe('Tenant Feature Flags', () => {
     it('should enable feature for tenant', async () => {
-      if (!testTenantId) return;
+      if (!superAdminAuth || !testTenantId) return;
 
-      const response = await request(API_BASE)
+      const response = await superAdminAuth.agent
         .post(`/api/tenants/${testTenantId}/features`)
-        .set('Authorization', `Bearer ${superAdminToken}`)
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken)
         .send({
           feature: 'advanced_diagnostics',
           enabled: true
@@ -152,11 +163,12 @@ describe('Multi-Tenant Module Integration Tests', () => {
     });
 
     it('should check tenant feature access', async () => {
-      if (!testTenantId) return;
+      if (!superAdminAuth || !testTenantId) return;
 
-      const response = await request(API_BASE)
+      const response = await superAdminAuth.agent
         .get(`/api/tenants/${testTenantId}/features/advanced_diagnostics`)
-        .set('Authorization', `Bearer ${superAdminToken}`);
+        .set('Cookie', superAdminAuth.cookies.join('; '))
+        .set('X-CSRF-Token', superAdminAuth.csrfToken);
 
       expect([200, 404, 401]).toContain(response.status);
     });
