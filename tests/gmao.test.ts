@@ -1,32 +1,18 @@
-import request from 'supertest';
-import express from 'express';
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-
-const API_BASE = process.env.API_URL || 'http://localhost:5000';
+import { describe, it, expect, beforeAll } from '@jest/globals';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
 
 describe('GMAO Module Integration Tests', () => {
-  let authToken: string;
+  let auth: AuthenticatedAgent;
   let testEquipmentId: string;
   let testWorkOrderId: number;
 
   beforeAll(async () => {
-    const loginResponse = await request(API_BASE)
-      .post('/api/login')
-      .send({
-        username: 'admin@maintrix.local',
-        password: 'Maintrix2024!'
-      });
-
-    if (loginResponse.status === 200) {
-      authToken = loginResponse.body.token;
-    }
+    auth = await authenticateUser('admin@maintrix.local', 'Maintrix2024!');
   });
 
   describe('Equipment Management API', () => {
     it('should create a new equipment', async () => {
-      const response = await request(API_BASE)
-        .post('/api/equipment')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/equipment', auth)
         .send({
           equipmentId: `TEST-EQ-${Date.now()}`,
           equipmentName: 'Test Equipment Integration',
@@ -46,9 +32,7 @@ describe('GMAO Module Integration Tests', () => {
     });
 
     it('should retrieve equipment list', async () => {
-      const response = await request(API_BASE)
-        .get('/api/equipment')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await createAuthenticatedRequest('get', '/api/equipment', auth);
 
       expect([200, 401]).toContain(response.status);
       if (response.status === 200) {
@@ -61,9 +45,7 @@ describe('GMAO Module Integration Tests', () => {
         return;
       }
 
-      const response = await request(API_BASE)
-        .patch(`/api/equipment/${testEquipmentId}`)
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('patch', `/api/equipment/${testEquipmentId}`, auth)
         .send({
           operationalState: 'maintenance'
         });
@@ -74,9 +56,7 @@ describe('GMAO Module Integration Tests', () => {
 
   describe('Work Orders API', () => {
     it('should create a work order', async () => {
-      const response = await request(API_BASE)
-        .post('/api/work-orders')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/work-orders', auth)
         .send({
           orderNumber: `WO-TEST-${Date.now()}`,
           equipmentId: testEquipmentId || 'TEST-EQ-001',
@@ -95,9 +75,7 @@ describe('GMAO Module Integration Tests', () => {
     });
 
     it('should retrieve work orders', async () => {
-      const response = await request(API_BASE)
-        .get('/api/work-orders')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await createAuthenticatedRequest('get', '/api/work-orders', auth);
 
       expect([200, 401]).toContain(response.status);
       if (response.status === 200) {
@@ -108,9 +86,7 @@ describe('GMAO Module Integration Tests', () => {
 
   describe('Preventive Maintenance API', () => {
     it('should create preventive maintenance plan', async () => {
-      const response = await request(API_BASE)
-        .post('/api/preventive-maintenance')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/preventive-maintenance', auth)
         .send({
           planName: `Test Plan ${Date.now()}`,
           equipmentType: 'Grue portuaire',
@@ -126,9 +102,7 @@ describe('GMAO Module Integration Tests', () => {
     });
 
     it('should retrieve preventive plans', async () => {
-      const response = await request(API_BASE)
-        .get('/api/preventive-maintenance')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await createAuthenticatedRequest('get', '/api/preventive-maintenance', auth);
 
       expect([200, 401]).toContain(response.status);
     });
@@ -136,9 +110,7 @@ describe('GMAO Module Integration Tests', () => {
 
   describe('Spare Parts Inventory API', () => {
     it('should create spare part', async () => {
-      const response = await request(API_BASE)
-        .post('/api/spare-parts')
-        .set('Authorization', `Bearer ${authToken}`)
+      const response = await createAuthenticatedRequest('post', '/api/spare-parts', auth)
         .send({
           partName: `Test Part ${Date.now()}`,
           description: 'Integration test spare part',
@@ -156,9 +128,7 @@ describe('GMAO Module Integration Tests', () => {
     });
 
     it('should retrieve spare parts', async () => {
-      const response = await request(API_BASE)
-        .get('/api/spare-parts')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await createAuthenticatedRequest('get', '/api/spare-parts', auth);
 
       expect([200, 401]).toContain(response.status);
     });
