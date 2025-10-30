@@ -13,6 +13,15 @@ import {
   insertReorderRuleSchema 
 } from "@shared/schema";
 import { z } from "zod";
+import { 
+  uploadPurchaseOrderAttachments, 
+  formatAttachmentMetadata, 
+  deleteAttachment,
+  getAttachmentPath,
+  attachmentExists,
+  type AttachmentMetadata 
+} from "./purchase-order-attachments";
+import fs from 'fs';
 
 const router = Router();
 
@@ -293,6 +302,180 @@ router.post("/purchase-orders/:id/send", async (req, res) => {
   } catch (error) {
     console.error("Error sending purchase order:", error);
     res.status(500).json({ message: "Failed to send purchase order" });
+  }
+});
+
+// ============= PIÈCES JUSTIFICATIVES (ATTACHMENTS) =============
+
+// Upload attachments for purchase order
+router.post("/purchase-orders/:id/attachments", 
+  uploadPurchaseOrderAttachments.array('attachments', 5),
+  async (req: any, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: "Invalid purchase order ID" });
+      }
+
+      // Vérifier que le bon de commande existe
+      const order = await gmaoStorage.getPurchaseOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Purchase order not found" });
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Récupérer l'ID utilisateur si disponible
+      const uploadedBy = (req as any).user?.id;
+
+      // Formater les métadonnées des fichiers
+      const newAttachments: AttachmentMetadata[] = files.map(file => 
+        formatAttachmentMetadata(file, uploadedBy)
+      );
+
+      // Récupérer les pièces justificatives existantes
+      const existingAttachments = order.documentsJustificatifs as AttachmentMetadata[] || [];
+
+      // Combiner les anciennes et nouvelles pièces
+      const allAttachments = [...existingAttachments, ...newAttachments];
+
+      // Mettre à jour le bon de commande
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(orderId, {
+        documentsJustificatifs: allAttachments
+      });
+
+      res.json({
+        message: `${files.length} fichier(s) uploadé(s) avec succès`,
+        attachments: newAttachments,
+        totalAttachments: allAttachments.length
+      });
+    } catch (error) {
+      console.error("Error uploading attachments:", error);
+      res.status(500).json({ 
+        message: "Failed to upload attachments",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+);
+
+// Get attachments list for a purchase order
+router.get("/purchase-orders/:id/attachments", async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    if (isNaN(orderId)) {
+      return res.status(400).json({ message: "Invalid purchase order ID" });
+    }
+
+    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Purchase order not found" });
+    }
+
+    const attachments = (order.documentsJustificatifs as AttachmentMetadata[]) || [];
+    res.json(attachments);
+  } catch (error) {
+    console.error("Error fetching attachments:", error);
+    res.status(500).json({ message: "Failed to fetch attachments" });
+  }
+});
+
+// Download a specific attachment
+router.get("/purchase-orders/:id/attachments/:filename", async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const filename = req.params.filename;
+
+    if (isNaN(orderId)) {
+      return res.status(400).json({ message: "Invalid purchase order ID" });
+    }
+
+    // Vérifier que le bon de commande existe
+    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Purchase order not found" });
+    }
+
+    // Vérifier que le fichier appartient à ce bon de commande
+    const attachments = (order.documentsJustificatifs as AttachmentMetadata[]) || [];
+    const attachment = attachments.find(a => a.filename === filename);
+    
+    if (!attachment) {
+      return res.status(404).json({ message: "Attachment not found" });
+    }
+
+    // Vérifier que le fichier existe sur le disque
+    if (!attachmentExists(filename)) {
+      return res.status(404).json({ message: "File not found on disk" });
+    }
+
+    const filePath = getAttachmentPath(filename);
+    
+    // Envoyer le fichier
+    res.download(filePath, attachment.originalName, (err) => {
+      if (err) {
+        console.error("Error downloading file:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ message: "Error downloading file" });
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error downloading attachment:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to download attachment" });
+    }
+  }
+});
+
+// Delete a specific attachment
+router.delete("/purchase-orders/:id/attachments/:filename", async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const filename = req.params.filename;
+
+    if (isNaN(orderId)) {
+      return res.status(400).json({ message: "Invalid purchase order ID" });
+    }
+
+    // Récupérer le bon de commande
+    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Purchase order not found" });
+    }
+
+    // Récupérer les pièces justificatives
+    const attachments = (order.documentsJustificatifs as AttachmentMetadata[]) || [];
+    const attachmentIndex = attachments.findIndex(a => a.filename === filename);
+    
+    if (attachmentIndex === -1) {
+      return res.status(404).json({ message: "Attachment not found" });
+    }
+
+    // Supprimer le fichier du système de fichiers
+    const deleted = deleteAttachment(filename);
+    if (!deleted) {
+      console.warn(`File ${filename} not found on disk, but removing from database`);
+    }
+
+    // Supprimer de la liste
+    const updatedAttachments = attachments.filter((_, index) => index !== attachmentIndex);
+
+    // Mettre à jour le bon de commande
+    await gmaoStorage.updatePurchaseOrder(orderId, {
+      documentsJustificatifs: updatedAttachments
+    });
+
+    res.json({
+      message: "Attachment deleted successfully",
+      remainingAttachments: updatedAttachments.length
+    });
+  } catch (error) {
+    console.error("Error deleting attachment:", error);
+    res.status(500).json({ message: "Failed to delete attachment" });
   }
 });
 

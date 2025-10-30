@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 // Using native HTML select instead of Radix UI Select to avoid dropdown issues
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Mail, Calculator, Plus, User } from "lucide-react";
+import { FileText, Mail, Calculator, Plus, User, Upload, X, File } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 
@@ -32,6 +32,8 @@ export default function PurchaseOrderCreator() {
 
   const [documentTypeInfo, setDocumentTypeInfo] = useState<DocumentTypeResponse | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
   const { toast } = useToast();
 
   // Check document type based on amount
@@ -62,11 +64,17 @@ export default function PurchaseOrderCreator() {
         body: orderData
       });
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
+      // Upload attachments if any
+      if (selectedFiles.length > 0 && response.id) {
+        await uploadAttachments(response.id);
+      }
+      
       toast({
         title: "Commande créée",
         description: response.message,
       });
+      
       // Reset form
       setFormData({
         requestedBy: "",
@@ -78,6 +86,7 @@ export default function PurchaseOrderCreator() {
         supplier: ""
       });
       setDocumentTypeInfo(null);
+      setSelectedFiles([]);
     },
     onError: (error) => {
       toast({
@@ -91,6 +100,74 @@ export default function PurchaseOrderCreator() {
   const handleAmountBlur = () => {
     if (formData.totalAmount) {
       checkDocumentType(formData.totalAmount);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate file count (max 5)
+    if (selectedFiles.length + files.length > 5) {
+      toast({
+        title: "Trop de fichiers",
+        description: "Maximum 5 fichiers autorisés par bon de commande",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file sizes (max 10MB each)
+    const invalidFiles = files.filter(f => f.size > 10 * 1024 * 1024);
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "Taille maximale : 10MB par fichier",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadAttachments = async (orderId: number) => {
+    if (selectedFiles.length === 0) return;
+
+    setIsUploadingAttachments(true);
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach(file => {
+        formData.append('attachments', file);
+      });
+
+      const response = await fetch(`/api/procurement/purchase-orders/${orderId}/attachments`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Pièces justificatives uploadées",
+        description: result.message,
+      });
+    } catch (error) {
+      console.error("Error uploading attachments:", error);
+      toast({
+        title: "Erreur d'upload",
+        description: "Impossible d'uploader les pièces justificatives",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAttachments(false);
     }
   };
 
@@ -257,6 +334,80 @@ export default function PurchaseOrderCreator() {
             />
           </div>
 
+          {/* Section Pièces Justificatives */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="flex items-center gap-2 text-base font-semibold">
+              <Upload className="h-5 w-5 text-purple-600" />
+              Pièces Justificatives (Optionnel)
+            </Label>
+            <p className="text-sm text-gray-600">
+              Joindre des documents (devis, spécifications techniques, photos, etc.)
+            </p>
+
+            <div className="space-y-3">
+              {/* Upload Button */}
+              <div>
+                <input
+                  type="file"
+                  id="attachments"
+                  multiple
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp,.txt"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  data-testid="input-attachments"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('attachments')?.click()}
+                  className="w-full border-dashed border-2 hover:border-purple-500"
+                  data-testid="button-upload-attachments"
+                  disabled={selectedFiles.length >= 5}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Ajouter des fichiers ({selectedFiles.length}/5)
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Formats acceptés : PDF, Word, Excel, Images (max 10MB par fichier)
+                </p>
+              </div>
+
+              {/* Files List */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Fichiers sélectionnés :</Label>
+                  {selectedFiles.map((file, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                      data-testid={`file-item-${index}`}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <File className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                        data-testid={`button-remove-file-${index}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3">
             <Button
               type="button"
@@ -272,16 +423,33 @@ export default function PurchaseOrderCreator() {
                   supplier: ""
                 });
                 setDocumentTypeInfo(null);
+                setSelectedFiles([]);
               }}
             >
               Annuler
             </Button>
             <Button
               type="submit"
-              disabled={createOrderMutation.isPending}
+              disabled={createOrderMutation.isPending || isUploadingAttachments}
               className="bg-green-600 hover:bg-green-700"
+              data-testid="button-submit-purchase-order"
             >
-              {createOrderMutation.isPending ? "Création..." : "Créer la Demande"}
+              {createOrderMutation.isPending || isUploadingAttachments ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-white mr-2"></div>
+                  {isUploadingAttachments ? "Upload..." : "Création..."}
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer la Demande
+                  {selectedFiles.length > 0 && (
+                    <Badge className="ml-2 bg-purple-500">
+                      +{selectedFiles.length}
+                    </Badge>
+                  )}
+                </>
+              )}
             </Button>
           </div>
         </form>

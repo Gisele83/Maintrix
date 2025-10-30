@@ -12,6 +12,17 @@ User specifically requested to use ONLY the provided Excel file (Base_Industrie_
 User confirmed that username field should remain non-editable in profile forms for security and data integrity.
 
 ## Recent Success (January 31, 2025)
+✅ SYSTÈME UPLOAD PIÈCES JUSTIFICATIVES OPÉRATIONNEL : Upload de documents pour bons de commande entièrement fonctionnel
+✅ Middleware multer configuré pour gestion fichiers (PDF, Word, Excel, Images jusqu'à 10MB)
+✅ API routes complètes : upload (/api/procurement/purchase-orders/:id/attachments POST), liste (GET), téléchargement (GET /:filename), suppression (DELETE /:filename)
+✅ Stockage fichiers local dans /uploads/purchase-orders avec noms uniques horodatés
+✅ Métadonnées JSON sauvegardées dans champ documentsJustificatifs (filename, originalName, mimeType, size, uploadedAt, uploadedBy, path)
+✅ Frontend PurchaseOrderCreator intégré avec drag-and-drop virtuel : sélection jusqu'à 5 fichiers simultanés, validation taille/format client-side, prévisualisation liste fichiers avec suppression individuelle, badge compteur sur bouton soumission
+✅ Upload automatique après création bon de commande avec indication progression
+✅ Formats acceptés : .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif, .webp, .txt
+✅ Limites sécurité : 10MB max par fichier, 5 fichiers max par bon de commande
+✅ Système protection : vérification appartenance fichier au bon avant téléchargement/suppression
+
 ✅ SYSTÈME RBAC COMPLET IMPLÉMENTÉ : Contrôle d'accès basé sur les rôles entièrement opérationnel
 ✅ 7 rôles définis avec matrice de permissions granulaire (technician, team_leader, planner, procurement, maintenance_manager, technical_director, admin)
 ✅ Middlewares backend pour protection des routes API (requirePermission, requireRole, filterWorkOrdersByRole)
