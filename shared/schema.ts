@@ -288,7 +288,8 @@ export const userProfiles = pgTable("user_profiles", {
   lastName: varchar("last_name", { length: 50 }),
   email: varchar("email", { length: 100 }).unique(),
   password: varchar("password", { length: 255 }), // Add password field for authentication
-  role: varchar("role", { length: 30 }).default("technician"), // technician, supervisor, manager, director, admin
+  role: varchar("role", { length: 30 }).default("technician"), // technician, team_leader, planner, procurement, maintenance_manager, technical_director, admin
+  sector: varchar("sector", { length: 50 }), // Secteur géographique (pour chef d'équipe)
   department: varchar("department", { length: 50 }),
   phoneNumber: varchar("phone_number", { length: 20 }),
   preferredLanguage: varchar("preferred_language", { length: 5 }).default("fr"),

@@ -63,6 +63,7 @@ import { sectorTemplates } from "@shared/schema";
 import { enhancedAuditRoutes } from "./enhanced-audit-monitoring";
 import { tenantIsolationTestRoutes } from "./tenant-isolation-tests";
 import { optimizedGDPRRoutes } from "./gdpr-api-ergonomics";
+import rbacRoutes from "./rbac-routes";
 
 // ML Helper Functions
 async function callMLEngine(command: string, args: string[] = [], scriptName: string = 'ml_diagnostic_engine.py'): Promise<any> {
@@ -3824,6 +3825,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);
+  
+  // Register RBAC routes for role-based access control
+  app.use('/api/rbac', EnterpriseAuthMiddleware.requireAuthentication, rbacRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
