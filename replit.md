@@ -11,63 +11,6 @@ User confirmed architecture requirements: Interface unifiée avec architecture m
 User specifically requested to use ONLY the provided Excel file (Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx) as historical database for diagnostic pattern matching and to allow users to upload their own historical maintenance data.
 User confirmed that username field should remain non-editable in profile forms for security and data integrity.
 
-## Recent Success (January 31, 2025)
-✅ SYSTÈME UPLOAD PIÈCES JUSTIFICATIVES OPÉRATIONNEL : Upload de documents pour bons de commande entièrement fonctionnel
-✅ Middleware multer configuré pour gestion fichiers (PDF, Word, Excel, Images jusqu'à 10MB)
-✅ API routes complètes : upload (/api/procurement/purchase-orders/:id/attachments POST), liste (GET), téléchargement (GET /:filename), suppression (DELETE /:filename)
-✅ Stockage fichiers local dans /uploads/purchase-orders avec noms uniques horodatés
-✅ Métadonnées JSON sauvegardées dans champ documentsJustificatifs (filename, originalName, mimeType, size, uploadedAt, uploadedBy, path)
-✅ Frontend PurchaseOrderCreator intégré avec drag-and-drop virtuel : sélection jusqu'à 5 fichiers simultanés, validation taille/format client-side, prévisualisation liste fichiers avec suppression individuelle, badge compteur sur bouton soumission
-✅ Upload automatique après création bon de commande avec indication progression
-✅ Formats acceptés : .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif, .webp, .txt
-✅ Limites sécurité : 10MB max par fichier, 5 fichiers max par bon de commande
-✅ Système protection : vérification appartenance fichier au bon avant téléchargement/suppression
-
-✅ SYSTÈME RBAC COMPLET IMPLÉMENTÉ : Contrôle d'accès basé sur les rôles entièrement opérationnel
-✅ 7 rôles définis avec matrice de permissions granulaire (technician, team_leader, planner, procurement, maintenance_manager, technical_director, admin)
-✅ Middlewares backend pour protection des routes API (requirePermission, requireRole, filterWorkOrdersByRole)
-✅ Hook React usePermissions pour vérification côté client
-✅ Composants React: Can, ProtectedRoute, RoleBasedNavigation pour affichage conditionnel
-✅ API endpoints /api/rbac/permissions, /api/rbac/roles, /api/rbac/check/:permission
-✅ Migration SQL automatique des anciens rôles (supervisor→team_leader, manager→maintenance_manager, director→technical_director)
-✅ Colonne sector ajoutée à user_profiles pour gestion secteurs géographiques (chefs d'équipe)
-✅ Documentation complète RBAC_GUIDE.md (exemples backend + frontend, bonnes pratiques)
-✅ Isolation des données par rôle: techniciens voient leurs interventions, chefs d'équipe leur secteur, autres vue globale
-✅ 30+ permissions définies couvrant: interventions, équipements, stock, planification, budget, administration
-✅ CASCADE DELETE configuré: suppression tenant supprime automatiquement tous utilisateurs associés
-✅ 75 utilisateurs orphelins nettoyés et assignés au tenant principal
-
-## Recent Success (January 26, 2025)
-✅ MAJOR BREAKTHROUGH: Successfully integrated 120 real industrial maintenance cases from Excel file with 6 interconnected tables
-✅ Cross-table analysis fully operational: Equipements ↔ Diagnostics ↔ Procedures ↔ Interventions ↔ Techniciens ↔ Regles_Symptomes
-✅ AI diagnostic system working with real historical data (98% confidence on industrial cases)
-✅ Ensemble ML delivering 5/9 model consensus with pattern matching from 120 real cases
-✅ Module GMAO + Module Diagnostic intelligent unified interface completed and functional
-✅ RESOLVED: Equipment dropdown now shows authentic industrial/port equipment from Excel file (Kalmar RTG, ZPMC STS, Liebherr cranes, Siemens drives, ABB transformers, etc.)
-✅ NEW: Complete user Excel file upload system with dual interface (demo data + user data)
-✅ NEW: Secure file processing with multer middleware, flexible column name support, and PostgreSQL integration
-✅ NEW: Enhanced data import page with purple-themed user upload section and progress tracking
-✅ LATEST: Added "Autre" option in preventive maintenance equipment dropdown with custom input field for unlisted equipment
-✅ OPTIMIZATION: Removed redundant "Traiter et importer les données" button from Smart Diagnostic since 120 industrial cases are already processed and saved
-✅ MOBILE MILESTONE: Complete React Native mobile application fully implemented with comprehensive offline capabilities
-✅ Mobile features: Home dashboard, AI diagnostics, QR scanner, repair guidance, work orders, equipment details, settings, and offline data management
-✅ Full offline mode: SQLite database, data synchronization, repair step tracking, and field technician workflow support
-✅ LOCAL INSTALLATION: Complete local installation version created with Docker containerization and automated setup scripts
-✅ Enterprise deployment: Installation guide, Docker Compose, automated scripts (install.sh, start.sh, backup.sh, update.sh), systemd service, security configuration
-✅ Production ready: Nginx reverse proxy, SSL configuration, monitoring setup, automated backups, and comprehensive testing framework
-✅ Deployment flexibility: Both cloud (Replit) and local (Docker/manual) installation options for different enterprise needs
-✅ CRITICAL FIX (Jan 8, 2025): Windows installer issue completely resolved - replaced faulty script-based installer with genuine 37MB executable using pkg tool
-✅ DEFINITIVE FIX (Jan 8, 2025): Resolved execSync error "Cannot find module '--version'" by creating simplified installer (Smart-GMAO-DiagFix-Setup-Fixed.exe) without external system calls
-✅ Download interface 100% operational: All 11 endpoints validated and working, navigation issue resolved with dedicated "Téléchargement" button on homepage
-✅ PDF EXPORT SYSTEM FULLY OPERATIONAL (Jan 8, 2025): Successfully migrated from Puppeteer to client-side PDF generation system using jsPDF and html2canvas. All maintenance and diagnostic report endpoints now return 200 OK responses. The system generates HTML pages with embedded JavaScript that automatically converts content to downloadable PDF files in the user's browser, providing a seamless PDF export experience without server-side dependencies.
-✅ FRONTEND PDF INTEGRATION COMPLETED (Jan 8, 2025): Updated all React components in "Rapports" tab to use new PDF endpoints. Both maintenance reports and monthly reports now open PDF generation pages in new browser tabs instead of downloading HTML files. The PDFGeneratorFunctional system is now consistently used across all reporting interfaces.
-✅ DIAGNOSTIC ML ENDPOINTS FULLY OPERATIONAL (Jan 18, 2025): Successfully resolved all "Avancé ML" and "Ensemble ML" diagnostic errors. Complete rewrite removed all external Python script dependencies and replaced them with self-contained TypeScript implementations using real historical data from 120 industrial cases. Both /api/diagnostic-advanced-ml and /api/diagnostic-ensemble-ml endpoints now return proper JSON responses with 200 OK status. Features include neural network analysis, ensemble voting (9 algorithms), anomaly detection, pattern matching, confidence scoring, and risk assessment. Database integration uses storage.getMaintenanceCases() for reliable pattern matching from authenticated industrial maintenance data.
-✅ MULTI-TENANT SAAS INFRASTRUCTURE COMPLETED (Jan 26, 2025): Successfully implemented enterprise-grade multi-tenant SaaS architecture with comprehensive email invitation system. Features include: tenant creation/management dashboard, SendGrid email integration with diagnostic system, automated tenant invitation workflow, enterprise security middleware, federated AI learning system, comprehensive error handling and troubleshooting interface. Email diagnostic system provides complete troubleshooting with configuration testing, real email sending tests, and detailed error resolution guide. System successfully creates tenants and handles email verification requirements appropriately.
-
-✅ SENDGRID EMAIL CONFIGURATION RESOLVED (Jan 26, 2025): Identified and resolved email authentication issue - system requires user's real email address for SendGrid sender verification. Updated super-admin login to use real email instead of fictitious addresses (platform@admin.com, admin@smartgmao.com). Created comprehensive diagnostic interface at /email-diagnostic with clear instructions for using real email addresses. Enhanced email diagnostic page with prominent warnings and step-by-step SendGrid verification guide. Solution documented in SOLUTION_EMAIL_SENDGRID.md with complete verification process.
-
-✅ INVENTORY ASSET DELETION SYSTEM COMPLETED (Jan 31, 2025): Successfully implemented comprehensive spare parts deletion functionality for tenant clients. Features include: secure DELETE API route `/api/spare-parts/:id` with tenant isolation, existence validation before deletion, protection against deleting parts with movement history, `deleteSparePart` method added to gmao-storage.ts with proper error handling, frontend deletion button with confirmation dialog in inventory interface, informative error messages guiding users toward alternatives (deactivation), TypeScript type exports corrected (StockMovement, InsertStockMovement) in shared schema. System provides complete inventory management capabilities allowing tenant clients to safely manage and remove stock assets with appropriate safeguards.
-
 ## System Architecture
 ### Frontend Architecture
 - **Framework**: React 18 with TypeScript
@@ -91,13 +34,13 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Migration**: Drizzle-kit for schema management.
 
 ### Technical Implementations
-- **AI Diagnostic Engine**: Combines Standard ML (Random Forest, Gradient Boosting with TF-IDF), Advanced ML (Neural Networks, SVM, Anomaly Detection using MLP and Isolation Forest), and Ensemble ML (combining 9 algorithms for multi-model consensus). Includes predictive maintenance scheduling, failure risk assessment, and continuous learning system with feedback collection. Now exclusively uses 120 real industrial maintenance cases from Excel files for pattern matching with 98% confidence.
-- **Historical Data Processing**: Dual-mode Excel import system supporting both pre-loaded industrial data and user-uploaded files. Direct Excel import system (direct-excel-import.ts) processes 6 interconnected tables from Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx. User upload system (user-excel-upload.ts) with multer middleware handles custom Excel files with flexible column naming (Equipment_ID/EquipmentID variants). Supports full cross-referencing and automatic equipment type normalization for industrial equipment (grues, moteurs, pompes, compresseurs, transformateurs, variateurs, convoyeurs).
-- **GMAO Platform**: Comprehensive equipment registry, advanced work order management with multi-level validation, preventive maintenance scheduling (time, usage, condition-based), complete spare parts inventory with stock optimization and automatic unique reference generation, and a budget management system with multi-level approvals.
-- **Security**: Multi-level authentication (bcrypt), advanced security middleware (rate limiting, anomaly detection, CSRF protection), and a security dashboard.
-- **Reporting**: Comprehensive maintenance reporting system with automatic generation (intervention, monthly, dashboard reports) including KPIs (MTBF, MTTR, OEE, availability).
-- **Mobile Application**: Complete React Native app with comprehensive offline capabilities including: SQLite local database, equipment QR code scanner with barcode/manual ID support, step-by-step repair guidance with progress tracking, work order management, diagnostic sessions with AI/offline fallback, data synchronization system, equipment details with maintenance history, offline data management, and settings with user profile. Full field technician workflow support for industrial environments without internet connectivity.
-- **Payment System**: PCI-DSS compliant architecture with Stripe and PayPal gateway support, ready for subscription plan activation.
+- **AI Diagnostic Engine**: Combines Standard ML, Advanced ML (Neural Networks, SVM, Anomaly Detection), and Ensemble ML (9 algorithms for multi-model consensus). Includes predictive maintenance scheduling, failure risk assessment, and continuous learning system. Exclusively uses 120 real industrial maintenance cases from Excel files for pattern matching with 98% confidence.
+- **Historical Data Processing**: Dual-mode Excel import system supporting pre-loaded industrial data (from `Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx`) and user-uploaded files with flexible column naming. Supports full cross-referencing and automatic equipment type normalization.
+- **GMAO Platform**: Comprehensive equipment registry, advanced work order management with multi-level validation, preventive maintenance scheduling, spare parts inventory with stock optimization, and budget management.
+- **Security**: Multi-level authentication (bcrypt), advanced security middleware (rate limiting, anomaly detection, CSRF protection), and a security dashboard. Implemented Role-Based Access Control (RBAC) with 7 defined roles and granular permissions.
+- **Reporting**: Comprehensive maintenance reporting system with automatic generation (intervention, monthly, dashboard reports) including KPIs. Client-side PDF generation using jsPDF and html2canvas.
+- **Mobile Application**: Complete React Native app with comprehensive offline capabilities including SQLite local database, equipment QR code scanner, step-by-step repair guidance, work order management, diagnostic sessions, data synchronization, and field technician workflow support.
+- **Multi-tenant SaaS Infrastructure**: Enterprise-grade multi-tenant architecture with email invitation system (SendGrid integration), tenant creation/management, enterprise security middleware, and federated AI learning.
 
 ## External Dependencies
 - **UI Components**: Radix UI
@@ -110,3 +53,31 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Development Tools**: TSX, Vite, PostCSS, Autoprefixer
 - **Enterprise Integration**: SAP ERP Connector, IoT (MQTT simulation), Maximo (integration ready), SCADA (integration ready).
 - **Payment Gateways**: Stripe, PayPal
+- **Email Service**: SendGrid
+
+## Recent Updates (January 31, 2025)
+
+### Nettoyage Massif du Projet
+✅ **60+ fichiers en doublon supprimés** pour faciliter le déploiement local
+✅ Fichiers Excel consolidés (gardé uniquement la version la plus récente)
+✅ Configuration Docker simplifiée (docker-compose.yml unique)
+✅ Scripts d'installation consolidés (15+ scripts en doublon supprimés)
+✅ Anciens fichiers ML Python supprimés (système utilise TypeScript/Anthropic Claude)
+✅ Fichiers de test temporaires nettoyés
+✅ Documentation consolidée
+✅ 25+ fichiers de débogging supprimés (Pasted-*.txt, cookies, etc.)
+✅ Structure optimisée pour déploiement local
+📄 Détails complets dans `NETTOYAGE_PROJET.md`
+
+### Système de Pièces Justificatives
+✅ Upload de documents pour bons de commande fonctionnel
+✅ API complète (upload, liste, téléchargement, suppression)
+✅ Interface utilisateur intégrée avec validation client-side
+✅ Formats: PDF, Word, Excel, Images (max 10MB, 5 fichiers)
+📄 Guide complet dans `GUIDE_PIECES_JUSTIFICATIVES.md`
+
+### RBAC Système
+✅ 7 rôles avec permissions granulaires
+✅ Middlewares backend + hooks React
+✅ Isolation des données par rôle
+📄 Documentation dans `RBAC_GUIDE.md`
