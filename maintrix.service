@@ -1,16 +1,16 @@
 [Unit]
-Description=Smart GMAO DiagFix - Système de Gestion de Maintenance Assistée par Ordinateur
-Documentation=https://smart-gmao-diagfix.com/docs
+Description=Maintrix - Comprehensive GMAO Maintenance Management System
+Documentation=https://maintrix-t.com/docs
 After=network.target postgresql.service
 Wants=postgresql.service
 Requires=postgresql.service
 
 [Service]
 Type=simple
-User=smart-gmao
-Group=smart-gmao
-WorkingDirectory=/opt/smart-gmao-diagfix
-EnvironmentFile=/opt/smart-gmao-diagfix/.env
+User=maintrix
+Group=maintrix
+WorkingDirectory=/opt/maintrix
+EnvironmentFile=/opt/maintrix/.env
 
 # Commandes d'exécution
 ExecStartPre=/usr/bin/npm run db:push
@@ -27,7 +27,7 @@ StartLimitBurst=5
 # Gestion des logs
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=smart-gmao-diagfix
+SyslogIdentifier=maintrix
 
 # Sécurité avancée
 NoNewPrivileges=true
@@ -44,10 +44,10 @@ MemoryDenyWriteExecute=true
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 # Répertoires autorisés en écriture
-ReadWritePaths=/opt/smart-gmao-diagfix/uploads
-ReadWritePaths=/opt/smart-gmao-diagfix/logs
-ReadWritePaths=/opt/smart-gmao-diagfix/backups
-ReadWritePaths=/opt/smart-gmao-diagfix/node_modules
+ReadWritePaths=/opt/maintrix/uploads
+ReadWritePaths=/opt/maintrix/logs
+ReadWritePaths=/opt/maintrix/backups
+ReadWritePaths=/opt/maintrix/node_modules
 ReadWritePaths=/tmp
 
 # Limites de ressources

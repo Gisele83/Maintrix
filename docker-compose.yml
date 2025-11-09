@@ -1,25 +1,25 @@
-# 🐳 Docker Compose - Smart GMAO DiagFix
+# 🐳 Docker Compose - Maintrix
 # Configuration complète pour déploiement local avec tous les services
 
 version: '3.8'
 
 services:
   # =================================
-  # APPLICATION SMART GMAO DIAGFIX
+  # APPLICATION MAINTRIX
   # =================================
   app:
     build: 
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: smart-gmao-app
+    container_name: maintrix-app
     ports:
       - "5000:5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - DATABASE_URL=postgresql://smart_gmao_user:smart_gmao_secure_password@db:5432/smart_gmao_diagfix
-      - SESSION_SECRET=smart_gmao_session_secret_very_long_and_secure_for_production
+      - DATABASE_URL=postgresql://maintrix_user:maintrix_secure_password@db:5432/maintrix_db
+      - SESSION_SECRET=maintrix_session_secret_very_long_and_secure_for_production
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
@@ -33,7 +33,7 @@ services:
       - uploads_data:/app/uploads
       - logs_data:/app/logs
     networks:
-      - smart-gmao-network
+      - maintrix-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
@@ -46,11 +46,11 @@ services:
   # =================================
   db:
     image: postgres:15-alpine
-    container_name: smart-gmao-db
+    container_name: maintrix-db
     environment:
-      - POSTGRES_DB=smart_gmao_diagfix
-      - POSTGRES_USER=smart_gmao_user
-      - POSTGRES_PASSWORD=smart_gmao_secure_password
+      - POSTGRES_DB=maintrix_db
+      - POSTGRES_USER=maintrix_user
+      - POSTGRES_PASSWORD=maintrix_secure_password
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -60,9 +60,9 @@ services:
       - "5432:5432"
     restart: unless-stopped
     networks:
-      - smart-gmao-network
+      - maintrix-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smart_gmao_user -d smart_gmao_diagfix"]
+      test: ["CMD-SHELL", "pg_isready -U maintrix_user -d maintrix_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -79,7 +79,7 @@ services:
   # =================================
   redis:
     image: redis:7-alpine
-    container_name: smart-gmao-redis
+    container_name: maintrix-redis
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -87,7 +87,7 @@ services:
       - redis_data:/data
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
-      - smart-gmao-network
+      - maintrix-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -100,7 +100,7 @@ services:
   # =================================
   nginx:
     image: nginx:alpine
-    container_name: smart-gmao-nginx
+    container_name: maintrix-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -113,7 +113,7 @@ services:
       - app
     restart: unless-stopped
     networks:
-      - smart-gmao-network
+      - maintrix-network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -125,7 +125,7 @@ services:
   # =================================
   prometheus:
     image: prom/prometheus:latest
-    container_name: smart-gmao-prometheus
+    container_name: maintrix-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -140,18 +140,18 @@ services:
       - '--web.enable-lifecycle'
     restart: unless-stopped
     networks:
-      - smart-gmao-network
+      - maintrix-network
 
   # =================================
   # DASHBOARDS GRAFANA
   # =================================
   grafana:
     image: grafana/grafana:latest
-    container_name: smart-gmao-grafana
+    container_name: maintrix-grafana
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=smart_gmao_admin
+      - GF_SECURITY_ADMIN_PASSWORD=maintrix_admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -161,19 +161,19 @@ services:
       - prometheus
     restart: unless-stopped
     networks:
-      - smart-gmao-network
+      - maintrix-network
 
   # =================================
   # SAUVEGARDE AUTOMATIQUE
   # =================================
   backup:
     image: postgres:15-alpine
-    container_name: smart-gmao-backup
+    container_name: maintrix-backup
     environment:
       - POSTGRES_HOST=db
-      - POSTGRES_DB=smart_gmao_diagfix
-      - POSTGRES_USER=smart_gmao_user
-      - POSTGRES_PASSWORD=smart_gmao_secure_password
+      - POSTGRES_DB=maintrix_db
+      - POSTGRES_USER=maintrix_user
+      - POSTGRES_PASSWORD=maintrix_secure_password
     volumes:
       - backup_data:/backups
       - ./scripts/backup.sh:/backup.sh:ro
@@ -181,7 +181,7 @@ services:
       - db
     restart: "no"
     networks:
-      - smart-gmao-network
+      - maintrix-network
     # Sauvegarde quotidienne à 2h du matin
     deploy:
       replicas: 0
@@ -244,7 +244,7 @@ volumes:
 # RÉSEAU INTERNE
 # =================================
 networks:
-  smart-gmao-network:
+  maintrix-network:
     driver: bridge
     ipam:
       config:

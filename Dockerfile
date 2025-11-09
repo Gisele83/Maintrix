@@ -1,4 +1,4 @@
-# 🐳 Dockerfile - Smart GMAO DiagFix
+# 🐳 Dockerfile - Maintrix
 # Image Docker pour déploiement en production
 
 # Étape 1: Image de base Node.js Alpine (légère)
@@ -45,8 +45,8 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 # Création utilisateur non-root pour sécurité
-RUN addgroup -g 1001 -S smart-gmao && \
-    adduser -S smart-gmao -u 1001 -G smart-gmao
+RUN addgroup -g 1001 -S maintrix && \
+    adduser -S maintrix -u 1001 -G maintrix
 
 # Installation outils runtime
 RUN apk add --no-cache \
@@ -73,10 +73,10 @@ COPY --from=build /app/mobile ./mobile
 
 # Création des répertoires nécessaires
 RUN mkdir -p /app/uploads /app/logs /app/backups && \
-    chown -R smart-gmao:smart-gmao /app
+    chown -R maintrix:maintrix /app
 
 # Changement vers utilisateur non-root
-USER smart-gmao
+USER maintrix
 
 # Variables d'environnement par défaut
 ENV NODE_ENV=production
