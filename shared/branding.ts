@@ -19,10 +19,11 @@ export const BRANDING = {
 
 export const LEGACY_NAMES = {
   old: [
-    'Maintrix',
-    'Maintrix',
-    'Maintrix',
-    'maintrix',
-    'maintrix'
+    'Smart GMAO DiagFix',
+    'Smart DiagFix',
+    'DiagFix',
+    'smart-gmao-diagfix',
+    'smart_gmao_diagfix',
+    'com.smartgmao.diagfix'
   ]
 } as const;

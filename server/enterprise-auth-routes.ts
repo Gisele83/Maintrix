@@ -1625,7 +1625,7 @@ async function sendPasswordResetEmail(notification: {
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@maintrix.com',
+      from: 'noreply@maintrix-t.com',
       subject: `🔄 Réinitialisation de mot de passe - Maintrix`,
       html: emailContent
     });

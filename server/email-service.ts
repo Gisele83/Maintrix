@@ -98,7 +98,7 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
 
     await mailService.send({
       to: data.adminEmail,
-      from: 'noreply@maintrix.com', // Remplacez par votre adresse expéditeur vérifiée
+      from: 'noreply@maintrix-t.com', // Remplacez par votre adresse expéditeur vérifiée
       subject: `🚀 Bienvenue sur Maintrix - Tenant "${data.tenantName}" créé`,
       html: emailContent,
       text: `
@@ -213,7 +213,7 @@ export async function sendTenantStatusNotification(
 
     await mailService.send({
       to: adminEmail,
-      from: 'noreply@maintrix.com',
+      from: 'noreply@maintrix-t.com',
       subject: status.subject,
       html: emailContent
     });
@@ -323,7 +323,7 @@ export async function sendTenantCredentials(notification: CredentialNotification
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@maintrix.com',
+      from: 'noreply@maintrix-t.com',
       subject: `🔐 Vos identifiants Maintrix - ${notification.tenantName}`,
       html: emailContent
     });

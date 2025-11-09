@@ -1,7 +1,7 @@
-# Maintrix - Compressed
+# Maintrix - Comprehensive GMAO Platform
 
 ## Overview
-Maintrix is an integrated platform combining Smart Diagnostic (AI-powered diagnostics) with Smart GMAO (comprehensive Computerized Maintenance Management System). This unified solution leverages advanced machine learning, IoT sensor data, and predictive maintenance to provide a comprehensive industrial maintenance management system. Its purpose is to streamline maintenance operations, enhance diagnostic accuracy, and enable proactive maintenance strategies. Key capabilities include AI-driven diagnostics, comprehensive asset management, work order management, preventive maintenance planning, spare parts inventory, and enterprise system integration.
+Maintrix is an integrated platform combining AI-powered diagnostics with comprehensive Computerized Maintenance Management System (GMAO). This unified solution leverages advanced machine learning, IoT sensor data, and predictive maintenance to provide a comprehensive industrial maintenance management system. Its purpose is to streamline maintenance operations, enhance diagnostic accuracy, and enable proactive maintenance strategies. Key capabilities include AI-driven diagnostics, comprehensive asset management, work order management, preventive maintenance planning, spare parts inventory, and enterprise system integration.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -55,7 +55,19 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Payment Gateways**: Stripe, PayPal
 - **Email Service**: SendGrid
 
-## Recent Updates (January 31, 2025)
+## Recent Updates
+
+### Rebranding Complet (9 Janvier 2025)
+✅ **Migration complète de "Smart GMAO DiagFix" vers "Maintrix"**
+✅ 86 fichiers rebrandés avec 726 remplacements automatisés
+✅ Infrastructure complète mise à jour (Docker, systemd, scripts)
+✅ Backend, Frontend, Mobile, et Documentation rebrandés
+✅ Nouveau fichier de constantes partagées : `shared/branding.ts`
+✅ Script automatisé de rebranding créé : `scripts/rebranding.js`
+✅ Domaine officiel : maintrix-t.com
+📄 Rapport détaillé dans `REBRANDING_REPORT.md`
+
+### Nettoyage Massif du Projet (31 Janvier 2025)
 
 ### Nettoyage Massif du Projet
 ✅ **60+ fichiers en doublon supprimés** pour faciliter le déploiement local
