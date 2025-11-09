@@ -1,8 +1,8 @@
-# Guide d'Importation des Données Historiques - SMDiagFix
+# Guide d'Importation des Données Historiques - Maintrix
 
 ## Vue d'ensemble
 
-Ce guide vous explique comment enrichir votre système SMDiagFix avec l'historique réel de maintenance de votre entreprise. L'importation de données historiques améliore considérablement la précision des diagnostics IA et personnalise le système selon votre contexte industriel spécifique.
+Ce guide vous explique comment enrichir votre système Maintrix avec l'historique réel de maintenance de votre entreprise. L'importation de données historiques améliore considérablement la précision des diagnostics IA et personnalise le système selon votre contexte industriel spécifique.
 
 ## Avantages de l'importation de données réelles
 
@@ -78,7 +78,7 @@ Ce guide vous explique comment enrichir votre système SMDiagFix avec l'historiq
 ### Étape 2 : Utilisation des templates
 
 1. **Télécharger les templates** :
-   - Accéder à l'onglet "Importation" dans SMDiagFix
+   - Accéder à l'onglet "Importation" dans Maintrix
    - Télécharger le template approprié
    - Ouvrir avec Excel ou LibreOffice
 
@@ -180,4 +180,4 @@ Cet enregistrement contient :
 
 ---
 
-**Note importante** : Plus vos données historiques sont complètes et précises, plus SMDiagFix pourra vous fournir des diagnostics pertinents et adaptés à votre contexte industriel spécifique.
+**Note importante** : Plus vos données historiques sont complètes et précises, plus Maintrix pourra vous fournir des diagnostics pertinents et adaptés à votre contexte industriel spécifique.

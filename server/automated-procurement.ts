@@ -130,7 +130,7 @@ export async function generateAutomaticOrderEmail(order: any, supplier: any, ite
   ).join('\n');
 
   return `
-Objet: Commande automatique ${order.orderNumber} - SMDiagFix GMAO
+Objet: Commande automatique ${order.orderNumber} - Maintrix GMAO
 
 Bonjour ${supplier.contactPerson},
 
@@ -158,7 +158,7 @@ Cette commande a été générée automatiquement par notre système de maintena
 Merci de confirmer la réception et les délais de livraison.
 
 Cordialement,
-Système GMAO SMDiagFix
+Système GMAO Maintrix
 Contact: maintenance@port-marseille.fr
 `;
 }

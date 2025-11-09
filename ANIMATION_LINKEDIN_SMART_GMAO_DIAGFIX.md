@@ -1,4 +1,4 @@
-# 🎬 Animation LinkedIn - Smart GMAO DiagFix
+# 🎬 Animation LinkedIn - Maintrix
 ## Guide de Création d'Animation Professionnelle
 
 ---
@@ -18,8 +18,8 @@
 ### **Animation d'Ouverture :**
 ```
 Fond : Gradient bleu-violet animé
-Logo Smart GMAO DiagFix : Apparition avec effet "glow"
-Titre principal : "Smart GMAO DiagFix"
+Logo Maintrix : Apparition avec effet "glow"
+Titre principal : "Maintrix"
 Sous-titre : "L'IA révolutionne la maintenance"
 
 Effet : Particules flottantes + Animation de typing
@@ -176,14 +176,14 @@ Zoom out sur toute l'interface
 Overlay semi-transparent apparaît
 
 Texte principal :
-"Testez Smart GMAO DiagFix"
+"Testez Maintrix"
 "Gratuitement dès maintenant"
 
 Bouton CTA pulsant :
 "DÉMARRER L'ESSAI GRATUIT"
 
 QR Code animé (corners qui s'illuminent)
-URL : smart-gmao-diagfix.repl.co
+URL : maintrix.repl.co
 
 Logo final avec tagline :
 "Où l'IA rencontre la maintenance"
@@ -201,7 +201,7 @@ Logo final avec tagline :
 
 ### **Assets Nécessaires :**
 - Screenshots haute résolution interface
-- Logo Smart GMAO DiagFix (vectoriel)
+- Logo Maintrix (vectoriel)
 - Icônes Lucide React (export SVG)
 - Palette couleurs exacte
 - Fonts : Inter/Roboto
@@ -300,4 +300,4 @@ Background: linear-gradient(135deg, #1e40af, #7c3aed)
 
 ---
 
-*Cette animation LinkedIn mettra en valeur les fonctionnalités uniques de Smart GMAO DiagFix avec un impact visuel professionnel optimisé pour l'engagement sur les réseaux sociaux professionnels.*
+*Cette animation LinkedIn mettra en valeur les fonctionnalités uniques de Maintrix avec un impact visuel professionnel optimisé pour l'engagement sur les réseaux sociaux professionnels.*

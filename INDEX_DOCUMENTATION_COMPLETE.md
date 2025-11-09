@@ -1,4 +1,4 @@
-# 📚 Index Documentation Complète Smart GMAO DiagFix
+# 📚 Index Documentation Complète Maintrix
 
 ## Centre de Documentation Intégré - Version 2025
 
@@ -108,7 +108,7 @@
 
 # 📊 Business et Présentation
 
-### 9. Présentation SMDiagFix
+### 9. Présentation Maintrix
 **Fichier :** `PRESENTATION_SMDIAGFIX.md`
 **Contenu :** Présentation commerciale et technique
 **Sections :**
@@ -203,7 +203,7 @@
 
 ## Structure Hiérarchique
 ```
-📚 Documentation Smart GMAO DiagFix
+📚 Documentation Maintrix
 ├── 📖 Documentation Technique
 │   ├── Documentation Complète (200+ pages)
 │   ├── Manuel Utilisateur (100+ pages)
@@ -247,4 +247,4 @@
 - Anglais (prévu)
 - Autres langues selon demande
 
-Cette documentation complète positionne Smart GMAO DiagFix comme la solution de maintenance industrielle la plus documentée et la mieux supportée du marché, avec plus de 500 pages de contenu technique et pédagogique professionnel.
+Cette documentation complète positionne Maintrix comme la solution de maintenance industrielle la plus documentée et la mieux supportée du marché, avec plus de 500 pages de contenu technique et pédagogique professionnel.

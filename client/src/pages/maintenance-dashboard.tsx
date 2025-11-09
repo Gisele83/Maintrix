@@ -243,7 +243,7 @@ export default function MaintenanceDashboard() {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Tableau de Bord Maintenance - Smart GMAO DiagFix</title>
+        <title>Tableau de Bord Maintenance - Maintrix</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; }
           .header { text-align: center; border-bottom: 3px solid #3B82F6; padding-bottom: 20px; margin-bottom: 30px; }
@@ -282,7 +282,7 @@ export default function MaintenanceDashboard() {
       </head>
       <body>
         <div class="header">
-          <div class="company-name">Smart GMAO DiagFix</div>
+          <div class="company-name">Maintrix</div>
           <div class="report-title">Tableau de Bord Maintenance</div>
           <div class="report-date">Généré le ${currentDate}</div>
           <div class="performance-indicator">
@@ -463,7 +463,7 @@ export default function MaintenanceDashboard() {
         </div>
 
         <div class="footer">
-          <p><strong>Rapport généré par:</strong> Smart GMAO DiagFix</p>
+          <p><strong>Rapport généré par:</strong> Maintrix</p>
           <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
           <p>Données extraites le ${currentDate} - Période analysée: ${selectedPeriod === 'week' ? 'Semaine courante' : selectedPeriod === 'month' ? 'Mois courant' : selectedPeriod === 'quarter' ? 'Trimestre courant' : 'Année courante'}</p>
         </div>

@@ -1,7 +1,7 @@
 # Guide d'utilisation de l'environnement de test
 
 ## 🎯 Objectif
-L'environnement de test Smart GMAO DiagFix permet de tester toutes les fonctionnalités du système avec des données réalistes sans affecter les données de production.
+L'environnement de test Maintrix permet de tester toutes les fonctionnalités du système avec des données réalistes sans affecter les données de production.
 
 ## 🚀 Démarrage rapide
 

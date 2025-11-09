@@ -1,4 +1,4 @@
-# 📚 Guide de Formation Mise à Jour - Smart GMAO DiagFix
+# 📚 Guide de Formation Mise à Jour - Maintrix
 
 ## Mise à Jour Formation Janvier 2025
 
@@ -20,7 +20,7 @@
 
 ## 📋 Modules de Formation Mis à Jour
 
-### Module 1: Introduction Smart GMAO DiagFix (Actualisé)
+### Module 1: Introduction Maintrix (Actualisé)
 **Durée:** 50 minutes | **Niveau:** Débutant
 
 **Nouveaux Contenus:**
@@ -155,7 +155,7 @@
 - Intégration GMAO automatique
 - Optimisation workflow maintenance
 
-### Certification Smart GMAO DiagFix Complet (Mise à Jour)
+### Certification Maintrix Complet (Mise à Jour)
 **Niveau:** Expert | **Durée:** 4 heures
 
 **Nouveaux Prérequis:**
@@ -193,4 +193,4 @@
 - **FAQ interactive** : Questions nouvelles fonctionnalités
 - **Chatbot formation** : Assistant pédagogique IA
 
-Cette mise à jour formation positionne Smart GMAO DiagFix comme la solution la plus avancée du marché, avec une interface révolutionnaire et un workflow intégré unique dans l'industrie.
+Cette mise à jour formation positionne Maintrix comme la solution la plus avancée du marché, avec une interface révolutionnaire et un workflow intégré unique dans l'industrie.

@@ -140,7 +140,7 @@ export class GamificationEngine extends EventEmitter {
       const achievementsData = [
         {
           achievementName: 'Premier Diagnostic',
-          description: 'Effectuer votre premier diagnostic avec SMDiagFix',
+          description: 'Effectuer votre premier diagnostic avec Maintrix',
           category: 'milestone',
           pointsAwarded: 50,
           requirements: { diagnosticsCompleted: 1 },

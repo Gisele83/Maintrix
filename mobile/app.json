@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Smart GMAO DiagFix",
-    "slug": "smart-gmao-diagfix",
+    "name": "Maintrix",
+    "slug": "maintrix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -40,13 +40,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Smart GMAO DiagFix to access your camera for QR code scanning and equipment documentation."
+          "cameraPermission": "Allow Maintrix to access your camera for QR code scanning and equipment documentation."
         }
       ],
       [
         "expo-barcode-scanner",
         {
-          "cameraPermission": "Allow Smart GMAO DiagFix to access your camera for scanning equipment barcodes."
+          "cameraPermission": "Allow Maintrix to access your camera for scanning equipment barcodes."
         }
       ]
     ]

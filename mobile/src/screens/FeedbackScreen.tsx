@@ -147,7 +147,7 @@ export function FeedbackScreen() {
       <LinearGradient colors={gradients.primary} style={styles.header}>
         <Text style={styles.headerTitle}>Évaluation</Text>
         <Text style={styles.headerSubtitle}>
-          Aidez-nous à améliorer SMDiagFix
+          Aidez-nous à améliorer Maintrix
         </Text>
         {!isOnline && (
           <Surface style={styles.offlineWarning}>
@@ -326,7 +326,7 @@ export function FeedbackScreen() {
           <Card.Content>
             <Text style={styles.sectionTitle}>Recommandation</Text>
             <Text style={styles.sectionSubtitle}>
-              Recommanderiez-vous SMDiagFix à un collègue ?
+              Recommanderiez-vous Maintrix à un collègue ?
             </Text>
             
             <View style={styles.recommendContainer}>

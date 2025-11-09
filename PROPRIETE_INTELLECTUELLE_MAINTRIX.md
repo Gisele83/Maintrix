@@ -1,5 +1,5 @@
 # DÉCLARATION DE PROPRIÉTÉ INTELLECTUELLE
-## PROGICIEL MAINTRIX (Smart GMAO DiagFix)
+## PROGICIEL MAINTRIX (Maintrix)
 
 ---
 
@@ -112,7 +112,7 @@ L'intégralité du code source est protégée par le droit d'auteur, incluant :
 - **Classe 37 :** Services de maintenance industrielle
 
 ### 4.2 Marques Associées
-- **"Smart GMAO DiagFix"** - Dénomination technique
+- **"Maintrix"** - Dénomination technique
 - **Logo et identité visuelle** - Design propriétaire
 - **Slogan :** [À définir selon votre communication]
 

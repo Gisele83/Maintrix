@@ -1,4 +1,4 @@
-# 📖 Manuel Utilisateur Complet - Smart GMAO DiagFix
+# 📖 Manuel Utilisateur Complet - Maintrix
 
 ## Guide de Référence Utilisateur - Version 2025
 
@@ -9,7 +9,7 @@
 ## Première Connexion
 
 ### Création de Compte
-1. Rendez-vous sur la plateforme Smart GMAO DiagFix
+1. Rendez-vous sur la plateforme Maintrix
 2. Cliquez sur "Créer un compte" ou "Essai gratuit 14 jours"
 3. Renseignez vos informations professionnelles
 4. Validez votre email de confirmation
@@ -35,7 +35,7 @@
    - Redirection directe vers l'interface dédiée
 
 2. **Cartes Fonctionnalités** 
-   - Section "Fonctionnalités Smart GMAO DiagFix"
+   - Section "Fonctionnalités Maintrix"
    - Carte "Smart Diagnostic IA" → Bouton "Accéder"
 
 3. **Menu Navigation**
@@ -753,4 +753,4 @@ Création → Chef Service → Chef Maintenance → Exécution
 - Support 24/7
 - Formations sur site
 
-Ce manuel utilisateur complet couvre toutes les fonctionnalités de Smart GMAO DiagFix pour une utilisation optimale de la plateforme.
+Ce manuel utilisateur complet couvre toutes les fonctionnalités de Maintrix pour une utilisation optimale de la plateforme.

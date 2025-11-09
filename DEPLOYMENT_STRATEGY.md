@@ -1,8 +1,8 @@
-# Stratégie de Déploiement Gratuit - Smart GMAO DiagFix
+# Stratégie de Déploiement Gratuit - Maintrix
 
 ## 🎯 Objectif Déploiement
 
-Lancer Smart GMAO DiagFix avec une approche **freemium progressive** permettant :
+Lancer Maintrix avec une approche **freemium progressive** permettant :
 1. **Validation marché** avec coûts minimaux
 2. **Acquisition utilisateurs** via version gratuite attractive
 3. **Monétisation progressive** basée sur la valeur ajoutée
@@ -120,7 +120,7 @@ Storage: Supabase Storage (1GB gratuit)
 ### 1. Contenu Expert (SEO)
 - **Blog technique** : Articles maintenance industrielle
 - **Guides pratiques** : "10 étapes diagnostic moteur"
-- **Études de cas** : Résolutions pannes avec Smart GMAO DiagFix
+- **Études de cas** : Résolutions pannes avec Maintrix
 - **Webinaires** : Formations maintenance prédictive
 
 ### 2. Réseaux Professionnels
@@ -190,7 +190,7 @@ Storage: Supabase Storage (1GB gratuit)
 2. **Tester application** complète sur domaine public
 3. **Générer APK mobile** et tester sur Android
 4. **Configurer Google Analytics** pour tracking visiteurs
-5. **Créer page LinkedIn** Smart GMAO DiagFix
+5. **Créer page LinkedIn** Maintrix
 
 ### Validation Semaine 1
 - [ ] Application accessible publiquement 24/7

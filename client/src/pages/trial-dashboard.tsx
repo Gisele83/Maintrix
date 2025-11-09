@@ -102,7 +102,7 @@ export default function TrialDashboard() {
                 Tableau de bord d'essai gratuit
               </h1>
               <p className="text-muted-foreground">
-                Suivi de votre période d'essai Smart GMAO DiagFix
+                Suivi de votre période d'essai Maintrix
               </p>
             </div>
           </div>

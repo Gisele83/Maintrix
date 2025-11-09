@@ -76,7 +76,7 @@ function generateTenantInvitationEmail(tenantData: {
   tenantId: string;
 }): string {
   const baseUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://smart-gmao-diagfix.replit.app' 
+    ? 'https://maintrix.replit.app' 
     : 'http://localhost:5000';
   
   const loginUrl = tenantData.domain 
@@ -111,14 +111,14 @@ function generateTenantInvitationEmail(tenantData: {
     <body>
       <div class="container">
         <div class="header">
-          <h1>🎉 Bienvenue dans Smart GMAO DiagFix</h1>
+          <h1>🎉 Bienvenue dans Maintrix</h1>
           <p>Votre accès a été configuré avec succès</p>
         </div>
         
         <div class="content">
           <p>Bonjour,</p>
           
-          <p>Excellente nouvelle ! Votre organisation <strong>${tenantData.name}</strong> a maintenant accès à Smart GMAO DiagFix, la plateforme de maintenance intelligente qui révolutionne la gestion industrielle.</p>
+          <p>Excellente nouvelle ! Votre organisation <strong>${tenantData.name}</strong> a maintenant accès à Maintrix, la plateforme de maintenance intelligente qui révolutionne la gestion industrielle.</p>
           
           <div class="plan-badge">Plan ${tenantData.plan.toUpperCase()}</div>
           
@@ -159,11 +159,11 @@ function generateTenantInvitationEmail(tenantData: {
           <p>Notre équipe support est disponible pour vous accompagner dans la prise en main de la plateforme.</p>
           
           <p>Cordialement,<br>
-          <strong>L'équipe Smart GMAO DiagFix</strong></p>
+          <strong>L'équipe Maintrix</strong></p>
         </div>
         
         <div class="footer">
-          <p>Smart GMAO DiagFix - Plateforme de Maintenance Intelligente</p>
+          <p>Maintrix - Plateforme de Maintenance Intelligente</p>
           <p>Cette invitation est personnelle et confidentielle pour ${tenantData.name}</p>
         </div>
       </div>
@@ -192,7 +192,7 @@ export async function sendTenantAccessNotification(tenantData: {
 
   return await sendEmail({
     to: tenantData.contactEmail,
-    subject: `🎉 Accès accordé à Smart GMAO DiagFix - ${tenantData.name}`,
+    subject: `🎉 Accès accordé à Maintrix - ${tenantData.name}`,
     html: emailContent,
     from: 'noreply@smartgmao.com'
   });
@@ -233,13 +233,13 @@ export async function sendTenantAccessUpdateNotification(tenantData: {
       <div class="container">
         <div class="header">
           <h1>🔄 Mise à jour de votre accès</h1>
-          <p>Smart GMAO DiagFix</p>
+          <p>Maintrix</p>
         </div>
         
         <div class="content">
           <p>Bonjour,</p>
           
-          <p>Votre accès à Smart GMAO DiagFix pour <strong>${tenantData.name}</strong> a été mis à jour.</p>
+          <p>Votre accès à Maintrix pour <strong>${tenantData.name}</strong> a été mis à jour.</p>
           
           <div class="alert">
             <h3>📋 Modifications appliquées :</h3>
@@ -249,7 +249,7 @@ export async function sendTenantAccessUpdateNotification(tenantData: {
           <p>Ces modifications sont effectives immédiatement. Vous pouvez continuer à utiliser la plateforme normalement.</p>
           
           <p>Cordialement,<br>
-          <strong>L'équipe Smart GMAO DiagFix</strong></p>
+          <strong>L'équipe Maintrix</strong></p>
         </div>
       </div>
     </body>
@@ -258,7 +258,7 @@ export async function sendTenantAccessUpdateNotification(tenantData: {
 
   return await sendEmail({
     to: tenantData.contactEmail,
-    subject: `🔄 Mise à jour de votre accès Smart GMAO DiagFix - ${tenantData.name}`,
+    subject: `🔄 Mise à jour de votre accès Maintrix - ${tenantData.name}`,
     html: emailContent,
     from: 'noreply@smartgmao.com'
   });

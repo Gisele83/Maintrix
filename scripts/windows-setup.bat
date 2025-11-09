@@ -1,9 +1,9 @@
 @echo off
 cls
-title Smart GMAO DiagFix - Installateur Windows
+title Maintrix - Installateur Windows
 
 echo =========================================
-echo Smart GMAO DiagFix - Installateur Windows
+echo Maintrix - Installateur Windows
 echo Version 2.1.0
 echo =========================================
 echo.
@@ -20,7 +20,7 @@ if %errorLevel% neq 0 (
 echo [1/8] Vérification des prérequis...
 
 :: Créer le répertoire d'installation
-set INSTALL_DIR=%ProgramFiles%\Smart GMAO DiagFix
+set INSTALL_DIR=%ProgramFiles%\Maintrix
 if exist "%INSTALL_DIR%" (
     echo Suppression de l'ancienne installation...
     rmdir /s /q "%INSTALL_DIR%"
@@ -64,10 +64,10 @@ call npm install --production
 echo [6/8] Configuration de la base de données...
 :: Créer le fichier .env
 (
-echo DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/smart_gmao_diagfix
+echo DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/maintrix_db
 echo NODE_ENV=production
 echo PORT=3000
-echo SESSION_SECRET=smart_gmao_secret_key_2025
+echo SESSION_SECRET=maintrix_secret_key_2025
 ) > .env
 
 :: Attendre que PostgreSQL soit prêt
@@ -75,7 +75,7 @@ timeout /t 10 /nobreak
 
 :: Créer la base de données
 echo Création de la base de données...
-echo CREATE DATABASE smart_gmao_diagfix; | psql -U postgres -h localhost
+echo CREATE DATABASE maintrix_db; | psql -U postgres -h localhost
 
 :: Initialiser le schéma
 call npm run db:push
@@ -89,7 +89,7 @@ call npm install -g node-windows
 echo const { Service } = require('node-windows'^);
 echo.
 echo const svc = new Service({
-echo   name: 'SmartGMAODiagFix',
+echo   name: 'SmartGMAOMaintrix',
 echo   description: 'Service de maintenance industrielle intelligente',
 echo   script: '%INSTALL_DIR%\\server\\index.js',
 echo   env: {
@@ -110,21 +110,21 @@ call node install-service.js
 
 echo [8/8] Création des raccourcis...
 :: Créer le raccourci sur le bureau
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\Smart GMAO DiagFix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
 
 :: Créer le raccourci dans le menu démarrer
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%APPDATA%\Microsoft\Windows\Start Menu\Programs\Smart GMAO DiagFix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%APPDATA%\Microsoft\Windows\Start Menu\Programs\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
 
 :: Configurer le pare-feu
 echo Configuration du pare-feu...
-netsh advfirewall firewall add rule name="Smart GMAO DiagFix" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="Maintrix" dir=in action=allow protocol=TCP localport=3000
 
 echo.
 echo =======================================
 echo INSTALLATION TERMINÉE AVEC SUCCÈS !
 echo =======================================
 echo.
-echo Smart GMAO DiagFix a été installé et configuré.
+echo Maintrix a été installé et configuré.
 echo.
 echo Accès:
 echo - URL: http://localhost:3000
@@ -138,5 +138,5 @@ timeout /t 5 /nobreak
 start http://localhost:3000
 
 echo.
-echo Installation complète ! Profitez de Smart GMAO DiagFix.
+echo Installation complète ! Profitez de Maintrix.
 pause

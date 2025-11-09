@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 📦 Script de Sauvegarde - Smart GMAO DiagFix
+# 📦 Script de Sauvegarde - Maintrix
 # Sauvegarde automatique de la base de données et des fichiers
 
 set -e
@@ -46,7 +46,7 @@ fi
 # Création du répertoire de sauvegarde
 mkdir -p "$BACKUP_DIR"
 
-log_info "=== DÉBUT SAUVEGARDE Smart GMAO DiagFix ==="
+log_info "=== DÉBUT SAUVEGARDE Maintrix ==="
 log_info "Date: $(date)"
 log_info "Répertoire: $BACKUP_DIR"
 
@@ -169,7 +169,7 @@ log_success "=== SAUVEGARDE TERMINÉE ==="
 if [[ -n "$BACKUP_WEBHOOK_URL" ]]; then
     curl -X POST "$BACKUP_WEBHOOK_URL" \
          -H "Content-Type: application/json" \
-         -d "{\"text\":\"✅ Sauvegarde Smart GMAO DiagFix terminée: $DATE\"}" \
+         -d "{\"text\":\"✅ Sauvegarde Maintrix terminée: $DATE\"}" \
          &>/dev/null || log_info "Notification webhook échouée"
 fi
 

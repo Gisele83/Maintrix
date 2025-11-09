@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🚀 Script de Démarrage - Smart GMAO DiagFix
+# 🚀 Script de Démarrage - Maintrix
 # Script pour démarrage manuel ou debug
 
 set -e
@@ -104,13 +104,13 @@ if [[ $EUID -eq 0 ]] && [[ -n "$SUDO_USER" ]]; then
 fi
 
 # Démarrage de l'application
-print_status "Démarrage de Smart GMAO DiagFix..."
+print_status "Démarrage de Maintrix..."
 print_status "Port: ${PORT:-5000}"
 print_status "Environnement: ${NODE_ENV:-development}"
 
 echo -e "${GREEN}"
 echo "========================================"
-echo "  Smart GMAO DiagFix - Démarrage"
+echo "  Maintrix - Démarrage"
 echo "========================================"
 echo -e "${NC}"
 

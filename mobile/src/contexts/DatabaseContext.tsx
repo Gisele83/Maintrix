@@ -28,7 +28,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
 
   const initializeDatabase = async () => {
     try {
-      const database = SQLite.openDatabase('smart_gmao_diagfix.db');
+      const database = SQLite.openDatabase('maintrix_db.db');
       
       // Create tables
       await new Promise<void>((resolve, reject) => {

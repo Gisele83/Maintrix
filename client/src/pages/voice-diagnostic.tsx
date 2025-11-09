@@ -7,7 +7,7 @@ export default function VoiceDiagnostic() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-            Smart GMAO DiagFix - Assistant Vocal
+            Maintrix - Assistant Vocal
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Diagnostic intelligent avec reconnaissance vocale et IA avancée

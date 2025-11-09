@@ -1,4 +1,4 @@
-# Smart GMAO DiagFix Mobile
+# Maintrix Mobile
 
 Application mobile React Native complète pour techniciens de maintenance industrielle, optimisée pour le travail en conditions terrain avec capacités hors ligne.
 
@@ -90,7 +90,7 @@ diagnostic_sessions   -- Sessions diagnostic réalisées
 
 ### Thème et UI
 - React Native Paper pour composants Material Design
-- Thème cohérent avec couleurs Smart GMAO DiagFix
+- Thème cohérent avec couleurs Maintrix
 - Icônes Material Community pour consistance visuelle
 - Support responsive pour différentes tailles écran
 

@@ -101,7 +101,7 @@ export default function LocalhostDiagnostic() {
             🔍 Diagnostic d'Accès Localhost
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Diagnostic automatique pour résoudre les problèmes d'accès à Smart GMAO DiagFix sur localhost:5000
+            Diagnostic automatique pour résoudre les problèmes d'accès à Maintrix sur localhost:5000
           </p>
         </div>
 
@@ -193,7 +193,7 @@ export default function LocalhostDiagnostic() {
               Liens d'Accès
             </CardTitle>
             <CardDescription>
-              Différentes façons d'accéder à Smart GMAO DiagFix
+              Différentes façons d'accéder à Maintrix
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -229,7 +229,7 @@ export default function LocalhostDiagnostic() {
               </Button>
 
               <Button 
-                onClick={() => window.open('https://replit.com/@your-username/smart-gmao-diagfix', '_blank')}
+                onClick={() => window.open('https://replit.com/@your-username/maintrix', '_blank')}
                 className="h-auto p-4 flex flex-col items-start gap-2 bg-purple-600 hover:bg-purple-700"
               >
                 <span className="font-semibold">Version Cloud</span>
@@ -262,7 +262,7 @@ export default function LocalhostDiagnostic() {
             <div>
               <h3 className="font-semibold text-gray-800 mb-2">🛡️ Antivirus</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
-                <li>Ajoutez Smart GMAO DiagFix aux exceptions</li>
+                <li>Ajoutez Maintrix aux exceptions</li>
                 <li>Autorisez les connexions sur le port 5000</li>
                 <li>Désactivez temporairement la protection en temps réel</li>
               </ul>

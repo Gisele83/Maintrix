@@ -2,7 +2,7 @@
 
 /**
  * Installateur Windows Simple et Fonctionnel
- * Smart GMAO DiagFix v2.1.0
+ * Maintrix v2.1.0
  */
 
 const { writeFileSync, mkdirSync, existsSync } = require('fs');
@@ -15,17 +15,17 @@ const rl = readline.createInterface({
 });
 
 console.log('\n╔══════════════════════════════════════════════════════════════╗');
-console.log('║                Smart GMAO DiagFix v2.1.0                      ║');
+console.log('║                Maintrix v2.1.0                      ║');
 console.log('║                Installateur Windows                           ║');
 console.log('╚══════════════════════════════════════════════════════════════╝\n');
 
-console.log('🎯 Installation de Smart GMAO DiagFix sur votre système');
+console.log('🎯 Installation de Maintrix sur votre système');
 console.log(`✅ Node.js détecté: ${process.version}\n`);
 
 function main() {
   console.log('🔧 Création du répertoire d\'installation...');
   
-  const installDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Default', 'Smart-GMAO-DiagFix');
+  const installDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Default', 'Smart-GMAO-Maintrix');
   
   try {
     if (!existsSync(installDir)) {
@@ -35,7 +35,7 @@ function main() {
     
     // Package.json
     const packageJson = {
-      "name": "smart-gmao-diagfix",
+      "name": "maintrix",
       "version": "2.1.0",
       "description": "Plateforme de maintenance industrielle intelligente",
       "main": "server.js",
@@ -67,7 +67,7 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Smart GMAO DiagFix</title>
+        <title>Maintrix</title>
         <style>
             body { 
                 font-family: Arial, sans-serif; 
@@ -128,7 +128,7 @@ app.get('/', (req, res) => {
     <body>
         <div class="container">
             <div class="header">
-                <h1>🚀 Smart GMAO DiagFix</h1>
+                <h1>🚀 Maintrix</h1>
                 <h2>Installation Réussie !</h2>
                 <p>Plateforme de maintenance industrielle intelligente v2.1.0</p>
             </div>
@@ -160,7 +160,7 @@ app.get('/', (req, res) => {
             
             <div>
                 <a href="/api/status" class="btn">📊 Statut API</a>
-                <a href="https://github.com/smart-gmao-diagfix/docs" target="_blank" class="btn">📚 Documentation</a>
+                <a href="https://github.com/maintrix/docs" target="_blank" class="btn">📚 Documentation</a>
             </div>
             
             <div style="margin-top: 30px; font-size: 14px; opacity: 0.8;">
@@ -179,12 +179,12 @@ app.get('/api/status', (req, res) => {
     status: 'running',
     version: '2.1.0',
     timestamp: new Date().toISOString(),
-    message: 'Smart GMAO DiagFix - Installation locale active'
+    message: 'Maintrix - Installation locale active'
   });
 });
 
 app.listen(PORT, () => {
-  console.log(\`🚀 Smart GMAO DiagFix démarré sur http://localhost:\${PORT}\`);
+  console.log(\`🚀 Maintrix démarré sur http://localhost:\${PORT}\`);
   console.log('📝 Installation locale configurée avec succès');
 });
 `;
@@ -193,8 +193,8 @@ app.listen(PORT, () => {
     
     // Script de démarrage Windows
     const startScript = `@echo off
-echo 🚀 Démarrage de Smart GMAO DiagFix...
-cd "%USERPROFILE%\\Smart-GMAO-DiagFix"
+echo 🚀 Démarrage de Maintrix...
+cd "%USERPROFILE%\\Smart-GMAO-Maintrix"
 echo 📦 Installation des dépendances...
 npm install --silent
 echo ✅ Démarrage du serveur...
@@ -208,11 +208,11 @@ pause
     const desktopPath = path.join(process.env.USERPROFILE, 'Desktop');
     if (existsSync(desktopPath)) {
       const shortcut = `@echo off
-cd "%USERPROFILE%\\Smart-GMAO-DiagFix"
+cd "%USERPROFILE%\\Smart-GMAO-Maintrix"
 start "" "http://localhost:5000"
 npm start
 `;
-      writeFileSync(path.join(desktopPath, 'Smart-GMAO-DiagFix.bat'), shortcut);
+      writeFileSync(path.join(desktopPath, 'Smart-GMAO-Maintrix.bat'), shortcut);
       console.log('🖥️ Raccourci bureau créé');
     }
     
@@ -221,7 +221,7 @@ npm start
     console.log('🚀 Pour démarrer: double-cliquez sur start.bat');
     console.log('🌐 URL locale: http://localhost:5000');
     
-    console.log('\n🎉 Smart GMAO DiagFix est maintenant installé !');
+    console.log('\n🎉 Maintrix est maintenant installé !');
     console.log('✋ Appuyez sur ENTRÉE pour terminer...');
     
     rl.question('', () => {

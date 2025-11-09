@@ -1,5 +1,5 @@
 /**
- * Configuration centralisée des environnements pour Smart GMAO DiagFix
+ * Configuration centralisée des environnements pour Maintrix
  * Gestion des environnements : development, test, staging, production
  */
 
@@ -100,7 +100,7 @@ const environments: Record<Environment, EnvironmentDefaults> = {
     port: 5001,
     database: {
       ssl: false,
-      database: 'smart_gmao_test', // Base dédiée aux tests
+      database: 'maintrix_test', // Base dédiée aux tests
     },
     security: {
       passwordSaltRounds: 4, // Plus rapide pour les tests
@@ -127,7 +127,7 @@ const environments: Record<Environment, EnvironmentDefaults> = {
     port: 5000,
     database: {
       ssl: true,
-      database: 'smart_gmao_staging',
+      database: 'maintrix_staging',
     },
     security: {
       passwordSaltRounds: 12,
@@ -196,7 +196,7 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
       port: Number(process.env.PGPORT) || 5432,
       user: process.env.PGUSER || 'postgres',
       password: process.env.PGPASSWORD || '',
-      database: process.env.PGDATABASE || baseConfig.database?.database || 'smart_gmao_diagfix',
+      database: process.env.PGDATABASE || baseConfig.database?.database || 'maintrix_db',
       ssl: baseConfig.database?.ssl || false,
     },
     
@@ -212,7 +212,7 @@ export function loadEnvironmentConfig(): EnvironmentConfig {
     email: {
       sendgridApiKey: process.env.SENDGRID_API_KEY || '',
       fromEmail: process.env.FROM_EMAIL || 'noreply@smartgmao.com',
-      fromName: process.env.FROM_NAME || 'Smart GMAO DiagFix',
+      fromName: process.env.FROM_NAME || 'Maintrix',
     },
     
     features: baseConfig.features || {

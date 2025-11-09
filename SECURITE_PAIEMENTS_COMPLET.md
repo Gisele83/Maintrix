@@ -1,11 +1,11 @@
-# Infrastructure de Paiement Sécurisée - Smart GMAO DiagFix
+# Infrastructure de Paiement Sécurisée - Maintrix
 ## Version Freemium avec Architecture PCI-DSS Complète
 
 ---
 
 ## 🔒 Vue d'ensemble de l'infrastructure
 
-Smart GMAO DiagFix dispose maintenant d'une infrastructure de paiement complètement sécurisée et conforme aux standards PCI-DSS Level 1, préparée pour les futures versions payantes tout en maintenant la version freemium entièrement accessible.
+Maintrix dispose maintenant d'une infrastructure de paiement complètement sécurisée et conforme aux standards PCI-DSS Level 1, préparée pour les futures versions payantes tout en maintenant la version freemium entièrement accessible.
 
 ### 🎯 Objectifs atteints
 - ✅ **Infrastructure PCI-DSS Level 1** complètement implémentée
@@ -241,7 +241,7 @@ curl -X POST /api/payment/stripe/create-intent
 
 ## 🎉 Conclusion
 
-L'infrastructure de paiement de Smart GMAO DiagFix est **production-ready** avec :
+L'infrastructure de paiement de Maintrix est **production-ready** avec :
 
 - **🔒 Sécurité maximale** : PCI-DSS Level 1 compliant
 - **⚡ Performance optimisée** : Rate limiting et caching
@@ -253,4 +253,4 @@ L'infrastructure de paiement de Smart GMAO DiagFix est **production-ready** avec
 
 ---
 
-*Documentation générée le 27 juillet 2025 - Smart GMAO DiagFix v1.0*
+*Documentation générée le 27 juillet 2025 - Maintrix v1.0*

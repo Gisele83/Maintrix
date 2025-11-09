@@ -1046,7 +1046,7 @@ export default function SuperAdminDashboard() {
                     <div className="pt-3 border-t border-white/10">
                       <Button
                         onClick={() => {
-                          const credentials = `Smart GMAO DiagFix - Identifiants utilisateur
+                          const credentials = `Maintrix - Identifiants utilisateur
                           
 Utilisateur: ${createdUserCredentials.user?.firstName} ${createdUserCredentials.user?.lastName}
 Email: ${createdUserCredentials.user?.email}
@@ -1066,7 +1066,7 @@ IMPORTANT:
 - Expiration: ${createdUserCredentials.temporaryCredentials?.expiresAt ? new Date(createdUserCredentials.temporaryCredentials.expiresAt).toLocaleDateString('fr-FR') : 'N/A'}
 - URL de connexion: ${window.location.origin}/login
 
-Smart GMAO DiagFix - Maintenance intelligente et prédictive`;
+Maintrix - Maintenance intelligente et prédictive`;
                           copyToClipboard(credentials, 'Toutes les informations');
                         }}
                         className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"

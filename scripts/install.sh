@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🚀 Script d'Installation - Smart GMAO DiagFix
+# 🚀 Script d'Installation - Maintrix
 # Installation automatique pour déploiement local
 
 set -e  # Arrêt en cas d'erreur
@@ -30,10 +30,10 @@ print_error() {
 }
 
 # Variables globales
-INSTALL_DIR="/opt/smart-gmao-diagfix"
-SERVICE_USER="smart-gmao"
-DB_NAME="smart_gmao_diagfix"
-DB_USER="smart_gmao_user"
+INSTALL_DIR="/opt/maintrix"
+SERVICE_USER="maintrix"
+DB_NAME="maintrix_db"
+DB_USER="maintrix_user"
 DB_PASSWORD=""
 
 # Fonction de vérification des prérequis
@@ -149,7 +149,7 @@ create_system_user() {
 
 # Installation de l'application
 install_application() {
-    print_status "Installation de Smart GMAO DiagFix..."
+    print_status "Installation de Maintrix..."
     
     # Création du répertoire d'installation
     mkdir -p $INSTALL_DIR
@@ -158,7 +158,7 @@ install_application() {
     # Clonage du repository (remplacer par votre URL)
     if [[ ! -d ".git" ]]; then
         print_status "Clonage du repository..."
-        # git clone https://github.com/votre-organisation/smart-gmao-diagfix.git .
+        # git clone https://github.com/votre-organisation/maintrix.git .
         # Pour l'instant, on copie les fichiers depuis le répertoire courant
         cp -r /path/to/source/* . 2>/dev/null || print_warning "Copiez manuellement les fichiers source"
     fi
@@ -187,7 +187,7 @@ setup_environment() {
     
     # Création du fichier .env
     cat > $INSTALL_DIR/.env <<EOF
-# Configuration Smart GMAO DiagFix - Générée automatiquement
+# Configuration Maintrix - Générée automatiquement
 DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
 PGHOST=localhost
 PGPORT=5432
@@ -239,9 +239,9 @@ initialize_database() {
 setup_systemd_service() {
     print_status "Configuration du service systemd..."
     
-    cat > /etc/systemd/system/smart-gmao-diagfix.service <<EOF
+    cat > /etc/systemd/system/maintrix.service <<EOF
 [Unit]
-Description=Smart GMAO DiagFix - Maintenance Management System
+Description=Maintrix - Maintenance Management System
 After=network.target postgresql.service
 Requires=postgresql.service
 
@@ -257,7 +257,7 @@ Restart=always
 RestartSec=10
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=smart-gmao-diagfix
+SyslogIdentifier=maintrix
 
 # Sécurité
 NoNewPrivileges=true
@@ -271,7 +271,7 @@ EOF
     
     # Rechargement et activation du service
     systemctl daemon-reload
-    systemctl enable smart-gmao-diagfix
+    systemctl enable maintrix
     
     print_success "Service systemd configuré"
 }
@@ -283,7 +283,7 @@ setup_firewall() {
     if command -v ufw &> /dev/null; then
         ufw --force enable
         ufw allow 22/tcp comment 'SSH'
-        ufw allow 5000/tcp comment 'Smart GMAO DiagFix'
+        ufw allow 5000/tcp comment 'Maintrix'
         print_success "Firewall UFW configuré"
     else
         print_warning "UFW non installé, configuration du firewall ignorée"
@@ -297,11 +297,11 @@ setup_backup() {
     # Script de sauvegarde
     cat > $INSTALL_DIR/scripts/backup.sh <<'EOF'
 #!/bin/bash
-# Script de sauvegarde Smart GMAO DiagFix
+# Script de sauvegarde Maintrix
 
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/opt/smart-gmao-diagfix/backups"
-source /opt/smart-gmao-diagfix/.env
+BACKUP_DIR="/opt/maintrix/backups"
+source /opt/maintrix/.env
 
 mkdir -p $BACKUP_DIR
 
@@ -309,7 +309,7 @@ mkdir -p $BACKUP_DIR
 pg_dump $DATABASE_URL > $BACKUP_DIR/db_backup_$DATE.sql
 
 # Sauvegarde fichiers uploads
-tar -czf $BACKUP_DIR/uploads_backup_$DATE.tar.gz -C /opt/smart-gmao-diagfix uploads
+tar -czf $BACKUP_DIR/uploads_backup_$DATE.tar.gz -C /opt/maintrix uploads
 
 # Nettoyage anciennes sauvegardes (>30 jours)
 find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
@@ -332,15 +332,15 @@ start_services() {
     print_status "Démarrage des services..."
     
     # Démarrage du service
-    systemctl start smart-gmao-diagfix
+    systemctl start maintrix
     
     # Vérification du statut
     sleep 5
-    if systemctl is-active --quiet smart-gmao-diagfix; then
-        print_success "Service Smart GMAO DiagFix démarré"
+    if systemctl is-active --quiet maintrix; then
+        print_success "Service Maintrix démarré"
     else
         print_error "Échec du démarrage du service"
-        print_status "Consultez les logs : journalctl -u smart-gmao-diagfix -f"
+        print_status "Consultez les logs : journalctl -u maintrix -f"
         exit 1
     fi
 }
@@ -376,9 +376,9 @@ display_summary() {
     echo -e "Répertoire install:  ${GREEN}$INSTALL_DIR${NC}"
     echo ""
     echo -e "${BLUE}=== COMMANDES UTILES ===${NC}"
-    echo -e "Statut service:      ${YELLOW}sudo systemctl status smart-gmao-diagfix${NC}"
-    echo -e "Logs application:    ${YELLOW}sudo journalctl -u smart-gmao-diagfix -f${NC}"
-    echo -e "Redémarrage:         ${YELLOW}sudo systemctl restart smart-gmao-diagfix${NC}"
+    echo -e "Statut service:      ${YELLOW}sudo systemctl status maintrix${NC}"
+    echo -e "Logs application:    ${YELLOW}sudo journalctl -u maintrix -f${NC}"
+    echo -e "Redémarrage:         ${YELLOW}sudo systemctl restart maintrix${NC}"
     echo -e "Sauvegarde manuelle: ${YELLOW}sudo -u $SERVICE_USER $INSTALL_DIR/scripts/backup.sh${NC}"
     echo ""
     echo -e "${BLUE}=== SÉCURITÉ ===${NC}"
@@ -391,7 +391,7 @@ display_summary() {
 main() {
     echo -e "${BLUE}"
     echo "========================================"
-    echo "  Smart GMAO DiagFix - Installation"
+    echo "  Maintrix - Installation"
     echo "========================================"
     echo -e "${NC}"
     

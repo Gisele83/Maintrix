@@ -626,7 +626,7 @@ router.post('/force-password-change',
       
       res.json({
         success: true,
-        message: "Mot de passe changé avec succès. Bienvenue sur Smart GMAO DiagFix !",
+        message: "Mot de passe changé avec succès. Bienvenue sur Maintrix !",
         user: {
           id: user.id,
           username: user.username,
@@ -1562,13 +1562,13 @@ async function sendPasswordResetEmail(notification: {
     <div class="container">
         <div class="header">
             <h1>🔄 Réinitialisation de mot de passe</h1>
-            <p>Smart GMAO DiagFix - Demande de réinitialisation</p>
+            <p>Maintrix - Demande de réinitialisation</p>
         </div>
         
         <div class="content">
             <h2>Bonjour ${notification.recipientName},</h2>
             
-            <p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>Smart GMAO DiagFix</strong>.</p>
+            <p>Vous avez demandé la réinitialisation de votre mot de passe sur <strong>Maintrix</strong>.</p>
             
             <div class="warning">
                 <h3>🚨 Important - Sécurité</h3>
@@ -1613,7 +1613,7 @@ async function sendPasswordResetEmail(notification: {
         </div>
         
         <div class="footer">
-            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p><strong>Maintrix</strong> - Plateforme de maintenance industrielle intelligente</p>
             <p style="font-size: 12px; color: #6b7280;">
                 Si vous avez des questions, contactez notre support technique.<br>
                 Cet email contient des informations sensibles, ne le transférez pas.
@@ -1625,8 +1625,8 @@ async function sendPasswordResetEmail(notification: {
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@smart-gmao-diagfix.com',
-      subject: `🔄 Réinitialisation de mot de passe - Smart GMAO DiagFix`,
+      from: 'noreply@maintrix.com',
+      subject: `🔄 Réinitialisation de mot de passe - Maintrix`,
       html: emailContent
     });
 

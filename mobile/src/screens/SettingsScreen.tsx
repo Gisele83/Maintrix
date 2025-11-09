@@ -276,7 +276,7 @@ export default function SettingsScreen() {
               
               <Button
                 mode="outlined"
-                onPress={() => Alert.alert('À propos', 'Smart GMAO DiagFix Mobile\nVersion 1.0.0\n\nDéveloppé pour optimiser la maintenance industrielle')}
+                onPress={() => Alert.alert('À propos', 'Maintrix Mobile\nVersion 1.0.0\n\nDéveloppé pour optimiser la maintenance industrielle')}
                 style={styles.actionButton}
                 icon="information-outline"
               >

@@ -119,7 +119,7 @@ export default function FirstLoginPasswordChange() {
 
         toast({
           title: "✅ Mot de passe changé",
-          description: "Bienvenue sur Smart GMAO DiagFix ! Votre compte est maintenant sécurisé.",
+          description: "Bienvenue sur Maintrix ! Votre compte est maintenant sécurisé.",
         });
 
         // Rediriger vers le dashboard principal
@@ -291,7 +291,7 @@ export default function FirstLoginPasswordChange() {
           </form>
 
           <div className="text-center text-xs text-gray-500">
-            Une fois le mot de passe changé, vous aurez accès à toutes les fonctionnalités de Smart GMAO DiagFix
+            Une fois le mot de passe changé, vous aurez accès à toutes les fonctionnalités de Maintrix
           </div>
         </CardContent>
       </Card>

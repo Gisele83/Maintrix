@@ -659,7 +659,7 @@ async function generatePowerBIEmbedToken(workspace: any, report: any) {
       workspaceId: workspace.workspaceId,
       reportId: report.reportId,
       exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiry
-      iss: "smart-gmao-diagfix"
+      iss: "maintrix"
     })).toString('base64')}.mock-signature`,
     expiresAt: new Date(Date.now() + 3600 * 1000)
   };

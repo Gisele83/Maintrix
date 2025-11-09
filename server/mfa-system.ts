@@ -44,8 +44,8 @@ export class MFAService {
    */
   static async generateMFASecret(userId: number, userEmail: string): Promise<MFASecret> {
     const secret = speakeasy.generateSecret({
-      name: `Smart GMAO DiagFix (${userEmail})`,
-      issuer: 'Smart GMAO DiagFix',
+      name: `Maintrix (${userEmail})`,
+      issuer: 'Maintrix',
       length: 32
     });
 

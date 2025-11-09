@@ -1,4 +1,4 @@
-# 🎓 Formations Complètes Smart GMAO DiagFix
+# 🎓 Formations Complètes Maintrix
 
 ## Programme de Formation Professionnel 2025
 
@@ -30,7 +30,7 @@
 
 ---
 
-# 🚀 Formation 1: Initiation Smart GMAO DiagFix
+# 🚀 Formation 1: Initiation Maintrix
 
 ## Informations Générales
 - **Durée**: 4 heures
@@ -42,7 +42,7 @@
 
 ### Module 1.1: Vue d'Ensemble (45 min)
 #### Contenu Théorique (20 min)
-- Présentation Smart GMAO DiagFix
+- Présentation Maintrix
 - Architecture intégrée Smart Diagnostic + Smart GMAO
 - Avantages concurrentiels
 - Retour sur investissement typique
@@ -690,17 +690,17 @@
 
 ## Parcours Certifiant Complet
 
-### Certification Utilisateur Smart GMAO DiagFix
+### Certification Utilisateur Maintrix
 **Prérequis**: Formations 1 et 2 validées
 **Durée validité**: 3 ans
 **Renouvellement**: Formation continue 8h/an
 
-### Certification Expert Smart GMAO DiagFix
+### Certification Expert Maintrix
 **Prérequis**: Toutes formations validées + 1 an expérience
 **Durée validité**: 2 ans
 **Renouvellement**: Formation continue 16h/an + projet
 
-### Certification Formateur Smart GMAO DiagFix
+### Certification Formateur Maintrix
 **Prérequis**: Certification Expert + Formation pédagogique
 **Durée validité**: 2 ans
 **Renouvellement**: Animation 2 formations/an minimum
@@ -725,4 +725,4 @@
 - Résolution cas complexes
 - Transfert compétences
 
-Ces formations complètes positionnent Smart GMAO DiagFix comme la solution de maintenance industrielle la plus avancée avec le programme de formation le plus complet du marché.
+Ces formations complètes positionnent Maintrix comme la solution de maintenance industrielle la plus avancée avec le programme de formation le plus complet du marché.

@@ -15,7 +15,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
 
   const initializeDatabase = async () => {
     try {
-      const database = SQLite.openDatabase('smart_gmao_diagfix.db');
+      const database = SQLite.openDatabase('maintrix_db.db');
       
       // Create tables for offline functionality
       database.transaction((tx) => {

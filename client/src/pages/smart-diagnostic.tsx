@@ -331,7 +331,7 @@ export default function SmartDiagnostic() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rapport de Diagnostic Smart GMAO DiagFix</title>
+    <title>Rapport de Diagnostic Maintrix</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
         .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
@@ -352,7 +352,7 @@ export default function SmartDiagnostic() {
 </head>
 <body>
     <div class="header">
-        <div class="logo">Smart GMAO DiagFix</div>
+        <div class="logo">Maintrix</div>
         <div class="subtitle">Rapport de Diagnostic IA - Analyse Avancée</div>
         <div style="margin-top: 10px; color: #6b7280;">Généré le ${reportDate}</div>
     </div>
@@ -394,7 +394,7 @@ export default function SmartDiagnostic() {
     </div>
 
     <div class="footer">
-        <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+        <p>Ce rapport a été généré automatiquement par Maintrix</p>
         <p>Plateforme de diagnostic IA et gestion de maintenance industrielle</p>
         <p>Pour plus d'informations, consultez la documentation complète de la plateforme</p>
     </div>

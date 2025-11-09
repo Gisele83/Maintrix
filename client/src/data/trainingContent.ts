@@ -108,12 +108,12 @@ export const trainingModulesContent: ModuleContent[] = [
           ],
           exercises: [
             {
-              title: "Quiz : Architecture Smart GMAO DiagFix",
+              title: "Quiz : Architecture Maintrix",
               description: "Testez votre compréhension de l'architecture unifiée",
               type: "quiz",
               questions: [
                 {
-                  question: "Quels sont les deux systèmes principaux unifiés dans Smart GMAO DiagFix ?",
+                  question: "Quels sont les deux systèmes principaux unifiés dans Maintrix ?",
                   answers: [
                     "Smart Diagnostic + Smart GMAO",
                     "IoT + Machine Learning",
@@ -136,7 +136,7 @@ export const trainingModulesContent: ModuleContent[] = [
             }
           ],
           resources: [
-            "Guide d'architecture Smart GMAO DiagFix",
+            "Guide d'architecture Maintrix",
             "Vidéo démo : Tour complet de la plateforme",
             "Comparatif avec solutions concurrentes"
           ]
@@ -147,7 +147,7 @@ export const trainingModulesContent: ModuleContent[] = [
         title: "Navigation et interface utilisateur",
         duration: "15 min",
         content: {
-          introduction: "Maîtrisez l'interface moderne de Smart GMAO DiagFix avec ses tableaux de bord intuitifs, sa navigation adaptative et ses fonctionnalités d'accessibilité avancées.",
+          introduction: "Maîtrisez l'interface moderne de Maintrix avec ses tableaux de bord intuitifs, sa navigation adaptative et ses fonctionnalités d'accessibilité avancées.",
           objectives: [
             "Naviguer efficacement dans tous les modules",
             "Personnaliser l'interface selon vos besoins",
@@ -203,7 +203,7 @@ export const trainingModulesContent: ModuleContent[] = [
           ],
           resources: [
             "Guide navigation interface",
-            "Raccourcis clavier Smart GMAO DiagFix",
+            "Raccourcis clavier Maintrix",
             "Personnalisation dashboard avancée"
           ]
         }
@@ -211,10 +211,10 @@ export const trainingModulesContent: ModuleContent[] = [
     ],
     finalAssessment: {
       title: "Évaluation : Maîtrise des fondamentaux",
-      description: "Évaluation complète de vos connaissances sur Smart GMAO DiagFix",
+      description: "Évaluation complète de vos connaissances sur Maintrix",
       questions: [
         {
-          question: "Smart GMAO DiagFix unifie quels systèmes principaux ?",
+          question: "Maintrix unifie quels systèmes principaux ?",
           answers: [
             "Smart Diagnostic (IA) + Smart GMAO (maintenance)",
             "ERP + CRM",
@@ -222,7 +222,7 @@ export const trainingModulesContent: ModuleContent[] = [
             "Dashboard + Reporting"
           ],
           correct: 0,
-          explanation: "Smart GMAO DiagFix combine l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance."
+          explanation: "Maintrix combine l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance."
         },
         {
           question: "Quels sont les avantages de l'architecture unifiée ?",
@@ -458,7 +458,7 @@ const equipment = await createEquipment({
         title: "Configuration capteurs IoT",
         duration: "20 min",
         content: {
-          introduction: "Le système IoT de Smart GMAO DiagFix collecte des données temps réel pour optimiser la maintenance et prévenir les pannes.",
+          introduction: "Le système IoT de Maintrix collecte des données temps réel pour optimiser la maintenance et prévenir les pannes.",
           objectives: [
             "Configurer les capteurs IoT",
             "Comprendre les seuils d'alerte",
@@ -496,7 +496,7 @@ const equipment = await createEquipment({
       description: "Testez vos connaissances en monitoring IoT",
       questions: [
         {
-          question: "Quels types de capteurs sont intégrés dans Smart GMAO DiagFix ?",
+          question: "Quels types de capteurs sont intégrés dans Maintrix ?",
           answers: [
             "Température, vibration, pression, courant",
             "Température uniquement",
@@ -504,7 +504,7 @@ const equipment = await createEquipment({
             "Capteurs visuels"
           ],
           correct: 0,
-          explanation: "Smart GMAO DiagFix intègre une gamme complète de capteurs pour un monitoring optimal."
+          explanation: "Maintrix intègre une gamme complète de capteurs pour un monitoring optimal."
         }
       ]
     }
@@ -527,7 +527,7 @@ const equipment = await createEquipment({
         title: "Gestion des accès multi-niveaux",
         duration: "20 min",
         content: {
-          introduction: "Smart GMAO DiagFix offre un système de sécurité avancé avec authentification multi-niveaux et audit complet.",
+          introduction: "Maintrix offre un système de sécurité avancé avec authentification multi-niveaux et audit complet.",
           objectives: [
             "Configurer les rôles utilisateurs",
             "Gérer les permissions par module",
@@ -565,7 +565,7 @@ const equipment = await createEquipment({
       description: "Évaluation des compétences sécurité",
       questions: [
         {
-          question: "Quels sont les niveaux d'accès disponibles dans Smart GMAO DiagFix ?",
+          question: "Quels sont les niveaux d'accès disponibles dans Maintrix ?",
           answers: [
             "Technicien, Superviseur, Gestionnaire avec permissions granulaires",
             "Utilisateur et Administrateur uniquement",
@@ -596,7 +596,7 @@ const equipment = await createEquipment({
         title: "Système de compétences et achievements",
         duration: "15 min",
         content: {
-          introduction: "Smart GMAO DiagFix intègre un système de gamification pour motiver les équipes et développer les compétences techniques.",
+          introduction: "Maintrix intègre un système de gamification pour motiver les équipes et développer les compétences techniques.",
           objectives: [
             "Comprendre les niveaux de compétences",
             "Débloquer les achievements",
@@ -634,7 +634,7 @@ const equipment = await createEquipment({
       description: "Testez votre compréhension du système de compétences",
       questions: [
         {
-          question: "Combien de compétences principales sont trackées dans Smart GMAO DiagFix ?",
+          question: "Combien de compétences principales sont trackées dans Maintrix ?",
           answers: [
             "6 compétences principales",
             "3 compétences",

@@ -11,7 +11,7 @@ import { db } from '../server/db';
 import { userProfiles } from '../shared/schema';
 
 async function setupTestEnvironment() {
-  console.log('🚀 Configuration de l\'environnement de test Smart GMAO DiagFix...\n');
+  console.log('🚀 Configuration de l\'environnement de test Maintrix...\n');
 
   // Vérification de l'environnement
   if (config.env !== 'test') {

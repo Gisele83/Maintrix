@@ -1,8 +1,8 @@
-# Guide Complet - Application Mobile Smart GMAO DiagFix
+# Guide Complet - Application Mobile Maintrix
 
 ## Vue d'Ensemble
 
-L'application mobile Smart GMAO DiagFix est une solution complète développée en React Native pour les techniciens de maintenance industrielle travaillant en conditions terrain. Elle offre des capacités hors ligne robustes et une synchronisation intelligente avec le système principal.
+L'application mobile Maintrix est une solution complète développée en React Native pour les techniciens de maintenance industrielle travaillant en conditions terrain. Elle offre des capacités hors ligne robustes et une synchronisation intelligente avec le système principal.
 
 ## Architecture Complète
 

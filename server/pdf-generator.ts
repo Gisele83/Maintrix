@@ -479,7 +479,7 @@ export class PDFGenerator {
     </div>
 
     <div class="footer">
-        <p>Rapport généré par Smart GMAO DiagFix - ${formatDate(new Date().toISOString())}</p>
+        <p>Rapport généré par Maintrix - ${formatDate(new Date().toISOString())}</p>
         <p>Document confidentiel - Usage interne uniquement</p>
     </div>
 </body>
@@ -817,7 +817,7 @@ export class PDFGenerator {
     </div>
 
     <div class="footer">
-        <p>Rapport généré par Smart GMAO DiagFix - ${new Date().toLocaleDateString('fr-FR')}</p>
+        <p>Rapport généré par Maintrix - ${new Date().toLocaleDateString('fr-FR')}</p>
         <p>Rapport ${data.reportNumber} - Généré par ${data.generatedBy}</p>
         <p>Document confidentiel - Usage interne uniquement</p>
     </div>

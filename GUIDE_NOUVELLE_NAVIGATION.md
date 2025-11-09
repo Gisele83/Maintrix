@@ -1,4 +1,4 @@
-# 🚀 Guide de Navigation Smart GMAO DiagFix - Janvier 2025
+# 🚀 Guide de Navigation Maintrix - Janvier 2025
 
 ## Nouveautés Interface et Navigation
 
@@ -22,7 +22,7 @@
 
 2. **Cartes Fonctionnalités**
    ```
-   Fonctionnalités Smart GMAO DiagFix → Smart Diagnostic IA → "Accéder"
+   Fonctionnalités Maintrix → Smart Diagnostic IA → "Accéder"
    ```
 
 3. **Menu Navigation**
@@ -147,4 +147,4 @@ Smart Diagnostic IA → Smart GMAO → IoT Monitoring → Intervention
 - **Sync automatique** : Données toujours à jour
 - **Backup sécurisé** : Protection données critiques
 
-Cette nouvelle interface positionne Smart GMAO DiagFix comme la solution de maintenance industrielle la plus avancée du marché, combinant IA de pointe et gestion GMAO complète dans une expérience utilisateur révolutionnaire.
+Cette nouvelle interface positionne Maintrix comme la solution de maintenance industrielle la plus avancée du marché, combinant IA de pointe et gestion GMAO complète dans une expérience utilisateur révolutionnaire.

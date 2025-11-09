@@ -228,7 +228,7 @@ export function MFASetup() {
     if (!setupData?.backupCodes) return;
     
     const content = setupData.backupCodes.join('\\n');
-    const blob = new Blob([`Smart GMAO DiagFix - Codes de récupération MFA\\n\\n${content}\\n\\nConservez ces codes en lieu sûr !`], 
+    const blob = new Blob([`Maintrix - Codes de récupération MFA\\n\\n${content}\\n\\nConservez ces codes en lieu sûr !`], 
       { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

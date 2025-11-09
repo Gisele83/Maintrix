@@ -1,4 +1,4 @@
-// Middleware de sécurité pour Smart GMAO DiagFix
+// Middleware de sécurité pour Maintrix
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';

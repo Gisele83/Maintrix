@@ -1,5 +1,5 @@
 /**
- * Générateur de données de test pour Smart GMAO DiagFix
+ * Générateur de données de test pour Maintrix
  * Crée des données réalistes pour tester toutes les fonctionnalités
  */
 

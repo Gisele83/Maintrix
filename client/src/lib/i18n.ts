@@ -1,7 +1,7 @@
 export const translations = {
   fr: {
     // Header
-    appTitle: "Smart GMAO DiagFix",
+    appTitle: "Maintrix",
     appSubtitle: "Smart Diagnostic + Smart GMAO - Plateforme complète de maintenance",
     technician: "Technicien",
     
@@ -176,7 +176,7 @@ export const translations = {
   },
   en: {
     // Header
-    appTitle: "Smart GMAO DiagFix",
+    appTitle: "Maintrix",
     appSubtitle: "Smart Diagnostic + Smart GMAO - Complete Maintenance Platform",
     technician: "Technician",
     

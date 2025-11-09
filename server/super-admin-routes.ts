@@ -36,7 +36,7 @@ async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
       <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #6366f1; margin: 0;">🔐 Smart GMAO DiagFix</h1>
+          <h1 style="color: #6366f1; margin: 0;">🔐 Maintrix</h1>
           <p style="color: #6b7280; margin: 5px 0;">Plateforme de maintenance intelligente</p>
         </div>
         
@@ -68,13 +68,13 @@ async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise
             <li>Cliquez sur le lien de connexion ci-dessus</li>
             <li>Connectez-vous avec vos identifiants temporaires</li>
             <li>Changez votre mot de passe (obligatoire)</li>
-            <li>Explorez votre espace Smart GMAO DiagFix</li>
+            <li>Explorez votre espace Maintrix</li>
           </ol>
         </div>
         
         <div style="text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px;">
           <p>Besoin d'aide ? Contactez votre administrateur système.</p>
-          <p><em>Smart GMAO DiagFix - Maintenance intelligente et prédictive</em></p>
+          <p><em>Maintrix - Maintenance intelligente et prédictive</em></p>
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@ async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise
   await mailService.send({
     to: data.toEmail,
     from: fromEmail, // Email vérifié chez SendGrid
-    subject: `🔐 Vos identifiants Smart GMAO DiagFix - ${data.tenantName}`,
+    subject: `🔐 Vos identifiants Maintrix - ${data.tenantName}`,
     html: emailContent,
     text: `
 Bienvenue ${data.firstName} ${data.lastName} !
@@ -101,7 +101,7 @@ Identifiants de connexion :
 IMPORTANT : Vous devez changer votre mot de passe lors de votre première connexion.
 Ce mot de passe temporaire expire le ${data.expiresAt.toLocaleDateString('fr-FR')}.
 
-Smart GMAO DiagFix - Maintenance intelligente et prédictive
+Maintrix - Maintenance intelligente et prédictive
     `
   });
 }

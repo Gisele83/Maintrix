@@ -1,5 +1,5 @@
 /**
- * Système de stockage offline pour Smart GMAO DiagFix
+ * Système de stockage offline pour Maintrix
  * Gère la synchronisation des données entre mode online et offline
  */
 

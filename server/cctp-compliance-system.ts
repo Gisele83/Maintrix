@@ -282,7 +282,7 @@ export class CCTPComplianceService {
         </div>
 
         <div class="footer">
-            <p>Document généré automatiquement par Smart GMAO DiagFix</p>
+            <p>Document généré automatiquement par Maintrix</p>
             <p>Date de génération: ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
         </div>
 

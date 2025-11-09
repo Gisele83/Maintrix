@@ -1,4 +1,4 @@
-# 🎯 Arguments de Vente Clés - Smart GMAO DiagFix
+# 🎯 Arguments de Vente Clés - Maintrix
 
 ## Guide d'Arguments Commerciaux Percutants
 
@@ -253,7 +253,7 @@ ROI: 450% première année
 3. **Action immédiate :** "POC dès la semaine prochaine ?"
 
 ### **Preuve Sociale**
-1. **Référence leader :** "Renault a choisi Smart GMAO DiagFix"  
+1. **Référence leader :** "Renault a choisi Maintrix"  
 2. **Chiffre adoption :** "2,000+ équipements déjà sous surveillance"
 3. **Tendance marché :** "85% des leaders adoptent l'IA maintenance"
 
@@ -291,15 +291,15 @@ ROI: 450% première année
 
 ## 🎯 CONCLUSION COMMERCIALE
 
-### **Triple Promesse Smart GMAO DiagFix**
+### **Triple Promesse Maintrix**
 1. **Promesse Économique :** ROI 200%+ dès l'année 1
 2. **Promesse Technique :** Déploiement réussi en 2-4 semaines  
 3. **Promesse Humaine :** Montée en compétences équipes
 
 ### **Différenciation Ultime**
-> *"Smart GMAO DiagFix ne vend pas un logiciel, mais une transformation maintenance. Nos clients ne gèrent plus les pannes, ils les préviennent."*
+> *"Maintrix ne vend pas un logiciel, mais une transformation maintenance. Nos clients ne gèrent plus les pannes, ils les préviennent."*
 
 ---
 
 *Arguments de vente mis à jour - Janvier 2025*  
-*Smart GMAO DiagFix - Sales Arguments v1.0*
+*Maintrix - Sales Arguments v1.0*

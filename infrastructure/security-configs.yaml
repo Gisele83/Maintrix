@@ -5,7 +5,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: security-configs
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 data:
   security-level: "high"
   pii-redaction: "enabled"
@@ -17,11 +17,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: smart-gmao-network-policy
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   podSelector:
     matchLabels:
-      app: smart-gmao-diagfix
+      app: maintrix
   policyTypes:
   - Ingress
   - Egress
@@ -116,13 +116,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: smart-gmao-service-account
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
   name: smart-gmao-role
 rules:
 - apiGroups: [""]
@@ -134,11 +134,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: smart-gmao-rolebinding
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 subjects:
 - kind: ServiceAccount
   name: smart-gmao-service-account
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 roleRef:
   kind: Role
   name: smart-gmao-role
@@ -150,7 +150,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: mfa-encryption-keys
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 type: Opaque
 data:
   # En base64 - à générer en production
@@ -162,7 +162,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pii-redaction-config
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 data:
   config.json: |
     {

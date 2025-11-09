@@ -1,7 +1,7 @@
-# Smart GMAO DiagFix - Compressed
+# Maintrix - Compressed
 
 ## Overview
-Smart GMAO DiagFix is an integrated platform combining Smart Diagnostic (AI-powered diagnostics) with Smart GMAO (comprehensive Computerized Maintenance Management System). This unified solution leverages advanced machine learning, IoT sensor data, and predictive maintenance to provide a comprehensive industrial maintenance management system. Its purpose is to streamline maintenance operations, enhance diagnostic accuracy, and enable proactive maintenance strategies. Key capabilities include AI-driven diagnostics, comprehensive asset management, work order management, preventive maintenance planning, spare parts inventory, and enterprise system integration.
+Maintrix is an integrated platform combining Smart Diagnostic (AI-powered diagnostics) with Smart GMAO (comprehensive Computerized Maintenance Management System). This unified solution leverages advanced machine learning, IoT sensor data, and predictive maintenance to provide a comprehensive industrial maintenance management system. Its purpose is to streamline maintenance operations, enhance diagnostic accuracy, and enable proactive maintenance strategies. Key capabilities include AI-driven diagnostics, comprehensive asset management, work order management, preventive maintenance planning, spare parts inventory, and enterprise system integration.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

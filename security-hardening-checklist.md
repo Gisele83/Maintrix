@@ -60,7 +60,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: smart-gmao-diagfix
+      app: maintrix
   policyTypes:
   - Ingress
   - Egress
@@ -194,5 +194,5 @@ const decryptedData = await decrypt(encryptedData, keyId);
 
 ---
 
-*Document de travail - Smart GMAO DiagFix Security Team*
+*Document de travail - Maintrix Security Team*
 *Dernière mise à jour : $(date)*

@@ -1,4 +1,4 @@
-# 🚀 Installation Locale - Smart GMAO DiagFix
+# 🚀 Installation Locale - Maintrix
 ## Guide d'Installation Complète pour Déploiement Local
 
 ---
@@ -25,8 +25,8 @@
 ### **Étape 1 : Cloner le Repository**
 ```bash
 # Cloner le projet
-git clone https://github.com/votre-organisation/smart-gmao-diagfix.git
-cd smart-gmao-diagfix
+git clone https://github.com/votre-organisation/maintrix.git
+cd maintrix
 
 # Vérifier les prérequis
 node --version  # Doit afficher v18.x ou v20.x
@@ -68,12 +68,12 @@ nano .env
 **Contenu du fichier .env :**
 ```env
 # Base de données
-DATABASE_URL="postgresql://username:password@localhost:5432/smart_gmao_diagfix"
+DATABASE_URL="postgresql://username:password@localhost:5432/maintrix_db"
 PGHOST=localhost
 PGPORT=5432
-PGUSER=smart_gmao_user
+PGUSER=maintrix_user
 PGPASSWORD=votre_mot_de_passe_securise
-PGDATABASE=smart_gmao_diagfix
+PGDATABASE=maintrix_db
 
 # Application
 NODE_ENV=production
@@ -91,7 +91,7 @@ PRIVATE_OBJECT_DIR="/bucket/private"
 ### **Étape 5 : Initialisation Base de Données**
 ```bash
 # Créer la base de données
-createdb smart_gmao_diagfix
+createdb maintrix_db
 
 # Exécuter les migrations
 npm run db:push
@@ -154,14 +154,14 @@ CMD ["npm", "start"]
 version: '3.8'
 
 services:
-  # Application Smart GMAO DiagFix
+  # Application Maintrix
   app:
     build: .
     ports:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://smart_gmao_user:smart_password@db:5432/smart_gmao_diagfix
+      - DATABASE_URL=postgresql://maintrix_user:smart_password@db:5432/maintrix_db
       - SESSION_SECRET=votre_cle_session_securisee_docker
     depends_on:
       - db
@@ -173,8 +173,8 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=smart_gmao_diagfix
-      - POSTGRES_USER=smart_gmao_user
+      - POSTGRES_DB=maintrix_db
+      - POSTGRES_USER=maintrix_user
       - POSTGRES_PASSWORD=smart_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -263,13 +263,13 @@ server {
 ### **Service Systemd (Linux)**
 ```ini
 [Unit]
-Description=Smart GMAO DiagFix
+Description=Maintrix
 After=network.target postgresql.service
 
 [Service]
 Type=simple
 User=smart-gmao
-WorkingDirectory=/opt/smart-gmao-diagfix
+WorkingDirectory=/opt/maintrix
 Environment=NODE_ENV=production
 Environment=PORT=5000
 ExecStart=/usr/bin/npm start
@@ -282,13 +282,13 @@ WantedBy=multi-user.target
 
 ```bash
 # Installation du service
-sudo cp smart-gmao-diagfix.service /etc/systemd/system/
+sudo cp maintrix.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable smart-gmao-diagfix
-sudo systemctl start smart-gmao-diagfix
+sudo systemctl enable maintrix
+sudo systemctl start maintrix
 
 # Vérification du statut
-sudo systemctl status smart-gmao-diagfix
+sudo systemctl status maintrix
 ```
 
 ---
@@ -298,7 +298,7 @@ sudo systemctl status smart-gmao-diagfix
 ### **Logs et Monitoring**
 ```bash
 # Visualisation des logs
-tail -f /var/log/smart-gmao-diagfix/app.log
+tail -f /var/log/maintrix/app.log
 
 # Monitoring des performances
 htop
@@ -316,7 +316,7 @@ sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"
 
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/opt/backups/smart-gmao"
-DB_NAME="smart_gmao_diagfix"
+DB_NAME="maintrix_db"
 
 # Création du répertoire de sauvegarde
 mkdir -p $BACKUP_DIR
@@ -429,16 +429,16 @@ npx react-native run-ios --configuration Release
 #!/bin/bash
 # Script de mise à jour (/opt/scripts/update-smart-gmao.sh)
 
-echo "🔄 Début mise à jour Smart GMAO DiagFix..."
+echo "🔄 Début mise à jour Maintrix..."
 
 # Arrêt de l'application
-sudo systemctl stop smart-gmao-diagfix
+sudo systemctl stop maintrix
 
 # Sauvegarde avant mise à jour
 /opt/scripts/backup-smart-gmao.sh
 
 # Mise à jour du code
-cd /opt/smart-gmao-diagfix
+cd /opt/maintrix
 git pull origin main
 
 # Mise à jour des dépendances
@@ -451,7 +451,7 @@ npm run db:push
 npm run build
 
 # Redémarrage de l'application
-sudo systemctl start smart-gmao-diagfix
+sudo systemctl start maintrix
 
 # Vérification du fonctionnement
 sleep 10
@@ -472,7 +472,7 @@ echo "✅ Mise à jour terminée"
 sudo systemctl status postgresql
 
 # Tester la connexion
-psql -h localhost -U smart_gmao_user -d smart_gmao_diagfix
+psql -h localhost -U maintrix_user -d maintrix_db
 ```
 
 **2. Port déjà utilisé :**
@@ -487,14 +487,14 @@ sudo kill -9 PID_DU_PROCESSUS
 **3. Permissions insuffisantes :**
 ```bash
 # Correction des permissions
-sudo chown -R smart-gmao:smart-gmao /opt/smart-gmao-diagfix
-sudo chmod +x /opt/smart-gmao-diagfix/start.sh
+sudo chown -R smart-gmao:smart-gmao /opt/maintrix
+sudo chmod +x /opt/maintrix/start.sh
 ```
 
 ### **Logs de Débogage :**
 ```bash
 # Logs application
-journalctl -u smart-gmao-diagfix -f
+journalctl -u maintrix -f
 
 # Logs base de données
 sudo tail -f /var/log/postgresql/postgresql-15-main.log
@@ -509,9 +509,9 @@ sudo tail -f /var/log/syslog
 
 - **Documentation** : [Lien vers documentation complète]
 - **Issues GitHub** : [Lien repository issues]
-- **Support Email** : support@smart-gmao-diagfix.com
+- **Support Email** : support@maintrix.com
 - **Communauté** : [Forum/Discord/Slack]
 
 ---
 
-*Cette installation locale permet un déploiement complet et sécurisé de Smart GMAO DiagFix sur votre infrastructure, avec toutes les fonctionnalités de diagnostic IA et de gestion de maintenance.*
+*Cette installation locale permet un déploiement complet et sécurisé de Maintrix sur votre infrastructure, avec toutes les fonctionnalités de diagnostic IA et de gestion de maintenance.*

@@ -1,11 +1,11 @@
-# FAQ Technique - SMDiagFix
+# FAQ Technique - Maintrix
 
 ## Questions Techniques Fréquentes
 
 ### 🔧 Architecture et Technologie
 
-#### Q: Quelles technologies sont utilisées dans SMDiagFix ?
-**R:** SMDiagFix utilise une stack moderne complète :
+#### Q: Quelles technologies sont utilisées dans Maintrix ?
+**R:** Maintrix utilise une stack moderne complète :
 - **Frontend**: React.js 18 + TypeScript + Tailwind CSS
 - **Backend**: Node.js + Express.js 
 - **IA/ML**: Python avec scikit-learn, TensorFlow, pandas, numpy
@@ -37,7 +37,7 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 
 ### 🔗 Intégrations et APIs
 
-#### Q: SMDiagFix peut-il s'intégrer à notre GMAO existante ?
+#### Q: Maintrix peut-il s'intégrer à notre GMAO existante ?
 **R:** Oui, via plusieurs méthodes :
 - **API REST** complète pour intégration bidirectionnelle
 - **Import/Export** CSV, Excel, JSON
@@ -97,7 +97,7 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 - **Scanner QR codes** équipements
 - **Sortie prévue**: Q2 2025
 
-#### Q: SMDiagFix fonctionne-t-il hors ligne ?
+#### Q: Maintrix fonctionne-t-il hors ligne ?
 **R:** Capacités offline :
 - **Version web**: Cache intelligent pour consultations
 - **Version mobile**: Mode offline complet en développement
@@ -172,7 +172,7 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 
 ### ⚡ Performance et Scalabilité
 
-#### Q: SMDiagFix peut-il gérer un grand parc d'équipements ?
+#### Q: Maintrix peut-il gérer un grand parc d'équipements ?
 **R:** Architecture scalable :
 - **Horizontal scaling** automatique
 - **Load balancing** intégré
@@ -263,7 +263,7 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 - **Beta testing** des nouvelles fonctionnalités
 - **Custom development** pour besoins spécifiques
 
-#### Q: SMDiagFix évolue-t-il avec l'industrie 4.0 ?
+#### Q: Maintrix évolue-t-il avec l'industrie 4.0 ?
 **R:** Vision future :
 - **Jumeau numérique** des équipements
 - **IA conversationnelle** avancée

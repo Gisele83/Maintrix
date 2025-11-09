@@ -1,4 +1,4 @@
-# 🎯 Guides d'Utilisation Complets - Smart GMAO DiagFix
+# 🎯 Guides d'Utilisation Complets - Maintrix
 
 ## Guides Pratiques par Fonctionnalité
 
@@ -9,12 +9,12 @@
 ## Accès à Smart Diagnostic
 
 ### Méthode 1: Bouton Principal Homepage
-1. Connectez-vous à Smart GMAO DiagFix
+1. Connectez-vous à Maintrix
 2. Sur la page d'accueil, cliquez sur **"Démarrer Diagnostic IA"**
 3. Vous êtes redirigé vers `/smart-diagnostic`
 
 ### Méthode 2: Cartes Fonctionnalités
-1. Faites défiler vers la section **"Fonctionnalités Smart GMAO DiagFix"**
+1. Faites défiler vers la section **"Fonctionnalités Maintrix"**
 2. Localisez la carte **"Smart Diagnostic IA"**
 3. Cliquez sur le bouton **"Accéder"**
 
@@ -572,4 +572,4 @@ Création → Chef Service → Chef Maintenance → Exécution
    - Webhooks tiers
    - Dashboard temps réel
 
-Ces guides d'utilisation permettent une maîtrise complète de Smart GMAO DiagFix pour tous les rôles utilisateurs.
+Ces guides d'utilisation permettent une maîtrise complète de Maintrix pour tous les rôles utilisateurs.

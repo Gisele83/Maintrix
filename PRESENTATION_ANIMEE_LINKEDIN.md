@@ -1,4 +1,4 @@
-# 📊 Présentation PowerPoint Animée - Smart GMAO DiagFix
+# 📊 Présentation PowerPoint Animée - Maintrix
 ## Guide de Création pour Animation LinkedIn
 
 ---
@@ -19,7 +19,7 @@
 ### **Contenu :**
 ```
 Arrière-plan : Gradient bleu-violet animé
-Logo : Smart GMAO DiagFix (centre)
+Logo : Maintrix (centre)
 Titre principal : "L'IA RÉVOLUTIONNE"
 Sous-titre : "LA MAINTENANCE INDUSTRIELLE"
 Tagline : "De 45 minutes à 8 secondes de diagnostic"
@@ -283,10 +283,10 @@ Titre : "TESTEZ MAINTENANT"
 Sous-titre : "GRATUITEMENT"
 
 CTA Button : "DÉMARRER L'ESSAI GRATUIT"
-QR Code : smart-gmao-diagfix.repl.co
+QR Code : maintrix.repl.co
 
 Logo final + Tagline :
-"Smart GMAO DiagFix"
+"Maintrix"
 "Où l'IA rencontre la maintenance"
 
 Contact : LinkedIn/Email
@@ -325,7 +325,7 @@ Taille : <4MB (compression LinkedIn)
 ## 🛠 **RESSOURCES NÉCESSAIRES**
 
 ### **Assets à Créer :**
-- Screenshots interface Smart GMAO DiagFix
+- Screenshots interface Maintrix
 - Logo haute résolution (SVG/PNG)
 - Photos équipements industriels
 - Icônes Lucide React (export SVG)
@@ -384,4 +384,4 @@ Text: #f8fafc (Blanc)
 
 ---
 
-*Cette présentation animée mettra parfaitement en valeur Smart GMAO DiagFix avec un impact visuel professionnel optimisé pour LinkedIn.*
+*Cette présentation animée mettra parfaitement en valeur Maintrix avec un impact visuel professionnel optimisé pour LinkedIn.*

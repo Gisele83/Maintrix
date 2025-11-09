@@ -6,7 +6,7 @@ apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
   name: default-mtls
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   mtls:
     mode: STRICT  # mTLS obligatoire pour tous les services
@@ -17,9 +17,9 @@ apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
   name: smart-gmao-mtls
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
-  host: "*.smart-gmao-diagfix.svc.cluster.local"
+  host: "*.maintrix.svc.cluster.local"
   trafficPolicy:
     tls:
       mode: ISTIO_MUTUAL  # Utiliser les certificats Istio
@@ -32,7 +32,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
   name: external-database
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   hosts:
   - neon-database.com
@@ -53,11 +53,11 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: smart-gmao-authz
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   selector:
     matchLabels:
-      app: smart-gmao-diagfix
+      app: maintrix
   rules:
   
   # Autoriser nginx-ingress vers application
@@ -81,7 +81,7 @@ spec:
   # Autoriser communication interne
   - from:
     - source:
-        principals: ["cluster.local/ns/smart-gmao-diagfix/sa/smart-gmao-service-account"]
+        principals: ["cluster.local/ns/maintrix/sa/smart-gmao-service-account"]
     to:
     - operation:
         methods: ["GET", "POST", "PUT", "DELETE"]
@@ -92,7 +92,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: smart-gmao-gateway
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   selector:
     istio: ingressgateway
@@ -104,8 +104,8 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - smart-gmao-diagfix.replit.app
-    - "*.smart-gmao-diagfix.com"
+    - maintrix.replit.app
+    - "*.maintrix.com"
     tls:
       httpsRedirect: true
   
@@ -115,8 +115,8 @@ spec:
       name: https
       protocol: HTTPS
     hosts:
-    - smart-gmao-diagfix.replit.app  
-    - "*.smart-gmao-diagfix.com"
+    - maintrix.replit.app  
+    - "*.maintrix.com"
     tls:
       mode: SIMPLE
       credentialName: smart-gmao-tls-cert
@@ -127,11 +127,11 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: smart-gmao-vs
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   hosts:
-  - smart-gmao-diagfix.replit.app
-  - "*.smart-gmao-diagfix.com"
+  - maintrix.replit.app
+  - "*.maintrix.com"
   gateways:
   - smart-gmao-gateway
   http:
@@ -182,16 +182,16 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: smart-gmao-tls-cert
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   secretName: smart-gmao-tls-cert
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: smart-gmao-diagfix.replit.app
+  commonName: maintrix.replit.app
   dnsNames:
-  - smart-gmao-diagfix.replit.app
-  - "*.smart-gmao-diagfix.com"
+  - maintrix.replit.app
+  - "*.maintrix.com"
 
 ---
 # Request Authentication - JWT validation
@@ -199,16 +199,16 @@ apiVersion: security.istio.io/v1beta1
 kind: RequestAuthentication
 metadata:
   name: smart-gmao-jwt
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   selector:
     matchLabels:
-      app: smart-gmao-diagfix
+      app: maintrix
   jwtRules:
-  - issuer: "smart-gmao-diagfix"
-    jwksUri: "https://smart-gmao-diagfix.replit.app/.well-known/jwks.json"
+  - issuer: "maintrix"
+    jwksUri: "https://maintrix.replit.app/.well-known/jwks.json"
     audiences:
-    - "smart-gmao-diagfix-api"
+    - "maintrix-api"
     forwardOriginalToken: true
 
 ---
@@ -217,7 +217,7 @@ apiVersion: telemetry.istio.io/v1alpha1
 kind: Telemetry
 metadata:
   name: smart-gmao-metrics
-  namespace: smart-gmao-diagfix
+  namespace: maintrix
 spec:
   metrics:
   - providers:

@@ -1,10 +1,10 @@
-# Guide de Démonstration SMDiagFix
+# Guide de Démonstration Maintrix
 
 ## 🎬 Script de Présentation Interactive
 
 ### Introduction (3 minutes)
 
-"Bonjour, je vais vous présenter SMDiagFix, notre assistant IA pour la maintenance industrielle qui révolutionne le diagnostic d'équipements."
+"Bonjour, je vais vous présenter Maintrix, notre assistant IA pour la maintenance industrielle qui révolutionne le diagnostic d'équipements."
 
 **Points clés à mentionner :**
 - Plus de 85% de précision diagnostic
@@ -28,7 +28,7 @@ Navigation : https://your-app.replit.app
 - Accès rapide aux fonctionnalités principales
 
 **Script :**
-"Voici l'interface de SMDiagFix. Notez le design moderne et professionnel, optimisé pour un usage industriel quotidien."
+"Voici l'interface de Maintrix. Notez le design moderne et professionnel, optimisé pour un usage industriel quotidien."
 
 ### 2. Diagnostic IA en Action (8 minutes)
 
@@ -123,7 +123,7 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 - Validation étapes
 
 **Script :**
-"SMDiagFix ne se contente pas de diagnostiquer : il guide la réparation, s'intègre à vos systèmes existants, et capitalise sur votre historique."
+"Maintrix ne se contente pas de diagnostiquer : il guide la réparation, s'intègre à vos systèmes existants, et capitalise sur votre historique."
 
 ---
 
@@ -189,7 +189,7 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 ## 🎬 Conclusion Impactante
 
 ### Récapitulatif (2 minutes)
-"En résumé, SMDiagFix vous apporte :"
+"En résumé, Maintrix vous apporte :"
 1. **Diagnostic IA ultra-précis** (92%+ accuracy)
 2. **Gain temps considérable** (-60% temps intervention)
 3. **Apprentissage continu** auto-adaptatif
@@ -219,4 +219,4 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 - Pilote personnalisé sur vos équipements
 - Documentation technique complète
 
-*L'avenir de la maintenance industrielle commence aujourd'hui avec SMDiagFix.*
+*L'avenir de la maintenance industrielle commence aujourd'hui avec Maintrix.*

@@ -119,7 +119,7 @@ export class PDFGeneratorSimple {
         </head>
         <body>
           <div class="header">
-            <h1>Smart GMAO DiagFix</h1>
+            <h1>Maintrix</h1>
             <h2>Rapport d'Intervention de Maintenance</h2>
             <div class="date">Généré le ${reportDate}</div>
           </div>
@@ -205,7 +205,7 @@ export class PDFGeneratorSimple {
           ` : ''}
           
           <div class="footer">
-            <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+            <p>Ce rapport a été généré automatiquement par Maintrix</p>
             <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
           </div>
         </body>
@@ -258,7 +258,7 @@ export class PDFGeneratorSimple {
         </head>
         <body>
           <div class="header">
-            <h1>Smart GMAO DiagFix</h1>
+            <h1>Maintrix</h1>
             <h2>Rapport Mensuel de Maintenance</h2>
             <div class="period">Période: ${monthName} ${reportData.year}</div>
             <div class="date">Rapport ${reportData.reportNumber} généré le ${reportDate}</div>
@@ -353,7 +353,7 @@ export class PDFGeneratorSimple {
           ` : ''}
           
           <div class="footer">
-            <p>Ce rapport a été généré automatiquement par Smart GMAO DiagFix</p>
+            <p>Ce rapport a été généré automatiquement par Maintrix</p>
             <p>Plateforme de gestion de maintenance assistée par intelligence artificielle</p>
           </div>
         </body>

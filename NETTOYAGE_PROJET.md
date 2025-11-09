@@ -15,7 +15,7 @@
 ❌ Supprimés :
 - `attached_assets/Base_Industrie_120_Cas_Enrichie_1754586536636.xlsx`
 - `attached_assets/Base_Industrie_120_Cas_Enrichie_1754588437015.xlsx`
-- `attached_assets/Base_Collecte_SMDiagFix_1752616128789.xlsx`
+- `attached_assets/Base_Collecte_Maintrix_1752616128789.xlsx`
 
 ✅ Conservé :
 - `attached_assets/Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx` (version la plus récente)
@@ -25,9 +25,9 @@
 ### 📄 **2. Fichiers de documentation en doublon (3 fichiers)**
 
 ❌ Supprimés :
-- `attached_assets/Cahier_des_charges_GMAO_SMDiagFix_1753353395557.docx`
-- `attached_assets/Cahier_des_charges_SMDiagFix_1752616128790.docx`
-- `attached_assets/Projet_SMDiagFix_Complet (1)_1752582256439.docx`
+- `attached_assets/Cahier_des_charges_GMAO_Maintrix_1753353395557.docx`
+- `attached_assets/Cahier_des_charges_Maintrix_1752616128790.docx`
+- `attached_assets/Projet_Maintrix_Complet (1)_1752582256439.docx`
 
 ✅ Conservés :
 - `attached_assets/Cahier_des_charges_GMAO_ERP_Complet_NextGen_1753567041918.docx`
@@ -81,11 +81,11 @@
 - `scripts/simple-windows-exe.js`
 - `scripts/windows-installer-real.js`
 - `scripts/windows-installer.ps1`
-- `scripts/Smart-GMAO-DiagFix-Installer.exe`
+- `scripts/Smart-GMAO-Maintrix-Installer.exe`
 
 ✅ Conservé :
 - `scripts/simple-windows-installer.js` (version finale)
-- `scripts/Smart-GMAO-DiagFix-Setup-Fixed.exe` (installateur fonctionnel)
+- `scripts/Smart-GMAO-Maintrix-Setup-Fixed.exe` (installateur fonctionnel)
 
 ---
 

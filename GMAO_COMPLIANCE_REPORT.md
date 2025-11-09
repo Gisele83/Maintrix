@@ -1,8 +1,8 @@
-# Rapport de Conformité - Smart GMAO DiagFix vs Cahier des Charges Next-Gen
+# Rapport de Conformité - Maintrix vs Cahier des Charges Next-Gen
 
 ## 1. OBJECTIFS STRATÉGIQUES ✅ CONFORME
 
-Notre plateforme Smart GMAO DiagFix répond aux objectifs stratégiques :
+Notre plateforme Maintrix répond aux objectifs stratégiques :
 
 ✅ **Gestion complète des actifs** - Système d'équipements avec hiérarchie et localisation
 ✅ **Optimisation maintenance** - Corrective (OT), préventive (plans), prédictive (IA/IoT)
@@ -116,7 +116,7 @@ Notre plateforme Smart GMAO DiagFix répond aux objectifs stratégiques :
 
 ## 6. POSITIONNEMENT VS MAXIMO - SMART GMAO DIAGFIX GAGNANT
 
-| Critère | IBM Maximo | Smart GMAO DiagFix | Avantage |
+| Critère | IBM Maximo | Maintrix | Avantage |
 |---------|------------|-------------------|----------|
 | Interface utilisateur | Traditionnelle | Responsive, UX moderne | ✅ LARGE |
 | IA intégrée | Externe, surcoût | Native, 9 algorithmes ML | ✅ TRÈS LARGE |
@@ -151,4 +151,4 @@ Notre plateforme Smart GMAO DiagFix répond aux objectifs stratégiques :
 
 ## CONCLUSION : READY FOR MARKET LEADERSHIP
 
-Smart GMAO DiagFix **dépasse largement** les exigences du cahier des charges Next-Gen et se positionne comme **leader technologique** face à IBM Maximo et autres solutions legacy du marché.
+Maintrix **dépasse largement** les exigences du cahier des charges Next-Gen et se positionne comme **leader technologique** face à IBM Maximo et autres solutions legacy du marché.

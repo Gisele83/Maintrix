@@ -507,7 +507,7 @@ router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
         </div>
 
         <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #6B7280;">
-            <p>Rapport généré automatiquement par Smart GMAO DiagFix</p>
+            <p>Rapport généré automatiquement par Maintrix</p>
             <p>Conformité CCTP vérifiée le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
         </div>
 

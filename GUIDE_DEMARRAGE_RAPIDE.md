@@ -1,11 +1,11 @@
-# 🚀 Guide de Démarrage Rapide - Smart GMAO DiagFix
+# 🚀 Guide de Démarrage Rapide - Maintrix
 
 ## Installation en 5 Minutes
 
 ### **Option 1 : Installation Automatique (Recommandée)**
 ```bash
 # Télécharger et exécuter le script d'installation
-curl -sSL https://install.smart-gmao-diagfix.com | sudo bash
+curl -sSL https://install.maintrix.com | sudo bash
 
 # Ou depuis le code source
 sudo ./scripts/install.sh
@@ -26,8 +26,8 @@ docker-compose logs -f app
 sudo apt update && sudo apt install -y nodejs npm postgresql git
 
 # 2. Configuration base de données
-sudo -u postgres createuser smart_gmao_user
-sudo -u postgres createdb smart_gmao_diagfix
+sudo -u postgres createuser maintrix_user
+sudo -u postgres createdb maintrix_db
 
 # 3. Installation application
 npm install
@@ -56,25 +56,25 @@ npm start
 
 ```bash
 # Démarrage
-sudo systemctl start smart-gmao-diagfix
+sudo systemctl start maintrix
 
 # Arrêt
-sudo systemctl stop smart-gmao-diagfix
+sudo systemctl stop maintrix
 
 # Redémarrage
-sudo systemctl restart smart-gmao-diagfix
+sudo systemctl restart maintrix
 
 # Statut
-sudo systemctl status smart-gmao-diagfix
+sudo systemctl status maintrix
 
 # Logs en temps réel
-sudo journalctl -u smart-gmao-diagfix -f
+sudo journalctl -u maintrix -f
 
 # Sauvegarde
-sudo -u smart-gmao /opt/smart-gmao-diagfix/scripts/backup.sh
+sudo -u smart-gmao /opt/maintrix/scripts/backup.sh
 
 # Mise à jour
-sudo /opt/smart-gmao-diagfix/scripts/update.sh
+sudo /opt/maintrix/scripts/update.sh
 
 # Test installation
 ./scripts/test-installation.sh
@@ -110,7 +110,7 @@ sudo /opt/smart-gmao-diagfix/scripts/update.sh
 ### **Variables d'Environnement Clés**
 ```env
 # Base de données
-DATABASE_URL=postgresql://user:password@localhost:5432/smart_gmao_diagfix
+DATABASE_URL=postgresql://user:password@localhost:5432/maintrix_db
 
 # Application
 NODE_ENV=production
@@ -139,8 +139,8 @@ sudo ufw allow 22 80 443 5000
 sudo certbot --nginx -d votre-domaine.com
 
 # Permissions
-sudo chown -R smart-gmao:smart-gmao /opt/smart-gmao-diagfix
-sudo chmod 600 /opt/smart-gmao-diagfix/.env
+sudo chown -R smart-gmao:smart-gmao /opt/maintrix
+sudo chmod 600 /opt/maintrix/.env
 ```
 
 ---
@@ -148,10 +148,10 @@ sudo chmod 600 /opt/smart-gmao-diagfix/.env
 ## 📊 Monitoring
 
 ### **Logs Importants**
-- **Application** : `journalctl -u smart-gmao-diagfix`
+- **Application** : `journalctl -u maintrix`
 - **Base de données** : `/var/log/postgresql/`
 - **Nginx** : `/var/log/nginx/`
-- **Sauvegardes** : `/opt/smart-gmao-diagfix/backups/backup.log`
+- **Sauvegardes** : `/opt/maintrix/backups/backup.log`
 
 ### **Métriques Clés**
 - Temps de réponse API < 2s
@@ -166,7 +166,7 @@ sudo chmod 600 /opt/smart-gmao-diagfix/.env
 ### **Application ne démarre pas**
 ```bash
 # Vérifier les logs
-sudo journalctl -u smart-gmao-diagfix -n 50
+sudo journalctl -u maintrix -n 50
 
 # Tester la configuration
 npm run build
@@ -185,14 +185,14 @@ sudo systemctl restart postgresql
 sudo -u postgres psql -c "\du"
 
 # Recréer l'utilisateur si nécessaire
-sudo -u postgres dropuser smart_gmao_user
-sudo -u postgres createuser -P smart_gmao_user
+sudo -u postgres dropuser maintrix_user
+sudo -u postgres createuser -P maintrix_user
 ```
 
 ### **Performance dégradée**
 ```bash
 # Redémarrer l'application
-sudo systemctl restart smart-gmao-diagfix
+sudo systemctl restart maintrix
 
 # Nettoyer les logs
 sudo journalctl --vacuum-time=7d
@@ -201,7 +201,7 @@ sudo journalctl --vacuum-time=7d
 df -h
 
 # Optimiser la base de données
-sudo -u postgres psql smart_gmao_diagfix -c "VACUUM ANALYZE;"
+sudo -u postgres psql maintrix_db -c "VACUUM ANALYZE;"
 ```
 
 ---
@@ -259,7 +259,7 @@ sudo certbot --nginx -d votre-domaine.com
 
 - **Documentation** : `DOCUMENTATION_COMPLETE_SMART_GMAO_DIAGFIX.md`
 - **API Reference** : http://localhost:5000/api-docs
-- **Logs** : `journalctl -u smart-gmao-diagfix -f`
+- **Logs** : `journalctl -u maintrix -f`
 - **Test Installation** : `./scripts/test-installation.sh`
 
 ---

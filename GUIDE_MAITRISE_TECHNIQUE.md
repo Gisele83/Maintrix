@@ -1,4 +1,4 @@
-# 🎯 Guide de Maîtrise Technique - Smart GMAO DiagFix
+# 🎯 Guide de Maîtrise Technique - Maintrix
 
 ## Guide Commercial et Technique pour Vente et Promotion
 
@@ -18,7 +18,7 @@
 - **Workflow fluide** : Diagnostic → GMAO → IoT → Intervention en continu
 
 **Arguments de vente:**
-> "Contrairement aux solutions concurrentes qui nécessitent 3-4 logiciels différents, Smart GMAO DiagFix unifie tout en une seule plateforme intuitive."
+> "Contrairement aux solutions concurrentes qui nécessitent 3-4 logiciels différents, Maintrix unifie tout en une seule plateforme intuitive."
 
 ### 2. **IA DIAGNOSTIC TRIPLE NIVEAU**
 **Technologies avancées:**
@@ -277,7 +277,7 @@ Résultats Attendus Année 1:
 
 ### **Vs SAP PM**
 ```
-Smart GMAO DiagFix          SAP PM
+Maintrix          SAP PM
 ├── Déploiement: 2-4 sem    ├── Déploiement: 12-18 mois
 ├── Formation: 2 jours      ├── Formation: 2-3 semaines
 ├── IA intégrée: Oui        ├── IA intégrée: Non (addon)
@@ -288,7 +288,7 @@ Smart GMAO DiagFix          SAP PM
 
 ### **Vs Maximo**
 ```
-Smart GMAO DiagFix          IBM Maximo
+Maintrix          IBM Maximo
 ├── Interface: Moderne      ├── Interface: Vieillissante
 ├── Diagnostic IA: Oui      ├── Diagnostic IA: Non
 ├── Setup: Self-service     ├── Setup: Consultants requis
@@ -299,7 +299,7 @@ Smart GMAO DiagFix          IBM Maximo
 
 ### **Vs Solutions Spécialisées**
 ```
-Smart GMAO DiagFix             Solutions Fragmentées
+Maintrix             Solutions Fragmentées
 ├── Plateforme unifiée         ├── 3-5 logiciels séparés
 ├── Données centralisées       ├── Données éparpillées
 ├── Formation unique           ├── Formation multiple
@@ -315,7 +315,7 @@ Smart GMAO DiagFix             Solutions Fragmentées
 ### **Script Demo 30 Minutes**
 
 #### **Ouverture (2 min)**
-> "Aujourd'hui, je vais vous montrer comment Smart GMAO DiagFix transforme une panne critique de 4 heures d'arrêt en intervention de 30 minutes avec diagnostic automatique."
+> "Aujourd'hui, je vais vous montrer comment Maintrix transforme une panne critique de 4 heures d'arrêt en intervention de 30 minutes avec diagnostic automatique."
 
 #### **Séquence 1 : Diagnostic IA (8 min)**
 1. **Problème simulé** : Pompe hydraulique vibrations anormales
@@ -390,7 +390,7 @@ Configuration Demo:
 ## 🎯 MESSAGES CLÉS PAR AUDIENCE
 
 ### **Comité Direction**
-> "Smart GMAO DiagFix divise par 2 vos coûts maintenance tout en doublant disponibilité équipements. ROI garanti 18 mois."
+> "Maintrix divise par 2 vos coûts maintenance tout en doublant disponibilité équipements. ROI garanti 18 mois."
 
 ### **DSI/IT**
 > "Architecture cloud-native, APIs ouvertes, déploiement 2 semaines. S'intègre parfaitement dans votre écosystème IT existant."
@@ -458,4 +458,4 @@ Configuration Demo:
 ---
 
 *Guide mis à jour - Janvier 2025*  
-*Smart GMAO DiagFix - Mastery Guide v1.0*
+*Maintrix - Mastery Guide v1.0*

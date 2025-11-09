@@ -27,7 +27,7 @@ Ci-après dénommée **"LE BÉNÉFICIAIRE"**
 
 ## ARTICLE 1 - OBJET
 
-Le présent accord a pour objet de définir les conditions de confidentialité applicables lors de la mise à disposition du progiciel **MAINTRIX** (Smart GMAO DiagFix) à des fins de test et d'évaluation technique.
+Le présent accord a pour objet de définir les conditions de confidentialité applicables lors de la mise à disposition du progiciel **MAINTRIX** (Maintrix) à des fins de test et d'évaluation technique.
 
 **MAINTRIX** est un système intégré de gestion de maintenance assistée par ordinateur (GMAO) avec intelligence artificielle pour le diagnostic prédictif, développé par LE CONCÉDANT.
 

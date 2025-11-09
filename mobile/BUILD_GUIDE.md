@@ -1,8 +1,8 @@
-# Guide de Build et Distribution - Application Mobile Smart GMAO DiagFix
+# Guide de Build et Distribution - Application Mobile Maintrix
 
 ## Vue d'Ensemble
 
-Ce guide détaille les étapes de build et distribution de l'application mobile Smart GMAO DiagFix pour Android et iOS, avec options de distribution gratuite et payante.
+Ce guide détaille les étapes de build et distribution de l'application mobile Maintrix pour Android et iOS, avec options de distribution gratuite et payante.
 
 ## 🛠️ Préparatifs Build
 

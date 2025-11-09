@@ -1,4 +1,4 @@
-// Access Management System for Smart GMAO DiagFix
+// Access Management System for Maintrix
 // Permet au propriétaire de donner l'accès à des tiers sans paiement
 
 export interface AccessGrant {

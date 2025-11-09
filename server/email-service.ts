@@ -34,7 +34,7 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Invitation Smart GMAO DiagFix</title>
+    <title>Invitation Maintrix</title>
     <style>
         .container { max-width: 600px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -47,14 +47,14 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Bienvenue sur Smart GMAO DiagFix</h1>
+            <h1>🚀 Bienvenue sur Maintrix</h1>
             <p>Votre plateforme de maintenance intelligente est prête</p>
         </div>
         
         <div class="content">
             <h2>Bonjour,</h2>
             
-            <p>Félicitations ! Votre tenant <strong>"${data.tenantName}"</strong> a été créé avec succès sur la plateforme Smart GMAO DiagFix.</p>
+            <p>Félicitations ! Votre tenant <strong>"${data.tenantName}"</strong> a été créé avec succès sur la plateforme Maintrix.</p>
             
             <div class="highlight">
                 <h3>📋 Informations de votre tenant :</h3>
@@ -69,7 +69,7 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
             <p>Cliquez sur le bouton ci-dessous pour accéder à votre interface de maintenance intelligente :</p>
             
             <div style="text-align: center;">
-                <a href="${data.loginUrl}" class="btn">🚀 Accéder à Smart GMAO DiagFix</a>
+                <a href="${data.loginUrl}" class="btn">🚀 Accéder à Maintrix</a>
             </div>
             
             <h3>✨ Fonctionnalités disponibles :</h3>
@@ -88,7 +88,7 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
         </div>
         
         <div class="footer">
-            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p><strong>Maintrix</strong> - Plateforme de maintenance industrielle intelligente</p>
             <p>En cas de questions, contactez le support technique.</p>
             ${data.superAdminName ? `<p>Invité par : ${data.superAdminName}</p>` : ''}
         </div>
@@ -98,11 +98,11 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
 
     await mailService.send({
       to: data.adminEmail,
-      from: 'noreply@smart-gmao-diagfix.com', // Remplacez par votre adresse expéditeur vérifiée
-      subject: `🚀 Bienvenue sur Smart GMAO DiagFix - Tenant "${data.tenantName}" créé`,
+      from: 'noreply@maintrix.com', // Remplacez par votre adresse expéditeur vérifiée
+      subject: `🚀 Bienvenue sur Maintrix - Tenant "${data.tenantName}" créé`,
       html: emailContent,
       text: `
-Bienvenue sur Smart GMAO DiagFix !
+Bienvenue sur Maintrix !
 
 Votre tenant "${data.tenantName}" a été créé avec succès.
 
@@ -121,7 +121,7 @@ Fonctionnalités disponibles :
 - Application mobile
 - Intégrations ERP
 
-Smart GMAO DiagFix - Plateforme de maintenance industrielle intelligente
+Maintrix - Plateforme de maintenance industrielle intelligente
       `
     });
 
@@ -205,7 +205,7 @@ export async function sendTenantStatusNotification(
         </div>
         
         <div class="footer">
-            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p><strong>Maintrix</strong> - Plateforme de maintenance industrielle intelligente</p>
         </div>
     </div>
 </body>
@@ -213,7 +213,7 @@ export async function sendTenantStatusNotification(
 
     await mailService.send({
       to: adminEmail,
-      from: 'noreply@smart-gmao-diagfix.com',
+      from: 'noreply@maintrix.com',
       subject: status.subject,
       html: emailContent
     });
@@ -240,7 +240,7 @@ export async function sendTenantCredentials(notification: CredentialNotification
 <html>
 <head>
     <meta charset="utf-8">
-    <title>🔐 Vos identifiants Smart GMAO DiagFix</title>
+    <title>🔐 Vos identifiants Maintrix</title>
     <style>
         .container { max-width: 600px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -257,13 +257,13 @@ export async function sendTenantCredentials(notification: CredentialNotification
     <div class="container">
         <div class="header">
             <h1>🔐 Identifiants de connexion</h1>
-            <p>Votre accès à Smart GMAO DiagFix - ${notification.tenantName}</p>
+            <p>Votre accès à Maintrix - ${notification.tenantName}</p>
         </div>
         
         <div class="content">
             <h2>Bonjour ${notification.recipientName || ''},</h2>
             
-            <p>Votre compte a été créé avec succès sur la plateforme <strong>Smart GMAO DiagFix</strong> pour le tenant <strong>"${notification.tenantName}"</strong>.</p>
+            <p>Votre compte a été créé avec succès sur la plateforme <strong>Maintrix</strong> pour le tenant <strong>"${notification.tenantName}"</strong>.</p>
             
             <div class="credentials">
                 <h3>🔑 Vos identifiants temporaires :</h3>
@@ -312,7 +312,7 @@ export async function sendTenantCredentials(notification: CredentialNotification
         </div>
         
         <div class="footer">
-            <p><strong>Smart GMAO DiagFix</strong> - Plateforme de maintenance industrielle intelligente</p>
+            <p><strong>Maintrix</strong> - Plateforme de maintenance industrielle intelligente</p>
             <p style="font-size: 12px; color: #6b7280;">
                 Cet email contient des informations confidentielles. Si vous l'avez reçu par erreur, veuillez le supprimer immédiatement.
             </p>
@@ -323,8 +323,8 @@ export async function sendTenantCredentials(notification: CredentialNotification
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@smart-gmao-diagfix.com',
-      subject: `🔐 Vos identifiants Smart GMAO DiagFix - ${notification.tenantName}`,
+      from: 'noreply@maintrix.com',
+      subject: `🔐 Vos identifiants Maintrix - ${notification.tenantName}`,
       html: emailContent
     });
 

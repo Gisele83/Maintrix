@@ -195,7 +195,7 @@ export default function UserProfiles() {
         <div>
           <h1 className="text-3xl font-bold">Gestion des Profils Utilisateur</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Gérez les profils et les permissions des utilisateurs du système SMDiagFix
+            Gérez les profils et les permissions des utilisateurs du système Maintrix
           </p>
         </div>
         

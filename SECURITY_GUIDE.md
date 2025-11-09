@@ -1,4 +1,4 @@
-# Guide de Sécurité - Smart GMAO DiagFix
+# Guide de Sécurité - Maintrix
 
 ## 🔐 Mesures de Sécurité Actuelles
 

@@ -51,7 +51,7 @@ export function TrialBanner({
                   Période d'essai expirée
                 </h3>
                 <p className="text-sm text-red-700 dark:text-red-300">
-                  Contactez l'administrateur pour accéder à Smart GMAO DiagFix
+                  Contactez l'administrateur pour accéder à Maintrix
                 </p>
               </div>
             </div>
@@ -74,7 +74,7 @@ export function TrialBanner({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-medium">Essai gratuit Smart GMAO DiagFix</h3>
+                <h3 className="font-medium">Essai gratuit Maintrix</h3>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <PlanIcon className="h-3 w-3" />
                   Plan {planType.toUpperCase()}

@@ -213,7 +213,7 @@ export class PDFGeneratorFunctional {
             <div class="header">
               <h1>🔧 RAPPORT D'INTERVENTION</h1>
               <p><strong>N° ${reportData.reportNumber}</strong></p>
-              <p>Smart GMAO DiagFix - Système de Maintenance Industrielle</p>
+              <p>Maintrix - Système de Maintenance Industrielle</p>
             </div>
             
             <div class="section">
@@ -469,7 +469,7 @@ export class PDFGeneratorFunctional {
               <h1>📊 RAPPORT MENSUEL</h1>
               <p><strong>N° ${reportData.reportNumber}</strong></p>
               <p>${reportData.month} ${reportData.year}</p>
-              <p>Smart GMAO DiagFix - Système de Maintenance Industrielle</p>
+              <p>Maintrix - Système de Maintenance Industrielle</p>
             </div>
             
             <div class="section">
@@ -676,7 +676,7 @@ export class PDFGeneratorFunctional {
             </div>
 
             <div class="footer">
-              <p>Smart GMAO DiagFix - Rapport généré automatiquement</p>
+              <p>Maintrix - Rapport généré automatiquement</p>
             </div>
           </div>
 

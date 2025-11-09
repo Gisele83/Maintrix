@@ -1,4 +1,4 @@
-// Trial Management System for Smart GMAO DiagFix
+// Trial Management System for Maintrix
 // Gestion de la période d'essai gratuite de 14 jours
 
 export interface TrialUser {
@@ -155,7 +155,7 @@ export class TrialManager {
     }
     
     if (status.daysRemaining === 0) {
-      notifications.push("🔒 Votre période d'essai de 14 jours a expiré. Abonnez-vous pour continuer à utiliser Smart GMAO DiagFix.");
+      notifications.push("🔒 Votre période d'essai de 14 jours a expiré. Abonnez-vous pour continuer à utiliser Maintrix.");
     }
     
     const usagePercentage = (trialUser.diagnosticsCount / trialUser.maxDiagnostics) * 100;

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🔄 Script de Mise à Jour - Smart GMAO DiagFix
+# 🔄 Script de Mise à Jour - Maintrix
 # Mise à jour automatique de l'application en production
 
 set -e
@@ -31,12 +31,12 @@ print_error() {
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$(dirname "$SCRIPT_DIR")"
-SERVICE_NAME="smart-gmao-diagfix"
+SERVICE_NAME="maintrix"
 BACKUP_BEFORE_UPDATE=true
 GIT_REMOTE="origin"
 GIT_BRANCH="main"
 
-print_status "=== MISE À JOUR Smart GMAO DiagFix ==="
+print_status "=== MISE À JOUR Maintrix ==="
 print_status "Répertoire: $APP_DIR"
 print_status "Service: $SERVICE_NAME"
 

@@ -39,7 +39,7 @@ export class OfflineStorage {
 
     try {
       this.db = await SQLite.openDatabase({
-        name: 'SMDiagFix.db',
+        name: 'Maintrix.db',
         location: 'default',
         createFromLocation: 1,
       });

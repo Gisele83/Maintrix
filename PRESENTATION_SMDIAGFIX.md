@@ -1,4 +1,4 @@
-# Smart GMAO DiagFix - Plateforme Intégrée de Maintenance Industrielle
+# Maintrix - Plateforme Intégrée de Maintenance Industrielle
 
 ## 📋 Support de Présentation Officiel - Janvier 2025
 
@@ -6,7 +6,7 @@
 
 ## 🎯 Vue d'Ensemble
 
-**Smart GMAO DiagFix** est la première plateforme industrielle intégrée combinant **Smart Diagnostic** (assistant IA de diagnostic) et **Smart GMAO** (système complet de gestion de maintenance assistée par ordinateur). Cette solution révolutionnaire transforme complètement l'approche de la maintenance industrielle moderne.
+**Maintrix** est la première plateforme industrielle intégrée combinant **Smart Diagnostic** (assistant IA de diagnostic) et **Smart GMAO** (système complet de gestion de maintenance assistée par ordinateur). Cette solution révolutionnaire transforme complètement l'approche de la maintenance industrielle moderne.
 
 ### Défis Industriels Actuels
 - **Maintenance réactive coûteuse** : Interventions d'urgence non planifiées
@@ -15,7 +15,7 @@
 - **Absence de prédiction** : Défaillances imprévisibles et pannes critiques
 - **ROI maintenance faible** : Budgets mal optimisés et ressources gaspillées
 
-### Solution Intégrée Smart GMAO DiagFix
+### Solution Intégrée Maintrix
 Une plateforme unifiée combinant deux modules complémentaires :
 
 **Smart Diagnostic** (Assistant IA) :
@@ -277,7 +277,7 @@ Une plateforme unifiée combinant deux modules complémentaires :
 
 ## 📞 Contact et Support
 
-**Équipe SMDiagFix**
+**Équipe Maintrix**
 - **Démonstration**: Disponible sur demande
 - **Support technique**: 24/7 pendant pilote
 - **Formation**: Programme complet inclus
@@ -287,4 +287,4 @@ Une plateforme unifiée combinant deux modules complémentaires :
 
 ---
 
-*SMDiagFix - L'Intelligence Artificielle au Service de la Maintenance Industrielle*
+*Maintrix - L'Intelligence Artificielle au Service de la Maintenance Industrielle*

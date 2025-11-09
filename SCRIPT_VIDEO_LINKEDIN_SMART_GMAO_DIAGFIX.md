@@ -1,16 +1,16 @@
-# 🎬 Script Vidéo LinkedIn - Smart GMAO DiagFix
+# 🎬 Script Vidéo LinkedIn - Maintrix
 ## Présentation Professionnelle (3-5 minutes)
 
 ---
 
 ## 🎯 **INTRO - Hook Puissant** (0-15 secondes)
-**[Visuel : Interface moderne Smart GMAO DiagFix en action]**
+**[Visuel : Interface moderne Maintrix en action]**
 
 > **"Imaginez diagnostiquer une panne complexe en 8 secondes au lieu de 45 minutes..."**
 
 **[Transition : Split screen diagnostic manuel vs IA]**
 
-> **"Bienvenue dans l'ère de la maintenance intelligente avec Smart GMAO DiagFix."**
+> **"Bienvenue dans l'ère de la maintenance intelligente avec Maintrix."**
 
 ---
 
@@ -31,7 +31,7 @@
 ## 💡 **SOLUTION SMART GMAO DIAGFIX** (45-90 secondes)
 **[Visuel : Interface principale avec modules]**
 
-> **"Smart GMAO DiagFix révolutionne la maintenance avec une plateforme intégrée unique :"**
+> **"Maintrix révolutionne la maintenance avec une plateforme intégrée unique :"**
 
 ### **Smart Diagnostic IA**
 **[Démonstration live de diagnostic]**
@@ -130,14 +130,14 @@
 3. 📊 **Découvrez** les gains de productivité
 
 **[Affichage URL et QR Code]**
-> **"Smart GMAO DiagFix - L'avenir de la maintenance industrielle commence aujourd'hui"**
+> **"Maintrix - L'avenir de la maintenance industrielle commence aujourd'hui"**
 
 ---
 
 ## 🎬 **OUTRO PROFESSIONNEL** (270-300 secondes)
 **[Logo animé + Informations contact]**
 
-> **"Smart GMAO DiagFix - Où l'Intelligence Artificielle rencontre la maintenance industrielle"**
+> **"Maintrix - Où l'Intelligence Artificielle rencontre la maintenance industrielle"**
 
 **[Texte défilant]:**
 - 🌐 **Site Web** : [URL plateforme]
@@ -162,7 +162,7 @@
 - **Sous-titres** : Français + Anglais optionnel
 
 ### **Assets Requis :**
-- Screenshots interface Smart GMAO DiagFix
+- Screenshots interface Maintrix
 - Captures écran diagnostic en action
 - Graphiques ROI et statistiques
 - Logo entreprise haute définition
@@ -191,4 +191,4 @@
 
 ---
 
-*Cette vidéo LinkedIn positionne Smart GMAO DiagFix comme la solution de référence en maintenance industrielle intelligente, avec une démonstration concrète et un ROI clairement démontré.*
+*Cette vidéo LinkedIn positionne Maintrix comme la solution de référence en maintenance industrielle intelligente, avec une démonstration concrète et un ROI clairement démontré.*

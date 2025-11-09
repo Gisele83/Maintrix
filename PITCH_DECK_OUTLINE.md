@@ -1,4 +1,4 @@
-# Pitch Deck SMDiagFix - Plan de Présentation
+# Pitch Deck Maintrix - Plan de Présentation
 
 ## 🎯 Structure Présentation (25 slides - 20 minutes)
 
@@ -6,7 +6,7 @@
 
 ### **Slide 1: Titre & Accroche**
 ```
-SMDiagFix
+Maintrix
 L'Intelligence Artificielle Révolutionne la Maintenance Industrielle
 
 "De 45 minutes à 8 minutes pour un diagnostic précis à 92%"
@@ -33,7 +33,7 @@ La Maintenance Industrielle Aujourd'hui
 
 ### **Slide 3: Notre Solution**
 ```
-SMDiagFix - Assistant IA de Maintenance
+Maintrix - Assistant IA de Maintenance
 
 ✅ Diagnostic automatisé en < 2 secondes
 ✅ 92% de précision (vs 65% manuel)
@@ -230,7 +230,7 @@ Avantages Concurrentiels
 • Logiciels basiques sans IA
 • Solutions verticales limitées
 
-✅ SMDiagFix:
+✅ Maintrix:
 • IA ensemble unique (9 algorithmes)
 • Apprentissage continu auto-adaptatif  
 • Couverture équipements la plus large

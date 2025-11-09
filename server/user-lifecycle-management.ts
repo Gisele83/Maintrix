@@ -348,7 +348,7 @@ export class OnboardingManager {
         to: user.email,
         subject: 'Bienvenue - Votre compte est maintenant actif',
         html: `
-          <h2>Bienvenue dans Smart GMAO DiagFix !</h2>
+          <h2>Bienvenue dans Maintrix !</h2>
           <p>Votre processus d'intégration est maintenant terminé.</p>
           <p><strong>Rôle attribué :</strong> ${workflow.metadata.requestedRole}</p>
           <p>Vous pouvez maintenant vous connecter et utiliser l'application.</p>
