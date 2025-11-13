@@ -66,7 +66,7 @@ echo [6/8] Configuration de la base de données...
 (
 echo DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/maintrix_db
 echo NODE_ENV=production
-echo PORT=3000
+echo PORT=5000
 echo SESSION_SECRET=maintrix_secret_key_2025
 ) > .env
 
@@ -110,14 +110,14 @@ call node install-service.js
 
 echo [8/8] Création des raccourcis...
 :: Créer le raccourci sur le bureau
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:5000'; $Shortcut.Save()"
 
 :: Créer le raccourci dans le menu démarrer
-powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%APPDATA%\Microsoft\Windows\Start Menu\Programs\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:3000'; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%APPDATA%\Microsoft\Windows\Start Menu\Programs\Maintrix.lnk'); $Shortcut.TargetPath = 'http://localhost:5000'; $Shortcut.Save()"
 
 :: Configurer le pare-feu
 echo Configuration du pare-feu...
-netsh advfirewall firewall add rule name="Maintrix" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="Maintrix" dir=in action=allow protocol=TCP localport=5000
 
 echo.
 echo =======================================
@@ -127,7 +127,9 @@ echo.
 echo Maintrix a été installé et configuré.
 echo.
 echo Accès:
-echo - URL: http://localhost:3000
+echo - URL: http://localhost:5000
+echo - Email: admin@maintrix.local
+echo - Mot de passe: Maintrix2024!
 echo - Raccourci sur le Bureau créé
 echo - Service Windows configuré
 echo.
@@ -135,7 +137,7 @@ echo L'application va s'ouvrir automatiquement...
 
 :: Attendre quelques secondes puis ouvrir l'application
 timeout /t 5 /nobreak
-start http://localhost:3000
+start http://localhost:5000
 
 echo.
 echo Installation complète ! Profitez de Maintrix.
