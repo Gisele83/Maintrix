@@ -97,7 +97,7 @@ createdb maintrix_db
 npm run db:push
 
 # Charger les données de démonstration (120 cas industriels)
-npm run seed
+npx tsx server/seed.ts
 ```
 
 ### **Étape 6 : Construction et Démarrage**
@@ -268,7 +268,7 @@ After=network.target postgresql.service
 
 [Service]
 Type=simple
-User=smart-gmao
+User=maintrix
 WorkingDirectory=/opt/maintrix
 Environment=NODE_ENV=production
 Environment=PORT=5000
@@ -312,10 +312,10 @@ sudo -u postgres psql -c "SELECT * FROM pg_stat_activity;"
 ### **Sauvegarde Automatique**
 ```bash
 #!/bin/bash
-# Script de sauvegarde (/opt/scripts/backup-smart-gmao.sh)
+# Script de sauvegarde (/opt/scripts/backup-maintrix.sh)
 
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/opt/backups/smart-gmao"
+BACKUP_DIR="/opt/backups/maintrix"
 DB_NAME="maintrix_db"
 
 # Création du répertoire de sauvegarde
@@ -337,7 +337,7 @@ echo "Sauvegarde terminée : $DATE"
 ```bash
 # Ajout au crontab pour sauvegarde quotidienne
 crontab -e
-# Ajouter : 0 2 * * * /opt/scripts/backup-smart-gmao.sh
+# Ajouter : 0 2 * * * /opt/scripts/backup-maintrix.sh
 ```
 
 ---
@@ -427,7 +427,7 @@ npx react-native run-ios --configuration Release
 ### **Mise à Jour Application :**
 ```bash
 #!/bin/bash
-# Script de mise à jour (/opt/scripts/update-smart-gmao.sh)
+# Script de mise à jour (/opt/scripts/update-maintrix.sh)
 
 echo "🔄 Début mise à jour Maintrix..."
 
@@ -435,7 +435,7 @@ echo "🔄 Début mise à jour Maintrix..."
 sudo systemctl stop maintrix
 
 # Sauvegarde avant mise à jour
-/opt/scripts/backup-smart-gmao.sh
+/opt/scripts/backup-maintrix.sh
 
 # Mise à jour du code
 cd /opt/maintrix
@@ -487,7 +487,7 @@ sudo kill -9 PID_DU_PROCESSUS
 **3. Permissions insuffisantes :**
 ```bash
 # Correction des permissions
-sudo chown -R smart-gmao:smart-gmao /opt/maintrix
+sudo chown -R maintrix:maintrix /opt/maintrix
 sudo chmod +x /opt/maintrix/start.sh
 ```
 
@@ -507,10 +507,10 @@ sudo tail -f /var/log/syslog
 
 ## 🎯 **CONTACT SUPPORT**
 
-- **Documentation** : [Lien vers documentation complète]
-- **Issues GitHub** : [Lien repository issues]
-- **Support Email** : support@maintrix.com
-- **Communauté** : [Forum/Discord/Slack]
+- **Documentation** : https://docs.maintrix-t.com
+- **Support Email** : support@maintrix-t.com
+- **Site Web** : https://maintrix-t.com
+- **Guides Complémentaires** : INSTALL.md, EVALUATION_DEPLOYMENT_MAINTRIX.md
 
 ---
 
