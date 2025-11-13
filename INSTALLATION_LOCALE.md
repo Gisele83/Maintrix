@@ -102,14 +102,27 @@ npx tsx server/seed.ts
 
 ### **Étape 6 : Construction et Démarrage**
 ```bash
-# Construction de l'application
-npm run build
+# Mode développement (avec hot reload)
+npm run dev
 
-# Démarrage en production
+# OU mode production
+npm run build
 npm start
 
 # L'application sera accessible sur http://localhost:5000
 ```
+
+### **Étape 7 : Connexion Initiale**
+
+Une fois l'application démarrée, connectez-vous avec les identifiants par défaut :
+
+- **URL** : http://localhost:5000
+- **Email** : admin@maintrix.local
+- **Mot de passe** : Maintrix2024!
+
+⚠️ **IMPORTANT** : Changez ces identifiants en production !
+
+Pour créer de nouveaux utilisateurs, utilisez l'interface d'administration après connexion.
 
 ---
 
@@ -205,12 +218,20 @@ docker-compose up -d --build
 # Vérification des logs
 docker-compose logs -f app
 
+# Charger les données de démo (si nécessaire)
+docker-compose exec app npx tsx server/seed.ts
+
 # Arrêt
 docker-compose down
 
 # Mise à jour
 docker-compose pull && docker-compose up -d --build
 ```
+
+**Connexion après installation Docker** :
+- **URL** : http://localhost:5000
+- **Email** : admin@maintrix.local
+- **Mot de passe** : Maintrix2024!
 
 ---
 
