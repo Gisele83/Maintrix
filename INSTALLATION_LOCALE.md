@@ -13,14 +13,33 @@
 - **Stockage** : Minimum 2GB d'espace libre
 
 ### **Systèmes Supportés :**
-- ✅ **Windows** 10/11 (avec WSL2 recommandé)
+- ✅ **Windows** 10/11 (voir [INSTALLATION_WINDOWS.md](./INSTALLATION_WINDOWS.md) pour guide spécifique)
 - ✅ **macOS** 12+ (Intel/Apple Silicon)
 - ✅ **Linux** Ubuntu 20.04+, CentOS 8+, Debian 11+
 - ✅ **Docker** (toutes plateformes)
 
 ---
 
-## 📦 **MÉTHODE 1 : INSTALLATION STANDARD**
+## 🪟 **INSTALLATION WINDOWS**
+
+**Pour les utilisateurs Windows, consultez le guide dédié : [INSTALLATION_WINDOWS.md](./INSTALLATION_WINDOWS.md)**
+
+Ce guide contient :
+- ✅ Instructions PowerShell et CMD adaptées
+- ✅ Script d'installation automatique (`scripts\windows-setup.bat`)
+- ✅ Résolution des problèmes spécifiques Windows
+- ✅ Configuration service Windows avec PM2 ou NSSM
+
+**Installation rapide Windows :**
+```powershell
+# Exécuter PowerShell en tant qu'Administrateur
+cd chemin\vers\maintrix
+.\scripts\windows-setup.bat
+```
+
+---
+
+## 📦 **MÉTHODE 1 : INSTALLATION STANDARD (Linux/macOS)**
 
 ### **Étape 1 : Cloner le Repository**
 ```bash
