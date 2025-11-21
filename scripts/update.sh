@@ -101,7 +101,7 @@ if [[ "$BACKUP_BEFORE_UPDATE" == "true" ]]; then
     cp -r "$APP_DIR" "$APP_DIR.backup"
     
     # Sauvegarde de la base de données
-    sudo -u smart-gmao "$APP_DIR/scripts/backup.sh"
+    sudo -u maintrix "$APP_DIR/scripts/backup.sh"
     
     print_success "Sauvegarde terminée"
 fi
@@ -214,7 +214,7 @@ else
 fi
 
 # Test de la base de données
-if sudo -u smart-gmao psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+if sudo -u maintrix psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
     print_success "Base de données accessible"
 else
     print_error "Problème de connexion à la base de données"

@@ -89,7 +89,7 @@ call npm install -g node-windows
 echo const { Service } = require('node-windows'^);
 echo.
 echo const svc = new Service({
-echo   name: 'SmartGMAOMaintrix',
+echo   name: 'Maintrix',
 echo   description: 'Service de maintenance industrielle intelligente',
 echo   script: '%INSTALL_DIR%\\server\\index.js',
 echo   env: {

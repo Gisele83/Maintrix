@@ -336,7 +336,7 @@ netstat -ano | findstr :5000
 taskkill /PID <PID> /F
 
 # Ou changer le port dans .env
-# PORT=3000
+# PORT=5001
 ```
 
 ### Problème 5 : "Erreur de permissions"

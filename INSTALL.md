@@ -123,7 +123,7 @@ psql -h localhost -U maintrix_user -d maintrix_db
 ### Erreur : "Port 5000 already in use"
 ```bash
 # Changer le port dans .env
-PORT=3000
+PORT=5001
 
 # Ou arrêter le processus utilisant le port
 lsof -ti:5000 | xargs kill -9
