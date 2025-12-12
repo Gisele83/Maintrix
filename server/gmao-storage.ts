@@ -72,9 +72,9 @@ export class GMAOStorage {
   private db = db;
   // Equipment Registry Methods - TENANT ISOLATED
   async getEquipmentRegistry(tenantId: string): Promise<EquipmentRegistry[]> {
-    // TODO: Re-enable tenant isolation after database migration
+    // ✅ FIXED: Tenant isolation enabled
     return await db.select().from(equipmentRegistry)
-      // .where(eq(equipmentRegistry.tenantId, tenantId))
+      .where(eq(equipmentRegistry.tenantId, tenantId))
       .orderBy(desc(equipmentRegistry.createdAt));
   }
 
@@ -180,18 +180,16 @@ export class GMAOStorage {
   }
 
   async getWorkOrdersByStatus(status: string, tenantId: string): Promise<WorkOrder[]> {
-    // TODO: Re-enable tenant isolation after database migration
+    // ✅ FIXED: Tenant isolation enabled
     return await db.select().from(workOrders)
-      .where(eq(workOrders.status, status))
-      // .where(and(eq(workOrders.status, status), eq(workOrders.tenantId, tenantId)))
+      .where(and(eq(workOrders.status, status), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
   async getWorkOrdersByAssignee(userId: number, tenantId: string): Promise<WorkOrder[]> {
-    // TODO: Re-enable tenant isolation after database migration
+    // ✅ FIXED: Tenant isolation enabled
     return await db.select().from(workOrders)
-      .where(eq(workOrders.assignedTo, userId))
-      // .where(and(eq(workOrders.assignedTo, userId), eq(workOrders.tenantId, tenantId)))
+      .where(and(eq(workOrders.assignedTo, userId), eq(workOrders.tenantId, tenantId)))
       .orderBy(desc(workOrders.createdAt));
   }
 
