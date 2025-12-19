@@ -16,7 +16,9 @@ import {
   ArrowLeft,
   History,
   Package,
-  Database
+  Database,
+  CreditCard,
+  Home
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -62,17 +64,17 @@ export function ModernNavigation() {
 
   const navigation = [
     { name: "Accueil", href: "/", icon: BarChart3 },
+    { name: "Landing", href: "/welcome", icon: Home },
     { name: "Diagnostic IA", href: "/smart-diagnostic", icon: Brain },
     { name: "GMAO", href: "/gmao", icon: Settings },
     { name: "Inventaire", href: "/inventaire", icon: Package },
     { name: "Intégrations Avancées", href: "/advanced-integrations", icon: Database },
     { name: "Historique", href: "/historique", icon: History },
     { name: "Configuration ERP", href: "/erp-configuration", icon: Building },
-    // Gestion Permissions - visible seulement pour les admins et directeurs
     ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Gestion Permissions", href: "/tenant-permissions", icon: Shield }] : []),
+    ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Test Paiements", href: "/payment-test", icon: CreditCard }] : []),
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Formation", href: "/training", icon: Users },
-    // ✅ MIGRATION COMPLÈTE : Administration SaaS déplacée vers interface super-admin séparée (/admin-login)
   ];
 
   return (
