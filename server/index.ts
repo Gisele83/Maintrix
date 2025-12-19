@@ -54,14 +54,16 @@ app.use((req, res, next) => {
   const isUnsafeMethod = unsafeMethods.includes(req.method);
   const isApiRoute = req.path.startsWith('/api');
   
-  // Exempter les endpoints de login et register de la vérification CSRF
+  // Exempter les endpoints de login, register et paiements de la vérification CSRF
   const exemptPaths = [
     '/api/enterprise-auth/login',
     '/api/enterprise-auth/register',
     '/api/auth/login',
     '/api/auth/register',
     '/api/super-admin',
-    '/api/data-import-export/import' // Exemption pour l'importation de fichiers
+    '/api/data-import-export/import',
+    '/api/payments',
+    '/api/paypal',
   ];
   const isExemptPath = exemptPaths.some(path => req.path.startsWith(path));
   
