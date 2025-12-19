@@ -73,6 +73,27 @@ function ProtectedRoute({ component: Component, ...props }: any) {
   return <Component {...props} />;
 }
 
+function HomePage() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700">Chargement...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <ModernHome />;
+  }
+
+  return <LandingPage />;
+}
+
 function Router() {
   return (
     <Switch>
@@ -90,9 +111,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/force-logout" component={ForceLogout} />
-      <Route path="/">
-        {(params) => <ProtectedRoute component={ModernHome} {...params} />}
-      </Route>
+      <Route path="/" component={HomePage} />
       <Route path="/dashboard">
         {(params) => <ProtectedRoute component={Dashboard} {...params} />}
       </Route>
