@@ -1,0 +1,15 @@
+# Grafana Dashboard Provider - Maintrix
+
+apiVersion: 1
+
+providers:
+  - name: 'Maintrix Dashboards'
+    orgId: 1
+    folder: 'Maintrix'
+    folderUid: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
