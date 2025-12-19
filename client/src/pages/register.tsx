@@ -23,15 +23,17 @@ import {
   Loader2,
 } from "lucide-react";
 
-type PlanId = "freemium" | "professional" | "enterprise";
+type PlanId = "freemium" | "startup" | "business" | "enterprise";
 
 interface PlanDetails {
   id: PlanId;
   name: string;
   price: string;
   period: string;
+  userRange: string;
   features: string[];
   color: string;
+  popular?: boolean;
 }
 
 const plans: Record<PlanId, PlanDetails> = {
@@ -40,23 +42,36 @@ const plans: Record<PlanId, PlanDetails> = {
     name: "Freemium",
     price: "0€",
     period: "pour toujours",
+    userRange: "1-5 utilisateurs",
     features: ["10 équipements max", "5 utilisateurs", "Diagnostic IA basique", "Support communautaire"],
     color: "slate"
   },
-  professional: {
-    id: "professional",
-    name: "Professionnel",
-    price: "49€",
+  startup: {
+    id: "startup",
+    name: "Startup",
+    price: "79€",
     period: "/mois",
+    userRange: "10-25 utilisateurs",
     features: ["Équipements illimités", "25 utilisateurs", "IA avancée", "App mobile", "Support prioritaire"],
-    color: "blue"
+    color: "emerald"
+  },
+  business: {
+    id: "business",
+    name: "Business",
+    price: "199€",
+    period: "/mois",
+    userRange: "25-100 utilisateurs",
+    features: ["100 utilisateurs", "Multi-tenant (3 sites)", "Intégrations ERP", "API complète", "Formation incluse"],
+    color: "blue",
+    popular: true
   },
   enterprise: {
     id: "enterprise",
     name: "Enterprise",
-    price: "199€",
+    price: "499€",
     period: "/mois",
-    features: ["Tout illimité", "Multi-tenant", "Intégrations ERP", "API complète", "Account manager"],
+    userRange: "Illimité",
+    features: ["Utilisateurs illimités", "Sites illimités", "ERP avancé", "Déploiement local", "Support 24/7"],
     color: "violet"
   }
 };
@@ -203,7 +218,7 @@ export default function RegisterPage() {
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.values(plans).map((plan) => (
                   <Card 
                     key={plan.id}
@@ -215,22 +230,23 @@ export default function RegisterPage() {
                     onClick={() => setSelectedPlan(plan.id)}
                     data-testid={`card-plan-${plan.id}`}
                   >
-                    <CardContent className="p-6">
-                      {plan.id === "professional" && (
+                    <CardContent className="p-5">
+                      {plan.popular && (
                         <Badge className="bg-blue-600 text-white mb-3">
                           <Star className="w-3 h-3 mr-1" />
                           Recommandé
                         </Badge>
                       )}
-                      <h3 className="text-xl font-bold text-slate-800 mb-1">{plan.name}</h3>
+                      <h3 className="text-lg font-bold text-slate-800 mb-1">{plan.name}</h3>
+                      <div className="text-xs text-slate-500 mb-3">{plan.userRange}</div>
                       <div className="mb-4">
-                        <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
-                        <span className="text-slate-500">{plan.period}</span>
+                        <span className="text-2xl font-bold text-slate-900">{plan.price}</span>
+                        <span className="text-slate-500 text-sm">{plan.period}</span>
                       </div>
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                            <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <ul className="space-y-1.5">
+                        {plan.features.slice(0, 4).map((feature, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-xs text-slate-600">
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                             <span>{feature}</span>
                           </li>
                         ))}

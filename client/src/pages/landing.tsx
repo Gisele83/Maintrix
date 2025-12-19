@@ -72,6 +72,7 @@ export default function LandingPage() {
       price: "0€",
       period: "pour toujours",
       description: "Idéal pour découvrir Maintrix",
+      userRange: "1-5 utilisateurs",
       features: [
         "Jusqu'à 10 équipements",
         "5 utilisateurs maximum",
@@ -89,19 +90,41 @@ export default function LandingPage() {
       color: "slate"
     },
     {
-      id: "professional",
-      name: "Professionnel",
-      price: "49€",
+      id: "startup",
+      name: "Startup",
+      price: "79€",
       period: "/mois",
-      description: "Pour les équipes de maintenance",
+      description: "Petites entreprises (10-25 utilisateurs)",
+      userRange: "10-25 utilisateurs",
       features: [
         "Équipements illimités",
-        "25 utilisateurs",
-        "Diagnostic IA avancé (9 algorithmes)",
-        "Maintenance préventive complète",
+        "Jusqu'à 25 utilisateurs",
+        "Diagnostic IA avancé",
+        "Maintenance préventive",
         "Application mobile",
-        "Rapports PDF automatiques",
-        "Support prioritaire"
+        "Rapports PDF",
+        "Support email prioritaire"
+      ],
+      limitations: [],
+      cta: "Essai gratuit 14 jours",
+      popular: false,
+      color: "emerald"
+    },
+    {
+      id: "business",
+      name: "Business",
+      price: "199€",
+      period: "/mois",
+      description: "Moyennes entreprises (25-100 utilisateurs)",
+      userRange: "25-100 utilisateurs",
+      features: [
+        "Tout du plan Startup",
+        "Jusqu'à 100 utilisateurs",
+        "Multi-tenant (3 sites)",
+        "Intégrations ERP basiques",
+        "API accès complet",
+        "Support téléphonique",
+        "Formation incluse"
       ],
       limitations: [],
       cta: "Essai gratuit 14 jours",
@@ -111,18 +134,19 @@ export default function LandingPage() {
     {
       id: "enterprise",
       name: "Enterprise",
-      price: "199€",
+      price: "499€",
       period: "/mois",
-      description: "Multi-sites & grandes entreprises",
+      description: "Grandes entreprises (100+ utilisateurs)",
+      userRange: "Utilisateurs illimités",
       features: [
-        "Tout du plan Professionnel",
+        "Tout du plan Business",
         "Utilisateurs illimités",
-        "Multi-tenant (sites illimités)",
-        "Intégrations ERP (SAP, Maximo)",
-        "API complète",
+        "Multi-tenant illimité",
+        "Intégrations ERP avancées (SAP, Maximo)",
         "Déploiement local possible",
         "SLA garanti 99.9%",
-        "Account manager dédié"
+        "Account manager dédié",
+        "Support 24/7"
       ],
       limitations: [],
       cta: "Contacter les ventes",
@@ -327,13 +351,13 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             {plans.map((plan) => (
               <Card 
                 key={plan.id}
                 className={`relative border-2 transition-all duration-300 ${
                   plan.popular 
-                    ? 'border-blue-500 shadow-lg scale-105' 
+                    ? 'border-blue-500 shadow-lg md:scale-105 z-10' 
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
@@ -341,23 +365,30 @@ export default function LandingPage() {
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-blue-600 text-white px-3 py-1">
                       <Star className="w-3 h-3 mr-1" />
-                      Plus populaire
+                      Recommandé
                     </Badge>
                   </div>
                 )}
-                <CardContent className="p-6 pt-8">
-                  <h3 className="text-xl font-bold text-slate-800 mb-2">{plan.name}</h3>
-                  <p className="text-slate-500 text-sm mb-4">{plan.description}</p>
+                <CardContent className="p-5 pt-7">
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">{plan.name}</h3>
+                  <p className="text-slate-500 text-xs mb-3">{plan.description}</p>
                   
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-slate-900">{plan.price}</span>
-                    <span className="text-slate-500">{plan.period}</span>
+                  <div className="mb-2">
+                    <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
+                    <span className="text-slate-500 text-sm">{plan.period}</span>
                   </div>
                   
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div className="mb-4">
+                    <Badge variant="outline" className="text-xs font-medium">
+                      <Users className="w-3 h-3 mr-1" />
+                      {plan.userRange}
+                    </Badge>
+                  </div>
+                  
+                  <ul className="space-y-2 mb-5">
+                    {plan.features.slice(0, 5).map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -365,7 +396,7 @@ export default function LandingPage() {
                   
                   <Link href={`/register?plan=${plan.id}`}>
                     <Button 
-                      className={`w-full rounded-xl ${
+                      className={`w-full rounded-xl text-sm ${
                         plan.popular 
                           ? 'bg-blue-600 hover:bg-blue-700' 
                           : 'bg-slate-800 hover:bg-slate-900'
