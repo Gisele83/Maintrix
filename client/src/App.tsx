@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Dashboard from "@/pages/dashboard";
 import ModernHome from "@/pages/modern-home";
+import LandingPage from "@/pages/landing";
+import RegisterPage from "@/pages/register";
 import SmartDiagnostic from "@/pages/smart-diagnostic";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
@@ -74,6 +76,9 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 function Router() {
   return (
     <Switch>
+      {/* Public routes - Landing and Registration */}
+      <Route path="/welcome" component={LandingPage} />
+      <Route path="/register" component={RegisterPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/first-login-password-change" component={FirstLoginPasswordChange} />
       <Route path="/change-credentials">
