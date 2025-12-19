@@ -50,6 +50,7 @@ import FirstLoginPasswordChange from "@/pages/first-login-password-change";
 import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
+import PaymentTest from "@/pages/payment-test";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -111,6 +112,9 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/force-logout" component={ForceLogout} />
+      <Route path="/payment-test">
+        {(params) => <ProtectedRoute component={PaymentTest} {...params} />}
+      </Route>
       <Route path="/" component={HomePage} />
       <Route path="/dashboard">
         {(params) => <ProtectedRoute component={Dashboard} {...params} />}
