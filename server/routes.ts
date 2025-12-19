@@ -3022,6 +3022,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("⚠️ Stripe not configured - payment routes disabled");
   }
 
+  // ==================== INTÉGRATION PAIEMENTS PAYPAL ====================
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+  const paypalClientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  
+  if (paypalClientId && paypalClientSecret) {
+    console.log("🅿️ Initializing PayPal payment infrastructure...");
+    
+    // Obtenir le token d'accès PayPal
+    async function getPayPalAccessToken(): Promise<string> {
+      const auth = Buffer.from(`${paypalClientId}:${paypalClientSecret}`).toString('base64');
+      const response = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
+      const data = await response.json() as any;
+      return data.access_token;
+    }
+    
+    // Configuration PayPal
+    app.get("/api/paypal/config", (req, res) => {
+      res.json({ clientId: paypalClientId });
+    });
+    
+    // Créer une commande PayPal
+    app.post("/api/paypal/create-order", async (req, res) => {
+      try {
+        const { amount, planType, currency = 'EUR' } = req.body;
+        
+        if (!amount || amount < 1) {
+          return res.status(400).json({ error: "Montant invalide" });
+        }
+        
+        const accessToken = await getPayPalAccessToken();
+        
+        const response = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            intent: 'CAPTURE',
+            purchase_units: [{
+              amount: {
+                currency_code: currency,
+                value: amount.toString()
+              },
+              description: `Abonnement Maintrix ${planType || 'Standard'}`
+            }]
+          })
+        });
+        
+        const order = await response.json() as any;
+        res.json({ orderId: order.id, status: order.status });
+      } catch (error: any) {
+        console.error("Erreur création commande PayPal:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+    
+    // Capturer le paiement PayPal
+    app.post("/api/paypal/capture-order", async (req, res) => {
+      try {
+        const { orderId } = req.body;
+        
+        if (!orderId) {
+          return res.status(400).json({ error: "Order ID requis" });
+        }
+        
+        const accessToken = await getPayPalAccessToken();
+        
+        const response = await fetch(`https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const captureData = await response.json() as any;
+        
+        if (captureData.status === 'COMPLETED') {
+          console.log("✅ Paiement PayPal capturé:", orderId);
+        }
+        
+        res.json({
+          status: captureData.status,
+          orderId: captureData.id,
+          payerId: captureData.payer?.payer_id
+        });
+      } catch (error: any) {
+        console.error("Erreur capture PayPal:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+    
+    console.log("✅ PayPal payment routes registered successfully");
+  } else {
+    console.log("⚠️ PayPal not configured - PayPal routes disabled");
+  }
+
   // ==================== GESTION DES MOUVEMENTS DE STOCK ====================
   // Import du gestionnaire de stock
   const { stockManager } = await import("./stock-management.js");
