@@ -41,9 +41,13 @@ export class EnterpriseAuthMiddleware {
       '/api/enterprise-auth/invitations/accept',
       '/api/enterprise-auth/forgot-password',
       '/api/enterprise-auth/reset-password',
-      '/api/super-admin', // Interface super-admin séparée
+      '/api/super-admin',
       '/api/health',
-      '/api/ping'
+      '/api/ping',
+      '/api/payments/config',
+      '/api/paypal/config',
+      '/api/payments/create-payment-intent',
+      '/api/paypal/create-order',
     ];
     
     const isPublicPath = publicPaths.some(path => req.path.startsWith(path));

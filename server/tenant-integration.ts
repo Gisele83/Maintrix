@@ -27,8 +27,10 @@ export function enableMultiTenantSecurity(app: Express): void {
       "/api/status",
       "/api/enterprise-auth/login",
       "/api/enterprise-auth/register", 
-      "/api/enterprise-auth/profile", // Profile après connexion
-      "/api/super-admin", // Interface super-admin séparée
+      "/api/enterprise-auth/profile",
+      "/api/super-admin",
+      "/api/payments/config",
+      "/api/paypal/config",
     ];
 
     const isPublicRoute = publicRoutes.some(route => req.path === route || req.path.startsWith(route));
