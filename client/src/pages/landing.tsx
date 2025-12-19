@@ -229,10 +229,12 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-xl border-slate-300" data-testid="button-demo">
-              <Play className="mr-2 h-5 w-5" />
-              Voir la démo
-            </Button>
+            <a href="#how-it-works">
+              <Button size="lg" variant="outline" className="px-8 py-6 text-lg rounded-xl border-slate-300" data-testid="button-demo">
+                <Play className="mr-2 h-5 w-5" />
+                Voir la démo
+              </Button>
+            </a>
           </div>
           
           <div className="flex justify-center items-center flex-wrap gap-6 text-sm text-slate-500">
@@ -305,7 +307,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
