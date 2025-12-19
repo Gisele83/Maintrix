@@ -3029,10 +3029,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (paypalClientId && paypalClientSecret) {
     console.log("🅿️ Initializing PayPal payment infrastructure...");
     
+    // Configuration PayPal - utilise sandbox par défaut pour les tests
+    const paypalBaseUrl = process.env.PAYPAL_MODE === 'live' 
+      ? 'https://api-m.paypal.com' 
+      : 'https://api-m.sandbox.paypal.com';
+    
     // Obtenir le token d'accès PayPal
     async function getPayPalAccessToken(): Promise<string> {
       const auth = Buffer.from(`${paypalClientId}:${paypalClientSecret}`).toString('base64');
-      const response = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
+      const response = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${auth}`,
@@ -3041,6 +3046,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: 'grant_type=client_credentials'
       });
       const data = await response.json() as any;
+      if (!data.access_token) {
+        console.error("PayPal auth error:", data);
+        throw new Error(data.error_description || "PayPal authentication failed");
+      }
       return data.access_token;
     }
     
@@ -3060,7 +3069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const accessToken = await getPayPalAccessToken();
         
-        const response = await fetch('https://api-m.paypal.com/v2/checkout/orders', {
+        const response = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -3097,7 +3106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const accessToken = await getPayPalAccessToken();
         
-        const response = await fetch(`https://api-m.paypal.com/v2/checkout/orders/${orderId}/capture`, {
+        const response = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}/capture`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
