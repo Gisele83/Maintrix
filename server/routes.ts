@@ -2864,9 +2864,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Intégration des routes de paiement sécurisées (VERSION FREEMIUM - désactivées)
-  console.log("🔒 Initializing secure payment infrastructure (FREEMIUM MODE)...");
-  console.log("✅ Payment routes registered (disabled for freemium version)");
+  // ==================== INTÉGRATION PAIEMENTS STRIPE ====================
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const stripePublishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+  
+  if (stripeSecretKey && stripePublishableKey) {
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' as any });
+    
+    console.log("💳 Initializing Stripe payment infrastructure...");
+    
+    // Récupérer la clé publique Stripe
+    app.get("/api/payments/config", (req, res) => {
+      res.json({ publishableKey: stripePublishableKey });
+    });
+    
+    // Créer une intention de paiement
+    app.post("/api/payments/create-payment-intent", async (req, res) => {
+      try {
+        const { amount, currency = 'eur', planType, tenantId } = req.body;
+        
+        if (!amount || amount < 100) {
+          return res.status(400).json({ error: "Montant invalide (minimum 1€)" });
+        }
+        
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount),
+          currency,
+          metadata: {
+            planType: planType || 'subscription',
+            tenantId: tenantId || 'new',
+            platform: 'Maintrix'
+          }
+        });
+        
+        res.json({
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id
+        });
+      } catch (error: any) {
+        console.error("Erreur création PaymentIntent:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+    
+    // Créer un abonnement
+    app.post("/api/payments/create-subscription", async (req, res) => {
+      try {
+        const { email, planType, paymentMethodId } = req.body;
+        
+        // Prix par plan (en centimes)
+        const planPrices: Record<string, number> = {
+          startup: 7900,    // 79€/mois
+          business: 19900,  // 199€/mois
+          enterprise: 49900 // 499€/mois
+        };
+        
+        const priceAmount = planPrices[planType];
+        if (!priceAmount) {
+          return res.status(400).json({ error: "Plan invalide" });
+        }
+        
+        // Créer ou récupérer le client
+        let customer;
+        const existingCustomers = await stripe.customers.list({ email, limit: 1 });
+        
+        if (existingCustomers.data.length > 0) {
+          customer = existingCustomers.data[0];
+        } else {
+          customer = await stripe.customers.create({
+            email,
+            payment_method: paymentMethodId,
+            invoice_settings: { default_payment_method: paymentMethodId }
+          });
+        }
+        
+        // Créer le produit et le prix (ou utiliser existants)
+        const product = await stripe.products.create({
+          name: `Maintrix ${planType.charAt(0).toUpperCase() + planType.slice(1)}`,
+          metadata: { planType }
+        });
+        
+        const price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: priceAmount,
+          currency: 'eur',
+          recurring: { interval: 'month' }
+        });
+        
+        // Créer l'abonnement
+        const subscription = await stripe.subscriptions.create({
+          customer: customer.id,
+          items: [{ price: price.id }],
+          payment_settings: {
+            payment_method_types: ['card'],
+            save_default_payment_method: 'on_subscription'
+          },
+          expand: ['latest_invoice.payment_intent']
+        });
+        
+        res.json({
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          customerId: customer.id
+        });
+      } catch (error: any) {
+        console.error("Erreur création abonnement:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+    
+    // Webhook Stripe pour événements
+    app.post("/api/payments/webhook", async (req, res) => {
+      const sig = req.headers['stripe-signature'];
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      
+      try {
+        let event;
+        if (webhookSecret && sig) {
+          event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+        } else {
+          event = req.body;
+        }
+        
+        switch (event.type) {
+          case 'payment_intent.succeeded':
+            console.log("✅ Paiement réussi:", event.data.object.id);
+            break;
+          case 'invoice.paid':
+            console.log("✅ Facture payée:", event.data.object.id);
+            break;
+          case 'customer.subscription.deleted':
+            console.log("❌ Abonnement annulé:", event.data.object.id);
+            break;
+        }
+        
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error("Erreur webhook Stripe:", error);
+        res.status(400).json({ error: error.message });
+      }
+    });
+    
+    // Annuler un abonnement
+    app.post("/api/payments/cancel-subscription", async (req, res) => {
+      try {
+        const { subscriptionId } = req.body;
+        const subscription = await stripe.subscriptions.cancel(subscriptionId);
+        res.json({ status: subscription.status });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+    
+    console.log("✅ Stripe payment routes registered successfully");
+  } else {
+    console.log("⚠️ Stripe not configured - payment routes disabled");
+  }
 
   // ==================== GESTION DES MOUVEMENTS DE STOCK ====================
   // Import du gestionnaire de stock

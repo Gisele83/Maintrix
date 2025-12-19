@@ -85,7 +85,7 @@ const environments: Record<Environment, EnvironmentDefaults> = {
       enableAdvancedDiagnostic: true,
       enableIoTIntegration: true,
       enableMultiTenant: true,
-      enablePayments: false, // Désactivé en dev
+      enablePayments: true, // Activé avec clés Stripe
       enableReporting: true,
     },
     logging: {
