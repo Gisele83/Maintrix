@@ -48,6 +48,10 @@ export class EnterpriseAuthMiddleware {
       '/api/paypal/config',
       '/api/payments/create-payment-intent',
       '/api/paypal/create-order',
+      '/payments/config',
+      '/paypal/config',
+      '/payments/create-payment-intent',
+      '/paypal/create-order',
     ];
     
     const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
