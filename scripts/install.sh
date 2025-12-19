@@ -209,6 +209,13 @@ PRIVATE_OBJECT_DIR="$INSTALL_DIR/uploads/private"
 # Rate limiting
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
+
+# Configuration Paiements (à remplir avec vos clés)
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+PAYPAL_MODE=sandbox
 EOF
     
     # Sécurisation du fichier .env

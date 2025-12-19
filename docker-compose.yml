@@ -23,6 +23,12 @@ services:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
+      # Configuration Paiements (à remplir avec vos clés)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_MODE=${PAYPAL_MODE:-sandbox}
     depends_on:
       db:
         condition: service_healthy

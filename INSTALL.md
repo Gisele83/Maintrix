@@ -65,6 +65,13 @@ SESSION_SECRET=generez_une_cle_aleatoire_tres_longue_minimum_32_caracteres
 
 # IA (optionnel)
 ANTHROPIC_API_KEY=votre_cle_anthropic_optionnelle
+
+# Paiements (optionnel)
+STRIPE_PUBLISHABLE_KEY=pk_test_votre_cle
+STRIPE_SECRET_KEY=sk_test_votre_cle
+PAYPAL_CLIENT_ID=votre_client_id
+PAYPAL_CLIENT_SECRET=votre_secret
+PAYPAL_MODE=sandbox
 ```
 
 ---

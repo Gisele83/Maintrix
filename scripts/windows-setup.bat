@@ -68,6 +68,13 @@ echo DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/maintrix_db
 echo NODE_ENV=production
 echo PORT=5000
 echo SESSION_SECRET=maintrix_secret_key_2025
+echo.
+echo # Configuration Paiements - Remplir avec vos cles
+echo STRIPE_SECRET_KEY=
+echo STRIPE_PUBLISHABLE_KEY=
+echo PAYPAL_CLIENT_ID=
+echo PAYPAL_CLIENT_SECRET=
+echo PAYPAL_MODE=sandbox
 ) > .env
 
 :: Attendre que PostgreSQL soit prêt

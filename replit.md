@@ -67,9 +67,15 @@ User confirmed that username field should remain non-editable in profile forms f
 ✅ Domaine officiel : maintrix-t.com
 📄 Rapport détaillé dans `REBRANDING_REPORT.md`
 
-### Nettoyage Massif du Projet (31 Janvier 2025)
+### Mise à jour Fichiers de Déploiement (19 Décembre 2025)
+✅ **Configuration paiements ajoutée** aux fichiers Docker et scripts d'installation
+✅ docker-compose.yml et docker-compose.simple.yml mis à jour avec Stripe/PayPal
+✅ Dockerfile nettoyé avec PAYPAL_MODE=sandbox par défaut
+✅ scripts/install.sh et windows-setup.bat incluent la config paiements
+✅ .env.example et INSTALL.md mis à jour avec documentation paiements
+✅ PayPal corrigé pour utiliser sandbox/live dynamiquement
 
-### Nettoyage Massif du Projet
+### Nettoyage Massif du Projet (31 Janvier 2025)
 ✅ **60+ fichiers en doublon supprimés** pour faciliter le déploiement local
 ✅ Fichiers Excel consolidés (gardé uniquement la version la plus récente)
 ✅ Configuration Docker simplifiée (docker-compose.yml unique)

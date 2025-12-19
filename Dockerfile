@@ -82,7 +82,7 @@ USER maintrix
 ENV NODE_ENV=production
 ENV PORT=5000
 ENV LOG_LEVEL=info
-ENV SENDGRID_API_KEY=SG.local_deployment_fake_key_for_windows
+ENV PAYPAL_MODE=sandbox
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
