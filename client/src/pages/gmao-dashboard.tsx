@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
-  PieChart, DollarSign, Gauge, ClipboardCheck, FileText
+  PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart
+} from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -491,6 +495,224 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Charts and Statistics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Work Orders Trend Chart */}
+              <Card className="shadow-md">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-primary" />
+                      Évolution des OT (6 derniers mois)
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart
+                      data={[
+                        { mois: 'Juil', termines: 28, enCours: 12, urgents: 4 },
+                        { mois: 'Août', termines: 32, enCours: 8, urgents: 3 },
+                        { mois: 'Sept', termines: 35, enCours: 10, urgents: 5 },
+                        { mois: 'Oct', termines: 41, enCours: 7, urgents: 2 },
+                        { mois: 'Nov', termines: 38, enCours: 9, urgents: 4 },
+                        { mois: 'Déc', termines: dashboardData?.workOrdersByStatus?.completed || 45, enCours: dashboardData?.activeWorkOrdersCount || 6, urgents: 3 },
+                      ]}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="colorTermines" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="colorEnCours" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="mois" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="termines" name="Terminés" stroke="#22c55e" fillOpacity={1} fill="url(#colorTermines)" />
+                      <Area type="monotone" dataKey="enCours" name="En cours" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEnCours)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Equipment by Type Pie Chart */}
+              <Card className="shadow-md">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <PieChart className="w-5 h-5 text-primary" />
+                      Répartition par Type d'Équipement
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={dashboardData?.equipmentByType 
+                          ? Object.entries(dashboardData.equipmentByType).map(([name, value]) => ({
+                              name: name.charAt(0).toUpperCase() + name.slice(1),
+                              value
+                            }))
+                          : [
+                              { name: 'Moteurs', value: 12 },
+                              { name: 'Pompes', value: 8 },
+                              { name: 'Compresseurs', value: 5 },
+                              { name: 'Convoyeurs', value: 6 },
+                              { name: 'Autres', value: 4 }
+                            ]
+                        }
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {[
+                          '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'
+                        ].map((color, index) => (
+                          <Cell key={`cell-${index}`} fill={color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Performance Indicators */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="shadow-md border-l-4 border-l-emerald-500">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Taux de Résolution</p>
+                      <p className="text-2xl font-bold text-emerald-600">94.2%</p>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600">
+                        <ArrowUpRight className="w-3 h-3" />
+                        <span>+2.4% ce mois</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                      <CheckCircle className="w-6 h-6 text-emerald-600" />
+                    </div>
+                  </div>
+                  <Progress value={94.2} className="h-2 mt-3" />
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-md border-l-4 border-l-blue-500">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">MTTR (Temps Moyen Réparation)</p>
+                      <p className="text-2xl font-bold text-blue-600">2.8h</p>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-blue-600">
+                        <ArrowDownRight className="w-3 h-3" />
+                        <span>-15min vs mois dernier</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                      <Clock className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <Progress value={72} className="h-2 mt-3" />
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-md border-l-4 border-l-amber-500">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Maintenance Préventive</p>
+                      <p className="text-2xl font-bold text-amber-600">78.5%</p>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
+                        <ArrowUpRight className="w-3 h-3" />
+                        <span>+5.2% ce mois</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                      <CalendarCheck className="w-6 h-6 text-amber-600" />
+                    </div>
+                  </div>
+                  <Progress value={78.5} className="h-2 mt-3" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Monthly Statistics Bar Chart */}
+            <Card className="shadow-md">
+              <CardHeader className="border-b bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    Statistiques Mensuelles des Interventions
+                  </CardTitle>
+                  <Badge variant="outline" className="text-xs">
+                    Année {new Date().getFullYear()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart
+                    data={[
+                      { mois: 'Jan', preventif: 22, correctif: 15, urgent: 3 },
+                      { mois: 'Fév', preventif: 25, correctif: 12, urgent: 4 },
+                      { mois: 'Mar', preventif: 28, correctif: 18, urgent: 2 },
+                      { mois: 'Avr', preventif: 24, correctif: 14, urgent: 5 },
+                      { mois: 'Mai', preventif: 30, correctif: 11, urgent: 3 },
+                      { mois: 'Jun', preventif: 27, correctif: 16, urgent: 4 },
+                      { mois: 'Jul', preventif: 26, correctif: 13, urgent: 2 },
+                      { mois: 'Août', preventif: 20, correctif: 10, urgent: 1 },
+                      { mois: 'Sep', preventif: 29, correctif: 17, urgent: 3 },
+                      { mois: 'Oct', preventif: 32, correctif: 14, urgent: 4 },
+                      { mois: 'Nov', preventif: 28, correctif: 12, urgent: 2 },
+                      { mois: 'Déc', preventif: 25, correctif: 15, urgent: 3 },
+                    ]}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="mois" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        borderColor: 'hsl(var(--border))',
+                        borderRadius: '8px'
+                      }} 
+                    />
+                    <Legend />
+                    <Bar dataKey="preventif" name="Préventif" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="correctif" name="Correctif" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="urgent" name="Urgent" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
         )}
 
