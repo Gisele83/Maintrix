@@ -905,7 +905,7 @@ export function registerGMAORoutes(app: Express) {
         gmaoStorage.getEquipmentRegistry(tenantId),
         gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId),
         gmaoStorage.getWorkOrdersByStatus('pending', tenantId),
-        gmaoStorage.getAlertsNotifications('active'),
+        gmaoStorage.getAlertsNotifications('active', tenantId),
         gmaoStorage.getLowStockParts(tenantId),
         gmaoStorage.getWorkOrdersByStatus('completed', tenantId)
       ]);

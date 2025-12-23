@@ -632,11 +632,21 @@ export class GMAOStorage {
   }
 
   // Alerts and Notifications Methods
-  async getAlertsNotifications(status?: string): Promise<AlertsNotifications[]> {
-    let query = db.select().from(alertsNotifications);
+  async getAlertsNotifications(status?: string, tenantId?: string): Promise<AlertsNotifications[]> {
+    const conditions: any[] = [];
     
     if (status) {
-      query = query.where(eq(alertsNotifications.status, status));
+      conditions.push(eq(alertsNotifications.status, status));
+    }
+    
+    if (tenantId) {
+      conditions.push(eq(alertsNotifications.tenantId, tenantId));
+    }
+    
+    let query = db.select().from(alertsNotifications);
+    
+    if (conditions.length > 0) {
+      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
     }
     
     return await query.orderBy(desc(alertsNotifications.createdAt));
