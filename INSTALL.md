@@ -102,6 +102,50 @@ Après le seed des données :
 
 ---
 
+## ☁️ Déploiement Cloud (Scaleway / OVH)
+
+### Scaleway
+
+Scripts automatisés pour déployer sur une instance Scaleway :
+
+```bash
+# Sur votre instance Scaleway Ubuntu
+curl -O https://raw.githubusercontent.com/votre-repo/maintrix/main/scripts/deploy-scaleway.sh
+chmod +x deploy-scaleway.sh
+./deploy-scaleway.sh
+```
+
+**Prérequis Scaleway :**
+- Instance DEV1-S minimum (2 vCPU, 2GB RAM)
+- Managed PostgreSQL recommandé
+- Domaine pointant vers l'IP de l'instance
+
+### OVH
+
+Scripts automatisés pour déployer sur un VPS OVH :
+
+```bash
+# Sur votre VPS OVH Ubuntu
+curl -O https://raw.githubusercontent.com/votre-repo/maintrix/main/scripts/deploy-ovh.sh
+chmod +x deploy-ovh.sh
+./deploy-ovh.sh
+```
+
+**Prérequis OVH :**
+- VPS Starter ou Essential (2 vCPU, 4GB RAM recommandé)
+- PostgreSQL local ou OVH Public Cloud Databases
+- Domaine configuré dans OVH DNS
+
+**Fonctionnalités des scripts :**
+- ✅ Installation automatique de toutes les dépendances
+- ✅ Configuration Nginx avec reverse proxy
+- ✅ Certificat SSL automatique (Let's Encrypt)
+- ✅ Service systemd / PM2 pour redémarrage automatique
+- ✅ Pare-feu et Fail2ban configurés
+- ✅ Sauvegardes automatiques quotidiennes
+
+---
+
 ## 📋 Commandes Utiles
 
 | Commande | Description |
