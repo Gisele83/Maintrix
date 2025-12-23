@@ -314,6 +314,7 @@ export function PreventiveMaintenance() {
               onSubmit={onSubmit}
               isLoading={addPlanMutation.isPending}
               equipment={equipment as any[]}
+              onCancel={() => setIsAddDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>
@@ -471,6 +472,7 @@ export function PreventiveMaintenance() {
                 onSubmit={onSubmit}
                 isLoading={addPlanMutation.isPending}
                 equipment={equipment as any[]}
+                onCancel={() => setIsAddDialogOpen(false)}
               />
             </DialogContent>
           </Dialog>
@@ -488,6 +490,7 @@ export function PreventiveMaintenance() {
             onSubmit={onSubmit}
             isLoading={updatePlanMutation.isPending}
             equipment={equipment as any[]}
+            onCancel={() => setIsEditDialogOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -500,12 +503,14 @@ function MaintenancePlanForm({
   form, 
   onSubmit, 
   isLoading,
-  equipment
+  equipment,
+  onCancel
 }: { 
   form: any; 
   onSubmit: (data: MaintenancePlanFormData) => void; 
   isLoading: boolean;
   equipment: any[];
+  onCancel?: () => void;
 }) {
   return (
     <Form {...form}>
@@ -892,7 +897,7 @@ function MaintenancePlanForm({
         </div>
 
         <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
           <Button type="submit" disabled={isLoading}>
