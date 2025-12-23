@@ -7,7 +7,7 @@ import * as XLSX from "xlsx";
 export class SimpleImportService {
   
   // Service simple d'importation sans validation complexe
-  async simpleImportMaintenanceHistory(file: Buffer, format: 'csv' | 'excel'): Promise<{
+  async simpleImportMaintenanceHistory(file: Buffer, format: 'csv' | 'excel', tenantId: string = 'default-tenant'): Promise<{
     success: boolean;
     imported: number;
     errors: string[];
@@ -34,7 +34,7 @@ export class SimpleImportService {
           
           // Créer un ordre de travail simple
           const orderData = {
-            tenantId: "DEFAULT_TENANT",
+            tenantId: tenantId,
             orderNumber: record.orderNumber || record['Numéro OT'] || `WO-${Date.now()}-${i}`,
             orderType: this.normalizeOrderType(record.orderType || record['Type OT'] || 'corrective'),
             title: record.title || record['Titre'] || 'Maintenance importée',

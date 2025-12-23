@@ -543,7 +543,7 @@ export class DataImportExportService {
   }
 
   // Import des équipements
-  async importEquipments(file: Buffer, format: 'csv' | 'excel'): Promise<{
+  async importEquipments(file: Buffer, format: 'csv' | 'excel', tenantId: string = 'default-tenant'): Promise<{
     success: boolean;
     imported: number;
     errors: string[];
@@ -588,7 +588,7 @@ export class DataImportExportService {
           const validatedData = ImportEquipmentSchema.parse(equipmentData);
           
           await db.insert(equipmentRegistry).values({
-            tenantId: "DEFAULT_TENANT", // TODO: Récupérer le tenant ID du contexte
+            tenantId: tenantId,
             equipmentId: validatedData.equipmentId,
             equipmentName: validatedData.equipmentName,
             equipmentType: validatedData.equipmentType,
@@ -615,7 +615,7 @@ export class DataImportExportService {
   }
 
   // Import de l'historique de maintenance
-  async importMaintenanceHistory(file: Buffer, format: 'csv' | 'excel'): Promise<{
+  async importMaintenanceHistory(file: Buffer, format: 'csv' | 'excel', tenantId: string = 'default-tenant'): Promise<{
     success: boolean;
     imported: number;
     errors: string[];
@@ -669,7 +669,7 @@ export class DataImportExportService {
           
           // Simplification temporaire pour éviter les erreurs TypeScript
           const insertData: any = {
-            tenantId: "DEFAULT_TENANT", // TODO: Récupérer le tenant ID du contexte  
+            tenantId: tenantId,
             equipmentId: equipment[0].id,
             orderNumber: validatedData.orderNumber,
             orderType: validatedData.orderType,

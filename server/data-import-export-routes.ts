@@ -63,14 +63,15 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
     }
 
     const fileFormat = req.file.mimetype.includes('csv') ? 'csv' : 'excel';
+    const tenantId = (req as any).user?.tenantId || 'default-tenant';
     let result;
 
     switch (type) {
       case 'equipments':
-        result = await dataImportExportService.importEquipments(req.file.buffer, fileFormat);
+        result = await dataImportExportService.importEquipments(req.file.buffer, fileFormat, tenantId);
         break;
       case 'maintenance-history':
-        result = await dataImportExportService.importMaintenanceHistory(req.file.buffer, fileFormat);
+        result = await dataImportExportService.importMaintenanceHistory(req.file.buffer, fileFormat, tenantId);
         break;
       case 'spare-parts':
         result = await dataImportExportService.importSpareParts(req.file.buffer, fileFormat);
