@@ -77,6 +77,15 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 function HomePage() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Always show landing page for non-authenticated users (no loading state)
+  // Check if there's a session token to determine if we should wait
+  const hasToken = typeof window !== 'undefined' && localStorage.getItem("sessionToken");
+  
+  // If no token exists, show landing page immediately without waiting
+  if (!hasToken) {
+    return <LandingPage />;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
