@@ -218,142 +218,278 @@ export default function GMAODashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Vue d'ensemble uniquement */}
         {!showAdminModal && activeTab === "overview" && (
-          <div className="space-y-8">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    Équipements Actifs
-                  </CardTitle>
-                  <Factory className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <div className="space-y-6">
+            {/* Welcome Header */}
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl p-6 border border-primary/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">Tableau de Bord GMAO</h1>
+                  <p className="text-muted-foreground mt-1">
+                    Vue d'ensemble de votre système de maintenance - {new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setActiveTab("work-orders")}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouvel OT
+                  </Button>
+                  <Button size="sm" onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Rapports
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* KPI Cards - Improved Design */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-blue-100">Équipements</CardTitle>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Factory className="h-5 w-5" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                    {dashboardData?.equipmentCount || 0}
+                  <div className="text-3xl font-bold">{dashboardData?.equipmentCount || 0}</div>
+                  <div className="flex items-center mt-2 text-sm text-blue-100">
+                    <TrendingUp className="w-4 h-4 mr-1" />
+                    <span>Actifs et surveillés</span>
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
-                    +2 ce mois
-                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
-                    OT Actifs
-                  </CardTitle>
-                  <Wrench className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-amber-100">OT en Cours</CardTitle>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Wrench className="h-5 w-5" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                    {dashboardData?.activeWorkOrdersCount || 0}
+                  <div className="text-3xl font-bold">{dashboardData?.activeWorkOrdersCount || 0}</div>
+                  <div className="flex items-center mt-2 text-sm text-amber-100">
+                    <Clock className="w-4 h-4 mr-1" />
+                    <span>{dashboardData?.pendingWorkOrdersCount || 0} en attente</span>
                   </div>
-                  <p className="text-xs text-orange-600 dark:text-orange-400">
-                    -5 depuis hier
-                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
-                    Alertes Critiques
-                  </CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-500 to-red-600 text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-rose-100">Alertes</CardTitle>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-900 dark:text-red-100">
-                    {dashboardData?.criticalAlertsCount || 0}
+                  <div className="text-3xl font-bold">{dashboardData?.criticalAlertsCount || 0}</div>
+                  <div className="flex items-center mt-2 text-sm text-rose-100">
+                    <Bell className="w-4 h-4 mr-1" />
+                    <span>Nécessitent attention</span>
                   </div>
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    +1 aujourd'hui
-                  </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                    Stock Faible
-                  </CardTitle>
-                  <Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-violet-100">Stock Critique</CardTitle>
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Package className="h-5 w-5" />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                    {dashboardData?.lowStockPartsCount || 0}
+                  <div className="text-3xl font-bold">{dashboardData?.lowStockPartsCount || 0}</div>
+                  <div className="flex items-center mt-2 text-sm text-violet-100">
+                    <ShoppingCart className="w-4 h-4 mr-1" />
+                    <span>À réapprovisionner</span>
                   </div>
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
-                    Réapprovisionnement nécessaire
-                  </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Charts and Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Work Orders by Status - Simplified */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Wrench className="w-5 h-5" />
-                    <span>Statut des OT</span>
-                  </CardTitle>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Work Orders Status - Enhanced */}
+              <Card className="lg:col-span-1 shadow-md">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <PieChart className="w-5 h-5 text-primary" />
+                      Répartition des OT
+                    </CardTitle>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => (
-                      <div key={status} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            status === 'pending' ? 'bg-orange-500' :
-                            status === 'in_progress' ? 'bg-blue-500' :
-                            status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
-                          }`} />
-                          <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => {
+                      const total = Object.values(dashboardData.workOrdersByStatus).reduce((a, b) => a + b, 0);
+                      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                      const statusConfig: Record<string, { color: string; bgColor: string; label: string }> = {
+                        pending: { color: 'bg-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30', label: 'En attente' },
+                        in_progress: { color: 'bg-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30', label: 'En cours' },
+                        completed: { color: 'bg-emerald-500', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30', label: 'Terminé' },
+                        cancelled: { color: 'bg-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', label: 'Annulé' }
+                      };
+                      const config = statusConfig[status] || { color: 'bg-gray-400', bgColor: 'bg-gray-100', label: status };
+                      
+                      return (
+                        <div key={status} className={`p-3 rounded-lg ${config.bgColor}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${config.color}`} />
+                              <span className="font-medium text-sm">{config.label}</span>
+                            </div>
+                            <span className="text-lg font-bold">{count}</span>
+                          </div>
+                          <Progress value={percentage} className="h-1.5" />
+                          <p className="text-xs text-muted-foreground mt-1">{percentage}% du total</p>
                         </div>
-                        <span className="text-sm font-bold">{count}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Recent Work Orders */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Wrench className="w-5 h-5" />
-                    <span>Ordres de Travail Récents</span>
-                  </CardTitle>
+              {/* Recent Work Orders - Enhanced */}
+              <Card className="lg:col-span-2 shadow-md">
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Wrench className="w-5 h-5 text-primary" />
+                      Ordres de Travail Récents
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab("work-orders")}>
+                      Voir tout
+                      <Eye className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {dashboardData?.recentWorkOrders?.slice(0, 3).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">{order.title}</p>
-                          <p className="text-xs text-muted-foreground">#{order.orderNumber}</p>
+                <CardContent className="pt-4">
+                  <div className="space-y-3">
+                    {dashboardData?.recentWorkOrders?.slice(0, 5).map((order, index) => (
+                      <div 
+                        key={order.id} 
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md hover:border-primary/30 ${
+                          index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-lg ${
+                            order.priority === 'urgent' ? 'bg-red-100 dark:bg-red-900/30' :
+                            order.priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/30' :
+                            'bg-blue-100 dark:bg-blue-900/30'
+                          }`}>
+                            <Wrench className={`w-4 h-4 ${
+                              order.priority === 'urgent' ? 'text-red-600' :
+                              order.priority === 'high' ? 'text-orange-600' :
+                              'text-blue-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{order.title}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span>#{order.orderNumber}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+                              </span>
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={getPriorityColor(order.priority)}>
-                            {order.priority}
+                        <div className="flex items-center gap-2">
+                          <Badge className={getPriorityColor(order.priority)} variant="secondary">
+                            {order.priority === 'urgent' ? 'Urgent' : 
+                             order.priority === 'high' ? 'Haute' :
+                             order.priority === 'medium' ? 'Moyenne' : 'Basse'}
                           </Badge>
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status}
+                          <Badge className={getStatusColor(order.status)} variant="outline">
+                            {order.status === 'pending' ? 'En attente' :
+                             order.status === 'in_progress' ? 'En cours' :
+                             order.status === 'completed' ? 'Terminé' : order.status}
                           </Badge>
                         </div>
                       </div>
                     )) || (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Aucun ordre de travail récent
-                      </p>
+                      <div className="text-center py-8">
+                        <Wrench className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                        <p className="text-muted-foreground">Aucun ordre de travail récent</p>
+                        <Button variant="link" size="sm" onClick={() => setActiveTab("work-orders")} className="mt-2">
+                          Créer un ordre de travail
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
+            {/* Quick Access Section */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                onClick={() => setActiveTab("equipment")}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
+                    <Factory className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Équipements</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Gérer les actifs</p>
+                </CardContent>
+              </Card>
 
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                onClick={() => { setShowAdminModal(true); setActiveAdminTab("maintenance"); }}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 mb-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
+                    <CalendarCheck className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Préventif</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Plans de maintenance</p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                onClick={() => setActiveTab("inventory")}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
+                    <Package className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Inventaire</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Stock et pièces</p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                onClick={() => { setShowAdminModal(true); setActiveAdminTab("health-dashboard"); }}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className="p-3 rounded-full bg-teal-100 dark:bg-teal-900/30 mb-3 group-hover:bg-teal-200 dark:group-hover:bg-teal-800/50 transition-colors">
+                    <Activity className="w-6 h-6 text-teal-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm">Santé</h3>
+                  <p className="text-xs text-muted-foreground mt-1">État des équipements</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
