@@ -408,7 +408,7 @@ export class DataImportExportService {
           }
         };
         
-        const mapping = stateMappings[erpFormat];
+        const mapping = (stateMappings as Record<string, Record<string, string>>)[erpFormat];
         if (mapping) {
           normalized.operationalState = mapping[normalized.operationalState] || normalized.operationalState;
         }
@@ -424,7 +424,7 @@ export class DataImportExportService {
           maximo: { '1': 'critical', '2': 'high', '3': 'medium', '4': 'low' }
         };
         
-        const mapping = criticalityMappings[erpFormat];
+        const mapping = (criticalityMappings as Record<string, Record<string, string>>)[erpFormat];
         if (mapping) {
           normalized.criticalityLevel = mapping[normalized.criticalityLevel] || normalized.criticalityLevel;
         }
@@ -467,7 +467,7 @@ export class DataImportExportService {
           }
         };
         
-        const mapping = typeMappings[erpFormat];
+        const mapping = (typeMappings as Record<string, Record<string, string>>)[erpFormat];
         if (mapping) {
           normalized.orderType = mapping[normalized.orderType] || normalized.orderType;
         }
@@ -483,7 +483,7 @@ export class DataImportExportService {
           maximo: { '1': 'urgent', '2': 'high', '3': 'medium', '4': 'low' }
         };
         
-        const mapping = priorityMappings[erpFormat];
+        const mapping = (priorityMappings as Record<string, Record<string, string>>)[erpFormat];
         if (mapping) {
           normalized.priority = mapping[normalized.priority] || normalized.priority;
         }
@@ -532,7 +532,7 @@ export class DataImportExportService {
           }
         };
         
-        const mapping = statusMappings[erpFormat];
+        const mapping = (statusMappings as Record<string, Record<string, string>>)[erpFormat];
         if (mapping) {
           normalized.status = mapping[normalized.status] || normalized.status;
         }
@@ -549,7 +549,7 @@ export class DataImportExportService {
     errors: string[];
     warnings: string[];
   }> {
-    const result = { success: true, imported: 0, errors: [], warnings: [] };
+    const result: { success: boolean; imported: number; errors: string[]; warnings: string[] } = { success: true, imported: 0, errors: [], warnings: [] };
     
     try {
       let records: any[] = [];
@@ -621,7 +621,7 @@ export class DataImportExportService {
     errors: string[];
     warnings: string[];
   }> {
-    const result = { success: true, imported: 0, errors: [], warnings: [] };
+    const result: { success: boolean; imported: number; errors: string[]; warnings: string[] } = { success: true, imported: 0, errors: [], warnings: [] };
     
     try {
       let records: any[] = [];
@@ -704,7 +704,7 @@ export class DataImportExportService {
     errors: string[];
     warnings: string[];
   }> {
-    const result = { success: true, imported: 0, errors: [], warnings: [] };
+    const result: { success: boolean; imported: number; errors: string[]; warnings: string[] } = { success: true, imported: 0, errors: [], warnings: [] };
     
     try {
       let records: any[] = [];
@@ -781,14 +781,14 @@ export class DataImportExportService {
       'Niveau Criticité': eq.criticalityLevel,
       'État Opérationnel': eq.operationalState,
       'Date Installation': eq.installationDate ? eq.installationDate.toISOString().split('T')[0] : '',
-      'Date Création': eq.createdAt.toISOString().split('T')[0],
+      'Date Création': eq.createdAt?.toISOString().split('T')[0] || '',
     }));
 
     if (format === 'csv') {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -837,14 +837,14 @@ export class DataImportExportService {
       'Durée Réelle (min)': mh.actualDuration || '',
       'Coût': mh.cost || '',
       'Notes': mh.notes || '',
-      'Date Création': mh.createdAt.toISOString().split('T')[0],
+      'Date Création': mh.createdAt?.toISOString().split('T')[0] || '',
     }));
 
     if (format === 'csv') {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -871,14 +871,14 @@ export class DataImportExportService {
       'Stock Min': part.minStock,
       'Stock Max': part.maxStock,
       'Emplacement': part.location || '',
-      'Date Création': part.createdAt.toISOString().split('T')[0],
+      'Date Création': part.createdAt?.toISOString().split('T')[0] || '',
     }));
 
     if (format === 'csv') {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -917,7 +917,7 @@ export class DataImportExportService {
       'ID Capteur': iot.sensorId,
       'Valeur': iot.value,
       'Unité': iot.unit,
-      'Timestamp': iot.timestamp.toISOString(),
+      'Timestamp': iot.timestamp?.toISOString() || '',
       'Qualité': iot.quality,
       'État Alarme': iot.alarmState,
     }));
@@ -926,7 +926,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {

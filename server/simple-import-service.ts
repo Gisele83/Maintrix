@@ -13,7 +13,7 @@ export class SimpleImportService {
     errors: string[];
     warnings: string[];
   }> {
-    const result = { success: true, imported: 0, errors: [], warnings: [] };
+    const result: { success: boolean; imported: number; errors: string[]; warnings: string[] } = { success: true, imported: 0, errors: [], warnings: [] };
     
     try {
       let records: any[] = [];
