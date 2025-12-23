@@ -885,21 +885,29 @@ export function registerGMAORoutes(app: Express) {
 
   // ============= DASHBOARD AND ANALYTICS ROUTES =============
   
-  // Get GMAO dashboard data
+  // Get GMAO dashboard data - Filtered by tenant for multi-tenant isolation
   app.get("/api/gmao-dashboard", async (req, res) => {
     try {
+      // Get tenant context - all users in the same tenant see the same data
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const userRole = (req as any).user?.role || 'technician';
+      
+      console.log(`📊 Dashboard request for tenant: ${tenantId}, user role: ${userRole}`);
+      
       const [
         totalEquipment,
         activeWorkOrders,
         pendingWorkOrders,
         criticalAlerts,
-        lowStockParts
+        lowStockParts,
+        completedWorkOrders
       ] = await Promise.all([
-        gmaoStorage.getEquipmentRegistry(),
-        gmaoStorage.getWorkOrdersByStatus('in_progress'),
-        gmaoStorage.getWorkOrdersByStatus('pending'),
+        gmaoStorage.getEquipmentRegistry(tenantId),
+        gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId),
+        gmaoStorage.getWorkOrdersByStatus('pending', tenantId),
         gmaoStorage.getAlertsNotifications('active'),
-        gmaoStorage.getLowStockParts()
+        gmaoStorage.getLowStockParts(tenantId),
+        gmaoStorage.getWorkOrdersByStatus('completed', tenantId)
       ]);
 
       const dashboardData = {
@@ -908,7 +916,7 @@ export function registerGMAORoutes(app: Express) {
         pendingWorkOrdersCount: pendingWorkOrders.length,
         criticalAlertsCount: criticalAlerts.filter(a => a.severity === 'critical').length,
         lowStockPartsCount: lowStockParts.length,
-        recentWorkOrders: activeWorkOrders.slice(0, 5),
+        recentWorkOrders: [...activeWorkOrders, ...pendingWorkOrders].slice(0, 5),
         recentAlerts: criticalAlerts.slice(0, 5),
         equipmentByType: totalEquipment.reduce((acc: any, eq) => {
           acc[eq.equipmentType] = (acc[eq.equipmentType] || 0) + 1;
@@ -917,14 +925,79 @@ export function registerGMAORoutes(app: Express) {
         workOrdersByStatus: {
           pending: pendingWorkOrders.length,
           in_progress: activeWorkOrders.length,
-          completed: (await gmaoStorage.getWorkOrdersByStatus('completed')).length
-        }
+          completed: completedWorkOrders.length
+        },
+        tenantId: tenantId,
+        accessLevel: userRole
       };
 
       res.json(dashboardData);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("❌ Error fetching dashboard data:", error);
       res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
+  // Get tenant data access policy - Explains who can see and modify what
+  app.get("/api/tenant-access-policy", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const userRole = (req as any).user?.role || 'technician';
+      
+      const accessPolicy = {
+        tenantId,
+        currentRole: userRole,
+        dataVisibility: {
+          description: "Tous les utilisateurs du même tenant voient les mêmes données",
+          workOrders: "Lecture pour tous, modification selon le rôle",
+          equipment: "Lecture pour tous, modification selon le rôle", 
+          maintenancePlans: "Lecture pour tous, modification selon le rôle",
+          inventory: "Lecture pour tous, modification selon le rôle",
+          reports: "Accès selon le niveau du rôle"
+        },
+        rolePermissions: {
+          technician: {
+            canView: ["own_work_orders", "equipment", "inventory", "diagnostic_ai"],
+            canModify: ["own_work_orders"],
+            description: "Technicien - Accès limité aux propres interventions"
+          },
+          team_leader: {
+            canView: ["team_work_orders", "equipment", "inventory", "preventive_maintenance"],
+            canModify: ["team_work_orders", "equipment"],
+            description: "Chef d'équipe - Accès aux interventions de l'équipe"
+          },
+          planner: {
+            canView: ["all_work_orders", "equipment", "inventory", "planning", "history"],
+            canModify: ["all_work_orders", "equipment", "preventive_maintenance", "planning"],
+            description: "Planificateur - Accès complet planification"
+          },
+          maintenance_manager: {
+            canView: ["all_work_orders", "equipment", "inventory", "reports", "budget"],
+            canModify: ["all_work_orders", "equipment", "preventive_maintenance", "delete_operations"],
+            description: "Responsable Maintenance - Vue globale et validation"
+          },
+          procurement: {
+            canView: ["inventory", "all_work_orders", "equipment", "budget"],
+            canModify: ["inventory", "purchase_orders"],
+            description: "Service Achats - Gestion stock et commandes"
+          },
+          technical_director: {
+            canView: ["all_data", "reports", "budget", "analytics"],
+            canModify: ["all_data", "budget", "settings"],
+            description: "Directeur Technique - Accès complet"
+          },
+          admin: {
+            canView: ["all_data", "users", "audit_logs", "settings"],
+            canModify: ["all_data", "users", "settings", "tenant_configuration"],
+            description: "Administrateur - Contrôle total"
+          }
+        }
+      };
+      
+      res.json(accessPolicy);
+    } catch (error) {
+      console.error("Error fetching access policy:", error);
+      res.status(500).json({ message: "Failed to fetch access policy" });
     }
   });
 
