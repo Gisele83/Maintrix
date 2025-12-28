@@ -99,3 +99,29 @@ User confirmed that username field should remain non-editable in profile forms f
 ✅ Middlewares backend + hooks React
 ✅ Isolation des données par rôle
 📄 Documentation dans `RBAC_GUIDE.md`
+
+### Documentation Sécurité SOC 2 / ISO 27001 (Janvier 2025)
+✅ **6 documents de conformité créés** pour préparer les certifications
+✅ Politique de Sécurité de l'Information (14 sections)
+✅ Procédure de Réponse aux Incidents (7 phases)
+✅ Plan de Continuité d'Activité (RTO 4h / RPO 24h)
+✅ Registre des Risques (14 risques évalués)
+✅ Mapping des Contrôles SOC 2 / ISO 27001 (97% couverture SOC 2)
+✅ Annexes : Utilisation acceptable, SDLC sécurisé, Inventaire actifs
+📁 Tous les documents dans `docs/security/`
+
+## Security & Compliance Documentation
+
+### SOC 2 / ISO 27001 Preparation
+Located in `docs/security/`:
+- `POLITIQUE_SECURITE_INFORMATION.md` - Information Security Policy
+- `PROCEDURE_REPONSE_INCIDENTS.md` - Incident Response Procedure
+- `PLAN_CONTINUITE_ACTIVITE.md` - Business Continuity Plan (PCA)
+- `REGISTRE_RISQUES.md` - Risk Register with 14 identified risks
+- `MAPPING_CONTROLES_SOC2_ISO27001.md` - Control mapping (97% SOC 2, 84% ISO 27001)
+- `ANNEXES_POLITIQUE_SECURITE.md` - Policy annexes (acceptable use, SDLC, assets)
+
+### Certification Roadmap
+- **Year 1**: SOC 2 Type I (~20-40k€)
+- **Year 2**: SOC 2 Type II (~30-60k€)
+- **Year 3**: ISO 27001 (~25-50k€)
