@@ -18,9 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 const equipmentSchema = z.object({
   equipmentName: z.string().min(1, "Nom de l'équipement requis"),
   equipmentType: z.string().min(1, "Type d'équipement requis"),
-  equipmentId: z.string().min(1, "ID équipement requis"),
+  equipmentId: z.string().optional(),
   location: z.string().min(1, "Localisation requise"),
-  zone: z.string().min(1, "Zone requise"),
+  zone: z.string().optional(),
   operationalState: z.string().min(1, "Statut requis"),
   criticalityLevel: z.string().min(1, "Niveau de criticité requis"),
   manufacturer: z.string().optional(),
@@ -83,10 +83,11 @@ export function EquipmentManagement() {
         description: "Le nouvel équipement a été ajouté avec succès",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Equipment creation error:", error);
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter l'équipement",
+        description: error?.message || "Impossible d'ajouter l'équipement",
         variant: "destructive",
       });
     }
@@ -165,10 +166,13 @@ export function EquipmentManagement() {
   );
 
   const onSubmit = (data: EquipmentFormData) => {
+    const cleanData = { ...data };
+    if (!cleanData.equipmentId?.trim()) delete cleanData.equipmentId;
+    if (!cleanData.zone?.trim()) delete cleanData.zone;
     if (selectedEquipment) {
-      updateEquipmentMutation.mutate({ id: selectedEquipment.id, data });
+      updateEquipmentMutation.mutate({ id: selectedEquipment.id, data: cleanData });
     } else {
-      addEquipmentMutation.mutate(data);
+      addEquipmentMutation.mutate(cleanData);
     }
   };
 
@@ -400,7 +404,7 @@ function EquipmentForm({
             name="equipmentId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>ID équipement *</FormLabel>
+                <FormLabel>ID équipement (auto-généré si vide)</FormLabel>
                 <FormControl>
                   <Input placeholder="ex: STS-001" {...field} />
                 </FormControl>
@@ -417,7 +421,7 @@ function EquipmentForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Type d'équipement *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un type" />
@@ -436,6 +440,10 @@ function EquipmentForm({
                     <SelectItem value="generator">Générateur</SelectItem>
                     <SelectItem value="transformer">Transformateur</SelectItem>
                     <SelectItem value="compressor">Compresseur</SelectItem>
+                    <SelectItem value="hvac">HVAC / Climatisation</SelectItem>
+                    <SelectItem value="hydraulic">Hydraulique</SelectItem>
+                    <SelectItem value="pneumatic">Pneumatique</SelectItem>
+                    <SelectItem value="electrical">Électrique</SelectItem>
                     <SelectItem value="other">Autre</SelectItem>
                   </SelectContent>
                 </Select>
@@ -450,7 +458,7 @@ function EquipmentForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Statut *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un statut" />
@@ -475,8 +483,8 @@ function EquipmentForm({
             name="zone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Zone *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Zone</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une zone" />
@@ -497,6 +505,8 @@ function EquipmentForm({
                     <SelectItem value="environmental">Environnement</SelectItem>
                     <SelectItem value="it">Informatique</SelectItem>
                     <SelectItem value="logistics">Logistique</SelectItem>
+                    <SelectItem value="production">Production</SelectItem>
+                    <SelectItem value="utilities">Utilités</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

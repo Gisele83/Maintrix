@@ -57,6 +57,18 @@ User confirmed that username field should remain non-editable in profile forms f
 
 ## Recent Updates
 
+### 9 Advanced Feature Pages (February 2026)
+✅ **Client Portal** - Token-based public access for clients to view work order status
+✅ **SLA Management** - SLA rules definition, compliance tracking, breach monitoring with escalation
+✅ **Machine Health Scoring** - Equipment health scores (0-100), risk assessment, AI recommendations
+✅ **Smart Alerts & Action Recommendations** - AI-powered alert system with pattern detection
+✅ **Sensor Hub (IoT)** - Real-time IoT sensor monitoring, alarm tracking, protocol support (Modbus, MQTT, OPC-UA, LoRaWAN)
+✅ **Equipment QR Codes** - QR code generation and printing for equipment identification
+✅ **Equipment Management Improvements** - Optional equipmentId (auto-generated), optional zone, expanded equipment types, controlled Select components
+✅ **Work Order Deletion** - DELETE endpoint with tenant security isolation
+✅ **Inline Equipment Creation** - Quick-add equipment from work order form
+📁 Frontend pages in `client/src/pages/`, APIs in `server/gmao-routes.ts` and `server/routes.ts`
+
 ### Rebranding Complet (9 Janvier 2025)
 ✅ **Migration complète de "Smart GMAO DiagFix" vers "Maintrix"**
 ✅ 86 fichiers rebrandés avec 726 remplacements automatisés
