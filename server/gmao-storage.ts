@@ -90,6 +90,12 @@ export class GMAOStorage {
     return equipment;
   }
 
+  async getEquipmentByEquipmentIdGlobal(equipmentId: string): Promise<EquipmentRegistry | undefined> {
+    const [equipment] = await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.equipmentId, equipmentId));
+    return equipment;
+  }
+
   async createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry> {
     const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
     return equipment;

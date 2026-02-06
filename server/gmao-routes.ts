@@ -67,26 +67,19 @@ export function registerGMAORoutes(app: Express) {
       // First validate with Zod (expects strings for date fields)
       const validatedData = insertEquipmentRegistrySchema.parse(dataToValidate);
       
-      // Generate unique equipmentId if not provided or if it already exists
       let equipmentId = validatedData.equipmentId;
       
-      if (!equipmentId || await gmaoStorage.getEquipmentByEquipmentId(equipmentId, tenantId)) {
-        // Generate new unique equipmentId
-        let isUnique = false;
-        let attempts = 0;
-        
-        while (!isUnique && attempts < 10) {
-          equipmentId = `EQ-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-          const existing = await gmaoStorage.getEquipmentByEquipmentId(equipmentId, tenantId);
-          isUnique = !existing;
-          attempts++;
+      if (!equipmentId) {
+        equipmentId = `EQ-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        console.log(`Auto-generated equipmentId: ${equipmentId}`);
+      } else {
+        const existing = await gmaoStorage.getEquipmentByEquipmentIdGlobal(equipmentId);
+        if (existing) {
+          return res.status(400).json({ 
+            message: "Cet ID d'équipement existe déjà. Veuillez en choisir un autre ou laissez le champ vide pour une génération automatique.",
+            field: "equipmentId"
+          });
         }
-        
-        if (!isUnique) {
-          throw new Error("Failed to generate unique equipment ID after 10 attempts");
-        }
-        
-        console.log(`Generated unique equipmentId: ${equipmentId}`);
       }
       
       // Then convert date strings to Date objects for database storage
