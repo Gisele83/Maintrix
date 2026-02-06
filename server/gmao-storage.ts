@@ -221,6 +221,14 @@ export class GMAOStorage {
     return workOrder;
   }
 
+  async deleteWorkOrder(id: number, tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
+  }
+
   // Work Orders by Validation Status (same procedure as Purchase Orders) - TENANT ISOLATED
   async getWorkOrdersByValidationStatus(status: string, tenantId: string): Promise<WorkOrder[]> {
     // 🔧 CORRECTION: Activer le filtrage par tenant ET par status

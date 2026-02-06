@@ -338,6 +338,23 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Delete work order
+  app.delete("/api/work-orders/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const deleted = await gmaoStorage.deleteWorkOrder(id, tenantId);
+      if (deleted) {
+        res.json({ success: true, message: "Ordre de travail supprimé avec succès" });
+      } else {
+        res.status(404).json({ message: "Ordre de travail non trouvé" });
+      }
+    } catch (error) {
+      console.error("Error deleting work order:", error);
+      res.status(500).json({ message: "Impossible de supprimer l'ordre de travail" });
+    }
+  });
+
   // Get work orders by equipment
   app.get("/api/equipment/:equipmentId/work-orders", async (req, res) => {
     try {
