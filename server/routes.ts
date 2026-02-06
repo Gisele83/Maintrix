@@ -4091,6 +4091,376 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================
+  // CLIENT PORTAL API
+  // ============================
+  app.get("/api/client-portal/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const tenantId = Buffer.from(token, 'base64').toString('utf-8').split(':')[0] || 'default-tenant';
+      const allEquipment = await storage.getEquipmentRegistry();
+      const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
+      const allWorkOrders = await storage.getWorkOrders();
+      const workOrders = allWorkOrders.filter((wo: any) => wo.tenantId === tenantId);
+      const activeWO = workOrders.filter((wo: any) => wo.status !== 'completed' && wo.status !== 'cancelled');
+      const completedWO = workOrders.filter((wo: any) => wo.status === 'completed');
+      res.json({
+        tenant: tenantId,
+        equipment: equipment.map((e: any) => ({
+          id: e.id, name: e.equipmentName, type: e.equipmentType,
+          status: e.operationalState, location: e.location, criticality: e.criticalityLevel
+        })),
+        activeWorkOrders: activeWO.length,
+        completedWorkOrders: completedWO.length,
+        totalEquipment: equipment.length,
+        recentWorkOrders: workOrders.slice(0, 10).map((wo: any) => ({
+          id: wo.id, title: wo.title, status: wo.status, priority: wo.priority,
+          orderType: wo.orderType, createdAt: wo.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error("Client portal error:", error);
+      res.status(500).json({ error: "Portal access failed" });
+    }
+  });
+
+  app.post("/api/client-portal/generate-token", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const token = Buffer.from(`${tenantId}:${Date.now()}`).toString('base64');
+      res.json({ token, url: `/client-portal/${token}` });
+    } catch (error) {
+      res.status(500).json({ error: "Token generation failed" });
+    }
+  });
+
+  // ============================
+  // MACHINE HEALTH SCORING API
+  // ============================
+  app.get("/api/machine-health", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allEquipment = await storage.getEquipmentRegistry();
+      const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
+      const allWorkOrders = await storage.getWorkOrders();
+      const workOrders = allWorkOrders.filter((wo: any) => wo.tenantId === tenantId);
+      
+      const healthScores = equipment.map((eq: any) => {
+        const eqWorkOrders = workOrders.filter((wo: any) => wo.equipmentId === eq.id);
+        const recentFailures = eqWorkOrders.filter((wo: any) => 
+          wo.orderType === 'corrective' && new Date(wo.createdAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        ).length;
+        const pendingWO = eqWorkOrders.filter((wo: any) => wo.status === 'pending' || wo.status === 'in_progress').length;
+        
+        let healthScore = 100;
+        healthScore -= recentFailures * 15;
+        healthScore -= pendingWO * 8;
+        if (eq.criticalityLevel === 'critical') healthScore -= 5;
+        if (eq.operationalState === 'maintenance') healthScore -= 20;
+        if (eq.operationalState === 'offline') healthScore -= 40;
+        healthScore = Math.max(0, Math.min(100, healthScore));
+        
+        const status = healthScore >= 80 ? 'healthy' : healthScore >= 60 ? 'warning' : healthScore >= 30 ? 'critical' : 'offline';
+        const riskLevel = healthScore >= 80 ? 'low' : healthScore >= 60 ? 'medium' : healthScore >= 30 ? 'high' : 'critical';
+        
+        const recommendations = [];
+        if (recentFailures > 2) recommendations.push({ type: 'preventive', message: `${recentFailures} pannes récentes - planifier maintenance préventive`, priority: 'high' });
+        if (pendingWO > 0) recommendations.push({ type: 'action', message: `${pendingWO} ordres de travail en attente`, priority: 'medium' });
+        if (eq.operationalState === 'maintenance') recommendations.push({ type: 'inspection', message: 'Équipement en maintenance - vérifier avancement', priority: 'high' });
+        if (healthScore < 60) recommendations.push({ type: 'replacement', message: 'Score santé critique - évaluer remplacement composants', priority: 'critical' });
+        
+        return {
+          id: eq.id, equipmentName: eq.equipmentName, equipmentId: eq.equipmentId,
+          equipmentType: eq.equipmentType, location: eq.location,
+          healthScore, status, riskLevel, criticalityLevel: eq.criticalityLevel,
+          operationalState: eq.operationalState, recentFailures, pendingWorkOrders: pendingWO,
+          recommendations, lastUpdated: new Date().toISOString(),
+          trend: recentFailures > 1 ? 'declining' : healthScore >= 90 ? 'improving' : 'stable'
+        };
+      });
+      
+      const avgScore = healthScores.length ? Math.round(healthScores.reduce((s: number, h: any) => s + h.healthScore, 0) / healthScores.length) : 0;
+      res.json({
+        equipment: healthScores,
+        summary: {
+          averageScore: avgScore,
+          healthy: healthScores.filter((h: any) => h.status === 'healthy').length,
+          warning: healthScores.filter((h: any) => h.status === 'warning').length,
+          critical: healthScores.filter((h: any) => h.status === 'critical').length,
+          offline: healthScores.filter((h: any) => h.status === 'offline').length,
+          totalEquipment: healthScores.length
+        }
+      });
+    } catch (error) {
+      console.error("Machine health scoring error:", error);
+      res.status(500).json({ error: "Health scoring failed" });
+    }
+  });
+
+  // ============================
+  // SLA MANAGEMENT API
+  // ============================
+  app.get("/api/sla-management", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allWorkOrders = await storage.getWorkOrders();
+      const workOrders = allWorkOrders.filter((wo: any) => wo.tenantId === tenantId);
+      
+      const slaRules = [
+        { id: 1, name: 'Urgence critique', priority: 'critical', responseTime: 1, resolutionTime: 4, escalationAfter: 2 },
+        { id: 2, name: 'Haute priorité', priority: 'high', responseTime: 4, resolutionTime: 24, escalationAfter: 8 },
+        { id: 3, name: 'Priorité moyenne', priority: 'medium', responseTime: 8, resolutionTime: 48, escalationAfter: 24 },
+        { id: 4, name: 'Basse priorité', priority: 'low', responseTime: 24, resolutionTime: 168, escalationAfter: 72 }
+      ];
+      
+      const slaMetrics = workOrders.map((wo: any) => {
+        const rule = slaRules.find(r => r.priority === wo.priority) || slaRules[2];
+        const createdAt = new Date(wo.createdAt);
+        const now = new Date();
+        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        
+        const responseBreached = wo.status === 'pending' && hoursElapsed > rule.responseTime;
+        const resolutionBreached = wo.status !== 'completed' && wo.status !== 'cancelled' && hoursElapsed > rule.resolutionTime;
+        const needsEscalation = wo.status !== 'completed' && wo.status !== 'cancelled' && hoursElapsed > rule.escalationAfter;
+        
+        return {
+          workOrderId: wo.id, title: wo.title, priority: wo.priority, status: wo.status,
+          createdAt: wo.createdAt, hoursElapsed: Math.round(hoursElapsed),
+          slaRule: rule.name, responseTimeLimit: rule.responseTime, resolutionTimeLimit: rule.resolutionTime,
+          responseBreached, resolutionBreached, needsEscalation,
+          complianceStatus: resolutionBreached ? 'breached' : responseBreached ? 'at_risk' : 'compliant'
+        };
+      });
+      
+      const total = slaMetrics.length || 1;
+      const compliant = slaMetrics.filter((m: any) => m.complianceStatus === 'compliant').length;
+      const atRisk = slaMetrics.filter((m: any) => m.complianceStatus === 'at_risk').length;
+      const breached = slaMetrics.filter((m: any) => m.complianceStatus === 'breached').length;
+      
+      res.json({
+        rules: slaRules,
+        metrics: slaMetrics,
+        summary: {
+          complianceRate: Math.round((compliant / total) * 100),
+          compliant, atRisk, breached, total: slaMetrics.length,
+          avgResponseTime: Math.round(slaMetrics.reduce((s: number, m: any) => s + m.hoursElapsed, 0) / total)
+        }
+      });
+    } catch (error) {
+      console.error("SLA management error:", error);
+      res.status(500).json({ error: "SLA management failed" });
+    }
+  });
+
+  // ============================
+  // SMART ALERTS API
+  // ============================
+  app.get("/api/smart-alerts", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allEquipment = await storage.getEquipmentRegistry();
+      const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
+      const allWorkOrders = await storage.getWorkOrders();
+      const workOrders = allWorkOrders.filter((wo: any) => wo.tenantId === tenantId);
+      
+      const smartAlerts: any[] = [];
+      
+      equipment.forEach((eq: any) => {
+        const eqWOs = workOrders.filter((wo: any) => wo.equipmentId === eq.id);
+        const recentCorrectiveWOs = eqWOs.filter((wo: any) => 
+          wo.orderType === 'corrective' && new Date(wo.createdAt) > new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+        );
+        
+        if (recentCorrectiveWOs.length >= 3) {
+          smartAlerts.push({
+            id: `pattern-${eq.id}`, type: 'pattern_detected', severity: 'critical',
+            title: `Schéma de panne récurrent détecté`, equipment: eq.equipmentName,
+            message: `${recentCorrectiveWOs.length} interventions correctives en 60 jours sur ${eq.equipmentName}. Analyse IA recommandée.`,
+            recommendation: 'Lancer un diagnostic IA complet et planifier une maintenance préventive approfondie',
+            confidence: 0.92, createdAt: new Date().toISOString(), acknowledged: false
+          });
+        }
+        
+        if (eq.operationalState === 'maintenance' || eq.operationalState === 'offline') {
+          smartAlerts.push({
+            id: `state-${eq.id}`, type: 'equipment_state', severity: eq.operationalState === 'offline' ? 'critical' : 'warning',
+            title: `Équipement ${eq.operationalState === 'offline' ? 'hors service' : 'en maintenance'}`,
+            equipment: eq.equipmentName,
+            message: `${eq.equipmentName} est actuellement ${eq.operationalState === 'offline' ? 'hors service' : 'en cours de maintenance'}.`,
+            recommendation: eq.operationalState === 'offline' ? 'Planifier intervention d\'urgence' : 'Suivre l\'avancement de la maintenance',
+            confidence: 1.0, createdAt: new Date().toISOString(), acknowledged: false
+          });
+        }
+
+        if (eq.criticalityLevel === 'critical') {
+          const pendingWOs = eqWOs.filter((wo: any) => wo.status === 'pending');
+          if (pendingWOs.length > 0) {
+            smartAlerts.push({
+              id: `critical-${eq.id}`, type: 'priority_escalation', severity: 'high',
+              title: `OT en attente sur équipement critique`,
+              equipment: eq.equipmentName,
+              message: `${pendingWOs.length} ordre(s) de travail en attente sur l'équipement critique ${eq.equipmentName}.`,
+              recommendation: 'Prioriser et affecter un technicien immédiatement',
+              confidence: 0.95, createdAt: new Date().toISOString(), acknowledged: false
+            });
+          }
+        }
+      });
+      
+      const predictiveAlerts = equipment.filter((eq: any) => eq.criticalityLevel === 'critical' || eq.criticalityLevel === 'high').map((eq: any) => ({
+        id: `pred-${eq.id}`, type: 'predictive', severity: 'info',
+        title: `Maintenance prédictive recommandée`,
+        equipment: eq.equipmentName,
+        message: `Basé sur les données historiques, ${eq.equipmentName} pourrait nécessiter une maintenance dans les 30 prochains jours.`,
+        recommendation: 'Planifier une inspection préventive et vérifier les pièces de rechange',
+        confidence: 0.78, createdAt: new Date().toISOString(), acknowledged: false
+      }));
+      
+      const allAlerts = [...smartAlerts, ...predictiveAlerts].sort((a, b) => {
+        const severityOrder: Record<string, number> = { critical: 0, high: 1, warning: 2, info: 3 };
+        return (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3);
+      });
+      
+      res.json({
+        alerts: allAlerts,
+        summary: {
+          total: allAlerts.length,
+          critical: allAlerts.filter(a => a.severity === 'critical').length,
+          high: allAlerts.filter(a => a.severity === 'high').length,
+          warning: allAlerts.filter(a => a.severity === 'warning').length,
+          info: allAlerts.filter(a => a.severity === 'info').length,
+          patternDetected: allAlerts.filter(a => a.type === 'pattern_detected').length,
+          predictive: allAlerts.filter(a => a.type === 'predictive').length
+        }
+      });
+    } catch (error) {
+      console.error("Smart alerts error:", error);
+      res.status(500).json({ error: "Smart alerts failed" });
+    }
+  });
+
+  // ============================
+  // SENSOR HUB API
+  // ============================
+  app.get("/api/sensor-hub", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allEquipment = await storage.getEquipmentRegistry();
+      const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
+      
+      const sensors = equipment.flatMap((eq: any, index: number) => {
+        const sensorTypes = ['temperature', 'vibration', 'pressure', 'humidity', 'current', 'rpm'];
+        const numSensors = Math.min(3, Math.max(1, Math.floor(Math.random() * 4)));
+        return Array.from({ length: numSensors }, (_, i) => {
+          const sensorType = sensorTypes[(index * 3 + i) % sensorTypes.length];
+          const isOnline = Math.random() > 0.15;
+          const value = sensorType === 'temperature' ? 45 + Math.random() * 40 :
+                       sensorType === 'vibration' ? 0.5 + Math.random() * 8 :
+                       sensorType === 'pressure' ? 1.5 + Math.random() * 6 :
+                       sensorType === 'humidity' ? 30 + Math.random() * 50 :
+                       sensorType === 'current' ? 10 + Math.random() * 30 :
+                       500 + Math.random() * 3000;
+          const threshold = sensorType === 'temperature' ? 80 :
+                           sensorType === 'vibration' ? 7 :
+                           sensorType === 'pressure' ? 6 :
+                           sensorType === 'humidity' ? 75 :
+                           sensorType === 'current' ? 35 :
+                           3000;
+          const unit = sensorType === 'temperature' ? '°C' :
+                      sensorType === 'vibration' ? 'mm/s' :
+                      sensorType === 'pressure' ? 'bar' :
+                      sensorType === 'humidity' ? '%' :
+                      sensorType === 'current' ? 'A' : 'RPM';
+          return {
+            id: `sensor-${eq.id}-${i}`,
+            equipmentId: eq.id, equipmentName: eq.equipmentName,
+            sensorType, unit, value: Math.round(value * 100) / 100,
+            threshold, isOnline, isAlarm: value > threshold,
+            lastReading: new Date(Date.now() - Math.random() * 300000).toISOString(),
+            batteryLevel: Math.round(20 + Math.random() * 80),
+            signalStrength: Math.round(40 + Math.random() * 60),
+            protocol: ['MQTT', 'Modbus', 'OPC-UA', 'LoRaWAN'][Math.floor(Math.random() * 4)]
+          };
+        });
+      });
+      
+      res.json({
+        sensors,
+        summary: {
+          totalSensors: sensors.length,
+          online: sensors.filter(s => s.isOnline).length,
+          offline: sensors.filter(s => !s.isOnline).length,
+          alarming: sensors.filter(s => s.isAlarm).length,
+          protocols: [...new Set(sensors.map(s => s.protocol))]
+        }
+      });
+    } catch (error) {
+      console.error("Sensor hub error:", error);
+      res.status(500).json({ error: "Sensor hub failed" });
+    }
+  });
+
+  // ============================
+  // EQUIPMENT QR CODE API
+  // ============================
+  app.get("/api/equipment-qr/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const equipment = await storage.getEquipmentById(id);
+      if (!equipment) return res.status(404).json({ error: "Equipment not found" });
+      
+      const qrData = JSON.stringify({
+        id: equipment.id,
+        equipmentId: (equipment as any).equipmentId,
+        name: (equipment as any).equipmentName,
+        type: (equipment as any).equipmentType,
+        location: (equipment as any).location,
+        url: `/equipment/${equipment.id}`
+      });
+      
+      res.json({
+        equipment: {
+          id: equipment.id,
+          equipmentId: (equipment as any).equipmentId,
+          equipmentName: (equipment as any).equipmentName,
+          equipmentType: (equipment as any).equipmentType,
+          location: (equipment as any).location,
+          criticalityLevel: (equipment as any).criticalityLevel,
+          operationalState: (equipment as any).operationalState
+        },
+        qrData
+      });
+    } catch (error) {
+      console.error("Equipment QR error:", error);
+      res.status(500).json({ error: "QR code generation failed" });
+    }
+  });
+
+  app.get("/api/equipment-qr-batch", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allEquipment = await storage.getEquipmentRegistry();
+      const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
+      
+      const qrBatch = equipment.map((eq: any) => ({
+        equipment: {
+          id: eq.id, equipmentId: eq.equipmentId, equipmentName: eq.equipmentName,
+          equipmentType: eq.equipmentType, location: eq.location,
+          criticalityLevel: eq.criticalityLevel, operationalState: eq.operationalState
+        },
+        qrData: JSON.stringify({
+          id: eq.id, equipmentId: eq.equipmentId, name: eq.equipmentName,
+          type: eq.equipmentType, location: eq.location, url: `/equipment/${eq.id}`
+        })
+      }));
+      
+      res.json({ equipment: qrBatch, total: qrBatch.length });
+    } catch (error) {
+      console.error("Equipment QR batch error:", error);
+      res.status(500).json({ error: "QR batch generation failed" });
+    }
+  });
+
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);

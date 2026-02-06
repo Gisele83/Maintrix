@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { 
   Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
   AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
-  PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight
+  PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight,
+  Heart, Timer, Radio, QrCode, ExternalLink, Shield
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -322,6 +324,29 @@ export default function GMAODashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Quick Access - New Features */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { icon: Heart, label: "Santé Machines", href: "/machine-health", color: "from-green-500 to-emerald-600" },
+                { icon: Brain, label: "Alertes IA", href: "/smart-alerts", color: "from-purple-500 to-violet-600" },
+                { icon: Timer, label: "SLA", href: "/sla-management", color: "from-amber-500 to-orange-600" },
+                { icon: Radio, label: "Capteurs IoT", href: "/sensor-hub", color: "from-cyan-500 to-blue-600" },
+                { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: "from-violet-500 to-purple-600" },
+                { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" }
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-2`}>
+                        <item.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-xs font-medium">{item.label}</span>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
             </div>
 
             {/* Main Content Grid */}

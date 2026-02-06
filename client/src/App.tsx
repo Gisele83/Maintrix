@@ -51,6 +51,12 @@ import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
 import PaymentTest from "@/pages/payment-test";
+import ClientPortalPage from "@/pages/client-portal";
+import SLAManagement from "@/pages/sla-management";
+import MachineHealth from "@/pages/machine-health";
+import SmartAlerts from "@/pages/smart-alerts";
+import SensorHub from "@/pages/sensor-hub";
+import EquipmentQR from "@/pages/equipment-qr";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -244,6 +250,35 @@ function Router() {
       </Route>
       <Route path="/configuration-erp">
         {(params) => <ProtectedRoute component={ERPConfiguration} {...params} />}
+      </Route>
+      <Route path="/client-portal" component={ClientPortalPage} />
+      <Route path="/client-portal/:token" component={ClientPortalPage} />
+      <Route path="/sla-management">
+        {(params) => <ProtectedRoute component={SLAManagement} {...params} />}
+      </Route>
+      <Route path="/sla">
+        {(params) => <ProtectedRoute component={SLAManagement} {...params} />}
+      </Route>
+      <Route path="/machine-health">
+        {(params) => <ProtectedRoute component={MachineHealth} {...params} />}
+      </Route>
+      <Route path="/health-scoring">
+        {(params) => <ProtectedRoute component={MachineHealth} {...params} />}
+      </Route>
+      <Route path="/smart-alerts">
+        {(params) => <ProtectedRoute component={SmartAlerts} {...params} />}
+      </Route>
+      <Route path="/sensor-hub">
+        {(params) => <ProtectedRoute component={SensorHub} {...params} />}
+      </Route>
+      <Route path="/sensors">
+        {(params) => <ProtectedRoute component={SensorHub} {...params} />}
+      </Route>
+      <Route path="/equipment-qr">
+        {(params) => <ProtectedRoute component={EquipmentQR} {...params} />}
+      </Route>
+      <Route path="/qr-codes">
+        {(params) => <ProtectedRoute component={EquipmentQR} {...params} />}
       </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />
