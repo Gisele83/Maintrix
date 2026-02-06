@@ -358,7 +358,56 @@ server/
 
 ---
 
-## 7. Scripts Disponibles
+## 7. Fonctionnalités Avancées (Février 2026)
+
+### 7.1 🌐 Portail Client
+**Route :** `/client-portal`
+**API :** `GET /api/client-portal/:token`
+Accès public par token permettant aux clients de consulter le statut de leurs ordres de travail sans authentification. Génération de liens de partage sécurisés avec expiration configurable.
+
+### 7.2 📋 Gestion SLA (Service Level Agreement)
+**Route :** `/sla-management`
+**API :** `GET/POST /api/sla-rules`, `GET /api/sla-compliance`, `GET /api/sla-breaches`
+Définition de règles SLA par priorité et type d'équipement. Suivi de conformité en temps réel, monitoring des dépassements avec système d'escalade automatique par notifications.
+
+### 7.3 💚 Score Santé Machine
+**Route :** `/machine-health`
+**API :** `GET /api/equipment-health/:id`, `GET /api/equipment-health/scores`
+Score de santé des équipements de 0 à 100, basé sur l'historique de maintenance, l'âge, la fréquence des pannes. Évaluation des risques et recommandations IA pour la maintenance prédictive.
+
+### 7.4 🔔 Alertes Intelligentes & Recommandations d'Actions
+**Route :** `/smart-alerts`
+**API :** `GET /api/smart-alerts`, `POST /api/smart-alerts/acknowledge`
+Système d'alertes alimenté par l'IA avec détection de patterns récurrents. Recommandations d'actions contextuelles basées sur l'historique et les conditions actuelles des équipements.
+
+### 7.5 📡 Hub Capteurs IoT (Sensor Hub)
+**Route :** `/sensor-hub`
+**API :** `GET /api/sensors`, `GET /api/sensors/:id/data`, `GET /api/sensor-alarms`
+Monitoring IoT temps réel avec support multi-protocoles : Modbus, MQTT, OPC-UA, LoRaWAN. Suivi des alarmes capteurs, visualisation des données avec graphiques historiques.
+
+### 7.6 📱 QR Codes Équipements
+**Route :** `/equipment-qr`
+**API :** `GET /api/equipment/:id/qr`, `POST /api/equipment/qr/generate`
+Génération et impression de QR codes pour identification rapide des équipements. Scan mobile pour accès direct à la fiche équipement et création d'ordres de travail.
+
+### 7.7 ⚙️ Améliorations Gestion Équipements
+**API :** `POST/PUT /api/equipment`
+- `equipmentId` désormais optionnel (auto-généré si non fourni)
+- Champ `zone` optionnel pour localisation flexible
+- Types d'équipements étendus (nouveaux types industriels)
+- Composants Select contrôlés pour une meilleure expérience utilisateur
+
+### 7.8 🗑️ Suppression Ordres de Travail
+**API :** `DELETE /api/work-orders/:id`
+Endpoint de suppression avec vérification de l'isolation tenant. Contrôle RBAC pour restreindre la suppression aux rôles autorisés. Audit log automatique de chaque suppression.
+
+### 7.9 ➕ Création Équipement Inline
+**API :** `POST /api/equipment` (depuis formulaire OT)
+Ajout rapide d'un équipement directement depuis le formulaire de création d'ordre de travail, sans quitter le workflow. L'équipement créé est automatiquement sélectionné dans l'OT.
+
+---
+
+## 8. Scripts Disponibles
 
 | Script | Emplacement | Fonction |
 |--------|-------------|----------|
@@ -370,7 +419,7 @@ server/
 
 ---
 
-## 8. Fichiers de Configuration Clés
+## 9. Fichiers de Configuration Clés
 
 | Fichier | Rôle | Critique |
 |---------|------|----------|
@@ -382,5 +431,5 @@ server/
 
 ---
 
-**Document généré automatiquement pour Maintrix v2.0**
-**© 2025 Maintrix - Tous droits réservés**
+**Document généré automatiquement pour Maintrix v3.0**
+**© 2026 Maintrix - Tous droits réservés**

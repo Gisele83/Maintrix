@@ -23,7 +23,11 @@ services:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=info
       - ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
-      # Configuration Paiements (à remplir avec vos clés)
+      # IA Diagnostic (Claude Anthropic)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Email (SendGrid)
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      # Paiements (Stripe + PayPal)
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
       - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
@@ -60,8 +64,6 @@ services:
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     ports:
       - "5432:5432"
     restart: unless-stopped

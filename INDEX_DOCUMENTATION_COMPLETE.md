@@ -1,6 +1,6 @@
 # 📚 Index Documentation Complète Maintrix
 
-## Centre de Documentation Intégré - Version 2025
+## Centre de Documentation Intégré - Version 2026
 
 ---
 
@@ -8,243 +8,239 @@
 
 ## 📖 Documentation Technique Principale
 
-### 1. Documentation Complète Plateforme
-**Fichier :** `DOCUMENTATION_COMPLETE_SMART_GMAO_DIAGFIX.md`
-**Contenu :** 200+ pages - Vue d'ensemble complète de toutes les fonctionnalités
+### 1. Architecture Technique
+**Fichier :** `ARCHITECTURE_MAINTRIX.md`
+**Contenu :** Architecture complète du système - couches présentation, application, données
 **Sections :**
-- Architecture unifiée Smart Diagnostic + Smart GMAO
-- Module Smart Diagnostic IA avec page dédiée et onglets
-- Module Smart GMAO complet (équipements, OT, maintenance préventive)
+- Architecture unifiée Smart Diagnostic + GMAO
+- Module Diagnostic IA (Claude Anthropic, 631 cas industriels)
+- Module GMAO complet (équipements, OT, maintenance préventive)
 - Module IoT & Monitoring temps réel
-- Module Sécurité avancée
-- Module Gestion commerciale et abonnements
-- Module Reporting et analytics
-- Intégrations enterprise (SAP, Oracle, APIs)
+- Module Sécurité avancée (RBAC, multi-tenant)
+- Module Paiements (Stripe, PayPal)
+- Fonctionnalités avancées Février 2026
 
 ### 2. Guides d'Utilisation Pratiques
 **Fichier :** `GUIDES_UTILISATION_COMPLETS.md`
 **Contenu :** Guides pratiques détaillés par fonctionnalité
 **Sections :**
-- Guide Smart Diagnostic IA (accès, modes ML, onglets, workflows)
-- Guide Smart GMAO (équipements, OT, maintenance préventive, stocks)
+- Guide Diagnostic IA (accès, modes ML, workflows)
+- Guide GMAO (équipements, OT, maintenance préventive, stocks)
 - Guide IoT & Monitoring (capteurs, alertes, dashboard)
 - Guide Sécurité et accès (rôles, permissions, audit)
-- Guide Gestion commerciale (plans, facturation, support)
 - Guide Reporting (KPIs, rapports automatiques, exports)
 
 ### 3. Manuel Utilisateur Complet
 **Fichier :** `MANUEL_UTILISATEUR_COMPLET.md`
-**Contenu :** 100+ pages - Manuel de référence utilisateur final
+**Contenu :** Manuel de référence utilisateur final
 **Sections :**
 - Prise en main rapide et première connexion
-- Smart Diagnostic IA : utilisation détaillée page dédiée
-- Smart GMAO : workflows complets tous modules
+- Diagnostic IA : utilisation détaillée
+- GMAO : workflows complets tous modules
 - IoT & Monitoring : surveillance temps réel
 - Sécurité et gestion des accès
-- Support et assistance utilisateur
+
+---
+
+# 🆕 Fonctionnalités Avancées (Février 2026)
+
+### Portail Client
+**Route :** `/client-portal`
+Accès public par token pour clients - suivi des ordres de travail sans authentification
+
+### Gestion SLA
+**Route :** `/sla-management`
+Règles SLA par priorité, suivi de conformité, alertes de dépassement, escalade automatique
+
+### Score Santé Machine
+**Route :** `/machine-health`
+Scores de santé 0-100, évaluation des risques, recommandations IA pour maintenance prédictive
+
+### Alertes Intelligentes
+**Route :** `/smart-alerts`
+Alertes IA avec détection de patterns, recommandations d'actions contextuelles
+
+### Hub Capteurs IoT
+**Route :** `/sensor-hub`
+Monitoring IoT temps réel - Modbus, MQTT, OPC-UA, LoRaWAN
+
+### QR Codes Équipements
+**Route :** `/equipment-qr`
+Génération et impression de QR codes pour identification rapide des équipements
 
 ---
 
 # 🎓 Formation et Apprentissage
 
-### 4. Formations Complètes Certifiantes
-**Fichier :** `FORMATIONS_COMPLETES_SMART_GMAO_DIAGFIX.md`
-**Contenu :** Programme formation professionnel 5 niveaux
-**Formations Disponibles :**
-
-#### Niveau 1 : Débutant
-- **Formation Initiation** (4h) - Vue d'ensemble et navigation
-- **Formation Smart Diagnostic Base** (3h) - Utilisation modes ML
-- **Formation Navigation Interface** (2h) - Glassmorphisme et ergonomie
-
-#### Niveau 2 : Intermédiaire  
-- **Formation Smart Diagnostic Avancé** (6h) - Modes ML experts, équipements spécialisés
-- **Formation Smart GMAO Complet** (12h) - Maintenance complète
-- **Formation IoT Monitoring** (8h) - Surveillance temps réel
-
-#### Niveau 3 : Avancé
-- **Formation Administration** (10h) - Configuration système
-- **Formation Sécurité** (8h) - Cybersécurité et audit
-- **Formation Intégrations** (6h) - ERP et APIs
-
-#### Niveau 4 : Expert
-- **Certification Expert** - Maîtrise complète plateforme
-- **Formation Formateur** - Train-the-trainer
-- **Master Class IA/ML** - Algorithmes avancés
+### 4. Manuel de Formation
+**Fichier :** `MANUEL_FORMATION_MAINTRIX.md`
+**Contenu :** Programme formation professionnel multi-niveaux
 
 ### 5. Mise à Jour Formation
 **Fichier :** `GUIDE_FORMATION_MISE_A_JOUR.md`
 **Contenu :** Nouvelles fonctionnalités et interface moderne
-**Focus :** Interface glassmorphisme, page dédiée Smart Diagnostic, onglets intégrés
 
 ---
 
 # 🔧 Guides Spécialisés et Techniques
 
-### 6. Guide Navigation Nouvelle Interface
+### 6. Guide Navigation Interface
 **Fichier :** `GUIDE_NOUVELLE_NAVIGATION.md`
 **Contenu :** Navigation moderne avec glassmorphisme
-**Sections :**
-- 3 méthodes d'accès Smart Diagnostic
-- Interface onglets intégrés (Diagnostic, Réparation, Historique, Rapports)
-- Workflow unifié Smart Diagnostic → Smart GMAO
-- Avantages interface moderne
 
 ### 7. Guide Mobile Application
 **Fichier :** `GUIDE_MOBILE_APP.md`
-**Contenu :** Application React Native (en développement Q2 2025)
-**Fonctionnalités :**
-- Smart Diagnostic portable
-- Mode offline complet
-- Scanner QR équipements
-- Synchronisation automatique
+**Contenu :** Application React Native avec mode offline
 
 ### 8. Guide Importation Données
 **Fichier :** `GUIDE_IMPORTATION_DONNEES.md`
-**Contenu :** Import/export données enterprise
-**Formats :** CSV, Excel, JSON, XML, connecteurs ERP
+**Contenu :** Import/export données (CSV, Excel, JSON)
+
+### 9. Guide Pièces Justificatives
+**Fichier :** `GUIDE_PIECES_JUSTIFICATIVES.md`
+**Contenu :** Upload de documents pour bons de commande
+
+### 10. Guide Démarrage Rapide
+**Fichier :** `GUIDE_DEMARRAGE_RAPIDE.md`
+**Contenu :** Installation et premiers pas en 5 minutes
 
 ---
 
 # 📊 Business et Présentation
 
-### 9. Présentation Maintrix
-**Fichier :** `PRESENTATION_SMDIAGFIX.md`
-**Contenu :** Présentation commerciale et technique
-**Sections :**
-- Positionnement marché
-- Architecture intégrée
-- ROI et bénéfices
-- Études de cas
+### 11. Présentation Commerciale
+**Fichier :** `PRESENTATION_COMMERCIALE_MAINTRIX.md`
+**Contenu :** Présentation commerciale et positionnement marché
 
-### 10. Pitch Deck et Arguments Vente
+### 12. Pitch Deck
 **Fichier :** `PITCH_DECK_OUTLINE.md`
-**Contenu :** Support commercial structuré
-**Inclus :** 25 slides professionnelles, démonstrations, métriques ROI
+**Contenu :** Support commercial structuré - 25 slides
 
-### 11. Arguments Vente Clés
+### 13. Arguments Vente
 **Fichier :** `ARGUMENTS_VENTE_CLES.md`
-**Contenu :** Arguments commerciaux structurés
-**Focus :** Différenciation concurrentielle, bénéfices mesurables
+**Contenu :** Différenciation concurrentielle, bénéfices mesurables
+
+### 14. Brochure
+**Fichier :** `BROCHURE_MAINTRIX.md`
+**Contenu :** Brochure commerciale Maintrix
+
+### 15. One Pager
+**Fichier :** `MAINTRIX_ONE_PAGER.md`
+**Contenu :** Résumé exécutif une page
 
 ---
 
-# 🛡️ Technique et Sécurité
+# 🛡️ Sécurité et Conformité
 
-### 12. FAQ Technique Complète
-**Fichier :** `FAQ_TECHNIQUE.md`
-**Contenu :** Questions techniques fréquentes mises à jour
-**Nouvelles Sections :**
-- Smart Diagnostic IA interface dédiée
-- Modes ML et algorithmes
-- Workflow intégré Smart Diagnostic → Smart GMAO
-- Architecture et performance
-
-### 13. Guide Sécurité
+### 16. Guide Sécurité
 **Fichier :** `SECURITY_GUIDE.md`
-**Contenu :** Sécurité multicouche et conformité
-**Standards :** ISO 27001, IEC 62443, RGPD
+**Contenu :** Sécurité multicouche et conformité (ISO 27001, RGPD)
 
-### 14. Guide Maîtrise Technique
-**Fichier :** `GUIDE_MAITRISE_TECHNIQUE.md`
-**Contenu :** Expertise technique approfondie
-**Topics :** Algorithmes ML, intégrations, optimisation
+### 17. Guide RBAC
+**Fichier :** `RBAC_GUIDE.md`
+**Contenu :** 7 rôles, permissions granulaires, isolation données
 
----
+### 18. Sécurité Paiements
+**Fichier :** `SECURITE_PAIEMENTS_COMPLET.md`
+**Contenu :** Sécurité Stripe et PayPal
 
-# 📈 Rapports et Conformité
-
-### 15. Rapport Conformité GMAO
-**Fichier :** `GMAO_COMPLIANCE_REPORT.md`
-**Contenu :** Analyse conformité standards industriels
-**Résultat :** 98% conformité Next-Gen specifications
-
-### 16. Rapport Déploiement
-**Fichier :** `DEPLOYMENT_REPORT.md`
-**Contenu :** Tests déploiement et production readiness
-**Statut :** 98% success rate - PRODUCTION READY
+### 19. Documentation SOC 2 / ISO 27001
+**Dossier :** `docs/security/`
+**Fichiers :**
+- `POLITIQUE_SECURITE_INFORMATION.md` - Politique de sécurité
+- `PROCEDURE_REPONSE_INCIDENTS.md` - Réponse aux incidents
+- `PLAN_CONTINUITE_ACTIVITE.md` - Plan de continuité (PCA)
+- `REGISTRE_RISQUES.md` - 14 risques identifiés
+- `MAPPING_CONTROLES_SOC2_ISO27001.md` - Mapping contrôles (97% SOC 2)
+- `ANNEXES_POLITIQUE_SECURITE.md` - Annexes politiques
 
 ---
 
-# 🎮 Guides Spéciaux
+# 📈 Installation et Déploiement
 
-### 17. Guide Démonstration
+### 20. Installation Rapide
+**Fichier :** `INSTALL.md`
+**Contenu :** Guide express installation locale et cloud
+
+### 21. Installation Locale Détaillée
+**Fichier :** `INSTALLATION_LOCALE.md`
+**Contenu :** Guide complet pas à pas pour Linux/macOS
+
+### 22. Installation Windows
+**Fichier :** `INSTALLATION_WINDOWS.md`
+**Contenu :** Guide complet pour Windows 10/11
+
+### 23. FAQ Technique
+**Fichier :** `FAQ_TECHNIQUE.md`
+**Contenu :** Questions techniques fréquentes
+
+### 24. Guide Démonstration
 **Fichier :** `DEMO_GUIDE.md`
 **Contenu :** Scénarios démonstration client
-**Scenarios :** Diagnostic complexe, workflow GMAO, IoT monitoring
-
-### 18. Guide Gamification
-**Intégré dans documentation GMAO**
-**Contenu :** Système points, badges, compétences
-**Motivation :** Engagement techniciens et formation continue
 
 ---
 
-# 📱 Support Utilisateur
+# 📝 Rapports et Historique
 
-### 19. Documentation Support
-**Centre d'aide intégré** avec assistant IA
-**Fonctionnalités :**
-- Chatbot technique intelligent
-- Base de connaissances interactive
-- Résolution problèmes guidée
-- Escalade support humain
+### 25. Rapport Conformité GMAO
+**Fichier :** `GMAO_COMPLIANCE_REPORT.md`
+**Contenu :** Analyse conformité standards industriels
 
-### 20. Webinaires et Formation Continue
-**Programme régulier :**
-- Webinaires mensuels nouveautés
-- Sessions training personnalisées
-- Certification continue
-- Communauté utilisateurs
+### 26. Rapport Rebranding
+**Fichier :** `REBRANDING_REPORT.md`
+**Contenu :** Migration Smart GMAO DiagFix → Maintrix
+
+### 27. Rapport Nettoyage
+**Fichier :** `NETTOYAGE_PROJET.md`
+**Contenu :** Nettoyage et consolidation du projet
 
 ---
 
-# 🔄 Organisation et Maintenance Documentation
+# 🔄 Organisation Documentation
 
 ## Structure Hiérarchique
 ```
 📚 Documentation Maintrix
 ├── 📖 Documentation Technique
-│   ├── Documentation Complète (200+ pages)
-│   ├── Manuel Utilisateur (100+ pages)
-│   └── Guides Utilisation Détaillés
+│   ├── Architecture (ARCHITECTURE_MAINTRIX.md)
+│   ├── Manuel Utilisateur (MANUEL_UTILISATEUR_COMPLET.md)
+│   └── Guides Utilisation (GUIDES_UTILISATION_COMPLETS.md)
 │
-├── 🎓 Formation et Certification
-│   ├── Formations 5 Niveaux
-│   ├── Certifications Professionnelles
-│   └── Mise à Jour Continue
+├── 🆕 Fonctionnalités Avancées 2026
+│   ├── Portail Client (/client-portal)
+│   ├── Gestion SLA (/sla-management)
+│   ├── Score Santé Machine (/machine-health)
+│   ├── Alertes Intelligentes (/smart-alerts)
+│   ├── Hub Capteurs IoT (/sensor-hub)
+│   └── QR Codes Équipements (/equipment-qr)
+│
+├── 🎓 Formation
+│   ├── Manuel Formation (MANUEL_FORMATION_MAINTRIX.md)
+│   └── Mise à Jour (GUIDE_FORMATION_MISE_A_JOUR.md)
 │
 ├── 🔧 Guides Spécialisés
-│   ├── Navigation Interface Moderne
-│   ├── Mobile Application
-│   └── Intégrations Enterprise
+│   ├── Navigation (GUIDE_NOUVELLE_NAVIGATION.md)
+│   ├── Mobile (GUIDE_MOBILE_APP.md)
+│   ├── Import Données (GUIDE_IMPORTATION_DONNEES.md)
+│   └── Pièces Justificatives (GUIDE_PIECES_JUSTIFICATIVES.md)
 │
-├── 📊 Business et Commercial
-│   ├── Présentation Plateforme
-│   ├── Arguments Vente
-│   └── ROI et Études Cas
+├── 📊 Commercial
+│   ├── Présentation (PRESENTATION_COMMERCIALE_MAINTRIX.md)
+│   ├── Pitch Deck (PITCH_DECK_OUTLINE.md)
+│   └── Brochure (BROCHURE_MAINTRIX.md)
 │
-├── 🛡️ Technique et Sécurité
-│   ├── FAQ Technique
-│   ├── Sécurité Avancée
-│   └── Conformité Standards
+├── 🛡️ Sécurité
+│   ├── Guide Sécurité (SECURITY_GUIDE.md)
+│   ├── RBAC (RBAC_GUIDE.md)
+│   └── SOC 2 / ISO 27001 (docs/security/)
 │
-└── 📈 Rapports et Analytics
-    ├── Conformité GMAO
-    ├── Tests Déploiement
-    └── Performance Système
+└── 📈 Déploiement
+    ├── Installation (INSTALL.md)
+    ├── Docker (Dockerfile, docker-compose.yml)
+    └── Scripts (scripts/)
 ```
 
-## Mise à Jour Documentation
-**Fréquence :** Mise à jour continue avec nouvelles fonctionnalités
-**Versioning :** Documentation alignée versions plateforme
-**Qualité :** Revue technique et validation utilisateur
-**Accessibilité :** Multi-format (web, PDF, mobile)
+---
 
-## Support Multi-Langue
-**Langues Disponibles :**
-- Français (principal)
-- Anglais (prévu)
-- Autres langues selon demande
-
-Cette documentation complète positionne Maintrix comme la solution de maintenance industrielle la plus documentée et la mieux supportée du marché, avec plus de 500 pages de contenu technique et pédagogique professionnel.
+**Maintrix - Documentation Complète v2026**
+**© 2026 Maintrix - Tous droits réservés**

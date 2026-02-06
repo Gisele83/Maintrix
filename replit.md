@@ -57,6 +57,14 @@ User confirmed that username field should remain non-editable in profile forms f
 
 ## Recent Updates
 
+### Documentation & Deployment Update (February 2026)
+✅ **17 duplicate documentation files removed** (deployment reports, old branding files, redundant security reports)
+✅ **Core docs updated**: INSTALL.md, INDEX_DOCUMENTATION_COMPLETE.md, .env.example
+✅ **Deployment files updated**: docker-compose.yml, docker-compose.simple.yml with ANTHROPIC_API_KEY and SENDGRID_API_KEY
+✅ **Equipment ID bug fixed**: Global uniqueness check prevents duplicate key errors
+✅ **.env.example**: Corrected from OpenAI to Anthropic Claude, added SendGrid
+📁 Remaining docs: 35 files (from 52), each serving a distinct purpose
+
 ### 9 Advanced Feature Pages (February 2026)
 ✅ **Client Portal** - Token-based public access for clients to view work order status
 ✅ **SLA Management** - SLA rules definition, compliance tracking, breach monitoring with escalation
