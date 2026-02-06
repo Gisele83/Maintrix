@@ -508,6 +508,75 @@ router.post('/login',
 );
 
 /**
+ * 👤 PROFIL UTILISATEUR
+ * Retourne les informations du profil de l'utilisateur connecté
+ */
+router.get('/profile', async (req: Request, res: Response) => {
+  try {
+    const sessionToken = req.cookies?.sessionToken;
+    
+    if (!sessionToken) {
+      return res.status(401).json({
+        error: "AUTHENTICATION_REQUIRED",
+        message: "Valid authentication required"
+      });
+    }
+
+    const [session] = await db
+      .select({
+        session: userSessions,
+        user: userProfiles
+      })
+      .from(userSessions)
+      .innerJoin(userProfiles, eq(userSessions.userId, userProfiles.id))
+      .where(
+        eq(userSessions.sessionToken, sessionToken)
+      )
+      .limit(1);
+
+    if (!session || !session.session.isActive) {
+      return res.status(401).json({
+        error: "SESSION_INVALID",
+        message: "Session expired or invalid"
+      });
+    }
+
+    if (session.session.expiresAt && new Date() > session.session.expiresAt) {
+      return res.status(401).json({
+        error: "SESSION_EXPIRED",
+        message: "Session has expired"
+      });
+    }
+
+    const user = session.user;
+    res.json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      department: user.department,
+      phoneNumber: user.phoneNumber,
+      preferredLanguage: user.preferredLanguage,
+      specializations: user.specializations,
+      experienceLevel: user.experienceLevel,
+      tenantId: user.tenantId,
+      isActive: user.isActive,
+      validationLevel: user.validationLevel,
+      mfaEnabled: user.mfaEnabled,
+      sector: user.sector
+    });
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({
+      error: "PROFILE_ERROR",
+      message: "Failed to fetch profile"
+    });
+  }
+});
+
+/**
  * 🔄 CHANGEMENT OBLIGATOIRE DE MOT DE PASSE (première connexion)
  * Endpoint pour forcer le changement de mot de passe lors de la première connexion
  */

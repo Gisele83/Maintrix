@@ -811,8 +811,10 @@ export function registerGMAORoutes(app: Express) {
   // Get alerts and notifications
   app.get("/api/alerts", async (req, res) => {
     try {
-      const { status } = req.query;
-      const alerts = await gmaoStorage.getAlertsNotifications(status as string);
+      const { status, limit } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const maxLimit = limit ? Math.min(parseInt(limit as string), 500) : 100;
+      const alerts = await gmaoStorage.getAlertsNotifications(status as string, tenantId, maxLimit);
       res.json(alerts);
     } catch (error) {
       console.error("Error fetching alerts:", error);

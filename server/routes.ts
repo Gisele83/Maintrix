@@ -2347,8 +2347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Profile Management endpoints
   app.get("/api/user-profiles", async (req, res) => {
     try {
-      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
-      const profiles = await storage.getUserProfilesByTenant(tenantId as string);
+      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const allProfiles = await storage.getUserProfiles();
+      const profiles = allProfiles.filter(p => p.tenantId === tenantId);
       res.json(profiles);
     } catch (error) {
       console.error("Error fetching user profiles:", error);

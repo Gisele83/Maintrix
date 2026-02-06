@@ -632,7 +632,7 @@ export class GMAOStorage {
   }
 
   // Alerts and Notifications Methods
-  async getAlertsNotifications(status?: string, tenantId?: string): Promise<AlertsNotifications[]> {
+  async getAlertsNotifications(status?: string, tenantId?: string, maxLimit: number = 100): Promise<AlertsNotifications[]> {
     const conditions: any[] = [];
     
     if (status) {
@@ -649,7 +649,7 @@ export class GMAOStorage {
       query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
     }
     
-    return await query.orderBy(desc(alertsNotifications.createdAt));
+    return await query.orderBy(desc(alertsNotifications.createdAt)).limit(maxLimit);
   }
 
   async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
