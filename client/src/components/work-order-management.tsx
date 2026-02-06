@@ -310,6 +310,7 @@ export function WorkOrderManagement() {
               onSubmit={onSubmit}
               isLoading={addWorkOrderMutation.isPending}
               equipment={equipment}
+              onEquipmentAdded={() => queryClient.invalidateQueries({ queryKey: ["/api/equipment"] })}
             />
           </DialogContent>
         </Dialog>
@@ -448,6 +449,7 @@ export function WorkOrderManagement() {
             onSubmit={onSubmit}
             isLoading={updateWorkOrderMutation.isPending}
             equipment={equipment}
+            onEquipmentAdded={() => queryClient.invalidateQueries({ queryKey: ["/api/equipment"] })}
           />
         </DialogContent>
       </Dialog>
@@ -455,18 +457,57 @@ export function WorkOrderManagement() {
   );
 }
 
-// Work Order Form Component
 function WorkOrderForm({ 
   form, 
   onSubmit, 
   isLoading,
-  equipment
+  equipment,
+  onEquipmentAdded
 }: { 
   form: any; 
   onSubmit: (data: WorkOrderFormData) => void; 
   isLoading: boolean;
   equipment: any[];
+  onEquipmentAdded?: () => void;
 }) {
+  const [showNewEquipment, setShowNewEquipment] = useState(false);
+  const [newEquipName, setNewEquipName] = useState("");
+  const [newEquipType, setNewEquipType] = useState("");
+  const [newEquipLocation, setNewEquipLocation] = useState("");
+  const [isAddingEquipment, setIsAddingEquipment] = useState(false);
+  const { toast } = useToast();
+
+  const handleAddEquipment = async () => {
+    if (!newEquipName.trim() || !newEquipType.trim()) {
+      toast({ title: "Erreur", description: "Le nom et le type de l'équipement sont requis", variant: "destructive" });
+      return;
+    }
+    setIsAddingEquipment(true);
+    try {
+      const newEq = await apiRequest("/api/equipment", {
+        method: "POST",
+        body: {
+          equipmentName: newEquipName.trim(),
+          equipmentType: newEquipType.trim(),
+          location: newEquipLocation.trim() || "Non spécifié",
+          operationalState: "operational",
+          criticalityLevel: "medium",
+        }
+      });
+      toast({ title: "Équipement ajouté", description: `${newEquipName} a été créé avec succès` });
+      form.setValue("equipmentId", newEq.id?.toString() || "");
+      setShowNewEquipment(false);
+      setNewEquipName("");
+      setNewEquipType("");
+      setNewEquipLocation("");
+      if (onEquipmentAdded) onEquipmentAdded();
+    } catch (error) {
+      toast({ title: "Erreur", description: "Impossible de créer l'équipement", variant: "destructive" });
+    } finally {
+      setIsAddingEquipment(false);
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -534,7 +575,7 @@ function WorkOrderForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Équipement *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un équipement" />
@@ -543,11 +584,21 @@ function WorkOrderForm({
                   <SelectContent>
                     {equipment.map((eq: any) => (
                       <SelectItem key={eq.id} value={eq.id.toString()}>
-                        {eq.equipmentName} ({eq.equipmentCode})
+                        {eq.equipmentName} ({eq.equipmentCode || eq.equipmentId})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 h-auto text-blue-600"
+                  onClick={() => setShowNewEquipment(!showNewEquipment)}
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {showNewEquipment ? "Annuler" : "Ajouter un équipement"}
+                </Button>
                 <FormMessage />
               </FormItem>
             )}
@@ -577,6 +628,63 @@ function WorkOrderForm({
             )}
           />
         </div>
+
+        {showNewEquipment && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="p-4 space-y-3">
+              <p className="text-sm font-medium text-blue-800">Nouvel équipement</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Nom *</label>
+                  <Input
+                    placeholder="ex: Pompe P-003"
+                    value={newEquipName}
+                    onChange={(e) => setNewEquipName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Type *</label>
+                  <Select onValueChange={setNewEquipType} value={newEquipType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pump">Pompe</SelectItem>
+                      <SelectItem value="motor">Moteur</SelectItem>
+                      <SelectItem value="compressor">Compresseur</SelectItem>
+                      <SelectItem value="conveyor">Convoyeur</SelectItem>
+                      <SelectItem value="generator">Générateur</SelectItem>
+                      <SelectItem value="transformer">Transformateur</SelectItem>
+                      <SelectItem value="valve">Vanne</SelectItem>
+                      <SelectItem value="turbine">Turbine</SelectItem>
+                      <SelectItem value="hvac">HVAC / Climatisation</SelectItem>
+                      <SelectItem value="electrical">Électrique</SelectItem>
+                      <SelectItem value="hydraulic">Hydraulique</SelectItem>
+                      <SelectItem value="pneumatic">Pneumatique</SelectItem>
+                      <SelectItem value="other">Autre</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Localisation</label>
+                <Input
+                  placeholder="ex: Zone Production A"
+                  value={newEquipLocation}
+                  onChange={(e) => setNewEquipLocation(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowNewEquipment(false)}>
+                  Annuler
+                </Button>
+                <Button type="button" size="sm" onClick={handleAddEquipment} disabled={isAddingEquipment}>
+                  {isAddingEquipment ? "Création..." : "Créer l'équipement"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
