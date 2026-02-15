@@ -3398,6 +3398,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/diagnostic-test", async (req, res) => {
+    try {
+      const schema = z.object({
+        equipmentType: z.string().min(1),
+        symptoms: z.string().min(1),
+        urgency: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+        zone: z.string().optional(),
+        sector: z.string().optional(),
+      });
+      const data = schema.parse(req.body);
+
+      const hybridRequest: HybridDiagnosticRequest = {
+        equipmentType: data.equipmentType,
+        symptoms: data.symptoms,
+        urgency: data.urgency,
+        zone: data.zone || undefined,
+        sector: data.sector || undefined,
+      };
+
+      const hybridResult = await hybridDiagnosticPipeline.runDiagnostic(hybridRequest);
+
+      res.json({
+        sessionId: `test-${Date.now()}`,
+        suggestions: hybridResult.suggestions,
+        explanationSummary: hybridResult.explanationSummary,
+        contextSignals: hybridResult.contextSignals,
+        similarIncidents: hybridResult.similarIncidents,
+        failureTrends: hybridResult.failureTrends,
+        engineSources: hybridResult.engineSources,
+        overallConfidence: hybridResult.overallConfidence
+      });
+    } catch (error: any) {
+      console.error("Diagnostic test error:", error);
+      res.status(400).json({ message: "Invalid diagnostic request", error: error.message });
+    }
+  });
+
   // Serve diagnostic test page
   app.get('/diagnostic-test.html', (req, res) => {
     import('path').then(path => {

@@ -64,6 +64,7 @@ app.use((req, res, next) => {
     '/api/data-import-export/import',
     '/api/payments',
     '/api/paypal',
+    '/api/diagnostic-test',
   ];
   const isExemptPath = exemptPaths.some(path => req.path.startsWith(path));
   

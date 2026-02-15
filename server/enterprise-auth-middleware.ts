@@ -48,6 +48,8 @@ export class EnterpriseAuthMiddleware {
       '/api/paypal/config',
       '/api/payments/create-payment-intent',
       '/api/paypal/create-order',
+      '/api/diagnostic-test',
+      '/diagnostic-test',
       '/payments/config',
       '/paypal/config',
       '/payments/create-payment-intent',
