@@ -37,6 +37,7 @@ import { z } from "zod";
 import { spawn } from "child_process";
 import path from "path";
 import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
+import { hybridDiagnosticPipeline, type HybridDiagnosticRequest } from "./hybrid-diagnostic-pipeline";
 import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
@@ -1281,172 +1282,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
       
-      // Create diagnostic session
       const session = await storage.createDiagnosticSession(data);
       
-      // First try to find cases with exact equipment type match
-      let similarCases = await storage.searchMaintenanceCases({
+      const hybridRequest: HybridDiagnosticRequest = {
         equipmentType: data.equipmentType,
-        symptoms: data.symptomsChecked || []
-      });
-      
-      // If no cases found, get all cases for broader matching
-      if (similarCases.length === 0) {
-        similarCases = await storage.getMaintenanceCases();
-      }
-      
-      // Enhanced AI-powered diagnostic algorithm with semantic analysis
-      const suggestions = similarCases.map(case_ => {
-        // Symptom matching with weighted scoring
-        const symptomMatches = (data.symptomsChecked || []).filter(symptom => 
-          (case_.symptomsChecked || []).includes(symptom)
-        ).length;
-        
-        // Text similarity analysis for symptom description
-        const textSimilarity = calculateTextSimilarity(
-          data.symptoms.toLowerCase(), 
-          case_.symptoms.toLowerCase()
-        );
-        
-        // Advanced semantic similarity analysis
-        const semanticSimilarity = calculateSemanticSimilarity(
-          data.symptoms, 
-          case_.symptoms
-        );
-        
-        // Contextual scoring (equipment + zone)
-        const contextualScore = calculateContextualScore(
-          data.equipmentType, case_.equipmentType,
-          data.zone || '', case_.zone || ''
-        );
-        
-        // Urgency level matching
-        const urgencyBonus = case_.urgency === data.urgency ? 0.1 : 0;
-        
-        // Calculate comprehensive match score
-        const totalSymptoms = Math.max((data.symptomsChecked || []).length, 1);
-        const symptomScore = symptomMatches / totalSymptoms;
-        
-        // Weighted confidence calculation with semantic enhancement
-        const baseConfidence = case_.confidence || 0.5;
-        const adjustedConfidence = Math.min(
-          baseConfidence * (
-            0.35 * semanticSimilarity +   // Priorité à l'analyse sémantique
-            0.25 * symptomScore + 
-            0.2 * textSimilarity + 
-            0.15 * contextualScore +
-            0.05 * urgencyBonus
-          ), 
-          0.99
-        );
-        
-        // Risk assessment based on urgency and historical data
-        const riskLevel = calculateRiskLevel(case_, data.urgency);
-        
-        // Cost estimation based on duration and equipment type
-        const costEstimate = estimateRepairCost(case_.duration, case_.equipmentType);
-        
-        return {
-          diagnosis: case_.diagnosis,
-          solution: case_.solution,
-          confidence: Math.round(adjustedConfidence * 100),
-          matchingCases: 1,
-          caseId: case_.id,
-          duration: case_.duration,
-          riskLevel,
-          costEstimate,
-          aiInsights: generateAdvancedAIInsights(case_, semanticSimilarity, textSimilarity, contextualScore)
-        };
-      })
-      .filter(suggestion => suggestion.confidence > 10) // Permissive filter with semantic boost
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 4); // Return top 4 suggestions
-      
-      // Add predictive maintenance recommendations if confidence is high
-      if (suggestions.length > 0 && suggestions[0].confidence > 80) {
-        (suggestions[0] as any).predictiveTips = generatePredictiveTips(
-          data.equipmentType, 
-          suggestions[0].diagnosis
-        );
-      }
-      
-      // If no good suggestions found (low confidence), try cloud diagnostic
-      let finalSuggestions = suggestions;
-      let cloudSearchPerformed = false;
-      let cloudInsights = "";
-      
-      if (suggestions.length === 0 || (suggestions.length > 0 && suggestions[0].confidence < 50)) {
-        console.log("Low confidence results, trying cloud diagnostic...");
-        
-        try {
-          const cloudRequest: CloudDiagnosticRequest = {
-            equipmentType: data.equipmentType,
-            zone: data.zone || "unknown",
-            sector: data.sector || "unknown", 
-            symptoms: data.symptomsChecked || [],
-            customSymptoms: data.symptoms,
-            urgency: data.urgency,
-            context: `Zone: ${data.zone}, Secteur: ${data.sector}`
-          };
-          
-          const cloudResult = await performCloudDiagnostic(cloudRequest);
-          
-          if (cloudResult.searchPerformed && cloudResult.suggestions.length > 0) {
-            // Convert cloud suggestions to our format
-            const cloudSuggestions = cloudResult.suggestions.map(cloudSugg => ({
-              diagnosis: cloudSugg.diagnosis,
-              solution: cloudSugg.solution,
-              confidence: cloudSugg.confidence,
-              matchingCases: 0, // Cloud suggestions don't have matching cases
-              caseId: -1, // Special ID for cloud suggestions
-              duration: parseDuration(cloudSugg.estimatedTime),
-              riskLevel: cloudSugg.riskLevel,
-              costEstimate: cloudSugg.cost,
-              aiInsights: `🌐 Suggestion cloud • ${cloudSugg.source} • Confiance: ${cloudSugg.confidence}%`,
-              cloudSource: true,
-              repairSteps: cloudSugg.repairSteps,
-              safetyWarnings: cloudSugg.safetyWarnings,
-              tools: cloudSugg.tools,
-              difficulty: cloudSugg.difficulty
-            }));
-            
-            // If we had some local suggestions, combine them with cloud suggestions
-            if (suggestions.length > 0) {
-              finalSuggestions = [...cloudSuggestions, ...suggestions.slice(0, 2)].slice(0, 4);
-            } else {
-              finalSuggestions = cloudSuggestions.slice(0, 3);
-            }
-            
-            cloudSearchPerformed = true;
-            cloudInsights = cloudResult.aiInsights;
-          }
-        } catch (error: unknown) {
-          const errorObj = error as any;
-          console.error("Cloud diagnostic error:", error);
-          // Ensure graceful fallback to local diagnostics
-          cloudInsights = `Service cloud indisponible (${errorObj.status === 429 ? 'quota dépassé' : 'erreur technique'}) - Diagnostic local activé`;
-          cloudSearchPerformed = false;
-        }
-      }
-      
-      // Add cloud search indicator to the session
+        symptoms: data.symptoms,
+        symptomsChecked: data.symptomsChecked || undefined,
+        urgency: data.urgency,
+        zone: data.zone || undefined,
+        sector: data.sector || undefined,
+        equipmentId: data.equipmentId || undefined,
+        tenantId: data.tenantId || undefined,
+        userId: data.userId || undefined
+      };
+
+      const hybridResult = await hybridDiagnosticPipeline.runDiagnostic(hybridRequest);
+
       const sessionResults = {
-        suggestions: finalSuggestions,
-        cloudSearchPerformed,
-        cloudInsights
+        suggestions: hybridResult.suggestions,
+        explanationSummary: hybridResult.explanationSummary,
+        contextSignals: hybridResult.contextSignals,
+        similarIncidents: hybridResult.similarIncidents,
+        failureTrends: hybridResult.failureTrends,
+        engineSources: hybridResult.engineSources,
+        overallConfidence: hybridResult.overallConfidence
       };
       
-      // Update session with results
       await storage.updateDiagnosticSession(session.id, {
         results: JSON.stringify(sessionResults),
-        status: "completed"
+        status: "completed",
+        confidence: hybridResult.overallConfidence / 100
       });
       
       res.json({
         sessionId: session.id,
-        suggestions: finalSuggestions,
-        cloudSearchPerformed,
-        cloudInsights
+        ...sessionResults
       });
     } catch (error) {
       console.error("Diagnostic error:", error);
@@ -2728,6 +2598,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const feedbackData = req.body;
       const feedback = await storage.createFeedbackSession(feedbackData);
+
+      try {
+        await hybridDiagnosticPipeline.recordFeedbackAndLearn({
+          sessionId: feedbackData.sessionId,
+          rating: feedbackData.rating || 3,
+          helpful: feedbackData.helpful,
+          comments: feedbackData.comments || '',
+          suggestionsAccuracy: feedbackData.suggestionsAccuracy || '',
+          actualDiagnosis: feedbackData.actualDiagnosis,
+          actualSolution: feedbackData.actualSolution
+        });
+      } catch (learnError) {
+        console.error("Learning loop error (non-blocking):", learnError);
+      }
+
       res.json({ success: true, feedback });
     } catch (error) {
       console.error("Error creating feedback:", error);

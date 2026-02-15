@@ -46,12 +46,19 @@ import { Link } from "wouter";
 
 type Tab = "diagnostic" | "repair" | "history" | "reporting" | "import";
 
+interface ExplanationFactor {
+  type: string;
+  label: string;
+  detail: string;
+  impact: 'high' | 'medium' | 'low';
+}
+
 interface DiagnosticSuggestion {
   diagnosis: string;
   solution: string;
   confidence: number;
   matchingCases: number;
-  caseId: number;
+  caseId?: number;
   estimatedDuration?: number;
   estimatedCost?: string;
   riskLevel?: string;
@@ -62,19 +69,19 @@ interface DiagnosticSuggestion {
   duration?: number;
   costEstimate?: string;
   predictiveTips?: string[];
-  // Advanced ML fields
+  source?: string;
+  ruleId?: string;
+  explanationFactors?: ExplanationFactor[];
   advancedML?: boolean;
   anomalyDetected?: boolean;
   anomalyScore?: number;
   failureRisk?: number;
   patternMatch?: any;
   maintenanceRecommendation?: any;
-  // Ensemble ML fields
   ensembleML?: boolean;
   ensembleAgreement?: number;
   individualPredictions?: any;
   riskAssessment?: any;
-  // Cloud diagnostic fields
   cloudSource?: boolean;
   repairSteps?: string[];
   safetyWarnings?: string[];
@@ -94,6 +101,11 @@ export default function SmartDiagnostic() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState("");
+  const [explanationSummary, setExplanationSummary] = useState("");
+  const [contextSignals, setContextSignals] = useState<any[]>([]);
+  const [similarIncidents, setSimilarIncidents] = useState<any[]>([]);
+  const [failureTrends, setFailureTrends] = useState<any[]>([]);
+  const [engineSources, setEngineSources] = useState<string[]>([]);
   
   // Equipment identifiers from database
   const { data: equipmentData } = useQuery({
@@ -424,6 +436,11 @@ export default function SmartDiagnostic() {
       setCurrentSessionId(result.sessionId ?? null);
       setCloudSearchPerformed(result.cloudSearchPerformed || false);
       setCloudInsights(result.cloudInsights || "");
+      setExplanationSummary(result.explanationSummary || "");
+      setContextSignals(result.contextSignals || []);
+      setSimilarIncidents(result.similarIncidents || []);
+      setFailureTrends(result.failureTrends || []);
+      setEngineSources(result.engineSources || []);
       setIsAnalyzing(false);
       
       // Sélectionner automatiquement le premier cas pour les procédures de réparation
@@ -742,6 +759,11 @@ export default function SmartDiagnostic() {
                               onStartRepair={handleStartRepair}
                               onSaveDiagnostic={handleSaveDiagnostic}
                               sessionId={currentSessionId || undefined}
+                              explanationSummary={explanationSummary}
+                              contextSignals={contextSignals}
+                              similarIncidents={similarIncidents}
+                              failureTrends={failureTrends}
+                              engineSources={engineSources}
                             />
                           )}
                           </div>

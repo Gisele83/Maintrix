@@ -24,6 +24,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
   const [helpful, setHelpful] = useState<boolean | null>(null);
   const [comments, setComments] = useState("");
   const [suggestionsAccuracy, setSuggestionsAccuracy] = useState<string>("");
+  const [actualSolution, setActualSolution] = useState("");
 
   const feedbackMutation = useMutation({
     mutationFn: async (feedbackData: any) => {
@@ -53,6 +54,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
     setHelpful(null);
     setComments("");
     setSuggestionsAccuracy("");
+    setActualSolution("");
   };
 
   const handleSubmit = () => {
@@ -71,6 +73,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
       helpful,
       comments,
       suggestionsAccuracy,
+      actualSolution: actualSolution || undefined,
       timestamp: new Date().toISOString()
     };
 
@@ -166,6 +169,22 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
               ))}
             </div>
           </div>
+
+          {/* Actual Solution - shown when diagnostic was not helpful */}
+          {helpful === false && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Quelle était la vraie solution ?</Label>
+              <Textarea
+                placeholder="Décrivez la solution qui a réellement résolu le problème..."
+                value={actualSolution}
+                onChange={(e) => setActualSolution(e.target.value)}
+                className="min-h-[80px] resize-none"
+              />
+              <p className="text-xs text-amber-600">
+                Cette information enrichit automatiquement la base de connaissances
+              </p>
+            </div>
+          )}
 
           {/* Comments */}
           <div className="space-y-2">

@@ -464,6 +464,50 @@ export type ModelPerformance = typeof modelPerformance.$inferSelect;
 export type InsertAdaptiveLearning = typeof adaptiveLearning.$inferInsert;
 export type AdaptiveLearning = typeof adaptiveLearning.$inferSelect;
 
+// CCTP 4.5 - Failure Memory: Auto-capitalized validated failures
+export const failureMemory = pgTable("failure_memory", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  equipmentType: text("equipment_type").notNull(),
+  symptomSignature: text("symptom_signature").notNull(),
+  diagnosis: text("diagnosis").notNull(),
+  solution: text("solution").notNull(),
+  rootCause: text("root_cause"),
+  confirmedCount: integer("confirmed_count").default(0),
+  invalidatedCount: integer("invalidated_count").default(0),
+  avgResolutionTime: integer("avg_resolution_time"),
+  lastConfirmedAt: timestamp("last_confirmed_at"),
+  lastInvalidatedAt: timestamp("last_invalidated_at"),
+  confidenceScore: real("confidence_score").default(0.5),
+  status: text("status").default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFailureMemorySchema = createInsertSchema(failureMemory).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertFailureMemory = z.infer<typeof insertFailureMemorySchema>;
+export type FailureMemory = typeof failureMemory.$inferSelect;
+
+// CCTP 4.7 - Failure Trends: Recurrence and pattern tracking
+export const failureTrends = pgTable("failure_trends", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  equipmentType: text("equipment_type").notNull(),
+  failureCode: text("failure_code").notNull(),
+  occurrences: integer("occurrences").default(1),
+  firstOccurrenceAt: timestamp("first_occurrence_at").defaultNow(),
+  lastOccurrenceAt: timestamp("last_occurrence_at").defaultNow(),
+  avgTimeBetweenFailures: integer("avg_time_between_failures"),
+  trendDirection: text("trend_direction").default("stable"),
+  affectedZones: text("affected_zones").array(),
+  seasonalPattern: jsonb("seasonal_pattern"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertFailureTrendSchema = createInsertSchema(failureTrends).omit({ id: true, createdAt: true });
+export type InsertFailureTrend = z.infer<typeof insertFailureTrendSchema>;
+export type FailureTrend = typeof failureTrends.$inferSelect;
+
 // GMAO COMPLETE TABLES - Extension for comprehensive maintenance management
 
 // Company Configuration - Enterprise Branding and Letterhead

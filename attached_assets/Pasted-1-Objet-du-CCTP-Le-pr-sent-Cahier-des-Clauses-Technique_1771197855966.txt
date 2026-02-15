@@ -1,0 +1,132 @@
+1. Objet du CCTP
+Le présent Cahier des Clauses Techniques Particulières a pour objet de définir les exigences techniques relatives à la conception, au développement et au déploiement d’un module de diagnostic assisté par intelligence augmentée destiné à améliorer la fiabilité des opérations de maintenance industrielle.
+Ce module devra permettre :
+·	d’assister les techniciens dans l’identification des causes de défaillance
+·	de capitaliser le retour d’expérience terrain
+·	de réduire les temps d’arrêt
+·	d’améliorer la prise de décision technique
+Le système devra s’intégrer nativement au progiciel GMAO Maintrix.
+2. Contexte et Enjeux
+Les environnements industriels exigent :
+·	une forte disponibilité des équipements
+·	une maîtrise du risque opérationnel
+·	une traçabilité des interventions
+·	une exploitation efficace des données de maintenance
+Le module attendu devra dépasser les approches traditionnelles en proposant une aide au diagnostic contextualisée, explicable et évolutive.
+Objectif stratégique :
+👉 poser les fondations d’une plateforme de fiabilité industrielle augmentée par la donnée.
+3. Périmètre de la Solution
+La solution devra couvrir :
+Équipements concernés
+·	machines industrielles
+·	équipements électromécaniques
+·	systèmes automatisés
+·	infrastructures critiques
+Utilisateurs cibles
+·	techniciens de maintenance
+·	ingénieurs méthodes
+·	responsables maintenance
+·	directions industrielles
+4. Exigences Fonctionnelles
+4.1 Diagnostic Assisté
+Le système devra permettre la génération d’un diagnostic à partir :
+·	d’une description textuelle des symptômes
+·	du type d’équipement
+·	du contexte opérationnel
+·	de l’historique de maintenance
+Sorties attendues :
+·	liste des pannes probables (Top 3 minimum)
+·	niveau de confiance associé
+·	justification du diagnostic
+·	recommandations d’actions
+Le diagnostic devra être explicable, et ne pas reposer sur une logique opaque.
+4.2 Moteur de Diagnostic Hybride
+La solution devra intégrer une architecture combinant :
+✔ Moteur de règles expertes
+Basé sur des scénarios de défaillance connus.
+✔ Analyse de similarité
+Identification de cas historiques comparables.
+✔ Intelligence artificielle générative
+Utilisée exclusivement pour :
+·	structurer les diagnostics
+·	formuler les procédures
+·	améliorer la lisibilité
+L’IA ne devra pas constituer l’unique moteur décisionnel.
+4.3 Contextualisation des Diagnostics
+Chaque analyse devra intégrer :
+·	historique des pannes
+·	interventions récentes
+·	fréquence de défaillance
+·	criticité de l’équipement
+·	données d’usage disponibles
+Objectif : éviter tout diagnostic hors contexte.
+4.4 Indice de Confiance
+Chaque diagnostic devra être accompagné :
+·	d’un score de probabilité
+·	d’un niveau de confiance
+·	des facteurs explicatifs
+Exemple :
+Confiance élevée — basé sur 12 occurrences similaires.
+4.5 Mémoire des Défaillances (Failure Memory)
+Le système devra capitaliser automatiquement :
+·	les pannes confirmées
+·	les corrections apportées
+·	les diagnostics invalidés
+Cette base constituera un référentiel d’intelligence opérationnelle.
+4.6 Boucle d’Apprentissage Continue
+Après chaque intervention, le système devra permettre :
+·	la validation du diagnostic
+·	sa correction éventuelle
+·	l’enrichissement automatique de la base de connaissance
+Objectif : amélioration continue des performances.
+4.7 Historique Intelligent
+Lorsqu’un incident survient, la plateforme devra afficher :
+·	incidents similaires
+·	tendances de défaillance
+·	récurrence des pannes
+5. Exigences Techniques
+Architecture
+La solution devra adopter une architecture modulaire garantissant :
+·	scalabilité
+·	haute disponibilité
+·	interopérabilité
+·	sécurité des données
+Compatibilité requise :
+·	déploiement cloud ou on-premise
+·	API ouvertes
+·	intégration ERP / IoT (à terme)
+Performance
+Le diagnostic devra être généré en quelques secondes maximum.
+Sécurité
+Le système devra garantir :
+·	traçabilité des actions
+·	gestion fine des droits
+·	chiffrement des données sensibles
+6. Exigences UX (souvent oubliées — mais critiques)
+L’outil devra :
+·	être utilisable par un technicien terrain
+·	limiter la saisie
+·	privilégier la clarté
+·	afficher des résultats immédiatement exploitables
+Un diagnostic complexe mais inutilisable sera considéré comme non conforme.
+7. Exigences Non Fonctionnelles
+La solution devra viser :
+✅ forte crédibilité technique✅ transparence des recommandations✅ robustesse opérationnelle✅ adoption rapide
+Le système devra inspirer confiance aux équipes maintenance.
+8. Hors Périmètre du MVP
+Ne sont pas attendus à ce stade :
+·	maintenance prédictive avancée
+·	deep learning massif
+·	jumeaux numériques
+·	automatisation des décisions critiques
+Ces capacités pourront faire l’objet de phases ultérieures.
+9. Critères de Réussite
+Le projet sera considéré comme réussi si :
+·	le module est utilisé spontanément par les techniciens
+·	les diagnostics sont jugés pertinents
+·	le temps d’identification des pannes diminue
+·	la connaissance maintenance est mieux capitalisée
+10. Vision Cible
+Ce module constitue la première étape vers une plateforme capable de :
+👉 anticiper les défaillances👉 piloter le risque industriel👉 transformer la maintenance en levier stratégique
+
