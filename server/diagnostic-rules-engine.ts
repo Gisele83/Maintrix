@@ -177,7 +177,7 @@ const EXPERT_RULES: DiagnosticRule[] = [
     id: 'R007',
     name: 'Défaut compresseur',
     equipmentPatterns: ['compresseur', 'air comprimé'],
-    symptomPatterns: ['pression basse', 'pas de pression', 'fuite air', 'surchauffe compresseur', 'claquement', 'démarrage difficile'],
+    symptomPatterns: ['pression basse', 'pas de pression', 'pression insuffisante', 'fuite air', 'surchauffe compresseur', 'claquement', 'démarrage difficile', 'arrêt', 'arrêts fréquents'],
     conditionLogic: 'any',
     diagnosis: 'Défaut compresseur - fuite réseau, soupape défaillante, filtre colmaté, huile insuffisante',
     solution: 'Contrôler le réseau d\'air, vérifier les soupapes, remplacer les filtres, vérifier le niveau d\'huile',
@@ -199,7 +199,7 @@ const EXPERT_RULES: DiagnosticRule[] = [
     id: 'R008',
     name: 'Défaut convoyeur / chaîne',
     equipmentPatterns: ['convoyeur', 'transporteur', 'bande', 'chaîne', 'tapis'],
-    symptomPatterns: ['dérive', 'patinage', 'déchirure', 'blocage', 'usure bande', 'tension'],
+    symptomPatterns: ['dérive', 'patinage', 'déchirure', 'blocage', 'usure bande', 'tension', 'arrêt', 'glissant', 'courroie', 'bande'],
     conditionLogic: 'any',
     diagnosis: 'Défaut convoyeur - tension insuffisante, usure bande/chaîne, rouleau bloqué, désalignement',
     solution: 'Régler la tension, aligner les rouleaux, remplacer les éléments usés',
@@ -274,10 +274,11 @@ export class DiagnosticRulesEngine {
     const matches: RuleMatch[] = [];
 
     for (const rule of this.rules) {
-      const equipmentMatch = rule.equipmentPatterns.some(pattern =>
-        normalizedEquipment.includes(pattern.toLowerCase()) ||
-        pattern.toLowerCase().includes(normalizedEquipment.split(' ')[0])
-      );
+      const equipmentMatch = rule.equipmentPatterns.some(pattern => {
+        const normalizedPattern = pattern.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return normalizedEquipment.includes(normalizedPattern) ||
+          normalizedPattern.includes(normalizedEquipment.split(' ')[0]);
+      });
 
       if (!equipmentMatch) continue;
 
