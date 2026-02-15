@@ -1,0 +1,153 @@
+name: Deploy to AWS EC2 (SSH)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  APP_DIR: /opt/maintrix
+
+jobs:
+  deploy-ec2:
+    name: Deploy to EC2 via SSH
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-west-3' }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE_URI="${{ steps.ecr-login.outputs.registry }}/maintrix:$(echo $GITHUB_SHA | head -c 7)"
+          IMAGE_LATEST="${{ steps.ecr-login.outputs.registry }}/maintrix:latest"
+          
+          aws ecr describe-repositories --repository-names maintrix 2>/dev/null || \
+          aws ecr create-repository --repository-name maintrix --image-scanning-configuration scanOnPush=true
+          
+          docker build -t $IMAGE_URI -t $IMAGE_LATEST .
+          docker push $IMAGE_URI
+          docker push $IMAGE_LATEST
+          
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -e
+            echo "=== Deploying Maintrix to EC2 ==="
+            
+            APP_DIR=/opt/maintrix
+            
+            # Login to ECR
+            aws ecr get-login-password --region ${{ vars.AWS_REGION || 'eu-west-3' }} | \
+              docker login --username AWS --password-stdin ${{ steps.ecr-login.outputs.registry }}
+            
+            # Pull latest image
+            docker pull ${{ env.IMAGE_URI }}
+            docker tag ${{ env.IMAGE_URI }} maintrix-app:latest
+            
+            cd $APP_DIR
+            
+            # Backup current state
+            cp -f .env .env.backup 2>/dev/null || true
+            docker ps --format '{{.Image}}' > /tmp/maintrix-previous-images.txt 2>/dev/null || true
+            
+            # Determine compose file (created by initial deploy-aws.sh setup)
+            COMPOSE_FILE="docker-compose.prod.yml"
+            if [ ! -f "$COMPOSE_FILE" ]; then
+              COMPOSE_FILE="docker-compose.simple.yml"
+            fi
+            if [ ! -f "$COMPOSE_FILE" ]; then
+              echo "ERROR: No docker-compose file found."
+              echo "Run scripts/deploy-aws.sh first to initialize the server."
+              exit 1
+            fi
+            
+            # Update image reference in compose file
+            sed -i "s|image:.*maintrix.*|image: ${{ env.IMAGE_URI }}|g" $COMPOSE_FILE 2>/dev/null || true
+            
+            # Stop old containers
+            docker compose -f $COMPOSE_FILE down --timeout 30 || true
+            
+            # Start with new image
+            docker compose -f $COMPOSE_FILE up -d
+            
+            # Wait for health check
+            echo "Waiting for application to start..."
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+                echo "Application is healthy!"
+                break
+              fi
+              echo "Attempt $i/30 - waiting..."
+              sleep 5
+            done
+            
+            # Final health check
+            if ! curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+              echo "ERROR: Application failed to start"
+              docker compose -f $COMPOSE_FILE logs --tail 50
+              exit 1
+            fi
+            
+            # Cleanup old images
+            docker image prune -f --filter "until=72h"
+            
+            echo "=== Deployment complete ==="
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "## EC2 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Host**: ${{ secrets.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: ${{ env.IMAGE_URI }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  rollback:
+    name: Rollback (if needed)
+    runs-on: ubuntu-latest
+    needs: deploy-ec2
+    if: failure()
+    steps:
+      - name: Rollback on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER || 'ubuntu' }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            APP_DIR=/opt/maintrix
+            cd $APP_DIR
+            echo "Rolling back to previous version..."
+            cp -f .env.backup .env 2>/dev/null || true
+            COMPOSE_FILE="docker-compose.prod.yml"
+            [ ! -f "$COMPOSE_FILE" ] && COMPOSE_FILE="docker-compose.simple.yml"
+            docker compose -f $COMPOSE_FILE down
+            docker compose -f $COMPOSE_FILE up -d
+            echo "Rollback complete"

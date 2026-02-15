@@ -57,6 +57,17 @@ User confirmed that username field should remain non-editable in profile forms f
 
 ## Recent Updates
 
+### CI/CD Pipeline AWS via GitHub Actions (February 2026)
+✅ **GitHub Actions CI pipeline** - Automated build, type-check, and Docker image push to AWS ECR on every push to main
+✅ **ECS Fargate deployment workflow** - Auto-deploy to AWS ECS after successful CI (production-grade, managed)
+✅ **EC2 SSH deployment workflow** - Manual trigger deploy to EC2 via SSH (budget-friendly option)
+✅ **AWS CloudFormation template** - One-command infrastructure setup (VPC, ECS, RDS, ALB, Security Groups)
+✅ **AWS SSM Parameter Store** - Secure secret management script for production secrets
+✅ **Docker vulnerability scanning** - Trivy integration for container security
+✅ **Rollback support** - Automatic rollback on EC2 deploy failure, ECS native rollback
+📁 Pipeline files in `.github/workflows/`, infrastructure in `aws/`
+📄 Guide complet dans `GUIDE_DEPLOIEMENT_AWS_GITHUB.md`
+
 ### Documentation & Deployment Update (February 2026)
 ✅ **17 duplicate documentation files removed** (deployment reports, old branding files, redundant security reports)
 ✅ **Core docs updated**: INSTALL.md, INDEX_DOCUMENTATION_COMPLETE.md, .env.example

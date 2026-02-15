@@ -1,0 +1,188 @@
+name: Deploy to AWS ECS (Production)
+
+on:
+  workflow_run:
+    workflows: ["CI - Build & Test"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-3' }}
+  ECS_CLUSTER: maintrix-cluster
+  ECS_SERVICE: maintrix-service
+
+jobs:
+  deploy:
+    name: Deploy to ECS Fargate
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get AWS Account ID
+        id: account
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "id=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+
+      - name: Determine image tag
+        id: image-tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.image_tag || 'latest' }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare ECS task definition
+        id: prepare-task-def
+        run: |
+          ACCOUNT_ID=${{ steps.account.outputs.id }}
+          REGION=${{ env.AWS_REGION }}
+          IMAGE="${{ steps.ecr-login.outputs.registry }}/maintrix:${{ steps.image-tag.outputs.tag }}"
+          
+          EXEC_ROLE="arn:aws:iam::${ACCOUNT_ID}:role/ecsTaskExecutionRole"
+          TASK_ROLE="arn:aws:iam::${ACCOUNT_ID}:role/ecsTaskRole"
+          
+          cat > /tmp/task-definition.json << EOF
+          {
+            "family": "maintrix-task",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "1024",
+            "memory": "2048",
+            "executionRoleArn": "${EXEC_ROLE}",
+            "taskRoleArn": "${TASK_ROLE}",
+            "containerDefinitions": [
+              {
+                "name": "maintrix-app",
+                "image": "${IMAGE}",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 5000,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environment": [
+                  { "name": "NODE_ENV", "value": "production" },
+                  { "name": "PORT", "value": "5000" },
+                  { "name": "LOG_LEVEL", "value": "info" },
+                  { "name": "PAYPAL_MODE", "value": "live" }
+                ],
+                "secrets": [
+                  { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/DATABASE_URL" },
+                  { "name": "SESSION_SECRET", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/SESSION_SECRET" },
+                  { "name": "ANTHROPIC_API_KEY", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/ANTHROPIC_API_KEY" },
+                  { "name": "SENDGRID_API_KEY", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/SENDGRID_API_KEY" },
+                  { "name": "STRIPE_SECRET_KEY", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/STRIPE_SECRET_KEY" },
+                  { "name": "STRIPE_PUBLISHABLE_KEY", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/STRIPE_PUBLISHABLE_KEY" },
+                  { "name": "PAYPAL_CLIENT_ID", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/PAYPAL_CLIENT_ID" },
+                  { "name": "PAYPAL_CLIENT_SECRET", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/maintrix/PAYPAL_CLIENT_SECRET" }
+                ],
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost:5000/api/health || exit 1"],
+                  "interval": 30,
+                  "timeout": 10,
+                  "retries": 3,
+                  "startPeriod": 60
+                },
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/maintrix",
+                    "awslogs-region": "${REGION}",
+                    "awslogs-stream-prefix": "ecs",
+                    "awslogs-create-group": "true"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+          
+          echo "task_def=/tmp/task-definition.json" >> $GITHUB_OUTPUT
+
+      - name: Register ECS task definition
+        id: register-task
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.prepare-task-def.outputs.task_def }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Check if ECS service exists
+        id: check-service
+        run: |
+          SERVICE_STATUS=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].status' \
+            --output text 2>/dev/null || echo "MISSING")
+          echo "status=$SERVICE_STATUS" >> $GITHUB_OUTPUT
+
+      - name: Update ECS service
+        if: steps.check-service.outputs.status == 'ACTIVE'
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.register-task.outputs.arn }} \
+            --force-new-deployment
+          
+          echo "Waiting for service stability..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} || {
+            echo "::warning::Service did not stabilize within timeout"
+          }
+
+      - name: Create ECS service (first deploy)
+        if: steps.check-service.outputs.status != 'ACTIVE'
+        run: |
+          echo "::error::ECS service '${{ env.ECS_SERVICE }}' does not exist."
+          echo "Please create infrastructure first using CloudFormation:"
+          echo "  aws cloudformation create-stack --stack-name maintrix-production --template-body file://aws/cloudformation-infra.yml ..."
+          echo "See GUIDE_DEPLOIEMENT_AWS_GITHUB.md for full instructions."
+          exit 1
+
+      - name: Verify deployment
+        if: steps.check-service.outputs.status == 'ACTIVE'
+        run: |
+          SERVICE_STATUS=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].deployments[0].rolloutState' \
+            --output text)
+          echo "Deployment status: $SERVICE_STATUS"
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "## ECS Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cluster**: ${{ env.ECS_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: ${{ env.ECS_SERVICE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: ${{ steps.image-tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Task Def**: ${{ steps.register-task.outputs.arn }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
