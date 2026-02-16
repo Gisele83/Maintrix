@@ -1,4 +1,4 @@
-import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch, MessageSquare, Cloud, Globe, CheckCircle, Info, Clock, ArrowUpRight, History, Target, Layers } from "lucide-react";
+import { Lightbulb, Save, Wrench, Brain, AlertTriangle, Euro, Zap, Activity, TrendingUp, Shield, GitBranch, MessageSquare, Cloud, Globe, CheckCircle, Info, Clock, ArrowUpRight, History, Target, Layers, Timer, Gauge, HelpCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ interface DiagnosticSuggestion {
   predictiveTips?: string[];
   source?: string;
   ruleId?: string;
+  diagnosticReasoning?: string;
   explanationFactors?: ExplanationFactor[];
   advancedML?: boolean;
   anomalyDetected?: boolean;
@@ -214,6 +215,9 @@ export function DiagnosticResults({
                     {signal.type === 'recent_intervention' && <Clock className="w-3.5 h-3.5" />}
                     {signal.type === 'recurrence' && <TrendingUp className="w-3.5 h-3.5" />}
                     {signal.type === 'operational_state' && <Activity className="w-3.5 h-3.5" />}
+                    {signal.type === 'machine_hours' && <Timer className="w-3.5 h-3.5" />}
+                    {signal.type === 'machine_hours_alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-600" />}
+                    {signal.type === 'counter_data' && <Gauge className="w-3.5 h-3.5" />}
                   </span>
                   <div>
                     <span className="font-medium text-amber-800">{signal.label}</span>
@@ -367,19 +371,35 @@ export function DiagnosticResults({
                     </div>
                   </div>
 
+                  {suggestion.diagnosticReasoning && (
+                    <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                      <h5 className="text-sm font-semibold text-indigo-900 mb-1.5 flex items-center">
+                        <HelpCircle className="w-4 h-4 mr-2 text-indigo-600" />
+                        Pourquoi ce diagnostic ?
+                      </h5>
+                      <p className="text-sm text-indigo-800 leading-relaxed">{suggestion.diagnosticReasoning}</p>
+                    </div>
+                  )}
+
                   {suggestion.explanationFactors && suggestion.explanationFactors.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5 uppercase tracking-wide">Facteurs explicatifs</h5>
-                      <div className="flex flex-wrap gap-1.5">
+                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5 uppercase tracking-wide">Preuves et facteurs d'appui</h5>
+                      <div className="space-y-1.5">
                         {suggestion.explanationFactors.map((factor, fi) => (
-                          <span
+                          <div
                             key={fi}
-                            className={`inline-flex items-center text-xs px-2 py-1 rounded-full border ${getImpactColor(factor.impact)}`}
-                            title={factor.detail}
+                            className={`flex items-start text-xs px-3 py-2 rounded-lg border ${getImpactColor(factor.impact)}`}
                           >
-                            {factor.impact === 'high' && <ArrowUpRight className="w-3 h-3 mr-1" />}
-                            {factor.label}
-                          </span>
+                            <span className="mt-0.5 mr-2 flex-shrink-0">
+                              {factor.impact === 'high' && <ArrowUpRight className="w-3.5 h-3.5" />}
+                              {factor.impact === 'medium' && <Info className="w-3.5 h-3.5" />}
+                              {factor.impact === 'low' && <CheckCircle className="w-3.5 h-3.5" />}
+                            </span>
+                            <div>
+                              <span className="font-semibold">{factor.label}</span>
+                              <p className="mt-0.5 opacity-90">{factor.detail}</p>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>

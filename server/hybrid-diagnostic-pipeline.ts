@@ -29,6 +29,7 @@ export interface DiagnosticSuggestion {
   confidence: number;
   source: 'rules' | 'historical' | 'failure_memory' | 'ai_structured';
   explanationFactors: ExplanationFactor[];
+  diagnosticReasoning: string;
   matchingCases: number;
   caseId?: number;
   ruleId?: string;
@@ -165,6 +166,7 @@ export class HybridDiagnosticPipeline {
         detail: match.explanation,
         impact: match.confidence > 0.8 ? 'high' as const : 'medium' as const
       }],
+      diagnosticReasoning: `Ce diagnostic est proposé car les symptômes décrits (${match.matchedConditions.join(', ')}) correspondent à la règle expert "${match.ruleName}". Cette règle, validée par des experts en maintenance industrielle, identifie un schéma de panne connu avec ${Math.round(match.confidence * 100)}% de confiance. ${match.explanation}`,
       matchingCases: 0,
       ruleId: match.ruleId,
       duration: match.estimatedTime,
@@ -231,6 +233,7 @@ export class HybridDiagnosticPipeline {
           detail: `Cas #${c.id} — équipement: ${c.equipmentType}, similarité: ${Math.round(c.score * 100)}%`,
           impact: c.score > 0.7 ? 'high' as const : c.score > 0.4 ? 'medium' as const : 'low' as const
         }],
+        diagnosticReasoning: `Ce diagnostic est proposé car un cas de maintenance passé (cas #${c.id}) sur un équipement de type "${c.equipmentType}" présentait des symptômes très similaires (similarité de ${Math.round(c.score * 100)}%). La solution appliquée avec succès dans ce cas précédent était : "${c.solution}". Ce rapprochement historique renforce la crédibilité de cette hypothèse.`,
         matchingCases: 1,
         caseId: c.id,
         duration: c.duration || 120,
@@ -259,6 +262,7 @@ export class HybridDiagnosticPipeline {
         confidence: Math.round(Math.min((m.confidenceScore || 0.5) * (1 + (m.confirmedCount || 0) * 0.05), 0.98) * 100),
         source: 'failure_memory' as const,
         explanationFactors: explanations.slice(index, index + 1),
+        diagnosticReasoning: `Ce diagnostic repose sur la mémoire des pannes : cette panne a été rencontrée et confirmée ${m.confirmedCount || 0} fois par des techniciens sur ce type d'équipement. Le temps moyen de résolution constaté est de ${m.avgResolutionTime || '?'} minutes. Plus une panne est confirmée, plus le diagnostic est fiable — c'est un retour d'expérience terrain capitalisé.`,
         matchingCases: m.confirmedCount || 0,
         duration: m.avgResolutionTime || 120,
         riskLevel: 'Moyen',
@@ -545,6 +549,7 @@ export class HybridDiagnosticPipeline {
             detail: `${machineHoursSignal.detail}${isWearRelated ? ' — diagnostic d\'usure renforcé (+' + wearBoost + '%)' : ' — confiance ajustée (+' + wearBoost + '%)'}`,
             impact: isCritical ? 'high' : 'medium'
           });
+          s.diagnosticReasoning += ` De plus, l'équipement totalise ${machineHoursSignal.label.replace('Heures machine: ', '')} de fonctionnement${isCritical ? ' (seuil dépassé)' : ' (proche du seuil)'}, ce qui ${isWearRelated ? 'renforce fortement' : 'appuie'} cette hypothèse de panne.`;
         } else if (isWearRelated) {
           s.explanationFactors.push({
             type: 'machine_hours',
@@ -553,6 +558,7 @@ export class HybridDiagnosticPipeline {
             impact: 'low'
           });
           s.confidence = Math.max(s.confidence - 5, 10);
+          s.diagnosticReasoning += ` Cependant, avec seulement ${machineHoursSignal.label.replace('Heures machine: ', '')} de fonctionnement, une usure mécanique est peu probable — la confiance est réduite.`;
         } else {
           s.explanationFactors.push({
             type: 'machine_hours',
@@ -561,6 +567,14 @@ export class HybridDiagnosticPipeline {
             impact: 'low'
           });
         }
+      }
+
+      const recentInterventionSignal = signals.find(s => s.type === 'recent_intervention');
+      if (recentInterventionSignal) {
+        s.diagnosticReasoning += ` Le contexte GMAO montre ${recentInterventionSignal.label.toLowerCase()} sur cet équipement, ce qui éclaire l'analyse.`;
+      }
+      if (recurrenceSignal) {
+        s.diagnosticReasoning += ` La récurrence d'interventions similaires suggère un problème systémique plutôt qu'un incident isolé.`;
       }
 
       return s;
@@ -843,12 +857,22 @@ INSTRUCTIONS:
       return 'Aucun diagnostic trouvé. Veuillez fournir plus de détails sur les symptômes.';
     }
 
-    const topConf = suggestions[0].confidence;
+    const top = suggestions[0];
+    const topConf = top.confidence;
     const confLevel = topConf >= 80 ? 'Haute' : topConf >= 50 ? 'Moyenne' : 'Faible';
-    const allFactors = suggestions.flatMap(s => s.explanationFactors);
-    const uniqueFactors = Array.from(new Set(allFactors.map(f => f.label)));
 
-    return `Confiance ${confLevel} (${topConf}%) — ${suggestions.length} diagnostic(s) proposé(s) via ${sources.join(', ')}. Facteurs: ${uniqueFactors.slice(0, 3).join('; ')}.`;
+    const sourceDescriptions: string[] = [];
+    if (sources.some(s => s.includes('Règles'))) sourceDescriptions.push('des règles de maintenance validées par des experts');
+    if (sources.some(s => s.includes('similarité') || s.includes('historique'))) sourceDescriptions.push(`l'analyse de cas de maintenance passés similaires`);
+    if (sources.some(s => s.includes('Mémoire'))) sourceDescriptions.push('la mémoire des pannes confirmées par des techniciens');
+    if (sources.some(s => s.includes('IA') || s.includes('Claude'))) sourceDescriptions.push(`la structuration par intelligence artificielle`);
+
+    const highImpactFactors = suggestions.flatMap(s => s.explanationFactors).filter(f => f.impact === 'high');
+    const factorSummary = highImpactFactors.length > 0
+      ? ` Points clés : ${highImpactFactors.map(f => f.detail).slice(0, 2).join(' ; ')}.`
+      : '';
+
+    return `Confiance ${confLevel} (${topConf}%) — ${suggestions.length} diagnostic(s) proposé(s) à partir de ${sourceDescriptions.join(', ')}.${factorSummary}`;
   }
 }
 
