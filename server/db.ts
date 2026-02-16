@@ -47,6 +47,8 @@ export function isDatabaseReady(): boolean {
 }
 
 export async function initDatabase(): Promise<boolean> {
+  const dbHost = process.env.DATABASE_URL?.replace(/^.*@/, '').replace(/\/.*$/, '') || 'unknown';
+  console.log(`🔌 Database host: ${dbHost}`);
   return testConnection();
 }
 
