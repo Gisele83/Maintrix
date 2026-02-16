@@ -21,6 +21,8 @@ export interface HybridDiagnosticRequest {
   equipmentId?: string;
   tenantId?: string;
   userId?: number;
+  machineHours?: number;
+  context?: string;
 }
 
 export interface DiagnosticSuggestion {
@@ -415,6 +417,41 @@ export class HybridDiagnosticPipeline {
       }
     } catch (error) {
       console.error('Context signal gathering error:', error);
+    }
+
+    if (request.machineHours && !signals.find(s => s.type === 'machine_hours')) {
+      const hours = request.machineHours;
+      let machineHoursLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      let machineHoursDetail = '';
+
+      if (hours >= 20000) {
+        machineHoursLevel = 'critical';
+        machineHoursDetail = `${hours.toLocaleString('fr-FR')}h de fonctionnement — SEUIL ÉLEVÉ, usure avancée probable`;
+      } else if (hours >= 15000) {
+        machineHoursLevel = 'high';
+        machineHoursDetail = `${hours.toLocaleString('fr-FR')}h de fonctionnement — approche du seuil critique`;
+      } else if (hours >= 10000) {
+        machineHoursLevel = 'medium';
+        machineHoursDetail = `${hours.toLocaleString('fr-FR')}h — usure progressive probable (roulements, joints, courroies)`;
+      } else if (hours >= 5000) {
+        machineHoursDetail = `${hours.toLocaleString('fr-FR')}h — usage modéré`;
+      } else {
+        machineHoursDetail = `${hours.toLocaleString('fr-FR')}h — équipement relativement récent`;
+      }
+
+      signals.push({
+        type: 'machine_hours',
+        label: `Heures machine: ${hours.toLocaleString('fr-FR')}h`,
+        detail: machineHoursDetail
+      });
+
+      if (machineHoursLevel === 'critical' || machineHoursLevel === 'high') {
+        signals.push({
+          type: 'machine_hours_alert',
+          label: `Alerte heures machine (${machineHoursLevel})`,
+          detail: machineHoursDetail
+        });
+      }
     }
 
     return signals;
