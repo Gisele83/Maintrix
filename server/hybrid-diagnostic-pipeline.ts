@@ -1,5 +1,5 @@
 import { db } from './db';
-import { maintenanceCases, diagnosticSessions, workOrders, equipmentRegistry, failureMemory, failureTrends, feedbackSessions } from '../shared/schema';
+import { maintenanceCases, diagnosticSessions, workOrders, equipmentRegistry, failureMemory, failureTrends, feedbackSessions, maintenanceCounters } from '../shared/schema';
 import { eq, and, like, desc, sql, gte, count } from 'drizzle-orm';
 import { diagnosticRulesEngine, type RuleMatch, type ExplanationFactor } from './diagnostic-rules-engine';
 import Anthropic from '@anthropic-ai/sdk';
@@ -335,6 +335,80 @@ export class HybridDiagnosticPipeline {
           });
         }
       }
+
+      try {
+        const equipIdForCounters = request.equipmentId
+          ? (await db.select({ id: equipmentRegistry.id })
+              .from(equipmentRegistry)
+              .where(eq(equipmentRegistry.equipmentId, request.equipmentId))
+              .limit(1))?.[0]?.id
+          : (await db.select({ id: equipmentRegistry.id })
+              .from(equipmentRegistry)
+              .where(sql`LOWER(${equipmentRegistry.equipmentType}) LIKE ${`%${request.equipmentType.toLowerCase().split(' ')[0]}%`}`)
+              .limit(1))?.[0]?.id;
+
+        if (equipIdForCounters) {
+          const counters = await db.select()
+            .from(maintenanceCounters)
+            .where(
+              and(
+                eq(maintenanceCounters.equipmentId, equipIdForCounters),
+                eq(maintenanceCounters.isActive, true)
+              )
+            );
+
+          const hoursCounter = counters.find(c => c.counterType === 'hours');
+          if (hoursCounter && hoursCounter.currentValue != null) {
+            const hours = hoursCounter.currentValue;
+            const threshold = hoursCounter.thresholdValue;
+            const warningPct = hoursCounter.warningThresholdPct || 80;
+
+            let machineHoursLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+            let machineHoursDetail = '';
+
+            if (threshold && hours >= threshold) {
+              machineHoursLevel = 'critical';
+              machineHoursDetail = `${hours.toLocaleString('fr-FR')}h / seuil ${threshold.toLocaleString('fr-FR')}h — SEUIL DÉPASSÉ, maintenance urgente`;
+            } else if (threshold && hours >= threshold * (warningPct / 100)) {
+              machineHoursLevel = 'high';
+              machineHoursDetail = `${hours.toLocaleString('fr-FR')}h / seuil ${threshold.toLocaleString('fr-FR')}h — approche du seuil (${Math.round(hours / threshold * 100)}%)`;
+            } else if (hours >= 10000) {
+              machineHoursLevel = 'medium';
+              machineHoursDetail = `${hours.toLocaleString('fr-FR')}h — usure progressive probable (roulements, joints, courroies)`;
+            } else {
+              machineHoursDetail = `${hours.toLocaleString('fr-FR')}h — équipement relativement récent`;
+            }
+
+            signals.push({
+              type: 'machine_hours',
+              label: `Heures machine: ${hours.toLocaleString('fr-FR')}h`,
+              detail: machineHoursDetail
+            });
+
+            if (machineHoursLevel === 'critical' || machineHoursLevel === 'high') {
+              signals.push({
+                type: 'machine_hours_alert',
+                label: `Alerte heures machine (${machineHoursLevel})`,
+                detail: machineHoursDetail
+              });
+            }
+          }
+
+          const otherCounters = counters.filter(c => c.counterType !== 'hours' && c.currentValue != null);
+          for (const counter of otherCounters) {
+            const val = counter.currentValue!;
+            const unit = counter.counterType === 'cycles' ? 'cycles' : counter.counterType === 'kilometers' ? 'km' : counter.counterType;
+            const threshInfo = counter.thresholdValue ? ` / seuil ${counter.thresholdValue.toLocaleString('fr-FR')} ${unit}` : '';
+            signals.push({
+              type: 'counter_data',
+              label: `Compteur ${counter.counterType}: ${val.toLocaleString('fr-FR')} ${unit}`,
+              detail: `${counter.equipmentName || 'Équipement'} — ${val.toLocaleString('fr-FR')} ${unit}${threshInfo}`
+            });
+          }
+        }
+      } catch (counterError) {
+        console.error('Machine hours lookup error:', counterError);
+      }
     } catch (error) {
       console.error('Context signal gathering error:', error);
     }
@@ -430,6 +504,10 @@ export class HybridDiagnosticPipeline {
   private enrichWithContext(suggestions: DiagnosticSuggestion[], signals: ContextSignal[]): DiagnosticSuggestion[] {
     const criticalSignal = signals.find(s => s.type === 'criticality' && s.detail.includes('critical'));
     const recurrenceSignal = signals.find(s => s.type === 'recurrence');
+    const machineHoursSignal = signals.find(s => s.type === 'machine_hours');
+    const machineHoursAlert = signals.find(s => s.type === 'machine_hours_alert');
+
+    const wearKeywords = ['usure', 'roulement', 'joint', 'courroie', 'palier', 'garniture', 'étanchéité', 'lubrification', 'graissage', 'fatigue', 'vieillissement', 'dégradation', 'bearing', 'seal', 'belt', 'wear'];
 
     return suggestions.map(s => {
       if (criticalSignal) {
@@ -449,6 +527,42 @@ export class HybridDiagnosticPipeline {
           impact: 'medium'
         });
       }
+
+      if (machineHoursSignal) {
+        const isWearRelated = wearKeywords.some(kw =>
+          s.diagnosis.toLowerCase().includes(kw) || s.solution.toLowerCase().includes(kw)
+        );
+
+        if (machineHoursAlert) {
+          const isCritical = machineHoursAlert.label.includes('critical');
+          const boost = isCritical ? 10 : 5;
+          const wearBoost = isWearRelated ? boost : Math.round(boost * 0.5);
+
+          s.confidence = Math.min(s.confidence + wearBoost, 99);
+          s.explanationFactors.push({
+            type: 'machine_hours',
+            label: machineHoursSignal.label,
+            detail: `${machineHoursSignal.detail}${isWearRelated ? ' — diagnostic d\'usure renforcé (+' + wearBoost + '%)' : ' — confiance ajustée (+' + wearBoost + '%)'}`,
+            impact: isCritical ? 'high' : 'medium'
+          });
+        } else if (isWearRelated) {
+          s.explanationFactors.push({
+            type: 'machine_hours',
+            label: machineHoursSignal.label,
+            detail: `${machineHoursSignal.detail} — heures faibles, usure peu probable`,
+            impact: 'low'
+          });
+          s.confidence = Math.max(s.confidence - 5, 10);
+        } else {
+          s.explanationFactors.push({
+            type: 'machine_hours',
+            label: machineHoursSignal.label,
+            detail: machineHoursSignal.detail,
+            impact: 'low'
+          });
+        }
+      }
+
       return s;
     });
   }

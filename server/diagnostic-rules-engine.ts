@@ -18,7 +18,7 @@ export interface RuleMatch {
 }
 
 export interface ExplanationFactor {
-  type: 'rule_match' | 'historical_cases' | 'failure_memory' | 'context_signal' | 'recurrence' | 'criticality' | 'recent_intervention';
+  type: 'rule_match' | 'historical_cases' | 'failure_memory' | 'context_signal' | 'recurrence' | 'criticality' | 'recent_intervention' | 'machine_hours';
   label: string;
   detail: string;
   impact: 'high' | 'medium' | 'low';
