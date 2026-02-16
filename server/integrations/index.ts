@@ -84,14 +84,29 @@ export class IntegrationHub {
       }, 15 * 60 * 1000);
     }
 
-    // IoT simulation every 30 seconds (for demo) - only when DB is available
+    // IoT simulation every 30 seconds (for demo) - only when equipment exists in DB
     if (this.iotConnector) {
       let iotErrorCount = 0;
+      let validEquipmentIds: number[] = [];
+      let lastEquipmentCheck = 0;
       setInterval(async () => {
         if (iotErrorCount > 5) return;
         try {
-          for (let i = 1; i <= 5; i++) {
-            await this.iotConnector.simulateSensorData(i);
+          const now = Date.now();
+          if (now - lastEquipmentCheck > 60000 || validEquipmentIds.length === 0) {
+            try {
+              const { db } = await import('../db.js');
+              const { equipmentRegistry } = await import('@shared/schema.js');
+              const equipments = await db.select({ id: equipmentRegistry.id }).from(equipmentRegistry).limit(10);
+              validEquipmentIds = equipments.map(e => e.id);
+              lastEquipmentCheck = now;
+            } catch {
+              validEquipmentIds = [];
+            }
+          }
+          if (validEquipmentIds.length === 0) return;
+          for (const eqId of validEquipmentIds.slice(0, 5)) {
+            await this.iotConnector.simulateSensorData(eqId);
           }
           iotErrorCount = 0;
         } catch (error: any) {
@@ -203,13 +218,21 @@ export class IntegrationHub {
       results.sap = await this.syncWithSAP();
     }
 
-    // Force IoT data collection
+    // Force IoT data collection - only for existing equipment
     if (this.iotConnector) {
       try {
-        for (let i = 1; i <= 10; i++) {
-          await this.iotConnector.simulateSensorData(i);
+        const { db } = await import('../db.js');
+        const { equipmentRegistry } = await import('@shared/schema.js');
+        const equipments = await db.select({ id: equipmentRegistry.id }).from(equipmentRegistry).limit(10);
+        const eqIds = equipments.map(e => e.id);
+        if (eqIds.length === 0) {
+          results.iot = { success: true, message: 'No equipment in registry, IoT simulation skipped' };
+        } else {
+          for (const eqId of eqIds) {
+            await this.iotConnector!.simulateSensorData(eqId);
+          }
+          results.iot = { success: true, message: `IoT data simulation completed for ${eqIds.length} equipment(s)` };
         }
-        results.iot = { success: true, message: 'IoT data simulation completed' };
       } catch (error) {
         results.iot = { success: false, message: `IoT sync failed: ${error}` };
       }
