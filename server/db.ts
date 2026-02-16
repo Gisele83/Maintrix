@@ -8,5 +8,46 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+pool.on('error', (err) => {
+  console.error('Database pool error:', err.message);
+});
+
+let dbReady = false;
+
+async function testConnection(retries = 5, delay = 3000): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      console.log('✅ Database connection established successfully');
+      dbReady = true;
+      return true;
+    } catch (err: any) {
+      console.error(`⚠️ Database connection attempt ${i + 1}/${retries} failed: ${err.message}`);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  console.error('❌ Database connection failed after all retries. App will start without DB.');
+  dbReady = false;
+  return false;
+}
+
+export function isDatabaseReady(): boolean {
+  return dbReady;
+}
+
+export async function initDatabase(): Promise<boolean> {
+  return testConnection();
+}
+
 export const db = drizzle({ client: pool, schema });

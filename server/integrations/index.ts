@@ -84,16 +84,24 @@ export class IntegrationHub {
       }, 15 * 60 * 1000);
     }
 
-    // IoT simulation every 30 seconds (for demo)
+    // IoT simulation every 30 seconds (for demo) - only when DB is available
     if (this.iotConnector) {
+      let iotErrorCount = 0;
       setInterval(async () => {
+        if (iotErrorCount > 5) return;
         try {
-          // Simulate data for first 5 equipment
           for (let i = 1; i <= 5; i++) {
             await this.iotConnector.simulateSensorData(i);
           }
-        } catch (error) {
-          console.error('IoT simulation error:', error);
+          iotErrorCount = 0;
+        } catch (error: any) {
+          iotErrorCount++;
+          if (iotErrorCount <= 2) {
+            console.error('IoT simulation error:', error?.message?.substring(0, 80));
+          }
+          if (iotErrorCount === 3) {
+            console.warn('⚠️ IoT simulation paused - database unavailable. Will retry silently.');
+          }
         }
       }, 30 * 1000);
     }

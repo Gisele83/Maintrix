@@ -14,6 +14,7 @@ import { advancedIoTConnector } from './integrations/advanced-iot-connector';
 import { smartNotificationEngine } from './integrations/smart-notification-engine';
 import { gamificationEngine } from './integrations/gamification-engine';
 import { LicenseService } from './license-service';
+import { initDatabase, isDatabaseReady } from './db';
 import crypto from 'crypto';
 import cookieParser from 'cookie-parser';
 import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
@@ -184,13 +185,22 @@ app.use((req, res, next) => {
     console.error('❌ Error initializing advanced systems:', error);
   }
 
+  // 🔌 INITIALIZE DATABASE CONNECTION
+  console.log('🔄 Connecting to database...');
+  const dbConnected = await initDatabase();
+  if (!dbConnected) {
+    console.warn('⚠️ Database unavailable - app will start with limited functionality');
+  }
+
   // 📜 INITIALIZE LICENSE SYSTEM
-  try {
-    console.log('🔄 Initializing license system...');
-    await LicenseService.initializeLicenseTypes();
-    console.log('✅ License system initialized successfully');
-  } catch (error) {
-    console.error('❌ Error initializing license system:', error);
+  if (dbConnected) {
+    try {
+      console.log('🔄 Initializing license system...');
+      await LicenseService.initializeLicenseTypes();
+      console.log('✅ License system initialized successfully');
+    } catch (error) {
+      console.error('❌ Error initializing license system:', error);
+    }
   }
 
   const server = await registerRoutes(app);

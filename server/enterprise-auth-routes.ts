@@ -497,12 +497,20 @@ router.post('/login',
         message: "Login successful. Session stored in secure cookie."
       });
       
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({
-        error: "LOGIN_ERROR",
-        message: "Login failed"
-      });
+    } catch (error: any) {
+      console.error("Login error:", error?.message || error);
+      const isDbError = error?.message?.includes('endpoint') || error?.message?.includes('disabled') || error?.code === 'XX000' || error?.code === 'ECONNREFUSED';
+      if (isDbError) {
+        res.status(503).json({
+          error: "DATABASE_UNAVAILABLE",
+          message: "Service temporarily unavailable. Database connection is being restored. Please try again in a few moments."
+        });
+      } else {
+        res.status(500).json({
+          error: "LOGIN_ERROR",
+          message: "Login failed"
+        });
+      }
     }
   }
 );
