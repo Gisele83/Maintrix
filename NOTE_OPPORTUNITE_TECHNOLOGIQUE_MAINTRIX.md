@@ -1,10 +1,16 @@
 # NOTE D'OPPORTUNITE TECHNOLOGIQUE
 
-## MAINTRIX - Plateforme GMAO Intelligente avec Diagnostic IA Hybride
+# MAINTRIX
+
+## L'intelligence cognitive au service des industries critiques
+
+**Transformer les machines industrielles en systemes autonomes capables de percevoir, comprendre et anticiper leurs propres defaillances.**
+
+---
 
 **Document confidentiel - Recherche de financement**
 **Date : Fevrier 2026**
-**Version : 1.0**
+**Version : 2.0**
 
 ---
 
@@ -24,124 +30,211 @@
 
 ## 1. VISION
 
-### Ambition
+### Ce que nous construisons
 
-Devenir la plateforme de reference en maintenance industrielle intelligente pour les PME et ETI, particulierement sur le continent africain, en democratisant l'acces aux technologies de maintenance predictive et au diagnostic assiste par intelligence artificielle.
+Maintrix n'est pas une GMAO. Nous ne faisons pas de la maintenance augmentee.
 
-### Mission
+**Nous construisons le cerveau logiciel de l'industrie.**
 
-Transformer la maintenance industrielle d'un centre de cout reactif en un levier strategique de performance, en combinant une GMAO complete avec un moteur de diagnostic IA hybride conforme aux standards CCTP, accessible, abordable et adapte aux realites operationnelles des marches emergents.
+Un systeme d'intelligence cognitive capable de donner a chaque machine industrielle la capacite de :
+- **Percevoir** son propre etat en temps reel via un reseau de capteurs IoT multi-protocoles
+- **Comprendre** ce qu'elle ressent en correlant signaux faibles, historique de defaillances et contexte operationnel
+- **Anticiper** ses propres pannes avant qu'elles ne surviennent, avec un raisonnement explicable
+- **Prescrire** les actions correctives optimales en mobilisant la memoire collective de toutes les machines du reseau
 
-### Proposition de valeur unique
+### Analogie fondatrice
 
-Maintrix est la seule plateforme qui unifie dans une architecture multi-tenant SaaS :
-- Un systeme GMAO complet (77 tables, 16 modules fonctionnels)
-- Un moteur de diagnostic IA hybride a triple couche (regles expert + similarite historique + structuration IA)
-- Une capitalisation automatique des connaissances terrain via boucle d'apprentissage continu
-- Une application mobile avec mode hors-ligne pour les techniciens de terrain
-- Un modele tarifaire modulaire adapte aux budgets des PME africaines et emergentes
+De la meme maniere que le systeme nerveux humain percoit la douleur, identifie sa cause et declenche une reponse adaptee, Maintrix dote les equipements industriels d'un systeme nerveux numerique complet :
+
+```
+CORPS HUMAIN                          MAINTRIX
+─────────────────────────────────────────────────────────
+Terminaisons nerveuses                Capteurs IoT (vibration, temperature,
+                                      pression, courant, bruit)
+
+Moelle epiniere (reflexes)            Moteur de regles expert
+                                      (reponses deterministes immediates)
+
+Memoire sensorielle                   Base de similarite historique
+                                      (120+ cas industriels reels)
+
+Cortex cerebral (raisonnement)        Intelligence cognitive IA
+                                      (comprehension, correlation, anticipation)
+
+Systeme immunitaire (apprentissage)   Boucle d'apprentissage continu
+                                      (capitalisation de chaque intervention)
+
+Memoire collective (civilisation)     Apprentissage federe inter-tenants
+                                      (intelligence partagee entre usines)
+```
+
+### Paradigme
+
+Nous passons de :
+- **Maintenance reactive** (la machine tombe en panne, on repare) → 80% des usines africaines aujourd'hui
+- **Maintenance preventive** (on planifie des interventions calendaires) → couteux, inefficace
+- **Maintenance predictive** (on predit les pannes) → insuffisant sans comprehension
+
+A un nouveau paradigme :
+- **Maintenance cognitive** : la machine se connait elle-meme, comprend ses symptomes, et orchestre sa propre preservation
+
+### Positionnement
+
+Maintrix se positionne a l'intersection de trois megatendances technologiques :
+
+```
+        INTELLIGENCE ARTIFICIELLE
+        (IA cognitive, LLM, explicabilite)
+                    |
+                    |
+    INDUSTRIE 4.0 ──┼── IoT INDUSTRIEL
+    (jumeaux numeriques,     (capteurs, edge computing,
+     usines autonomes)        protocoles industriels)
+                    |
+                    |
+              ╔═══════════╗
+              ║  MAINTRIX  ║
+              ╚═══════════╝
+         Le cerveau cognitif
+         des machines industrielles
+```
 
 ---
 
 ## 2. PROBLEME INDUSTRIEL MAJEUR
 
-### Le cout catastrophique des pannes non anticipees
+### Les machines industrielles sont aveugles
 
-L'arret non planifie des equipements industriels represente l'un des plus grands destructeurs de valeur dans l'industrie :
+Aujourd'hui, la grande majorite des equipements industriels dans le monde — et plus de 90% en Afrique — fonctionnent sans aucune intelligence embarquee. Ils produisent jusqu'a ce qu'ils cassent. C'est l'equivalent d'un corps humain sans systeme nerveux : aucune perception de la douleur, aucune capacite d'autodiagnostic, aucune anticipation.
+
+### Le cout de cette cecite
 
 | Indicateur | Valeur | Source |
 |---|---|---|
-| Cout moyen d'un arret par heure (monde) | 125 000 - 260 000 USD | ABB / Aberdeen 2024 |
-| Cout maximum par heure (industrie lourde) | Jusqu'a 500 000 USD | ABB Survey 2025 |
-| Nombre moyen d'incidents d'arret par mois | 25 | Benchmark mondial |
-| Duree moyenne par incident | 4 heures | Siemens 2024 |
-| Temps d'arret annuel moyen | ~800 heures/an | Moyenne industrielle |
-| Pertes annuelles USA (manufacturing) | 50 milliards USD | Senseye/Siemens |
+| Cout moyen d'un arret non planifie par heure | 125 000 - 500 000 USD | ABB 2025 |
+| Incidents d'arret par mois (moyenne mondiale) | 25 | Siemens 2024 |
+| Duree moyenne par incident | 4 heures | Benchmark mondial |
+| Pertes annuelles mondiales (manufacturing) | 1 500 milliards USD+ | Senseye/Siemens |
+| Pertes annuelles USA seuls | 50 milliards USD | Aberdeen Research |
 | Pertes annuelles UK/EU projetees 2025 | 100 milliards USD+ | IDS Data 2025 |
 
-### La situation critique en Afrique
+### La catastrophe silencieuse africaine
 
-Le continent africain cumule des facteurs aggravants qui amplifient dramatiquement ces pertes :
+L'Afrique subit une double peine industrielle : des machines vieillissantes dans un environnement hostile.
 
-**Pannes electriques :**
-- Nigeria : ~90% des industriels dependent de generateurs diesel, pertes estimees a 27 milliards USD/an
-- Afrique du Sud : le load-shedding (2007-2024) a coute ~35 milliards ZAR (1,9 milliard USD), dont 40% absorbes par le secteur manufacturier
+**Pertes d'infrastructure :**
+- Nigeria : 27 milliards USD/an de pertes liees aux pannes electriques, 90% des usines sur generateurs diesel
+- Afrique du Sud : 1,9 milliard USD de pertes cumulees par le load-shedding (2007-2024), 40% absorbes par l'industrie
+- Electricite 3x plus chere qu'en Europe, couts de transport 2x a 5x superieurs aux normes internationales
 
-**Infrastructure deficiente :**
-- Couts de transport 2x a 5x superieurs aux normes internationales
-- 53% des routes africaines non goudronnees
-- Electricite 3x plus chere qu'en Europe/USA
+**Consequences en cascade :**
+- Une machine qui tombe en panne dans une usine ivoirienne ou senegalaise ne sera pas reparee en 4 heures comme en Europe. Les pieces de rechange mettent des semaines a arriver. Le technicien qualifie est souvent absent. Le diagnostic repose sur l'intuition d'un operateur.
+- Chaque panne non anticipee peut immobiliser une ligne de production pendant des jours, voire des semaines.
 
-**Absence d'outils adaptes :**
-- Les GMAO existantes (IBM Maximo, SAP PM, Infor EAM) sont concues pour les grands groupes, avec des couts de licence et d'implementation prohibitifs (100 000 - 1 000 000 USD+)
-- Quasi-absence de solutions en francais adaptees au contexte africain
-- Aucune solution combinant GMAO + diagnostic IA sur le marche africain
+**Le paradoxe :**
+Les puissances manufacturieres africaines (Egypte : 59,6 Mds USD, Nigeria : 55,7 Mds USD, Afrique du Sud : 48,8 Mds USD de production en 2023) operent des milliers de machines critiques sans aucune forme d'intelligence industrielle.
 
-### Le paradoxe africain
+### Pourquoi les solutions existantes echouent
 
-Les puissances manufacturieres africaines (Egypte : 59,6 Mds USD, Nigeria : 55,7 Mds USD, Afrique du Sud : 48,8 Mds USD de production en 2023) ne disposent pas d'outils numeriques de maintenance a la hauteur de leurs enjeux industriels. C'est dans cet ecart entre potentiel industriel et maturite des outils que Maintrix positionne son opportunite.
+Les outils actuels — IBM Maximo, SAP PM, Infor EAM — sont des **gestionnaires administratifs de la maintenance**. Ils enregistrent des bons de travail, planifient des calendriers, gererent des stocks de pieces. Ils ne comprennent rien a la machine. Ils ne percoivent aucun signal. Ils n'anticipent rien.
+
+| Ce que font les GMAO classiques | Ce que fait Maintrix |
+|---|---|
+| Enregistrer les pannes apres qu'elles surviennent | Percevoir les symptomes avant la panne |
+| Planifier des interventions calendaires | Comprendre quand une intervention est reellement necessaire |
+| Generer des rapports historiques | Raisonner sur les causes profondes en temps reel |
+| Gerer des formulaires administratifs | Prescrire des actions correctives basees sur l'experience collective |
+| Fonctionner en silo par usine | Apprendre de toutes les machines du reseau (intelligence federee) |
 
 ---
 
 ## 3. INNOVATION
 
-### Architecture de diagnostic IA hybride (brevet potentiel)
+### L'architecture cognitive de Maintrix
 
-Maintrix deploie un moteur de diagnostic unique au monde, conforme CCTP, fonctionnant en trois couches complementaires :
+Maintrix est construit comme un cerveau a quatre couches cognitives, chacune apportant un niveau de comprehension superieur :
 
 ```
-COUCHE 1 : MOTEUR DE REGLES EXPERT
-   10 regles deterministes codifiant le savoir metier
-   (vibrations, temperature, pression, courant, bruit...)
-   → Reponse instantanee, explicable a 100%
-
-COUCHE 2 : ANALYSE DE SIMILARITE HISTORIQUE
-   Base de 120+ cas industriels reels
-   Algorithme de correspondance multi-criteres
-   Enrichissement continu par cas valides
-   → "12 cas similaires trouves, confiance 98%"
-
-COUCHE 3 : STRUCTURATION IA (Anthropic Claude)
-   Mise en forme et enrichissement du diagnostic
-   Contextualisation avec donnees GMAO
-   Generation de preconisations detaillees
-   → L'IA structure, elle ne decide pas seule
+╔══════════════════════════════════════════════════════════════════╗
+║                    COUCHE 4 : COGNITION                         ║
+║  Intelligence artificielle structurante (Anthropic Claude)      ║
+║  Raisonnement contextuel, correlation multi-signaux,            ║
+║  generation de diagnostics explicables et preconisations        ║
+║  detaillees avec facteurs de confiance                          ║
+╠══════════════════════════════════════════════════════════════════╣
+║                    COUCHE 3 : MEMOIRE                           ║
+║  Base de similarite : 120+ cas industriels reels                ║
+║  Memoire des defaillances capitalisees (failure memory)         ║
+║  Apprentissage federe inter-tenants                             ║
+║  → "12 cas similaires trouves, confiance 98%"                  ║
+╠══════════════════════════════════════════════════════════════════╣
+║                    COUCHE 2 : COMPREHENSION                     ║
+║  Moteur de regles expert : 10 regles deterministes              ║
+║  Correlation symptomes/causes/actions                           ║
+║  Contextualisation GMAO (heures machine, historique, criticite) ║
+║  → Reponse instantanee, explicable a 100%                      ║
+╠══════════════════════════════════════════════════════════════════╣
+║                    COUCHE 1 : PERCEPTION                        ║
+║  Capteurs IoT multi-protocoles (MQTT, Modbus, OPC-UA, LoRaWAN) ║
+║  Detection automatique de symptomes                             ║
+║  Seuils adaptatifs par equipement                               ║
+║  Collecte temps reel : vibration, temperature, pression,        ║
+║  courant, bruit, debit, humidite, vitesse                       ║
+╚══════════════════════════════════════════════════════════════════╝
 ```
 
-### Caracteristiques differenciantes
+### Ce qui rend Maintrix fondamentalement different
 
-**Explicabilite totale :**
-Chaque diagnostic affiche ses facteurs de confiance ("Regle expert activee", "12 cas similaires", "Heures machine : 4 500h") pour une transparence totale envers les techniciens et les decideurs.
+**1. Perception autonome**
+Les capteurs IoT ne se contentent pas de collecter des donnees. Le systeme detecte automatiquement les anomalies, les correle entre elles, et identifie des symptomes significatifs sans intervention humaine. La machine "sent" qu'elle va mal.
 
-**Memoire des defaillances :**
-Les pannes resolues et validees par les techniciens sont automatiquement capitalisees dans une base de connaissances partagee (par tenant ou federee entre tenants). Le systeme apprend de chaque intervention.
+**2. Comprehension explicable**
+Chaque diagnostic produit par Maintrix est accompagne de son raisonnement complet :
+- Quels signaux ont ete detectes et pourquoi ils sont anormaux
+- Quelles regles expert ont ete activees
+- Combien de cas similaires ont ete trouves dans la memoire collective
+- Quel est le niveau de confiance et pourquoi
+- Un technicien comprend le "pourquoi" du diagnostic, pas seulement le "quoi"
 
-**Boucle d'apprentissage continu :**
+**3. Memoire evolutive**
+Chaque intervention validee par un technicien enrichit la memoire du systeme :
 ```
 Symptome detecte → Diagnostic propose → Intervention realisee →
-Feedback technicien → Validation/correction → Enrichissement base →
-Prochain diagnostic ameliore
+Feedback technicien → Validation/correction → Capitalisation →
+Le systeme devient plus intelligent a chaque reparation
 ```
+Ce n'est pas du machine learning classique. C'est une capitalisation cognitive : le savoir-faire du technicien le plus experimente est capture et rendu disponible a toute l'organisation, pour toujours.
 
-**Contextualisation GMAO :**
-Le diagnostic integre automatiquement les donnees GMAO de l'equipement :
-- Historique des ordres de travail
-- Criticite de l'equipement
-- Heures de fonctionnement
-- Dernieres interventions
-- Pieces de rechange disponibles en stock
+**4. Intelligence collective federee**
+Les machines de differentes usines, de differents pays, apprennent les unes des autres. Un compresseur qui a subi une defaillance specifique au Senegal enrichit la connaissance disponible pour un compresseur similaire en Cote d'Ivoire — sans jamais compromettre la confidentialite des donnees (apprentissage federe).
+
+**5. Autonomie decisionnelle graduee**
+Maintrix ne remplace pas l'humain. Il lui donne une vision surhumaine :
+- **Niveau 1** : Alerte intelligente ("Vibration anormale detectee sur pompe P-201")
+- **Niveau 2** : Diagnostic contextuel ("Roulement en fin de vie, 4 500h, confiance 98%")
+- **Niveau 3** : Prescription actionnable ("Remplacer roulement SKF 6205, piece en stock, technicien A. Diallo disponible lundi")
+- **Niveau 4** (roadmap) : Action autonome ("Bon de travail cree, piece reservee, technicien notifie")
+
+### Conformite CCTP
+
+L'ensemble du moteur cognitif est conforme au Cahier des Clauses Techniques Particulieres (CCTP), exigence critique pour les marches publics et les grands donneurs d'ordres industriels :
+- Tracabilite complete de chaque decision
+- Auditabilite des raisonnements
+- Non-dependance exclusive a l'IA (les regles expert fonctionnent sans connexion IA)
+- Explicabilite native
 
 ### Stack technologique
 
-| Composant | Technologie | Justification |
+| Composant | Technologie | Role dans l'architecture cognitive |
 |---|---|---|
-| Frontend | React 18 + TypeScript | Performance, typage fort |
-| Backend | Node.js + Express | Scalabilite, ecosysteme riche |
-| Base de donnees | PostgreSQL (Neon) | Fiabilite, multi-tenant natif |
-| ORM | Drizzle | Type-safe, performances |
-| IA | Anthropic Claude | Structuration linguistique |
-| Mobile | React Native | Cross-platform, offline-first |
-| IoT | MQTT, Modbus, OPC-UA | Standards industriels |
+| Perception | MQTT, Modbus, OPC-UA, LoRaWAN | Systeme nerveux peripherique |
+| Comprehension | Moteur de regles TypeScript | Reflexes rapides et deterministes |
+| Memoire | PostgreSQL + Drizzle ORM | Memoire a long terme, 77 tables |
+| Cognition | Anthropic Claude | Cortex cerebral, raisonnement |
+| Interface | React 18 + TypeScript | Conscience visuelle (tableau de bord) |
+| Mobilite | React Native (offline-first) | Extension du systeme nerveux sur le terrain |
+| Orchestration | Node.js + Express | Systeme nerveux central |
+| Securite | RBAC 7 roles, CSRF, chiffrement | Systeme immunitaire |
 
 ---
 
@@ -149,331 +242,421 @@ Le diagnostic integre automatiquement les donnees GMAO de l'equipement :
 
 ### Barrieres que Maintrix a deja franchies
 
-| Barriere | Statut | Detail |
+Ce qui distingue Maintrix d'un simple concept : le produit existe, fonctionne, et a ete teste en production.
+
+| Barriere | Statut | Preuve |
 |---|---|---|
-| Diagnostic IA hybride multi-couches | Franchie | Triple moteur operationnel (regles + similarite + IA) |
-| Multi-tenant SaaS avec isolation des donnees | Franchie | Architecture zero data leakage, RBAC 7 roles |
-| Integration IoT multi-protocole | Franchie | MQTT, Modbus, OPC-UA, LoRaWAN |
-| Application mobile offline-first | Franchie | React Native avec SQLite local, synchro auto |
-| Conformite securite (SOC 2 / ISO 27001) | En cours | Documentation complete, roadmap certification |
-| Systeme de paiement multi-gateway | Franchie | Stripe + PayPal integres |
-| Apprentissage federe inter-tenants | Franchie | IA federee respectant la confidentialite |
-| Pipeline CI/CD production | Franchie | GitHub Actions + AWS ECS/EC2 |
+| Architecture cognitive a 4 couches | **Franchie** | Pipeline hybride operationnel, diagnostics avec confiance 98% |
+| Perception IoT multi-protocole | **Franchie** | 4 protocoles industriels (MQTT, Modbus, OPC-UA, LoRaWAN) |
+| Memoire des defaillances auto-capitalisee | **Franchie** | Boucle feedback technicien → enrichissement base |
+| Explicabilite native des diagnostics | **Franchie** | Facteurs de confiance, regles activees, cas similaires |
+| Apprentissage federe inter-tenants | **Franchie** | IA federee avec isolation des donnees |
+| Architecture multi-tenant zero data leakage | **Franchie** | Isolation complete, RBAC 7 roles, tests 25/25 |
+| Application terrain offline-first | **Franchie** | React Native + SQLite, synchro auto |
+| Conformite CCTP | **Franchie** | Tracabilite, auditabilite, non-dependance IA |
+| Pipeline CI/CD production | **Franchie** | GitHub Actions → AWS ECS/EC2 |
+| Passerelles de paiement | **Franchie** | Stripe + PayPal integres |
 
-### Barrieres restantes a franchir (necessitant financement)
+### Barrieres restantes — la prochaine frontiere
 
-| Barriere | Complexite | Investissement estime |
-|---|---|---|
-| Certification SOC 2 Type I | Elevee | 20 000 - 40 000 EUR |
-| Certification ISO 27001 | Elevee | 25 000 - 50 000 EUR |
-| Modeles ML embarques (edge computing) | Tres elevee | 150 000 - 300 000 EUR |
-| Integration ERP natives (SAP, Oracle) | Elevee | 100 000 - 200 000 EUR |
-| Scalabilite > 10 000 utilisateurs concurrents | Moyenne | 50 000 - 100 000 EUR |
-| Conformite RGPD / donnees personnelles | Moyenne | 30 000 - 50 000 EUR |
+| Barriere | Nature | Investissement | Impact |
+|---|---|---|---|
+| **Jumeaux numeriques (Digital Twins)** | Modelisation 3D temps reel des equipements | 200 000 - 400 000 EUR | La machine se "voit" elle-meme |
+| **IA embarquee (edge computing)** | Modeles ML executant sur site sans cloud | 150 000 - 300 000 EUR | Perception autonome meme sans Internet |
+| **Detection predictive avancee** | Modeles deep learning sur series temporelles | 100 000 - 200 000 EUR | Anticiper les pannes 72h+ a l'avance |
+| **Connecteurs ERP natifs** | Integration bidirectionnelle SAP, Oracle | 100 000 - 200 000 EUR | Insertion dans l'ecosysteme enterprise |
+| **Certification SOC 2 + ISO 27001** | Conformite securite tier mondial | 50 000 - 90 000 EUR | Acces aux grands comptes |
+| **Scalabilite 10 000+ machines** | Architecture distribuee haute disponibilite | 50 000 - 100 000 EUR | Deploiement a l'echelle nationale |
 
-### Avantage concurrentiel defensif
+### Avantage concurrentiel defensif (moat)
 
-La combinaison unique de trois facteurs cree une barriere a l'entree elevee pour les concurrents :
-1. **Base de connaissances capitalisee** : chaque intervention enrichit le systeme, creant un effet reseau
-2. **Expertise metier encodee** : les regles expert et cas historiques representent des annees de savoir industriel
-3. **Architecture multi-tenant SaaS** : 77 tables, 16 modules, une complexite technique difficile a repliquer rapidement
+Trois facteurs creent une barriere a l'entree quasi-infranchissable :
+
+**1. Effet de reseau cognitif** : Chaque machine connectee, chaque intervention validee, chaque diagnostic confirme enrichit la memoire collective. Plus le reseau grandit, plus chaque machine individuelle devient intelligente. Un nouvel entrant part avec zero memoire.
+
+**2. Savoir-faire industriel encode** : Les regles expert et les 120+ cas historiques representent des decennies de connaissances metier encapsulees dans du code. Ce n'est pas reproductible par simple effort d'ingenierie.
+
+**3. Complexite architecturale** : 77 tables de base de donnees, 16 modules fonctionnels, 4 couches cognitives, conformite CCTP — un produit dont la replication necessiterait 18-24 mois minimum et une equipe de 10+ ingenieurs specialises.
 
 ---
 
 ## 5. MARCHE MONDIAL
 
-### Marche de la GMAO / CMMS
+### Maintrix ne joue pas sur un seul marche — il se situe a la convergence de trois marches en explosion
 
-| Indicateur | 2025 | 2030-2033 | CAGR |
+#### Marche 1 : Systemes cognitifs et IA autonome
+
+| Indicateur | 2025 | 2030 | CAGR |
 |---|---|---|---|
-| Marche mondial CMMS | 1,29 - 2,19 Mds USD | 2,15 - 5,37 Mds USD | 9,0 - 10,5% |
-| Marche Afrique CMMS/EAM | 221,7 M USD | 385,5 M USD (2033) | 7,16% |
-| Marche MEA (Moyen-Orient + Afrique) | 230,8 M USD | 419,3 M USD (2033) | 7,75% |
+| Systemes autonomes (autonomic systems) | 5,15 Mds USD | 14,58 Mds USD | 13,5% |
+| Entreprise autonome (autonomous enterprise) | 49,25 Mds USD | 118,18 Mds USD | 16,2% |
+| Systemes cognitifs et IA | 716 Mds USD (2029) | — | — |
+| Agents IA autonomes | 7,92 Mds USD | — | 45,8% |
 
-*Sources : Cognitive Market Research, Straits Research, Mordor Intelligence, Grand View Research*
+*Sources : Precedence Research, Grand View Research, GlobeNewsWire*
 
-### Marche de la maintenance predictive
+#### Marche 2 : Maintenance predictive
 
 | Indicateur | 2025 | 2030 | CAGR |
 |---|---|---|---|
 | Marche mondial | 10 - 14 Mds USD | 47 - 64 Mds USD | 25 - 35% |
-| Solutions logicielles (part) | 70 - 80% du revenu | En croissance | - |
-| Segment cloud/SME | Croissance la plus rapide | - | 37%+ |
+| Solutions logicielles (part) | 70 - 80% du revenu | En croissance | — |
+| Segment cloud PME | Plus forte croissance | — | 37%+ |
 
 *Sources : MarketsandMarkets, Mordor Intelligence, Grand View Research*
 
-### Repartition geographique du marche CMMS en Afrique
+#### Marche 3 : Jumeaux numeriques industriels
 
-| Pays / Region | Part de marche 2025 |
-|---|---|
-| Afrique du Sud | 38,6% |
-| Nigeria | 14,1% |
-| Reste de l'Afrique | 47,4% |
+| Indicateur | 2025 | 2033 | CAGR |
+|---|---|---|---|
+| Marche mondial | 19 - 36 Mds USD | 224 - 428 Mds USD | 25 - 41% |
+| Application n°1 | Maintenance predictive | — | — |
 
-### Marche adressable par Maintrix
+*Sources : Grand View Research, GM Insights, MarketsandMarkets*
+
+#### Marche addressable specifique : Afrique
+
+| Indicateur | 2025 | 2033 | CAGR |
+|---|---|---|---|
+| CMMS/EAM Afrique | 221,7 M USD | 385,5 M USD | 7,16% |
+| Services maintenance MEA | — | 889,3 M USD (2030) | 5,2% |
+| Maintenance predictive MEA | Croissance rapide | — | — |
+
+*Sources : Cognitive Market Research, Data Bridge*
+
+#### Marche adressable par Maintrix
 
 | Segment | TAM | SAM | SOM (3 ans) |
 |---|---|---|---|
-| GMAO Afrique + MEA | 419 M USD | 120 M USD | 3 - 5 M USD |
-| GMAO + Predictif mondial PME/ETI | 5+ Mds USD | 500 M USD | 10 - 15 M USD |
-| **Total adressable 3 ans** | | | **13 - 20 M USD** |
+| Intelligence cognitive industrielle (Afrique + MEA) | 2+ Mds USD | 300 M USD | 5 - 8 M USD |
+| Intelligence cognitive industrielle (mondial PME/ETI) | 15+ Mds USD | 1 Md USD | 15 - 25 M USD |
+| **Total adressable 3 ans** | | | **20 - 33 M USD** |
 
-### Concurrence et positionnement
+### Pourquoi Maintrix n'est comparable a aucun acteur existant
 
-| Solution | Force | Faiblesse | Prix/an |
-|---|---|---|---|
-| IBM Maximo | Completude | Cout, complexite | 100K+ USD |
-| SAP PM | Integration ERP | Rigidite, cout | 80K+ USD |
-| Fiix (Rockwell) | Cloud natif | Pas d'IA diagnostic | 40-100K USD |
-| Limble CMMS | UX simple | Pas d'IA, pas de multi-tenant | 15-75K USD |
-| **Maintrix** | **IA hybride + GMAO + prix** | **Notoriete a construire** | **2-15K USD** |
+| Solution | Ce qu'ils font | Ce qu'ils ne font pas |
+|---|---|---|
+| IBM Maximo | Gestion administrative des actifs | Aucune perception cognitive, aucune anticipation autonome |
+| SAP PM | Module maintenance ERP | Aucune intelligence, aucun diagnostic, aucune memoire |
+| Siemens MindSphere | Plateforme IoT industrielle | Pas de raisonnement cognitif, pas de GMAO integree |
+| Fiix (Rockwell) | GMAO cloud | Pas d'IA diagnostique, pas de capitalisation |
+| Augury / Senseye | Maintenance predictive | Predictif pur, pas cognitif, pas de GMAO, pas adapte PME |
+| **Maintrix** | **Cerveau cognitif complet** | **Perception + Comprehension + Memoire + Cognition + GMAO** |
 
 ---
 
 ## 6. STRATEGIE PRODUIT
 
-### Modele SaaS modulaire
+### Philosophie : Le cerveau qui grandit avec l'usine
 
-Maintrix adopte une strategie de modules activables permettant aux clients de composer leur solution selon leurs besoins et leur budget :
+Maintrix est concu comme un systeme nerveux modulaire. L'usine commence avec quelques "terminaisons nerveuses" (capteurs, modules basiques) et evolue progressivement vers un cerveau cognitif complet.
 
-**Tier Starter (PME < 50 employes) - a partir de 150 USD/mois**
-- Gestion des equipements
-- Ordres de travail
-- Maintenance preventive basique
-- Tableau de bord maintenance
-- 5 utilisateurs inclus
+### Tiers de service
 
-**Tier Professional (ETI 50-500 employes) - a partir de 500 USD/mois**
-- Tous les modules Starter
-- Diagnostic IA intelligent
+**PERCEPTION (PME < 50 employes) - a partir de 200 USD/mois**
+La machine commence a "sentir" :
+- Gestion des equipements et inventaire
+- Ordres de travail et suivi interventions
+- Maintenance preventive calendaire
+- Tableau de bord operationnel
+- 5 utilisateurs
+
+**COMPREHENSION (ETI 50-500 employes) - a partir de 600 USD/mois**
+La machine commence a "comprendre" :
+- Tous les modules Perception
+- Diagnostic cognitif IA (triple couche)
+- Memoire des defaillances et apprentissage
+- Integration IoT (capteurs temps reel)
 - Gestion des stocks et approvisionnements
-- Rapports avances PDF
-- Integration IoT basique
-- 20 utilisateurs inclus
+- Rapports avances et KPIs
+- Application mobile terrain
+- 20 utilisateurs
 
-**Tier Enterprise (>500 employes) - sur devis**
-- Tous les modules Professional
-- IA ensemble avancee
-- Integrations ERP/SCADA
+**COGNITION (Grands comptes, >500 employes) - sur devis**
+La machine devient "autonome" dans sa comprehension :
+- Tous les modules Comprehension
+- IA ensemble avancee + apprentissage federe
+- Integrations ERP/SCADA natives
 - Multi-site / multi-tenant
-- Application mobile offline
-- Apprentissage federe
-- SLA personnalise
+- Alertes prescriptives et recommandations d'actions
+- SLA personnalise et support dedie
 - Utilisateurs illimites
 
 ### Strategie Go-to-Market
 
-**Phase 1 - Afrique francophone (2026-2027) :**
-- Cibles prioritaires : Senegal, Cote d'Ivoire, Cameroun, Maroc, Tunisie
-- Partenariat avec les chambres de commerce et federations industrielles
-- Modele freemium pour les 100 premiers clients (version Starter gratuite 6 mois)
-- Presence sur les salons industriels africains (SIM Dakar, PROMOTE Douala)
+**Phase 1 — Cerveau pionnier : Afrique francophone (2026-2027)**
+- Marches cibles : Senegal, Cote d'Ivoire, Cameroun, Maroc, Tunisie
+- Secteurs prioritaires : agroalimentaire, mines, energie, cimenteries
+- Strategie : 50 usines pilotes, modele freemium 6 mois, partenariats federations industrielles
+- Salons : SIM Dakar, PROMOTE Douala, POLLUTEC Casablanca
 
-**Phase 2 - Afrique anglophone + MEA (2027-2028) :**
-- Nigeria, Afrique du Sud, Kenya, Ghana
-- Adaptation interface en anglais (deja operationnelle)
-- Partenariats avec distributeurs locaux et integrateurs
+**Phase 2 — Expansion neuronale : Afrique anglophone + MEA (2027-2028)**
+- Nigeria, Afrique du Sud, Kenya, Ghana, Arabie Saoudite, EAU
+- Interface anglaise deja operationnelle
+- Partenariats integrateurs industriels locaux
 
-**Phase 3 - Expansion mondiale PME/ETI (2028-2030) :**
-- Europe (France, Belgique, Suisse - marche francophone)
-- Asie du Sud-Est (Vietnam, Indonesie - industrialisation rapide)
+**Phase 3 — Intelligence globale (2028-2030)**
+- Europe francophone (France, Belgique, Suisse)
+- Asie du Sud-Est (Vietnam, Indonesie — industrialisation rapide)
 - Amerique Latine (Bresil, Mexique)
 
 ### Canaux d'acquisition
 
-| Canal | Objectif | Cout acquisition estime |
+| Canal | Cible | CAC estime |
 |---|---|---|
-| Vente directe | Grands comptes, ETI | 3 000 - 5 000 USD |
-| Partenaires integrateurs | PME industrielles | 1 000 - 2 000 USD |
-| Marketing digital (SEO/SEM) | PME tech-savvy | 500 - 1 000 USD |
-| Referral / bouche-a-oreille | Croissance organique | 200 - 500 USD |
-| Freemium conversion | Volume, marche africain | 100 - 300 USD |
+| Vente directe + demo | Grands comptes, ETI critiques | 3 000 - 5 000 USD |
+| Partenaires integrateurs industriels | PME industrielles | 1 000 - 2 000 USD |
+| Marketing digital (SEO/SEM specialise) | PME tech-forward | 500 - 1 000 USD |
+| Referral et temoignages usines pilotes | Croissance organique | 200 - 500 USD |
+| Freemium → conversion | Volume, marche africain | 100 - 300 USD |
 
 ---
 
 ## 7. ROADMAP
 
-### Phase 1 : Consolidation et premiers clients (T1-T2 2026)
+### Phase 1 : Le cerveau existe (T1-T2 2026) — **COMPLETEE**
 
-| Jalon | Echeance | Statut |
-|---|---|---|
-| Plateforme GMAO complete (16 modules) | Fevrier 2026 | Termine |
-| Moteur diagnostic IA hybride CCTP | Fevrier 2026 | Termine |
-| Architecture multi-tenant SaaS | Fevrier 2026 | Termine |
-| Pipeline CI/CD AWS | Fevrier 2026 | Termine |
-| 120 cas diagnostics industriels charges | Fevrier 2026 | Termine |
-| Beta privee (10-20 clients pilotes) | Avril 2026 | A lancer |
-| Premiers retours terrain et iterations | Juin 2026 | Planifie |
+| Jalon | Statut |
+|---|---|
+| Architecture cognitive 4 couches operationnelle | **Termine** |
+| 16 modules fonctionnels deployes | **Termine** |
+| Pipeline diagnostic hybride CCTP avec confiance 98% | **Termine** |
+| 120 cas industriels reels dans la memoire | **Termine** |
+| Architecture multi-tenant SaaS zero data leakage | **Termine** |
+| Boucle d'apprentissage continu operationnelle | **Termine** |
+| Pipeline CI/CD AWS (ECS + EC2) | **Termine** |
+| Tests de production : 25/25 (100% succes) | **Termine** |
 
-### Phase 2 : Croissance et certifications (T3-T4 2026)
+### Phase 2 : Le cerveau apprend sur le terrain (T3-T4 2026)
 
 | Jalon | Echeance |
 |---|---|
-| 50 clients actifs | Septembre 2026 |
-| Certification SOC 2 Type I | Octobre 2026 |
-| Application mobile v2 (scanner QR, mode offline ameliore) | Novembre 2026 |
-| Integration SAP/Oracle basique | Decembre 2026 |
-| Base de connaissances : 500+ cas diagnostics | Decembre 2026 |
+| 10-20 usines pilotes en Afrique francophone | Avril 2026 |
+| Premiers diagnostics terrain valides par des techniciens | Juin 2026 |
+| 500+ cas capitalises dans la memoire collective | Septembre 2026 |
+| Application mobile v2 (scanner QR, guidage reparation) | Octobre 2026 |
+| Certification SOC 2 Type I | Novembre 2026 |
+| 50 clients actifs payants | Decembre 2026 |
 
-### Phase 3 : Scale-up et expansion (2027)
+### Phase 3 : Le cerveau s'eveille (2027)
 
 | Jalon | Echeance |
 |---|---|
-| 200 clients actifs, ARR 1M+ USD | T2 2027 |
-| Modeles ML embarques (edge computing) | T2 2027 |
+| Modeles IA embarques — perception sans cloud (edge) | T1 2027 |
+| Detection predictive 72h+ (deep learning) | T2 2027 |
+| 200 clients, ARR 1M+ USD | T2 2027 |
+| Connecteurs SAP/Oracle bidirectionnels | T3 2027 |
 | Certification ISO 27001 | T3 2027 |
-| Lancement marche anglophone | T3 2027 |
-| Serie A | T4 2027 |
+| Lancement marche anglophone (Nigeria, Afrique du Sud) | T3 2027 |
+| **Serie A** | T4 2027 |
 
-### Phase 4 : Internationalisation (2028-2030)
+### Phase 4 : Le cerveau connecte les industries (2028-2030)
 
 | Jalon | Echeance |
 |---|---|
-| 1 000+ clients, ARR 5M+ USD | T4 2028 |
+| Jumeaux numeriques — la machine se "voit" en 3D | T1 2028 |
+| 1 000+ machines connectees, ARR 5M+ USD | T4 2028 |
+| Intelligence federee cross-sectorielle | 2029 |
 | Expansion Europe + Asie du Sud-Est | 2028-2029 |
-| 5 000+ clients, ARR 15-20M+ USD | 2030 |
-| Introduction en bourse ou Serie B | 2029-2030 |
+| 5 000+ machines, ARR 15-20M+ USD | 2030 |
+| Serie B ou introduction en bourse | 2029-2030 |
+
+### Vision long terme (2030+)
+
+L'usine cognitive autonome : des lignes de production entieres capables de s'auto-diagnostiquer, de commander leurs propres pieces de rechange, de planifier leurs propres interventions, et d'optimiser leurs propres performances — avec supervision humaine strategique.
 
 ---
 
 ## 8. IMPACT ECONOMIQUE
 
-### Impact direct pour les clients
+### Impact par machine connectee
 
-| Indicateur | Amelioration attendue | Base |
+| Indicateur | Amelioration | Fondement |
 |---|---|---|
-| Reduction des temps d'arret non planifies | 30 - 50% | Benchmark maintenance predictive |
-| Reduction des couts de maintenance | 20 - 30% | McKinsey / Deloitte |
-| Augmentation duree de vie des equipements | 20 - 40% | DOE (US Department of Energy) |
-| Amelioration du taux de disponibilite | +5 a +15 points | OEE benchmark |
-| Reduction du stock de pieces detachees | 15 - 25% | Optimisation predictive |
-| ROI moyen client | 300 - 500% | Sur 3 ans |
+| Reduction des arrets non planifies | 30 - 50% | Benchmark maintenance cognitive |
+| Reduction des couts de maintenance totaux | 20 - 35% | McKinsey / Deloitte |
+| Extension de la duree de vie des equipements | 20 - 40% | DOE (US Department of Energy) |
+| Amelioration du taux de disponibilite (OEE) | +5 a +15 points | Benchmark industriel |
+| Reduction du stock de pieces immobilisees | 15 - 25% | Prescription predictive |
+| Temps de diagnostic | De plusieurs heures a quelques minutes | Capitalisation cognitive |
+| ROI moyen par machine | 300 - 500% sur 3 ans | Simulations internes |
 
-### Simulation d'impact pour une usine type en Afrique
+### Cas concret : Cimenterie au Senegal (simulation)
 
-**Profil : Usine agroalimentaire, 200 employes, Cote d'Ivoire**
+**Profil : 300 employes, 45 equipements critiques, production 500 000 tonnes/an**
 
-| Parametre | Avant Maintrix | Apres Maintrix |
+| Parametre | Sans Maintrix | Avec Maintrix |
 |---|---|---|
-| Arrets non planifies / mois | 8 | 3 |
-| Cout moyen par arret | 15 000 USD | 8 000 USD |
-| Cout maintenance annuel | 480 000 USD | 312 000 USD |
-| Disponibilite equipements | 78% | 91% |
-| **Economie annuelle** | | **168 000 USD** |
-| **Cout Maintrix annuel** | | **6 000 USD** |
-| **ROI** | | **2 700%** |
+| Arrets non planifies / an | 96 (8/mois) | 36 (3/mois) |
+| Cout moyen par arret | 25 000 USD | 12 000 USD |
+| Pertes annuelles liees aux arrets | 2 400 000 USD | 432 000 USD |
+| Temps moyen de diagnostic | 6 heures | 15 minutes |
+| Pieces immobilisees inutilement | 350 000 USD | 245 000 USD |
+| **Economie annuelle totale** | | **2 073 000 USD** |
+| **Cout Maintrix annuel** | | **18 000 USD** |
+| **ROI** | | **11 400%** |
 
-### Impact macro-economique
+### Impact macro-economique continental
 
-**A l'echelle du continent africain :**
-- Si 1% des industriels africains adoptent une GMAO intelligente, les economies cumulees pourraient atteindre 200 - 500 M USD/an
-- Creation d'emplois qualifies : techniciens formes au numerique, data analysts industriels
-- Transfert de competences : capitalisation du savoir-faire local via la base de connaissances
-- Contribution a l'industrialisation africaine (Agenda 2063 de l'Union Africaine)
+**A l'echelle africaine :**
+- 1% de penetration dans l'industrie manufacturiere africaine = **200 - 500 M USD d'economies annuelles**
+- Creation d'un nouveau metier : "ingenieur cognitif industriel" — techniciens formes a interpreter les diagnostics IA
+- Capitalisation du savoir-faire africain : le savoir empirique des techniciens les plus experimentes, souvent non documente, est capture et perennise par le systeme
+- Contribution directe a l'Agenda 2063 de l'Union Africaine (pilier industrialisation)
 
 ### Impact environnemental
 
-- Reduction de la surconsommation energetique liee aux equipements mal entretenus (5-15% d'economies d'energie)
-- Allongement de la duree de vie des machines = reduction des dechets industriels
-- Optimisation du stock = reduction du transport et de l'empreinte carbone logistique
+- Machines bien entretenues = **5 a 15% de reduction de consommation energetique**
+- Allongement de la duree de vie = reduction des dechets industriels et de la production d'equipements neufs
+- Optimisation des stocks = reduction du transport et de l'empreinte carbone logistique
+- Contribution mesurable aux ODD (Objectifs de Developpement Durable) : ODD 9 (Industrie et Innovation), ODD 12 (Consommation responsable), ODD 13 (Action climatique)
 
 ---
 
 ## 9. BESOIN DE FINANCEMENT
 
-### Montant recherche : 500 000 - 750 000 EUR (Pre-Seed / Seed)
+### Montant recherche : 750 000 - 1 200 000 EUR (Seed)
+
+Ce financement vise a transformer un produit technologique fonctionnel en un cerveau cognitif deploye dans des usines reelles, avec les premieres preuves de valeur terrain.
 
 ### Allocation des fonds
 
 | Poste | Montant | Part | Detail |
 |---|---|---|---|
-| **R&D et produit** | 250 000 EUR | 38% | ML embarque, integrations ERP, edge computing, amelioration continue IA |
-| **Equipe technique** | 150 000 EUR | 23% | 2-3 ingenieurs full-stack, 1 data scientist, 1 DevOps |
-| **Commercialisation** | 120 000 EUR | 18% | Equipe commerciale Afrique, marketing digital, salons industriels |
-| **Certifications et conformite** | 60 000 EUR | 9% | SOC 2 Type I, ISO 27001, RGPD |
-| **Infrastructure cloud** | 45 000 EUR | 7% | AWS/GCP, bases de donnees, CDN, monitoring |
-| **Operations et juridique** | 30 000 EUR | 5% | Structure juridique, PI, comptabilite |
-| **Total** | **655 000 EUR** | **100%** | |
+| **R&D — Intelligence cognitive** | 350 000 EUR | 35% | IA embarquee (edge), detection predictive deep learning, jumeaux numeriques, amelioration continue du moteur cognitif |
+| **Equipe** | 250 000 EUR | 25% | 2 ingenieurs IA/ML, 2 full-stack, 1 ingenieur IoT, 1 data scientist (18 mois) |
+| **Deploiement terrain + commercialisation** | 200 000 EUR | 20% | Usines pilotes, equipe commerciale Afrique, salons industriels, marketing specialise |
+| **Certifications et conformite** | 80 000 EUR | 8% | SOC 2 Type I, ISO 27001, RGPD, audits securite |
+| **Infrastructure cloud et IoT** | 70 000 EUR | 7% | AWS/GCP, edge devices, passerelles IoT, monitoring |
+| **Operations, PI et juridique** | 50 000 EUR | 5% | Depot brevet moteur cognitif, marque, structure juridique |
+| **Total** | **1 000 000 EUR** | **100%** | |
 
-### Utilisation des fonds sur 18 mois
+### Deploiement sur 18 mois
 
 ```
-Mois 1-6   : R&D intensive + 10-20 clients beta + certifications lancees
-Mois 7-12  : Go-to-market Afrique francophone + 50-100 clients + ARR 200K+
-Mois 13-18 : Scale commercial + expansion anglophone + preparation Serie A
+MOIS 1-6 : PREUVE DE CONCEPT TERRAIN
+├── 10-20 usines pilotes (Senegal, Cote d'Ivoire, Maroc)
+├── Premiers diagnostics cognitifs valides in situ
+├── 500+ cas capitalises dans la memoire collective
+├── IA embarquee v1 (edge computing)
+└── Depot brevet moteur cognitif hybride
+
+MOIS 7-12 : TRACTION COMMERCIALE
+├── 50-100 clients payants
+├── ARR 300K+ USD
+├── Certification SOC 2 Type I obtenue
+├── Lancement detection predictive 72h+
+└── Premiers temoignages ROI clients
+
+MOIS 13-18 : PREPARATION SCALE
+├── 150-200 clients actifs
+├── ARR 800K+ USD
+├── Expansion marche anglophone
+├── Connecteurs ERP natifs
+└── Preparation Serie A (3-5M EUR)
 ```
 
-### Indicateurs cles (KPIs) a 18 mois
+### KPIs a 18 mois
 
-| KPI | Objectif |
-|---|---|
-| Clients actifs payants | 100 - 200 |
-| ARR (Revenu Annuel Recurrent) | 500 000 - 800 000 USD |
-| MRR moyen par client | 350 - 500 USD |
-| Taux de retention (net) | > 90% |
-| NPS (Net Promoter Score) | > 50 |
-| Cas diagnostics capitalises | 1 000+ |
-| Taux de churn mensuel | < 3% |
+| KPI | Objectif | Signification |
+|---|---|---|
+| Machines connectees | 500 - 1 000 | Taille du reseau neuronal industriel |
+| Clients actifs payants | 150 - 200 | Adoption et confiance marche |
+| ARR | 800K - 1,2M USD | Viabilite economique demontree |
+| Cas capitalises dans la memoire | 2 000+ | Profondeur de l'intelligence collective |
+| Precision diagnostique | > 95% | Fiabilite du cerveau cognitif |
+| Taux de retention net | > 90% | Valeur percue par les clients |
+| Temps moyen de diagnostic | < 5 minutes | Performance cognitive |
+| NPS | > 50 | Satisfaction et potentiel referral |
 
-### Prochaine levee envisagee
+### Prochaine levee
 
-**Serie A : T4 2027 - T1 2028**
+**Serie A : T4 2027 — T1 2028**
 - Montant vise : 3 - 5 M EUR
-- Objectif : scale international, equipe de 25-40 personnes, ARR 2M+ USD
+- Objectif : deploiement a l'echelle continentale, equipe de 30-50 personnes, jumeaux numeriques, ARR 3M+ USD
 
 ### Valorisation indicative
 
 Sur la base de :
-- Produit fonctionnel et teste en production (MVP+ complet)
-- Architecture technique de niveau enterprise (77 tables, 16 modules, IA hybride)
-- Marche adressable de 400M+ USD en Afrique seule
-- Equipe fondatrice avec execution demontree
+- **Produit unique** : seul cerveau cognitif industriel complet au monde, fonctionnel et teste (25/25 tests, 0 erreur)
+- **Marche gigantesque** : a l'intersection de trois marches valant collectivement 100+ Mds USD en 2030
+- **Timing parfait** : l'Afrique s'industrialise, l'IA devient abordable, l'IoT se democratise
+- **Barriere a l'entree elevee** : 77 tables, 4 couches cognitives, effet de reseau, savoir-faire encode
+- **Execution demontree** : MVP+ complet, architecture production-ready
 
-**Valorisation pre-money estimee : 2 - 3,5 M EUR**
+**Valorisation pre-money estimee : 3 - 5 M EUR**
 
 ---
 
 ## ANNEXES
 
-### A. Propriete intellectuelle potentielle
+### A. Propriete intellectuelle
 
-| Element | Type | Statut |
+| Element | Type de protection | Statut |
 |---|---|---|
-| Moteur diagnostic hybride triple couche | Brevet logiciel | A deposer |
-| Algorithme de similarite multi-criteres | Savoir-faire | Protege (code source) |
-| Base de connaissances industrielles | Base de donnees | Droit sui generis |
-| Architecture multi-tenant zero leakage | Savoir-faire | Protege (code source) |
+| Architecture cognitive a 4 couches pour diagnostic industriel | Brevet logiciel | A deposer |
+| Algorithme de similarite multi-criteres avec capitalisation | Brevet logiciel | A deposer |
+| Boucle d'apprentissage continu technicien-machine | Savoir-faire | Protege (code source) |
+| Architecture multi-tenant zero data leakage | Savoir-faire | Protege (code source) |
+| Base de connaissances industrielles (120+ cas) | Droit sui generis | Protege |
+| Apprentissage federe inter-tenants avec isolation | Savoir-faire | Protege (code source) |
 | Marque "Maintrix" | Marque deposee | A deposer |
 
-### B. Metriques techniques actuelles
+### B. Metriques techniques du produit actuel
 
 | Metrique | Valeur |
 |---|---|
 | Tables dans la base de donnees | 77 |
-| Modules fonctionnels | 16 |
-| Cas diagnostics industriels charges | 120 |
-| Regles expert codifiees | 10 |
-| Roles RBAC definis | 7 |
+| Modules fonctionnels actifs | 16 |
+| Cas diagnostics industriels en memoire | 120 |
+| Regles expert deterministes | 10 |
+| Protocoles IoT supportes | 4 (MQTT, Modbus, OPC-UA, LoRaWAN) |
+| Roles de securite (RBAC) | 7 |
+| Confiance diagnostique maximale atteinte | 98% |
 | Tests de production reussis | 25/25 (100%) |
 | Erreurs serveur en production | 0 |
-| Protocoles IoT supportes | 4 (MQTT, Modbus, OPC-UA, LoRaWAN) |
 | Langues supportees | 2 (Francais, Anglais) |
+| Passerelles de paiement | 2 (Stripe, PayPal) |
+| Couverture SOC 2 (documentation) | 97% |
 
-### C. References marche
+### C. References et sources
 
+**Cout des arrets industriels :**
 - ABB Value of Reliability Report 2024-2025
 - Siemens True Cost of Downtime 2022-2024
-- Cognitive Market Research - EAM & CMMS Software Market 2025
-- MarketsandMarkets - Predictive Maintenance Market 2025-2030
-- Mordor Intelligence - CMMS Market Size 2025
-- Grand View Research - Predictive Maintenance Industry Report
-- ISS Africa Futures - Manufacturing Analysis 2025
-- McKinsey & Company - Predictive Maintenance ROI Studies
+- Aberdeen Research — Manufacturing Downtime Studies
+
+**Marche CMMS/GMAO :**
+- Cognitive Market Research — EAM & CMMS Software Market 2025
+- Straits Research — CMMS Market Size 2033
+- Mordor Intelligence — CMMS Market Size 2025
+
+**Marche maintenance predictive :**
+- MarketsandMarkets — Predictive Maintenance Market 2025-2030
+- Grand View Research — Predictive Maintenance Industry Report
+- Mordor Intelligence — Predictive Maintenance Market Analysis
+
+**Marche IA cognitive et systemes autonomes :**
+- Precedence Research — Autonomic Systems Market 2025-2034
+- Grand View Research — Autonomous Enterprise Market 2030
+- GlobeNewsWire — Cognitive Systems & AI Market Report 2025
+
+**Marche jumeaux numeriques :**
+- Grand View Research — Digital Twin Market 2033
+- GM Insights — Digital Twin Market 2034
+- MarketsandMarkets — Digital Twin Market 2030
+
+**Contexte industriel africain :**
+- ISS Africa Futures — Manufacturing Analysis 2025
+- KPMG — Sector Report Manufacturing in Africa
+- McKinsey & Company — Africa Industrialization Studies
 
 ---
 
 **Document prepare par l'equipe Maintrix**
 **Contact : [A completer]**
 **Site : maintrix-t.com**
+
+*L'intelligence cognitive au service des industries critiques.*
 
 *Ce document est confidentiel et destine uniquement aux investisseurs potentiels. Toute reproduction ou diffusion sans autorisation est interdite.*

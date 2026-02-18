@@ -1,7 +1,7 @@
-# Maintrix - Comprehensive GMAO Platform
+# Maintrix - L'intelligence cognitive au service des industries critiques
 
 ## Overview
-Maintrix is an integrated platform combining AI-powered diagnostics with comprehensive Computerized Maintenance Management System (GMAO). This unified solution leverages advanced machine learning, IoT sensor data, and predictive maintenance to provide a comprehensive industrial maintenance management system. Its purpose is to streamline maintenance operations, enhance diagnostic accuracy, and enable proactive maintenance strategies. Key capabilities include AI-driven diagnostics, comprehensive asset management, work order management, preventive maintenance planning, spare parts inventory, and enterprise system integration.
+Maintrix is NOT a simple GMAO/CMMS. It is a cognitive intelligence platform that transforms industrial machines into autonomous systems capable of perceiving, understanding, and anticipating their own failures. Maintrix is the software brain of industry — a 4-layer cognitive architecture (Perception → Comprehension → Memory → Cognition) that gives machines a digital nervous system. Key capabilities include autonomous IoT perception, expert rules engine, historical similarity analysis with 120+ real industrial cases, AI-powered cognitive reasoning (Anthropic Claude), failure memory capitalization with continuous learning loop, federated inter-tenant learning, and full CCTP-compliant explainability. The GMAO modules (equipment, work orders, preventive maintenance, spare parts, etc.) serve as the operational backbone that feeds and is fed by the cognitive engine.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
