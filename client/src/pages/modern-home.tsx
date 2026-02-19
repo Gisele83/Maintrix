@@ -230,7 +230,7 @@ export default function ModernHome() {
               Modules & Fonctionnalités
             </h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Découvrez toutes les capacités de la plateforme
+              Découvrez toutes les capacités de l'infrastructure cognitive
             </p>
           </div>
           <FeatureCards />

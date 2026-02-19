@@ -22,38 +22,48 @@ import {
 
 const features = [
   {
-    title: "Smart Diagnostic IA",
-    description: "Assistant de diagnostic intelligent avec IA avancée et ML ensemble",
+    title: "Intelligence Cognitive",
+    description: "Architecture 6 couches avec Knowledge Graph et système multi-agent distribué",
     icon: Brain,
-    href: "/smart-diagnostic",
+    href: "/cognitive-infrastructure",
     gradient: "from-purple-500 to-pink-500",
-    badge: "IA Native",
-    features: ["9 algorithmes ML", "120 cas industriels", "Ensemble learning", "Prédictions avancées"],
+    badge: "Cognitif",
+    features: ["Knowledge Graph 48+ noeuds", "Multi-Agent IA", "Autonomie graduée 0-5", "Raisonnement causal"],
+    stats: "6 couches"
+  },
+  {
+    title: "Diagnostic Hybride",
+    description: "Moteur de diagnostic combinant règles expert, similarité historique et IA Claude",
+    icon: Cpu,
+    href: "/smart-diagnostic",
+    gradient: "from-violet-500 to-fuchsia-500",
+    badge: "IA + Expert",
+    features: ["120+ cas industriels", "Règles expert", "Similarité historique", "Structuration IA"],
     stats: "98% précision"
   },
   {
-    title: "Smart GMAO",
-    description: "Système de gestion de maintenance assistée par ordinateur multi-tenant",
+    title: "GMAO Intégrée",
+    description: "Backbone opérationnel : équipements, ordres de travail et maintenance préventive",
     icon: Settings,
     href: "/gmao",
     gradient: "from-blue-500 to-cyan-500",
     badge: "Enterprise",
-    features: ["Multi-tenant", "Workflow avancé", "Maintenance prédictive", "Intégration Excel"],
+    features: ["Multi-tenant", "Workflow avancé", "Maintenance préventive", "Pièces détachées"],
     stats: "99% conformité"
   },
   {
-    title: "IoT & Monitoring",
-    description: "Surveillance temps réel des équipements avec capteurs IoT intelligents",
+    title: "Perception IoT",
+    description: "Capteurs intelligents et edge computing pour la perception autonome des machines",
     icon: Zap,
     href: "/iot-gamification",
     gradient: "from-green-500 to-emerald-500",
     badge: "Temps Réel",
-    features: ["Capteurs IoT", "Alertes intelligentes", "Prédictions", "Gamification"],
-    stats: "24/7 monitoring"
+    features: ["Capteurs IoT", "Edge Intelligence", "Alertes prédictives", "Monitoring 24/7"],
+    stats: "24/7 actif"
   },
   {
-    title: "Reporting Avancé",
-    description: "Tableaux de bord exécutifs et analytics de performance avancés",
+    title: "Analytics & Reporting",
+    description: "Tableaux de bord cognitifs et analytics de performance industrielle",
     icon: BarChart3,
     href: "/advanced-reporting",
     gradient: "from-orange-500 to-red-500",
@@ -62,28 +72,18 @@ const features = [
     stats: "15+ métriques"
   },
   {
-    title: "Super-Admin Center",
-    description: "Interface d'administration centralisée multi-tenant avec gestion avancée",
-    icon: Users,
+    title: "Administration & Sécurité",
+    description: "Gestion multi-tenant, contrôle d'accès RBAC et audit de sécurité",
+    icon: Shield,
     href: "/admin-login",
     gradient: "from-red-500 to-pink-500",
-    badge: "Enterprise",
-    features: ["Gestion tenants", "Identifiants par défaut", "Email automatique", "Monitoring global"],
+    badge: "Sécurisé",
+    features: ["Gestion tenants", "RBAC 7 rôles", "Audit trail", "Contrôle accès"],
     stats: "Multi-tenant"
   },
   {
-    title: "Gestion & Sécurité",
-    description: "Administration utilisateurs et contrôle d'accès sécurisé renforcé",
-    icon: Shield,
-    href: "/access-management",
-    gradient: "from-indigo-500 to-purple-500",
-    badge: "Sécurisé",
-    features: ["Authentication 2FA", "Audit trail", "Identifiants temporaires", "Contrôle accès"],
-    stats: "100% sécurisé"
-  },
-  {
     title: "Support & Formation",
-    description: "Documentation complète et assistant IA pour support technique",
+    description: "Documentation cognitive et assistant IA pour support technique",
     icon: HelpCircle,
     href: "/support-chatbot",
     gradient: "from-teal-500 to-blue-500",
