@@ -58,6 +58,7 @@ import SmartAlerts from "@/pages/smart-alerts";
 import SensorHub from "@/pages/sensor-hub";
 import EquipmentQR from "@/pages/equipment-qr";
 import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
+import CommunicationIntegrations from "@/pages/communication-integrations";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -286,6 +287,9 @@ function Router() {
       </Route>
       <Route path="/cognitive">
         {(params) => <ProtectedRoute component={CognitiveInfrastructure} {...params} />}
+      </Route>
+      <Route path="/communication-integrations">
+        {(params) => <ProtectedRoute component={CommunicationIntegrations} {...params} />}
       </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />

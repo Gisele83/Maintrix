@@ -2039,4 +2039,52 @@ export type PowerBiDataset = typeof powerBiDatasets.$inferSelect;
 export type InsertReportingSchedule = z.infer<typeof insertReportingScheduleSchema>;
 export type ReportingSchedule = typeof reportingSchedules.$inferSelect;
 
+// Communication Channels - Integration with external platforms (Slack, Teams, Telegram, WhatsApp)
+export const communicationChannels = pgTable("communication_channels", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  platform: varchar("platform", { length: 50 }).notNull(), // slack, teams, telegram, whatsapp, webhook
+  webhookUrl: text("webhook_url"),
+  botToken: text("bot_token"),
+  channelId: varchar("channel_id", { length: 255 }),
+  chatId: varchar("chat_id", { length: 255 }),
+  isEnabled: boolean("is_enabled").default(true),
+  severityFilter: jsonb("severity_filter").default(["critical", "warning"]),
+  eventFilter: jsonb("event_filter").default(["threshold_breach", "predictive_alert", "maintenance_due", "work_order_update"]),
+  tenantId: varchar("tenant_id", { length: 36 }),
+  createdBy: integer("created_by").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const notificationDeliveryLogs = pgTable("notification_delivery_logs", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").references(() => communicationChannels.id, { onDelete: "cascade" }),
+  platform: varchar("platform", { length: 50 }).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  severity: varchar("severity", { length: 20 }).notNull(),
+  title: varchar("title", { length: 500 }).notNull(),
+  message: text("message"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, sent, failed
+  errorMessage: text("error_message"),
+  responseCode: integer("response_code"),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+export const insertCommunicationChannelSchema = createInsertSchema(communicationChannels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationDeliveryLogSchema = createInsertSchema(notificationDeliveryLogs).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type CommunicationChannel = typeof communicationChannels.$inferSelect;
+export type InsertCommunicationChannel = z.infer<typeof insertCommunicationChannelSchema>;
+export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSelect;
+export type InsertNotificationDeliveryLog = z.infer<typeof insertNotificationDeliveryLogSchema>;
+
 // Authentication system cleaned up - now using userProfiles as the main user table

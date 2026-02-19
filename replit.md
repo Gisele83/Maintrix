@@ -42,6 +42,7 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Mobile Application**: React Native app with offline capabilities, QR code scanning, repair guidance, work order management, diagnostic sessions, and data synchronization.
 - **Multi-tenant SaaS Infrastructure**: Enterprise-grade multi-tenant architecture with email invitation, tenant management, enterprise security middleware, and federated AI learning.
 - **Cognitive Industrial Infrastructure**: Formal 6-layer architecture with a Cognitive Kernel orchestrating a multi-agent distributed system (Equipment, Site, Global Agents). Features closed-loop industrial automation, Industrial Knowledge Graph (48+ nodes, 46+ edges), hybrid physics+data models, structured auto-learning, governance and trust layer, graduated autonomy model (Levels 0-5), and industrialization APIs.
+- **Communication Platform Integrations**: Multi-platform alert dispatch system supporting Slack (webhooks), Microsoft Teams (connectors), Telegram (bot API), WhatsApp (Business API), and custom webhooks. Features channel CRUD, severity/event filtering, test messages, delivery logging, and statistics. Frontend management page at /communication-integrations.
 - **Advanced Feature Pages**: Client Portal, SLA Management, Machine Health Scoring, Smart Alerts & Action Recommendations, Sensor Hub (IoT), Equipment QR Codes, Equipment Management Improvements, Work Order Deletion, and Inline Equipment Creation.
 
 ## External Dependencies

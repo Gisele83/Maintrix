@@ -4388,6 +4388,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============= COMMUNICATION PLATFORM INTEGRATIONS =============
+  const { communicationDispatcher } = await import('./integrations/communication-dispatcher');
+
+  const channelCreateSchema = z.object({
+    name: z.string().min(1).max(255),
+    platform: z.enum(['slack', 'teams', 'telegram', 'whatsapp', 'webhook']),
+    webhookUrl: z.string().url().optional().or(z.literal('')),
+    botToken: z.string().optional().or(z.literal('')),
+    channelId: z.string().max(255).optional().or(z.literal('')),
+    chatId: z.string().max(255).optional().or(z.literal('')),
+    isEnabled: z.boolean().optional().default(true),
+    severityFilter: z.array(z.string()).optional().default(['critical', 'warning']),
+    eventFilter: z.array(z.string()).optional().default(['threshold_breach', 'predictive_alert', 'maintenance_due']),
+    tenantId: z.string().max(36).optional(),
+    createdBy: z.number().optional(),
+  });
+
+  const channelUpdateSchema = z.object({
+    name: z.string().min(1).max(255).optional(),
+    webhookUrl: z.string().url().optional().or(z.literal('')),
+    botToken: z.string().optional().or(z.literal('')),
+    channelId: z.string().max(255).optional().or(z.literal('')),
+    chatId: z.string().max(255).optional().or(z.literal('')),
+    isEnabled: z.boolean().optional(),
+    severityFilter: z.array(z.string()).optional(),
+    eventFilter: z.array(z.string()).optional(),
+  });
+
+  const dispatchSchema = z.object({
+    alert: z.object({
+      title: z.string().min(1),
+      message: z.string().min(1),
+      severity: z.enum(['info', 'warning', 'critical', 'emergency']),
+      eventType: z.string().min(1),
+      equipmentName: z.string().optional(),
+      equipmentId: z.number().optional(),
+      actionRequired: z.string().optional(),
+    }),
+    tenantId: z.string().optional(),
+  });
+
+  app.get("/api/communication-channels/delivery/logs", async (req, res) => {
+    try {
+      const channelId = req.query.channelId ? parseInt(req.query.channelId as string) : undefined;
+      const limit = Math.min(req.query.limit ? parseInt(req.query.limit as string) : 50, 200);
+      const logs = await communicationDispatcher.getDeliveryLogs(channelId, limit);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communication-channels/delivery/stats", async (_req, res) => {
+    try {
+      const stats = await communicationDispatcher.getDeliveryStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communication-channels", async (_req, res) => {
+    try {
+      const channels = await communicationDispatcher.getAllChannels();
+      res.json(channels);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/communication-channels/:id", async (req, res) => {
+    try {
+      const channel = await communicationDispatcher.getChannel(parseInt(req.params.id));
+      if (!channel) return res.status(404).json({ error: "Channel not found" });
+      res.json(channel);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/communication-channels", async (req, res) => {
+    try {
+      const parsed = channelCreateSchema.parse(req.body);
+      const channel = await communicationDispatcher.createChannel(parsed);
+      res.status(201).json(channel);
+    } catch (error: any) {
+      if (error.name === 'ZodError') return res.status(400).json({ error: "Validation failed", details: error.errors });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/communication-channels/:id", async (req, res) => {
+    try {
+      const parsed = channelUpdateSchema.parse(req.body);
+      const channel = await communicationDispatcher.updateChannel(parseInt(req.params.id), parsed);
+      if (!channel) return res.status(404).json({ error: "Channel not found" });
+      res.json(channel);
+    } catch (error: any) {
+      if (error.name === 'ZodError') return res.status(400).json({ error: "Validation failed", details: error.errors });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/communication-channels/:id", async (req, res) => {
+    try {
+      const deleted = await communicationDispatcher.deleteChannel(parseInt(req.params.id));
+      if (!deleted) return res.status(404).json({ error: "Channel not found" });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/communication-channels/:id/test", async (req, res) => {
+    try {
+      const result = await communicationDispatcher.testChannel(parseInt(req.params.id));
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/communication-channels/dispatch", async (req, res) => {
+    try {
+      const parsed = dispatchSchema.parse(req.body);
+      const results = await communicationDispatcher.dispatchAlert(parsed.alert as any, parsed.tenantId);
+      res.json({ results, dispatched: results.length });
+    } catch (error: any) {
+      if (error.name === 'ZodError') return res.status(400).json({ error: "Validation failed", details: error.errors });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);
