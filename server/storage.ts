@@ -827,23 +827,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {
-    throw new Error("Method not implemented");
+    const [order] = await db.select().from(workOrders).where(eq(workOrders.id, id));
+    return order || undefined;
   }
 
   async getWorkOrdersByEquipment(equipmentId: number): Promise<WorkOrder[]> {
-    throw new Error("Method not implemented");
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.equipmentId, equipmentId))
+      .orderBy(desc(workOrders.createdAt));
+  }
+
+  async getWorkOrdersByStatus(status: string): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.status, status))
+      .orderBy(desc(workOrders.createdAt));
+  }
+
+  async getWorkOrdersByAssignee(userId: number): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.assignedTo, userId))
+      .orderBy(desc(workOrders.createdAt));
   }
 
   async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
-    throw new Error("Method not implemented");
+    const [order] = await db.insert(workOrders).values(data).returning();
+    return order;
   }
 
   async updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder> {
-    throw new Error("Method not implemented");
+    const [order] = await db.update(workOrders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(workOrders.id, id))
+      .returning();
+    if (!order) {
+      throw new Error(`Work order with id ${id} not found`);
+    }
+    return order;
   }
 
   async updateWorkOrderStatus(id: number, status: string): Promise<WorkOrder> {
-    throw new Error("Method not implemented");
+    const updates: Partial<WorkOrder> = { status, updatedAt: new Date() };
+    if (status === 'completed') {
+      updates.actualEnd = new Date();
+    } else if (status === 'in_progress' ) {
+      updates.actualStart = new Date();
+    }
+    const [order] = await db.update(workOrders)
+      .set(updates)
+      .where(eq(workOrders.id, id))
+      .returning();
+    if (!order) {
+      throw new Error(`Work order with id ${id} not found`);
+    }
+    return order;
   }
 
   async getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]> {
@@ -890,19 +926,75 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSpareParts(): Promise<SparePart[]> {
-    throw new Error("Method not implemented");
+    return await db.select().from(spareParts).orderBy(desc(spareParts.createdAt));
+  }
+
+  async getSparePartById(id: number): Promise<SparePart | undefined> {
+    const [part] = await db.select().from(spareParts).where(eq(spareParts.id, id));
+    return part || undefined;
+  }
+
+  async getSparePartByPartNumber(partNumber: string): Promise<SparePart | undefined> {
+    const [part] = await db.select().from(spareParts).where(eq(spareParts.partNumber, partNumber));
+    return part || undefined;
+  }
+
+  async getSparePartsByCategory(category: string): Promise<SparePart[]> {
+    return await db.select().from(spareParts)
+      .where(eq(spareParts.category, category))
+      .orderBy(desc(spareParts.createdAt));
+  }
+
+  async getLowStockParts(): Promise<SparePart[]> {
+    return await db.select().from(spareParts)
+      .where(sql`${spareParts.currentStock} <= ${spareParts.reorderPoint}`)
+      .orderBy(spareParts.currentStock);
   }
 
   async createSparePart(data: InsertSparePart): Promise<SparePart> {
-    throw new Error("Method not implemented");
+    const [part] = await db.insert(spareParts).values(data).returning();
+    return part;
+  }
+
+  async updateSparePart(id: number, updates: Partial<SparePart>): Promise<SparePart> {
+    const [part] = await db.update(spareParts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(spareParts.id, id))
+      .returning();
+    if (!part) {
+      throw new Error(`Spare part with id ${id} not found`);
+    }
+    return part;
   }
 
   async getStockMovements(): Promise<StockMovement[]> {
-    throw new Error("Method not implemented");
+    return await db.select().from(stockMovements).orderBy(desc(stockMovements.createdAt));
+  }
+
+  async getStockMovementsByPart(sparePartId: number): Promise<StockMovement[]> {
+    return await db.select().from(stockMovements)
+      .where(eq(stockMovements.sparePartId, sparePartId))
+      .orderBy(desc(stockMovements.createdAt));
   }
 
   async createStockMovement(data: InsertStockMovement): Promise<StockMovement> {
-    throw new Error("Method not implemented");
+    return await db.transaction(async (tx) => {
+      const [movement] = await tx.insert(stockMovements).values(data).returning();
+      if (data.movementType === 'IN' || data.movementType === 'RETURN') {
+        await tx.update(spareParts)
+          .set({ currentStock: sql`${spareParts.currentStock} + ${data.quantity}`, updatedAt: new Date() })
+          .where(eq(spareParts.id, data.sparePartId));
+      } else if (data.movementType === 'OUT') {
+        await tx.update(spareParts)
+          .set({ currentStock: sql`${spareParts.currentStock} - ${data.quantity}`, updatedAt: new Date() })
+          .where(eq(spareParts.id, data.sparePartId));
+      } else if (data.movementType === 'ADJUSTMENT') {
+        await tx.update(spareParts)
+          .set({ currentStock: data.newStock, updatedAt: new Date() })
+          .where(eq(spareParts.id, data.sparePartId));
+      }
+      return movement;
+    });
   }
 
   async getIotSensorData(): Promise<IotSensorData[]> {
