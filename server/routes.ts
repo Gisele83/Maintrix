@@ -59,6 +59,7 @@ import { featureService } from "./feature-service.js";
 import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
 import { initializeERPSystem } from "./module-initializer.js";
 import { sectorTemplates } from "@shared/schema";
+import { registerCognitiveRoutes, initializeCognitiveInfrastructure } from "./cognitive-routes";
 
 // ⚡ NOUVELLES ROUTES SÉCURITÉ ET CONFORMITÉ 2025
 import { enhancedAuditRoutes } from "./enhanced-audit-monitoring";
@@ -804,6 +805,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Advanced Integration routes (ERP/SCADA, AI, Power BI)
   registerAdvancedIntegrationRoutes(app);
+
+  // Register Cognitive Infrastructure routes (6-layer architecture, multi-agent, knowledge graph)
+  registerCognitiveRoutes(app);
+  initializeCognitiveInfrastructure().catch(err => console.error('Cognitive infrastructure init error:', err));
   
   // Data Import/Export routes - Compatible avec le frontend  
   app.use('/api/data-import-export', dataImportExportRoutes);

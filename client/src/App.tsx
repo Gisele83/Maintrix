@@ -57,6 +57,7 @@ import MachineHealth from "@/pages/machine-health";
 import SmartAlerts from "@/pages/smart-alerts";
 import SensorHub from "@/pages/sensor-hub";
 import EquipmentQR from "@/pages/equipment-qr";
+import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -279,6 +280,12 @@ function Router() {
       </Route>
       <Route path="/qr-codes">
         {(params) => <ProtectedRoute component={EquipmentQR} {...params} />}
+      </Route>
+      <Route path="/cognitive-infrastructure">
+        {(params) => <ProtectedRoute component={CognitiveInfrastructure} {...params} />}
+      </Route>
+      <Route path="/cognitive">
+        {(params) => <ProtectedRoute component={CognitiveInfrastructure} {...params} />}
       </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />
