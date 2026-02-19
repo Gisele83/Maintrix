@@ -63,18 +63,15 @@ export function ModernNavigation() {
   }, []);
 
   const navigation = [
-    { name: "Accueil", href: "/", icon: BarChart3 },
-    { name: "Landing", href: "/welcome", icon: Home },
-    { name: "Diagnostic IA", href: "/smart-diagnostic", icon: Brain },
-    { name: "GMAO", href: "/gmao", icon: Settings },
+    { name: "Accueil", href: "/", icon: Home },
+    { name: "Infrastructure Cognitive", href: "/cognitive-infrastructure", icon: Brain },
+    { name: "Diagnostic Hybride", href: "/smart-diagnostic", icon: Database },
+    { name: "GMAO Intégrée", href: "/gmao", icon: Settings },
+    { name: "Perception IoT", href: "/iot-gamification", icon: BarChart3 },
     { name: "Inventaire", href: "/inventaire", icon: Package },
-    { name: "Intégrations Avancées", href: "/advanced-integrations", icon: Database },
     { name: "Historique", href: "/historique", icon: History },
-    { name: "Configuration ERP", href: "/erp-configuration", icon: Building },
-    ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Gestion Permissions", href: "/tenant-permissions", icon: Shield }] : []),
-    ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Test Paiements", href: "/payment-test", icon: CreditCard }] : []),
+    ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
     { name: "Documentation", href: "/documentation", icon: FileText },
-    { name: "Formation", href: "/training", icon: Users },
   ];
 
   return (
@@ -94,7 +91,7 @@ export function ModernNavigation() {
                   Maintrix
                 </span>
                 <span className="text-xs text-gray-500 font-medium tracking-wider uppercase">
-                  Interface Unifiée
+                  Infrastructure Cognitive
                 </span>
               </div>
             </Link>
