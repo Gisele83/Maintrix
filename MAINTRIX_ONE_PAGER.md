@@ -4,9 +4,9 @@
 
 ![Maintrix Logo](https://via.placeholder.com/400x100/0066cc/ffffff?text=Maintrix)
 
-**Plateforme Intelligente de Gestion de Maintenance Industrielle**
+**Infrastructure Cognitive Industrielle — Le cerveau de vos machines**
 
-*Réduisez vos temps d'arrêt de 40% avec l'IA*
+*Réduisez vos temps d'arrêt de 40% grâce à une infrastructure cognitive qui donne un cerveau aux machines industrielles*
 
 </div>
 
@@ -16,17 +16,17 @@
 
 | Ce que nous faisons | Comment | Résultats |
 |---------------------|---------|-----------|
-| **GMAO + IA** pour maintenance industrielle | Diagnostic intelligent (Claude AI) + Gestion complète | **-40%** arrêts, **-25%** coûts, **+35%** productivité |
+| **Infrastructure Cognitive Industrielle** pour maintenance prédictive et autonome | Architecture cognitive 6 couches, Knowledge Graph, système multi-agents, autonomie graduée (niveaux 0-5) | **-40%** arrêts, **-25%** coûts, **+35%** productivité |
 
 ---
 
 ## 🎯 NOTRE PROPOSITION DE VALEUR
 
 ### Le Problème
-30% des pannes sont évitables. La maintenance réactive coûte cher et impacte la production.
+30% des pannes sont évitables. La maintenance réactive coûte cher et impacte la production. Les GMAO traditionnelles ne font que documenter les pannes — elles ne les comprennent pas.
 
 ### Notre Solution
-**Maintrix** combine Intelligence Artificielle (diagnostic automatique 98% précis) et GMAO complète pour une maintenance prédictive et efficace.
+**Maintrix** est une infrastructure cognitive qui donne un cerveau aux machines industrielles. Grâce à son architecture 6 couches, son Knowledge Graph industriel et son système multi-agents, Maintrix ne se contente pas de gérer la maintenance : elle comprend, raisonne et agit de manière autonome avec une précision de diagnostic de 98%.
 
 ---
 
@@ -34,11 +34,13 @@
 
 | Module | Fonctionnalités Clés | Bénéfice |
 |--------|----------------------|----------|
-| 🤖 **Smart Diagnostic IA** | • 120 cas industriels réels<br>• 9 algorithmes ML<br>• Recommandations détaillées | **Diagnostic 3x plus rapide** |
-| 🛠️ **GMAO Complet** | • Équipements & interventions<br>• Maintenance préventive<br>• Gestion pièces & achats | **Tout centralisé** |
-| 📊 **Analytics** | • KPIs temps réel (MTBF, MTTR)<br>• Rapports PDF auto<br>• Prédictions IA | **Décisions data-driven** |
+| 🧠 **Noyau Cognitif** | • Architecture 6 couches (Physique → Edge → Orchestration → Apprentissage → Gouvernance → Cognitif) <br>• Knowledge Graph industriel<br>• Autonomie graduée niveaux 0-5 | **Machines qui pensent** |
+| 🤖 **Système Multi-Agents** | • Agents équipement, site et global<br>• Coordination autonome<br>• 120 cas industriels réels | **Diagnostic 3x plus rapide** |
+| 🛠️ **GMAO Cognitive** | • Équipements & interventions<br>• Maintenance préventive & prédictive<br>• Gestion pièces & achats | **Tout centralisé** |
+| 📊 **Analytics Cognitifs** | • KPIs temps réel (MTBF, MTTR)<br>• Rapports PDF auto<br>• Prédictions IA | **Décisions data-driven** |
 | 📱 **Mobile** | • Mode offline<br>• QR code scanner<br>• Sync auto | **Terrain connecté** |
-| 🔗 **Intégrations** | • SAP, Maximo, IoT (MQTT)<br>• 3,6M+ points IoT | **Écosystème unifié** |
+| 💬 **Communication** | • Slack, Teams, Telegram, WhatsApp<br>• Alertes intelligentes multi-canaux<br>• Notifications contextuelles | **Équipes synchronisées** |
+| 🔗 **Intégrations** | • SAP, Maximo, IoT (MQTT, OPC-UA)<br>• 3,6M+ points IoT | **Écosystème unifié** |
 
 ---
 
@@ -100,8 +102,8 @@
 
 ---
 
-**Maintrix - L'avenir de la maintenance industrielle**
+**Maintrix — Infrastructure Cognitive Industrielle : le cerveau de vos machines**
 
-*© 2025 Maintrix. Tous droits réservés.*
+*© 2026 Maintrix. Tous droits réservés.*
 
 </div>

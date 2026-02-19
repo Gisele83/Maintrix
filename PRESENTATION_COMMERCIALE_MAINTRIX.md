@@ -1,13 +1,13 @@
 # 📊 Présentation Commerciale Maintrix
-## Plateforme Intelligente de Gestion de Maintenance Industrielle
+## Infrastructure Cognitive Industrielle
 
 ---
 
 <div align="center">
 
-![Maintrix](https://via.placeholder.com/800x200/0066cc/ffffff?text=Maintrix+-+Intelligent+Maintenance+Management)
+![Maintrix](https://via.placeholder.com/800x200/0066cc/ffffff?text=Maintrix+-+Infrastructure+Cognitive+Industrielle)
 
-**Révolutionnez votre maintenance industrielle avec l'IA**
+**L'Infrastructure Cognitive qui révolutionne la maintenance industrielle**
 
 [🌐 maintrix-t.com](https://maintrix-t.com) | [📧 contact@maintrix-t.com](mailto:contact@maintrix-t.com) | [📞 Support](mailto:support@maintrix-t.com)
 
@@ -17,10 +17,10 @@
 
 ## 🎯 QUI SOMMES-NOUS ?
 
-**Maintrix** est une plateforme SaaS de nouvelle génération qui combine **Intelligence Artificielle** et **Gestion de Maintenance Assistée par Ordinateur (GMAO)** pour transformer la façon dont les entreprises industrielles gèrent leur maintenance.
+**Maintrix** est la première **Infrastructure Cognitive Industrielle** — une plateforme SaaS de nouvelle génération qui va au-delà de la GMAO traditionnelle en intégrant une architecture cognitive à 6 couches, un système multi-agents autonome et un Knowledge Graph industriel pour transformer radicalement la gestion de maintenance.
 
 ### Notre Mission
-Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** et **maximiser la disponibilité** de leurs équipements grâce à l'intelligence artificielle et une gestion proactive de la maintenance.
+Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** et **maximiser la disponibilité** de leurs équipements grâce à une infrastructure cognitive à autonomie graduée qui apprend, raisonne et agit de manière proactive.
 
 ---
 
@@ -32,13 +32,54 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - 📉 **Temps d'arrêt** qui impactent la production
 - 📋 **Gestion manuelle** chronophage et source d'erreurs
 - 🔍 **Manque de visibilité** sur l'état réel des équipements
+- 🧠 **Connaissances expertes** non capitalisées et perdues lors des départs
 
-### La Solution Maintrix
+### La Solution Maintrix — Infrastructure Cognitive Industrielle
 - ✅ **Diagnostic IA en temps réel** avec 98% de précision
 - ✅ **Maintenance prédictive** basée sur les données réelles
 - ✅ **Réduction de 40%** des temps d'arrêt non planifiés
-- ✅ **Automatisation complète** de la gestion de maintenance
+- ✅ **Architecture cognitive à 6 couches** pour une intelligence industrielle complète
+- ✅ **Système multi-agents autonome** avec autonomie graduée
+- ✅ **Knowledge Graph industriel** capitalisant l'expertise métier
 - ✅ **Tableaux de bord** pour une visibilité totale
+
+---
+
+## 🧠 ARCHITECTURE COGNITIVE — L'AVANTAGE MAINTRIX
+
+### 6 Couches d'Intelligence Industrielle
+
+**Ce qui distingue Maintrix de toute autre solution sur le marché :**
+
+#### 🔌 Couche 1 — Physique (Edge & IoT)
+- Collecte temps réel des données capteurs (vibrations, température, pression)
+- Traitement edge computing pour réactivité maximale
+- Support MQTT, OPC-UA, Modbus et protocoles industriels
+
+#### 🧠 Couche 2 — Noyau Cognitif (Cognitive Kernel)
+- Moteur de raisonnement central orchestrant toute l'intelligence
+- Fusion multi-sources de données pour diagnostic contextualisé
+- Modèles physiques et jumeaux numériques des équipements
+
+#### 🔗 Couche 3 — Knowledge Graph Industriel
+- Graphe de connaissances reliant équipements, pannes, solutions et expertise
+- Capitalisation automatique du savoir-faire technicien
+- Relations causales entre symptômes, diagnostics et actions correctives
+
+#### 🤖 Couche 4 — Orchestration Multi-Agents
+- Agents spécialisés par équipement, site et domaine
+- Coordination autonome des diagnostics et interventions
+- Autonomie graduée : de l'assistance à l'action autonome
+
+#### 📚 Couche 5 — Apprentissage Continu
+- Apprentissage fédéré préservant la confidentialité des données
+- Amélioration continue des modèles par retour terrain
+- Adaptation contextuelle aux spécificités de chaque site
+
+#### 🏛️ Couche 6 — Gouvernance & Conformité
+- Audit trail complet de toutes les décisions cognitives
+- Conformité RGPD et réglementations industrielles
+- Contrôle humain sur les niveaux d'autonomie
 
 ---
 
@@ -46,39 +87,41 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 ### 🤖 Module Smart Diagnostic IA
 
-**Diagnostic Intelligent Alimenté par Claude AI**
+**Diagnostic Intelligent Multi-Agents**
 
 - **Analyse Symptômes** : Description en langage naturel de vos problèmes
 - **Base de 120 Cas Industriels** : Patterns réels issus de l'industrie
 - **Diagnostic Multi-Algorithmes** : 9 algorithmes ML en consensus (98% précision)
+- **Knowledge Graph** : Raisonnement causal sur les relations équipement-panne-solution
 - **Recommandations Automatiques** : Solutions détaillées étape par étape
-- **Historique et Apprentissage** : Amélioration continue du système
+- **Historique et Apprentissage** : Amélioration continue du système cognitif
 
-**Bénéfice** : Résolvez vos pannes 3x plus rapidement avec des diagnostics fiables.
+**Bénéfice** : Résolvez vos pannes 3x plus rapidement avec des diagnostics fiables alimentés par l'intelligence cognitive.
 
 ---
 
-### 🛠️ Module GMAO Complet
+### 🛠️ Module GMAO Cognitive
 
-**Gestion Complète de la Maintenance**
+**Gestion Complète de la Maintenance Augmentée par l'Intelligence Cognitive**
 
 #### 📦 Gestion des Équipements
 - Registre complet avec historique de maintenance
 - Suivi des interventions et des pièces
 - Arbre de localisation et classification
 - Fiche technique détaillée
+- Jumeau numérique et modèles physiques
 
 #### 📋 Gestion des Interventions
 - Création et suivi des bons de travail
 - Workflow de validation multi-niveaux
-- Planification et affectation automatique
+- Planification et affectation automatique par agents cognitifs
 - Gestion des priorités et urgences
 - Suivi du temps et des coûts
 
-#### ⏰ Maintenance Préventive
+#### ⏰ Maintenance Préventive & Prédictive
 - **Compteurs d'usage** : Maintenance basée sur l'utilisation réelle
-- Planification automatique selon seuils
-- Alertes et notifications préventives
+- Planification automatique selon seuils et prédictions cognitives
+- Alertes et notifications préventives intelligentes
 - 61 plans préventifs configurables
 - Historique et statistiques
 
@@ -87,7 +130,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - Gestion des stocks et seuils d'alerte
 - Traçabilité complète
 - Coûts et fournisseurs
-- Intégration achats
+- Approvisionnement automatique piloté par IA
 
 #### 💰 Gestion Budgétaire
 - Suivi des coûts par équipement
@@ -98,19 +141,19 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 ---
 
-### 📊 Analytics & Reporting
+### 📊 Analytics & Reporting Cognitif
 
-**Tableaux de Bord Intelligents**
+**Tableaux de Bord Intelligents Alimentés par le Knowledge Graph**
 
 - **KPIs en Temps Réel** : MTBF, MTTR, Disponibilité, OEE
 - **Rapports Automatiques** : Quotidiens, hebdomadaires, mensuels
 - **Génération PDF** : Rapports d'intervention, dashboard, synthèses
-- **Analyse Prédictive** : Anticipation des besoins de maintenance
-- **Tendances et Patterns** : Identification des équipements critiques
+- **Analyse Prédictive Cognitive** : Anticipation des besoins par raisonnement causal
+- **Tendances et Patterns** : Identification des équipements critiques via Knowledge Graph
 
 ---
 
-### 🔗 Intégrations Entreprise
+### 🔗 Intégrations Entreprise & Communication
 
 **Connectez Maintrix à Votre Écosystème**
 
@@ -118,33 +161,35 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - **IoT** : MQTT pour données capteurs en temps réel (3,6M+ points de données)
 - **SCADA** : Intégration supervision industrielle
 - **Email** : SendGrid pour notifications automatiques
+- **Communication** : Slack, Microsoft Teams, WhatsApp Business
 - **Paiements** : Stripe, PayPal pour gestion achats
 
 ---
 
 ### 👥 Gestion Multi-Utilisateurs & Sécurité
 
-**Contrôle d'Accès Granulaire**
+**Contrôle d'Accès Granulaire avec Gouvernance Cognitive**
 
 - **7 Rôles Prédéfinis** : Admin, Manager, Technicien, Viewer, etc.
 - **Permissions Personnalisables** : Contrôle fin des accès
 - **Multi-Tenants SaaS** : Isolation complète des données
 - **Invitations par Email** : Onboarding simplifié
-- **Audit Trail** : Traçabilité complète des actions
+- **Audit Trail Cognitif** : Traçabilité complète des actions et décisions IA
 - **Sécurité Renforcée** : RBAC, rate limiting, CSRF protection
+- **Gouvernance IA** : Contrôle des niveaux d'autonomie des agents
 
 ---
 
 ### 📱 Application Mobile
 
-**Maintenance sur le Terrain**
+**Maintenance sur le Terrain avec Intelligence Cognitive Embarquée**
 
 - **Mode Hors Ligne** : Travaillez sans connexion
 - **Scanner QR Code** : Identification instantanée des équipements
 - **Gestion Interventions** : Création et suivi mobile
 - **Photos et Documents** : Capture sur site
 - **Synchronisation Auto** : Mise à jour dès connexion disponible
-- **Guidage Pas-à-Pas** : Instructions de réparation détaillées
+- **Guidage Pas-à-Pas** : Instructions de réparation cognitives détaillées
 
 **Plateformes** : iOS et Android
 
@@ -154,27 +199,27 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 ### 🏭 Industrie Manufacturière
 - Réduction des arrêts de production de 40%
-- Planification optimale de la maintenance
+- Planification optimale par agents cognitifs spécialisés
 - Traçabilité complète pour certification ISO
 
 ### ⚡ Énergie & Utilities
-- Surveillance en temps réel des infrastructures critiques
-- Maintenance prédictive des équipements haute valeur
-- Conformité réglementaire
+- Surveillance cognitive en temps réel des infrastructures critiques
+- Maintenance prédictive par Knowledge Graph des équipements haute valeur
+- Conformité réglementaire avec gouvernance IA
 
 ### 🏢 Facility Management
-- Gestion multi-sites centralisée
-- Maintenance préventive des bâtiments
+- Gestion multi-sites centralisée avec orchestration multi-agents
+- Maintenance préventive cognitive des bâtiments
 - Optimisation des coûts d'exploitation
 
 ### 🚗 Transport & Logistique
-- Maintenance préventive de flotte
-- Réduction des coûts de réparation
+- Maintenance prédictive cognitive de flotte
+- Réduction des coûts de réparation par capitalisation Knowledge Graph
 - Maximisation de la disponibilité
 
 ### 🏥 Santé & Laboratoires
-- Maintenance équipements médicaux
-- Conformité et traçabilité
+- Maintenance cognitive équipements médicaux
+- Conformité et traçabilité avec gouvernance IA
 - Gestion des calibrations
 
 ---
@@ -186,6 +231,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - ⬆️ **+35%** de productivité des techniciens
 - ⬇️ **-25%** de coûts de maintenance
 - ⬆️ **+50%** d'efficacité diagnostic
+- 🧠 **100%** de capitalisation des connaissances via Knowledge Graph
 
 ### Financiers
 - 💰 **ROI moyen : 18 mois**
@@ -194,10 +240,10 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - 🔍 Visibilité complète des dépenses
 
 ### Qualité
-- ✅ **98%** de précision diagnostic IA
+- ✅ **98%** de précision diagnostic IA cognitive
 - 📋 Conformité réglementaire
-- 📚 Capitalisation des connaissances
-- 🎯 Amélioration continue
+- 📚 Capitalisation des connaissances dans le Knowledge Graph
+- 🎯 Amélioration continue par apprentissage fédéré
 
 ---
 
@@ -208,7 +254,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 - ✅ Jusqu'à 50 équipements
 - ✅ 5 utilisateurs
-- ✅ GMAO complet
+- ✅ GMAO cognitive complet
 - ✅ 100 diagnostics IA/mois
 - ✅ Application mobile
 - ✅ Support email
@@ -222,9 +268,10 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 - ✅ Jusqu'à 200 équipements
 - ✅ 20 utilisateurs
-- ✅ GMAO + IA avancé
+- ✅ Infrastructure Cognitive Industrielle complète
 - ✅ 500 diagnostics IA/mois
-- ✅ Intégrations ERP/IoT
+- ✅ Intégrations ERP/IoT/Communication
+- ✅ Knowledge Graph et agents spécialisés
 - ✅ Rapports personnalisés
 - ✅ Support prioritaire
 
@@ -237,10 +284,12 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 - ✅ Équipements illimités
 - ✅ Utilisateurs illimités
-- ✅ Multi-sites
+- ✅ Multi-sites avec orchestration multi-agents
 - ✅ Diagnostics IA illimités
 - ✅ Intégrations sur mesure
-- ✅ IA apprentissage fédéré
+- ✅ Apprentissage fédéré inter-sites
+- ✅ Knowledge Graph entreprise complet
+- ✅ Autonomie graduée configurable
 - ✅ SLA garanti
 - ✅ Support 24/7 dédié
 - ✅ Formation sur site
@@ -267,7 +316,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 ### 30 Jours Sans Engagement
 
-- ✅ Accès complet à toutes les fonctionnalités
+- ✅ Accès complet à toutes les fonctionnalités cognitives
 - ✅ Import de vos données existantes
 - ✅ Formation et accompagnement
 - ✅ Support dédié
@@ -283,13 +332,14 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 - 🔐 **Chiffrement** : TLS 1.3, données au repos chiffrées
 - 🛡️ **Protection** : Rate limiting, détection anomalies, CSRF
 - 👤 **Authentification** : Hachage bcrypt, sessions sécurisées
-- 📊 **Audit** : Logs complets de toutes les actions
+- 📊 **Audit** : Logs complets de toutes les actions et décisions cognitives
 
 ### Conformité
 - ✅ **RGPD** : Conforme réglementation européenne
 - ✅ **ISO 27001** : Processus sécurité certifiés
 - ✅ **Hébergement EU** : Données stockées en Europe
 - ✅ **Sauvegarde** : Backups automatiques quotidiennes
+- ✅ **Gouvernance IA** : Traçabilité et explicabilité des décisions cognitives
 
 ---
 
@@ -310,7 +360,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 ### Hybride
 - ✅ Meilleur des deux mondes
 - ✅ Données sensibles on-premise
-- ✅ IA et analytics cloud
+- ✅ Intelligence cognitive cloud
 - ✅ Synchronisation sécurisée
 
 ---
@@ -319,7 +369,7 @@ Permettre aux entreprises de **prévenir les pannes**, **optimiser les coûts** 
 
 ### Demande de Démo
 
-Découvrez Maintrix en action avec une démonstration personnalisée de 30 minutes.
+Découvrez l'Infrastructure Cognitive Industrielle Maintrix en action avec une démonstration personnalisée de 30 minutes.
 
 **[📅 Réserver une démo](https://maintrix-t.com/demo)**
 
@@ -360,13 +410,14 @@ Découvrez Maintrix en action avec une démonstration personnalisée de 30 minut
 ## ✨ POURQUOI CHOISIR MAINTRIX ?
 
 ### 🏆 Excellence Technologique
-- **Intelligence Artificielle** de pointe (Claude AI)
+- **Infrastructure Cognitive** à 6 couches unique sur le marché
+- **Système Multi-Agents** avec autonomie graduée
+- **Knowledge Graph** industriel pour capitalisation du savoir
 - **Architecture** moderne et scalable
-- **Innovation** continue
 
 ### 💪 Expertise Métier
-- **120 Cas Industriels** réels intégrés
-- **Best Practices** GMAO
+- **120 Cas Industriels** réels intégrés dans le Knowledge Graph
+- **Best Practices** maintenance cognitive
 - **Connaissance** des enjeux industriels
 
 ### 🤝 Partenaire de Confiance
@@ -375,8 +426,8 @@ Découvrez Maintrix en action avec une démonstration personnalisée de 30 minut
 - **Accompagnement** personnalisé
 
 ### 🌱 Évolution Continue
-- **Mises à jour** régulières
-- **Nouvelles fonctionnalités** fréquentes
+- **Apprentissage fédéré** inter-sites
+- **Nouvelles fonctionnalités** cognitives fréquentes
 - **Écoute** des retours clients
 
 ---
@@ -387,13 +438,15 @@ Découvrez Maintrix en action avec une démonstration personnalisée de 30 minut
 
 | Métrique | Valeur |
 |----------|--------|
-| 🎯 **Précision IA** | 98% |
+| 🎯 **Précision IA Cognitive** | 98% |
 | ⏱️ **Temps de diagnostic** | -70% |
 | 💰 **ROI Moyen** | 18 mois |
 | ⬇️ **Réduction arrêts** | -40% |
 | ⬆️ **Productivité techniciens** | +35% |
 | 📊 **Cas industriels** | 120+ |
 | 🔧 **Pièces gérées** | 421+ |
+| 🧠 **Couches cognitives** | 6 |
+| 🤖 **Agents autonomes** | Multi-agents |
 | 📱 **Utilisateurs mobiles** | iOS + Android |
 
 </div>
@@ -417,15 +470,15 @@ Découvrez Maintrix en action avec une démonstration personnalisée de 30 minut
 
 ## 🌟 Rejoignez les Entreprises qui Transforment leur Maintenance
 
-**Maintrix - Intelligent Maintenance Management Platform**
+**Maintrix — Infrastructure Cognitive Industrielle**
 
-*L'avenir de la maintenance industrielle commence aujourd'hui*
+*L'avenir de la maintenance industrielle est cognitif — et il commence aujourd'hui*
 
 [🚀 Commencer Maintenant](https://maintrix-t.com/trial) | [📧 Nous Contacter](mailto:contact@maintrix-t.com)
 
 ---
 
-© 2025 Maintrix. Tous droits réservés.  
-Version 2.1.0 | Dernière mise à jour : Janvier 2025
+© 2026 Maintrix. Tous droits réservés.  
+Version 3.0.0 | Dernière mise à jour : Février 2026
 
 </div>

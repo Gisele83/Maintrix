@@ -28,39 +28,39 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: Brain,
-      title: "Diagnostic IA Avancé",
-      description: "9 algorithmes ML avec 98% de précision pour identifier les pannes avant qu'elles ne surviennent",
-      color: "violet"
-    },
-    {
-      icon: Settings,
-      title: "GMAO Complète",
-      description: "Gestion des équipements, ordres de travail, maintenance préventive et inventaire des pièces",
-      color: "blue"
-    },
-    {
-      icon: Shield,
-      title: "Sécurité Enterprise",
-      description: "Isolation multi-tenant, RBAC avec 7 rôles, authentification sécurisée",
-      color: "emerald"
-    },
-    {
-      icon: Smartphone,
-      title: "Application Mobile",
-      description: "Accès terrain avec mode hors-ligne, scanner QR et synchronisation automatique",
+      icon: Zap,
+      title: "Perception Autonome",
+      description: "Capteurs IoT, données temps réel et intelligence edge pour une conscience sensorielle permanente de vos machines",
       color: "amber"
     },
     {
-      icon: BarChart3,
-      title: "Rapports & Analytics",
-      description: "Tableaux de bord en temps réel, KPIs, exports PDF automatisés",
+      icon: Brain,
+      title: "Intelligence Cognitive",
+      description: "Architecture à 6 couches, système multi-agents et Knowledge Graph avec 48+ nœuds pour un raisonnement causal profond",
+      color: "violet"
+    },
+    {
+      icon: Shield,
+      title: "Diagnostic Hybride",
+      description: "Règles expertes + similarité historique (120+ cas) + raisonnement IA + modèles physiques pour un diagnostic fiable",
+      color: "emerald"
+    },
+    {
+      icon: TrendingUp,
+      title: "Autonomie Graduée",
+      description: "5 niveaux d'autonomie (0 à 5), du simple monitoring jusqu'à l'autonomie complète de vos équipements",
+      color: "blue"
+    },
+    {
+      icon: Settings,
+      title: "GMAO Intégrée",
+      description: "Gestion des équipements, ordres de travail, maintenance préventive et pièces détachées — la colonne vertébrale opérationnelle",
       color: "rose"
     },
     {
-      icon: Cloud,
-      title: "Déploiement Flexible",
-      description: "SaaS cloud ou installation locale sur vos serveurs (Linux, macOS, Windows)",
+      icon: Smartphone,
+      title: "Communication Multi-Plateforme",
+      description: "Alertes intelligentes via Slack, Teams, Telegram et WhatsApp pour une réactivité maximale sur le terrain",
       color: "sky"
     }
   ];
@@ -178,7 +178,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <Wrench className="w-5 h-5 text-white" />
+                <Brain className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-slate-800">Maintrix</span>
             </div>
@@ -207,19 +207,19 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto text-center">
           <Badge className="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-1.5 mb-6">
-            Plateforme GMAO + IA de nouvelle génération
+            Infrastructure Cognitive Industrielle
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            La maintenance industrielle<br />
+            L'infrastructure cognitive qui<br />
             <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              intelligente et prédictive
+              donne un cerveau à vos machines
             </span>
           </h1>
           
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10">
-            Maintrix combine une GMAO complète avec l'intelligence artificielle pour anticiper les pannes, 
-            optimiser vos interventions et réduire vos coûts de maintenance jusqu'à 40%.
+            Vos machines perçoivent, comprennent, anticipent et agissent. Maintrix est bâti sur une architecture cognitive 
+            à 6 couches, un système multi-agents et un Knowledge Graph pour transformer chaque équipement en système autonome.
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-12">
@@ -259,20 +259,20 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">98%</div>
-              <div className="text-slate-400 text-sm">Précision IA</div>
+              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">6</div>
+              <div className="text-slate-400 text-sm">Couches cognitives</div>
             </div>
             <div>
-              <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">40%</div>
-              <div className="text-slate-400 text-sm">Réduction des pannes</div>
+              <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">48+</div>
+              <div className="text-slate-400 text-sm">Nœuds Knowledge Graph</div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-bold text-violet-400 mb-1">120+</div>
               <div className="text-slate-400 text-sm">Cas industriels</div>
             </div>
             <div>
-              <div className="text-3xl sm:text-4xl font-bold text-amber-400 mb-1">99.9%</div>
-              <div className="text-slate-400 text-sm">Disponibilité</div>
+              <div className="text-3xl sm:text-4xl font-bold text-amber-400 mb-1">5</div>
+              <div className="text-slate-400 text-sm">Niveaux d'autonomie</div>
             </div>
           </div>
         </div>
@@ -283,10 +283,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              Tout ce dont vous avez besoin
+              Une architecture cognitive complète
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Une plateforme complète qui unifie la gestion de maintenance et l'intelligence artificielle
+              Six capacités cognitives qui transforment vos machines en systèmes industriels autonomes et intelligents
             </p>
           </div>
           
@@ -320,22 +320,22 @@ export default function LandingPage() {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-blue-600">1</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">Connectez vos équipements</h3>
-              <p className="text-slate-600">Importez votre parc d'équipements ou connectez vos capteurs IoT en quelques clics</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Percevez</h3>
+              <p className="text-slate-600">Connectez vos capteurs IoT, importez vos équipements et activez la perception temps réel de votre parc industriel</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-violet-600">2</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">L'IA analyse et prédit</h3>
-              <p className="text-slate-600">Nos 9 algorithmes ML détectent les anomalies et prédisent les pannes avec 98% de précision</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Comprenez</h3>
+              <p className="text-slate-600">Le Knowledge Graph raisonne causalement, l'IA diagnostique les anomalies et les modèles physiques valident chaque hypothèse</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-emerald-600">3</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">Agissez proactivement</h3>
-              <p className="text-slate-600">Planifiez vos interventions avant les pannes et réduisez vos coûts de maintenance</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Agissez</h3>
+              <p className="text-slate-600">Automatisation en boucle fermée, autonomie graduée et interventions proactives avant que les pannes ne surviennent</p>
             </div>
           </div>
         </div>
@@ -444,7 +444,7 @@ export default function LandingPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-violet-600">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Prêt à transformer votre maintenance ?
+            Prêt à donner un cerveau à vos machines ?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
             Rejoignez les entreprises qui ont réduit leurs coûts de maintenance avec Maintrix
@@ -466,12 +466,12 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <Wrench className="w-4 h-4 text-white" />
+                <Brain className="w-4 h-4 text-white" />
               </div>
               <span className="text-lg font-bold text-white">Maintrix</span>
             </div>
             <div className="text-sm">
-              © 2025 Maintrix. Tous droits réservés. | maintrix-t.com
+              © 2026 Maintrix. Tous droits réservés. | maintrix-t.com
             </div>
           </div>
         </div>

@@ -3,62 +3,74 @@
 ## Le cerveau cognitif de l'industrie — Vision complete
 
 **Date : Fevrier 2026**
-**Version : 1.0**
+**Version : 2.0**
+**Mise a jour : Fevrier 2026**
 
 ---
 
-## SCHEMA D'ARCHITECTURE COGNITIVE
+## SCHEMA D'ARCHITECTURE COGNITIVE — 6 COUCHES
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════════════╗
 ║                                                                                   ║
 ║                        MAINTRIX — ARCHITECTURE COGNITIVE                          ║
 ║           Le systeme nerveux numerique des machines industrielles                  ║
+║                    Infrastructure Cognitive 6 Couches                              ║
 ║                                                                                   ║
 ╠═══════════════════════════════════════════════════════════════════════════════════╣
 ║                                                                                   ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    COUCHE 5 : AUTONOMIE (R&D)                              │  ║
+║  │              COUCHE 6 : GOVERNANCE & TRUST                                │  ║
 ║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
-║  │  │ Auto-commande│ │ Auto-         │ │ Optimisation │ │ Orchestration     │ │  ║
-║  │  │ de pieces    │ │ planification │ │ autonome de  │ │ inter-machines    │ │  ║
-║  │  │ detachees    │ │ interventions │ │ production   │ │ collaborative     │ │  ║
+║  │  │ Explainabi- │ │ Audit         │ │ Simulation   │ │ Niveaux          │ │  ║
+║  │  │ lite CCTP   │ │ decisionnel   │ │ what-if      │ │ d'autonomie 0-5  │ │  ║
+║  │  │ tracabilite │ │ complet       │ │ scenarios    │ │ configurable     │ │  ║
 ║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
 ║  └─────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                      ▲                                            ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    COUCHE 4 : COGNITION                                    │  ║
+║  │              COUCHE 5 : LEARNING & KNOWLEDGE                              │  ║
 ║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
-║  │  │ Raisonnement│ │ Structuration │ │ Generation   │ │ Explicabilite    │ │  ║
-║  │  │ contextuel  │ │ IA (Claude)   │ │ preconisa-   │ │ et tracabilite   │ │  ║
-║  │  │ multi-signal│ │               │ │ tions        │ │ CCTP             │ │  ║
+║  │  │ Apprentiss- │ │ Memoire des   │ │ Modeles      │ │ Federation       │ │  ║
+║  │  │ age continu │ │ defaillances  │ │ hybrides     │ │ inter-tenant     │ │  ║
+║  │  │ adaptatif   │ │ capitalisees  │ │ physique+data│ │ anonymisee       │ │  ║
 ║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
 ║  └─────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                      ▲                                            ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    COUCHE 3 : MEMOIRE                                      │  ║
+║  │         COUCHE 4 : ORCHESTRATION & EXECUTION                              │  ║
 ║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
-║  │  │ 120+ cas    │ │ Memoire des   │ │ Apprentissage│ │ Tendances et     │ │  ║
-║  │  │ industriels │ │ defaillances  │ │ federe inter-│ │ patterns de      │ │  ║
-║  │  │ reels       │ │ capitalisees  │ │ tenants      │ │ defaillance      │ │  ║
+║  │  │ Cognitive   │ │ Policy Engine │ │ Boucle       │ │ Workflow         │ │  ║
+║  │  │ Kernel      │ │ regles metier │ │ fermee       │ │ automatise       │ │  ║
+║  │  │ orchestr.   │ │ decisionnelle │ │ D→D→D→A→F→L │ │ bout-en-bout     │ │  ║
+║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
+║  │  Boucle: Detection → Diagnostic → Decision → Action → Feedback → Learning│  ║
+║  └─────────────────────────────────────────────────────────────────────────────┘  ║
+║                                      ▲                                            ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │              COUCHE 3 : COGNITIVE CORE                                    │  ║
+║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
+║  │  │ Knowledge   │ │ Moteur regles │ │ Similarite   │ │ IA Claude        │ │  ║
+║  │  │ Graph 48+   │ │ expert        │ │ historique   │ │ (Anthropic)      │ │  ║
+║  │  │ noeuds      │ │ deterministes │ │ 120+ cas     │ │ structuration    │ │  ║
 ║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
 ║  └─────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                      ▲                                            ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    COUCHE 2 : COMPREHENSION                                │  ║
+║  │              COUCHE 2 : EDGE INTELLIGENCE                                 │  ║
 ║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
-║  │  │ 10 regles   │ │ Contextualisa-│ │ Correlation  │ │ Scoring de       │ │  ║
-║  │  │ expert      │ │ tion GMAO     │ │ symptomes/   │ │ sante machine    │ │  ║
-║  │  │ deterministes│ │ (heures, OT) │ │ causes       │ │ (Health Score)   │ │  ║
+║  │  │ Pre-traite- │ │ Detection     │ │ Agents       │ │ Scoring de       │  │  ║
+║  │  │ ment local  │ │ anomalies     │ │ equipement   │ │ sante machine    │  │  ║
+║  │  │ filtrage    │ │ temps reel    │ │ autonomes    │ │ (Health Score)   │  │  ║
 ║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
 ║  └─────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                      ▲                                            ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    COUCHE 1 : PERCEPTION                                   │  ║
+║  │              COUCHE 1 : PHYSIQUE                                          │  ║
 ║  │  ┌─────────────┐ ┌───────────────┐ ┌──────────────┐ ┌───────────────────┐ │  ║
-║  │  │ Capteurs IoT│ │ Detection     │ │ Seuils       │ │ Collecte temps   │ │  ║
-║  │  │ MQTT/Modbus │ │ automatique   │ │ adaptatifs   │ │ reel 8 types     │ │  ║
-║  │  │ OPC-UA/LoRa │ │ de symptomes  │ │ par machine  │ │ de capteurs      │ │  ║
+║  │  │ Capteurs IoT│ │ Collecte      │ │ Protocoles   │ │ 8 types de       │ │  ║
+║  │  │ MQTT/Modbus │ │ donnees       │ │ industriels  │ │ capteurs         │ │  ║
+║  │  │ OPC-UA/LoRa │ │ temps reel    │ │ certifies    │ │ supportes        │ │  ║
 ║  │  └─────────────┘ └───────────────┘ └──────────────┘ └───────────────────┘ │  ║
 ║  └─────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                      ▲                                            ║
@@ -73,15 +85,20 @@
 ║                                                                                   ║
 ╠═══════════════════════════════════════════════════════════════════════════════════╣
 ║                                                                                   ║
-║  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────────┐    ║
-║  │  INFRASTRUCTURE   │  │  SECURITE &      │  │  INTERFACES                  │    ║
-║  │  ┌──────────────┐ │  │  CONFORMITE      │  │  ┌────────────────────────┐  │    ║
-║  │  │ Multi-tenant │ │  │  ┌──────────────┐│  │  │ Web (React 18)         │  │    ║
-║  │  │ SaaS         │ │  │  │ RBAC 7 roles ││  │  │ Mobile (React Native)  │  │    ║
-║  │  │ CI/CD AWS    │ │  │  │ SOC 2 / ISO  ││  │  │ API REST               │  │    ║
-║  │  │ PostgreSQL   │ │  │  │ CCTP / RGPD  ││  │  │ Portail Client         │  │    ║
-║  │  └──────────────┘ │  │  └──────────────┘│  │  └────────────────────────┘  │    ║
-║  └──────────────────┘  └──────────────────┘  └──────────────────────────────┘    ║
+║  ┌────────────────────┐  ┌──────────────────┐  ┌────────────────────────────┐    ║
+║  │  SYSTEME MULTI-     │  │  SECURITE &      │  │  INTERFACES                │    ║
+║  │  AGENTS DISTRIBUE   │  │  CONFORMITE      │  │  ┌──────────────────────┐  │    ║
+║  │  ┌────────────────┐ │  │  ┌──────────────┐│  │  │ Web (React 18)       │  │    ║
+║  │  │ Equipment Agent│ │  │  │ RBAC 7 roles ││  │  │ Mobile (React Native)│  │    ║
+║  │  │ Site Agent     │ │  │  │ SOC 2 / ISO  ││  │  │ API REST             │  │    ║
+║  │  │ Global Agent   │ │  │  │ CCTP / RGPD  ││  │  │ Portail Client       │  │    ║
+║  │  └────────────────┘ │  │  └──────────────┘│  │  └──────────────────────┘  │    ║
+║  └────────────────────┘  └──────────────────┘  └────────────────────────────┘    ║
+║                                                                                   ║
+║  ┌──────────────────────────────────────────────────────────────────────────┐     ║
+║  │  PLATEFORMES DE COMMUNICATION                                            │     ║
+║  │  Slack │ Teams │ Telegram │ WhatsApp │ Webhooks personnalises            │     ║
+║  └──────────────────────────────────────────────────────────────────────────┘     ║
 ║                                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════════════════════╝
 ```
@@ -102,9 +119,9 @@
 
 ---
 
-## A. COUCHE 1 — PERCEPTION (Systeme nerveux peripherique)
+## A. COUCHE 1 — PHYSIQUE (Capteurs et collecte de donnees)
 
-*Donner a la machine la capacite de "sentir" son propre etat*
+*Donner a la machine la capacite de "sentir" son propre etat via capteurs IoT, collecte de donnees et protocoles industriels*
 
 ### A.1 Connecteur IoT multi-protocole
 
@@ -149,32 +166,27 @@
 
 ---
 
-## B. COUCHE 2 — COMPREHENSION (Reflexes et analyse)
+## B. COUCHE 2 — EDGE INTELLIGENCE (Pre-traitement et detection temps reel)
 
-*Donner a la machine la capacite de "comprendre" ce qu'elle ressent*
+*Pre-traitement local, detection d'anomalies en temps reel, agents equipement autonomes*
 
-### B.1 Moteur de regles expert
-
-| Sous-module | Statut | Detail | R&D restante |
-|---|---|---|---|
-| 10 regles deterministes | **OPERATIONNEL** | Vibration, temperature, pression, courant, bruit par type d'equipement (moteur, pompe, compresseur, convoyeur, turbine) | — |
-| Matching symptome → cause → action | **OPERATIONNEL** | Confiance 70-95% selon les regles | — |
-| Support multi-equipement | **OPERATIONNEL** | 5 types d'equipements couverts | Etendre a 15+ types |
-| Regles configurables par tenant | **PARTIEL** | Structure prevue | Interface d'edition de regles par le client |
-
-**Estimation R&D restante : 20 000 - 35 000 EUR**
-
-### B.2 Contextualisation GMAO
+### B.1 Pre-traitement et filtrage
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Heures machine (machineHours) | **OPERATIONNEL** | Integration compteurs + fallback | — |
-| Historique des ordres de travail | **OPERATIONNEL** | Derniers OT integres au diagnostic | — |
-| Criticite equipement | **OPERATIONNEL** | Prise en compte dans le scoring | — |
-| Stock pieces disponibles | **OPERATIONNEL** | Verification stock dans preconisations | — |
-| Compteurs de maintenance | **OPERATIONNEL** | Tables maintenance_counters + counter_history | — |
+| Filtrage de donnees brutes | **OPERATIONNEL** | Pre-traitement avant envoi au core | — |
+| Agregation temporelle | **OPERATIONNEL** | Moyenne, min, max par fenetre | — |
+| Detection d'anomalies (z-score) | **OPERATIONNEL** | Algorithme statistique sur series temporelles | — |
+| Analyse de tendance | **OPERATIONNEL** | Calcul de tendance lineaire | — |
 
-**Estimation R&D restante : 0 EUR (module complet)**
+### B.2 Agents equipement (Equipment Agents)
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Perception locale par equipement | **OPERATIONNEL** | equipment-agent.ts, metriques individuelles | — |
+| Detection anomalies autonome | **OPERATIONNEL** | Detection temps reel par agent | — |
+| Seuils adaptatifs par machine | **OPERATIONNEL** | Seuils configurables par equipement | Auto-calibration par apprentissage |
+| Health Score individuel | **OPERATIONNEL** | Score de sante 0-100 par machine | — |
 
 ### B.3 Scoring de sante machine (Machine Health Score)
 
@@ -192,8 +204,6 @@
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Detection d'anomalies (z-score) | **OPERATIONNEL** | Algorithme statistique sur series temporelles | — |
-| Analyse de tendance | **OPERATIONNEL** | Calcul de tendance lineaire | — |
 | Prediction de defaillance | **PARTIEL** | Modeles basiques par type d'equipement | Deep learning sur series temporelles (LSTM, Transformer) |
 | Remaining Useful Life (RUL) | **A DEVELOPPER** | — | Estimation duree de vie restante par composant |
 | Prediction 72h+ | **A DEVELOPPER** | — | Modeles de prevision avancee |
@@ -202,11 +212,31 @@
 
 ---
 
-## C. COUCHE 3 — MEMOIRE (Capitalisation et apprentissage)
+## C. COUCHE 3 — COGNITIVE CORE (Knowledge Graph, regles expert, IA)
 
-*Donner a la machine une memoire a long terme qui s'enrichit continuellement*
+*Le noyau cognitif : Knowledge Graph 48+ noeuds, moteur de regles expert, similarite historique 120+ cas, IA Claude*
 
-### C.1 Base de similarite historique
+### C.1 Knowledge Graph
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Graphe de connaissances 48+ noeuds | **OPERATIONNEL** | knowledge-graph.ts, noeuds equipements, symptomes, causes, actions | — |
+| Relations semantiques | **OPERATIONNEL** | Liens causes → symptomes → actions | — |
+| Navigation et interrogation | **OPERATIONNEL** | API cognitive-routes.ts | — |
+| Enrichissement continu | **OPERATIONNEL** | Mise a jour automatique via feedback | — |
+
+### C.2 Moteur de regles expert
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| 10 regles deterministes | **OPERATIONNEL** | Vibration, temperature, pression, courant, bruit par type d'equipement (moteur, pompe, compresseur, convoyeur, turbine) | — |
+| Matching symptome → cause → action | **OPERATIONNEL** | Confiance 70-95% selon les regles | — |
+| Support multi-equipement | **OPERATIONNEL** | 5 types d'equipements couverts | Etendre a 15+ types |
+| Regles configurables par tenant | **PARTIEL** | Structure prevue | Interface d'edition de regles par le client |
+
+**Estimation R&D restante : 20 000 - 35 000 EUR**
+
+### C.3 Base de similarite historique
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -217,19 +247,103 @@
 
 **Estimation R&D restante : 40 000 - 60 000 EUR**
 
-### C.2 Memoire des defaillances (Failure Memory)
+### C.4 IA Claude (Anthropic)
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Structuration par Anthropic Claude | **OPERATIONNEL** | Mise en forme et enrichissement du diagnostic | — |
+| Assistant IA conversationnel | **OPERATIONNEL** | Page ai-assistant.tsx | — |
+| Analyse de symptomes inconnus | **OPERATIONNEL** | cloud-diagnostic.ts | — |
+| Analyse de similarite semantique | **OPERATIONNEL** | analyzeSymptomSimilarity | — |
+| Insights de maintenance | **OPERATIONNEL** | generateMaintenanceInsights | — |
+| Diagnostic par email | **OPERATIONNEL** | Page email-diagnostic.tsx | — |
+
+**Estimation R&D restante : 0 EUR (module complet)**
+
+### C.5 Contextualisation GMAO
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Heures machine (machineHours) | **OPERATIONNEL** | Integration compteurs + fallback | — |
+| Historique des ordres de travail | **OPERATIONNEL** | Derniers OT integres au diagnostic | — |
+| Criticite equipement | **OPERATIONNEL** | Prise en compte dans le scoring | — |
+| Stock pieces disponibles | **OPERATIONNEL** | Verification stock dans preconisations | — |
+| Compteurs de maintenance | **OPERATIONNEL** | Tables maintenance_counters + counter_history | — |
+
+**Estimation R&D restante : 0 EUR (module complet)**
+
+---
+
+## D. COUCHE 4 — ORCHESTRATION & EXECUTION (Cognitive Kernel et boucle fermee)
+
+*Cognitive Kernel, Policy Engine, boucle fermee Detection → Diagnostic → Decision → Action → Feedback → Learning*
+
+### D.1 Cognitive Kernel
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Orchestrateur central | **OPERATIONNEL** | cognitive-kernel/index.ts, coordination des 6 couches | — |
+| Policy Engine | **OPERATIONNEL** | Regles metier et decisionnelles | — |
+| Boucle fermee complete | **OPERATIONNEL** | Detection → Diagnostic → Decision → Action → Feedback → Learning | — |
+| Mode degrade sans IA | **OPERATIONNEL** | Les regles expert fonctionnent offline | — |
+
+### D.2 Pipeline de diagnostic hybride
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Pipeline triple couche (regles + similarite + IA) | **OPERATIONNEL** | hybrid-diagnostic-pipeline.ts, confiance jusqu'a 98% | — |
+| Facteurs de confiance explicables | **OPERATIONNEL** | "Regle expert activee", "12 cas similaires", etc. | — |
+| Conformite CCTP | **OPERATIONNEL** | Tracabilite, auditabilite, non-dependance IA | — |
+| Diagnostic vocal | **OPERATIONNEL** | Interface vocale pour saisie de symptomes | — |
+
+**Estimation R&D restante : 0 EUR (module complet)**
+
+### D.3 IA ensemble avancee
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| 9 algorithmes ML combines | **OPERATIONNEL** | Ensemble de modeles pour diagnostics robustes | — |
+| Modeles specifiques par secteur | **A DEVELOPPER** | — | Modeles pre-entraines par industrie (cimenterie, agroalimentaire, mines, energie) |
+| AutoML pour optimisation | **A DEVELOPPER** | — | Selection automatique du meilleur modele par contexte |
+
+**Estimation R&D restante : 80 000 - 120 000 EUR**
+
+---
+
+## E. COUCHE 5 — LEARNING & KNOWLEDGE (Apprentissage continu et memoire)
+
+*Apprentissage continu, memoire des defaillances, modeles hybrides physique+data, federation inter-tenant*
+
+### E.1 Apprentissage continu
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Systeme de continuous learning | **OPERATIONNEL** | Apprentissage adaptatif en temps reel | — |
+| Adaptive learning | **OPERATIONNEL** | Table adaptive_learning | — |
+| Indicateurs d'apprentissage | **OPERATIONNEL** | Tables learning_metrics, model_performance | — |
+| Boucle de feedback technicien | **OPERATIONNEL** | Validation/correction post-intervention | — |
+
+### E.2 Memoire des defaillances (Failure Memory)
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
 | Capitalisation automatique | **OPERATIONNEL** | Table failure_memory, insertion apres validation technicien | — |
-| Boucle de feedback technicien | **OPERATIONNEL** | Validation/correction post-intervention | — |
 | Enrichissement base a chaque intervention | **OPERATIONNEL** | Les cas valides alimentent les futurs diagnostics | — |
 | Tracking des tendances de defaillance | **OPERATIONNEL** | Table failure_trends | — |
-| Indicateurs d'apprentissage | **OPERATIONNEL** | Tables learning_metrics, model_performance | — |
 
 **Estimation R&D restante : 0 EUR (module complet)**
 
-### C.3 Apprentissage federe inter-tenants
+### E.3 Modeles hybrides physique+data
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Modeles physiques d'equipements | **OPERATIONNEL** | physics-models.ts, modeles mecaniques et thermiques | — |
+| Fusion donnees capteurs + modeles physiques | **PARTIEL** | Integration basique | Deep learning + modeles physiques combines |
+| Calibration automatique | **A DEVELOPPER** | — | Auto-ajustement des parametres physiques |
+
+**Estimation R&D restante : 50 000 - 80 000 EUR**
+
+### E.4 Apprentissage federe inter-tenants
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -243,102 +357,122 @@
 
 ---
 
-## D. COUCHE 4 — COGNITION (Raisonnement et intelligence)
+## F. COUCHE 6 — GOVERNANCE & TRUST (Explainabilite, audit et conformite)
 
-*Donner a la machine la capacite de "raisonner" sur ses propres symptomes*
+*Explainabilite CCTP, audit decisionnel, simulation what-if, niveaux d'autonomie 0-5*
 
-### D.1 Pipeline de diagnostic hybride
-
-| Sous-module | Statut | Detail | R&D restante |
-|---|---|---|---|
-| Pipeline triple couche (regles + similarite + IA) | **OPERATIONNEL** | hybrid-diagnostic-pipeline.ts, confiance jusqu'a 98% | — |
-| Structuration par Anthropic Claude | **OPERATIONNEL** | Mise en forme et enrichissement du diagnostic | — |
-| Facteurs de confiance explicables | **OPERATIONNEL** | "Regle expert activee", "12 cas similaires", etc. | — |
-| Conformite CCTP | **OPERATIONNEL** | Tracabilite, auditabilite, non-dependance IA | — |
-| Mode degrade sans IA | **OPERATIONNEL** | Les regles expert fonctionnent offline | — |
-| Diagnostic vocal | **OPERATIONNEL** | Interface vocale pour saisie de symptomes | — |
-
-**Estimation R&D restante : 0 EUR (module complet)**
-
-### D.2 Diagnostic cloud avance
+### F.1 Explainabilite et conformite CCTP
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Analyse de symptomes inconnus | **OPERATIONNEL** | cloud-diagnostic.ts | — |
-| Analyse de similarite semantique | **OPERATIONNEL** | analyzeSymptomSimilarity | — |
-| Insights de maintenance | **OPERATIONNEL** | generateMaintenanceInsights | — |
-| Diagnostic par email | **OPERATIONNEL** | Page email-diagnostic.tsx | — |
-| Assistant IA conversationnel | **OPERATIONNEL** | Page ai-assistant.tsx | — |
+| Tracabilite complete des decisions | **OPERATIONNEL** | cctp-compliance-system.ts, audit trail | — |
+| Facteurs de confiance explicables | **OPERATIONNEL** | Justification de chaque diagnostic | — |
+| Non-dependance IA (mode degrade) | **OPERATIONNEL** | Regles expert fonctionnent sans IA | — |
+| Rapports de conformite automatises | **OPERATIONNEL** | Generation rapports CCTP | — |
 
-**Estimation R&D restante : 0 EUR (module complet)**
-
-### D.3 IA ensemble avancee
+### F.2 Audit decisionnel
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| 9 algorithmes ML combines | **OPERATIONNEL** | Ensemble de modeles pour diagnostics robustes | — |
-| Apprentissage continu | **OPERATIONNEL** | Systeme de continuous learning | — |
-| Adaptive learning | **OPERATIONNEL** | Table adaptive_learning | — |
-| Modeles specifiques par secteur | **A DEVELOPPER** | — | Modeles pre-entraines par industrie (cimenterie, agroalimentaire, mines, energie) |
-| AutoML pour optimisation | **A DEVELOPPER** | — | Selection automatique du meilleur modele par contexte |
+| Audit logs complets | **OPERATIONNEL** | Tracabilite complete de toutes les actions | — |
+| Revue des decisions IA | **OPERATIONNEL** | audit-review-system.ts | — |
+| Tableaux de bord audit | **OPERATIONNEL** | Visualisation des decisions et performances | — |
 
-**Estimation R&D restante : 80 000 - 120 000 EUR**
-
----
-
-## E. COUCHE 5 — AUTONOMIE (La frontiere — R&D pure)
-
-*Donner a la machine la capacite d'agir sur elle-meme*
-
-### E.1 Jumeaux numeriques (Digital Twins)
+### F.3 Simulation what-if
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Modelisation 3D des equipements | **A DEVELOPPER** | — | Moteur 3D web (Three.js / Babylon.js) |
-| Representation en temps reel de l'etat | **A DEVELOPPER** | — | Mapping capteurs → modele 3D |
-| Simulation de scenarios de panne | **A DEVELOPPER** | — | Moteur de simulation physique |
-| "What-if" analysis | **A DEVELOPPER** | — | Simuler l'impact de decisions de maintenance |
+| Scenarios de simulation | **PARTIEL** | Simulation basique | Moteur de simulation physique avance |
+| Impact analysis | **A DEVELOPPER** | — | Simuler l'impact de decisions de maintenance |
+| Jumeaux numeriques (Digital Twins) | **A DEVELOPPER** | — | Moteur 3D web (Three.js / Babylon.js) |
 
 **Estimation R&D restante : 200 000 - 400 000 EUR**
 
-### E.2 Auto-planification des interventions
+### F.4 Niveaux d'autonomie 0-5
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Creation automatique d'OT predictifs | **A DEVELOPPER** | — | Declenchement auto base sur score de sante + prediction |
-| Optimisation du planning techniciens | **A DEVELOPPER** | — | Algorithme d'optimisation (contraintes, competences, zones) |
-| Reservation automatique de pieces | **A DEVELOPPER** | — | Lien stock → prediction → commande auto |
+| Niveau 0 : Manuel complet | **OPERATIONNEL** | Tout valide par l'humain | — |
+| Niveau 1 : Suggestions | **OPERATIONNEL** | IA suggere, humain decide | — |
+| Niveau 2 : Assistance | **OPERATIONNEL** | IA prepare, humain valide | — |
+| Niveau 3 : Semi-autonome | **PARTIEL** | Actions mineures automatisees | Perimetre a definir |
+| Niveau 4 : Autonome supervise | **A DEVELOPPER** | — | IA agit, humain supervise |
+| Niveau 5 : Autonome complet | **A DEVELOPPER** | — | IA agit, intervention humaine exceptionnelle |
 
 **Estimation R&D restante : 80 000 - 150 000 EUR**
 
-### E.3 Auto-commande de pieces detachees
+---
+
+## G. SYSTEME MULTI-AGENTS DISTRIBUE
+
+*Architecture distribuee avec trois niveaux d'agents intelligents*
+
+### G.1 Equipment Agent (Agent equipement)
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Prediction de consommation de pieces | **A DEVELOPPER** | — | Modele previsionnel base sur historique et predictions de pannes |
-| Commande automatique fournisseur | **SCHEMA** | Tables suppliers, purchase_orders, reorder_rules presentes | Logique metier de commande automatique |
-| Optimisation des niveaux de stock | **PARTIEL** | Regles de reapprovisionnement basiques | Algorithme d'optimisation multi-criteres |
+| Perception locale | **OPERATIONNEL** | server/agents/equipment-agent.ts, collecte et analyse par equipement | — |
+| Detection d'anomalies | **OPERATIONNEL** | Detection temps reel par agent individuel | — |
+| Metriques individuelles | **OPERATIONNEL** | Health score, tendances, alertes par machine | — |
+| Communication ascendante | **OPERATIONNEL** | Remontee d'alertes vers le Site Agent | — |
 
-**Estimation R&D restante : 60 000 - 100 000 EUR**
-
-### E.4 Orchestration inter-machines
+### G.2 Site Agent (Agent site)
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Communication machine-a-machine | **A DEVELOPPER** | — | Protocole de coordination entre equipements |
-| Optimisation de ligne de production | **A DEVELOPPER** | — | IA d'optimisation globale multi-machines |
-| Equilibrage de charge intelligent | **A DEVELOPPER** | — | Redistribution de charge en cas de degradation |
-| Arret coordonne preventif | **A DEVELOPPER** | — | Planification d'arret minimisant l'impact production |
+| Coordination multi-equipements | **OPERATIONNEL** | server/agents/site-agent.ts, vision globale du site | — |
+| Prevention cascade | **OPERATIONNEL** | Detection de pannes en cascade entre equipements | — |
+| Correlation inter-equipements | **OPERATIONNEL** | Analyse des interactions et dependances | — |
+| Optimisation locale | **OPERATIONNEL** | Decisions de maintenance coordonnees | — |
 
-**Estimation R&D restante : 150 000 - 300 000 EUR**
+### G.3 Global Agent (Agent global)
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Apprentissage inter-sites | **OPERATIONNEL** | server/agents/global-agent.ts, patterns globaux | — |
+| Patterns globaux | **OPERATIONNEL** | Detection de tendances cross-site | — |
+| Optimisation globale | **OPERATIONNEL** | Recommandations basees sur l'ensemble du parc | — |
+| Federation de connaissances | **PARTIEL** | Partage anonymise | Federation reelle (Federated Averaging) |
+
+**Estimation R&D restante : 40 000 - 70 000 EUR**
 
 ---
 
-## F. SOCLE OPERATIONNEL — GMAO & ERP
+## H. INTEGRATIONS PLATEFORMES DE COMMUNICATION
+
+*Dispatch multi-plateforme, filtrage par severite et type d'evenement, historique des envois*
+
+### H.1 Plateformes supportees
+
+| Plateforme | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Slack | **OPERATIONNEL** | Notifications, alertes, rapports | — |
+| Microsoft Teams | **OPERATIONNEL** | Integration webhooks et messages | — |
+| Telegram | **OPERATIONNEL** | Bot de notification | — |
+| WhatsApp | **OPERATIONNEL** | Notifications via API | — |
+| Webhooks personnalises | **OPERATIONNEL** | Endpoints configurables par tenant | — |
+| Email (SendGrid) | **OPERATIONNEL** | Notifications, diagnostics, invitations | — |
+
+### H.2 Moteur de dispatch
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Dispatch multi-plateforme | **OPERATIONNEL** | server/integrations/communication-dispatcher.ts | — |
+| Filtrage par severite | **OPERATIONNEL** | Configuration par niveau d'alerte | — |
+| Filtrage par type d'evenement | **OPERATIONNEL** | Diagnostic, maintenance, stock, IoT | — |
+| Historique des envois | **OPERATIONNEL** | Tracabilite complete des notifications | — |
+| Statistiques d'envoi | **OPERATIONNEL** | Metriques de deliverabilite et engagement | — |
+| Configuration par tenant | **OPERATIONNEL** | Chaque tenant configure ses canaux | — |
+
+**Estimation R&D restante : 0 EUR (module complet)**
+
+---
+
+## I. SOCLE OPERATIONNEL — GMAO & ERP
 
 *La colonne vertebrale qui alimente et est alimentee par le cerveau cognitif*
 
-### F.1 Gestion des equipements
+### I.1 Gestion des equipements
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -350,7 +484,7 @@
 
 **Estimation R&D restante : 15 000 - 25 000 EUR**
 
-### F.2 Ordres de travail
+### I.2 Ordres de travail
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -360,11 +494,11 @@
 | Suivi des temps et couts | **OPERATIONNEL** | Duree, pieces, main d'oeuvre | — |
 | Lien diagnostic → OT | **OPERATIONNEL** | Creation d'OT depuis un diagnostic | — |
 | Pieces justificatives | **OPERATIONNEL** | Upload de documents (PDF, images) | — |
-| Planification automatique | **A DEVELOPPER** | — | Algorithme d'optimisation planning (voir E.2) |
+| Planification automatique | **A DEVELOPPER** | — | Algorithme d'optimisation planning |
 
-**Estimation R&D restante : 0 EUR (module complet pour le socle, automatisation dans Couche 5)**
+**Estimation R&D restante : 0 EUR (module complet pour le socle)**
 
-### F.3 Maintenance preventive
+### I.3 Maintenance preventive
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -375,7 +509,7 @@
 
 **Estimation R&D restante : 30 000 - 50 000 EUR**
 
-### F.4 Gestion des stocks et pieces detachees
+### I.4 Gestion des stocks et pieces detachees
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -386,7 +520,7 @@
 
 **Estimation R&D restante : 20 000 - 30 000 EUR**
 
-### F.5 Achats et fournisseurs
+### I.5 Achats et fournisseurs
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -397,7 +531,7 @@
 
 **Estimation R&D restante : 25 000 - 40 000 EUR**
 
-### F.6 Rapports et KPIs
+### I.6 Rapports et KPIs
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -414,9 +548,9 @@
 
 ---
 
-## G. INFRASTRUCTURE & PLATEFORME
+## J. INFRASTRUCTURE & PLATEFORME
 
-### G.1 Architecture multi-tenant SaaS
+### J.1 Architecture multi-tenant SaaS
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -429,7 +563,7 @@
 
 **Estimation R&D restante : 0 EUR (module complet)**
 
-### G.2 Securite et conformite
+### J.2 Securite et conformite
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -447,7 +581,7 @@
 
 **Estimation R&D restante : 70 000 - 120 000 EUR**
 
-### G.3 Paiements et monetisation
+### J.3 Paiements et monetisation
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -459,7 +593,7 @@
 
 **Estimation R&D restante : 40 000 - 70 000 EUR**
 
-### G.4 Deploiement et DevOps
+### J.4 Deploiement et DevOps
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -475,22 +609,24 @@
 
 ---
 
-## H. INTERFACES UTILISATEUR
+## K. INTERFACES UTILISATEUR
 
-### H.1 Application web
+### K.1 Application web
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| 53 pages fonctionnelles | **OPERATIONNEL** | Toutes les pages listees | — |
+| 53+ pages fonctionnelles | **OPERATIONNEL** | Toutes les pages listees | — |
 | Design glassmorphism | **OPERATIONNEL** | UI/UX moderne | — |
 | Internationalisation (FR/EN) | **OPERATIONNEL** | Systeme i18n complet | — |
 | Mode sombre | **OPERATIONNEL** | Toggle dark/light | — |
 | Portail client | **OPERATIONNEL** | Acces token pour clients | — |
 | Dashboard super-admin | **OPERATIONNEL** | Gestion globale | — |
+| Dashboard infrastructure cognitive | **OPERATIONNEL** | Visualisation des 6 couches | — |
+| Dashboard apprentissage | **OPERATIONNEL** | Metriques learning et performance IA | — |
 
 **Estimation R&D restante : 0 EUR (module complet)**
 
-### H.2 Application mobile
+### K.2 Application mobile
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -506,7 +642,7 @@
 
 **Estimation R&D restante : 50 000 - 90 000 EUR**
 
-### H.3 Integrations externes
+### K.3 Integrations externes
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -519,7 +655,7 @@
 
 **Estimation R&D restante : 100 000 - 200 000 EUR**
 
-### H.4 Gamification et formation
+### K.4 Gamification et formation
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
@@ -535,27 +671,53 @@
 
 ---
 
+## STACK TECHNIQUE
+
+| Composant | Technologie | Detail |
+|---|---|---|
+| **Frontend** | React 18 + TypeScript | SPA avec Vite, TailwindCSS, shadcn/ui |
+| **Backend** | Node.js + Express | API REST, TypeScript |
+| **Base de donnees** | PostgreSQL (Neon) | Drizzle ORM, multi-tenant |
+| **IA** | Anthropic Claude | Structuration diagnostics, assistant conversationnel |
+| **IoT** | MQTT, Modbus, OPC-UA, LoRaWAN | Simulation operationnelle, integration reelle en cours |
+| **Mobile** | React Native + Expo | Mode offline SQLite, scanner QR |
+| **Authentification** | bcrypt, sessions, MFA (TOTP) | JWT, OIDC, enterprise auth |
+| **Paiements** | Stripe, PayPal | Integration complete |
+| **Email** | SendGrid | Notifications, invitations, diagnostics |
+| **Communication** | Slack, Teams, Telegram, WhatsApp | Dispatch multi-plateforme |
+| **DevOps** | Docker, GitHub Actions, AWS ECS | CI/CD complet |
+| **Infrastructure** | AWS (ECS Fargate, EC2, CloudFormation) | Multi-region capable |
+| **Monitoring** | Grafana, Prometheus | Dashboards et metriques |
+| **Cache** | Redis | Sessions, cache de donnees |
+| **Cognitive** | Knowledge Graph, Regles Expert, ML Ensemble | 6 couches cognitives |
+| **Agents** | Equipment, Site, Global | Systeme multi-agents distribue |
+
+---
+
 ## SYNTHESE R&D — CE QUI RESTE A FAIRE
 
 ### Par couche cognitive
 
 | Couche | Modules operationnels | Modules a developper | Budget R&D estime |
 |---|---|---|---|
-| **Couche 1 : Perception** | Detection symptomes, simulation IoT, stockage capteurs | Protocoles reels (MQTT, Modbus, OPC-UA, LoRaWAN), edge computing | **260 000 - 470 000 EUR** |
-| **Couche 2 : Comprehension** | Regles expert, contextualisation GMAO, health score, anomalies | Deep learning series temporelles, RUL, prediction 72h+, benchmark | **145 000 - 275 000 EUR** |
-| **Couche 3 : Memoire** | 120 cas, failure memory, boucle feedback, tendances | Recherche semantique vectorielle, federation reelle, benchmark cross-sectoriel | **120 000 - 210 000 EUR** |
-| **Couche 4 : Cognition** | Pipeline hybride, diagnostic cloud, IA ensemble, assistant | Modeles par secteur, AutoML | **80 000 - 120 000 EUR** |
-| **Couche 5 : Autonomie** | — | Jumeaux numeriques, auto-planification, auto-commande, orchestration | **490 000 - 950 000 EUR** |
+| **Couche 1 : Physique** | Simulation IoT, stockage capteurs, 8 types capteurs | Protocoles reels (MQTT, Modbus, OPC-UA, LoRaWAN), edge computing | **260 000 - 470 000 EUR** |
+| **Couche 2 : Edge Intelligence** | Agents equipement, detection anomalies, health score | Deep learning series temporelles, RUL, prediction 72h+ | **125 000 - 240 000 EUR** |
+| **Couche 3 : Cognitive Core** | Knowledge Graph 48+ noeuds, regles expert, 120 cas, IA Claude | Recherche semantique vectorielle, regles configurables | **60 000 - 95 000 EUR** |
+| **Couche 4 : Orchestration & Execution** | Cognitive Kernel, pipeline hybride, boucle fermee | Modeles par secteur, AutoML | **80 000 - 120 000 EUR** |
+| **Couche 5 : Learning & Knowledge** | Failure memory, apprentissage continu, feedback, tendances | Federation reelle, modeles hybrides avances | **130 000 - 230 000 EUR** |
+| **Couche 6 : Governance & Trust** | CCTP, audit, explainabilite, niveaux 0-2 | Simulation what-if, jumeaux numeriques, niveaux 3-5 | **280 000 - 550 000 EUR** |
+| **Multi-Agents** | Equipment, Site, Global agents operationnels | Federation reelle | **40 000 - 70 000 EUR** |
+| **Communication** | Slack, Teams, Telegram, WhatsApp, Webhooks, Email | — | **0 EUR (complet)** |
 | **Socle GMAO/ERP** | Equipements, OT, preventif, stocks, achats, rapports | Hierarchie actifs, commande auto, rapports cognitifs | **120 000 - 195 000 EUR** |
-| **Infrastructure** | Multi-tenant, securite, paiements, CI/CD | Certifications, SSO, Mobile Money, auto-scaling, monitoring | **140 000 - 240 000 EUR** |
-| **Interfaces** | Web (53 pages), mobile offline, gamification | Notifications push, AR, publications stores, integrations ERP reelles | **190 000 - 350 000 EUR** |
+| **Infrastructure** | Multi-tenant, securite, paiements, CI/CD | Certifications, SSO, Mobile Money, auto-scaling | **140 000 - 240 000 EUR** |
+| **Interfaces** | Web (53+ pages), mobile offline, gamification | Notifications push, AR, publications stores, integrations ERP | **190 000 - 350 000 EUR** |
 
 ### Total global
 
 | Categorie | Budget minimum | Budget maximum |
 |---|---|---|
-| **Deja developpe (valeur estimee)** | **800 000 EUR** | **1 200 000 EUR** |
-| **R&D restante (toutes couches)** | **1 545 000 EUR** | **2 810 000 EUR** |
+| **Deja developpe (valeur estimee)** | **900 000 EUR** | **1 400 000 EUR** |
+| **R&D restante (toutes couches)** | **1 425 000 EUR** | **2 560 000 EUR** |
 
 ### Priorites de R&D par horizon temporel
 
@@ -589,8 +751,8 @@
 | Priorite | Module | Budget |
 |---|---|---|
 | P1 | Jumeaux numeriques 3D | 200 000 - 400 000 EUR |
-| P1 | Auto-planification interventions | 80 000 - 150 000 EUR |
-| P2 | Orchestration inter-machines | 150 000 - 300 000 EUR |
+| P1 | Niveaux d'autonomie 3-5 | 80 000 - 150 000 EUR |
+| P2 | Orchestration inter-machines avancee | 150 000 - 300 000 EUR |
 | P2 | Realite augmentee mobile | 40 000 EUR |
 | P2 | Apprentissage federe reel (FL) | 80 000 - 150 000 EUR |
 | P3 | Auto-commande pieces | 60 000 - 100 000 EUR |
@@ -601,21 +763,24 @@
 ## INDICATEURS DE MATURITE PAR COUCHE
 
 ```
-COUCHE 5 : AUTONOMIE         ░░░░░░░░░░░░░░░░░░░░  0%   ← Frontiere R&D
-COUCHE 4 : COGNITION         ████████████████████  95%  ← Quasi-complete
-COUCHE 3 : MEMOIRE           ██████████████░░░░░░  70%  ← Federation a renforcer
-COUCHE 2 : COMPREHENSION     ████████████████░░░░  80%  ← Predictif a approfondir
-COUCHE 1 : PERCEPTION        ████████████░░░░░░░░  60%  ← Protocoles reels + edge
-SOCLE GMAO/ERP               ██████████████████░░  90%  ← Presque complet
-INFRASTRUCTURE                ██████████████████░░  85%  ← Certifications restantes
-INTERFACES                    ████████████████░░░░  80%  ← Stores + AR
-─────────────────────────────────────────────────────────
-MATURITE GLOBALE              ████████████████░░░░  72%
+COUCHE 6 : GOVERNANCE & TRUST   ████████████░░░░░░░░  60%  ← What-if et niveaux 3-5 a completer
+COUCHE 5 : LEARNING & KNOWLEDGE ██████████████░░░░░░  70%  ← Federation a renforcer
+COUCHE 4 : ORCHESTRATION & EXEC ████████████████████  95%  ← Quasi-complete
+COUCHE 3 : COGNITIVE CORE       ██████████████████░░  90%  ← Recherche semantique a ameliorer
+COUCHE 2 : EDGE INTELLIGENCE    ████████████████░░░░  80%  ← Predictif a approfondir
+COUCHE 1 : PHYSIQUE             ████████████░░░░░░░░  60%  ← Protocoles reels + edge
+MULTI-AGENTS                     ██████████████████░░  85%  ← Federation reelle
+COMMUNICATION                    ████████████████████  100% ← Complet
+SOCLE GMAO/ERP                   ██████████████████░░  90%  ← Presque complet
+INFRASTRUCTURE                   ██████████████████░░  85%  ← Certifications restantes
+INTERFACES                       ████████████████░░░░  80%  ← Stores + AR
+─────────────────────────────────────────────────────────────
+MATURITE GLOBALE                 ████████████████░░░░  80%
 ```
 
 ---
 
 **Document prepare par l'equipe Maintrix**
-**Fevrier 2026**
+**Fevrier 2026 — Version 2.0**
 
-*Ce document constitue la feuille de route technique complete de Maintrix. Il doit etre mis a jour a chaque milestone de developpement.*
+*Ce document constitue la reference architecturale unique et la feuille de route technique complete de Maintrix. Il doit etre mis a jour a chaque milestone de developpement.*

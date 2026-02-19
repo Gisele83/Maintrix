@@ -48,6 +48,8 @@ npm start
 - **Application Web** : http://localhost:5000
 - **Smart Diagnostic IA** : http://localhost:5000/smart-diagnostic
 - **GMAO Dashboard** : http://localhost:5000/gmao-dashboard
+- **Infrastructure Cognitive** : http://localhost:5000/cognitive-infrastructure
+- **Intégrations Communication** : http://localhost:5000/communication-integrations
 - **API Health** : http://localhost:5000/api/health
 
 ---
@@ -97,7 +99,20 @@ sudo /opt/maintrix/scripts/update.sh
 4. Planifier la maintenance préventive
 5. Suivre les KPIs (MTBF, MTTR, OEE)
 
-### **3. Application Mobile**
+### **3. Infrastructure Cognitive**
+1. Accéder à `/cognitive-infrastructure`
+2. Explorer les 6 couches cognitives (Perception → Gouvernance)
+3. Visualiser le Knowledge Graph industriel
+4. Observer l'activité du système multi-agents
+5. Configurer les niveaux d'autonomie graduée
+
+### **4. Intégrations Communication**
+1. Accéder à `/communication-integrations`
+2. Configurer les canaux (Email, SMS, Slack, Teams)
+3. Définir les règles de routage par criticité
+4. Tester l'envoi de notifications
+
+### **5. Application Mobile**
 1. Scanner le QR code de l'équipement
 2. Suivre les procédures de réparation
 3. Mode hors ligne disponible
@@ -264,4 +279,4 @@ sudo certbot --nginx -d votre-domaine.com
 
 ---
 
-**🎯 En 5 minutes, vous avez une plateforme GMAO complète avec IA diagnostique prête pour la production !**
+**🎯 En 5 minutes, vous avez une Infrastructure Cognitive Industrielle complète avec architecture à 6 couches, Knowledge Graph et système multi-agents prête pour la production !**

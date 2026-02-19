@@ -242,7 +242,7 @@ L'ID d'équipement doit être unique. Laissez le champ vide pour une génératio
 
 ## 📚 Documentation Complète
 
-- **[ARCHITECTURE_MAINTRIX.md](./ARCHITECTURE_MAINTRIX.md)** - Architecture technique détaillée
+- **[ARCHITECTURE_GLOBALE_MAINTRIX.md](./ARCHITECTURE_GLOBALE_MAINTRIX.md)** - Architecture technique détaillée
 - **[MANUEL_UTILISATEUR_COMPLET.md](./MANUEL_UTILISATEUR_COMPLET.md)** - Manuel utilisateur
 - **[RBAC_GUIDE.md](./RBAC_GUIDE.md)** - Guide des rôles et permissions
 - **[SECURITY_GUIDE.md](./SECURITY_GUIDE.md)** - Guide de sécurité

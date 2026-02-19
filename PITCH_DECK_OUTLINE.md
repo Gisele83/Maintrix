@@ -7,11 +7,12 @@
 ### **Slide 1: Titre & Accroche**
 ```
 Maintrix
-L'Intelligence Artificielle Révolutionne la Maintenance Industrielle
+Infrastructure Cognitive Industrielle
 
-"De 45 minutes à 8 minutes pour un diagnostic précis à 92%"
+"La première infrastructure cognitive qui apprend, raisonne et agit
+pour transformer votre maintenance industrielle"
 
-[Logo moderne + Image équipement industriel avec overlay IA]
+[Logo moderne + Visualisation architecture cognitive 6 couches]
 ```
 
 ---
@@ -25,6 +26,7 @@ La Maintenance Industrielle Aujourd'hui
 ❌ €2.5M coûts de pannes non prévues/an
 ❌ Pénurie d'experts techniques
 ❌ Formation longue nouveaux techniciens (6 mois)
+❌ Connaissances expertes perdues lors des départs
 
 [Graphiques illustrant chaque statistique]
 ```
@@ -33,51 +35,88 @@ La Maintenance Industrielle Aujourd'hui
 
 ### **Slide 3: Notre Solution**
 ```
-Maintrix - Assistant IA de Maintenance
+Maintrix — Infrastructure Cognitive Industrielle
 
-✅ Diagnostic automatisé en < 2 secondes
-✅ 92% de précision (vs 65% manuel)
-✅ 15+ types d'équipements supportés
-✅ Apprentissage continu auto-adaptatif
-✅ Interface moderne multilingue
+Bien plus qu'une GMAO : une infrastructure cognitive à 6 couches
+qui apprend, raisonne et agit de manière autonome
 
-[Screenshot interface principale avec résultats diagnostic]
+✅ Architecture cognitive 6 couches unique
+✅ Système multi-agents à autonomie graduée
+✅ Knowledge Graph industriel capitalisant l'expertise
+✅ Diagnostic automatisé en < 2 secondes (98% précision)
+✅ Apprentissage fédéré inter-sites
+
+[Schéma architecture cognitive avec les 6 couches]
 ```
 
 ---
 
-### **Slide 4: Démonstration Interactive**
+### **Slide 4: Architecture Cognitive — Notre Innovation**
+```
+6 COUCHES D'INTELLIGENCE INDUSTRIELLE
+
+🔌 Couche Physique (Edge & IoT)
+    → Collecte temps réel, traitement edge
+
+🧠 Noyau Cognitif (Cognitive Kernel)
+    → Raisonnement central, fusion multi-sources
+
+🔗 Knowledge Graph Industriel
+    → Capitalisation savoir, relations causales
+
+🤖 Orchestration Multi-Agents
+    → Agents spécialisés, autonomie graduée
+
+📚 Apprentissage Continu
+    → Apprentissage fédéré, adaptation contextuelle
+
+🏛️ Gouvernance & Conformité
+    → Audit cognitif, contrôle humain, RGPD
+
+[Diagramme empilé des 6 couches avec flux de données]
+```
+
+---
+
+### **Slide 5: Démonstration Interactive**
 ```
 DÉMO LIVE
-Diagnostic d'un Moteur Électrique
+Diagnostic Cognitif d'un Moteur Électrique
 
 Symptômes: "Vibrations + Échauffement"
-→ IA analyse en temps réel
-→ Résultat: Usure roulement (92% confiance)
-→ Solution + Coût + Planning
+→ Knowledge Graph analyse les relations causales
+→ Agents spécialisés convergent vers le diagnostic
+→ Résultat: Usure roulement (98% confiance)
+→ Solution + Coût + Planning + Pièces disponibles
 
 [Écran partagé pour démo en direct]
 ```
 
 ---
 
-### **Slide 5: Technologie IA Unique**
+### **Slide 6: Technologie Cognitive Unique**
 ```
-9 Algorithmes ML en Mode Ensemble
+Système Multi-Agents avec Knowledge Graph
 
-🧠 Random Forest + Gradient Boosting
-🧠 Support Vector Machine + Neural Networks  
-🧠 K-NN + Decision Tree + Logistic Regression
-🧠 Naive Bayes + AdaBoost + Extra Trees
+🧠 9 Algorithmes ML en Mode Ensemble
+   Random Forest + Gradient Boosting + SVM + Neural Networks
+   K-NN + Decision Tree + Logistic Regression
+   Naive Bayes + AdaBoost + Extra Trees
 
-= Consensus intelligent pour précision maximale
+🔗 Knowledge Graph Industriel
+   Relations causales symptôme → diagnostic → action
+   120+ cas industriels structurés en graphe
 
-[Diagramme architecture ML avec flow]
+🤖 Agents Autonomes Spécialisés
+   Agent Équipement • Agent Site • Agent Global
+   Coordination et consensus intelligent
+
+[Diagramme architecture cognitive avec flux agents]
 ```
 
 ---
 
-### **Slide 6: Équipements Couverts**
+### **Slide 7: Équipements Couverts**
 ```
 Couverture Industrielle Complète
 
@@ -95,23 +134,24 @@ STS • RTG • Reach Stacker • Spreaders
 
 ---
 
-### **Slide 7: Innovation - Apprentissage Continu**
+### **Slide 8: Innovation - Autonomie Graduée**
 ```
-Auto-Amélioration Permanente
+Intelligence Cognitive à Autonomie Graduée
 
-📊 Feedback utilisateur temps réel
-🔄 Réentraînement automatique modèles
-📈 Métriques performance continues  
-🎯 Adaptation contextuelle équipes
+📊 Niveau 1 — Assistance : IA suggère, humain décide
+🔄 Niveau 2 — Supervision : IA agit, humain valide
+📈 Niveau 3 — Autonomie : IA agit, humain supervise
+🎯 Niveau 4 — Pleine autonomie : IA gère en continu
 
-Le système devient plus intelligent avec l'usage
+Le système s'adapte au niveau de confiance de l'organisation
+Chaque décision est traçable et auditable
 
-[Animation showing improvement curve over time]
+[Animation showing graduated autonomy levels]
 ```
 
 ---
 
-### **Slide 8: Interface Moderne**
+### **Slide 9: Interface Moderne**
 ```
 UX/UI Révolutionnaire
 
@@ -119,22 +159,24 @@ UX/UI Révolutionnaire
 📱 Responsive multi-devices
 🌍 Multilingue (FR/EN extensible)
 ⚡ Performance optimisée
-🎨 Tableaux de bord intuitifs
+🎨 Tableaux de bord cognitifs intuitifs
+💬 Intégrations Slack, Teams, WhatsApp
 
 [Montage screenshots: mobile, tablet, desktop]
 ```
 
 ---
 
-### **Slide 9: ROI Quantifié**
+### **Slide 10: ROI Quantifié**
 ```
 Retour sur Investissement Démontré
 
 💰 ÉCONOMIES
-• -60% temps diagnostic
+• -60% temps diagnostic (cognitif vs manuel)
 • -25% coûts maintenance  
 • -40% erreurs humaines
 • +15% disponibilité équipements
+• 100% capitalisation connaissances (Knowledge Graph)
 
 📈 ROI: 300-500% sur 3 ans
 
@@ -143,112 +185,122 @@ Retour sur Investissement Démontré
 
 ---
 
-### **Slide 10: Cas d'Usage Concrets**
+### **Slide 11: Cas d'Usage Concrets**
 ```
 Scénarios Métier Réels
 
-🔧 DIAGNOSTIC RAPIDE
-45min → 8min avec 92% précision
+🔧 DIAGNOSTIC COGNITIF
+45min → 8min avec 98% précision via Knowledge Graph
 
-🔮 MAINTENANCE PRÉDICTIVE  
-Prévention pannes 30j avant occurrence
+🔮 MAINTENANCE PRÉDICTIVE COGNITIVE
+Prévention pannes 30j avant par raisonnement causal
 
-👨‍🔧 FORMATION ACCÉLÉRÉE
-6 mois → 2 mois autonomie techniciens
+👨‍🔧 CAPITALISATION CONNAISSANCES
+Savoir expert capturé dans le Knowledge Graph, 0 perte
 
-[3 colonnes avec Before/After metrics]
+🤖 ORCHESTRATION AUTONOME
+Agents spécialisés coordonnent interventions multi-sites
+
+[4 colonnes avec Before/After metrics]
 ```
 
 ---
 
-### **Slide 11: Architecture Technique**
+### **Slide 12: Architecture Technique**
 ```
-Stack Technologique Moderne
+Stack Technologique — Infrastructure Cognitive
 
 Frontend: React.js + TypeScript
-Backend: Node.js + Express  
-IA: Python scikit-learn + TensorFlow
+Backend: Node.js + Express
+Cognitive Kernel: Architecture 6 couches
+Knowledge Graph: Graphe de connaissances industriel
+Multi-Agents: Agents équipement, site, global
 DB: PostgreSQL + Drizzle ORM
 Deploy: Docker + Cloud/On-premise
 
-[Diagramme architecture avec logos tech]
+[Diagramme architecture cognitive avec logos tech]
 ```
 
 ---
 
-### **Slide 12: Sécurité & Conformité**
+### **Slide 13: Sécurité & Conformité**
 ```
-Sécurité Niveau Entreprise
+Sécurité Niveau Entreprise + Gouvernance Cognitive
 
 🔒 Chiffrement bout-en-bout TLS 1.3
 🛡️ Conformité RGPD native
 🏢 Déploiement on-premise disponible
 👥 RBAC (Role-Based Access Control)
-📝 Audit logs complets
+📝 Audit logs cognitifs complets
+🏛️ Gouvernance IA : traçabilité des décisions autonomes
 
 [Certifications security badges]
 ```
 
 ---
 
-### **Slide 13: Intégrations**
+### **Slide 14: Intégrations**
 ```
-Écosystème Connecté
+Écosystème Cognitif Connecté
 
 🔗 API REST complète
-📊 GMAO: SAP • Oracle • Maximo
-🏭 IoT: MQTT • OPC-UA • Modbus
+🏭 ERP: SAP • Oracle • Maximo
+🔌 IoT: MQTT • OPC-UA • Modbus
+💬 Communication: Slack • Teams • WhatsApp
 📁 Import: CSV • Excel • JSON
-📱 Mobile: React Native (Q2 2025)
+📱 Mobile: iOS + Android avec mode offline
 
-[Diagram showing integrations ecosystem]
+[Diagram showing cognitive integrations ecosystem]
 ```
 
 ---
 
-### **Slide 14: Traction & Adoption**
+### **Slide 15: Traction & Adoption**
 ```
 Validation Marché
 
-✅ 50+ cas industriels base de données
-✅ 85-95% précision validée terrain
+✅ 120+ cas industriels dans le Knowledge Graph
+✅ 98% précision cognitive validée terrain
 ✅ Interface testée 100+ techniciens  
-✅ Architecture validée 10k+ équipements
+✅ Architecture cognitive validée 10k+ équipements
 ✅ Feedback positif 95% utilisateurs test
+✅ 6 couches cognitives opérationnelles
 
 [Metrics dashboard avec gauges]
 ```
 
 ---
 
-### **Slide 15: Concurrence**
+### **Slide 16: Concurrence**
 ```
-Avantages Concurrentiels
+Avantages Concurrentiels — Infrastructure Cognitive vs GMAO
 
-❌ Solutions Existantes:
+❌ Solutions GMAO Existantes:
 • Diagnostic manuel lent
-• Logiciels basiques sans IA
-• Solutions verticales limitées
+• Logiciels basiques sans intelligence cognitive
+• Solutions verticales sans capitalisation du savoir
+• Aucune autonomie graduée
 
-✅ Maintrix:
-• IA ensemble unique (9 algorithmes)
-• Apprentissage continu auto-adaptatif  
-• Couverture équipements la plus large
-• UX moderne vs interfaces obsolètes
+✅ Maintrix — Infrastructure Cognitive Industrielle:
+• Architecture cognitive 6 couches unique
+• Knowledge Graph capitalisant l'expertise métier
+• Système multi-agents à autonomie graduée
+• Apprentissage fédéré inter-sites
+• Gouvernance IA avec traçabilité complète
 
 [Comparative table avec checkmarks]
 ```
 
 ---
 
-### **Slide 16: Équipe & Expertise**
+### **Slide 17: Équipe & Expertise**
 ```
 Team Technology & Industry
 
-🎓 EXPERTISE IA/ML
-• 10+ années R&D machine learning
-• Publications académiques
-• Expertise scikit-learn + TensorFlow
+🎓 EXPERTISE IA COGNITIVE
+• 10+ années R&D machine learning & systèmes cognitifs
+• Expertise Knowledge Graphs & multi-agents
+• Architecture cognitive industrielle
 
 🏭 CONNAISSANCE INDUSTRIELLE  
 • 15+ années maintenance
@@ -260,31 +312,31 @@ Team Technology & Industry
 
 ---
 
-### **Slide 17: Roadmap Produit**
+### **Slide 18: Roadmap Produit**
 ```
-Vision 2025-2027
+Vision 2026-2028
 
-Q1 2025: IoT temps réel
-Q2 2025: Mobile React Native + Offline
-Q3 2025: IA générative documentation
-Q4 2025: Réalité augmentée réparations
+Q1 2026: Infrastructure Cognitive Industrielle v3.0 ✅
+Q2 2026: Knowledge Graph étendu + apprentissage fédéré avancé
+Q3 2026: Agents autonomes niveau 4 + jumeaux numériques
+Q4 2026: Réalité augmentée cognitive pour réparations
 
-2026: Jumeau numérique équipements
-2027: Maintenance autonome prédictive
+2027: Marketplace d'agents cognitifs industriels
+2028: Infrastructure cognitive multi-industries
 
 [Timeline avec milestones visuels]
 ```
 
 ---
 
-### **Slide 18: Business Model**
+### **Slide 19: Business Model**
 ```
 Modèles de Revenus Flexibles
 
 💎 SaaS: €50-150/utilisateur/mois
 🏢 On-premise: €50k-200k licence
 🔄 Hybride: Mix selon besoins
-🎯 Custom: Développements spécifiques
+🎯 Custom: Développements cognitifs spécifiques
 
 Target: €1M ARR année 1
 €10M ARR année 3
@@ -294,7 +346,7 @@ Target: €1M ARR année 1
 
 ---
 
-### **Slide 19: Go-to-Market**
+### **Slide 20: Go-to-Market**
 ```
 Stratégie Commerciale
 
@@ -313,16 +365,16 @@ Stratégie Commerciale
 
 ---
 
-### **Slide 20: Financement Demandé**
+### **Slide 21: Financement Demandé**
 ```
 Levée de Fonds Série A
 
 💰 €2M sur 18 mois
 
 🎯 UTILISATION
-• 40% Développement produit
+• 40% Développement infrastructure cognitive
 • 30% Commercial & Marketing  
-• 20% Team engineering
+• 20% Team engineering cognitive
 • 10% Infrastructure & Ops
 
 [Pie chart allocation + timeline]
@@ -330,7 +382,7 @@ Levée de Fonds Série A
 
 ---
 
-### **Slide 21: Projections Financières**
+### **Slide 22: Projections Financières**
 ```
 Croissance Prévisionnelle
 
@@ -348,7 +400,7 @@ Année 3: €8M ARR (500 clients)
 
 ---
 
-### **Slide 22: Risques & Mitigation**
+### **Slide 23: Risques & Mitigation**
 ```
 Gestion des Risques
 
@@ -358,61 +410,66 @@ Gestion des Risques
 • Réglementation IA
 
 ✅ MITIGATIONS  
-• Pilotes gratuits + ROI démontré
-• IP propriétaire + time-to-market
-• Compliance by design
+• Autonomie graduée pour adoption progressive
+• IP propriétaire architecture cognitive + Knowledge Graph
+• Gouvernance IA intégrée, compliance by design
 
 [Risk matrix avec actions]
 ```
 
 ---
 
-### **Slide 23: Impact & Vision**
+### **Slide 24: Impact & Vision**
 ```
-Transformer la Maintenance Industrielle
+Transformer la Maintenance Industrielle par l'Intelligence Cognitive
 
 🌍 IMPACT GLOBAL
 • Réduction gaspillage énergétique
 • Amélioration sécurité industrielle
-• Démocratisation expertise technique
-• Sustainability via maintenance prédictive
+• Démocratisation expertise technique via Knowledge Graph
+• Sustainability via maintenance prédictive cognitive
 
 🚀 VISION 2030
-Leader mondial IA maintenance industrielle
+Leader mondial de l'Infrastructure Cognitive Industrielle
 
 [Infographic impact + vision statement]
 ```
 
 ---
 
-### **Slide 24: Call to Action**
+### **Slide 25: Call to Action**
 ```
 Prochaines Étapes
 
 🤝 PARTENARIAT
-Rejoignez la révolution maintenance industrielle
+Rejoignez la révolution cognitive de la maintenance industrielle
 
 📅 ACTIONS IMMÉDIATES
-✓ Démo personnalisée sur vos équipements
+✓ Démo personnalisée de l'Infrastructure Cognitive
 ✓ Pilote 30 jours gratuit
-✓ Audit technique de votre parc  
+✓ Audit cognitif de votre parc  
 ✓ Calcul ROI personnalisé
+
+📧 Contact: contact@maintrix-t.com
+🌐 Site: www.maintrix-t.com
 
 [Contact info + QR code demo]
 ```
 
 ---
 
-### **Slide 25: Questions & Discussion**
+### **Slide 26: Questions & Discussion**
 ```
 Questions & Réponses
 
 💡 Discussion ouverte
-📧 Contact: demo@smdiagfix.com
-🌐 Site: www.smdiagfix.com
+📧 Contact: contact@maintrix-t.com
+🌐 Site: www.maintrix-t.com
 📱 Demo live disponible maintenant
 
 Merci pour votre attention !
+
+Maintrix — Infrastructure Cognitive Industrielle
 
 [Logo + contact prominents]
 ```
@@ -421,11 +478,12 @@ Merci pour votre attention !
 
 ## 📊 Annexes (Backup Slides)
 
-### A1: Métriques Techniques Détaillées
-### A2: Comparaison Concurrentielle Approfondie  
-### A3: Témoignages Clients Pilotes
-### A4: Architecture Sécurité Détaillée
-### A5: Feuille de Route Technique Complète
+### A1: Architecture Cognitive 6 Couches — Détail Technique
+### A2: Knowledge Graph — Structure et Relations
+### A3: Comparaison Infrastructure Cognitive vs GMAO Traditionnelle
+### A4: Témoignages Clients Pilotes
+### A5: Architecture Sécurité & Gouvernance IA Détaillée
+### A6: Feuille de Route Technique Complète
 
 ---
 
@@ -433,22 +491,24 @@ Merci pour votre attention !
 
 ### Timing Recommandé
 - **Introduction**: 3 min (slides 1-3)
-- **Démo live**: 5 min (slide 4)
-- **Technologie**: 4 min (slides 5-7)
-- **Business case**: 5 min (slides 8-11)
-- **Marché & stratégie**: 3 min (slides 12-19)
-- **Questions**: 5 min (slides 20-25)
+- **Architecture Cognitive**: 3 min (slide 4)
+- **Démo live**: 5 min (slide 5)
+- **Technologie & Innovation**: 4 min (slides 6-8)
+- **Business case**: 4 min (slides 9-11)
+- **Marché & stratégie**: 3 min (slides 12-22)
+- **Questions**: 5 min (slides 23-26)
 
 ### Points Clés à Souligner
-1. **Démo interactive** obligatoire
-2. **ROI quantifié** avec exemples concrets
-3. **Technologie différenciante** (9 algorithmes ensemble)
-4. **Apprentissage continu** unique sur le marché
-5. **Traction validée** avec métriques réelles
+1. **Architecture cognitive 6 couches** — différenciation majeure
+2. **Démo interactive** obligatoire — montrer le Knowledge Graph en action
+3. **Autonomie graduée** — rassurer sur le contrôle humain
+4. **ROI quantifié** avec exemples concrets
+5. **Knowledge Graph** — capitalisation unique du savoir industriel
+6. **Traction validée** avec métriques réelles
 
 ### Matériel de Support
-- Laptop + projection pour démo live
-- Handout avec metrics clés
+- Laptop + projection pour démo live de l'infrastructure cognitive
+- Handout avec architecture 6 couches et metrics clés
 - Business cards avec QR code demo
 - Brochure technique détaillée
 - Proposition pilote personnalisée

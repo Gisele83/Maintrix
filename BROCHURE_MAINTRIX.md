@@ -1,36 +1,52 @@
 # 🔧 MAINTRIX
-## La Solution Intelligente de Gestion de Maintenance Industrielle
+## Infrastructure Cognitive Industrielle — Le cerveau de vos machines
 
 ---
 
 ## 🎯 **QU'EST-CE QUE MAINTRIX ?**
 
-**Maintrix** est une plateforme intégrée de gestion de maintenance assistée par ordinateur (GMAO) combinée à un système de diagnostic intelligent alimenté par l'intelligence artificielle. Conçue pour l'industrie moderne, Maintrix transforme la maintenance réactive en maintenance prédictive, réduisant les temps d'arrêt et optimisant les coûts opérationnels.
+**Maintrix** est une infrastructure cognitive qui donne un cerveau aux machines industrielles. Bien au-delà d'une simple GMAO, Maintrix intègre un noyau cognitif à 6 couches, un Knowledge Graph industriel et un système multi-agents pour transformer la maintenance réactive en maintenance autonome et prédictive, réduisant les temps d'arrêt et optimisant les coûts opérationnels.
 
-### **Deux Modules Complémentaires**
+### **Architecture Cognitive 6 Couches**
 
-#### 🤖 **Smart Diagnostic IA**
-- Diagnostic automatique par intelligence artificielle
-- Analyse de 120+ cas industriels réels (grues portuaires, moteurs, pompes, transformateurs)
-- Recommandations de réparation instantanées
-- Confiance de diagnostic jusqu'à 98%
-- 9 algorithmes de machine learning en consensus
+#### 🏗️ **Couche 1 — Physique**
+- Connecteurs IoT industriels (MQTT, OPC-UA, Modbus)
+- Acquisition temps réel capteurs et automates
+- Gestion de 3,6M+ points de données IoT
 
-#### 📊 **Smart GMAO**
-- Gestion complète du parc équipements
-- Planification des interventions préventives
-- Gestion des bons de travail multi-niveaux
-- Inventaire intelligent des pièces de rechange
-- Tableaux de bord KPI en temps réel (MTBF, MTTR, OEE)
+#### ⚡ **Couche 2 — Edge**
+- Traitement local et embarqué
+- Diagnostic IA en mode offline
+- Latence ultra-faible pour décisions critiques
+
+#### 🎯 **Couche 3 — Orchestration**
+- Système multi-agents (agents équipement, site, global)
+- Coordination autonome des interventions
+- Workflow intelligent de bons de travail
+
+#### 📚 **Couche 4 — Apprentissage**
+- Knowledge Graph industriel évolutif
+- 120+ cas industriels réels (grues portuaires, moteurs, pompes, transformateurs)
+- 9 algorithmes ML en consensus avec apprentissage continu
+
+#### 🛡️ **Couche 5 — Gouvernance**
+- Autonomie graduée niveaux 0-5 (du manuel au pleinement autonome)
+- Audit trail complet et traçabilité
+- Conformité réglementaire intégrée
+
+#### 🧠 **Couche 6 — Cognitif**
+- Raisonnement contextuel avancé (Claude AI)
+- Compréhension langage naturel industriel
+- Diagnostic automatique avec 98% de précision
 
 ---
 
 ## 💡 **POURQUOI CHOISIR MAINTRIX ?**
 
 ### **Réduction des Coûts**
-- ⬇️ **-40% de temps d'arrêt non planifié** grâce au diagnostic prédictif
+- ⬇️ **-40% de temps d'arrêt non planifié** grâce au diagnostic prédictif cognitif
 - ⬇️ **-30% de coûts de maintenance** via l'optimisation des stocks
-- ⬇️ **-25% de délais de réparation** avec les recommandations IA
+- ⬇️ **-25% de délais de réparation** avec les recommandations du noyau cognitif
 
 ### **Augmentation de la Productivité**
 - ⬆️ **+35% de disponibilité équipement** (OEE amélioré)
@@ -47,14 +63,14 @@
 
 ## 🚀 **FONCTIONNALITÉS CLÉS**
 
-### **1. Diagnostic Intelligent IA**
-**Analyse Symptômes → Diagnostic → Préconisations**
+### **1. Noyau Cognitif & Diagnostic Intelligent**
+**Perception → Raisonnement → Décision → Action**
 
-- **Machine Learning Avancé** : 9 algorithmes en consensus (Random Forest, Gradient Boosting, SVM, Réseaux de Neurones)
-- **Base de Connaissances Réelle** : 120 cas industriels authentiques (équipements portuaires, industriels)
-- **Détection d'Anomalies** : Identification proactive des défaillances
-- **Évaluation des Risques** : Scoring de criticité et prioritisation
-- **Apprentissage Continu** : Amélioration constante via feedback techniciens
+- **Architecture 6 Couches** : Du capteur physique au raisonnement cognitif avancé
+- **Knowledge Graph Industriel** : Modélisation des relations entre équipements, pannes, causes et solutions
+- **Système Multi-Agents** : Agents équipement, site et global coordonnés automatiquement
+- **Autonomie Graduée (0-5)** : Du mode supervisé au pleinement autonome, selon votre niveau de confiance
+- **Apprentissage Continu** : Amélioration constante via feedback techniciens et données terrain
 
 ### **2. Gestion d'Équipements**
 - Registre complet avec QR codes
@@ -63,17 +79,17 @@
 - Suivi des performances en temps réel
 - Intégration IoT et capteurs industriels
 
-### **3. Planification Préventive**
+### **3. Planification Préventive & Prédictive**
 - **Maintenance Calendaire** : Programmation automatique
 - **Maintenance sur Compteurs** : Déclenchement par seuils (heures, cycles, km)
-- **Maintenance Conditionnelle** : Basée sur l'état réel
-- **Alertes Intelligentes** : Notifications multi-canaux
-- **Optimisation Automatique** : Regroupement interventions
+- **Maintenance Conditionnelle** : Basée sur l'état réel via Knowledge Graph
+- **Alertes Intelligentes** : Notifications multi-canaux (Slack, Teams, Telegram, WhatsApp)
+- **Optimisation Automatique** : Regroupement interventions par le système multi-agents
 
 ### **4. Bons de Travail Multi-Niveaux**
 - Création automatique ou manuelle
 - Workflow de validation configurable
-- Assignation techniciens intelligente
+- Assignation techniciens intelligente via agents IA
 - Suivi temps réel avec application mobile
 - Documentation photos/vidéos/PDF
 
@@ -94,6 +110,18 @@
 
 ---
 
+## 💬 **INTÉGRATIONS COMMUNICATION**
+
+### **Restez connecté avec vos équipes**
+
+- 💬 **Slack** : Alertes et notifications dans vos canaux maintenance
+- 💬 **Microsoft Teams** : Intégration native pour collaboration
+- 💬 **Telegram** : Notifications mobiles pour techniciens terrain
+- 💬 **WhatsApp** : Alertes critiques en temps réel
+- 📧 **Email** : Rapports et synthèses automatiques (SendGrid, SMTP)
+
+---
+
 ## 📱 **APPLICATION MOBILE OFFLINE**
 
 ### **Conçue pour les Techniciens Terrain**
@@ -101,7 +129,7 @@
 - ✅ **Mode 100% Offline** : Base de données SQLite locale
 - ✅ **Scanner QR Code** : Identification équipement instantanée
 - ✅ **Guide de Réparation Étape par Étape** : Procédures illustrées
-- ✅ **Diagnostic IA Embarqué** : Fonctionnement sans internet
+- ✅ **Diagnostic Cognitif Embarqué** : Fonctionnement sans internet
 - ✅ **Synchronisation Automatique** : Dès connexion rétablie
 - ✅ **Capture Photos/Vidéos** : Documentation intervention
 - ✅ **Signature Électronique** : Validation travaux
@@ -170,7 +198,7 @@
 **99 € / mois**
 - Jusqu'à 50 équipements
 - 5 utilisateurs
-- Module GMAO complet
+- Infrastructure cognitive standard
 - Diagnostic IA standard
 - Support email
 
@@ -178,17 +206,18 @@
 **299 € / mois**
 - Jusqu'à 200 équipements
 - 20 utilisateurs
-- Module GMAO + IA avancé
+- Infrastructure cognitive avancée + Knowledge Graph
 - Application mobile
-- Intégrations IoT
+- Intégrations IoT + Communication (Slack/Teams)
 - Support prioritaire
 
 #### 🥇 **ENTERPRISE**
 **Sur Devis**
 - Équipements illimités
 - Utilisateurs illimités
+- Infrastructure cognitive complète 6 couches + autonomie graduée
 - Installation locale/cloud
-- Intégrations ERP (SAP, Maximo)
+- Intégrations ERP (SAP, Maximo) + Communication (Slack/Teams/Telegram/WhatsApp)
 - Formation dédiée
 - Support 24/7
 
@@ -217,13 +246,14 @@
 
 ### **Ce qui rend Maintrix unique**
 
-✅ **IA Véritable** : Pas de règles statiques, machine learning authentique sur données réelles
+✅ **Infrastructure Cognitive 6 Couches** : Pas un simple logiciel — un cerveau industriel complet
+✅ **Knowledge Graph Industriel** : Modélisation intelligente des relations équipements-pannes-solutions
+✅ **Système Multi-Agents** : Agents autonomes coordonnés pour diagnostic et intervention
+✅ **Autonomie Graduée (0-5)** : Du mode supervisé au pleinement autonome, à votre rythme
 ✅ **120 Cas Industriels Réels** : Base de connaissances éprouvée (non fictive)
 ✅ **Mode Offline Complet** : Fonctionne sans internet (mobile + local)
-✅ **Compteurs Préventifs** : Maintenance basée sur usage réel (heures, cycles)
-✅ **Architecture Modulaire** : Modules améliorables indépendamment
+✅ **Communication Multi-Canaux** : Slack, Teams, Telegram, WhatsApp intégrés nativement
 ✅ **Multi-Plateforme** : Web, iOS, Android, Desktop
-✅ **Open Standards** : Intégration facile systèmes existants
 
 ---
 
@@ -234,6 +264,7 @@
 - **ERP** : SAP, Maximo, Oracle EBS
 - **IoT** : MQTT, OPC-UA, Modbus
 - **SCADA** : Siemens, Schneider Electric
+- **Communication** : Slack, Microsoft Teams, Telegram, WhatsApp
 - **Email** : SendGrid, SMTP
 - **Paiements** : Stripe, PayPal
 - **Cloud Storage** : Google Cloud Storage
@@ -280,13 +311,13 @@
 
 ## 📈 **TÉMOIGNAGES CLIENTS**
 
-> *"Maintrix a réduit nos temps d'arrêt de 45% en 6 mois. Le diagnostic IA est impressionnant de précision."*
+> *"Maintrix a réduit nos temps d'arrêt de 45% en 6 mois. L'infrastructure cognitive et le Knowledge Graph sont impressionnants de précision."*
 > **— Responsable Maintenance, Port Autonome**
 
-> *"L'application mobile offline est un game-changer pour nos techniciens sur le terrain. Plus besoin de papier."*
+> *"L'application mobile offline est un game-changer pour nos techniciens sur le terrain. Le système multi-agents coordonne tout automatiquement."*
 > **— Directeur Technique, Société Industrielle**
 
-> *"Le ROI a été atteint en 14 mois. Les rapports automatiques nous font gagner 10h/semaine."*
+> *"Le ROI a été atteint en 14 mois. L'autonomie graduée nous a permis de monter progressivement en confiance avec le système."*
 > **— Chef de Projet Maintenance, Groupe Énergétique**
 
 ---
@@ -306,12 +337,12 @@
 
 ## 🔄 **MISES À JOUR CONTINUES**
 
-**Roadmap 2025**
+**Roadmap 2026**
 
-- Q1 : Intégration réalité augmentée (AR) pour diagnostic
-- Q2 : Module prévision pannes par IA générative
-- Q3 : Jumeau numérique équipements critiques
-- Q4 : Marketplace pièces détachées intégrée
+- Q1 : Autonomie graduée niveau 5 — maintenance pleinement autonome
+- Q2 : Knowledge Graph étendu — jumeaux numériques cognitifs
+- Q3 : Agents multi-sites fédérés — coordination inter-usines
+- Q4 : Marketplace cognitive — partage de modèles prédictifs entre industries
 
 ---
 
@@ -331,7 +362,7 @@
 - 🏭 **+500** entreprises clientes
 - 🔧 **+50 000** équipements gérés
 - 📱 **+2 000** techniciens actifs
-- 🤖 **98%** précision diagnostic IA
+- 🤖 **98%** précision diagnostic cognitif
 - 💰 **40%** réduction coûts maintenance moyenne
 - ⏱️ **60%** gain temps diagnostic
 
@@ -346,6 +377,6 @@
 
 ---
 
-*Maintrix - L'Intelligence au Service de la Maintenance Industrielle*
+*Maintrix — Infrastructure Cognitive Industrielle : le cerveau de vos machines*
 
-**© 2025 Maintrix. Tous droits réservés.**
+**© 2026 Maintrix. Tous droits réservés.**

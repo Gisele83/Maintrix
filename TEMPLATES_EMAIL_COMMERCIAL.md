@@ -175,7 +175,7 @@ commerciale pour [Entreprise].
 💎 SOLUTION PROPOSÉE : OFFRE [PROFESSIONAL / ENTERPRISE]
 
 Inclus :
-✅ Plateforme Maintrix complète (GMAO + IA)
+✅ Plateforme Maintrix complète (Infrastructure Cognitive Industrielle)
 ✅ [X] diagnostics IA par mois
 ✅ [X] utilisateurs
 ✅ Application mobile iOS/Android

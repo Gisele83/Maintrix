@@ -47,7 +47,7 @@ export default function ModernHome() {
           <div className="mb-10">
             {/* Icon instead of logo */}
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-8">
-              <Wrench className="w-10 h-10 text-white" />
+              <Brain className="w-10 h-10 text-white" />
             </div>
             
             {/* Main title - softer gradient */}
@@ -56,28 +56,27 @@ export default function ModernHome() {
             </h1>
             
             <p className="text-lg text-slate-500 font-medium">
-              Plateforme de Maintenance Intelligente
+              L'Intelligence Cognitive au Service de l'Industrie
             </p>
           </div>
           
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Une solution <span className="font-semibold text-slate-700">multi-tenant</span> avec architecture modulaire pour la gestion centralisée 
-            et la maintenance industrielle de nouvelle génération.
+            Infrastructure cognitive formelle qui transforme vos machines industrielles en systèmes autonomes capables de percevoir, comprendre, anticiper et agir sur leurs propres défaillances.
           </p>
           
           {/* Feature badges - softer colors */}
           <div className="flex justify-center items-center flex-wrap gap-3 mb-14">
             <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-emerald-100 transition-colors">
-              Super-Admin Interface
+              Architecture 6 Couches
             </Badge>
             <Badge className="bg-violet-50 text-violet-700 border border-violet-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-violet-100 transition-colors">
-              Gestion Sécurisée
+              Multi-Agent IA
             </Badge>
             <Badge className="bg-sky-50 text-sky-700 border border-sky-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-sky-100 transition-colors">
-              Notifications Email
+              Knowledge Graph
             </Badge>
             <Badge className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-amber-100 transition-colors">
-              Multi-Tenant SaaS
+              Autonomie Graduée
             </Badge>
           </div>
           
@@ -90,7 +89,8 @@ export default function ModernHome() {
                   <Settings className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4">Module GMAO</h3>
+              <h3 className="text-2xl font-bold text-slate-800 mb-1">Module GMAO</h3>
+              <p className="text-sm text-slate-500 font-medium mb-4">Backbone Opérationnel</p>
               <p className="text-slate-600 leading-relaxed mb-6">
                 Planification des interventions, gestion des techniciens, ordres de travail et maintenance préventive
               </p>
@@ -107,33 +107,33 @@ export default function ModernHome() {
               </Button>
             </div>
             
-            {/* Module Diagnostic IA */}
+            {/* Intelligence Cognitive */}
             <div className="group bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md hover:border-violet-200/60 transition-all duration-300">
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-500/20">
                   <Brain className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4">Module Diagnostic IA</h3>
+              <h3 className="text-2xl font-bold text-slate-800 mb-4">Intelligence Cognitive</h3>
               <p className="text-slate-600 leading-relaxed mb-6">
-                Analyse intelligente : symptômes → diagnostic → préconisations → intervention
+                Architecture 6 couches: Perception → Compréhension → Raisonnement → Décision → Action → Apprentissage
               </p>
               <div className="flex flex-wrap gap-2 mb-6 justify-center">
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">9 Algorithmes ML</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">98% précision</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Ensemble learning</span>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Knowledge Graph</span>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Multi-Agent</span>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Autonomie 0-5</span>
               </div>
               <div className="space-y-3">
                 <Button asChild className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl py-3 shadow-sm">
-                  <Link href="/diagnostic">
+                  <Link href="/cognitive-infrastructure">
                     <Brain className="w-4 h-4 mr-2" />
-                    Diagnostic IA
+                    Infrastructure Cognitive
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl py-3">
-                  <Link href="/voice-diagnostic">
+                  <Link href="/diagnostic">
                     <Cpu className="w-4 h-4 mr-2" />
-                    Assistant Vocal
+                    Diagnostic IA
                   </Link>
                 </Button>
               </div>
@@ -144,7 +144,7 @@ export default function ModernHome() {
           <div className="flex justify-center items-center flex-wrap gap-3 mt-10">
             <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span>Multi-tenant actif</span>
+              <span>Kernel Cognitif actif</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
               <Activity className="h-4 w-4 text-blue-500" />
@@ -152,7 +152,7 @@ export default function ModernHome() {
             </div>
             <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
               <Shield className="h-4 w-4 text-violet-500" />
-              <span>Sécurité renforcée</span>
+              <span>Autonomie Niveau 1</span>
             </div>
             {activeAlerts > 0 && (
               <div className="flex items-center space-x-2 text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200">
@@ -175,17 +175,17 @@ export default function ModernHome() {
         {/* Quick Stats Dashboard */}
         <QuickStats />
 
-        {/* Architecture Enterprise Section */}
+        {/* Architecture Cognitive Industrielle Section */}
         <div className="mb-16">
           <div className="text-center mb-10">
             <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-200 mb-4">
-              Architecture Enterprise
+              Architecture Cognitive Industrielle
             </span>
             <h2 className="text-3xl font-bold text-slate-800 mb-3">
-              Plateforme Multi-Tenant SaaS
+              Architecture Cognitive Industrielle
             </h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Architecture enterprise avec super-administration et isolation complète des données
+              6 couches formelles avec Kernel Cognitif orchestrant un système multi-agent distribué
             </p>
           </div>
           
@@ -194,30 +194,30 @@ export default function ModernHome() {
             <Card className="border border-slate-200/60 shadow-sm bg-white">
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-6 h-6 text-rose-600" />
+                  <Brain className="w-6 h-6 text-rose-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Super-Administration</h3>
-                <p className="text-sm text-slate-600">Gestion centralisée des tenants et utilisateurs</p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Kernel Cognitif</h3>
+                <p className="text-sm text-slate-600">Orchestration multi-agent, policy engine, boucle fermée</p>
               </CardContent>
             </Card>
             
             <Card className="border border-slate-200/60 shadow-sm bg-white">
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-sky-600" />
+                  <Zap className="w-6 h-6 text-sky-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Sécurité Renforcée</h3>
-                <p className="text-sm text-slate-600">Isolation des données et authentification multi-niveaux</p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Knowledge Graph</h3>
+                <p className="text-sm text-slate-600">48+ noeuds, 46+ arêtes, raisonnement causal</p>
               </CardContent>
             </Card>
             
             <Card className="border border-slate-200/60 shadow-sm bg-white">
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-6 h-6 text-violet-600" />
+                  <Shield className="w-6 h-6 text-violet-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Automatisation</h3>
-                <p className="text-sm text-slate-600">Notifications automatiques et workflows avancés</p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Autonomie Graduée</h3>
+                <p className="text-sm text-slate-600">Niveaux 0-5, du monitoring à l'autonomie complète</p>
               </CardContent>
             </Card>
           </div>

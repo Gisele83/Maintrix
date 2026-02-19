@@ -152,17 +152,28 @@ Les outils actuels — IBM Maximo, SAP PM, Infor EAM — sont des **gestionnaire
 
 ### L'architecture cognitive de Maintrix
 
-Maintrix est construit comme un cerveau a quatre couches cognitives, chacune apportant un niveau de comprehension superieur :
+Maintrix est construit comme un cerveau a six couches cognitives, chacune apportant un niveau de comprehension superieur. Cette Infrastructure Cognitive Industrielle integre un Knowledge Graph, un systeme multi-agents et une autonomie graduee :
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
+║                    COUCHE 6 : GOUVERNANCE                       ║
+║  Autonomie graduee, politiques de conformite, audit continu     ║
+║  Controle humain-dans-la-boucle, traçabilite des decisions      ║
+║  Escalade automatique selon niveaux de confiance                ║
+╠══════════════════════════════════════════════════════════════════╣
+║                    COUCHE 5 : ORCHESTRATION                     ║
+║  Systeme multi-agents : agents par equipement, par site,        ║
+║  agent global de coordination                                   ║
+║  Dispatch intelligent des taches et communication inter-agents  ║
+╠══════════════════════════════════════════════════════════════════╣
 ║                    COUCHE 4 : COGNITION                         ║
 ║  Intelligence artificielle structurante (Anthropic Claude)      ║
 ║  Raisonnement contextuel, correlation multi-signaux,            ║
 ║  generation de diagnostics explicables et preconisations        ║
 ║  detaillees avec facteurs de confiance                          ║
 ╠══════════════════════════════════════════════════════════════════╣
-║                    COUCHE 3 : MEMOIRE                           ║
+║                    COUCHE 3 : MEMOIRE & KNOWLEDGE GRAPH         ║
+║  Knowledge Graph industriel : relations equipements-defaillances║
 ║  Base de similarite : 120+ cas industriels reels                ║
 ║  Memoire des defaillances capitalisees (failure memory)         ║
 ║  Apprentissage federe inter-tenants                             ║
@@ -171,7 +182,8 @@ Maintrix est construit comme un cerveau a quatre couches cognitives, chacune app
 ║                    COUCHE 2 : COMPREHENSION                     ║
 ║  Moteur de regles expert : 10 regles deterministes              ║
 ║  Correlation symptomes/causes/actions                           ║
-║  Contextualisation GMAO (heures machine, historique, criticite) ║
+║  Contextualisation cognitive (heures machine, historique,       ║
+║  criticite, Knowledge Graph)                                    ║
 ║  → Reponse instantanee, explicable a 100%                      ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                    COUCHE 1 : PERCEPTION                        ║
@@ -246,7 +258,9 @@ Ce qui distingue Maintrix d'un simple concept : le produit existe, fonctionne, e
 
 | Barriere | Statut | Preuve |
 |---|---|---|
-| Architecture cognitive a 4 couches | **Franchie** | Pipeline hybride operationnel, diagnostics avec confiance 98% |
+| Architecture cognitive a 6 couches | **Franchie** | Pipeline hybride operationnel, diagnostics avec confiance 98% |
+| Knowledge Graph industriel | **Franchie** | Relations equipements-defaillances-solutions modelisees |
+| Systeme multi-agents | **Franchie** | Agents par equipement, par site, coordination globale |
 | Perception IoT multi-protocole | **Franchie** | 4 protocoles industriels (MQTT, Modbus, OPC-UA, LoRaWAN) |
 | Memoire des defaillances auto-capitalisee | **Franchie** | Boucle feedback technicien → enrichissement base |
 | Explicabilite native des diagnostics | **Franchie** | Facteurs de confiance, regles activees, cas similaires |
@@ -276,7 +290,7 @@ Trois facteurs creent une barriere a l'entree quasi-infranchissable :
 
 **2. Savoir-faire industriel encode** : Les regles expert et les 120+ cas historiques representent des decennies de connaissances metier encapsulees dans du code. Ce n'est pas reproductible par simple effort d'ingenierie.
 
-**3. Complexite architecturale** : 77 tables de base de donnees, 16 modules fonctionnels, 4 couches cognitives, conformite CCTP — un produit dont la replication necessiterait 18-24 mois minimum et une equipe de 10+ ingenieurs specialises.
+**3. Complexite architecturale** : 77 tables de base de donnees, 16 modules fonctionnels, 6 couches cognitives, Knowledge Graph, systeme multi-agents, conformite CCTP — un produit dont la replication necessiterait 18-24 mois minimum et une equipe de 10+ ingenieurs specialises.
 
 ---
 
@@ -418,7 +432,9 @@ La machine devient "autonome" dans sa comprehension :
 
 | Jalon | Statut |
 |---|---|
-| Architecture cognitive 4 couches operationnelle | **Termine** |
+| Architecture cognitive 6 couches operationnelle | **Termine** |
+| Knowledge Graph industriel deploye | **Termine** |
+| Systeme multi-agents (equipement, site, global) | **Termine** |
 | 16 modules fonctionnels deployes | **Termine** |
 | Pipeline diagnostic hybride CCTP avec confiance 98% | **Termine** |
 | 120 cas industriels reels dans la memoire | **Termine** |
@@ -581,7 +597,7 @@ Sur la base de :
 - **Produit unique** : seul cerveau cognitif industriel complet au monde, fonctionnel et teste (25/25 tests, 0 erreur)
 - **Marche gigantesque** : a l'intersection de trois marches valant collectivement 100+ Mds USD en 2030
 - **Timing parfait** : l'Afrique s'industrialise, l'IA devient abordable, l'IoT se democratise
-- **Barriere a l'entree elevee** : 77 tables, 4 couches cognitives, effet de reseau, savoir-faire encode
+- **Barriere a l'entree elevee** : 77 tables, 6 couches cognitives, Knowledge Graph, systeme multi-agents, effet de reseau, savoir-faire encode
 - **Execution demontree** : MVP+ complet, architecture production-ready
 
 **Valorisation pre-money estimee : 3 - 5 M EUR**
@@ -594,7 +610,8 @@ Sur la base de :
 
 | Element | Type de protection | Statut |
 |---|---|---|
-| Architecture cognitive a 4 couches pour diagnostic industriel | Brevet logiciel | A deposer |
+| Architecture cognitive a 6 couches pour diagnostic industriel | Brevet logiciel | A deposer |
+| Knowledge Graph industriel et systeme multi-agents | Brevet logiciel | A deposer |
 | Algorithme de similarite multi-criteres avec capitalisation | Brevet logiciel | A deposer |
 | Boucle d'apprentissage continu technicien-machine | Savoir-faire | Protege (code source) |
 | Architecture multi-tenant zero data leakage | Savoir-faire | Protege (code source) |

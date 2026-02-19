@@ -58,3 +58,11 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Email Service**: SendGrid
 - **Payment Gateways**: Stripe, PayPal
 - **Enterprise Integration**: SAP ERP Connector, IoT (MQTT simulation), Maximo (integration ready), SCADA (integration ready).
+
+## Recent Changes (February 2026)
+- **Documentation Consolidation**: Merged ARCHITECTURE_MAINTRIX.md into ARCHITECTURE_GLOBALE_MAINTRIX.md (v2.0) as single authoritative architecture document. Removed duplicate.
+- **Positioning Shift**: All documentation (landing page, modern-home, commercial docs, sales materials) updated from "GMAO + IA" to "Infrastructure Cognitive Industrielle" — emphasizing Maintrix as "the software brain of industry".
+- **Landing Page Rewrite**: Hero now says "L'infrastructure cognitive qui donne un cerveau à vos machines", features showcase 6 cognitive capabilities, stats highlight 6 layers / 48+ Knowledge Graph nodes / 120+ cases / 5 autonomy levels.
+- **Modern Home Update**: Hero icon Brain, module cards emphasize Cognitive Intelligence with link to /cognitive-infrastructure, architecture section shows Kernel Cognitif / Knowledge Graph / Autonomie Graduée.
+- **Commercial Docs Updated**: ONE_PAGER, BROCHURE, ARGUMENTS_VENTE, PRESENTATION_COMMERCIALE, PITCH_DECK, PACK_COMMERCIAL, NOTE_OPPORTUNITE, DEMO_GUIDE, FAQ_TECHNIQUE, GUIDE_DEMARRAGE_RAPIDE, TEMPLATES_EMAIL — all reflect cognitive infrastructure positioning.
+- **INDEX_DOCUMENTATION_COMPLETE.md**: Updated with cognitive infrastructure section, API endpoints, communication channels, verified all file references.

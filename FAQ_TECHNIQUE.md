@@ -95,7 +95,7 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 - **Mode offline** avec synchronisation
 - **Interface adaptée** pour utilisation terrain
 - **Scanner QR codes** équipements
-- **Sortie prévue**: Q2 2025
+- **Sortie prévue**: Q2 2026
 
 #### Q: Maintrix fonctionne-t-il hors ligne ?
 **R:** Capacités offline :
@@ -250,11 +250,11 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 ### 🚀 Roadmap et Évolutions
 
 #### Q: Quelles sont les prochaines fonctionnalités ?
-**R:** Roadmap 2025 :
-- **Q1** : Intégration IoT temps réel
-- **Q2** : Application mobile React Native
-- **Q3** : IA générative pour documentation
-- **Q4** : Réalité augmentée pour réparations
+**R:** Roadmap 2026 :
+- **Q1** : Infrastructure Cognitive Industrielle à 6 couches déployée
+- **Q2** : Knowledge Graph industriel et système multi-agents
+- **Q3** : Intégrations communication multi-canal (Email, SMS, Slack, Teams)
+- **Q4** : Autonomie graduée avancée et jumeaux numériques
 
 #### Q: Peut-on influencer le développement ?
 **R:** Collaboration active :
@@ -267,8 +267,53 @@ Chaque algorithme vote, et un consensus pondéré détermine le diagnostic final
 **R:** Vision future :
 - **Jumeau numérique** des équipements
 - **IA conversationnelle** avancée
-- **Maintenance autonome** prédictive
+- **Maintenance autonome** cognitive
 - **Blockchain** pour traçabilité
+
+---
+
+### 🧬 Infrastructure Cognitive Industrielle
+
+#### Q: Qu'est-ce que l'architecture cognitive à 6 couches ?
+**R:** L'Infrastructure Cognitive Industrielle de Maintrix repose sur 6 couches :
+1. **Perception** : Capteurs IoT multi-protocoles (MQTT, Modbus, OPC-UA, LoRaWAN)
+2. **Compréhension** : Moteur de règles expert, corrélation symptômes/causes
+3. **Mémoire & Knowledge Graph** : Base de similarité + graphe de connaissances industrielles
+4. **Cognition** : IA structurante (Anthropic Claude), raisonnement contextuel
+5. **Orchestration** : Système multi-agents, coordination inter-agents
+6. **Gouvernance** : Autonomie graduée, conformité, audit continu
+
+#### Q: Qu'est-ce que le Knowledge Graph industriel ?
+**R:** Le Knowledge Graph modélise les relations entre :
+- **Équipements** : types, composants, historique d'utilisation
+- **Défaillances** : modes de panne, symptômes, causes racines
+- **Solutions** : actions correctives, pièces nécessaires, compétences requises
+- **Contexte** : conditions opérationnelles, environnement, charge de travail
+Il permet un raisonnement structuré et explicable au-delà des simples corrélations statistiques.
+
+#### Q: Comment fonctionne le système multi-agents ?
+**R:** Le système multi-agents comprend :
+- **Agents équipement** : Un agent spécialisé par équipement critique, surveillant ses paramètres en continu
+- **Agents site** : Coordination des agents équipement au niveau d'un site industriel
+- **Agent global** : Orchestration cross-sites, apprentissage fédéré, optimisation globale
+Les agents communiquent entre eux et escaladent selon des règles d'autonomie graduée.
+
+#### Q: Qu'est-ce que l'autonomie graduée ?
+**R:** L'autonomie graduée définit 4 niveaux de prise de décision :
+- **Niveau 1 — Alerte** : Notification intelligente, l'humain décide
+- **Niveau 2 — Diagnostic** : Analyse cognitive complète, recommandation à valider
+- **Niveau 3 — Prescription** : Action proposée avec pièces et technicien identifiés
+- **Niveau 4 — Action autonome** : Exécution automatique (avec supervision humaine stratégique)
+Chaque organisation configure le niveau maximal autorisé selon sa politique.
+
+#### Q: Comment fonctionnent les intégrations de communication ?
+**R:** Maintrix propose un dispatcher de communication multi-canal :
+- **Email** : Notifications détaillées via SendGrid avec templates personnalisables
+- **SMS** : Alertes urgentes pour les techniciens terrain
+- **Slack** : Intégration native avec canaux dédiés par site/équipement
+- **Microsoft Teams** : Notifications et actions directement dans Teams
+- **Webhooks** : Intégration avec tout système tiers via webhooks configurables
+Les règles de routage sont basées sur la criticité, le type d'événement et les préférences utilisateur.
 
 ---
 

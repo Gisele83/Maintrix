@@ -270,6 +270,6 @@ docker compose -f docker-compose.prod.yml logs -f
 ## Support
 
 - Documentation complète : `INSTALL.md`
-- Architecture : `ARCHITECTURE_MAINTRIX.md`
+- Architecture : `ARCHITECTURE_GLOBALE_MAINTRIX.md`
 - Sécurité : `SECURITY_GUIDE.md`
 - Site : maintrix-t.com

@@ -1,6 +1,6 @@
 # 📚 Index Documentation Complète Maintrix
 
-## Centre de Documentation Intégré - Version 2026
+## Infrastructure Cognitive Industrielle - Centre de Documentation v2026
 
 ---
 
@@ -8,17 +8,17 @@
 
 ## 📖 Documentation Technique Principale
 
-### 1. Architecture Technique
-**Fichier :** `ARCHITECTURE_MAINTRIX.md`
-**Contenu :** Architecture complète du système - couches présentation, application, données
+### 1. Architecture Globale
+**Fichier :** `ARCHITECTURE_GLOBALE_MAINTRIX.md`
+**Contenu :** Architecture complète de l'Infrastructure Cognitive Industrielle
 **Sections :**
-- Architecture unifiée Smart Diagnostic + GMAO
+- Architecture unifiée Infrastructure Cognitive Industrielle
 - Module Diagnostic IA (Claude Anthropic, 631 cas industriels)
 - Module GMAO complet (équipements, OT, maintenance préventive)
 - Module IoT & Monitoring temps réel
 - Module Sécurité avancée (RBAC, multi-tenant)
 - Module Paiements (Stripe, PayPal)
-- Fonctionnalités avancées Février 2026
+- Infrastructure Cognitive (agents, knowledge graph, physics models)
 
 ### 2. Guides d'Utilisation Pratiques
 **Fichier :** `GUIDES_UTILISATION_COMPLETS.md`
@@ -39,6 +39,83 @@
 - GMAO : workflows complets tous modules
 - IoT & Monitoring : surveillance temps réel
 - Sécurité et gestion des accès
+
+---
+
+# 🧠 Infrastructure Cognitive
+
+### Tableau de Bord Cognitif
+**Route :** `/cognitive-infrastructure`
+Dashboard de l'infrastructure cognitive avec vue d'ensemble système, agents, graphe de connaissances et modèles physiques
+
+### Système Multi-Agents
+- **Agent Équipement** — Surveillance et diagnostic par équipement individuel
+- **Agent Site** — Coordination et optimisation au niveau site
+- **Agent Global** — Apprentissage inter-sites et politiques globales
+
+### Graphe de Connaissances
+- 48+ nœuds, 46+ arêtes
+- Raisonnement causal pour diagnostic avancé
+- Apprentissage continu par retour d'expérience
+
+### Modèles Physiques Hybrides
+- Durée de vie roulements (bearing life)
+- Cavitation pompes (pump cavitation)
+- Thermique moteurs (motor thermal)
+- Performance compresseurs (compressor efficiency)
+
+### Autonomie Graduée (Niveaux 0-5)
+- **Niveau 0** — Manuel : toutes décisions par l'opérateur
+- **Niveau 1** — Assisté : suggestions IA avec validation humaine
+- **Niveau 2** — Semi-autonome : actions automatiques pour cas simples
+- **Niveau 3** — Supervisé : autonomie avec supervision humaine
+- **Niveau 4** — Autonome : décisions autonomes avec exceptions escaladées
+- **Niveau 5** — Pleinement autonome : gestion complète par l'IA
+
+### Intégrations Communication
+**Route :** `/communication-integrations`
+Dispatch multi-canal intégré :
+- Slack
+- Microsoft Teams
+- Telegram
+- WhatsApp
+
+---
+
+# 🔌 API Cognitive (`/api/cognitive/*`)
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/cognitive/status` | GET | Statut du système cognitif |
+| `/api/cognitive/agents` | GET | Registre des agents |
+| `/api/cognitive/agents/site/:siteId` | GET | Agent de site spécifique |
+| `/api/cognitive/agents/equipment/:equipmentId` | GET | Agent d'équipement spécifique |
+| `/api/cognitive/closed-loop/:equipmentId` | POST | Traitement en boucle fermée |
+| `/api/cognitive/autonomy` | GET/PUT | Niveaux d'autonomie graduée |
+| `/api/cognitive/policies` | GET/POST | Moteur de politiques |
+| `/api/cognitive/audit-log` | GET | Journal d'audit des décisions |
+| `/api/cognitive/knowledge-graph` | GET | Graphe de connaissances |
+| `/api/cognitive/knowledge-graph/reason` | POST | Raisonnement causal |
+| `/api/cognitive/knowledge-graph/learn` | POST | Apprentissage par expérience |
+| `/api/cognitive/physics-model` | POST | Modèles physiques hybrides |
+| `/api/cognitive/what-if` | POST | Simulation what-if |
+| `/api/cognitive/global-learning` | GET | Apprentissage inter-sites |
+
+---
+
+# 📡 API Communication (`/api/communication-channels`)
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/communication-channels` | GET | Liste des canaux configurés |
+| `/api/communication-channels/:id` | GET | Détails d'un canal |
+| `/api/communication-channels` | POST | Créer un canal |
+| `/api/communication-channels/:id` | PATCH | Modifier un canal |
+| `/api/communication-channels/:id` | DELETE | Supprimer un canal |
+| `/api/communication-channels/:id/test` | POST | Tester un canal |
+| `/api/communication-channels/dispatch` | POST | Envoyer un message multi-canal |
+| `/api/communication-channels/delivery/logs` | GET | Logs de livraison |
+| `/api/communication-channels/delivery/stats` | GET | Statistiques de livraison |
 
 ---
 
@@ -200,11 +277,19 @@ Génération et impression de QR codes pour identification rapide des équipemen
 
 ## Structure Hiérarchique
 ```
-📚 Documentation Maintrix
+📚 Documentation Maintrix - Infrastructure Cognitive Industrielle
 ├── 📖 Documentation Technique
-│   ├── Architecture (ARCHITECTURE_MAINTRIX.md)
+│   ├── Architecture Globale (ARCHITECTURE_GLOBALE_MAINTRIX.md)
 │   ├── Manuel Utilisateur (MANUEL_UTILISATEUR_COMPLET.md)
 │   └── Guides Utilisation (GUIDES_UTILISATION_COMPLETS.md)
+│
+├── 🧠 Infrastructure Cognitive
+│   ├── Dashboard Cognitif (/cognitive-infrastructure)
+│   ├── Système Multi-Agents (Equipment, Site, Global)
+│   ├── Graphe de Connaissances (48+ nœuds, 46+ arêtes)
+│   ├── Modèles Physiques (roulements, pompes, moteurs, compresseurs)
+│   ├── Autonomie Graduée (Niveaux 0-5)
+│   └── Communication Multi-Canal (/communication-integrations)
 │
 ├── 🆕 Fonctionnalités Avancées 2026
 │   ├── Portail Client (/client-portal)
@@ -242,5 +327,5 @@ Génération et impression de QR codes pour identification rapide des équipemen
 
 ---
 
-**Maintrix - Documentation Complète v2026**
+**Maintrix - Infrastructure Cognitive Industrielle - Documentation Complète v2026**
 **© 2026 Maintrix - Tous droits réservés**

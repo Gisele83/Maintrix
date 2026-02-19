@@ -4,7 +4,7 @@
 
 ### Introduction (3 minutes)
 
-"Bonjour, je vais vous présenter Maintrix, notre assistant IA pour la maintenance industrielle qui révolutionne le diagnostic d'équipements."
+"Bonjour, je vais vous présenter Maintrix, notre Infrastructure Cognitive Industrielle qui révolutionne le diagnostic et la maintenance des équipements grâce à une architecture cognitive à 6 couches, un Knowledge Graph industriel et un système multi-agents."
 
 **Points clés à mentionner :**
 - Plus de 85% de précision diagnostic
@@ -102,7 +102,38 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 **Script :**
 "Voici le cerveau du système. Les managers peuvent suivre en temps réel la performance de l'IA et voir comment elle s'améliore constamment."
 
-### 5. Fonctionnalités Avancées (4 minutes)
+### 5. Infrastructure Cognitive (5 minutes)
+
+```
+Navigation : /cognitive-infrastructure
+```
+
+**À montrer :**
+1. Tableau de bord des 6 couches cognitives (Perception → Gouvernance)
+2. Visualisation du Knowledge Graph industriel
+3. Activité du système multi-agents en temps réel
+4. Niveaux d'autonomie graduée et escalade
+5. Métriques de santé cognitive globale
+
+**Script :**
+"Voici le cœur de Maintrix : l'Infrastructure Cognitive Industrielle. Les 6 couches cognitives fonctionnent ensemble — de la perception IoT à la gouvernance autonome. Le Knowledge Graph modélise les relations entre équipements, défaillances et solutions. Le système multi-agents coordonne des agents spécialisés par équipement et par site."
+
+### 6. Intégrations Communication (3 minutes)
+
+```
+Navigation : /communication-integrations
+```
+
+**À montrer :**
+1. Configuration des canaux de communication (Email, SMS, Slack, Teams)
+2. Règles de notification intelligentes basées sur la criticité
+3. Escalade automatique multi-canal
+4. Historique des communications et accusés de réception
+
+**Script :**
+"Maintrix s'intègre à vos canaux de communication existants. Les alertes cognitives sont automatiquement routées vers les bons interlocuteurs via le bon canal, avec escalade automatique si pas de réponse."
+
+### 7. Fonctionnalités Avancées (4 minutes)
 
 #### A. Historique et Export
 - Accès à l'historique complet
@@ -129,11 +160,17 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 
 ## 🎯 Points Forts à Souligner
 
+### Infrastructure Cognitive
+- **6 couches cognitives** : Perception → Compréhension → Mémoire → Cognition → Orchestration → Gouvernance
+- **Knowledge Graph** industriel modélisant les relations équipements-défaillances
+- **Système multi-agents** avec agents par équipement, par site et coordination globale
+- **Autonomie graduée** avec contrôle humain-dans-la-boucle
+
 ### Avantages Techniques
 - **9 algorithmes ML** en mode ensemble
 - **Apprentissage continu** automatique
 - **Analyse sémantique** des symptômes
-- **API REST** pour intégrations
+- **API REST** et intégrations communication multi-canal
 
 ### Bénéfices Métier
 - **ROI mesurable** dès 3 mois
@@ -144,7 +181,7 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 ### Innovation
 - **Auto-amélioration** par feedback
 - **Prédiction pannes** avant qu'elles arrivent
-- **Standardisation** des processus
+- **Intégrations communication** (Email, SMS, Slack, Teams)
 - **Évolutivité** continue
 
 ---
@@ -189,11 +226,12 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 ## 🎬 Conclusion Impactante
 
 ### Récapitulatif (2 minutes)
-"En résumé, Maintrix vous apporte :"
-1. **Diagnostic IA ultra-précis** (92%+ accuracy)
-2. **Gain temps considérable** (-60% temps intervention)
-3. **Apprentissage continu** auto-adaptatif
-4. **ROI rapide et mesurable** (3-6 mois)
+"En résumé, Maintrix — Infrastructure Cognitive Industrielle — vous apporte :"
+1. **Architecture cognitive à 6 couches** avec Knowledge Graph et système multi-agents
+2. **Diagnostic IA ultra-précis** (92%+ accuracy)
+3. **Gain temps considérable** (-60% temps intervention)
+4. **Autonomie graduée** et apprentissage continu
+5. **ROI rapide et mesurable** (3-6 mois)
 
 ### Call to Action
 "Prêts pour un pilote sur vos équipements ?"
@@ -219,4 +257,4 @@ Navigation : Clic sur "Apprentissage IA" dans la navigation
 - Pilote personnalisé sur vos équipements
 - Documentation technique complète
 
-*L'avenir de la maintenance industrielle commence aujourd'hui avec Maintrix.*
+*L'Infrastructure Cognitive Industrielle de Maintrix — l'avenir de la maintenance industrielle commence aujourd'hui.*
