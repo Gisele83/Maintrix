@@ -42,6 +42,23 @@
 
 ---
 
+# 📜 Propriété Intellectuelle & Brevets
+
+### Document de Brevet
+**Fichier :** `BREVET_INNOVATION_SCIENTIFIQUE_MAINTRIX.md`
+**Contenu :** Document formel de soumission de brevet pour l'infrastructure cognitive Maintrix
+**Sections :**
+- Titre de l'invention et domaine technique (G06N, G05B)
+- État de l'art et problème technique (vs GMAO, prédictif ML, jumeaux numériques)
+- Description détaillée des 5 innovations scientifiques
+- 5 revendications principales + 10 revendications dépendantes
+- Figures et schémas (architecture 6 couches, boucle fermée, Knowledge Graph, multi-agent)
+- 3 exemples de réalisation détaillés
+- Applications industrielles et marchés cibles
+- Abrégé pour soumission OEB/OAPI/USPTO
+
+---
+
 # 🧠 Infrastructure Cognitive
 
 ### Tableau de Bord Cognitif
