@@ -35,8 +35,8 @@ export default function LandingPage() {
     },
     {
       icon: Brain,
-      title: "Intelligence Cognitive",
-      description: "Architecture à 6 couches, système multi-agents et Knowledge Graph avec 48+ nœuds pour un raisonnement causal profond",
+      title: "Supervision Adaptative",
+      description: "5 modules coopératifs avec modélisation causale, graphe de connaissances 48+ nœuds et autonomie graduée (0-5)",
       color: "violet"
     },
     {

@@ -61,19 +61,19 @@ export default function ModernHome() {
           </div>
           
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Infrastructure cognitive formelle qui transforme vos machines industrielles en systèmes autonomes capables de percevoir, comprendre, anticiper et agir sur leurs propres défaillances.
+            Système de supervision et contrôle adaptatif à modélisation causale dynamique — 5 modules coopératifs pour limiter les dérives, réduire les cascades et stabiliser vos opérations.
           </p>
           
           {/* Feature badges - softer colors */}
           <div className="flex justify-center items-center flex-wrap gap-3 mb-14">
             <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-emerald-100 transition-colors">
-              Architecture 6 Couches
+              5 Modules Coopératifs
             </Badge>
             <Badge className="bg-violet-50 text-violet-700 border border-violet-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-violet-100 transition-colors">
-              Multi-Agent IA
+              Modélisation Causale
             </Badge>
             <Badge className="bg-sky-50 text-sky-700 border border-sky-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-sky-100 transition-colors">
-              Knowledge Graph
+              3 Objectifs Coopératifs
             </Badge>
             <Badge className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-amber-100 transition-colors">
               Autonomie Graduée
@@ -114,12 +114,12 @@ export default function ModernHome() {
                   <Brain className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4">Intelligence Cognitive</h3>
+              <h3 className="text-2xl font-bold text-slate-800 mb-4">Supervision & Contrôle Adaptatif</h3>
               <p className="text-slate-600 leading-relaxed mb-6">
-                Architecture 6 couches: Perception → Compréhension → Raisonnement → Décision → Action → Apprentissage
+                5 modules coopératifs: Capteurs → Détection → Modèle Causal → Décision → Adaptation
               </p>
               <div className="flex flex-wrap gap-2 mb-6 justify-center">
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Knowledge Graph</span>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Graphe Causal</span>
                 <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Multi-Agent</span>
                 <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Autonomie 0-5</span>
               </div>
@@ -127,7 +127,7 @@ export default function ModernHome() {
                 <Button asChild className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl py-3 shadow-sm">
                   <Link href="/cognitive-infrastructure">
                     <Brain className="w-4 h-4 mr-2" />
-                    Infrastructure Cognitive
+                    Supervision Adaptative
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl py-3">
@@ -144,7 +144,7 @@ export default function ModernHome() {
           <div className="flex justify-center items-center flex-wrap gap-3 mt-10">
             <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span>Kernel Cognitif actif</span>
+              <span>Système adaptatif actif</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
               <Activity className="h-4 w-4 text-blue-500" />
@@ -179,13 +179,13 @@ export default function ModernHome() {
         <div className="mb-16">
           <div className="text-center mb-10">
             <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-200 mb-4">
-              Architecture Cognitive Industrielle
+              Supervision & Contrôle Adaptatif
             </span>
             <h2 className="text-3xl font-bold text-slate-800 mb-3">
-              Architecture Cognitive Industrielle
+              Architecture de Supervision Adaptative
             </h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              6 couches formelles avec Kernel Cognitif orchestrant un système multi-agent distribué
+              5 modules coopératifs avec modélisation causale dynamique et autonomie graduée
             </p>
           </div>
           
@@ -196,8 +196,8 @@ export default function ModernHome() {
                 <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center mx-auto mb-4">
                   <Brain className="w-6 h-6 text-rose-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Kernel Cognitif</h3>
-                <p className="text-sm text-slate-600">Orchestration multi-agent, policy engine, boucle fermée</p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Modèle Causal</h3>
+                <p className="text-sm text-slate-600">Graphe de connaissances, relations pondérées, prédiction cascade</p>
               </CardContent>
             </Card>
             
@@ -230,7 +230,7 @@ export default function ModernHome() {
               Modules & Fonctionnalités
             </h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Découvrez toutes les capacités de l'infrastructure cognitive
+              Découvrez toutes les capacités du système de supervision adaptatif
             </p>
           </div>
           <FeatureCards />

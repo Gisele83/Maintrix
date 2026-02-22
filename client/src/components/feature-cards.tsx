@@ -22,14 +22,14 @@ import {
 
 const features = [
   {
-    title: "Intelligence Cognitive",
-    description: "Architecture 6 couches avec Knowledge Graph et système multi-agent distribué",
+    title: "Supervision Adaptative",
+    description: "5 modules coopératifs avec modélisation causale dynamique et autonomie graduée",
     icon: Brain,
     href: "/cognitive-infrastructure",
     gradient: "from-purple-500 to-pink-500",
-    badge: "Cognitif",
-    features: ["Knowledge Graph 48+ noeuds", "Multi-Agent IA", "Autonomie graduée 0-5", "Raisonnement causal"],
-    stats: "6 couches"
+    badge: "Adaptatif",
+    features: ["Graphe causal 48+ noeuds", "Multi-Agent IA", "Autonomie graduée 0-5", "3 objectifs coopératifs"],
+    stats: "5 modules"
   },
   {
     title: "Diagnostic Hybride",
@@ -63,7 +63,7 @@ const features = [
   },
   {
     title: "Analytics & Reporting",
-    description: "Tableaux de bord cognitifs et analytics de performance industrielle",
+    description: "Tableaux de bord adaptatifs et analytics de performance industrielle",
     icon: BarChart3,
     href: "/advanced-reporting",
     gradient: "from-orange-500 to-red-500",

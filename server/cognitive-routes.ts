@@ -52,13 +52,17 @@ export function registerCognitiveRoutes(app: Express): void {
         globalAgent: globalAgent.getGlobalStatus(),
         knowledgeGraph: knowledgeGraph.getStats(),
         architecture: {
-          layers: [
-            { name: 'Physical Layer', description: 'Machines, PLC, SCADA, capteurs, IoT', status: 'active' },
-            { name: 'Edge Intelligence Layer', description: 'Traitement local, detection anomalies, pre-filtrage', status: 'active' },
-            { name: 'Cognitive Core Layer', description: 'Diagnostic, raisonnement, moteur decisionnel', status: 'active' },
-            { name: 'Orchestration & Execution Layer', description: 'Interaction avec systemes industriels', status: 'active' },
-            { name: 'Learning & Knowledge Layer', description: 'Modeles ML, graphes de connaissances, memoire', status: 'active' },
-            { name: 'Governance & Trust Layer', description: 'Explicabilite, audit, gestion du risque', status: 'active' }
+          modules: [
+            { id: 'a', name: 'Reception de signaux capteurs', description: 'Interface materielle MQTT/Modbus/OPC-UA/LoRaWAN pour capteurs physiques', status: 'active' },
+            { id: 'b', name: 'Detection de variations anormales', description: 'Comparaison temps reel aux seuils adaptatifs avec classification par type et severite', status: 'active' },
+            { id: 'c', name: 'Modelisation causale dynamique', description: 'Graphe de connaissances avec 5 types de noeuds, 7 types de relations ponderees', status: 'active' },
+            { id: 'd', name: 'Module decisionnel adaptatif', description: 'Generation de signaux de commande avec 6 niveaux d\'autonomie graduee', status: 'active' },
+            { id: 'e', name: 'Adaptation dynamique du modele', description: 'Modification de la structure causale selon les resultats d\'interventions', status: 'active' }
+          ],
+          objectives: [
+            { name: 'Limiter les derives techniques', status: 'active' },
+            { name: 'Reduire les defaillances en cascade', status: 'active' },
+            { name: 'Stabiliser le comportement operationnel', status: 'active' }
           ]
         }
       });

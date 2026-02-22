@@ -64,7 +64,7 @@ export function ModernNavigation() {
 
   const navigation = [
     { name: "Accueil", href: "/", icon: Home },
-    { name: "Infrastructure Cognitive", href: "/cognitive-infrastructure", icon: Brain },
+    { name: "Supervision Adaptative", href: "/cognitive-infrastructure", icon: Brain },
     { name: "Diagnostic Hybride", href: "/smart-diagnostic", icon: Database },
     { name: "GMAO Intégrée", href: "/gmao", icon: Settings },
     { name: "Perception IoT", href: "/iot-gamification", icon: BarChart3 },
@@ -91,7 +91,7 @@ export function ModernNavigation() {
                   Maintrix
                 </span>
                 <span className="text-xs text-gray-500 font-medium tracking-wider uppercase">
-                  Infrastructure Cognitive
+                  Supervision Adaptative
                 </span>
               </div>
             </Link>
