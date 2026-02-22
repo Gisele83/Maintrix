@@ -1,5 +1,5 @@
 # BREVET D'INVENTION — MAINTRIX
-# Infrastructure Cognitive pour la Maintenance Industrielle Autonome
+# Système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique
 
 **Document de Soumission de Brevet**
 **Version :** 1.0
@@ -28,15 +28,15 @@
 
 ## 1. TITRE DE L'INVENTION
 
-**"Infrastructure Cognitive à Architecture en Couches pour la Maintenance Industrielle Autonome avec Diagnostic Hybride Explicable, Graphe de Connaissances Auto-Apprenant, et Système de Décision à Autonomie Graduée"**
+**"Système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique"**
 
-Titre court : **MAINTRIX — Infrastructure Cognitive Industrielle**
+Titre court : **MAINTRIX — Système de Supervision et Contrôle Adaptatif Industriel**
 
 ---
 
 ## 2. DOMAINE TECHNIQUE
 
-La présente invention se rapporte au domaine des systèmes intelligents pour la maintenance industrielle, et plus particulièrement à une infrastructure cognitive logicielle qui confère aux machines industrielles la capacité de percevoir leur état, de comprendre les anomalies détectées, d'anticiper les défaillances, et d'agir progressivement de manière autonome sur leur propre préservation.
+La présente invention se rapporte au domaine des systèmes informatiques de supervision et de contrôle adaptatif d'équipements industriels. Plus particulièrement, l'invention concerne un système à modélisation causale dynamique qui structure les relations entre paramètres physiques mesurés et modes de défaillance mécaniques, et qui adapte dynamiquement cette modélisation en fonction des résultats d'interventions techniques effectuées sur lesdits équipements.
 
 L'invention s'inscrit dans les classifications internationales suivantes :
 - **G06N 5/04** — Systèmes experts, raisonnement basé sur des règles
@@ -95,27 +95,31 @@ Aucun système existant ne résout simultanément les problèmes suivants :
 
 Le problème technique résolu par la présente invention est le suivant :
 
-> Comment créer un système logiciel qui confère à un parc de machines industrielles une **capacité cognitive autonome** — c'est-à-dire la capacité de percevoir leur état, comprendre les anomalies, raisonner causalement sur les défaillances, prendre des décisions de maintenance avec un niveau d'autonomie contrôlé et gradué, exécuter des actions correctives, et capitaliser les retours d'expérience pour améliorer continuellement ses performances diagnostiques — tout en garantissant une explicabilité complète de chaque décision et une traçabilité conforme aux exigences réglementaires industrielles ?
+> Comment concevoir un système informatique de supervision et de contrôle adaptatif d'équipements industriels qui, à partir de signaux issus de capteurs physiques (vibratoires, thermiques, électriques, pression), soit capable de : (1) détecter les variations anormales de paramètres physiques ; (2) structurer les relations causales entre ces paramètres mesurés et les modes de défaillance mécaniques via un modèle causal dynamique ; (3) générer des signaux de commande destinés à modifier le fonctionnement des équipements industriels ; (4) adapter dynamiquement la structure du modèle causal en fonction des résultats d'interventions techniques effectuées — le tout afin de limiter les dérives techniques, réduire les défaillances en cascade, et stabiliser le comportement opérationnel du parc industriel ?
 
 ---
 
 ## 4. RÉSUMÉ DE L'INVENTION
 
-La présente invention propose une **infrastructure cognitive industrielle** caractérisée par :
+La présente invention propose un **système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique**, caractérisé en ce qu'il comprend :
 
-1. Une **architecture formelle à 6 couches cognitives** avec contrats d'interface typés, modélisant le flux d'information depuis la perception physique (capteurs) jusqu'à la gouvernance décisionnelle ;
+1. Une **interface matérielle de réception de signaux** issus de capteurs physiques (vibratoires, thermiques, électriques, pression, débit, vitesse, acoustiques) via des protocoles industriels standards (MQTT, Modbus, OPC-UA, LoRaWAN), produisant des signaux normalisés typés (`SensorSignal`) ;
 
-2. Un **noyau cognitif** (Cognitive Kernel) orchestrant un système multi-agent distribué (agents Équipement, Site, Global) avec communication par messages typés et mémoire hiérarchique ;
+2. Un **module de détection de variations anormales de paramètres physiques**, configuré pour comparer en temps réel les signaux capteurs à des seuils adaptatifs (warning, critical) et classifier les anomalies par type (`threshold_breach`, `trend_deviation`, `pattern_anomaly`, `correlation_anomaly`) et par sévérité ;
 
-3. Un **moteur de diagnostic hybride** fusionnant 4 sources de connaissance (règles expertes, similarité historique, mémoire de pannes, structuration IA) avec génération automatique d'une chaîne d'évidence explicable ;
+3. Un **module de modélisation causale** structurant les relations entre paramètres mesurés et modes de défaillance mécaniques, sous forme d'un graphe de connaissances industriel comprenant 5 types de nœuds (équipement, symptôme, cause, intervention, contexte) et 7 types de relations pondérées (`affects`, `indicates`, `resolves`, `causes`, `correlates_with`, `requires`, `preceded_by`), avec algorithmes de raisonnement par parcours de graphe et de prédiction de cascades de défaillances ;
 
-4. Un **graphe de connaissances industriel auto-apprenant** encodant les relations causales entre équipements, symptômes, causes, interventions et contextes, avec raisonnement par parcours de graphe et ajustement dynamique des poids de confiance ;
+4. Un **module décisionnel** configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, comprenant un moteur de politiques à 6 niveaux d'autonomie graduée (0-Monitoring à 5-Autonomie Complète), des actions ciblant les systèmes opérationnels (PLC, SCADA, DCS, ERP, GMAO), et un journal d'audit décisionnel complet ;
 
-5. Des **modèles physiques hybrides** (Arrhenius, Bernoulli, ISO 281, compression isentropique) paramétrés par des données capteurs en temps réel pour la prédiction de durée de vie résiduelle (RUL) avec explication physique causale ;
+5. Un **module d'adaptation dynamique** modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe (+0.02/+0.03 en cas de succès, -0.05 en cas d'échec) et capitalisation dans une mémoire de pannes confirmées à compteur d'occurrences.
 
-6. Un **système de décision à autonomie graduée** (6 niveaux : 0-Monitoring à 5-Autonomie Complète) avec moteur de politiques conditionnel, journal d'audit décisionnel, et mécanisme de rétroaction humaine ;
+**Lesdits modules coopèrent afin :**
 
-7. Une **boucle fermée cognitive** à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) qui assure l'amélioration continue du système.
+- **De limiter les dérives techniques** : par la détection continue des variations anormales et le déclenchement d'actions correctives avant que les paramètres physiques ne sortent de leurs plages de fonctionnement nominal ;
+
+- **De réduire les défaillances en cascade** : par le raisonnement causal prédictif du graphe de connaissances qui traverse récursivement les arêtes `causes` pour identifier les effets en cascade avec probabilité cumulative, permettant des interventions préventives ciblées ;
+
+- **De stabiliser le comportement opérationnel du parc industriel** : par la boucle fermée cognitive à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) qui assure l'amélioration continue du modèle causal et la convergence vers une supervision optimale.
 
 ---
 
@@ -392,52 +396,75 @@ Le système sélectionne automatiquement le modèle physique approprié en fonct
 
 ## 6. REVENDICATIONS PRINCIPALES
 
-### Revendication 1 — Architecture Cognitive Formelle
+### Revendication 1 — Système de supervision et contrôle adaptatif
 
-Un système informatique pour la maintenance industrielle autonome, caractérisé en ce qu'il comprend une architecture logicielle en 6 couches cognitives formelles :
-- une couche physique d'acquisition et de normalisation de signaux capteurs avec contrat de sortie typé (`SensorSignal`) ;
-- une couche d'intelligence de bord pour la détection d'anomalies en temps réel avec classification par type et sévérité (`AnomalyDetection`) ;
-- un noyau cognitif central pour le diagnostic par fusion de 4 sources de connaissance indépendantes avec chaîne d'évidence explicable (`CognitiveDiagnosis`) ;
-- une couche d'orchestration et d'exécution avec moteur de politiques conditionnel pour la prise de décision automatisée (`OrchestratedAction`) ;
-- une couche d'apprentissage et de connaissances avec graphe de connaissances auto-apprenant et mécanisme de capitalisation des retours d'intervention ;
-- une couche de gouvernance et de confiance avec journal d'audit décisionnel complet (`DecisionAuditEntry`) ;
+Un système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique, caractérisé en ce qu'il comprend :
 
-lesdites couches étant reliées par des contrats d'interface typés définissant les flux d'information ascendants (perception vers cognition) et descendants (décision vers action).
+a) une **interface matérielle de réception de signaux** issus de capteurs physiques vibratoires, thermiques, électriques, de pression, de débit, de vitesse et acoustiques, ladite interface recevant lesdits signaux via des protocoles industriels standards (MQTT, Modbus, OPC-UA, LoRaWAN) et produisant des signaux normalisés typés (`SensorSignal`) comprenant un identifiant d'équipement, un type de capteur, une valeur numérique, une unité de mesure, un horodatage, un indicateur de qualité et une source de protocole ;
 
-### Revendication 2 — Diagnostic Hybride Explicable
+b) un **module de détection de variations anormales de paramètres physiques**, configuré pour comparer en temps réel les signaux normalisés à des seuils adaptatifs à deux niveaux (warning, critical) spécifiques à chaque type de capteur et chaque équipement, et pour classifier les anomalies détectées par type (`threshold_breach`, `trend_deviation`, `pattern_anomaly`, `correlation_anomaly`) et par sévérité (`low`, `medium`, `high`, `critical`) ;
 
-Un procédé de diagnostic industriel mis en œuvre par ordinateur, caractérisé en ce qu'il comprend les étapes de :
-- évaluation d'un ensemble de règles expertes formalisées, chaque règle comprenant des patterns d'équipement, des patterns de symptômes, une logique conditionnelle, et un score de confiance ajusté par la couverture symptomatique ;
-- recherche de similarité dans une base de cas historiques selon 3 niveaux (exact, similaire, symptomatique) avec scores de similarité pondérés ;
-- interrogation d'une mémoire de pannes capitalisée avec compteur de confirmations et signature de symptômes ;
-- structuration par un modèle de langage des résultats fusionnés ;
-- génération automatique d'une chaîne d'évidence (`EvidenceItem[]`) comprenant pour chaque élément un type source parmi 6 catégories (`sensor_data`, `rule_match`, `historical_case`, `knowledge_graph`, `physics_model`, `agent_report`), un score de confiance, et une description en langage naturel.
+c) un **module de modélisation causale** structurant les relations entre paramètres mesurés et modes de défaillance mécaniques, sous forme d'un graphe de connaissances industriel comprenant 5 types de nœuds (équipement, symptôme, cause, intervention, contexte) et 7 types de relations pondérées (`affects`, `indicates`, `resolves`, `causes`, `correlates_with`, `requires`, `preceded_by`), ledit module comprenant :
+   - un algorithme de raisonnement causal par parcours de graphe (`findCausalPath`) produisant des chemins Symptôme → Cause → Intervention avec confiance cumulée (produit des poids d'arêtes) ;
+   - un algorithme de prédiction de cascades de défaillances (`findCascadeEffects`) par traversée récursive des arêtes `causes` jusqu'à une profondeur configurable avec calcul de probabilité cumulative ;
+   - un algorithme de renforcement croisé multi-symptômes augmentant la confiance de 30% lorsque deux symptômes indépendants convergent vers la même cause ;
 
-### Revendication 3 — Graphe de Connaissances Auto-Apprenant
+d) un **module décisionnel** configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, comprenant :
+   - un moteur de politiques à 6 niveaux d'autonomie graduée (0: Monitoring, 1: Diagnostic Assisté, 2: Recommandation Automatique, 3: Exécution Supervisée, 4: Autonomie Partielle, 5: Autonomie Complète) ;
+   - un mécanisme d'évaluation automatique de règles formelles avec conditions (champ, opérateur parmi 8 types, valeur), déterminant le traitement (auto-exécution, approbation requise, escalade) ;
+   - des actions ciblant les systèmes opérationnels (`plc`, `scada`, `dcs`, `erp`, `gmao`, `manual`) via des commandes typées (`OrchestratedAction`) ;
+   - un journal d'audit décisionnel complet enregistrant chaque décision avec horodatage, diagnostic source, niveau d'autonomie, raison, évidences, et indicateur de surcharge humaine ;
 
-Un graphe de connaissances industriel mis en œuvre par ordinateur, caractérisé en ce qu'il comprend :
-- 5 types de nœuds formels (équipement, symptôme, cause, intervention, contexte) avec propriétés typées ;
-- 7 types de relations formels (`affects`, `indicates`, `resolves`, `causes`, `correlates_with`, `requires`, `preceded_by`) avec poids de confiance et compteur d'occurrences ;
-- un algorithme de raisonnement causal par parcours de graphe (`findCausalPath`) produisant des chemins Symptôme → Cause → Intervention avec confiance cumulée ;
-- un algorithme de prédiction de cascades de défaillances (`findCascadeEffects`) par traversée récursive des arêtes `causes` avec calcul de probabilité cumulative ;
-- un algorithme de renforcement croisé multi-symptômes augmentant la confiance de 30% lorsque deux symptômes indépendants convergent vers la même cause ;
-- un mécanisme d'apprentissage par rétroaction d'intervention ajustant dynamiquement les poids de confiance des arêtes (+0.02/+0.03 en cas de succès, -0.05 en cas d'échec, plafonné à [0.1, 1.0]).
+e) un **module d'adaptation dynamique** modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, comprenant :
+   - un ajustement des poids de confiance des arêtes du graphe de connaissances : +0.02 (arêtes `indicates`) et +0.03 (arêtes `resolves`) en cas de succès d'intervention, -0.05 en cas d'échec, les poids étant plafonnés dans l'intervalle [0.1, 1.0] ;
+   - un compteur d'occurrences pour chaque arête, incrémenté à chaque intervention ;
+   - une capitalisation dans une mémoire de pannes confirmées avec signature de symptômes, diagnostic validé, et compteur de confirmations dont la confiance augmente avec les confirmations ;
+   - une diffusion des apprentissages à l'ensemble des agents actifs du système via messages typés `knowledge_update` ;
 
-### Revendication 4 — Système de Décision à Autonomie Graduée
+**lesdits modules coopérant afin :**
 
-Un système de décision autonome pour maintenance industrielle, caractérisé en ce qu'il comprend :
-- 6 niveaux d'autonomie formels (0: Monitoring, 1: Diagnostic Assisté, 2: Recommandation Automatique, 3: Exécution Supervisée, 4: Autonomie Partielle, 5: Autonomie Complète) ;
-- un moteur de politiques comprenant un ensemble de règles formelles, chaque règle comprenant des conditions évaluables (champ, opérateur parmi 8 types, valeur), un niveau d'autonomie maximal, un indicateur d'approbation requise, et une liste de rôles approbateurs ;
-- un mécanisme d'évaluation automatique des politiques par ordre de priorité pour déterminer le traitement (auto-exécution, approbation requise, escalade) ;
-- un journal d'audit décisionnel enregistrant pour chaque décision l'horodatage, le diagnostic source, la décision prise, le niveau d'autonomie, la raison, les évidences, le niveau de risque, la politique appliquée, et l'indicateur de surcharge humaine.
+- **de limiter les dérives techniques** : par la détection continue des variations anormales de paramètres physiques et le déclenchement d'actions correctives avant que lesdits paramètres ne sortent de leurs plages de fonctionnement nominal ;
 
-### Revendication 5 — Modèles Physiques Hybrides avec Explication Causale
+- **de réduire les défaillances en cascade** : par le raisonnement causal prédictif du module de modélisation causale qui identifie les effets en cascade avec probabilité cumulative, permettant des interventions préventives ciblées sur les causes racines avant propagation ;
 
-Un procédé de prédiction de durée de vie résiduelle (RUL) pour équipements industriels, caractérisé en ce qu'il comprend :
-- un ensemble de modèles physiques basés sur des équations fondamentales (loi d'Arrhenius pour la dégradation thermique, théorème de Bernoulli pour la cavitation, norme ISO 281 pour la durée de vie des roulements, compression isentropique pour les compresseurs) ;
+- **de stabiliser le comportement opérationnel du parc industriel** : par la boucle fermée à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) qui assure l'amélioration continue du modèle causal et la convergence vers une supervision optimale.
+
+### Revendication 2 — Diagnostic hybride explicable par fusion multi-sources
+
+Système selon la revendication 1, caractérisé en ce que le module de modélisation causale comprend en outre un moteur de diagnostic hybride fusionnant 4 sources de connaissance indépendantes :
+- un moteur de règles expertes formalisées, chaque règle comprenant des patterns d'équipement, des patterns de symptômes, une logique conditionnelle, et un score de confiance ajusté par la couverture symptomatique selon la formule `confidence = base × (0.7 + 0.3 × symptomCoverage)` ;
+- une analyse de similarité historique recherchant dans une base de cas de maintenance réels avec scoring pondéré multi-critères (similarité textuelle 30%, correspondance de symptômes vérifiés 25%, correspondance d'équipement 25%, correspondance d'urgence 10%, base 10%) ;
+- une interrogation d'une mémoire de pannes capitalisée avec compteur de confirmations et signature de symptômes, dont la confiance croît avec le nombre de confirmations terrain ;
+- une structuration par un modèle de langage des résultats fusionnés des 3 sources précédentes ;
+
+ledit moteur de diagnostic produisant pour chaque diagnostic une chaîne d'évidence (`EvidenceItem[]`) comprenant pour chaque élément un type source parmi 6 catégories (`sensor_data`, `rule_match`, `historical_case`, `knowledge_graph`, `physics_model`, `agent_report`), un score de confiance, et une description en langage naturel explicable.
+
+### Revendication 3 — Modèles physiques hybrides à explication causale
+
+Système selon la revendication 1, caractérisé en ce qu'il comprend en outre un ensemble de modèles physiques basés sur des équations fondamentales :
+- un modèle de durée de vie de roulement basé sur la norme ISO 281 avec facteurs de correction température, vibration, vitesse et charge ;
+- un modèle de cavitation de pompe basé sur le théorème de Bernoulli et le concept de NPSH (Net Positive Suction Head) ;
+- un modèle de dégradation thermique moteur basé sur la loi d'Arrhenius pour le vieillissement de l'isolation des bobinages ;
+- un modèle de performance compresseur basé sur la compression isentropique d'un gaz parfait ;
 - un mécanisme de sélection automatique du modèle approprié en fonction du type d'équipement ;
-- un paramétrage en temps réel desdits modèles par les données capteurs de la couche physique ;
+- un paramétrage en temps réel desdits modèles par les données capteurs de l'interface de réception de signaux ;
 - une génération automatique d'une explication physique causale en langage naturel détaillant les facteurs d'accélération de dégradation identifiés et leurs contributions quantifiées.
+
+### Revendication 4 — Système multi-agent hiérarchique
+
+Système selon la revendication 1, caractérisé en ce qu'il comprend un noyau cognitif orchestrant un système multi-agent hiérarchique comprenant :
+- des agents de niveau équipement (un par machine), disposant d'une mémoire locale (`localMemory`) stockant les anomalies détectées et l'historique des actions ;
+- des agents de niveau site (un par site industriel), assurant la coordination et l'optimisation locale ;
+- un agent de niveau global (un pour l'ensemble du parc), assurant l'apprentissage fédéré et la diffusion des patterns globaux via une mémoire partagée (`globalMemory`) ;
+
+lesdits agents communiquant via des messages typés avec 9 types de messages (`sensor_update`, `anomaly_alert`, `diagnosis_request`, `diagnosis_result`, `action_command`, `feedback_report`, `knowledge_update`, `model_sync`, `heartbeat`), 4 niveaux de priorité (`low`, `normal`, `high`, `critical`), et un mécanisme d'acquittement, les messages de priorité `critical` étant traités immédiatement en bypass de la file d'attente.
+
+### Revendication 5 — Gouvernance et traçabilité décisionnelle
+
+Système selon la revendication 1, caractérisé en ce que le module décisionnel comprend en outre :
+- une politique de sécurité critique (priorité maximale) imposant une escalade immédiate avec approbation obligatoire pour tout impact sécurité majeur ou catastrophique, indépendamment du niveau d'autonomie du système ;
+- un journal d'audit décisionnel enregistrant pour chaque décision l'horodatage, le diagnostic source, la décision prise (`approved`, `rejected`, `escalated`, `deferred`, `auto-executed`), le niveau d'autonomie, la politique appliquée, le résumé des évidences, le niveau de risque, et l'indicateur de surcharge humaine ;
+- une traçabilité complète de chaque décision conforme aux exigences réglementaires industrielles (ISO 55000, CCTP).
 
 ---
 
@@ -445,33 +472,33 @@ Un procédé de prédiction de durée de vie résiduelle (RUL) pour équipements
 
 ### 7.1 Dépendantes de la Revendication 1
 
-**Revendication 6** : Système selon la revendication 1, caractérisé en ce que le noyau cognitif orchestre un système multi-agent hiérarchique comprenant des agents de niveau équipement (un par machine), de niveau site (un par site industriel), et de niveau global (un pour l'ensemble du parc), communiquant via des messages typés avec 9 types de messages, 4 niveaux de priorité, et un mécanisme d'acquittement.
+**Revendication 6** : Système selon la revendication 1, caractérisé en ce que l'interface matérielle de réception de signaux (a) supporte au moins 5 protocoles d'acquisition (MQTT, Modbus, OPC-UA, LoRaWAN, simulation) et produit pour chaque signal un indicateur de qualité permettant au module de détection (b) de pondérer la fiabilité des anomalies détectées en fonction de la qualité des signaux sources.
 
-**Revendication 7** : Système selon la revendication 1, caractérisé en ce qu'il met en œuvre une boucle fermée cognitive à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) où les résultats de chaque action sont capitalisés pour améliorer les diagnostics futurs via mise à jour du graphe de connaissances et diffusion aux agents actifs.
+**Revendication 7** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend des nœuds de type `cause` portant une propriété `mtbf` (temps moyen entre pannes) et des nœuds de type `intervention` portant des propriétés `duration` (durée estimée) et `cost` (coût estimé), permettant un calcul coût-bénéfice automatique des interventions recommandées.
 
-**Revendication 8** : Système selon la revendication 6, caractérisé en ce que chaque agent dispose d'une mémoire locale (`localMemory`) stockant les anomalies détectées et l'historique des actions, et en ce que le Kernel global maintient une mémoire partagée (`globalMemory`) contenant le graphe de connaissances et l'historique d'apprentissage.
+**Revendication 8** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend un algorithme d'identification de facteurs contextuels aggravants (`findContextualFactors`) par recherche des arêtes `correlates_with` entrantes vers une cause identifiée, permettant d'enrichir le diagnostic avec des facteurs environnementaux (température ambiante, environnement poussiéreux, surcharge de production, maintenance retardée, instabilité électrique).
+
+**Revendication 9** : Système selon la revendication 1, caractérisé en ce que le module d'adaptation dynamique (e) diffuse les apprentissages à l'ensemble des agents actifs du système via un mécanisme de communication inter-agents comprenant 9 types de messages typés, 4 niveaux de priorité, et un mécanisme d'acquittement, les messages de priorité critique étant traités immédiatement en bypass de la file d'attente.
 
 ### 7.2 Dépendantes de la Revendication 2
 
-**Revendication 9** : Procédé selon la revendication 2, caractérisé en ce que le moteur de règles expertes comprend au moins 10 règles couvrant les défaillances industrielles courantes (surchauffe moteur, vibrations anormales, fuite hydraulique, bruit de roulement, défaut électrique, perte de débit pompe, défaut compresseur, défaut convoyeur, défaut réducteur, défaut automate), chaque règle comprenant des étapes de réparation, des avertissements de sécurité, et des outils nécessaires.
+**Revendication 10** : Système selon la revendication 2, caractérisé en ce que le moteur de règles expertes comprend au moins 10 règles couvrant les défaillances industrielles courantes (surchauffe moteur, vibrations anormales, fuite hydraulique, bruit de roulement, défaut électrique, perte de débit pompe, défaut compresseur, défaut convoyeur, défaut réducteur, défaut automate), chaque règle comprenant des étapes de réparation, des avertissements de sécurité, et des outils nécessaires.
 
-**Revendication 10** : Procédé selon la revendication 2, caractérisé en ce que la confiance du diagnostic est ajustée par la formule `confidence = base × (0.7 + 0.3 × symptomCoverage)` où `symptomCoverage` est le ratio entre le nombre de symptômes correspondants et le nombre total de patterns de symptômes de la règle.
+**Revendication 11** : Système selon la revendication 2, caractérisé en ce que les résultats des 4 sources sont fusionnés par un pipeline parallèle (`Promise.all`) suivi d'une déduplication par clé diagnostique, d'un classement par confiance, et d'un enrichissement contextuel par les signaux de l'équipement (criticité, état opérationnel, interventions récentes, compteurs de heures machine).
 
 ### 7.3 Dépendantes de la Revendication 3
 
-**Revendication 11** : Graphe de connaissances selon la revendication 3, caractérisé en ce que les nœuds de type `cause` portent une propriété `mtbf` (temps moyen entre pannes) et les nœuds de type `intervention` portent des propriétés `duration` (durée estimée) et `cost` (coût estimé), permettant un calcul coût-bénéfice automatique des interventions recommandées.
+**Revendication 12** : Système selon la revendication 3, caractérisé en ce que le modèle de dégradation thermique moteur utilise la loi d'Arrhenius avec un facteur de correction `ArrheniusFactor = exp(-0.1 × (WindingTemp - 105))` combiné à un facteur de correction de surcharge `LoadCorrection = (1/LoadRatio)²` pour LoadRatio > 1.0, et génère une explication quantifiant la contribution de chaque facteur de stress.
 
-**Revendication 12** : Graphe de connaissances selon la revendication 3, caractérisé en ce qu'il comprend un algorithme d'identification de facteurs contextuels aggravants par recherche des arêtes `correlates_with` entrantes vers une cause identifiée, permettant d'enrichir le diagnostic avec des facteurs environnementaux (température ambiante, environnement poussiéreux, surcharge de production, maintenance retardée, instabilité électrique).
+**Revendication 13** : Système selon la revendication 3, caractérisé en ce que le modèle de cavitation de pompe calcule la marge NPSH (Net Positive Suction Head) selon `NPSHAvailable = InletPressure - VaporPressure` et `NPSHRequired = 2.0 + (FlowRate / 100) × 0.5`, et génère un risque de cavitation quantifié avec explication physique.
 
 ### 7.4 Dépendantes de la Revendication 4
 
-**Revendication 13** : Système selon la revendication 4, caractérisé en ce que les politiques comprennent au moins une politique de sécurité critique (priorité maximale) imposant une escalade immédiate avec approbation obligatoire pour tout impact sécurité majeur ou catastrophique, indépendamment du niveau d'autonomie du système.
-
-**Revendication 14** : Système selon la revendication 4, caractérisé en ce qu'il comprend un mécanisme de rétrogradation automatique du niveau d'autonomie en cas de détection d'un nombre anormal d'erreurs ou d'une diminution de la confiance moyenne des diagnostics.
+**Revendication 14** : Système selon la revendication 4, caractérisé en ce que les agents de niveau équipement disposent d'une mémoire locale (`localMemory`) stockant les anomalies détectées et l'historique des actions, et en ce que l'agent de niveau global maintient une mémoire partagée (`globalMemory`) contenant le graphe de connaissances et l'historique d'apprentissage, permettant un apprentissage fédéré cross-sites.
 
 ### 7.5 Dépendantes de la Revendication 5
 
-**Revendication 15** : Procédé selon la revendication 5, caractérisé en ce que le modèle de dégradation thermique moteur utilise la loi d'Arrhenius avec un facteur de correction `ArrheniusFactor = exp(-0.1 × (WindingTemp - 105))` combiné à un facteur de correction de surcharge `LoadCorrection = (1/LoadRatio)²` pour LoadRatio > 1.0, et génère une explication quantifiant la contribution de chaque facteur de stress.
+**Revendication 15** : Système selon la revendication 5, caractérisé en ce que le journal d'audit décisionnel est structuré selon un format normalisé comprenant pour chaque entrée : un identifiant unique, un horodatage, la référence au diagnostic source, la décision prise parmi 5 options (`approved`, `rejected`, `escalated`, `deferred`, `auto-executed`), le niveau d'autonomie, la raison, le résumé des évidences, le niveau de risque, la politique appliquée, l'indicateur de surcharge humaine, le résultat d'action, et l'identifiant du tenant, assurant une conformité complète aux exigences de traçabilité industrielle (ISO 55000, CCTP).
 
 ---
 
@@ -717,13 +744,23 @@ Le système recommande une intervention proactive sur la lubrification pour pré
 
 ## 12. ABRÉGÉ
 
-L'invention concerne une infrastructure cognitive logicielle pour la maintenance industrielle autonome, comprenant :
+L'invention concerne un **système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique**, comprenant :
 
-Une architecture formelle à 6 couches cognitives (Physique, Intelligence de Bord, Noyau Cognitif, Orchestration, Apprentissage, Gouvernance) avec contrats d'interface typés. Le noyau cognitif orchestre un système multi-agent distribué (agents Équipement, Site, Global) et implémente un moteur de diagnostic hybride fusionnant 4 sources de connaissance (règles expertes, similarité historique, mémoire de pannes, IA) avec génération d'une chaîne d'évidence explicable. Un graphe de connaissances industriel auto-apprenant encode les relations causales entre équipements, symptômes, causes, interventions et contextes, avec raisonnement par parcours de graphe, prédiction de cascades de défaillances, et ajustement dynamique des poids par rétroaction d'intervention. Des modèles physiques hybrides (Arrhenius, Bernoulli, ISO 281) paramétrés par données capteurs en temps réel prédisent la durée de vie résiduelle avec explication physique causale. Un système de décision à 6 niveaux d'autonomie (Monitoring à Autonomie Complète) avec moteur de politiques conditionnel et journal d'audit décisionnel garantit une progression contrôlée vers l'autonomie industrielle. Une boucle fermée cognitive à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) assure l'amélioration continue du système.
+(a) une interface matérielle de réception de signaux issus de capteurs physiques (vibratoires, thermiques, électriques, pression, débit, vitesse, acoustiques) via des protocoles industriels standards (MQTT, Modbus, OPC-UA, LoRaWAN) ;
+
+(b) un module de détection de variations anormales de paramètres physiques par comparaison en temps réel à des seuils adaptatifs avec classification par type et sévérité ;
+
+(c) un module de modélisation causale structurant les relations entre paramètres mesurés et modes de défaillance mécaniques sous forme d'un graphe de connaissances industriel avec raisonnement par parcours de graphe et prédiction de cascades de défaillances ;
+
+(d) un module décisionnel configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, avec moteur de politiques à 6 niveaux d'autonomie graduée et journal d'audit décisionnel complet ;
+
+(e) un module d'adaptation dynamique modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe et capitalisation dans une mémoire de pannes confirmées.
+
+Lesdits modules coopèrent afin de limiter les dérives techniques, de réduire les défaillances en cascade par raisonnement causal prédictif, et de stabiliser le comportement opérationnel du parc industriel par une boucle fermée cognitive à 6 phases assurant l'amélioration continue du modèle causal.
 
 **Classifications** : G06N 5/04, G06N 20/00, G05B 23/02, G06Q 10/20, G06F 16/36
 
-**Mots-clés** : infrastructure cognitive, maintenance autonome, diagnostic hybride explicable, graphe de connaissances auto-apprenant, autonomie graduée, modèles physiques hybrides, boucle fermée cognitive, système multi-agent industriel
+**Mots-clés** : supervision adaptative, contrôle adaptatif industriel, modélisation causale dynamique, graphe de connaissances auto-apprenant, autonomie graduée, défaillances en cascade, modèles physiques hybrides, boucle fermée cognitive
 
 ---
 
