@@ -207,19 +207,19 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-7xl mx-auto text-center">
           <Badge className="bg-blue-50 text-blue-700 border border-blue-200 px-4 py-1.5 mb-6">
-            Infrastructure Cognitive Industrielle
+            Supervision & Contrôle Adaptatif Industriel
           </Badge>
           
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight mb-6">
-            L'infrastructure cognitive qui<br />
+            Le système intelligent qui<br />
             <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              donne un cerveau à vos machines
+              supervise et contrôle vos machines
             </span>
           </h1>
           
           <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10">
-            Vos machines perçoivent, comprennent, anticipent et agissent. Maintrix est bâti sur une architecture cognitive 
-            à 6 couches, un système multi-agents et un Knowledge Graph pour transformer chaque équipement en système autonome.
+            Maintrix capte les signaux de vos capteurs, détecte les anomalies, modélise les causes de défaillance 
+            et génère des actions correctives — le tout avec un modèle causal qui s'améliore à chaque intervention.
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-12">
@@ -444,7 +444,7 @@ export default function LandingPage() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-violet-600">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Prêt à donner un cerveau à vos machines ?
+            Prêt à superviser intelligemment vos machines ?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
             Rejoignez les entreprises qui ont réduit leurs coûts de maintenance avec Maintrix
