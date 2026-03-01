@@ -290,17 +290,18 @@ export default function LandingPage() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-${feature.color}-50`}>
-                    <feature.icon className={`w-6 h-6 text-${feature.color}-600`} />
+              <div key={index} className="group relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white rounded-2xl -z-10 transition-transform duration-300 group-hover:scale-[1.02] shadow-sm group-hover:shadow-md border border-slate-100" />
+                <div className="p-8">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:-translate-y-1 shadow-sm bg-white border border-slate-100`}>
+                    <feature.icon className={`w-7 h-7 text-${feature.color}-600`} />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">{feature.title}</h3>
+                  <p className="text-slate-600 leading-relaxed text-base font-medium opacity-90">{feature.description}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
