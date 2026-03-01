@@ -95,80 +95,59 @@ const features = [
 
 export default function FeatureCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
       {features.map((feature) => {
         const IconComponent = feature.icon;
         return (
-          <Card key={feature.title} className="group relative overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-4 hover:scale-105 bg-white/10 backdrop-blur-lg card-hover">
-            
-            {/* Enhanced gradient background with animation */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-20 transition-all duration-500`} />
-            
-            {/* Glassmorphism overlay */}
-            <div className="absolute inset-0 bg-white/5 backdrop-blur-sm group-hover:bg-white/10 transition-all duration-300" />
-            
-            {/* Floating particles effect */}
-            <div className="absolute top-2 left-2 w-2 h-2 bg-white/30 rounded-full animate-ping opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute bottom-4 right-6 w-1 h-1 bg-white/40 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{animationDelay: '0.5s'}} />
-            
-            {/* Enhanced Badge */}
-            <div className="absolute top-4 right-4 z-10">
-              <Badge className={`bg-gradient-to-r ${feature.gradient} text-white border-0 font-semibold px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-sm`}>
-                {feature.badge}
-              </Badge>
-            </div>
-
-            <CardHeader className="pb-4 relative z-10">
-              <div className="flex items-center space-x-4">
-                <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300`}>
-                  <IconComponent className="h-8 w-8 text-white" />
-                  <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div key={feature.title} className="group relative">
+            <div className="absolute inset-0 bg-white rounded-2xl -z-10 transition-all duration-300 group-hover:shadow-xl border border-slate-100 group-hover:border-blue-100" />
+            <div className="p-8">
+              <div className="flex items-start justify-between mb-6">
+                <div className={`p-4 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <IconComponent className="h-7 w-7 text-white" />
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-2xl font-bold text-gray-800 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-gray-800 group-hover:to-gray-600 transition-all duration-300">
-                    {feature.title}
-                  </CardTitle>
-                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{feature.description}</p>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              
-              {/* Stats */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium text-gray-600">Performance</span>
-                <span className={`font-bold bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}>
-                  {feature.stats}
-                </span>
+                <Badge className={`bg-slate-50 text-slate-600 border-slate-200 font-semibold px-3 py-1 rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors`}>
+                  {feature.badge}
+                </Badge>
               </div>
 
-              {/* Features list */}
-              <div className="space-y-2">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-500 text-sm leading-relaxed font-medium">
+                  {feature.description}
+                </p>
+              </div>
+
+              <div className="space-y-3 mb-8">
                 {feature.features.map((feat, index) => (
-                  <div key={index} className="flex items-center space-x-2 text-sm">
-                    <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${feature.gradient}`} />
-                    <span className="text-gray-700">{feat}</span>
+                  <div key={index} className="flex items-center space-x-3 text-sm font-medium text-slate-600">
+                    <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${feature.gradient} opacity-60`} />
+                    <span>{feat}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Action button */}
-              <Link href={feature.href}>
-                <Button 
-                  className={`w-full mt-4 bg-gradient-to-r ${feature.gradient} hover:shadow-lg transform hover:scale-105 transition-all duration-200 border-0 font-medium`}
-                >
-                  <span>Accéder</span>
-                  <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform duration-200" />
-                </Button>
-              </Link>
-            </CardContent>
-
-            {/* Sparkle effect */}
-            <div className="absolute top-6 left-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Sparkles className="h-4 w-4 text-yellow-400 animate-pulse" />
+              <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Performance</span>
+                  <span className={`text-sm font-bold bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}>
+                    {feature.stats}
+                  </span>
+                </div>
+                <Link href={feature.href}>
+                  <Button 
+                    variant="ghost"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold group/btn"
+                  >
+                    Ouvrir
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </Card>
+          </div>
         );
       })}
     </div>

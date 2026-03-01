@@ -108,31 +108,33 @@ export default function ModernHome() {
             </div>
             
             {/* Intelligence Cognitive */}
-            <div className="group bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md hover:border-violet-200/60 transition-all duration-300">
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-500/20">
+            <div className="group bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md hover:border-violet-200/60 transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="flex items-center justify-center mb-6 relative">
+                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-110 transition-transform">
                   <Brain className="w-8 h-8 text-white" />
                 </div>
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4">Supervision & Contrôle Adaptatif</h3>
-              <p className="text-slate-600 leading-relaxed mb-6">
-                5 modules coopératifs: Capteurs → Détection → Modèle Causal → Décision → Adaptation
+              <h3 className="text-2xl font-bold text-slate-800 mb-2 group-hover:text-violet-600 transition-colors">Supervision Adaptative</h3>
+              <p className="text-sm text-slate-500 font-semibold mb-4">Contrôle Industriel Avancé</p>
+              <p className="text-slate-600 leading-relaxed mb-6 font-medium">
+                Architecture en 5 modules coopératifs pour une supervision causale et un contrôle dynamique de vos actifs.
               </p>
-              <div className="flex flex-wrap gap-2 mb-6 justify-center">
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Graphe Causal</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Multi-Agent</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Autonomie 0-5</span>
+              <div className="flex flex-wrap gap-2 mb-8 justify-center">
+                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Causalité</span>
+                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Multi-Agent</span>
+                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Niveaux 0-5</span>
               </div>
               <div className="space-y-3">
-                <Button asChild className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl py-3 shadow-sm">
+                <Button asChild className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl py-6 shadow-md font-bold">
                   <Link href="/cognitive-infrastructure">
-                    <Brain className="w-4 h-4 mr-2" />
-                    Supervision Adaptative
+                    <Brain className="w-5 h-5 mr-2" />
+                    Ouvrir la Supervision
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl py-3">
+                <Button asChild variant="ghost" className="w-full text-slate-600 hover:bg-slate-50 rounded-xl py-6 font-bold">
                   <Link href="/diagnostic">
-                    <Cpu className="w-4 h-4 mr-2" />
+                    <Cpu className="w-5 h-5 mr-2" />
                     Diagnostic IA
                   </Link>
                 </Button>
