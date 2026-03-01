@@ -259,8 +259,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">6</div>
-              <div className="text-slate-400 text-sm">Couches cognitives</div>
+              <div className="text-3xl sm:text-4xl font-bold text-blue-400 mb-1">5</div>
+              <div className="text-slate-400 text-sm">Modules coopératifs</div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-bold text-emerald-400 mb-1">48+</div>
@@ -283,10 +283,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-              Une architecture cognitive complète
+              Une supervision adaptative complète
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Six capacités cognitives qui transforment vos machines en systèmes industriels autonomes et intelligents
+              Cinq modules coopératifs qui transforment vos machines en systèmes industriels autonomes et contrôlés
             </p>
           </div>
           
@@ -320,22 +320,22 @@ export default function LandingPage() {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-blue-600">1</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">Percevez</h3>
-              <p className="text-slate-600">Connectez vos capteurs IoT, importez vos équipements et activez la perception temps réel de votre parc industriel</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Connectez</h3>
+              <p className="text-slate-600">Interfacez vos capteurs (MQTT, OPC-UA) et activez la réception des signaux physiques en temps réel</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-violet-600">2</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">Comprenez</h3>
-              <p className="text-slate-600">Le Knowledge Graph raisonne causalement, l'IA diagnostique les anomalies et les modèles physiques valident chaque hypothèse</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Modélisez</h3>
+              <p className="text-slate-600">Le système détecte les anomalies et modélise les relations de cause à effet via un graphe de connaissances dynamique</p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-2xl font-bold text-emerald-600">3</span>
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 mb-3">Agissez</h3>
-              <p className="text-slate-600">Automatisation en boucle fermée, autonomie graduée et interventions proactives avant que les pannes ne surviennent</p>
+              <h3 className="text-xl font-semibold text-slate-800 mb-3">Contrôlez</h3>
+              <p className="text-slate-600">Générez des signaux de contrôle correctifs et adaptez le modèle causal selon les résultats obtenus</p>
             </div>
           </div>
         </div>
