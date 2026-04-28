@@ -7,7 +7,8 @@ import {
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
   PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight,
-  Heart, Timer, Radio, QrCode, ExternalLink, Shield, Fish
+  Heart, Timer, Radio, QrCode, ExternalLink, Shield, Fish,
+  FlaskConical, UserCheck
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -341,7 +342,9 @@ export default function GMAODashboard() {
                 { icon: Fish, label: "Causes Racines", href: "/rca", color: "from-purple-600 to-indigo-600" },
                 { icon: Gauge, label: "OEE", href: "/oee", color: "from-emerald-500 to-teal-600" },
                 { icon: AlertTriangle, label: "FMEA / AMDEC", href: "/fmea", color: "from-orange-500 to-amber-600" },
-                { icon: Package, label: "Cycle de vie actifs", href: "/asset-lifecycle", color: "from-blue-600 to-cyan-600" }
+                { icon: Package, label: "Cycle de vie actifs", href: "/asset-lifecycle", color: "from-blue-600 to-cyan-600" },
+                { icon: FlaskConical, label: "Calibrations", href: "/calibration", color: "from-teal-500 to-cyan-600" },
+                { icon: UserCheck, label: "Habilitations", href: "/habilitation", color: "from-indigo-600 to-purple-600" }
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">

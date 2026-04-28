@@ -64,6 +64,8 @@ import RcaPage from "@/pages/rca";
 import OeePage from "@/pages/oee";
 import FmeaPage from "@/pages/fmea";
 import AssetLifecyclePage from "@/pages/asset-lifecycle";
+import CalibrationPage from "@/pages/calibration";
+import HabilitationPage from "@/pages/habilitation";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -220,6 +222,12 @@ function Router() {
       </Route>
       <Route path="/asset-lifecycle">
         {(params) => <ProtectedRoute component={AssetLifecyclePage} {...params} />}
+      </Route>
+      <Route path="/calibration">
+        {(params) => <ProtectedRoute component={CalibrationPage} {...params} />}
+      </Route>
+      <Route path="/habilitation">
+        {(params) => <ProtectedRoute component={HabilitationPage} {...params} />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}

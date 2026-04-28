@@ -50,6 +50,8 @@ import { registerRcaRoutes } from "./rca-routes";
 import { registerOeeRoutes } from "./oee-routes";
 import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
+import { registerCalibrationRoutes } from "./calibration-routes";
+import { registerHabilitationRoutes } from "./habilitation-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -808,6 +810,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Asset Lifecycle routes
   registerAssetLifecycleRoutes(app);
+
+  // Register Calibration routes
+  registerCalibrationRoutes(app);
+
+  // Register Habilitation routes
+  registerHabilitationRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);
