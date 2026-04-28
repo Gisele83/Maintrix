@@ -1,8 +1,8 @@
 /**
  * 📧 MODULE DE NOTIFICATIONS
- * 
+ *
  * Système de notifications pour les processus d'onboarding/offboarding
- * et alertes de sécurité
+ * et alertes de sécurité — branché sur SendGrid en production.
  */
 
 import { Request, Response } from 'express';
@@ -15,31 +15,61 @@ export interface EmailOptions {
   from?: string;
 }
 
-/**
- * Envoie un email (simulation pour le développement)
- * Dans un environnement de production, intégrer avec SendGrid, AWS SES, etc.
- */
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+// Lazy-load SendGrid to avoid startup errors when key is missing
+let _mailService: any = null;
+let _sgInitialized = false;
+
+function getMailService(): any | null {
+  if (_sgInitialized) return _mailService;
+  _sgInitialized = true;
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return null;
   try {
-    console.log(`📧 EMAIL SENT:`);
-    console.log(`   To: ${options.to}`);
-    console.log(`   Subject: ${options.subject}`);
-    console.log(`   Content: ${options.html.substring(0, 100)}...`);
-    
-    // Simulation d'envoi réussi
-    return true;
-  } catch (error) {
-    console.error('❌ Email sending failed:', error);
-    return false;
+    const { MailService } = require('@sendgrid/mail');
+    _mailService = new MailService();
+    _mailService.setApiKey(apiKey);
+  } catch {
+    _mailService = null;
   }
+  return _mailService;
 }
 
 /**
- * Envoie une notification SMS (simulation)
+ * Envoie un email via SendGrid (production) ou log console (dev sans clé)
+ */
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const sg = getMailService();
+
+  if (sg) {
+    try {
+      await sg.send({
+        to: options.to,
+        from: options.from || 'noreply@maintrix-t.com',
+        subject: options.subject,
+        html: options.html,
+      });
+      console.log(`📧 Email sent via SendGrid to: ${options.to} — ${options.subject}`);
+      return true;
+    } catch (error: any) {
+      console.error('❌ SendGrid email error:', error?.response?.body || error?.message);
+      return false;
+    }
+  }
+
+  // Fallback: log only (no SendGrid key configured)
+  console.log(`📧 EMAIL (no SENDGRID_API_KEY — dev mode):`);
+  console.log(`   To: ${options.to}`);
+  console.log(`   Subject: ${options.subject}`);
+  console.log(`   Preview: ${options.html.replace(/<[^>]+>/g, '').substring(0, 120)}…`);
+  return true;
+}
+
+/**
+ * SMS — log uniquement (intégrer Twilio via TWILIO_ACCOUNT_SID si nécessaire)
  */
 export async function sendSMS(phone: string, message: string): Promise<boolean> {
   try {
-    console.log(`📱 SMS SENT to ${phone}: ${message}`);
+    console.log(`📱 SMS (non implémenté) → ${phone}: ${message}`);
     return true;
   } catch (error) {
     console.error('❌ SMS sending failed:', error);
@@ -48,15 +78,15 @@ export async function sendSMS(phone: string, message: string): Promise<boolean> 
 }
 
 /**
- * Envoie une notification push (simulation)
+ * Notifications push — log uniquement (intégrer FCM/APNS si nécessaire)
  */
 export async function sendPushNotification(
-  userId: number, 
-  title: string, 
+  userId: number,
+  title: string,
   message: string
 ): Promise<boolean> {
   try {
-    console.log(`🔔 PUSH NOTIFICATION to User ${userId}: ${title} - ${message}`);
+    console.log(`🔔 PUSH (non implémenté) → User ${userId}: ${title} — ${message}`);
     return true;
   } catch (error) {
     console.error('❌ Push notification failed:', error);

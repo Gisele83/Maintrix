@@ -59,6 +59,15 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Payment Gateways**: Stripe, PayPal
 - **Enterprise Integration**: SAP ERP Connector, IoT (MQTT simulation), Maximo (integration ready), SCADA (integration ready).
 
+## Recent Changes (April 2026)
+- **Excel Processor (processEquipment/processWorkOrders/processSpareParts)**: Fully implemented with multi-column French/English key mapping, normalisation of criticality/type/priority, graceful duplicate skipping (unique constraint), and tenantId-aware insertion into `equipmentRegistry`, `workOrders`, `spareParts` tables via `gmaoStorage`. Constructor now accepts optional `tenantId`.
+- **Maximo Connector (`server/integrations/maximo-connector.ts`)**: Full IBM Maximo OSLC REST connector — `testConnection`, `fetchWorkOrders`, `fetchAssets`, `updateWorkOrderStatus`, `createMaximoConnector()` factory. Activated by MAXIMO_BASE_URL / MAXIMO_USERNAME / MAXIMO_PASSWORD.
+- **SCADA Connector (`server/integrations/scada-connector.ts`)**: Full SCADA/REST-bridge connector — `testConnection`, `readTagValues`, `fetchActiveAlarms`, `startPolling`, `createScadaConnector()` factory. Activated by SCADA_ENDPOINT.
+- **Integration Hub (`server/integrations/index.ts`)**: Replaced TODO stubs — Maximo and SCADA connectors wired in, `syncWithMaximo()`, `getScadaTags()`, `getScadaAlarms()` implemented, IoT polling only runs when equipment exists in DB, graceful fallback when connectors not configured.
+- **Notifications (`server/notifications.ts`)**: `sendEmail()` now uses real SendGrid via lazy-loaded `@sendgrid/mail`. Falls back to console log when `SENDGRID_API_KEY` is absent.
+- **Smart Notification Engine (`server/integrations/smart-notification-engine.ts`)**: `resolveRecipients()` replaced mock hardcoded users with real DB query from `userProfiles` (active users only, email required). `createNotification()` now persists to `smartNotifications` table.
+- **MFA System (`server/mfa-system.ts`)**: Added `getMfaKey()` helper with explicit production warning when `MFA_ENCRYPTION_KEY` is absent; backward-compatible with existing encrypted backup codes.
+
 ## Recent Changes (February 2026)
 - **Documentation Consolidation**: Merged ARCHITECTURE_MAINTRIX.md into ARCHITECTURE_GLOBALE_MAINTRIX.md (v2.0) as single authoritative architecture document. Removed duplicate.
 - **Positioning Shift**: All documentation and UI updated from "Infrastructure Cognitive / 6 couches" to "Supervision & Contrôle Adaptatif / 5 modules coopératifs" — emphasizing patent-aligned adaptive supervision architecture.

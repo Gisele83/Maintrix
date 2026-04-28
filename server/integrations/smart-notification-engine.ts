@@ -335,48 +335,34 @@ export class SmartNotificationEngine extends EventEmitter {
    */
   private async resolveRecipients(rule: NotificationRule, data: any): Promise<UserProfile[]> {
     try {
-      // In a real implementation, we would query the database for users
-      // For now, return mock recipients based on roles
-      const mockRecipients: UserProfile[] = [
-        {
-          id: 1,
-          matricule: 'MAT001',
-          fullName: 'Jean Dupont',
-          email: 'j.dupont@smdiagfix.com',
-          role: 'maintenance_manager',
-          department: 'Maintenance',
-          accreditationLevel: 3,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 2,
-          matricule: 'MAT002',
-          fullName: 'Marie Martin',
-          email: 'm.martin@smdiagfix.com',
-          role: 'technician_lead',
-          department: 'Maintenance',
-          accreditationLevel: 2,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      
+      // Query active users from the database
+      let allUsers: UserProfile[] = [];
+      try {
+        const { db } = await import('../db.js');
+        const { userProfiles } = await import('@shared/schema.js');
+        const { eq } = await import('drizzle-orm');
+        allUsers = await db.select().from(userProfiles).where(eq(userProfiles.isActive, true));
+      } catch {
+        // DB unavailable — return empty list, no mocks
+        return [];
+      }
+
       // Filter recipients based on rule criteria
-      return mockRecipients.filter(user => {
+      return allUsers.filter(user => {
         // Check role match
         if (rule.recipients.roles.length > 0 && !rule.recipients.roles.includes(user.role || '')) {
           return false;
         }
-        
+
+        // Check if user has an email address
+        if (!user.email) return false;
+
         // Check if user is subscribed to this notification type
         const userSubscriptions = this.userSubscriptions.get(user.id) || [];
         if (userSubscriptions.length > 0 && !userSubscriptions.includes(rule.triggers[0].type)) {
           return false;
         }
-        
+
         return true;
       });
     } catch (error) {
@@ -390,13 +376,16 @@ export class SmartNotificationEngine extends EventEmitter {
    */
   private async createNotification(notification: InsertSmartNotification): Promise<void> {
     try {
-      // In a real implementation, store in database
-      console.log(`📢 Smart notification created: ${notification.title} for user ${notification.recipientId}`);
-      
+      // Persist to database
+      const { db } = await import('../db.js');
+      const { smartNotifications } = await import('@shared/schema.js');
+      await db.insert(smartNotifications).values(notification);
+      console.log(`📢 Smart notification stored: ${notification.title} → user ${notification.recipientId}`);
       // Emit event for real-time updates
       this.emit('notificationCreated', notification);
-    } catch (error) {
-      console.error('Error creating notification:', error);
+    } catch (error: any) {
+      // Log but don't crash — notification delivery is best-effort
+      console.error('Error creating smart notification:', error?.message?.substring(0, 100));
     }
   }
 

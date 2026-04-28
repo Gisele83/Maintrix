@@ -251,10 +251,23 @@ export class MFAService {
   /**
    * Chiffre les backup codes pour stockage sécurisé
    */
+  private static getMfaKey(): string {
+    const key = process.env.MFA_ENCRYPTION_KEY;
+    if (!key) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('⚠️  SECURITY: MFA_ENCRYPTION_KEY is not set in production! Backup code encryption is insecure.');
+      }
+      return 'default-development-key-change-in-production';
+    }
+    return key;
+  }
+
   private static encryptBackupCodes(codes: string[]): string[] {
-    const key = process.env.MFA_ENCRYPTION_KEY || 'default-development-key-change-in-production';
+    const key = MFASystem.getMfaKey();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const cipher_fn = (crypto as any).createCipher as Function;
     return codes.map(code => {
-      const cipher = crypto.createCipher('aes-256-cbc', key);
+      const cipher = cipher_fn('aes-256-cbc', key);
       let encrypted = cipher.update(code, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       return encrypted;
@@ -265,10 +278,12 @@ export class MFAService {
    * Déchiffre les backup codes
    */
   private static decryptBackupCodes(encryptedCodes: string): string[] {
-    const key = process.env.MFA_ENCRYPTION_KEY || 'default-development-key-change-in-production';
+    const key = MFASystem.getMfaKey();
     const codes = JSON.parse(encryptedCodes);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const decipher_fn = (crypto as any).createDecipher as Function;
     return codes.map((encryptedCode: string) => {
-      const decipher = crypto.createDecipher('aes-256-cbc', key);
+      const decipher = decipher_fn('aes-256-cbc', key);
       let decrypted = decipher.update(encryptedCode, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;

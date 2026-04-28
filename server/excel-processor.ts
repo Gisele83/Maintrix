@@ -1,8 +1,9 @@
 import * as XLSX from 'xlsx';
 import { storage } from './storage';
+import { gmaoStorage } from './gmao-storage';
 import fs from 'fs';
 import path from 'path';
-import type { InsertMaintenanceCase } from '../shared/schema';
+import type { InsertMaintenanceCase, InsertEquipmentRegistry, InsertWorkOrder, InsertSparePart } from '../shared/schema';
 
 export interface ProcessedExcelData {
   maintenanceCases: number;
@@ -14,6 +15,11 @@ export interface ProcessedExcelData {
 }
 
 export class ExcelHistoryProcessor {
+  private tenantId?: string;
+
+  constructor(tenantId?: string) {
+    this.tenantId = tenantId;
+  }
   
   async processUserExcelFile(filePath: string): Promise<ProcessedExcelData> {
     try {
@@ -138,21 +144,107 @@ export class ExcelHistoryProcessor {
   }
 
   private async processEquipment(data: any[]): Promise<number> {
-    // For now, we'll skip equipment processing since storage doesn't have this method
-    console.log(`Skipping ${data.length} equipment rows - not implemented yet`);
-    return 0;
+    if (!this.tenantId) {
+      console.log(`ℹ️  Skipping ${data.length} equipment rows — no tenantId provided`);
+      return 0;
+    }
+    let count = 0;
+    for (const row of data) {
+      try {
+        const eq = this.extractEquipmentFromRow(row);
+        if (eq) {
+          const record: InsertEquipmentRegistry = {
+            tenantId: this.tenantId,
+            equipmentId: eq.equipmentId || `EQ-${Date.now()}-${count}`,
+            equipmentName: eq.equipmentName,
+            equipmentType: eq.equipmentType,
+            manufacturer: eq.manufacturer,
+            model: eq.model,
+            serialNumber: eq.serialNumber,
+            location: eq.location,
+            zone: eq.zone,
+            sector: eq.sector,
+            criticalityLevel: eq.criticalityLevel || 'medium',
+            operationalState: eq.operationalState || 'operational',
+          };
+          await gmaoStorage.createEquipment(record);
+          count++;
+        }
+      } catch (error: any) {
+        if (!error?.message?.includes('unique')) {
+          console.error('Error importing equipment row:', error?.message?.substring(0, 80));
+        }
+      }
+    }
+    console.log(`✅ Imported ${count}/${data.length} equipment rows`);
+    return count;
   }
 
   private async processWorkOrders(data: any[]): Promise<number> {
-    // For now, we'll skip work order processing since storage doesn't have this method
-    console.log(`Skipping ${data.length} work order rows - not implemented yet`);
-    return 0;
+    if (!this.tenantId) {
+      console.log(`ℹ️  Skipping ${data.length} work order rows — no tenantId provided`);
+      return 0;
+    }
+    let count = 0;
+    for (const row of data) {
+      try {
+        const wo = this.extractWorkOrderFromRowFull(row);
+        if (wo) {
+          const record: InsertWorkOrder = {
+            tenantId: this.tenantId,
+            orderType: wo.orderType || 'corrective',
+            title: wo.title,
+            description: wo.description,
+            priority: wo.priority || 'medium',
+            status: wo.status || 'pending',
+            notes: wo.notes,
+            estimatedDuration: wo.estimatedDuration,
+          };
+          await gmaoStorage.createWorkOrder(record);
+          count++;
+        }
+      } catch (error: any) {
+        console.error('Error importing work order row:', error?.message?.substring(0, 80));
+      }
+    }
+    console.log(`✅ Imported ${count}/${data.length} work order rows`);
+    return count;
   }
 
   private async processSpareParts(data: any[]): Promise<number> {
-    // For now, we'll skip spare parts processing since storage doesn't have this method
-    console.log(`Skipping ${data.length} spare parts rows - not implemented yet`);
-    return 0;
+    if (!this.tenantId) {
+      console.log(`ℹ️  Skipping ${data.length} spare parts rows — no tenantId provided`);
+      return 0;
+    }
+    let count = 0;
+    for (const row of data) {
+      try {
+        const sp = this.extractSparePartFromRowFull(row);
+        if (sp) {
+          const record: InsertSparePart = {
+            tenantId: this.tenantId,
+            partNumber: sp.partNumber || `PN-${Date.now()}-${count}`,
+            partName: sp.partName,
+            description: sp.description,
+            category: sp.category,
+            manufacturer: sp.manufacturer,
+            supplier: sp.supplier,
+            unitPrice: sp.unitPrice,
+            currentStock: sp.currentStock ?? 0,
+            minStock: sp.minStock ?? 0,
+            maxStock: sp.maxStock ?? 100,
+          };
+          await gmaoStorage.createSparePart(record);
+          count++;
+        }
+      } catch (error: any) {
+        if (!error?.message?.includes('unique')) {
+          console.error('Error importing spare part row:', error?.message?.substring(0, 80));
+        }
+      }
+    }
+    console.log(`✅ Imported ${count}/${data.length} spare parts rows`);
+    return count;
   }
 
   private async extractMaintenanceCasesFromGenericData(data: any[]): Promise<number> {
@@ -267,18 +359,108 @@ export class ExcelHistoryProcessor {
   }
 
   private extractEquipmentFromRow(row: any): any | null {
-    // Implementation for equipment extraction
-    return null; // Simplified for now
+    const get = (...keys: string[]) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+      }
+      return '';
+    };
+
+    const equipmentName = get('equipment_name', 'equipmentname', 'name', 'nom', 'designation');
+    const equipmentType = get('equipment_type', 'type', 'type_equipement', 'categorie');
+    if (!equipmentName && !equipmentType) return null;
+
+    return {
+      equipmentId: get('equipment_id', 'equipmentid', 'id', 'ref', 'reference') || undefined,
+      equipmentName: equipmentName || equipmentType || 'Équipement importé',
+      equipmentType: this.normalizeEquipmentType(equipmentType) || equipmentType || 'Générique',
+      manufacturer: get('manufacturer', 'fabricant', 'marque', 'constructeur') || undefined,
+      model: get('model', 'modele', 'modèle', 'type_modele') || undefined,
+      serialNumber: get('serial_number', 'serialnumber', 'serie', 'num_serie') || undefined,
+      location: get('location', 'localisation', 'site', 'lieu') || undefined,
+      zone: get('zone', 'atelier', 'secteur_zone') || undefined,
+      sector: get('sector', 'secteur', 'service', 'departement') || undefined,
+      criticalityLevel: this.normalizeCriticality(get('criticality', 'criticite', 'priorite', 'critical')),
+      operationalState: 'operational',
+    };
   }
 
-  private extractWorkOrderFromRow(row: any): any | null {
-    // Implementation for work order extraction
-    return null; // Simplified for now
+  private extractWorkOrderFromRowFull(row: any): any | null {
+    const get = (...keys: string[]) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+      }
+      return '';
+    };
+
+    const title = get('title', 'titre', 'description_courte', 'libelle', 'intervention');
+    const description = get('description', 'detail', 'details', 'note', 'observation');
+    if (!title && !description) return null;
+
+    const orderTypeRaw = get('order_type', 'type', 'type_intervention', 'type_ot').toLowerCase();
+    let orderType = 'corrective';
+    if (orderTypeRaw.includes('prev') || orderTypeRaw.includes('pm')) orderType = 'preventive';
+    if (orderTypeRaw.includes('pred')) orderType = 'predictive';
+    if (orderTypeRaw.includes('urg') || orderTypeRaw.includes('emerg')) orderType = 'emergency';
+
+    const priorityRaw = get('priority', 'priorite', 'urgence').toLowerCase();
+    let priority = 'medium';
+    if (priorityRaw.includes('haut') || priorityRaw.includes('high') || priorityRaw === '3') priority = 'high';
+    if (priorityRaw.includes('urg') || priorityRaw === '4') priority = 'urgent';
+    if (priorityRaw.includes('bas') || priorityRaw.includes('low') || priorityRaw === '1') priority = 'low';
+
+    const durationRaw = get('duration', 'duree', 'temps', 'hours');
+    const estimatedDuration = durationRaw ? this.extractDuration(durationRaw) : undefined;
+
+    return {
+      title: title || description.substring(0, 100) || 'Ordre de travail importé',
+      description: description || title || 'Importé depuis Excel',
+      orderType,
+      priority,
+      status: 'pending',
+      estimatedDuration,
+      notes: get('notes', 'commentaires', 'remarques') || undefined,
+    };
   }
 
-  private extractSparePartFromRow(row: any): any | null {
-    // Implementation for spare part extraction
-    return null; // Simplified for now
+  private extractSparePartFromRowFull(row: any): any | null {
+    const get = (...keys: string[]) => {
+      for (const k of keys) {
+        const found = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
+        if (found && row[found] !== undefined && row[found] !== '') return String(row[found]).trim();
+      }
+      return '';
+    };
+
+    const partName = get('part_name', 'partname', 'designation', 'nom', 'libelle', 'name');
+    const partNumber = get('part_number', 'partnumber', 'reference', 'ref', 'code');
+    if (!partName && !partNumber) return null;
+
+    const priceRaw = get('unit_price', 'unitprice', 'prix', 'prix_unitaire', 'price');
+    const unitPrice = priceRaw ? parseFloat(priceRaw.replace(',', '.')) || undefined : undefined;
+
+    return {
+      partName: partName || partNumber || 'Pièce importée',
+      partNumber: partNumber || undefined,
+      description: get('description', 'detail', 'details') || undefined,
+      category: get('category', 'categorie', 'famille', 'type') || undefined,
+      manufacturer: get('manufacturer', 'fabricant', 'marque') || undefined,
+      supplier: get('supplier', 'fournisseur', 'provider') || undefined,
+      unitPrice: unitPrice ? String(unitPrice) : undefined,
+      currentStock: parseInt(get('current_stock', 'stock', 'quantite', 'qty')) || 0,
+      minStock: parseInt(get('min_stock', 'stock_min', 'minimum')) || 0,
+      maxStock: parseInt(get('max_stock', 'stock_max', 'maximum')) || 100,
+    };
+  }
+
+  private normalizeCriticality(value: string): string {
+    const v = value.toLowerCase();
+    if (v.includes('crit') || v.includes('4')) return 'critical';
+    if (v.includes('haut') || v.includes('high') || v.includes('3')) return 'high';
+    if (v.includes('bas') || v.includes('low') || v.includes('1')) return 'low';
+    return 'medium';
   }
 
   private normalizeEquipmentType(value: string): string {
