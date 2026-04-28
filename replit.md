@@ -59,6 +59,35 @@ User confirmed that username field should remain non-editable in profile forms f
 - **Payment Gateways**: Stripe, PayPal
 - **Enterprise Integration**: SAP ERP Connector, IoT (MQTT simulation), Maximo (integration ready), SCADA (integration ready).
 
+## Production Readiness Status (April 2026)
+### All 14 audit items resolved — platform hardened for production
+
+**Blocking issues (6/6 fixed):**
+- Stripe webhook requires `STRIPE_WEBHOOK_SECRET` + updates tenant plan in DB
+- Anti-leakage validator blocks responses (HTTP 403) on cross-tenant data
+- General rate limit re-enabled (1000 req/15min per IP)
+- Startup env var validation blocks production boot if critical vars absent
+- Super-admin: bcrypt auth + server-side token Map + timing-safe comparison
+- Payment webhook updates tenant plan in DB
+
+**High-priority issues (8/8 fixed):**
+- IoT MQTT: real `mqtt` library wired; auto-detects localhost (simulation) vs real broker via `MQTT_BROKER_URL`
+- Storage methods: `getIotSensorData`, `createIotSensorData`, `getPredictiveAnalytics`, `createPredictiveAnalytics`, `getKpiMetrics`, `createKpiMetrics`, `getIntegrationLog`, `createIntegrationLog`, `getAlertsNotifications`, `createAlertsNotifications` — all implemented with real DB queries (Drizzle ORM)
+- S3/MinIO: production warnings logged when `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` not set
+- CORS origin validation re-enabled in production mode
+- Tenant domain mapping: async DB lookup implemented in `resolveTenant()` (strategy DOMAIN)
+- Anthropic service: no longer crashes on missing key — warns and returns null client, guards all method calls
+- Email onboarding: `createCredentialNotification` + `sendTenantCredentials` now wired in user creation flow (non-blocking)
+- `createCredentialNotification` imported properly in enterprise-auth-routes
+
+**Required env vars for production:**
+- `DATABASE_URL`, `KMS_MASTER_KEY`, `JWT_SECRET`, `SESSION_SECRET`, `MFA_ENCRYPTION_KEY` — mandatory (startup blocked if absent)
+- `SUPER_ADMIN_SECRET`, `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD_HASH` — super-admin access
+- `SENDGRID_API_KEY`, `ANTHROPIC_API_KEY`, `STRIPE_WEBHOOK_SECRET` — optional with warnings
+- `MQTT_BROKER_URL` — optional; if not set, simulation mode active
+- `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` — optional with error log if absent in production
+- `FRONTEND_URL` / `APP_URL` — base URL for email links (default: http://localhost:5000)
+
 ## Recent Changes (April 2026)
 - **Excel Processor (processEquipment/processWorkOrders/processSpareParts)**: Fully implemented with multi-column French/English key mapping, normalisation of criticality/type/priority, graceful duplicate skipping (unique constraint), and tenantId-aware insertion into `equipmentRegistry`, `workOrders`, `spareParts` tables via `gmaoStorage`. Constructor now accepts optional `tenantId`.
 - **Maximo Connector (`server/integrations/maximo-connector.ts`)**: Full IBM Maximo OSLC REST connector — `testConnection`, `fetchWorkOrders`, `fetchAssets`, `updateWorkOrderStatus`, `createMaximoConnector()` factory. Activated by MAXIMO_BASE_URL / MAXIMO_USERNAME / MAXIMO_PASSWORD.

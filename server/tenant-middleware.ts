@@ -65,9 +65,7 @@ export class TenantMiddleware {
         return (req as any).user?.tenant_id || (req as any).jwt?.claims?.tenant_id || null;
       
       case TenantStrategy.DOMAIN:
-        // Custom domain mapping - would require domain-to-tenant lookup
-        const domain = req.get('host');
-        // TODO: Implement domain-to-tenant mapping
+        // Async domain lookup handled separately in resolveTenant()
         return null;
       
       default:
@@ -89,6 +87,22 @@ export class TenantMiddleware {
       // 2. Si pas disponible, essayer les méthodes d'extraction configurées  
       if (!tenantId) {
         tenantId = this.extractTenantId(req);
+      }
+
+      // 2b. Stratégie DOMAIN : résolution asynchrone par domaine personnalisé
+      if (!tenantId && this.strategy === TenantStrategy.DOMAIN) {
+        const host = (req.get('host') || '').split(':')[0];
+        if (host && host !== 'localhost' && host !== '127.0.0.1') {
+          try {
+            const [match] = await db.select({ id: tenants.id })
+              .from(tenants)
+              .where(eq((tenants as any).domain, host))
+              .limit(1);
+            tenantId = match?.id || null;
+          } catch {
+            tenantId = null;
+          }
+        }
       }
 
       // 3. SÉCURITÉ CRITIQUE: Si aucun tenantId trouvé, REJETER la requête

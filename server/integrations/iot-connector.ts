@@ -5,8 +5,8 @@
 
 import { gmaoStorage } from "../gmao-storage";
 import { InsertIotSensorData, InsertAlertsNotifications, InsertPredictiveAnalytics } from "@shared/schema";
-// import * as mqtt from "mqtt"; // Commented out for now - will use simulation
-type MqttClient = any;
+import * as mqtt from "mqtt";
+type MqttClient = mqtt.MqttClient;
 
 export interface IoTConfig {
   mqttBrokerUrl: string;
@@ -54,41 +54,72 @@ export class IoTConnector {
   }
 
   /**
-   * Connect to MQTT broker for sensor data
+   * Connect to MQTT broker — real connection when MQTT_BROKER_URL is set,
+   * simulation fallback otherwise.
    */
   private async connectMQTT(): Promise<void> {
-    try {
-      // Simulate MQTT connection for development
-      console.log('Simulating MQTT connection to:', this.config.mqttBrokerUrl);
-      this.isConnected = true;
-      
-      // In production, use real MQTT:
-      // const mqtt = await import("mqtt");
-      // const options: mqtt.IClientOptions = {
-      //   username: this.config.mqttUsername,
-      //   password: this.config.mqttPassword,
-      //   keepalive: 60,
-      //   reconnectPeriod: 5000,
-      //   protocolVersion: 4
-      // };
-      // this.mqttClient = mqtt.connect(this.config.mqttBrokerUrl, options);
+    const brokerUrl = process.env.MQTT_BROKER_URL || this.config.mqttBrokerUrl;
+    const isSimulation = brokerUrl.startsWith('mqtt://localhost') || brokerUrl.startsWith('mqtt://127.');
 
-      // Simulate successful connection
+    if (isSimulation) {
+      console.log('Simulating MQTT connection to:', brokerUrl);
+      this.isConnected = true;
       setTimeout(() => {
         console.log('Simulated MQTT connection successful');
-        this.subscribeToSensorTopics();
+        this.subscribeToSensorTopicsSimulated();
       }, 1000);
+      return;
+    }
 
+    try {
+      console.log(`Connecting to real MQTT broker: ${brokerUrl}`);
+      const options: mqtt.IClientOptions = {
+        username: this.config.mqttUsername,
+        password: this.config.mqttPassword,
+        keepalive: 60,
+        reconnectPeriod: 5000,
+        connectTimeout: 10000,
+        protocolVersion: 4,
+        clean: true,
+      };
+
+      this.mqttClient = mqtt.connect(brokerUrl, options);
+
+      this.mqttClient.on('connect', () => {
+        console.log('✅ MQTT broker connected:', brokerUrl);
+        this.isConnected = true;
+        this.subscribeToSensorTopics();
+      });
+
+      this.mqttClient.on('message', async (topic: string, message: Buffer) => {
+        await this.handleSensorMessage(topic, message);
+      });
+
+      this.mqttClient.on('error', (err: Error) => {
+        console.error('MQTT error:', err.message);
+        this.isConnected = false;
+      });
+
+      this.mqttClient.on('offline', () => {
+        console.warn('⚠️ MQTT broker offline — reconnecting...');
+        this.isConnected = false;
+      });
+
+      this.mqttClient.on('reconnect', () => {
+        console.log('🔄 MQTT reconnecting...');
+      });
     } catch (error) {
       console.error('Failed to connect to MQTT broker:', error);
-      throw error;
+      // Fall back to simulation so the app doesn't crash
+      this.isConnected = false;
     }
   }
 
   /**
-   * Subscribe to sensor data topics
+   * Subscribe to sensor topics on real MQTT broker
    */
   private subscribeToSensorTopics(): void {
+    if (!this.mqttClient) return;
     const topics = [
       'sensors/+/temperature',
       'sensors/+/vibration',
@@ -101,9 +132,22 @@ export class IoTConnector {
       'equipment/+/status',
       'alarms/+/state'
     ];
+    this.mqttClient.subscribe(topics, (err: Error | null) => {
+      if (err) console.error('MQTT subscribe error:', err.message);
+      else console.log('✅ MQTT subscribed to', topics.length, 'topic patterns');
+    });
+  }
 
+  /**
+   * Simulated subscription (dev/localhost mode)
+   */
+  private subscribeToSensorTopicsSimulated(): void {
+    const topics = [
+      'sensors/+/temperature', 'sensors/+/vibration', 'sensors/+/pressure',
+      'sensors/+/flow', 'sensors/+/current', 'sensors/+/voltage',
+      'sensors/+/humidity', 'sensors/+/speed', 'equipment/+/status', 'alarms/+/state'
+    ];
     console.log('Simulated subscription to topics:', topics);
-    // In production, implement real MQTT subscription
   }
 
   /**

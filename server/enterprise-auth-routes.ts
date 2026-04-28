@@ -11,7 +11,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { CredentialGenerator } from "./credential-generator";
+import { CredentialGenerator, createCredentialNotification } from "./credential-generator";
 import { sendTenantCredentials } from "./email-service";
 import { LicenseService } from "./license-service";
 import { z } from "zod";
@@ -1201,11 +1201,31 @@ router.post('/admin/create-user',
 
       console.log(`✅ Utilisateur créé avec identifiants par défaut: ${newUser.username} (${newUser.email})`);
 
-      // TODO: Créer la notification d'identifiants si nécessaire
-      const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/login`;
+      const loginUrl = `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5000'}/login`;
 
-      // TODO: Envoyer l'email avec les identifiants
-      // const emailSent = await sendTenantCredentials(credentialNotification);
+      // Envoi de l'email d'identifiants
+      try {
+        const credentialNotification = createCredentialNotification({
+          toEmail: validatedData.email,
+          firstName: validatedData.firstName,
+          lastName: validatedData.lastName,
+          username: defaultCredentials.username,
+          temporaryPassword: defaultCredentials.password,
+          role: validatedData.role,
+          tenantName: req.tenantId,
+          loginUrl,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        });
+        const emailSent = await sendTenantCredentials(credentialNotification);
+        if (!emailSent) {
+          console.warn(`⚠️ Email d'identifiants non envoyé à ${validatedData.email} (SendGrid non configuré ou erreur)`);
+        } else {
+          console.log(`📧 Email d'identifiants envoyé à: ${validatedData.email}`);
+        }
+      } catch (emailError: any) {
+        console.error(`❌ Erreur envoi email identifiants: ${emailError?.message}`);
+        // Non-bloquant : l'utilisateur est créé même si l'email échoue
+      }
 
       res.status(201).json({
         success: true,

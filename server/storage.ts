@@ -997,48 +997,103 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getIotSensorData(): Promise<IotSensorData[]> {
-    throw new Error("Method not implemented");
+  async getIotSensorData(equipmentId?: number, limit = 500): Promise<IotSensorData[]> {
+    try {
+      const query = db.select().from(iotSensorData).orderBy(desc(iotSensorData.timestamp)).limit(limit);
+      if (equipmentId !== undefined) {
+        return await db.select().from(iotSensorData)
+          .where(eq(iotSensorData.equipmentId, equipmentId))
+          .orderBy(desc(iotSensorData.timestamp)).limit(limit);
+      }
+      return await query;
+    } catch (error) {
+      console.error('getIotSensorData error:', error);
+      return [];
+    }
   }
 
   async createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData> {
-    throw new Error("Method not implemented");
+    const [record] = await db.insert(iotSensorData).values(data).returning();
+    return record;
   }
 
-  async getPredictiveAnalytics(): Promise<PredictiveAnalytics[]> {
-    throw new Error("Method not implemented");
+  async getPredictiveAnalytics(tenantId?: string, limit = 100): Promise<PredictiveAnalytics[]> {
+    try {
+      if (tenantId) {
+        return await db.select().from(predictiveAnalytics)
+          .where(eq(predictiveAnalytics.tenantId, tenantId))
+          .orderBy(desc(predictiveAnalytics.predictionDate)).limit(limit);
+      }
+      return await db.select().from(predictiveAnalytics)
+        .orderBy(desc(predictiveAnalytics.predictionDate)).limit(limit);
+    } catch (error) {
+      console.error('getPredictiveAnalytics error:', error);
+      return [];
+    }
   }
 
   async createPredictiveAnalytics(data: InsertPredictiveAnalytics): Promise<PredictiveAnalytics> {
-    throw new Error("Method not implemented");
+    const [record] = await db.insert(predictiveAnalytics).values(data).returning();
+    return record;
   }
 
-  async getKpiMetrics(): Promise<KpiMetrics[]> {
-    throw new Error("Method not implemented");
+  async getKpiMetrics(tenantId?: string, limit = 200): Promise<KpiMetrics[]> {
+    try {
+      if (tenantId) {
+        return await db.select().from(kpiMetrics)
+          .where(eq(kpiMetrics.tenantId, tenantId))
+          .orderBy(desc(kpiMetrics.calculationDate)).limit(limit);
+      }
+      return await db.select().from(kpiMetrics)
+        .orderBy(desc(kpiMetrics.calculationDate)).limit(limit);
+    } catch (error) {
+      console.error('getKpiMetrics error:', error);
+      return [];
+    }
   }
 
   async createKpiMetrics(data: InsertKpiMetrics): Promise<KpiMetrics> {
-    throw new Error("Method not implemented");
+    const [record] = await db.insert(kpiMetrics).values(data).returning();
+    return record;
   }
 
-  async getIntegrationLog(): Promise<IntegrationLog[]> {
-    throw new Error("Method not implemented");
+  async getIntegrationLog(limit = 200): Promise<IntegrationLog[]> {
+    try {
+      return await db.select().from(integrationLog)
+        .orderBy(desc(integrationLog.createdAt)).limit(limit);
+    } catch (error) {
+      console.error('getIntegrationLog error:', error);
+      return [];
+    }
   }
 
   async createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog> {
-    throw new Error("Method not implemented");
+    const [record] = await db.insert(integrationLog).values(data).returning();
+    return record;
   }
 
   async getAlerts(): Promise<AlertsNotifications[]> {
     return await db.select().from(alertsNotifications).orderBy(desc(alertsNotifications.createdAt)).limit(500);
   }
 
-  async getAlertsNotifications(): Promise<AlertsNotifications[]> {
-    throw new Error("Method not implemented");
+  async getAlertsNotifications(tenantId?: string, limit = 200): Promise<AlertsNotifications[]> {
+    try {
+      if (tenantId) {
+        return await db.select().from(alertsNotifications)
+          .where(eq(alertsNotifications.tenantId, tenantId))
+          .orderBy(desc(alertsNotifications.createdAt)).limit(limit);
+      }
+      return await db.select().from(alertsNotifications)
+        .orderBy(desc(alertsNotifications.createdAt)).limit(limit);
+    } catch (error) {
+      console.error('getAlertsNotifications error:', error);
+      return [];
+    }
   }
 
   async createAlertsNotifications(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
-    throw new Error("Method not implemented");
+    const [record] = await db.insert(alertsNotifications).values(data).returning();
+    return record;
   }
 
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {

@@ -136,8 +136,8 @@ app.use((req, res, next) => {
     }
   }
 
-  // Extra Origin validation for auth endpoints (DISABLED for login troubleshooting)
-  if (false && isApiRoute && (req.path.includes('/auth/') || req.path.includes('/enterprise-auth/'))) {
+  // Extra Origin validation for auth endpoints
+  if (isApiRoute && process.env.NODE_ENV === 'production' && (req.path.includes('/auth/') || req.path.includes('/enterprise-auth/'))) {
     const origin = req.headers.origin;
     const referer = req.headers.referer;
     const allowedOrigins = [

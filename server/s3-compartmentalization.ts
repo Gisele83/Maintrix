@@ -10,15 +10,31 @@ import path from 'path';
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
-// Configuration S3/MinIO
+// Configuration S3/MinIO — validation de l'environnement
+const S3_ENDPOINT = process.env.S3_ENDPOINT || 'http://localhost:9000';
+const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY_ID || 'minioadmin';
+const S3_SECRET_KEY = process.env.S3_SECRET_ACCESS_KEY || 'minioadmin';
+
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.S3_ENDPOINT) {
+    console.error('⚠️ SECURITY: S3_ENDPOINT non défini en production — stockage de fichiers non fonctionnel');
+  }
+  if (!process.env.S3_ACCESS_KEY_ID || !process.env.S3_SECRET_ACCESS_KEY) {
+    console.error('⚠️ SECURITY: Credentials S3 (S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY) non définis — credentials par défaut MinIO utilisés');
+  }
+  if (!process.env.S3_BUCKET_NAME) {
+    console.warn('⚠️ S3_BUCKET_NAME non défini — bucket par défaut utilisé');
+  }
+}
+
 const S3_CONFIG = {
-  endpoint: process.env.S3_ENDPOINT || 'http://localhost:9000', // MinIO local
+  endpoint: S3_ENDPOINT,
   region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID || 'minioadmin',
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || 'minioadmin',
+    accessKeyId: S3_ACCESS_KEY,
+    secretAccessKey: S3_SECRET_KEY,
   },
-  forcePathStyle: true, // Requis pour MinIO
+  forcePathStyle: true, // Requis pour MinIO et S3-compatible
 };
 
 // Client S3 configuré

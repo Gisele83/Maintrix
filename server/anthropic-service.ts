@@ -13,19 +13,27 @@ const DEFAULT_MODEL_STR = "claude-sonnet-4-20250514";
 // </important_do_not_delete>
 
 class AnthropicService {
-  private anthropic: Anthropic;
+  private anthropic: Anthropic | null;
 
   constructor() {
     if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+      console.warn('⚠️ ANTHROPIC_API_KEY non défini — service IA Claude désactivé (assistant local actif)');
+      this.anthropic = null;
+      return;
     }
-
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
   }
 
+  private isAvailable(): boolean {
+    return this.anthropic !== null;
+  }
+
   async chat(message: string, context?: string): Promise<string> {
+    if (!this.isAvailable()) {
+      throw new Error('Service IA Claude non disponible (ANTHROPIC_API_KEY non configurée)');
+    }
     try {
       const systemPrompt = context || 
         `You are a helpful AI assistant integrated into Maintrix, a maintenance management system. 
@@ -39,7 +47,7 @@ class AnthropicService {
         Provide clear, helpful, and professional responses. If asked about specific technical issues, 
         provide practical solutions and recommendations.`;
 
-      const response = await this.anthropic.messages.create({
+      const response = await this.anthropic!.messages.create({
         max_tokens: 1024,
         messages: [{ role: 'user', content: message }],
         model: DEFAULT_MODEL_STR, // "claude-sonnet-4-20250514"
