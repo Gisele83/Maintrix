@@ -245,8 +245,8 @@ class AnomalyDetection {
     
     this.requestCounts.set(key, current);
     
-    // Seuil de détection d'anomalie : plus de 200 requêtes par heure sur le même endpoint
-    if (current.count > 200) {
+    // Seuil de détection d'anomalie : plus de 2000 requêtes par heure sur le même endpoint
+    if (current.count > 2000) {
       SecurityLogger.log({
         action: 'SUSPICIOUS_ACTIVITY_DETECTED',
         riskLevel: 'HIGH',
