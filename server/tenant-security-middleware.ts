@@ -191,18 +191,33 @@ export const antiLeakageValidator = (req: TenantRequest, res: Response, next: Ne
   const originalSend = res.send;
   const originalJson = res.json;
 
-  // Override res.send pour scanner les réponses
+  // Override res.send pour scanner et bloquer les réponses
   res.send = function(body: any) {
     if (req.tenantId && body) {
-      validateResponseData(body, req.tenantId, req.originalUrl);
+      const leakDetected = detectLeakage(body, req.tenantId, req.originalUrl);
+      if (leakDetected) {
+        console.error(`🚨 RESPONSE BLOCKED — cross-tenant data leak on ${req.originalUrl}`);
+        res.status = function() { return res; }; // Prevent further chaining issues
+        return originalJson.call(this, {
+          error: 'CROSS_TENANT_DATA_DETECTED',
+          message: 'Accès refusé : fuite de données inter-tenant détectée'
+        });
+      }
     }
     return originalSend.call(this, body);
   };
 
-  // Override res.json pour scanner les réponses JSON
+  // Override res.json pour scanner et bloquer les réponses JSON
   res.json = function(obj: any) {
     if (req.tenantId && obj) {
-      validateResponseData(obj, req.tenantId, req.originalUrl);
+      const leakDetected = detectLeakage(obj, req.tenantId, req.originalUrl);
+      if (leakDetected) {
+        console.error(`🚨 RESPONSE BLOCKED — cross-tenant data leak on ${req.originalUrl}`);
+        return originalJson.call(this, {
+          error: 'CROSS_TENANT_DATA_DETECTED',
+          message: 'Accès refusé : fuite de données inter-tenant détectée'
+        });
+      }
     }
     return originalJson.call(this, obj);
   };
@@ -211,35 +226,37 @@ export const antiLeakageValidator = (req: TenantRequest, res: Response, next: Ne
 };
 
 /**
- * Valide que les données de réponse appartiennent au bon tenant
+ * Détecte une fuite de données inter-tenant dans la réponse.
+ * Retourne true si une fuite est détectée (la réponse doit être bloquée).
  */
-function validateResponseData(data: any, tenantId: string, endpoint: string): void {
+function detectLeakage(data: any, tenantId: string, endpoint: string): boolean {
   try {
+    let parsed = data;
     if (typeof data === "string") {
       try {
-        data = JSON.parse(data);
+        parsed = JSON.parse(data);
       } catch {
-        return; // Pas JSON, pas de validation nécessaire
+        return false; // Pas du JSON, pas de risque de fuite structurée
       }
     }
 
-    if (Array.isArray(data)) {
-      data.forEach((item, index) => {
-        if (item.tenantId && item.tenantId !== tenantId) {
-          console.error(`🚨 DATA LEAKAGE DETECTED: Item ${index} in ${endpoint} contains data from tenant ${item.tenantId} but request is for tenant ${tenantId}`);
-          throw new Error("CROSS_TENANT_DATA_DETECTED");
+    if (Array.isArray(parsed)) {
+      for (let i = 0; i < parsed.length; i++) {
+        const item = parsed[i];
+        if (item?.tenantId && item.tenantId !== tenantId) {
+          console.error(`🚨 DATA LEAKAGE BLOCKED: Item ${i} in ${endpoint} — tenant ${item.tenantId} ≠ requester ${tenantId}`);
+          return true;
         }
-      });
-    } else if (data && typeof data === "object") {
-      if (data.tenantId && data.tenantId !== tenantId) {
-        console.error(`🚨 DATA LEAKAGE DETECTED: Response in ${endpoint} contains data from tenant ${data.tenantId} but request is for tenant ${tenantId}`);
-        throw new Error("CROSS_TENANT_DATA_DETECTED");
+      }
+    } else if (parsed && typeof parsed === "object") {
+      if (parsed.tenantId && parsed.tenantId !== tenantId) {
+        console.error(`🚨 DATA LEAKAGE BLOCKED: ${endpoint} — tenant ${parsed.tenantId} ≠ requester ${tenantId}`);
+        return true;
       }
     }
-  } catch (error) {
-    console.error("❌ ANTI-LEAKAGE VALIDATION ERROR:", error);
-    // En production, on devrait arrêter la réponse ici
-    // throw error;
+    return false;
+  } catch {
+    return false;
   }
 }
 

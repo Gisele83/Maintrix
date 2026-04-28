@@ -20,6 +20,61 @@ import cookieParser from 'cookie-parser';
 import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
 import { securityHeaders } from './security-middleware';
 
+// ═══════════════════════════════════════════════════════════════════
+// 🔒 VALIDATION CRITIQUE DES VARIABLES D'ENVIRONNEMENT
+// Arrêt immédiat en production si une variable critique est absente
+// ═══════════════════════════════════════════════════════════════════
+function validateProductionEnvironment(): void {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const CRITICAL: Array<{ key: string; description: string }> = [
+    { key: 'DATABASE_URL',       description: 'Connexion base de données' },
+    { key: 'KMS_MASTER_KEY',     description: 'Chiffrement données tenant (KMS)' },
+    { key: 'JWT_SECRET',         description: 'Signature tokens JWT' },
+    { key: 'SESSION_SECRET',     description: 'Signature sessions' },
+    { key: 'MFA_ENCRYPTION_KEY', description: 'Chiffrement codes MFA' },
+  ];
+
+  const REQUIRED_SECURE: Array<{ key: string; insecureDefault: string; description: string }> = [
+    { key: 'JWT_SECRET',     insecureDefault: 'smartgmao-default-secret',  description: 'JWT_SECRET' },
+    { key: 'SESSION_SECRET', insecureDefault: 'smartgmao-session-secret',  description: 'SESSION_SECRET' },
+  ];
+
+  const missing = CRITICAL.filter(v => !process.env[v.key]);
+  const insecure = REQUIRED_SECURE.filter(v => process.env[v.key] === v.insecureDefault);
+
+  if (missing.length > 0 || insecure.length > 0) {
+    console.error('\n');
+    console.error('═══════════════════════════════════════════════════════');
+    console.error('⛔  DÉMARRAGE BLOQUÉ — CONFIGURATION DE SÉCURITÉ MANQUANTE');
+    console.error('═══════════════════════════════════════════════════════');
+    if (missing.length > 0) {
+      console.error('Variables manquantes :');
+      missing.forEach(v => console.error(`  ✗ ${v.key.padEnd(22)} — ${v.description}`));
+    }
+    if (insecure.length > 0) {
+      console.error('Variables avec valeur par défaut insécurisée :');
+      insecure.forEach(v => console.error(`  ✗ ${v.description} — valeur de développement détectée en production`));
+    }
+    console.error('═══════════════════════════════════════════════════════\n');
+    process.exit(1);
+  }
+
+  // Avertissements non-bloquants (services optionnels)
+  const OPTIONAL_WARN = [
+    'SENDGRID_API_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'ANTHROPIC_API_KEY',
+  ];
+  OPTIONAL_WARN.forEach(key => {
+    if (!process.env[key]) {
+      console.warn(`⚠️  ${key} non défini — fonctionnalité dégradée`);
+    }
+  });
+}
+
+validateProductionEnvironment();
+
 const app = express();
 
 // Configure Express middleware et sécurité

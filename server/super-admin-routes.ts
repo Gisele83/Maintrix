@@ -106,45 +106,58 @@ Maintrix - Maintenance intelligente et prédictive
   });
 }
 
-// Configuration super-admin
-const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET || "***REMOVED-SECRET***";
-const SUPER_ADMIN_ACCOUNTS = [
-  {
-    email: "beatricesonfack@gmail.com", // Email réel de l'utilisateur
-    password: "***REMOVED-SECRET***", // À hasher en production
-    role: "super-admin"
-  }
-];
+// Configuration super-admin depuis les variables d'environnement
+const SUPER_ADMIN_SECRET = process.env.SUPER_ADMIN_SECRET;
+if (!SUPER_ADMIN_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('⚠️ SECURITY: SUPER_ADMIN_SECRET non défini en production — accès super-admin bloqué');
+}
 
-// Middleware d'authentification super-admin
+// Stockage en mémoire des tokens super-admin valides (expiry 24h)
+const activeSuperAdminTokens = new Map<string, { email: string; expiresAt: number }>();
+
+// Nettoyage périodique des tokens expirés
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, meta] of activeSuperAdminTokens.entries()) {
+    if (meta.expiresAt < now) activeSuperAdminTokens.delete(token);
+  }
+}, 60 * 60 * 1000); // toutes les heures
+
+// Middleware d'authentification super-admin — vérification contre la map de tokens
 const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '') || 
-                  req.cookies.superAdminToken ||
-                  req.body.token;
-    
+    const token = req.headers.authorization?.replace('Bearer ', '') ||
+                  req.cookies.superAdminToken;
+
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: "SUPER_ADMIN_TOKEN_REQUIRED",
-        message: "Token super-admin requis" 
+        message: "Token super-admin requis"
       });
     }
 
-    // Vérifier le token (simulation simple - à améliorer avec JWT)
-    const validToken = token.length === 128; // Token généré par crypto.randomBytes(64).toString('hex')
-    if (!validToken) {
-      return res.status(401).json({ 
+    const session = activeSuperAdminTokens.get(token);
+    if (!session) {
+      return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_TOKEN",
-        message: "Token super-admin invalide" 
+        message: "Token super-admin invalide ou expiré"
       });
     }
 
-    req.superAdmin = { authenticated: true };
+    if (session.expiresAt < Date.now()) {
+      activeSuperAdminTokens.delete(token);
+      return res.status(401).json({
+        error: "SUPER_ADMIN_TOKEN_EXPIRED",
+        message: "Session super-admin expirée — reconnectez-vous"
+      });
+    }
+
+    req.superAdmin = { authenticated: true, email: session.email };
     next();
   } catch (error) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "SUPER_ADMIN_AUTH_ERROR",
-      message: "Erreur d'authentification super-admin" 
+      message: "Erreur d'authentification super-admin"
     });
   }
 };
@@ -162,30 +175,52 @@ const createUserByAdminSchema = z.object({
   maxUsers: z.number().int().min(1).max(1000).optional(),
 });
 
-// 🔐 Connexion super-admin
+// 🔐 Connexion super-admin — credentials depuis variables d'environnement
 router.post('/login', async (req, res) => {
   try {
     const { email, password, secretKey } = req.body;
 
-    // Vérifier la clé secrète plateforme
-    if (secretKey !== SUPER_ADMIN_SECRET) {
+    // Bloquer si SUPER_ADMIN_SECRET non configuré
+    if (!SUPER_ADMIN_SECRET) {
+      return res.status(503).json({
+        error: "SUPER_ADMIN_NOT_CONFIGURED",
+        message: "Accès super-admin non configuré sur ce serveur"
+      });
+    }
+
+    // Vérification timing-safe de la clé secrète plateforme
+    const providedKey = Buffer.from(secretKey || '');
+    const expectedKey = Buffer.from(SUPER_ADMIN_SECRET);
+    const keyMatch = providedKey.length === expectedKey.length &&
+      crypto.timingSafeEqual(providedKey, expectedKey);
+
+    if (!keyMatch) {
       return res.status(401).json({
         error: "INVALID_SECRET_KEY",
         message: "Clé secrète plateforme incorrecte"
       });
     }
 
-    // Vérifier les identifiants super-admin
-    const superAdminAccount = SUPER_ADMIN_ACCOUNTS.find(account => account.email === email);
-    if (!superAdminAccount) {
+    // Email super-admin depuis variable d'environnement
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    const superAdminPasswordHash = process.env.SUPER_ADMIN_PASSWORD_HASH;
+
+    if (!superAdminEmail || !superAdminPasswordHash) {
+      return res.status(503).json({
+        error: "SUPER_ADMIN_CREDENTIALS_NOT_CONFIGURED",
+        message: "Identifiants super-admin non configurés (SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD_HASH)"
+      });
+    }
+
+    if (email !== superAdminEmail) {
       return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_CREDENTIALS",
         message: "Identifiants super-admin incorrects"
       });
     }
 
-    // Vérifier le mot de passe (en production, utiliser bcrypt.compare)
-    const passwordMatch = password === superAdminAccount.password;
+    // Vérification du mot de passe avec bcrypt
+    const passwordMatch = await bcrypt.compare(password, superAdminPasswordHash);
     if (!passwordMatch) {
       return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_CREDENTIALS",
@@ -193,24 +228,23 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Générer un token super-admin
+    // Générer un token opaque et l'enregistrer en mémoire
     const token = crypto.randomBytes(64).toString('hex');
-    
-    // Configurer le cookie sécurisé
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    activeSuperAdminTokens.set(token, { email: superAdminEmail, expiresAt });
+
+    // Cookie sécurisé HttpOnly
     res.cookie('superAdminToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24h
+      maxAge: 24 * 60 * 60 * 1000
     });
 
     res.json({
       success: true,
       token,
-      user: {
-        email: superAdminAccount.email,
-        role: superAdminAccount.role
-      }
+      user: { email: superAdminEmail, role: 'super-admin' }
     });
   } catch (error) {
     console.error('Super-admin login error:', error);

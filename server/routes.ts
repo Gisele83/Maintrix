@@ -758,14 +758,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ✅ MIGRATION COMPLÈTE : Ancien système d'auth supprimé
   // Plus de registerAuthRoutes legacy - système enterprise uniquement
   
-  // Appliquer les mesures de sécurité globales (rate limiting désactivé pour debug multi-tenant)
+  // Appliquer les mesures de sécurité globales
   app.use(securityHeaders);
-  // app.use(generalRateLimit); // DÉSACTIVÉ TEMPORAIREMENT
+  app.use(generalRateLimit);
   app.use(anomalyDetection);
   app.use(jsonErrorHandler);
-  
-  // ✅ MIGRATION COMPLÈTE : Rate limiting désactivé temporairement pour debug multi-tenant
-  // app.use('/api/enterprise-auth', authRateLimit);
+
+  // Rate limiting sur l'authentification
+  app.use('/api/enterprise-auth/login', authRateLimit);
+  app.use('/api/enterprise-auth/register', authRateLimit);
   
   // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
   app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);
@@ -2865,35 +2866,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
-    // Webhook Stripe pour événements
+    // Webhook Stripe pour événements — validation obligatoire
     app.post("/api/payments/webhook", async (req, res) => {
       const sig = req.headers['stripe-signature'];
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      
+
+      if (!webhookSecret) {
+        console.error("⛔ STRIPE_WEBHOOK_SECRET manquant — webhook refusé");
+        return res.status(400).json({ error: "Webhook non configuré (STRIPE_WEBHOOK_SECRET requis)" });
+      }
+
+      if (!sig) {
+        console.error("⛔ Stripe-Signature absent — webhook refusé");
+        return res.status(400).json({ error: "Signature Stripe manquante" });
+      }
+
+      let event: any;
       try {
-        let event;
-        if (webhookSecret && sig) {
-          event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-        } else {
-          event = req.body;
-        }
-        
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } catch (err: any) {
+        console.error("⛔ Webhook Stripe — signature invalide:", err.message);
+        return res.status(400).json({ error: `Signature invalide: ${err.message}` });
+      }
+
+      try {
+        const { db: database } = await import('./db.js');
+        const { tenants } = await import('@shared/schema.js');
+        const { eq } = await import('drizzle-orm');
+
         switch (event.type) {
-          case 'payment_intent.succeeded':
-            console.log("✅ Paiement réussi:", event.data.object.id);
+          case 'payment_intent.succeeded': {
+            const pi = event.data.object;
+            const tenantId = pi.metadata?.tenantId;
+            const planType = pi.metadata?.planType;
+            console.log(`✅ Paiement réussi: ${pi.id} — tenant: ${tenantId || 'unknown'}`);
+            if (tenantId && planType && planType !== 'subscription') {
+              await database.update(tenants)
+                .set({ plan: planType, updatedAt: new Date() })
+                .where(eq(tenants.id, tenantId));
+            }
             break;
-          case 'invoice.paid':
-            console.log("✅ Facture payée:", event.data.object.id);
+          }
+          case 'invoice.paid': {
+            const invoice = event.data.object;
+            const customerId = invoice.customer;
+            const subscriptionId = invoice.subscription;
+            console.log(`✅ Facture payée: ${invoice.id} — customer: ${customerId}`);
+            if (subscriptionId) {
+              const subscription = await stripe.subscriptions.retrieve(subscriptionId as string);
+              const tenantId = subscription.metadata?.tenantId;
+              const planType = subscription.metadata?.planType;
+              if (tenantId) {
+                await database.update(tenants)
+                  .set({
+                    plan: planType || 'pro',
+                    subscriptionId: subscriptionId as string,
+                    lastBillingDate: new Date(),
+                    nextBillingDate: subscription.current_period_end
+                      ? new Date((subscription.current_period_end as number) * 1000)
+                      : undefined,
+                    updatedAt: new Date()
+                  })
+                  .where(eq(tenants.id, tenantId));
+                console.log(`✅ Tenant ${tenantId} mis à jour — plan: ${planType || 'pro'}`);
+              }
+            }
             break;
-          case 'customer.subscription.deleted':
-            console.log("❌ Abonnement annulé:", event.data.object.id);
+          }
+          case 'customer.subscription.deleted': {
+            const sub = event.data.object;
+            const tenantId = sub.metadata?.tenantId;
+            console.log(`❌ Abonnement annulé: ${sub.id} — tenant: ${tenantId || 'unknown'}`);
+            if (tenantId) {
+              await database.update(tenants)
+                .set({ plan: 'free', subscriptionId: null, updatedAt: new Date() })
+                .where(eq(tenants.id, tenantId));
+            }
             break;
+          }
+          case 'customer.subscription.updated': {
+            const sub = event.data.object;
+            const tenantId = sub.metadata?.tenantId;
+            const planType = sub.metadata?.planType;
+            if (tenantId) {
+              await database.update(tenants)
+                .set({ plan: planType || 'pro', subscriptionId: sub.id, updatedAt: new Date() })
+                .where(eq(tenants.id, tenantId));
+              console.log(`🔄 Abonnement mis à jour: tenant ${tenantId} → ${planType || 'pro'}`);
+            }
+            break;
+          }
         }
-        
+
         res.json({ received: true });
       } catch (error: any) {
-        console.error("Erreur webhook Stripe:", error);
-        res.status(400).json({ error: error.message });
+        console.error("Erreur traitement webhook Stripe:", error);
+        res.status(500).json({ error: "Erreur interne traitement webhook" });
       }
     });
     
