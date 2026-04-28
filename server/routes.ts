@@ -52,6 +52,10 @@ import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
 import { registerCalibrationRoutes } from "./calibration-routes";
 import { registerHabilitationRoutes } from "./habilitation-routes";
+import { registerBudgetRoutes as registerBudgetPlanRoutes } from "./budget-routes";
+import { registerSupplierRoutes } from "./supplier-routes";
+import { registerWarrantyRoutes } from "./warranty-routes";
+import { registerMaintenancePlanRoutes } from "./maintenance-plan-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -816,6 +820,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Habilitation routes
   registerHabilitationRoutes(app);
+
+  // Register Budget routes
+  registerBudgetPlanRoutes(app);
+
+  // Register Supplier routes
+  registerSupplierRoutes(app);
+
+  // Register Warranty routes
+  registerWarrantyRoutes(app);
+
+  // Register Maintenance Plan routes
+  registerMaintenancePlanRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

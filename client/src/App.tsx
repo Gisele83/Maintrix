@@ -66,6 +66,10 @@ import FmeaPage from "@/pages/fmea";
 import AssetLifecyclePage from "@/pages/asset-lifecycle";
 import CalibrationPage from "@/pages/calibration";
 import HabilitationPage from "@/pages/habilitation";
+import BudgetPage from "@/pages/budget";
+import SupplierPage from "@/pages/supplier-portal";
+import WarrantyPage from "@/pages/warranty";
+import MaintenancePlanPage from "@/pages/maintenance-plan";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -228,6 +232,18 @@ function Router() {
       </Route>
       <Route path="/habilitation">
         {(params) => <ProtectedRoute component={HabilitationPage} {...params} />}
+      </Route>
+      <Route path="/budget">
+        {(params) => <ProtectedRoute component={BudgetPage} {...params} />}
+      </Route>
+      <Route path="/supplier-portal">
+        {(params) => <ProtectedRoute component={SupplierPage} {...params} />}
+      </Route>
+      <Route path="/warranty">
+        {(params) => <ProtectedRoute component={WarrantyPage} {...params} />}
+      </Route>
+      <Route path="/maintenance-plan">
+        {(params) => <ProtectedRoute component={MaintenancePlanPage} {...params} />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
