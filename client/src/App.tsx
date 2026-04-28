@@ -62,6 +62,8 @@ import CommunicationIntegrations from "@/pages/communication-integrations";
 import PermitToWork from "@/pages/permit-to-work";
 import RcaPage from "@/pages/rca";
 import OeePage from "@/pages/oee";
+import FmeaPage from "@/pages/fmea";
+import AssetLifecyclePage from "@/pages/asset-lifecycle";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -212,6 +214,12 @@ function Router() {
       </Route>
       <Route path="/oee">
         {(params) => <ProtectedRoute component={OeePage} {...params} />}
+      </Route>
+      <Route path="/fmea">
+        {(params) => <ProtectedRoute component={FmeaPage} {...params} />}
+      </Route>
+      <Route path="/asset-lifecycle">
+        {(params) => <ProtectedRoute component={AssetLifecyclePage} {...params} />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
