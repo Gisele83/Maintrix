@@ -337,6 +337,7 @@ export default function GMAODashboard() {
                 { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: "from-violet-500 to-purple-600" },
                 { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" },
                 { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: "from-fuchsia-500 to-pink-600" },
+                { icon: Zap, label: "Intégrations", href: "/advanced-integrations", color: "from-yellow-500 to-orange-500" },
                 { icon: Bell, label: "Communications", href: "/communication-integrations", color: "from-indigo-500 to-blue-600" },
                 { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" },
                 { icon: Fish, label: "Causes Racines", href: "/rca", color: "from-purple-600 to-indigo-600" },
