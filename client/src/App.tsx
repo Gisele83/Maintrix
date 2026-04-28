@@ -59,6 +59,7 @@ import SensorHub from "@/pages/sensor-hub";
 import EquipmentQR from "@/pages/equipment-qr";
 import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
 import CommunicationIntegrations from "@/pages/communication-integrations";
+import PermitToWork from "@/pages/permit-to-work";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -197,6 +198,12 @@ function Router() {
       </Route>
       <Route path="/work-orders">
         {(params) => <ProtectedRoute component={WorkOrders} {...params} />}
+      </Route>
+      <Route path="/permit-to-work">
+        {(params) => <ProtectedRoute component={PermitToWork} {...params} />}
+      </Route>
+      <Route path="/permits">
+        {(params) => <ProtectedRoute component={PermitToWork} {...params} />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}

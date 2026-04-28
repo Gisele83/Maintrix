@@ -45,6 +45,7 @@ import { hybridDiagnosticPipeline, type HybridDiagnosticRequest } from "./hybrid
 import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
+import { registerPermitToWorkRoutes } from "./permit-to-work-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -789,6 +790,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register equipment health routes FIRST to avoid route conflicts
   registerEquipmentHealthRoutes(app);
   
+  // Register Permit-to-Work routes
+  registerPermitToWorkRoutes(app);
+
   // Register GMAO routes
   registerGMAORoutes(app);
   

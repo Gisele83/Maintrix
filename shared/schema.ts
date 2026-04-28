@@ -2087,4 +2087,57 @@ export type InsertCommunicationChannel = z.infer<typeof insertCommunicationChann
 export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSelect;
 export type InsertNotificationDeliveryLog = z.infer<typeof insertNotificationDeliveryLogSchema>;
 
+// ═══════════════════════════════════════════════════════════════════
+// PERMIT-TO-WORK (PTW) — Permis de travail industriels
+// Types: Travaux à chaud, Espace confiné, Consignation électrique (LOTO),
+//        Travaux en hauteur, Travaux à froid, Risque chimique
+// Cycle: draft → submitted → approved → active → completed / rejected / cancelled / expired
+// ═══════════════════════════════════════════════════════════════════
+export const permitToWork = pgTable("permit_to_work", {
+  id: serial("id").primaryKey(),
+  permitNumber: varchar("permit_number", { length: 50 }).notNull().unique(),
+  type: varchar("type", { length: 50 }).notNull(), // hot_work | confined_space | electrical_loto | height_work | cold_work | chemical
+  status: varchar("status", { length: 30 }).notNull().default("draft"), // draft | submitted | approved | active | completed | rejected | cancelled | expired
+  riskLevel: varchar("risk_level", { length: 20 }).notNull().default("medium"), // low | medium | high | critical
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  location: varchar("location", { length: 255 }),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  requestedById: integer("requested_by_id").references(() => userProfiles.id),
+  approvedById: integer("approved_by_id").references(() => userProfiles.id),
+  issuedById: integer("issued_by_id").references(() => userProfiles.id),
+  closedById: integer("closed_by_id").references(() => userProfiles.id),
+  // Dates
+  plannedStart: timestamp("planned_start"),
+  plannedEnd: timestamp("planned_end"),
+  actualStart: timestamp("actual_start"),
+  actualEnd: timestamp("actual_end"),
+  approvedAt: timestamp("approved_at"),
+  // Safety data
+  hazards: jsonb("hazards").default([]),                   // string[]
+  precautions: jsonb("precautions").default([]),           // string[]
+  safetyEquipment: jsonb("safety_equipment").default([]),  // string[] (PPE)
+  isolationPoints: jsonb("isolation_points").default([]),  // { label, isolated, restoredAt }[]  — LOTO
+  authorizedPersonnel: jsonb("authorized_personnel").default([]), // { name, role, signature? }[]
+  checklistItems: jsonb("checklist_items").default([]),    // { label, checked, checkedBy? }[]
+  // Text fields
+  permitConditions: text("permit_conditions"),
+  rejectionReason: text("rejection_reason"),
+  completionNotes: text("completion_notes"),
+  // Audit
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPermitToWorkSchema = createInsertSchema(permitToWork).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PermitToWork = typeof permitToWork.$inferSelect;
+export type InsertPermitToWork = z.infer<typeof insertPermitToWorkSchema>;
+
 // Authentication system cleaned up - now using userProfiles as the main user table
