@@ -260,10 +260,18 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const isProduction = process.env.NODE_ENV === 'production';
 
+    // In production, never return raw error details — prevents leaking stack traces,
+    // DB schema info, or internal paths to clients
+    if (isProduction && status >= 500) {
+      console.error(`[ERROR] ${req.method} ${req.path} → ${status}:`, err);
+      return res.status(status).json({ error: 'INTERNAL_ERROR', message: 'Une erreur interne est survenue.' });
+    }
+
+    const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
     throw err;
   });

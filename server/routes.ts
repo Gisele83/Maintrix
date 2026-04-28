@@ -31,7 +31,11 @@ import {
   insertPredictiveAnalyticsSchema,
   insertKpiMetricsSchema,
   insertIntegrationLogSchema,
-  insertAlertsNotificationsSchema
+  insertAlertsNotificationsSchema,
+  userProfiles,
+  workOrders as workOrdersTable,
+  stockMovements as stockMovementsTable,
+  spareParts as sparePartsTable
 } from "@shared/schema";
 import { z } from "zod";
 import { spawn } from "child_process";
@@ -72,9 +76,20 @@ async function callMLEngine(command: string, args: string[] = [], scriptName: st
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(process.cwd(), 'server', scriptName);
     
+    // Only pass non-sensitive env vars to Python subprocess
+    const safeEnv: NodeJS.ProcessEnv = {
+      PATH: process.env.PATH,
+      HOME: process.env.HOME,
+      USER: process.env.USER,
+      LANG: process.env.LANG,
+      LC_ALL: process.env.LC_ALL,
+      TMPDIR: process.env.TMPDIR,
+      PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages',
+      NODE_ENV: process.env.NODE_ENV,
+    };
     const childProcess = spawn('python3', [scriptPath, command, ...args], {
       cwd: process.cwd(),
-      env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+      env: safeEnv
     });
     
     let output = '';
@@ -1512,6 +1527,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { gmaoStorage } = await import("./gmao-storage");
       const workOrders = await gmaoStorage.getWorkOrders();
+
+      // Build technician lookup map (id -> full name) from DB
+      const technicianIds = [...new Set(workOrders.map(wo => wo.assignedTo).filter(Boolean))] as number[];
+      const technicianMap: Record<number, string> = {};
+      if (technicianIds.length > 0) {
+        const { inArray } = await import("drizzle-orm");
+        const users = await db.select({
+          id: userProfiles.id,
+          firstName: userProfiles.firstName,
+          lastName: userProfiles.lastName,
+          username: userProfiles.username
+        }).from(userProfiles).where(inArray(userProfiles.id, technicianIds));
+        for (const u of users) {
+          technicianMap[u.id] = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
+        }
+      }
+
+      // Build spare parts lookup map (workOrderId -> sparePartNames[])
+      const woIds = workOrders.map(wo => wo.id).filter(Boolean) as number[];
+      const sparePartsMap: Record<number, string[]> = {};
+      if (woIds.length > 0) {
+        const { inArray: inArr } = await import("drizzle-orm");
+        const movements = await db.select({
+          workOrderId: stockMovementsTable.workOrderId,
+          partId: stockMovementsTable.sparePartId
+        }).from(stockMovementsTable)
+          .where(inArr(stockMovementsTable.workOrderId, woIds));
+        const partIds = [...new Set(movements.map(m => m.partId).filter(Boolean))] as number[];
+        const partsById: Record<number, string> = {};
+        if (partIds.length > 0) {
+          const { inArray: inArr2 } = await import("drizzle-orm");
+          const parts = await db.select({ id: sparePartsTable.id, name: sparePartsTable.partName })
+            .from(sparePartsTable).where(inArr2(sparePartsTable.id, partIds));
+          for (const p of parts) partsById[p.id] = p.name;
+        }
+        for (const m of movements) {
+          if (m.workOrderId && m.partId) {
+            if (!sparePartsMap[m.workOrderId]) sparePartsMap[m.workOrderId] = [];
+            const name = partsById[m.partId];
+            if (name && !sparePartsMap[m.workOrderId].includes(name)) {
+              sparePartsMap[m.workOrderId].push(name);
+            }
+          }
+        }
+      }
       
       // Transform work orders to match MaintenanceHistoryItem interface
       const maintenanceHistory = workOrders.map(wo => ({
@@ -1521,13 +1581,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         equipmentId: wo.equipmentId?.toString() || "",
         maintenanceType: mapOrderTypeToMaintenanceType(wo.orderType),
         description: wo.description || wo.title || "",
-        technicianName: "Technicien", // TODO: Join with user profile when available
+        technicianName: (wo.assignedTo && technicianMap[wo.assignedTo]) || "Technicien",
         startDate: wo.actualStart || wo.scheduledStart || wo.createdAt,
         endDate: wo.actualEnd || wo.scheduledEnd || wo.updatedAt,
         duration: wo.actualDuration || wo.estimatedDuration || 0,
         status: mapWorkOrderStatus(wo.status),
         cost: parseFloat(wo.cost || "0"),
-        spareParts: [], // TODO: Add spare parts relationship
+        spareParts: sparePartsMap[wo.id] || [],
         notes: wo.notes || wo.completionNotes || "",
         createdAt: wo.createdAt
       }));
@@ -1617,9 +1677,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Starting advanced ML model training...");
       
       const scriptPath = path.join(process.cwd(), 'server', 'advanced_ml_features.py');
+      const safeEnvAdv: NodeJS.ProcessEnv = {
+        PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER,
+        LANG: process.env.LANG, TMPDIR: process.env.TMPDIR, NODE_ENV: process.env.NODE_ENV,
+        PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages',
+      };
       const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
         cwd: process.cwd(),
-        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+        env: safeEnvAdv
       });
       
       let output = '';
@@ -1761,9 +1826,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Starting ensemble ML model training...");
       
       const scriptPath = path.join(process.cwd(), 'server', 'ml_ensemble_engine.py');
+      const safeEnvEns: NodeJS.ProcessEnv = {
+        PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER,
+        LANG: process.env.LANG, TMPDIR: process.env.TMPDIR, NODE_ENV: process.env.NODE_ENV,
+        PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages',
+      };
       const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
         cwd: process.cwd(),
-        env: { ...process.env, PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages' }
+        env: safeEnvEns
       });
       
       let output = '';

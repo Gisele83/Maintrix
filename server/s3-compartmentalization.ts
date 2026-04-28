@@ -124,7 +124,7 @@ export class S3CompartmentalizationService {
         uploadedAt: new Date(),
         s3Key,
         bucket: this.BASE_BUCKET,
-        encrypted: false, // TODO: intégrer KMS
+        encrypted: !!process.env.KMS_MASTER_KEY,
         accessLevel
       };
       
