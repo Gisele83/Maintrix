@@ -7,7 +7,7 @@ import {
   Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
   Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
   PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight,
-  Heart, Timer, Radio, QrCode, ExternalLink, Shield
+  Heart, Timer, Radio, QrCode, ExternalLink, Shield, Fish
 } from "lucide-react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -337,7 +337,9 @@ export default function GMAODashboard() {
                 { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" },
                 { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: "from-fuchsia-500 to-pink-600" },
                 { icon: Bell, label: "Communications", href: "/communication-integrations", color: "from-indigo-500 to-blue-600" },
-                { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" }
+                { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" },
+                { icon: Fish, label: "Causes Racines", href: "/rca", color: "from-purple-600 to-indigo-600" },
+                { icon: Gauge, label: "OEE", href: "/oee", color: "from-emerald-500 to-teal-600" }
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">

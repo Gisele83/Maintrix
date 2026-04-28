@@ -46,6 +46,8 @@ import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerPermitToWorkRoutes } from "./permit-to-work-routes";
+import { registerRcaRoutes } from "./rca-routes";
+import { registerOeeRoutes } from "./oee-routes";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -792,6 +794,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Permit-to-Work routes
   registerPermitToWorkRoutes(app);
+
+  // Register RCA routes
+  registerRcaRoutes(app);
+
+  // Register OEE routes
+  registerOeeRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

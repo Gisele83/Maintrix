@@ -60,6 +60,8 @@ import EquipmentQR from "@/pages/equipment-qr";
 import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
 import CommunicationIntegrations from "@/pages/communication-integrations";
 import PermitToWork from "@/pages/permit-to-work";
+import RcaPage from "@/pages/rca";
+import OeePage from "@/pages/oee";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -204,6 +206,12 @@ function Router() {
       </Route>
       <Route path="/permits">
         {(params) => <ProtectedRoute component={PermitToWork} {...params} />}
+      </Route>
+      <Route path="/rca">
+        {(params) => <ProtectedRoute component={RcaPage} {...params} />}
+      </Route>
+      <Route path="/oee">
+        {(params) => <ProtectedRoute component={OeePage} {...params} />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
