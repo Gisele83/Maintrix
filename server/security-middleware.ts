@@ -77,8 +77,10 @@ export const mfaVerifyRateLimit = rateLimit({
 });
 
 export const generalRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Maximum 1000 requêtes par IP par fenêtre
+  windowMs: 15 * 60 * 1000,
+  // En développement : pas de limite. En production : 10 000 req / 15 min par IP
+  max: process.env.NODE_ENV === 'production' ? 10000 : 0,
+  skip: () => process.env.NODE_ENV !== 'production',
   message: {
     error: 'Trop de requêtes',
     retryAfter: '15 minutes'
@@ -260,8 +262,9 @@ class AnomalyDetection {
   }
 }
 
-// Middleware de détection d'anomalies
+// Middleware de détection d'anomalies (désactivé en développement)
 export const anomalyDetection = (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV !== 'production') return next();
   if (AnomalyDetection.detectSuspiciousActivity(req)) {
     return res.status(429).json({
       error: 'Activité suspecte détectée',
