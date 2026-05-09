@@ -20,6 +20,22 @@ import {
 import { z } from "zod";
 import { createValidationDemo } from "./create-validation-demo";
 
+// Helper: reject if no authenticated tenantId (never default to 'default-tenant' for mutations)
+function requireTenant(req: any, res: any): string | null {
+  const tenantId = req.tenantId as string | undefined;
+  if (!tenantId) {
+    res.status(401).json({ error: "TENANT_REQUIRED", message: "Tenant context missing — re-authenticate" });
+    return null;
+  }
+  return tenantId;
+}
+
+// Helper: check that authenticated user has one of the allowed roles
+function hasRole(req: any, ...roles: string[]): boolean {
+  const role = req.user?.role as string | undefined;
+  return !!role && roles.includes(role);
+}
+
 export function registerGMAORoutes(app: Express) {
   
   // ============= EQUIPMENT REGISTRY ROUTES =============
@@ -331,11 +347,15 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Delete work order
+  // Delete work order — restricted to admin, director, technical_director
   app.delete("/api/work-orders/:id", async (req, res) => {
     try {
+      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+        return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un ordre de travail" });
+      }
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId || 'default-tenant';
       const deleted = await gmaoStorage.deleteWorkOrder(id, tenantId);
       if (deleted) {
         res.json({ success: true, message: "Ordre de travail supprimé avec succès" });
@@ -482,16 +502,18 @@ export function registerGMAORoutes(app: Express) {
   // Delete preventive maintenance plan
   app.delete("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {
+      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+        return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un plan de maintenance" });
+      }
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
-      console.log("Deleting maintenance plan:", id);
-      
-      const tenantId = (req as any).tenantId || 'default-tenant';
-      const result = await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
+      await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
       res.json({ success: true, message: "Plan de maintenance supprimé avec succès" });
     } catch (error) {
       console.error("Error deleting maintenance plan:", error);
       res.status(400).json({ 
-        message: "Failed to delete maintenance plan",
+        message: "Impossible de supprimer le plan de maintenance",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }
@@ -609,32 +631,31 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Delete spare part (with security checks)
+  // Delete spare part — restricted to admin/director + tenant check
   app.delete("/api/spare-parts/:id", async (req, res) => {
     try {
+      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+        return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer une pièce détachée" });
+      }
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
       
-      // Vérifier que la pièce existe
-      const part = await gmaoStorage.getSparePartById(id);
+      const part = await gmaoStorage.getSparePartById(id, tenantId);
       if (!part) {
         return res.status(404).json({ message: "Pièce détachée non trouvée" });
       }
 
-      // Vérifier s'il y a des mouvements de stock associés
       const movements = await gmaoStorage.getStockMovementsByPart(id);
       if (movements.length > 0) {
         return res.status(400).json({ 
           message: "Impossible de supprimer cette pièce car elle a un historique de mouvements de stock",
           details: `${movements.length} mouvement(s) trouvé(s)`,
-          suggestion: "Vous pouvez désactiver la pièce au lieu de la supprimer"
+          suggestion: "Désactivez la pièce au lieu de la supprimer"
         });
       }
 
-      // Vérifier si la pièce est utilisée dans des ordres de travail actifs
-      // (Cette vérification pourrait être ajoutée plus tard selon les besoins)
-
-      // Supprimer la pièce
-      const success = await gmaoStorage.deleteSparePart(id);
+      const success = await gmaoStorage.deleteSparePart(id, tenantId);
       
       if (success) {
         res.json({ 
@@ -898,56 +919,47 @@ export function registerGMAORoutes(app: Express) {
 
   // ============= DASHBOARD AND ANALYTICS ROUTES =============
   
-  // Get GMAO dashboard data - Filtered by tenant for multi-tenant isolation
+  // Get GMAO dashboard data — optimized with SQL COUNT queries + recent rows only
   app.get("/api/gmao-dashboard", async (req, res) => {
     try {
-      // Get tenant context - all users in the same tenant see the same data
       const tenantId = (req as any).tenantId || 'default-tenant';
       const userRole = (req as any).user?.role || 'technician';
-      
-      console.log(`📊 Dashboard request for tenant: ${tenantId}, user role: ${userRole}`);
-      
-      const [
-        totalEquipment,
-        activeWorkOrders,
-        pendingWorkOrders,
-        criticalAlerts,
-        lowStockParts,
-        completedWorkOrders
-      ] = await Promise.all([
-        gmaoStorage.getEquipmentRegistry(tenantId),
-        gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId),
-        gmaoStorage.getWorkOrdersByStatus('pending', tenantId),
-        gmaoStorage.getAlertsNotifications('active', tenantId),
-        gmaoStorage.getLowStockParts(tenantId),
-        gmaoStorage.getWorkOrdersByStatus('completed', tenantId)
+
+      // Run KPI counts and recent rows in parallel — no full-table scans
+      const [kpis, activeWorkOrders, pendingWorkOrders, recentAlerts, equipmentList] = await Promise.all([
+        gmaoStorage.getDashboardKPIs(tenantId),
+        gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId).then(r => r.slice(0, 3)),
+        gmaoStorage.getWorkOrdersByStatus('pending', tenantId).then(r => r.slice(0, 3)),
+        gmaoStorage.getAlertsNotifications('active', tenantId).then(r => r.slice(0, 5)),
+        gmaoStorage.getEquipmentRegistry(tenantId).then(r => r.slice(0, 50)),
       ]);
 
       const dashboardData = {
-        equipmentCount: totalEquipment.length,
-        activeWorkOrdersCount: activeWorkOrders.length,
-        pendingWorkOrdersCount: pendingWorkOrders.length,
-        criticalAlertsCount: criticalAlerts.filter(a => a.severity === 'critical').length,
-        lowStockPartsCount: lowStockParts.length,
+        equipmentCount: kpis.equipmentCount,
+        activeWorkOrdersCount: kpis.activeWorkOrdersCount,
+        pendingWorkOrdersCount: kpis.pendingWorkOrdersCount,
+        criticalAlertsCount: kpis.criticalAlertsCount,
+        lowStockPartsCount: kpis.lowStockPartsCount,
         recentWorkOrders: [...activeWorkOrders, ...pendingWorkOrders].slice(0, 5),
-        recentAlerts: criticalAlerts.slice(0, 5),
-        equipmentByType: totalEquipment.reduce((acc: any, eq) => {
-          acc[eq.equipmentType] = (acc[eq.equipmentType] || 0) + 1;
+        recentAlerts,
+        equipmentByType: equipmentList.reduce((acc: Record<string, number>, eq) => {
+          const t = eq.equipmentType || 'Autre';
+          acc[t] = (acc[t] || 0) + 1;
           return acc;
         }, {}),
         workOrdersByStatus: {
-          pending: pendingWorkOrders.length,
-          in_progress: activeWorkOrders.length,
-          completed: completedWorkOrders.length
+          pending: kpis.pendingWorkOrdersCount,
+          in_progress: kpis.activeWorkOrdersCount,
+          completed: kpis.completedWorkOrdersCount,
         },
-        tenantId: tenantId,
-        accessLevel: userRole
+        tenantId,
+        accessLevel: userRole,
       };
 
       res.json(dashboardData);
     } catch (error) {
       console.error("❌ Error fetching dashboard data:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard data" });
+      res.status(500).json({ message: "Impossible de charger le tableau de bord" });
     }
   });
 

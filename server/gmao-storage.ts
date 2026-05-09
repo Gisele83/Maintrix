@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, isNull, sql, count } from "drizzle-orm";
 import {
   equipmentRegistry,
   workOrders,
@@ -72,10 +72,44 @@ export class GMAOStorage {
   private db = db;
   // Equipment Registry Methods - TENANT ISOLATED
   async getEquipmentRegistry(tenantId: string): Promise<EquipmentRegistry[]> {
-    // ✅ FIXED: Tenant isolation enabled
     return await db.select().from(equipmentRegistry)
       .where(eq(equipmentRegistry.tenantId, tenantId))
       .orderBy(desc(equipmentRegistry.createdAt));
+  }
+
+  // Efficient COUNT-based KPI aggregation — avoids fetching full rows
+  async getDashboardKPIs(tenantId: string): Promise<{
+    equipmentCount: number;
+    activeWorkOrdersCount: number;
+    pendingWorkOrdersCount: number;
+    completedWorkOrdersCount: number;
+    criticalAlertsCount: number;
+    lowStockPartsCount: number;
+  }> {
+    const [
+      [eqRow], [activeRow], [pendingRow], [completedRow], [alertRow], [stockRow]
+    ] = await Promise.all([
+      db.select({ total: count() }).from(equipmentRegistry)
+        .where(eq(equipmentRegistry.tenantId, tenantId)),
+      db.select({ total: count() }).from(workOrders)
+        .where(and(eq(workOrders.tenantId, tenantId), eq(workOrders.status, 'in_progress'))),
+      db.select({ total: count() }).from(workOrders)
+        .where(and(eq(workOrders.tenantId, tenantId), eq(workOrders.status, 'pending'))),
+      db.select({ total: count() }).from(workOrders)
+        .where(and(eq(workOrders.tenantId, tenantId), eq(workOrders.status, 'completed'))),
+      db.select({ total: count() }).from(alertsNotifications)
+        .where(and(eq(alertsNotifications.tenantId, tenantId), eq(alertsNotifications.severity, 'critical'), eq(alertsNotifications.status, 'active'))),
+      db.select({ total: count() }).from(spareParts)
+        .where(and(eq(spareParts.tenantId, tenantId), sql`${spareParts.currentStock} <= ${spareParts.reorderPoint}`)),
+    ]);
+    return {
+      equipmentCount: eqRow?.total ?? 0,
+      activeWorkOrdersCount: activeRow?.total ?? 0,
+      pendingWorkOrdersCount: pendingRow?.total ?? 0,
+      completedWorkOrdersCount: completedRow?.total ?? 0,
+      criticalAlertsCount: alertRow?.total ?? 0,
+      lowStockPartsCount: stockRow?.total ?? 0,
+    };
   }
 
   async getEquipmentById(id: number, tenantId: string): Promise<EquipmentRegistry | undefined> {
@@ -97,17 +131,28 @@ export class GMAOStorage {
   }
 
   async createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry> {
-    const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
-    return equipment;
+    try {
+      const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
+      return equipment;
+    } catch (error) {
+      console.error("createEquipment error:", error);
+      throw error;
+    }
   }
 
   async updateEquipment(id: number, tenantId: string, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
-    const [equipment] = await db
-      .update(equipmentRegistry)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)))
-      .returning();
-    return equipment;
+    try {
+      const [equipment] = await db
+        .update(equipmentRegistry)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)))
+        .returning();
+      if (!equipment) throw new Error(`Équipement #${id} non trouvé ou accès refusé`);
+      return equipment;
+    } catch (error) {
+      console.error("updateEquipment error:", error);
+      throw error;
+    }
   }
 
   async searchEquipment(tenantId: string, query: { equipmentType?: string; zone?: string; sector?: string; equipmentName?: string }): Promise<EquipmentRegistry[]> {
@@ -200,28 +245,34 @@ export class GMAOStorage {
   }
 
   async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
-    // Generate unique order number
-    const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-    const [workOrder] = await db.insert(workOrders).values({
-      ...data,
-      orderNumber
-    }).returning();
-    return workOrder;
+    try {
+      const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      const [workOrder] = await db.insert(workOrders).values({ ...data, orderNumber }).returning();
+      return workOrder;
+    } catch (error) {
+      console.error("createWorkOrder error:", error);
+      throw error;
+    }
   }
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
-    const safeUpdates = { ...updates };
-    // Only strip validation fields if they are undefined (not explicitly being set)
-    if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
-    if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
+    try {
+      const safeUpdates = { ...updates };
+      if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
+      if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
 
-    const [workOrder] = await db
-      .update(workOrders)
-      .set({ ...safeUpdates, updatedAt: new Date() })
-      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
-      .returning();
+      const [workOrder] = await db
+        .update(workOrders)
+        .set({ ...safeUpdates, updatedAt: new Date() })
+        .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
+        .returning();
 
-    return workOrder;
+      if (!workOrder) throw new Error(`Ordre de travail #${id} non trouvé ou accès refusé`);
+      return workOrder;
+    } catch (error) {
+      console.error("updateWorkOrder error:", error);
+      throw error;
+    }
   }
 
   async deleteWorkOrder(id: number, tenantId: string): Promise<boolean> {
