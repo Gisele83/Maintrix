@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   History,
   Package,
+  Download,
   Database,
   CreditCard,
   Home
@@ -72,7 +73,7 @@ export function ModernNavigation() {
     { name: "Historique", href: "/historique", icon: History },
     ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
     { name: "Documentation", href: "/documentation", icon: FileText },
-    { name: "Télécharger", href: "/download", icon: Package },
+    { name: "Télécharger", href: "/download", icon: Download },
   ];
 
   return (

@@ -255,20 +255,8 @@ class BudgetManager {
 export const budgetManager = new BudgetManager();
 
 export function registerBudgetRoutes(app: Express) {
-  // Get budgets
-  app.get("/api/budgets", async (req, res) => {
-    try {
-      const { year, department } = req.query;
-      const budgets = await budgetManager.getBudgets(
-        year ? parseInt(year as string) : undefined,
-        department as string
-      );
-      res.json(budgets);
-    } catch (error) {
-      console.error("Error fetching budgets:", error);
-      res.status(500).json({ message: "Failed to fetch budgets" });
-    }
-  });
+  // NOTE: GET /api/budgets is handled by budget-routes.ts (registered first, with auth)
+  // This file provides complementary budget management routes (summary, requests)
 
   // Get budget summary
   app.get("/api/budget-summary", async (req, res) => {
