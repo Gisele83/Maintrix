@@ -349,7 +349,8 @@ export default function GMAODashboard() {
                 { icon: DollarSign, label: "Gestion Budget", href: "/budget", color: "from-emerald-500 to-green-600" },
                 { icon: Building2, label: "Portail Fournisseurs", href: "/supplier-portal", color: "from-purple-600 to-indigo-600" },
                 { icon: ShieldCheck, label: "Garanties", href: "/warranty", color: "from-green-600 to-teal-600" },
-                { icon: CalendarCheck, label: "Plan Maintenance", href: "/maintenance-plan", color: "from-cyan-600 to-blue-600" }
+                { icon: CalendarCheck, label: "Plan Maintenance", href: "/maintenance-plan", color: "from-cyan-600 to-blue-600" },
+                { icon: Wallet, label: "Télécharger", href: "/download", color: "from-slate-600 to-slate-800" }
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
                   <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">

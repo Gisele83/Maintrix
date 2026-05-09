@@ -66,6 +66,7 @@ import FmeaPage from "@/pages/fmea";
 import AssetLifecyclePage from "@/pages/asset-lifecycle";
 import CalibrationPage from "@/pages/calibration";
 import HabilitationPage from "@/pages/habilitation";
+import DownloadCenterPage from "@/pages/download-center";
 import BudgetPage from "@/pages/budget";
 import SupplierPage from "@/pages/supplier-portal";
 import WarrantyPage from "@/pages/warranty";
@@ -244,6 +245,9 @@ function Router() {
       </Route>
       <Route path="/maintenance-plan">
         {(params) => <ProtectedRoute component={MaintenancePlanPage} {...params} />}
+      </Route>
+      <Route path="/download">
+        {() => <DownloadCenterPage />}
       </Route>
       <Route path="/preventive">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
