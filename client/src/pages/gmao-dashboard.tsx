@@ -38,14 +38,35 @@ import { EquipmentHealthDashboard } from "@/components/equipment-health-dashboar
 import { HistoryManagement } from "@/components/history-management";
 
 
+interface RecentWorkOrder {
+  id: number;
+  orderNumber: string;
+  title: string;
+  status: string;
+  priority: string;
+  equipmentName?: string;
+  assignedTo?: string;
+  scheduledStart?: string;
+}
+
+interface RecentAlert {
+  id: number;
+  alertType: string;
+  severity: string;
+  title: string;
+  message?: string;
+  status: string;
+  createdAt?: string;
+}
+
 interface GMAODashboardData {
   equipmentCount: number;
   activeWorkOrdersCount: number;
   pendingWorkOrdersCount: number;
   criticalAlertsCount: number;
   lowStockPartsCount: number;
-  recentWorkOrders: any[];
-  recentAlerts: any[];
+  recentWorkOrders: RecentWorkOrder[];
+  recentAlerts: RecentAlert[];
   equipmentByType: Record<string, number>;
   workOrdersByStatus: Record<string, number>;
 }
@@ -62,8 +83,9 @@ export default function GMAODashboard() {
   const [showAlertsModal, setShowAlertsModal] = useState(false);
 
   // Fetch GMAO dashboard data
-  const { data: dashboardData, isLoading } = useQuery<GMAODashboardData>({
+  const { data: dashboardData, isLoading, isError } = useQuery<GMAODashboardData>({
     queryKey: ["/api/gmao-dashboard"],
+    retry: 2,
   });
 
   const tabs = [
@@ -223,6 +245,16 @@ export default function GMAODashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error state */}
+        {isError && (
+          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+            <div>
+              <p className="font-semibold text-sm">Erreur de chargement du tableau de bord</p>
+              <p className="text-xs text-red-500 mt-0.5">Impossible de récupérer les données GMAO. Vérifiez votre connexion et réessayez.</p>
+            </div>
+          </div>
+        )}
         {/* Vue d'ensemble uniquement */}
         {!showAdminModal && activeTab === "overview" && (
           <div className="space-y-6">

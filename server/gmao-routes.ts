@@ -673,7 +673,8 @@ export function registerGMAORoutes(app: Express) {
   // Get stock movements
   app.get("/api/stock-movements", async (req, res) => {
     try {
-      const movements = await gmaoStorage.getStockMovements();
+      const tenantId = (req as any).tenantId as string | undefined;
+      const movements = await gmaoStorage.getStockMovements(tenantId);
       res.json(movements);
     } catch (error) {
       console.error("Error fetching stock movements:", error);

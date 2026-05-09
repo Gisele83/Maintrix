@@ -210,20 +210,17 @@ export class GMAOStorage {
   }
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
-    
-    // Remove any fields that might cause FK constraint violations for now
     const safeUpdates = { ...updates };
-    delete safeUpdates.level1ValidatedBy;
-    delete safeUpdates.level2ValidatedBy;
-    
-    
-    // 🔧 CORRECTION: Activer le filtrage par tenant pour les mises à jour
+    // Only strip validation fields if they are undefined (not explicitly being set)
+    if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
+    if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
+
     const [workOrder] = await db
       .update(workOrders)
       .set({ ...safeUpdates, updatedAt: new Date() })
       .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
-    
+
     return workOrder;
   }
 
@@ -387,9 +384,9 @@ export class GMAOStorage {
     let alertLevel: "info" | "warning" | "critical" = "info";
     let shouldGenerateAlert = false;
 
-    // Determine alert level based on thresholds
-    const criticalThreshold = counter.criticalThreshold || 98;
-    const warningThreshold = counter.warningThreshold || 90;
+    // Determine alert level based on schema fields (warningThresholdPct) with safe defaults
+    const warningThreshold = (counter as any).warningThresholdPct ?? 90;
+    const criticalThreshold = Math.min(100, warningThreshold + 8);
 
     if (percentage >= criticalThreshold) {
       alertLevel = "critical";
@@ -483,7 +480,14 @@ export class GMAOStorage {
   }
 
   // Stock Movements Methods
-  async getStockMovements(): Promise<StockMovement[]> {
+  async getStockMovements(tenantId?: string): Promise<StockMovement[]> {
+    if (tenantId) {
+      return await db.select().from(stockMovements)
+        .innerJoin(spareParts, eq(stockMovements.sparePartId, spareParts.id))
+        .where(eq(spareParts.tenantId, tenantId))
+        .orderBy(desc(stockMovements.createdAt))
+        .then(rows => rows.map(r => r.stock_movements));
+    }
     return await db.select().from(stockMovements).orderBy(desc(stockMovements.createdAt));
   }
 
