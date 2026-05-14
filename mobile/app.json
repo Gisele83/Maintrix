@@ -2,53 +2,115 @@
   "expo": {
     "name": "Maintrix",
     "slug": "maintrix",
-    "version": "1.0.0",
+    "version": "2.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "primaryColor": "#6366f1",
+    "description": "Supervision industrielle adaptative — GMAO, Diagnostic IA, contrôle en temps réel.",
+    "githubUrl": "https://github.com/maintrix/mobile",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#6366f1"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000,
+      "url": "https://u.expo.dev/maintrix"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maintrix.gmao"
+      "bundleIdentifier": "com.maintrix.gmao",
+      "buildNumber": "2",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Maintrix utilise la caméra pour scanner les codes QR des équipements.",
+        "NSMicrophoneUsageDescription": "Accès au microphone pour l'enregistrement audio lors des interventions.",
+        "NSLocationWhenInUseUsageDescription": "La localisation permet de géolocaliser les interventions terrain.",
+        "NSPhotoLibraryUsageDescription": "Accès photos pour ajouter des images aux rapports d'intervention."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#6366f1"
       },
       "package": "com.maintrix.gmao",
+      "versionCode": 2,
       "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "maintrix.app",
+              "pathPrefix": "/activate"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Maintrix to access your camera for QR code scanning and equipment documentation."
+          "cameraPermission": "Maintrix utilise votre caméra pour scanner les codes QR des équipements industriels."
         }
       ],
       [
         "expo-barcode-scanner",
         {
-          "cameraPermission": "Allow Maintrix to access your camera for scanning equipment barcodes."
+          "cameraPermission": "Maintrix utilise votre caméra pour identifier les équipements par code-barres."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "kotlinVersion": "1.8.0"
+          },
+          "ios": {
+            "deploymentTarget": "15.0"
+          }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "maintrix-mobile-v2"
+      }
+    },
+    "owner": "maintrix"
   }
 }

@@ -5,9 +5,26 @@ import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import { DatabaseProvider } from './src/providers/DatabaseProvider';
-import { AuthProvider } from './src/providers/AuthProvider';
+import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { OfflineProvider } from './src/providers/OfflineProvider';
+import { LicenseProvider } from './src/providers/LicenseProvider';
 import theme from './src/theme/theme';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+
+function AppWithLicense() {
+  const { authToken } = useAuth();
+  return (
+    <LicenseProvider serverUrl={API_URL} authToken={authToken}>
+      <OfflineProvider>
+        <NavigationContainer>
+          <AppNavigator />
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </OfflineProvider>
+    </LicenseProvider>
+  );
+}
 
 export default function App() {
   return (
@@ -15,12 +32,7 @@ export default function App() {
       <PaperProvider theme={theme}>
         <DatabaseProvider>
           <AuthProvider>
-            <OfflineProvider>
-              <NavigationContainer>
-                <AppNavigator />
-                <StatusBar style="auto" />
-              </NavigationContainer>
-            </OfflineProvider>
+            <AppWithLicense />
           </AuthProvider>
         </DatabaseProvider>
       </PaperProvider>

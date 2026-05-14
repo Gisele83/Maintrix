@@ -1,8 +1,11 @@
-# Guide de Build et Distribution - Application Mobile Maintrix
+# Maintrix Mobile v2.0 — Guide de Build & Déploiement
+
+> Mis à jour pour la v2.0 : auth réelle, gestion de licence mobile, OTA updates, EAS Build.
 
 ## Vue d'Ensemble
 
-Ce guide détaille les étapes de build et distribution de l'application mobile Maintrix pour Android et iOS, avec options de distribution gratuite et payante.
+Ce guide détaille les étapes de build et distribution de l'application mobile Maintrix pour Android et iOS.
+Nouveautés v2.0 : authentification API réelle, écran d'activation de licence, cache offline 7 jours, deep links, OTA updates.
 
 ## 🛠️ Préparatifs Build
 
