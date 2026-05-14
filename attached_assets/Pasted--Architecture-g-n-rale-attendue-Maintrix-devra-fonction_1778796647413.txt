@@ -1,0 +1,103 @@
+. Architecture générale attendue
+
+Maintrix devra fonctionner selon une architecture hybride :
+
+Mode	Description
+Cloud	accès centralisé via Internet
+Local installé	application installée sur PC/mobile
+Mode déconnecté	fonctionnement même sans Internet
+
+Le système devra synchroniser automatiquement les données lorsque la connexion Internet est disponible.
+
+4. Contraintes liées à la connectivité
+4.1 Fonctionnement hors ligne (Offline First)
+
+Compte tenu du contexte industriel et des contraintes de connectivité dans certaines zones :
+
+Le système devra être conçu selon une approche Offline First.
+
+Exigences :
+fonctionnement local sans connexion permanente ;
+stockage local temporaire des données ;
+synchronisation différée automatique ;
+continuité des opérations critiques hors ligne ;
+accès local aux historiques essentiels ;
+tolérance aux coupures réseau.
+5. Versions du système
+5.1 Version Web
+
+Accessible via navigateur Internet.
+
+Fonctionnalités :
+accès SaaS ;
+administration centralisée ;
+supervision distante ;
+gestion multi-sites.
+5.2 Version installable (Desktop / Mobile)
+
+Le système devra pouvoir être :
+
+téléchargé ;
+installé localement ;
+exécuté sur PC et appareils mobiles.
+Plateformes visées :
+Windows ;
+Android ;
+Linux (optionnel) ;
+macOS (optionnel).
+6. Modèle d’accès et licensing
+6.1 Principe général
+
+Le téléchargement et l’installation de Maintrix ne donnent pas automatiquement accès à l’utilisation complète du logiciel.
+
+L’utilisation du logiciel installé devra être conditionnée par :
+
+une authentification ;
+une licence active ;
+un abonnement valide.
+
+Le fonctionnement attendu est similaire aux applications modernes de type :
+
+assistants IA ;
+logiciels SaaS hybrides ;
+applications desktop connectées.
+7. Gestion des abonnements
+7.1 Période d’essai (Free Trial)
+
+L’utilisateur devra bénéficier :
+
+d’une version de démonstration gratuite ;
+accessible en version web ou installée ;
+pendant une durée de 30 jours.
+Pendant cette période :
+accès limité ou complet selon configuration ;
+activation simplifiée ;
+aucune interruption fonctionnelle.
+7.2 Fin de période d’essai
+
+À l’expiration des 30 jours :
+
+l’utilisateur devra souscrire à un abonnement ;
+certaines fonctionnalités pourront être bloquées ;
+un système de renouvellement devra être proposé.
+8. Gestion des licences
+
+Le système devra intégrer :
+
+activation de licence ;
+gestion des abonnements ;
+vérification périodique de validité ;
+gestion des utilisateurs ;
+gestion multi-appareils ;
+limitation selon formule.
+9. Tolérance réseau et contrôle des licences
+
+Compte tenu des environnements à faible connectivité :
+
+Le système ne devra pas cesser immédiatement de fonctionner en cas d’absence temporaire d’Internet.
+
+Exigences :
+cache local de licence ;
+période de grâce configurable ;
+synchronisation différée ;
+validation périodique des abonnements.
