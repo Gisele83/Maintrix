@@ -104,6 +104,20 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
             value TEXT NOT NULL
           );
         `);
+
+        // Pending feedback for offline sync
+        tx.executeSql(`
+          CREATE TABLE IF NOT EXISTS pending_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER,
+            rating INTEGER,
+            helpful INTEGER DEFAULT 0,
+            comments TEXT,
+            suggestions_accuracy TEXT,
+            timestamp TEXT,
+            synced INTEGER DEFAULT 0
+          );
+        `);
       });
 
       setDb(database);

@@ -114,8 +114,9 @@ export default function EquipmentScannerScreen() {
 
   const findEquipmentOnServer = async (qrCode: string): Promise<Equipment | null> => {
     try {
-      // This would call the server API to find equipment
-      const response = await fetch(`https://your-server.com/api/equipment/qr/${qrCode}`);
+      const { getApiBaseUrl, fetchWithTimeout } = await import('../config/api.config');
+      const apiBase = await getApiBaseUrl();
+      const response = await fetchWithTimeout(`${apiBase}/equipment/qr/${encodeURIComponent(qrCode)}`, {}, 10000);
       if (response.ok) {
         return await response.json();
       }

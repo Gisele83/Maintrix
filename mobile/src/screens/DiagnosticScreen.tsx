@@ -157,18 +157,36 @@ export default function DiagnosticScreen() {
   };
 
   const performOnlineDiagnostic = async (): Promise<DiagnosticResult[]> => {
-    // This would call the web app's diagnostic API
     try {
-      const response = await fetch('https://your-server.com/api/diagnostic', {
+      const { getApiBaseUrl, fetchWithTimeout } = await import('../config/api.config');
+      const apiBase = await getApiBaseUrl();
+      const symptomsText = [...symptoms, customSymptom].filter(Boolean).join(', ');
+
+      const response = await fetchWithTimeout(`${apiBase}/diagnostic`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           equipmentType,
-          symptoms: [...symptoms, customSymptom].filter(Boolean),
-          urgency
+          symptoms: symptomsText,
+          symptomsChecked: symptoms,
+          urgency: urgency === 'high' ? 'Urgent' : urgency === 'low' ? 'Faible' : 'Normale',
         })
-      });
-      return await response.json();
+      }, 20000);
+
+      if (!response.ok) {
+        console.warn(`Diagnostic API returned ${response.status}, falling back to offline`);
+        return [];
+      }
+
+      const data = await response.json();
+      const suggestions = data.suggestions || [];
+      return suggestions.slice(0, 3).map((s: any) => ({
+        diagnosis: s.diagnosis || 'Diagnostic indisponible',
+        confidence: (s.confidence || 70) / 100,
+        solution: s.solution || 'Voir les détails dans l\'application web',
+        urgency: (urgency as 'low' | 'medium' | 'high') || 'medium',
+        estimatedTime: s.estimatedDuration || 60
+      }));
     } catch (error) {
       console.error('Online diagnostic error:', error);
       return [];

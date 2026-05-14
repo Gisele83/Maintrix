@@ -27,7 +27,8 @@ export interface DiagnosticResult {
   modelAccuracy: string;
 }
 
-const API_BASE_URL = 'http://localhost:5000'; // Adapter selon l'environnement
+import { DEFAULT_SERVER_URL } from '../config/api.config';
+const API_BASE_URL = DEFAULT_SERVER_URL;
 
 export async function performDiagnosis(
   diagnosticData: DiagnosticData,

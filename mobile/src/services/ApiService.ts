@@ -1,9 +1,10 @@
-import { useOffline } from '../contexts/OfflineContext';
-import { useDatabase } from '../contexts/DatabaseContext';
+import { useOffline } from '../providers/OfflineProvider';
+import { useDatabase } from '../providers/DatabaseProvider';
+import { DEFAULT_SERVER_URL } from '../config/api.config';
 
-const API_BASE_URL = 'http://your-server-url.com/api'; // Replace with your actual server URL
+const API_BASE_URL = `${DEFAULT_SERVER_URL}/api`;
 
-interface DiagnosticRequest {
+export interface DiagnosticRequest {
   equipmentType: string;
   equipmentId?: string;
   symptoms: string[];
@@ -13,12 +14,45 @@ interface DiagnosticRequest {
   mlMode: string;
 }
 
-interface DiagnosticResponse {
+export interface DiagnosticResponse {
   suggestions: any[];
   confidenceScore: number;
   riskLevel: string;
   estimatedCost: number;
   insights: string[];
+}
+
+export interface FeedbackData {
+  sessionId: number;
+  rating: number;
+  helpful: boolean;
+  comments: string;
+  suggestionsAccuracy: string;
+  timestamp: string;
+}
+
+export interface DiagnosticSuggestion {
+  id: number;
+  diagnosis: string;
+  solution: string;
+  confidence: number;
+  estimatedDuration: number;
+  estimatedCost: string;
+  riskLevel: string;
+  aiInsights: string;
+  equipmentType: string;
+  urgency: string;
+}
+
+export interface MaintenanceCase {
+  id: number;
+  equipmentType: string;
+  symptoms: string;
+  diagnosis: string;
+  solution: string;
+  estimatedDuration: number;
+  estimatedCost: string;
+  createdAt: string;
 }
 
 class ApiService {
@@ -190,6 +224,39 @@ class ApiService {
     ]);
   }
 
+  // Alias used by FeedbackScreen — tries to POST online, stores locally if offline
+  async submitFeedback(feedback: FeedbackData): Promise<void> {
+    if (this.isOnline) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/diagnostic-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedback),
+        });
+        if (res.ok) return;
+        // Fall through to local save on server error
+      } catch {
+        // Fall through to local save on network error
+      }
+    }
+
+    // Save locally as pending feedback for sync
+    if (this.executeQuery) {
+      await this.executeQuery(
+        `INSERT INTO pending_feedback (session_id, rating, helpful, comments, suggestions_accuracy, timestamp, synced)
+         VALUES (?, ?, ?, ?, ?, ?, 0)`,
+        [
+          feedback.sessionId,
+          feedback.rating,
+          feedback.helpful ? 1 : 0,
+          feedback.comments || '',
+          feedback.suggestionsAccuracy || 'accurate',
+          feedback.timestamp || new Date().toISOString(),
+        ]
+      );
+    }
+  }
+
   private async cacheData(key: string, data: any): Promise<void> {
     if (!this.executeQuery) return;
 
@@ -227,10 +294,25 @@ export const apiService = new ApiService();
 
 // Hook to initialize the service with context data
 export const useApiService = () => {
-  const { isOnline } = useOffline();
-  const { executeQuery } = useDatabase();
+  const { isConnected } = useOffline();
+  const { db } = useDatabase();
 
-  apiService.setOnlineStatus(isOnline);
+  // Build an executeQuery wrapper compatible with DatabaseContext API
+  const executeQuery = (sql: string, params: any[] = []): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (!db) { reject(new Error('Database not ready')); return; }
+      db.transaction((tx) => {
+        tx.executeSql(
+          sql,
+          params,
+          (_, result) => resolve(result),
+          (_, error) => { reject(error); return false; }
+        );
+      });
+    });
+  };
+
+  apiService.setOnlineStatus(isConnected);
   apiService.setDatabaseQuery(executeQuery);
 
   return apiService;

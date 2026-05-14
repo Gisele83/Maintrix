@@ -25,7 +25,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import { apiService, FeedbackData } from '../services/ApiService';
-import { useOffline } from '../context/OfflineContext';
+import { useOffline } from '../providers/OfflineProvider';
 import { theme, spacing, typography, gradients } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -65,7 +65,7 @@ export function FeedbackScreen() {
   const navigation = useNavigation<FeedbackScreenNavigationProp>();
   const route = useRoute<FeedbackScreenRouteProp>();
   const { sessionId, diagnosis, solution } = route.params;
-  const { isOnline } = useOffline();
+  const { isConnected: isOnline } = useOffline();
   const queryClient = useQueryClient();
 
   const [rating, setRating] = useState<number>(3);

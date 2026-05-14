@@ -26,7 +26,7 @@ import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { launchImageLibrary } from 'react-native-image-picker';
 
 import { theme, spacing, typography, gradients } from '../theme/theme';
-import { useOffline } from '../context/OfflineContext';
+import { useOffline } from '../providers/OfflineProvider';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 // Mock QR scanner since react-native-qrcode-scanner requires camera setup
@@ -55,7 +55,7 @@ type ScannerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main
 
 export function ScannerScreen() {
   const navigation = useNavigation<ScannerScreenNavigationProp>();
-  const { isOnline } = useOffline();
+  const { isConnected: isOnline } = useOffline();
   
   const [scanning, setScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
