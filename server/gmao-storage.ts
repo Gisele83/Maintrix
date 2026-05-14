@@ -684,6 +684,253 @@ export class GMAOStorage {
     return metrics;
   }
 
+  // ============= PREDICTIVE INSIGHTS DASHBOARD =============
+  async getPredictiveInsightsDashboard(tenantId: string, equipmentId?: number): Promise<any> {
+    // 1. Get equipment list
+    let equipmentList = await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.tenantId, tenantId))
+      .orderBy(equipmentRegistry.equipmentName);
+
+    if (equipmentId) {
+      equipmentList = equipmentList.filter(e => e.id === equipmentId);
+    }
+
+    const equipmentIds = equipmentList.map(e => e.id);
+
+    // 2. Get latest sensor data per equipment (last 200 readings)
+    const sensorDataRaw = equipmentIds.length > 0
+      ? await db.select().from(iotSensorData)
+          .where(equipmentIds.length === 1
+            ? eq(iotSensorData.equipmentId, equipmentIds[0])
+            : or(...equipmentIds.map(id => eq(iotSensorData.equipmentId, id)))
+          )
+          .orderBy(desc(iotSensorData.timestamp))
+          .limit(500)
+      : [];
+
+    // 3. Get predictive analytics
+    const analyticsRaw = equipmentIds.length > 0
+      ? await db.select().from(predictiveAnalytics)
+          .where(equipmentIds.length === 1
+            ? eq(predictiveAnalytics.equipmentId, equipmentIds[0])
+            : or(...equipmentIds.map(id => eq(predictiveAnalytics.equipmentId, id)))
+          )
+          .orderBy(desc(predictiveAnalytics.createdAt))
+          .limit(200)
+      : [];
+
+    // 4. Get KPI metrics
+    const kpiRaw = equipmentIds.length > 0
+      ? await db.select().from(kpiMetrics)
+          .where(equipmentIds.length === 1
+            ? eq(kpiMetrics.equipmentId, equipmentIds[0])
+            : or(...equipmentIds.map(id => eq(kpiMetrics.equipmentId, id)))
+          )
+          .orderBy(desc(kpiMetrics.calculationDate))
+          .limit(200)
+      : [];
+
+    // 5. Get open work orders per equipment
+    const openWOs = await db.select({
+      equipmentId: workOrders.equipmentId,
+      cnt: count()
+    }).from(workOrders)
+      .where(and(
+        eq(workOrders.tenantId, tenantId),
+        or(eq(workOrders.status, 'pending'), eq(workOrders.status, 'in_progress'))
+      ))
+      .groupBy(workOrders.equipmentId);
+
+    const openWOMap: Record<number, number> = {};
+    openWOs.forEach((row: any) => {
+      if (row.equipmentId) openWOMap[row.equipmentId] = Number(row.cnt);
+    });
+
+    // ─── Build equipment insights ───────────────────────────────────────────
+    const equipmentInsights = equipmentList.map(eq => {
+      // Latest analytics for this equipment
+      const analytics = analyticsRaw.filter(a => a.equipmentId === eq.id);
+      const latestAnalytic = analytics[0];
+
+      // Latest sensor readings grouped by type
+      const sensors = sensorDataRaw.filter(s => s.equipmentId === eq.id);
+      const sensorByType: Record<string, any> = {};
+      sensors.forEach(s => {
+        if (!sensorByType[s.sensorType]) sensorByType[s.sensorType] = s;
+      });
+
+      const failureProbability = latestAnalytic?.failureProbability ?? 0;
+      const anomalyScore = latestAnalytic?.anomalyScore ?? 0;
+      const rul = latestAnalytic?.remainingUsefulLife ?? null;
+      const riskLevel = latestAnalytic?.riskLevel ?? this._computeRiskLevel(failureProbability, anomalyScore);
+      const healthScore = this._computeHealthScore(failureProbability, anomalyScore, eq.criticalityLevel ?? 'medium');
+
+      // Top sensor (most recent with highest alarm state)
+      const alarmSensor = sensors.find(s => s.alarmState === 'alarm' || s.alarmState === 'critical')
+        ?? sensors.find(s => s.alarmState === 'warning')
+        ?? sensors[0];
+
+      // Recommendations
+      const recs: string[] = [];
+      if (latestAnalytic?.recommendations && Array.isArray(latestAnalytic.recommendations)) {
+        recs.push(...(latestAnalytic.recommendations as string[]).slice(0, 3));
+      }
+      if (recs.length === 0 && failureProbability > 0.6) recs.push("Planifier une intervention préventive urgente");
+      if (recs.length === 0 && anomalyScore > 0.5) recs.push("Analyser les données capteurs anormales");
+      if (recs.length === 0) recs.push("Surveiller les tendances de performance");
+
+      // Predicted failure date
+      let predictedFailureDate: string | null = null;
+      if (rul != null && rul > 0) {
+        const d = new Date();
+        d.setDate(d.getDate() + rul);
+        predictedFailureDate = d.toISOString();
+      }
+
+      return {
+        id: eq.id,
+        name: eq.equipmentName,
+        type: eq.equipmentType,
+        healthScore,
+        riskLevel,
+        remainingUsefulLife: rul,
+        failureProbability,
+        anomalyScore,
+        lastSensorUpdate: sensors[0]?.timestamp?.toISOString() ?? null,
+        topSensor: alarmSensor?.sensorType ?? null,
+        topSensorValue: alarmSensor ? parseFloat(alarmSensor.value) : null,
+        topSensorUnit: alarmSensor?.unit ?? null,
+        openWorkOrders: openWOMap[eq.id] ?? 0,
+        predictedFailureDate,
+        recommendations: recs,
+      };
+    });
+
+    // ─── Fleet summary ──────────────────────────────────────────────────────
+    const total = equipmentInsights.length;
+    const critical = equipmentInsights.filter(e => e.riskLevel === 'critical').length;
+    const warning = equipmentInsights.filter(e => e.riskLevel === 'high' || e.riskLevel === 'medium').length;
+    const healthy = total - critical - warning;
+    const avgHealthScore = total > 0 ? Math.round(equipmentInsights.reduce((s, e) => s + e.healthScore, 0) / total) : 0;
+    const ruls = equipmentInsights.filter(e => e.remainingUsefulLife != null).map(e => e.remainingUsefulLife!);
+    const avgRul = ruls.length > 0 ? Math.round(ruls.reduce((a, b) => a + b, 0) / ruls.length) : 0;
+    const criticalAlerts = equipmentInsights.filter(e => e.riskLevel === 'critical' || e.failureProbability > 0.7).length;
+    const predictedFailuresNext30d = equipmentInsights.filter(e => e.remainingUsefulLife != null && e.remainingUsefulLife! <= 30).length;
+
+    const fleetSummary = { total, healthy, warning, critical, avgHealthScore, avgRul, criticalAlerts, predictedFailuresNext30d };
+
+    // ─── Sensor trends (time-series for charts) ─────────────────────────────
+    // Bucket last 100 readings by hour
+    const trendMap: Record<string, { temperature: number[], vibration: number[], pressure: number[], current: number[] }> = {};
+    sensorDataRaw.slice(0, 200).forEach(s => {
+      if (!s.timestamp) return;
+      const ts = new Date(s.timestamp);
+      const key = `${ts.toISOString().slice(0, 13)}:00`;
+      if (!trendMap[key]) trendMap[key] = { temperature: [], vibration: [], pressure: [], current: [] };
+      const type = s.sensorType as keyof typeof trendMap[string];
+      if (type in trendMap[key]) trendMap[key][type].push(parseFloat(s.value));
+    });
+
+    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const sensorTrends = Object.entries(trendMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-24)
+      .map(([ts, vals]) => ({
+        timestamp: ts,
+        temperature: avg(vals.temperature),
+        vibration: avg(vals.vibration),
+        pressure: avg(vals.pressure),
+        current: avg(vals.current),
+      }));
+
+    // ─── Failure probability timeline (30-day projection) ───────────────────
+    const baseProb = equipmentInsights.length > 0
+      ? equipmentInsights.reduce((s, e) => s + e.failureProbability, 0) / equipmentInsights.length
+      : 0.05;
+
+    const failureProbabilityTimeline = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const growthFactor = 1 + i * 0.015;
+      const prob = Math.min(baseProb * growthFactor, 0.99);
+      return {
+        day: `J+${i}`,
+        probability: Math.round(prob * 1000) / 1000,
+        threshold: 0.5,
+      };
+    });
+
+    // ─── Anomaly distribution ────────────────────────────────────────────────
+    const anomalyDistribution = equipmentInsights
+      .filter(e => e.anomalyScore > 0)
+      .sort((a, b) => b.anomalyScore - a.anomalyScore)
+      .slice(0, 10)
+      .map(e => ({
+        equipment: e.name.length > 20 ? e.name.slice(0, 18) + '…' : e.name,
+        score: Math.round(e.anomalyScore * 1000) / 1000,
+        count: 1,
+      }));
+
+    // ─── KPI Radar ───────────────────────────────────────────────────────────
+    const mtbfVals = kpiRaw.filter(k => k.metricType === 'mtbf').map(k => parseFloat(k.metricValue));
+    const mttrVals = kpiRaw.filter(k => k.metricType === 'mttr').map(k => parseFloat(k.metricValue));
+    const availVals = kpiRaw.filter(k => k.metricType === 'availability').map(k => parseFloat(k.metricValue));
+    const oeeVals = kpiRaw.filter(k => k.metricType === 'oee').map(k => parseFloat(k.metricValue));
+
+    const clamp = (v: number, max = 100) => Math.min(Math.round(v), max);
+    const kpiRadar = [
+      { metric: "Disponibilité", value: availVals.length ? clamp(avg(availVals)!) : Math.round(avgHealthScore * 0.9), benchmark: 95 },
+      { metric: "MTBF (norm.)", value: mtbfVals.length ? clamp(Math.min(avg(mtbfVals)! / 5, 100)) : 70, benchmark: 80 },
+      { metric: "MTTR (inv.)", value: mttrVals.length ? clamp(100 - Math.min(avg(mttrVals)! * 5, 100)) : 75, benchmark: 85 },
+      { metric: "OEE", value: oeeVals.length ? clamp(avg(oeeVals)!) : Math.round(avgHealthScore * 0.85), benchmark: 85 },
+      { metric: "Santé flotte", value: avgHealthScore, benchmark: 90 },
+      { metric: "Prédictibilité", value: analyticsRaw.length > 0 ? Math.min(75 + Math.round(analyticsRaw.length / 2), 95) : 60, benchmark: 80 },
+    ];
+
+    // ─── Maintenance window suggestions ─────────────────────────────────────
+    const maintenanceWindowSuggestions = equipmentInsights
+      .filter(e => e.failureProbability > 0.2 || (e.remainingUsefulLife != null && e.remainingUsefulLife <= 60))
+      .sort((a, b) => b.failureProbability - a.failureProbability)
+      .slice(0, 8)
+      .map(e => {
+        const daysUntil = e.remainingUsefulLife != null ? Math.max(e.remainingUsefulLife - 7, 1) : 14;
+        const d = new Date();
+        d.setDate(d.getDate() + daysUntil);
+        return {
+          equipmentId: e.id,
+          equipmentName: e.name,
+          suggestedDate: d.toISOString(),
+          urgency: e.riskLevel as "low" | "medium" | "high" | "critical",
+          estimatedDuration: e.riskLevel === 'critical' ? 8 : e.riskLevel === 'high' ? 4 : 2,
+          reason: e.recommendations[0] ?? `Probabilité de panne: ${Math.round(e.failureProbability * 100)}%`,
+        };
+      });
+
+    return {
+      equipment: equipmentInsights,
+      fleetSummary,
+      sensorTrends,
+      failureProbabilityTimeline,
+      anomalyDistribution,
+      kpiRadar,
+      maintenanceWindowSuggestions,
+    };
+  }
+
+  private _computeRiskLevel(failureProb: number, anomalyScore: number): string {
+    const combined = failureProb * 0.7 + anomalyScore * 0.3;
+    if (combined >= 0.65) return 'critical';
+    if (combined >= 0.4) return 'high';
+    if (combined >= 0.2) return 'medium';
+    return 'low';
+  }
+
+  private _computeHealthScore(failureProb: number, anomalyScore: number, criticality: string): number {
+    const critWeight = criticality === 'critical' ? 1.2 : criticality === 'high' ? 1.1 : 1.0;
+    const degradation = (failureProb * 0.6 + anomalyScore * 0.4) * critWeight;
+    return Math.max(0, Math.round(100 - degradation * 100));
+  }
+
   // Integration Log Methods
   async getIntegrationLog(systemName?: string): Promise<IntegrationLog[]> {
     let query = db.select().from(integrationLog);

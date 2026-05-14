@@ -56,6 +56,7 @@ import SLAManagement from "@/pages/sla-management";
 import MachineHealth from "@/pages/machine-health";
 import SmartAlerts from "@/pages/smart-alerts";
 import SensorHub from "@/pages/sensor-hub";
+import PredictiveInsights from "@/pages/predictive-insights";
 import EquipmentQR from "@/pages/equipment-qr";
 import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
 import CommunicationIntegrations from "@/pages/communication-integrations";
@@ -326,6 +327,12 @@ function Router() {
       </Route>
       <Route path="/sensors">
         {(params) => <ProtectedRoute component={SensorHub} {...params} />}
+      </Route>
+      <Route path="/predictive-insights">
+        {(params) => <ProtectedRoute component={PredictiveInsights} {...params} />}
+      </Route>
+      <Route path="/predictive">
+        {(params) => <ProtectedRoute component={PredictiveInsights} {...params} />}
       </Route>
       <Route path="/equipment-qr">
         {(params) => <ProtectedRoute component={EquipmentQR} {...params} />}

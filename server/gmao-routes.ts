@@ -906,6 +906,23 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // ============= PREDICTIVE INSIGHTS DASHBOARD =============
+
+  app.get("/api/predictive-insights", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const { equipmentId } = req.query;
+      const data = await gmaoStorage.getPredictiveInsightsDashboard(
+        tenantId,
+        equipmentId ? parseInt(equipmentId as string) : undefined
+      );
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching predictive insights:", error);
+      res.status(500).json({ message: "Failed to fetch predictive insights" });
+    }
+  });
+
   // ============= ALERTS AND NOTIFICATIONS ROUTES =============
   
   // Get alerts and notifications
