@@ -44,6 +44,12 @@ export const tenants = pgTable("tenants", {
   licenseGeneratedAt: timestamp("license_generated_at").defaultNow(),
   licenseUpdatedAt: timestamp("license_updated_at").defaultNow(),
   licenseKey: varchar("license_key", { length: 100 }), // Unique license identifier
+  // 🔄 TRIAL & GRACE PERIOD
+  trialStartDate: timestamp("trial_start_date"),       // When the trial began
+  licenseStatus: varchar("license_status", { length: 30 }).default("trial"), // trial | active | grace | expired | suspended
+  gracePeriodDays: integer("grace_period_days").default(7), // Days of offline grace period
+  gracePeriodEnd: timestamp("grace_period_end"),       // When grace period expires
+  lastLicenseCheckAt: timestamp("last_license_check_at"), // Last successful online validation
 });
 
 // 📜 LICENSE MANAGEMENT SYSTEM

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { TrialManager } from "./trial-management";
 import { AccessManager } from "./access-management";
+import { LicenseService, SUBSCRIPTION_PLANS } from "./license-service";
 import { 
   securityHeaders, 
   diagnosticRateLimit, 
@@ -1254,29 +1255,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Trial management routes
-  app.post('/api/trial/start', async (req, res) => {
+  // ─── LICENSE & TRIAL MANAGEMENT ROUTES ───────────────────────────────────
+
+  // GET /api/license/status — current tenant license status (with grace period + trial)
+  app.get('/api/license/status', async (req: any, res) => {
     try {
-      const { email, planType } = req.body;
-      const trialUser = TrialManager.createTrialUser(email, planType);
-      res.json({ success: true, trialUser });
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      if (!status) return res.status(404).json({ message: "Tenant non trouvé" });
+      // Update last check timestamp (resets grace period window)
+      await LicenseService.recordLicenseCheck(tenantId);
+      res.json(status);
     } catch (error) {
-      console.error("Error starting trial:", error);
-      res.status(500).json({ message: "Failed to start trial" });
+      console.error("Error getting license status:", error);
+      res.status(500).json({ message: "Erreur de récupération du statut de licence" });
     }
   });
 
-  app.get('/api/trial/status/:userId', async (req, res) => {
+  // GET /api/license/plans — available subscription plans
+  app.get('/api/license/plans', async (_req, res) => {
     try {
-      const { userId } = req.params;
-      // Dans une vraie implémentation, récupérer trialUser depuis la base de données
-      const mockTrialUser = TrialManager.createTrialUser("test@example.com", "business");
-      const status = TrialManager.getTrialStatus(mockTrialUser);
-      const notifications = TrialManager.getTrialNotifications(mockTrialUser);
-      res.json({ status, notifications });
+      const { SUBSCRIPTION_PLANS } = await import("./license-service");
+      res.json({ plans: SUBSCRIPTION_PLANS });
+    } catch (error) {
+      console.error("Error getting plans:", error);
+      res.status(500).json({ message: "Erreur de récupération des plans" });
+    }
+  });
+
+  // POST /api/trial/start — start a 30-day trial for the current tenant
+  app.post('/api/trial/start', async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const existing = await LicenseService.getLicenseStatus(tenantId);
+
+      // Don't restart if already active or not trial
+      if (existing && existing.status === "active") {
+        return res.json({ success: false, message: "Un abonnement actif existe déjà", status: existing });
+      }
+      if (existing && existing.isTrialActive) {
+        return res.json({ success: true, message: "Essai déjà en cours", status: existing });
+      }
+
+      await LicenseService.startTrial(tenantId);
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      res.json({ success: true, message: "Période d'essai de 30 jours démarrée", status });
+    } catch (error) {
+      console.error("Error starting trial:", error);
+      res.status(500).json({ message: "Impossible de démarrer l'essai" });
+    }
+  });
+
+  // GET /api/trial/status — current trial status for the authenticated tenant
+  app.get('/api/trial/status', async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
     } catch (error) {
       console.error("Error getting trial status:", error);
-      res.status(500).json({ message: "Failed to get trial status" });
+      res.status(500).json({ message: "Erreur de récupération du statut d'essai" });
+    }
+  });
+
+  // GET /api/trial/status/:userId — legacy route kept for compatibility
+  app.get('/api/trial/status/:userId', async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
+    } catch (error) {
+      console.error("Error getting trial status:", error);
+      res.status(500).json({ message: "Erreur de récupération du statut d'essai" });
+    }
+  });
+
+  // POST /api/license/activate — activate a subscription (called after Stripe/PayPal payment)
+  app.post('/api/license/activate', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+    try {
+      const { subscriptionId, plan, maxUsers } = req.body;
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+
+      if (!subscriptionId || !plan) {
+        return res.status(400).json({ message: "subscriptionId et plan sont requis" });
+      }
+
+      await LicenseService.activateSubscription(tenantId, subscriptionId, plan, maxUsers || null);
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      res.json({ success: true, message: "Abonnement activé avec succès", status });
+    } catch (error) {
+      console.error("Error activating license:", error);
+      res.status(500).json({ message: "Erreur d'activation de licence" });
+    }
+  });
+
+  // POST /api/license/validate — check license validity (for offline cache refresh)
+  app.post('/api/license/validate', async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const status = await LicenseService.getLicenseStatus(tenantId);
+      if (!status) return res.status(404).json({ valid: false, message: "Tenant non trouvé" });
+
+      await LicenseService.recordLicenseCheck(tenantId);
+      res.json({
+        valid: status.canOperate,
+        status: status.status,
+        gracePeriodDays: status.gracePeriodDays,
+        gracePeriodEnd: status.gracePeriodEnd,
+        trialDaysRemaining: status.trialDaysRemaining,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error validating license:", error);
+      res.status(500).json({ valid: false, message: "Erreur de validation" });
+    }
+  });
+
+  // POST /api/license/grace — manually enter grace period (admin only)
+  app.post('/api/license/grace', requireRole(["admin", "owner", "super_admin"]), async (req: any, res) => {
+    try {
+      const { tenantId, graceDays } = req.body;
+      const tid = tenantId || req.user?.tenantId || "default-tenant";
+      await LicenseService.enterGracePeriod(tid, graceDays);
+      const status = await LicenseService.getLicenseStatus(tid);
+      res.json({ success: true, status });
+    } catch (error) {
+      console.error("Error entering grace period:", error);
+      res.status(500).json({ message: "Erreur" });
+    }
+  });
+
+  // GET /api/license/history — license change history
+  app.get('/api/license/history', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const history = await LicenseService.getTenantLicenseHistory(tenantId);
+      res.json({ history });
+    } catch (error) {
+      console.error("Error getting license history:", error);
+      res.status(500).json({ message: "Erreur" });
     }
   });
 

@@ -51,6 +51,9 @@ import LoginPage from "@/pages/login";
 import ForceLogout from "@/pages/force-logout";
 import NotFound from "@/pages/not-found";
 import PaymentTest from "@/pages/payment-test";
+import SubscriptionPage from "@/pages/subscription";
+import TrialDashboard from "@/pages/trial-dashboard";
+import { LicenseBanner } from "@/components/license-banner";
 import ClientPortalPage from "@/pages/client-portal";
 import SLAManagement from "@/pages/sla-management";
 import MachineHealth from "@/pages/machine-health";
@@ -127,6 +130,8 @@ function HomePage() {
 
 function Router() {
   return (
+    <>
+    <LicenseBanner />
     <Switch>
       {/* Public routes - Landing and Registration */}
       <Route path="/welcome" component={LandingPage} />
@@ -349,6 +354,15 @@ function Router() {
       <Route path="/communication-integrations">
         {(params) => <ProtectedRoute component={CommunicationIntegrations} {...params} />}
       </Route>
+      <Route path="/subscription">
+        {(params) => <ProtectedRoute component={SubscriptionPage} {...params} />}
+      </Route>
+      <Route path="/trial-dashboard">
+        {(params) => <ProtectedRoute component={TrialDashboard} {...params} />}
+      </Route>
+      <Route path="/trial">
+        {(params) => <ProtectedRoute component={TrialDashboard} {...params} />}
+      </Route>
       {/* 🚀 SUPER-ADMIN INTERFACE - Accessible directement sans authentification client */}
       <Route path="/admin-login" component={SuperAdminLogin} />
       <Route path="/super-admin-login" component={SuperAdminLogin} />
@@ -357,6 +371,7 @@ function Router() {
       <Route path="/email-diagnostic" component={EmailDiagnostic} />
       <Route component={NotFound} />
     </Switch>
+    </>
   );
 }
 

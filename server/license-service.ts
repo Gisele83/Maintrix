@@ -1,9 +1,12 @@
 import { db } from "./db";
 import { tenants, licenseTypes, licenseHistory, userProfiles } from "@shared/schema";
 import { eq, count } from "drizzle-orm";
-import { randomBytes } from "crypto";
 
-// 📜 LICENCE SYSTEM: Automatic licensing based on user count
+// ─── Constants ─────────────────────────────────────────────────────────────
+export const TRIAL_DURATION_DAYS = 30;
+export const DEFAULT_GRACE_PERIOD_DAYS = 7;
+
+// ─── Types ─────────────────────────────────────────────────────────────────
 export interface LicenseInfo {
   type: string;
   displayName: string;
@@ -13,121 +16,320 @@ export interface LicenseInfo {
   licensedUsers: number;
 }
 
-export class LicenseService {
-  
-  // 🎯 DÉFINITION DES PALIERS DE LICENCES
-  private static readonly LICENSE_TIERS = [
-    {
-      name: "solo",
-      displayName: "Licence Solo",
-      description: "Parfaite pour un utilisateur unique",
-      minUsers: 1,
-      maxUsers: 1,
-      monthlyPrice: 29.99,
-      yearlyPrice: 299.99,
-      features: { basicSupport: true, standardFeatures: true }
-    },
-    {
-      name: "team",
-      displayName: "Licence Équipe",
-      description: "Idéale pour les petites équipes (2-5 utilisateurs)",
-      minUsers: 2,
-      maxUsers: 5,
-      monthlyPrice: 89.99,
-      yearlyPrice: 899.99,
-      features: { basicSupport: true, standardFeatures: true, teamCollaboration: true }
-    },
-    {
-      name: "enterprise_s",
-      displayName: "Licence Entreprise S",
-      description: "Pour les équipes moyennes (6-11 utilisateurs)",
-      minUsers: 6,
-      maxUsers: 11,
-      monthlyPrice: 189.99,
-      yearlyPrice: 1899.99,
-      features: { 
-        basicSupport: true, 
-        standardFeatures: true, 
-        teamCollaboration: true, 
-        advancedReporting: true,
-        prioritySupport: true 
-      }
-    },
-    {
-      name: "enterprise_m",
-      displayName: "Licence Entreprise M",
-      description: "Pour les entreprises moyennes (12-20 utilisateurs)",
-      minUsers: 12,
-      maxUsers: 20,
-      monthlyPrice: 349.99,
-      yearlyPrice: 3499.99,
-      features: { 
-        basicSupport: true, 
-        standardFeatures: true, 
-        teamCollaboration: true, 
-        advancedReporting: true,
-        prioritySupport: true,
-        customIntegrations: true 
-      }
-    },
-    {
-      name: "enterprise_l",
-      displayName: "Licence Entreprise L",
-      description: "Pour les grandes entreprises (21+ utilisateurs)",
-      minUsers: 21,
-      maxUsers: null, // Illimité
-      monthlyPrice: 599.99,
-      yearlyPrice: 5999.99,
-      features: { 
-        basicSupport: true, 
-        standardFeatures: true, 
-        teamCollaboration: true, 
-        advancedReporting: true,
-        prioritySupport: true,
-        customIntegrations: true,
-        dedicatedSupport: true,
-        whiteLabeling: true 
-      }
-    }
-  ];
+export interface LicenseStatus {
+  tenantId: string;
+  status: "trial" | "active" | "grace" | "expired" | "suspended";
+  plan: string;                    // free, pro, business, enterprise
+  licenseType: string;             // solo, team, enterprise_s, enterprise_m, enterprise_l
+  licenseKey: string | null;
+  isTrialActive: boolean;
+  trialDaysRemaining: number;
+  trialEndDate: Date | null;
+  trialStartDate: Date | null;
+  isGracePeriodActive: boolean;
+  gracePeriodDaysRemaining: number;
+  gracePeriodEnd: Date | null;
+  gracePeriodDays: number;
+  lastLicenseCheckAt: Date | null;
+  subscriptionId: string | null;
+  currentUsers: number;
+  maxUsers: number;
+  licensedUsers: number;
+  canOperate: boolean;             // true when trial/active/grace
+  warningMessage: string | null;   // shown to user when near expiry
+}
 
-  // 🚀 INITIALISER LES TYPES DE LICENCES (à exécuter au démarrage)
+// ─── License Tiers ─────────────────────────────────────────────────────────
+const LICENSE_TIERS = [
+  {
+    name: "solo",
+    displayName: "Licence Solo",
+    description: "Parfaite pour un utilisateur unique",
+    minUsers: 1,
+    maxUsers: 1,
+    monthlyPrice: 29.99,
+    yearlyPrice: 299.99,
+    features: { basicSupport: true, standardFeatures: true },
+  },
+  {
+    name: "team",
+    displayName: "Licence Équipe",
+    description: "Idéale pour les petites équipes (2–5 utilisateurs)",
+    minUsers: 2,
+    maxUsers: 5,
+    monthlyPrice: 89.99,
+    yearlyPrice: 899.99,
+    features: { basicSupport: true, standardFeatures: true, teamCollaboration: true },
+  },
+  {
+    name: "enterprise_s",
+    displayName: "Licence Entreprise S",
+    description: "Pour les équipes moyennes (6–11 utilisateurs)",
+    minUsers: 6,
+    maxUsers: 11,
+    monthlyPrice: 189.99,
+    yearlyPrice: 1899.99,
+    features: { basicSupport: true, standardFeatures: true, teamCollaboration: true, advancedReporting: true, prioritySupport: true },
+  },
+  {
+    name: "enterprise_m",
+    displayName: "Licence Entreprise M",
+    description: "Pour les entreprises moyennes (12–20 utilisateurs)",
+    minUsers: 12,
+    maxUsers: 20,
+    monthlyPrice: 349.99,
+    yearlyPrice: 3499.99,
+    features: { basicSupport: true, standardFeatures: true, teamCollaboration: true, advancedReporting: true, prioritySupport: true, customIntegrations: true },
+  },
+  {
+    name: "enterprise_l",
+    displayName: "Licence Entreprise L",
+    description: "Pour les grandes entreprises (21+ utilisateurs)",
+    minUsers: 21,
+    maxUsers: null,
+    monthlyPrice: 599.99,
+    yearlyPrice: 5999.99,
+    features: { basicSupport: true, standardFeatures: true, teamCollaboration: true, advancedReporting: true, prioritySupport: true, customIntegrations: true, dedicatedSupport: true, whiteLabeling: true },
+  },
+];
+
+// Subscription plans (for display / pricing page)
+export const SUBSCRIPTION_PLANS = [
+  {
+    id: "pro",
+    name: "Pro",
+    description: "Pour les techniciens indépendants et petites équipes",
+    monthlyPrice: 49,
+    yearlyPrice: 490,
+    maxUsers: 5,
+    features: [
+      "Smart Diagnostic IA",
+      "GMAO complète",
+      "Export PDF/CSV",
+      "Historique 12 mois",
+      "Support email",
+      "5 utilisateurs",
+    ],
+    highlighted: false,
+  },
+  {
+    id: "business",
+    name: "Business",
+    description: "Pour les équipes de maintenance industrielle",
+    monthlyPrice: 149,
+    yearlyPrice: 1490,
+    maxUsers: 20,
+    features: [
+      "Tout le plan Pro",
+      "IA prédictive avancée",
+      "Intégration IoT / MQTT",
+      "API ERP (SAP, Maximo)",
+      "Multi-sites",
+      "Support prioritaire 8h–18h",
+      "20 utilisateurs",
+    ],
+    highlighted: true,
+  },
+  {
+    id: "enterprise",
+    name: "Entreprise",
+    description: "Pour les grandes organisations multi-sites",
+    monthlyPrice: 399,
+    yearlyPrice: 3990,
+    maxUsers: null,
+    features: [
+      "Tout le plan Business",
+      "Déploiement local/cloud hybride",
+      "SLA 99.9% garanti",
+      "Support dédié 24/7",
+      "Formation incluse",
+      "Utilisateurs illimités",
+      "White-labeling",
+    ],
+    highlighted: false,
+  },
+];
+
+export class LicenseService {
+
+  // ── Initialize license types in DB ─────────────────────────────────────
   static async initializeLicenseTypes(): Promise<void> {
     try {
       console.log("🔄 Initializing license types...");
-      
-      for (const licenseData of this.LICENSE_TIERS) {
-        // Vérifier si le type existe déjà
-        const existingLicense = await db
-          .select()
-          .from(licenseTypes)
-          .where(eq(licenseTypes.name, licenseData.name))
-          .limit(1);
-
-        if (existingLicense.length === 0) {
+      for (const tier of LICENSE_TIERS) {
+        const existing = await db.select().from(licenseTypes).where(eq(licenseTypes.name, tier.name)).limit(1);
+        if (existing.length === 0) {
           await db.insert(licenseTypes).values({
-            name: licenseData.name,
-            displayName: licenseData.displayName,
-            description: licenseData.description,
-            minUsers: licenseData.minUsers,
-            maxUsers: licenseData.maxUsers,
-            monthlyPrice: licenseData.monthlyPrice.toString(),
-            yearlyPrice: licenseData.yearlyPrice.toString(),
-            features: licenseData.features,
+            name: tier.name,
+            displayName: tier.displayName,
+            description: tier.description,
+            minUsers: tier.minUsers,
+            maxUsers: tier.maxUsers,
+            monthlyPrice: tier.monthlyPrice.toString(),
+            yearlyPrice: tier.yearlyPrice.toString(),
+            features: tier.features,
           });
-          console.log(`✅ Created license type: ${licenseData.displayName}`);
         }
       }
-      
       console.log("✅ License types initialization completed");
     } catch (error) {
       console.error("❌ Error initializing license types:", error);
     }
   }
 
-  // 🎯 DÉTERMINER LA LICENCE APPROPRIÉE SELON LE NOMBRE D'UTILISATEURS
+  // ── Start a 30-day trial for a tenant ──────────────────────────────────
+  static async startTrial(tenantId: string): Promise<void> {
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+    await db.update(tenants).set({
+      trialStartDate: now,
+      trialEndDate: trialEnd,
+      licenseStatus: "trial",
+      plan: "pro", // Trial gives access to Pro features
+      lastLicenseCheckAt: now,
+    }).where(eq(tenants.id, tenantId));
+
+    console.log(`🎯 Trial started for tenant ${tenantId} — expires ${trialEnd.toISOString()}`);
+  }
+
+  // ── Compute full license status for a tenant ───────────────────────────
+  static async getLicenseStatus(tenantId: string): Promise<LicenseStatus | null> {
+    const rows = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+    if (rows.length === 0) return null;
+
+    const t = rows[0];
+    const now = new Date();
+
+    // Trial check
+    const trialEndDate = t.trialEndDate ? new Date(t.trialEndDate) : null;
+    const trialStartDate = t.trialStartDate ? new Date(t.trialStartDate) : null;
+    const trialMsLeft = trialEndDate ? trialEndDate.getTime() - now.getTime() : 0;
+    const isTrialActive = !!trialEndDate && trialMsLeft > 0;
+    const trialDaysRemaining = isTrialActive ? Math.ceil(trialMsLeft / (24 * 60 * 60 * 1000)) : 0;
+
+    // Active subscription check
+    const hasActiveSubscription = !!t.subscriptionId && t.plan !== "free";
+
+    // Grace period check
+    const gracePeriodEnd = t.gracePeriodEnd ? new Date(t.gracePeriodEnd) : null;
+    const graceMsLeft = gracePeriodEnd ? gracePeriodEnd.getTime() - now.getTime() : 0;
+    const isGracePeriodActive = !!gracePeriodEnd && graceMsLeft > 0;
+    const gracePeriodDaysRemaining = isGracePeriodActive ? Math.ceil(graceMsLeft / (24 * 60 * 60 * 1000)) : 0;
+
+    // Determine effective status
+    let status: LicenseStatus["status"];
+    if (hasActiveSubscription) {
+      status = "active";
+    } else if (isTrialActive) {
+      status = "trial";
+    } else if (isGracePeriodActive) {
+      status = "grace";
+    } else if (t.licenseStatus === "suspended") {
+      status = "suspended";
+    } else {
+      status = "expired";
+    }
+
+    const canOperate = status === "active" || status === "trial" || status === "grace";
+
+    // Warning messages
+    let warningMessage: string | null = null;
+    if (status === "trial" && trialDaysRemaining <= 7) {
+      warningMessage = `⚠️ Votre période d'essai expire dans ${trialDaysRemaining} jour(s). Souscrivez pour continuer.`;
+    } else if (status === "grace") {
+      warningMessage = `🔶 Votre abonnement a expiré. Vous avez encore ${gracePeriodDaysRemaining} jour(s) de grâce avant l'interruption.`;
+    } else if (status === "expired") {
+      warningMessage = "🔒 Votre période d'accès a expiré. Veuillez souscrire un abonnement pour continuer.";
+    }
+
+    return {
+      tenantId,
+      status,
+      plan: t.plan || "free",
+      licenseType: t.licenseType || "solo",
+      licenseKey: t.licenseKey || null,
+      isTrialActive,
+      trialDaysRemaining,
+      trialEndDate,
+      trialStartDate,
+      isGracePeriodActive,
+      gracePeriodDaysRemaining,
+      gracePeriodEnd,
+      gracePeriodDays: t.gracePeriodDays || DEFAULT_GRACE_PERIOD_DAYS,
+      lastLicenseCheckAt: t.lastLicenseCheckAt ? new Date(t.lastLicenseCheckAt) : null,
+      subscriptionId: t.subscriptionId || null,
+      currentUsers: t.currentUsers || 0,
+      maxUsers: t.maxUsers || 5,
+      licensedUsers: t.licensedUsers || 1,
+      canOperate,
+      warningMessage,
+    };
+  }
+
+  // ── Record an online license check (resets grace period countdown) ─────
+  static async recordLicenseCheck(tenantId: string): Promise<void> {
+    const now = new Date();
+    const gracePeriodDays = DEFAULT_GRACE_PERIOD_DAYS;
+    const gracePeriodEnd = new Date(now.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
+
+    await db.update(tenants).set({
+      lastLicenseCheckAt: now,
+      gracePeriodEnd,
+      gracePeriodDays,
+    }).where(eq(tenants.id, tenantId));
+  }
+
+  // ── Activate a subscription (after payment) ────────────────────────────
+  static async activateSubscription(
+    tenantId: string,
+    subscriptionId: string,
+    plan: string,
+    maxUsers: number | null,
+  ): Promise<void> {
+    const now = new Date();
+    const gracePeriodEnd = new Date(now.getTime() + DEFAULT_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+    const nextBilling = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await db.update(tenants).set({
+      subscriptionId,
+      plan,
+      licenseStatus: "active",
+      maxUsers: maxUsers || 999999,
+      lastBillingDate: now,
+      nextBillingDate: nextBilling,
+      lastLicenseCheckAt: now,
+      gracePeriodEnd,
+    }).where(eq(tenants.id, tenantId));
+
+    console.log(`✅ Subscription activated for tenant ${tenantId}: plan=${plan}`);
+  }
+
+  // ── Enter grace period (subscription payment failed) ───────────────────
+  static async enterGracePeriod(tenantId: string, graceDays?: number): Promise<void> {
+    const days = graceDays ?? DEFAULT_GRACE_PERIOD_DAYS;
+    const gracePeriodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+    await db.update(tenants).set({
+      licenseStatus: "grace",
+      gracePeriodDays: days,
+      gracePeriodEnd,
+    }).where(eq(tenants.id, tenantId));
+
+    console.log(`⚠️ Tenant ${tenantId} entered grace period — expires ${gracePeriodEnd.toISOString()}`);
+  }
+
+  // ── Cancel / expire license ────────────────────────────────────────────
+  static async expireLicense(tenantId: string): Promise<void> {
+    await db.update(tenants).set({
+      licenseStatus: "expired",
+      subscriptionId: null,
+    }).where(eq(tenants.id, tenantId));
+  }
+
+  // ── Determine license type from user count ─────────────────────────────
   static determineLicenseType(userCount: number): LicenseInfo {
-    for (const tier of this.LICENSE_TIERS) {
+    for (const tier of LICENSE_TIERS) {
       if (userCount >= tier.minUsers && (tier.maxUsers === null || userCount <= tier.maxUsers)) {
         return {
           type: tier.name,
@@ -135,12 +337,10 @@ export class LicenseService {
           description: tier.description,
           minUsers: tier.minUsers,
           maxUsers: tier.maxUsers,
-          licensedUsers: tier.maxUsers || userCount, // Si illimité, utiliser le count actuel
+          licensedUsers: tier.maxUsers || userCount,
         };
       }
     }
-    
-    // Par défaut, retourner la licence solo
     return {
       type: "solo",
       displayName: "Licence Solo",
@@ -151,229 +351,107 @@ export class LicenseService {
     };
   }
 
-  // 🔄 METTRE À JOUR LA LICENCE D'UN TENANT
+  // ── Update tenant license when user count changes ──────────────────────
   static async updateTenantLicense(
-    tenantId: string, 
+    tenantId: string,
     reason: "user_added" | "user_removed" | "manual_upgrade" | "tenant_created",
-    changedBy?: number
+    changedBy?: number,
   ): Promise<void> {
     try {
-      // 1. Compter les utilisateurs actifs du tenant
-      const userCountResult = await db
-        .select({ count: count() })
-        .from(userProfiles)
-        .where(eq(userProfiles.tenantId, tenantId));
-      
+      const userCountResult = await db.select({ count: count() }).from(userProfiles).where(eq(userProfiles.tenantId, tenantId));
       const currentUserCount = userCountResult[0]?.count || 0;
 
-      // 2. Récupérer les informations actuelles du tenant
-      const currentTenant = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1);
-
-      if (currentTenant.length === 0) {
-        throw new Error(`Tenant ${tenantId} not found`);
-      }
-
+      const currentTenant = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+      if (currentTenant.length === 0) throw new Error(`Tenant ${tenantId} not found`);
       const tenant = currentTenant[0];
 
-      // 3. Déterminer la nouvelle licence
       const newLicense = this.determineLicenseType(currentUserCount);
 
-      // 4. Vérifier le type de licence et agir en conséquence
       if (tenant.licenseType === "custom") {
-        // 🚨 LICENCE PERSONNALISÉE : Ne pas changer automatiquement, juste mettre à jour le count
-        const updateData: any = {
-          currentUsers: currentUserCount,
-        };
-        
-        // 🔑 Si la clé de licence est manquante, la générer
-        if (!tenant.licenseKey) {
-          updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
-          console.log(`🔑 Generated missing license key for custom tenant ${tenantId}`);
-        }
-        
-        await db
-          .update(tenants)
-          .set(updateData)
-          .where(eq(tenants.id, tenantId));
-        
-        console.log(`✅ Updated custom license tenant ${tenantId} user count to ${currentUserCount} (max: ${tenant.maxUsers})`);
+        const updateData: any = { currentUsers: currentUserCount };
+        if (!tenant.licenseKey) updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
+        await db.update(tenants).set(updateData).where(eq(tenants.id, tenantId));
       } else {
-        // 5. Pour les licences automatiques, vérifier si une mise à jour est nécessaire
         if (tenant.licenseType !== newLicense.type) {
-          // 6. Générer une nouvelle clé de licence
           const newLicenseKey = this.generateLicenseKey(tenantId, newLicense.licensedUsers);
-
-          // 7. Enregistrer l'historique des licences
           await db.insert(licenseHistory).values({
-            tenantId: tenantId,
+            tenantId,
             previousLicenseType: tenant.licenseType,
             newLicenseType: newLicense.type,
             userCountAtChange: currentUserCount,
-            reason: reason,
+            reason,
             changedBy: changedBy || null,
             automaticUpdate: changedBy === undefined,
           });
-
-          // 8. Mettre à jour le tenant avec la nouvelle licence
-          await db
-            .update(tenants)
-            .set({
-              licenseType: newLicense.type,
-              licensedUsers: newLicense.licensedUsers,
-              currentUsers: currentUserCount,
-              maxUsers: newLicense.maxUsers || 999999, // Très grand nombre pour illimité
-              licenseKey: newLicenseKey,
-              licenseUpdatedAt: new Date(),
-            })
-            .where(eq(tenants.id, tenantId));
-
-          console.log(`✅ Updated tenant ${tenantId} license from ${tenant.licenseType} to ${newLicense.type} (${currentUserCount} users)`);
-        } else {
-          // Juste mettre à jour le nombre d'utilisateurs actuels, mais vérifier si la clé de licence existe
-          const updateData: any = {
+          await db.update(tenants).set({
+            licenseType: newLicense.type,
+            licensedUsers: newLicense.licensedUsers,
             currentUsers: currentUserCount,
-          };
-          
-          // 🔑 Si la clé de licence est manquante, la générer
-          if (!tenant.licenseKey) {
-            updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
-            console.log(`🔑 Generated missing license key for tenant ${tenantId}`);
-          }
-          
-          await db
-            .update(tenants)
-            .set(updateData)
-            .where(eq(tenants.id, tenantId));
+            maxUsers: newLicense.maxUsers || 999999,
+            licenseKey: newLicenseKey,
+            licenseUpdatedAt: new Date(),
+          }).where(eq(tenants.id, tenantId));
+          console.log(`✅ Updated tenant ${tenantId} license: ${tenant.licenseType} → ${newLicense.type}`);
+        } else {
+          const updateData: any = { currentUsers: currentUserCount };
+          if (!tenant.licenseKey) updateData.licenseKey = this.generateLicenseKey(tenantId, tenant.maxUsers || tenant.licensedUsers || 1);
+          await db.update(tenants).set(updateData).where(eq(tenants.id, tenantId));
         }
       }
-
     } catch (error) {
       console.error(`❌ Error updating tenant license for ${tenantId}:`, error);
       throw error;
     }
   }
 
-  // 🔑 GÉNÉRER UNE CLÉ DE LICENCE UNIQUE (Format: SM + 13 chiffres)
+  // ── Generate license key (Format: SM + 13 digits) ─────────────────────
   static generateLicenseKey(tenantId: string, maxUsers: number): string {
-    // Génération d'un nombre à 13 chiffres basé sur tenant et nombre d'utilisateurs
-    const usersPadded = maxUsers.toString().padStart(4, '0');
-    const tenantHash = parseInt(tenantId.slice(-8), 16) % 1000000; // 6 chiffres du tenant
-    const tenantPadded = tenantHash.toString().padStart(6, '0');
-    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    
-    // Format: SM + 4 chiffres (maxUsers) + 6 chiffres (tenant) + 3 chiffres (random)
+    const usersPadded = maxUsers.toString().padStart(4, "0");
+    const tenantHash = parseInt(tenantId.slice(-8), 16) % 1000000;
+    const tenantPadded = tenantHash.toString().padStart(6, "0");
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     return `SM${usersPadded}${tenantPadded}${randomSuffix}`;
   }
 
-  // 📊 RÉCUPÉRER LES INFORMATIONS DE LICENCE D'UN TENANT
-  static async getTenantLicenseInfo(tenantId: string): Promise<LicenseInfo | null> {
-    try {
-      const tenant = await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.id, tenantId))
-        .limit(1);
-
-      if (tenant.length === 0) return null;
-
-      const tenantData = tenant[0];
-      const userCount = tenantData.currentUsers || 0;
-
-      return {
-        type: tenantData.licenseType || "solo",
-        displayName: this.LICENSE_TIERS.find(t => t.name === tenantData.licenseType)?.displayName || "Licence Solo",
-        description: this.LICENSE_TIERS.find(t => t.name === tenantData.licenseType)?.description || "",
-        minUsers: this.LICENSE_TIERS.find(t => t.name === tenantData.licenseType)?.minUsers || 1,
-        maxUsers: this.LICENSE_TIERS.find(t => t.name === tenantData.licenseType)?.maxUsers || 1,
-        licensedUsers: tenantData.licensedUsers || 1,
-      };
-    } catch (error) {
-      console.error(`❌ Error getting tenant license info for ${tenantId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Vérifier si un tenant peut ajouter un nouvel utilisateur
-   * @param tenantId - ID du tenant
-   * @returns Promise<void> - Lève une erreur si la limite est atteinte
-   */
+  // ── Enforce user limit ────────────────────────────────────────────────
   static async enforceUserLimit(tenantId: string): Promise<void> {
-    try {
-      // Récupérer les informations du tenant
-      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
-      if (!tenant) {
-        const error = new Error("Tenant introuvable");
-        (error as any).code = "TENANT_NOT_FOUND";
-        throw error;
-      }
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
+    if (!tenant) { const e = new Error("Tenant introuvable"); (e as any).code = "TENANT_NOT_FOUND"; throw e; }
 
-      // Compter les utilisateurs actuels
-      const [userCount] = await db
-        .select({ count: count() })
-        .from(userProfiles)
-        .where(eq(userProfiles.tenantId, tenantId));
+    const [uc] = await db.select({ count: count() }).from(userProfiles).where(eq(userProfiles.tenantId, tenantId));
+    const currentUsers = uc.count || 0;
+    const maxUsers = tenant.maxUsers || tenant.licensedUsers || 1;
 
-      const currentUsers = userCount.count || 0;
-      const maxUsers = tenant.maxUsers || tenant.licensedUsers || 1;
-
-      if (currentUsers >= maxUsers) {
-        const error = new Error("Nombre d'utilisateurs atteint pour votre licence");
-        (error as any).code = "USER_LIMIT_REACHED";
-        (error as any).details = {
-          currentUsers,
-          maxUsers,
-          licenseType: tenant.licenseType
-        };
-        throw error;
-      }
-
-      console.log(`✅ User limit check passed for tenant ${tenantId}: ${currentUsers}/${maxUsers} users`);
-    } catch (error) {
-      console.error(`❌ User limit check failed for tenant ${tenantId}:`, error);
-      throw error;
+    if (currentUsers >= maxUsers) {
+      const e = new Error("Nombre d'utilisateurs atteint pour votre licence");
+      (e as any).code = "USER_LIMIT_REACHED";
+      (e as any).details = { currentUsers, maxUsers, licenseType: tenant.licenseType };
+      throw e;
     }
   }
 
-  // 📈 RÉCUPÉRER L'HISTORIQUE DES LICENCES D'UN TENANT
+  // ── Get license history ───────────────────────────────────────────────
   static async getTenantLicenseHistory(tenantId: string): Promise<any[]> {
     try {
-      return await db
-        .select()
-        .from(licenseHistory)
-        .where(eq(licenseHistory.tenantId, tenantId))
-        .orderBy(licenseHistory.createdAt);
-    } catch (error) {
-      console.error(`❌ Error getting tenant license history for ${tenantId}:`, error);
-      return [];
-    }
+      return await db.select().from(licenseHistory).where(eq(licenseHistory.tenantId, tenantId)).orderBy(licenseHistory.createdAt);
+    } catch { return []; }
   }
 
-  // 🎯 INITIALISER LA LICENCE LORS DE LA CRÉATION D'UN TENANT avec nombre d'utilisateurs personnalisé
-  static async initializeTenantLicense(tenantId: string, maxUsers: number, initialUserCount: number = 1): Promise<void> {
-    // Utiliser le nombre max défini par l'admin au lieu de déterminer automatiquement
+  // ── Initialize custom tenant license ─────────────────────────────────
+  static async initializeTenantLicense(tenantId: string, maxUsers: number, initialUserCount = 1): Promise<void> {
     const licenseKey = this.generateLicenseKey(tenantId, maxUsers);
+    await db.update(tenants).set({
+      licenseType: "custom",
+      licensedUsers: maxUsers,
+      currentUsers: initialUserCount,
+      maxUsers,
+      licenseKey,
+      licenseGeneratedAt: new Date(),
+      licenseUpdatedAt: new Date(),
+    }).where(eq(tenants.id, tenantId));
 
-    await db
-      .update(tenants)
-      .set({
-        licenseType: "custom", // Licence personnalisée basée sur le nombre défini
-        licensedUsers: maxUsers,
-        currentUsers: initialUserCount,
-        maxUsers: maxUsers,
-        licenseKey: licenseKey,
-        licenseGeneratedAt: new Date(),
-        licenseUpdatedAt: new Date(),
-      })
-      .where(eq(tenants.id, tenantId));
-
-    // Enregistrer dans l'historique
     await db.insert(licenseHistory).values({
-      tenantId: tenantId,
+      tenantId,
       previousLicenseType: null,
       newLicenseType: "custom",
       userCountAtChange: initialUserCount,
@@ -381,7 +459,23 @@ export class LicenseService {
       changedBy: null,
       automaticUpdate: true,
     });
+    console.log(`✅ Initialized custom license for tenant ${tenantId}: ${maxUsers} users`);
+  }
 
-    console.log(`✅ Initialized custom license for tenant ${tenantId}: ${maxUsers} users max (${initialUserCount} initial)`);
+  // ── Get tenant license info (basic) ───────────────────────────────────
+  static async getTenantLicenseInfo(tenantId: string): Promise<LicenseInfo | null> {
+    try {
+      const rows = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+      if (rows.length === 0) return null;
+      const t = rows[0];
+      return {
+        type: t.licenseType || "solo",
+        displayName: LICENSE_TIERS.find(lt => lt.name === t.licenseType)?.displayName || "Licence Solo",
+        description: LICENSE_TIERS.find(lt => lt.name === t.licenseType)?.description || "",
+        minUsers: LICENSE_TIERS.find(lt => lt.name === t.licenseType)?.minUsers || 1,
+        maxUsers: LICENSE_TIERS.find(lt => lt.name === t.licenseType)?.maxUsers || 1,
+        licensedUsers: t.licensedUsers || 1,
+      };
+    } catch { return null; }
   }
 }
