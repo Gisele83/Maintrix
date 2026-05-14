@@ -97,7 +97,7 @@ export function registerFmeaRoutes(app: Express) {
     try {
       const db = getPool();
       const { status, equipmentId } = req.query;
-      let sql = `SELECT f.*, eq.name AS eq_name FROM fmea_analyses f LEFT JOIN equipment_registry eq ON eq.id = f.equipment_id WHERE 1=1`;
+      let sql = `SELECT f.*, eq.equipment_name AS eq_name FROM fmea_analyses f LEFT JOIN equipment_registry eq ON eq.id = f.equipment_id WHERE 1=1`;
       const params: any[] = [];
       let i = 1;
       if (status) { sql += ` AND f.status = $${i++}`; params.push(status); }
@@ -144,7 +144,7 @@ export function registerFmeaRoutes(app: Express) {
   app.get("/api/fmea/:id", generalRateLimit, auth, async (req, res) => {
     try {
       const db = getPool();
-      const { rows } = await db.query(`SELECT f.*, eq.name AS eq_name FROM fmea_analyses f LEFT JOIN equipment_registry eq ON eq.id = f.equipment_id WHERE f.id = $1`, [req.params.id]);
+      const { rows } = await db.query(`SELECT f.*, eq.equipment_name AS eq_name FROM fmea_analyses f LEFT JOIN equipment_registry eq ON eq.id = f.equipment_id WHERE f.id = $1`, [req.params.id]);
       if (!rows[0]) return res.status(404).json({ error: "FMEA introuvable" });
       const r = rows[0];
       res.json({ ...r, entries: enrichEntries(safeJson(r.entries, [])) });

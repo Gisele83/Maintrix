@@ -59,7 +59,7 @@ export function registerOeeRoutes(app: Express) {
     try {
       const db = getPool();
       const { equipmentId, from, to, shift } = req.query;
-      let sql = `SELECT o.*, eq.name AS eq_name, eq.location AS eq_location
+      let sql = `SELECT o.*, eq.equipment_name AS eq_name, eq.location AS eq_location
         FROM oee_records o
         LEFT JOIN equipment_registry eq ON eq.id = o.equipment_id
         WHERE 1=1`;

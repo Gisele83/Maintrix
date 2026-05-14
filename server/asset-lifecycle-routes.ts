@@ -97,7 +97,7 @@ export function registerAssetLifecycleRoutes(app: Express) {
     try {
       const db = getPool();
       const { stage, criticality, category } = req.query;
-      let sql = `SELECT a.*, eq.name AS eq_name, eq.location AS eq_loc FROM asset_lifecycle a LEFT JOIN equipment_registry eq ON eq.id = a.equipment_id WHERE 1=1`;
+      let sql = `SELECT a.*, eq.equipment_name AS eq_name, eq.location AS eq_loc FROM asset_lifecycle a LEFT JOIN equipment_registry eq ON eq.id = a.equipment_id WHERE 1=1`;
       const params: any[] = [];
       let i = 1;
       if (stage) { sql += ` AND a.lifecycle_stage=$${i++}`; params.push(stage); }
@@ -145,7 +145,7 @@ export function registerAssetLifecycleRoutes(app: Express) {
   app.get("/api/assets/:id", generalRateLimit, auth, async (req, res) => {
     try {
       const db = getPool();
-      const { rows } = await db.query(`SELECT a.*, eq.name AS eq_name FROM asset_lifecycle a LEFT JOIN equipment_registry eq ON eq.id = a.equipment_id WHERE a.id=$1`, [req.params.id]);
+      const { rows } = await db.query(`SELECT a.*, eq.equipment_name AS eq_name FROM asset_lifecycle a LEFT JOIN equipment_registry eq ON eq.id = a.equipment_id WHERE a.id=$1`, [req.params.id]);
       if (!rows[0]) return res.status(404).json({ error: "Actif introuvable" });
       const r = rows[0];
       res.json({

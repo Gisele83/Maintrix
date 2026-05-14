@@ -83,7 +83,7 @@ export function registerRcaRoutes(app: Express) {
       const db = getPool();
       const { status, severity, methodology } = req.query;
       let sql = `SELECT r.*, 
-        eq.name AS equipment_name,
+        eq.equipment_name AS equipment_name,
         eq.location AS equipment_location
         FROM rca_analyses r
         LEFT JOIN equipment_registry eq ON eq.id = r.equipment_id
@@ -138,7 +138,7 @@ export function registerRcaRoutes(app: Express) {
     try {
       const db = getPool();
       const { rows } = await db.query(`
-        SELECT r.*, eq.name AS equipment_name, eq.location AS equipment_location
+        SELECT r.*, eq.equipment_name AS equipment_name, eq.location AS equipment_location
         FROM rca_analyses r
         LEFT JOIN equipment_registry eq ON eq.id = r.equipment_id
         WHERE r.id = $1`, [req.params.id]);
