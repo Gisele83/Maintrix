@@ -878,6 +878,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/security/metrics', enhancedAuditRoutes.getMetrics);
   app.get('/api/security/alerts', enhancedAuditRoutes.getAlerts);
   app.post('/api/security/alerts/:alertId/resolve', enhancedAuditRoutes.resolveAlert);
+
+  // 🛡️ RAPPORT D'AUDIT DE SÉCURITÉ COMPLET (5 axes)
+  const { securityAuditRouter } = await import('./security-audit-report');
+  app.use('/api/security/audit-report', securityAuditRouter);
   
   // Tenant Isolation Tests (Admin only)
   app.post('/api/security/tenant-isolation-test', tenantIsolationTestRoutes.runIsolationTests);

@@ -21,6 +21,39 @@ import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
 import { securityHeaders } from './security-middleware';
 
 // ═══════════════════════════════════════════════════════════════════
+// 🔒 GÉNÉRATION AUTOMATIQUE DES SECRETS EN DÉVELOPPEMENT
+// En production : bloquant si absent. En dev : auto-généré + avertissement.
+// ═══════════════════════════════════════════════════════════════════
+function ensureDevelopmentSecrets(): void {
+  if (process.env.NODE_ENV === 'production') return;
+
+  const DEV_SECRETS = [
+    { key: 'JWT_SECRET',         label: 'JWT_SECRET',         bytes: 64 },
+    { key: 'SESSION_SECRET',     label: 'SESSION_SECRET',     bytes: 64 },
+    { key: 'MFA_ENCRYPTION_KEY', label: 'MFA_ENCRYPTION_KEY', bytes: 32 },
+    { key: 'KMS_MASTER_KEY',     label: 'KMS_MASTER_KEY',     bytes: 32 },
+  ];
+
+  const insecureDefaults = ['smartgmao-default-secret', 'smartgmao-session-secret'];
+  let generated = false;
+
+  DEV_SECRETS.forEach(({ key, label, bytes }) => {
+    const val = process.env[key];
+    if (!val || insecureDefaults.includes(val)) {
+      process.env[key] = crypto.randomBytes(bytes).toString('hex');
+      console.warn(`⚠️  [DEV] ${label} auto-généré (ephémère — redémarrage invalide les sessions)`);
+      generated = true;
+    }
+  });
+
+  if (generated) {
+    console.warn('⚠️  [DEV] Pour des sessions persistantes, définissez ces variables dans votre fichier .env');
+  }
+}
+
+ensureDevelopmentSecrets();
+
+// ═══════════════════════════════════════════════════════════════════
 // 🔒 VALIDATION CRITIQUE DES VARIABLES D'ENVIRONNEMENT
 // Arrêt immédiat en production si une variable critique est absente
 // ═══════════════════════════════════════════════════════════════════

@@ -14,6 +14,7 @@ import bcrypt from "bcrypt";
 import { CredentialGenerator, createCredentialNotification } from "./credential-generator";
 import { sendTenantCredentials } from "./email-service";
 import { LicenseService } from "./license-service";
+import { MFAService } from "./mfa-system";
 import { z } from "zod";
 
 /**
@@ -426,6 +427,26 @@ router.post('/login',
         });
       }
       
+      // 🔐 ENFORCEMENT MFA — Si l'utilisateur a activé le MFA, exiger le code TOTP
+      if (user.mfaEnabled && user.mfaSecret) {
+        const mfaToken = (req.body as any).mfaToken as string | undefined;
+        if (!mfaToken) {
+          return res.status(200).json({
+            requireMFA: true,
+            message: "Code d'authentification à deux facteurs requis",
+            userId: user.id,
+            mfaChallenge: crypto.randomBytes(16).toString('hex') // Nonce anti-replay
+          });
+        }
+        const mfaResult = await MFAService.verifyMFA(user.id, mfaToken);
+        if (!mfaResult.success) {
+          return res.status(401).json({
+            error: "MFA_INVALID",
+            message: "Code MFA invalide ou expiré"
+          });
+        }
+      }
+
       // 🔐 VÉRIFICATION PREMIÈRE CONNEXION: Identifiants par défaut
       if (user.mustChangePassword && user.isDefaultCredentials) {
         return res.status(200).json({
