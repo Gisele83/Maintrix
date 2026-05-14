@@ -908,6 +908,17 @@ export function registerGMAORoutes(app: Express) {
 
   // ============= PREDICTIVE INSIGHTS DASHBOARD =============
 
+  app.post("/api/predictive-insights/seed-demo", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const result = await gmaoStorage.seedPredictiveInsightsDemoData(tenantId);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error("Error seeding demo data:", error);
+      res.status(500).json({ message: "Failed to seed demo data" });
+    }
+  });
+
   app.get("/api/predictive-insights", async (req, res) => {
     try {
       const tenantId = (req as any).tenantId || 'default-tenant';

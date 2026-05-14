@@ -759,8 +759,10 @@ export class GMAOStorage {
         if (!sensorByType[s.sensorType]) sensorByType[s.sensorType] = s;
       });
 
-      const failureProbability = latestAnalytic?.failureProbability ?? 0;
-      const anomalyScore = latestAnalytic?.anomalyScore ?? 0;
+      const failureProbability = Math.min(latestAnalytic?.failureProbability ?? 0, 1);
+      // Normalize anomaly score: raw values from IoT engine are in 2.0-4.0 range → map to 0-1
+      const rawAnomaly = latestAnalytic?.anomalyScore ?? 0;
+      const anomalyScore = rawAnomaly > 1 ? Math.min((rawAnomaly - 2.0) / 2.0, 1) : rawAnomaly;
       const rul = latestAnalytic?.remainingUsefulLife ?? null;
       const riskLevel = latestAnalytic?.riskLevel ?? this._computeRiskLevel(failureProbability, anomalyScore);
       const healthScore = this._computeHealthScore(failureProbability, anomalyScore, eq.criticalityLevel ?? 'medium');
@@ -915,6 +917,122 @@ export class GMAOStorage {
       kpiRadar,
       maintenanceWindowSuggestions,
     };
+  }
+
+  // ============= DEMO DATA SEEDING =============
+  async seedPredictiveInsightsDemoData(tenantId: string): Promise<{ inserted: number }> {
+    const equips = await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.tenantId, tenantId))
+      .orderBy(equipmentRegistry.id)
+      .limit(10);
+
+    if (equips.length === 0) return { inserted: 0 };
+
+    let inserted = 0;
+
+    // Risk profiles to make the dashboard interesting
+    const profiles = [
+      { failureProb: 0.82, anomalyScore: 0.78, rul: 8, risk: 'critical', recs: ['Arrêt machine préventif requis', 'Vérifier roulements et joints', 'Commander pièces de rechange'] },
+      { failureProb: 0.61, anomalyScore: 0.58, rul: 22, risk: 'high', recs: ['Inspection vibratoire planifiée', 'Nettoyer filtres de lubrification'] },
+      { failureProb: 0.45, anomalyScore: 0.41, rul: 38, risk: 'high', recs: ['Mesures thermiques à réaliser', 'Ajuster paramètres de charge'] },
+      { failureProb: 0.30, anomalyScore: 0.28, rul: 55, risk: 'medium', recs: ['Surveillance continue recommandée'] },
+      { failureProb: 0.18, anomalyScore: 0.15, rul: 80, risk: 'medium', recs: ['Maintenance préventive planifiée dans 3 mois'] },
+      { failureProb: 0.08, anomalyScore: 0.07, rul: 120, risk: 'low', recs: ['Fonctionnement nominal — aucune action requise'] },
+      { failureProb: 0.72, anomalyScore: 0.69, rul: 14, risk: 'critical', recs: ['Intervention urgente nécessaire', 'Probabilité de panne > 70%'] },
+      { failureProb: 0.35, anomalyScore: 0.32, rul: 48, risk: 'medium', recs: ['Calibration capteurs recommandée'] },
+      { failureProb: 0.12, anomalyScore: 0.10, rul: 95, risk: 'low', recs: ['Équipement en bon état opérationnel'] },
+      { failureProb: 0.55, anomalyScore: 0.50, rul: 30, risk: 'high', recs: ['Vérification électrique préventive', 'Tester protections thermiques'] },
+    ];
+
+    const now = new Date();
+
+    // Insert predictive analytics for each equipment
+    for (let i = 0; i < equips.length; i++) {
+      const eq = equips[i];
+      const profile = profiles[i % profiles.length];
+
+      await db.insert(predictiveAnalytics).values({
+        tenantId,
+        equipmentId: eq.id,
+        analysisType: 'rul',
+        predictionDate: now,
+        remainingUsefulLife: profile.rul,
+        failureProbability: profile.failureProb,
+        anomalyScore: profile.anomalyScore,
+        confidenceLevel: 0.85,
+        riskLevel: profile.risk,
+        recommendations: profile.recs,
+        modelVersion: 'demo-v2',
+        alertGenerated: profile.risk === 'critical',
+        createdAt: now,
+      });
+      inserted++;
+
+      // Insert KPI metrics: MTBF, MTTR, availability, OEE
+      const periodStart = new Date(now);
+      periodStart.setDate(now.getDate() - 30);
+
+      const kpis = [
+        { type: 'mtbf', value: String(120 + Math.round(Math.random() * 200)) },
+        { type: 'mttr', value: String(2 + Math.round(Math.random() * 8)) },
+        { type: 'availability', value: String(70 + Math.round((1 - profile.failureProb) * 25)) },
+        { type: 'oee', value: String(60 + Math.round((1 - profile.failureProb) * 30)) },
+      ];
+
+      for (const kpi of kpis) {
+        await db.insert(kpiMetrics).values({
+          tenantId,
+          equipmentId: eq.id,
+          metricType: kpi.type,
+          metricValue: kpi.value,
+          periodStart,
+          periodEnd: now,
+          calculationDate: now,
+          context: { source: 'demo-seed', equipment: eq.equipmentName },
+        });
+        inserted++;
+      }
+
+      // Insert historical sensor trends (last 24 hours, hourly)
+      for (let h = 23; h >= 0; h--) {
+        const ts = new Date(now);
+        ts.setHours(now.getHours() - h);
+        const noiseT = (Math.random() - 0.5) * 8;
+        const noiseV = (Math.random() - 0.5) * 1.5;
+        const noiseP = (Math.random() - 0.5) * 0.4;
+        const noiseA = (Math.random() - 0.5) * 2;
+        const trendFactor = (24 - h) / 24;
+
+        const sensorReadings = [
+          { type: 'temperature', value: String((55 + profile.failureProb * 30 + noiseT + trendFactor * 5).toFixed(2)), unit: '°C', sensorId: `TEMP-DEMO-${eq.id}` },
+          { type: 'vibration', value: String((2.5 + profile.anomalyScore * 4 + noiseV + trendFactor * 0.8).toFixed(3)), unit: 'mm/s', sensorId: `VIB-DEMO-${eq.id}` },
+          { type: 'pressure', value: String((3.5 + noiseP + trendFactor * 0.3).toFixed(2)), unit: 'bar', sensorId: `PRESS-DEMO-${eq.id}` },
+          { type: 'current', value: String((10 + noiseA + trendFactor * 1.5).toFixed(2)), unit: 'A', sensorId: `CURR-DEMO-${eq.id}` },
+        ];
+
+        for (const s of sensorReadings) {
+          const alarmState = parseFloat(s.value) > 85 && s.type === 'temperature' ? 'alarm'
+            : parseFloat(s.value) > 75 && s.type === 'temperature' ? 'warning'
+            : parseFloat(s.value) > 6 && s.type === 'vibration' ? 'alarm'
+            : parseFloat(s.value) > 4.5 && s.type === 'vibration' ? 'warning'
+            : 'normal';
+
+          await db.insert(iotSensorData).values({
+            equipmentId: eq.id,
+            sensorType: s.type,
+            sensorId: s.sensorId,
+            value: s.value,
+            unit: s.unit,
+            timestamp: ts,
+            quality: 'good',
+            alarmState,
+          });
+          inserted++;
+        }
+      }
+    }
+
+    return { inserted };
   }
 
   private _computeRiskLevel(failureProb: number, anomalyScore: number): string {

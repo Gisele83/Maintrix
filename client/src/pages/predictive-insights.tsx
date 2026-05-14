@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Brain, Activity, Thermometer, Gauge, Zap, AlertTriangle,
   TrendingUp, TrendingDown, Clock, Shield, BarChart2,
-  ChevronDown, RefreshCw, Eye, Target, Cpu, Waves
+  ChevronDown, RefreshCw, Eye, Target, Cpu, Waves, Sparkles
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -163,6 +164,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export default function PredictiveInsights() {
   const [selectedEquipId, setSelectedEquipId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("overview");
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<PredictiveInsightData>({
     queryKey: ["/api/predictive-insights", selectedEquipId],
@@ -174,6 +176,14 @@ export default function PredictiveInsights() {
         return r.json();
       }),
     refetchInterval: 30000,
+  });
+
+  const seedMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/predictive-insights/seed-demo"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/predictive-insights"] });
+      refetch();
+    },
   });
 
   const fleet = data?.fleetSummary;
@@ -241,6 +251,16 @@ export default function PredictiveInsights() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => seedMutation.mutate()}
+              disabled={seedMutation.isPending}
+              className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+            >
+              <Sparkles className={`w-4 h-4 mr-1 ${seedMutation.isPending ? "animate-pulse" : ""}`} />
+              {seedMutation.isPending ? "Génération…" : "Données démo"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
