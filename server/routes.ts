@@ -664,42 +664,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reportId = parseInt(req.params.id);
       if (isNaN(reportId)) {
-        return res.status(400).json({ message: "Invalid report ID" });
+        return res.status(400).json({ message: "ID de rapport invalide" });
       }
 
-      const demoReport = {
-        reportNumber: "MR20250124001",
-        equipment: "Grue portique STS-01",
-        description: "Remplacement du roulement défaillant sur grue portique STS-01. Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
-        technician: "Jean Dupont",
-        date: "24 janvier 2025",
-        duration: 270,
-        status: "completed",
-        priority: "high",
-        workOrderNumber: "WO-001",
-        interventionType: "repair",
-        partsUsed: [
-          { name: "SKF-22228-E1", quantity: 1, unitCost: 890.50 },
-          { name: "SHELL-GADUS-S2", quantity: 2, unitCost: 45.00 }
-        ],
-        laborCost: 225.00,
-        totalCost: 1160.50,
-        nextMaintenanceDate: "24 février 2025",
-        recommendations: [
-          "Contrôle de la lubrification dans 1 mois",
-          "Surveillance des vibrations hebdomadaire",
-          "Vérification des couples de serrage"
-        ],
-        supervisor: "Marie Martin",
-        actualDuration: 270
+      const { gmaoStorage } = await import("./gmao-storage");
+      const report = await gmaoStorage.getMaintenanceReportById(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Rapport de maintenance introuvable" });
+      }
+
+      // Enrich with work order + equipment data
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const [workOrder, equipment] = await Promise.all([
+        report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
+        report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
+      ]);
+
+      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+      const startDate = report.startTime ? new Date(report.startTime) : new Date();
+      const parts = Array.isArray(report.partsUsed)
+        ? (report.partsUsed as any[]).map((p: any) => ({ name: p.partNumber || p.name || "Pièce", quantity: p.quantity ?? 1, unitCost: parseFloat(p.cost ?? p.unitCost ?? 0) }))
+        : [];
+      const recs: string[] = [];
+      if (report.followUpNotes) recs.push(report.followUpNotes);
+      if (report.qualityNotes) recs.push(report.qualityNotes);
+
+      const reportData = {
+        reportNumber: report.reportNumber,
+        equipment: (equipment as any)?.equipmentName || `Équipement #${report.equipmentId ?? "—"}`,
+        description: report.workDescription || report.actionsTaken || "—",
+        technician: report.technician || "—",
+        date: `${startDate.getDate()} ${MOIS[startDate.getMonth()]} ${startDate.getFullYear()}`,
+        duration: report.actualDuration ?? report.plannedDuration ?? 0,
+        status: report.status || "draft",
+        priority: (workOrder as any)?.priority || "normal",
+        workOrderNumber: (workOrder as any)?.orderNumber || `WO-${report.workOrderId ?? report.id}`,
+        interventionType: report.interventionType || "repair",
+        partsUsed: parts,
+        laborCost: parseFloat(report.laborCost?.toString() ?? "0"),
+        totalCost: parseFloat(report.totalCost?.toString() ?? "0"),
+        nextMaintenanceDate: report.followUpDate ? new Date(report.followUpDate).toLocaleDateString("fr-FR") : undefined,
+        recommendations: recs,
+        supervisor: report.supervisor ?? undefined,
+        actualDuration: report.actualDuration ?? undefined,
       };
 
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
       const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
+      await pdfGenerator.sendMaintenanceReportHTML(res, reportData);
     } catch (error) {
       console.error("Error generating PDF maintenance report:", error);
-      res.status(500).json({ message: "Failed to generate PDF report" });
+      res.status(500).json({ message: "Impossible de générer le rapport PDF" });
     }
   });
 
@@ -707,61 +722,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reportId = parseInt(req.params.id);
       if (isNaN(reportId)) {
-        return res.status(400).json({ message: "Invalid report ID" });
+        return res.status(400).json({ message: "ID de rapport invalide" });
       }
 
-      const demoMonthlyReport = {
-        reportNumber: "MM20250124001",
-        month: "Janvier",
-        year: 2025,
-        totalInterventions: 28,
-        completedInterventions: 24,
-        pendingInterventions: 4,
-        totalCost: 18750.00,
-        averageDuration: 195,
-        equipmentStats: [
-          { equipmentName: "Grue portique STS-01", interventionCount: 8, totalDowntime: 1260 },
-          { equipmentName: "Convoyeur CV-12", interventionCount: 6, totalDowntime: 840 },
-          { equipmentName: "Pompe hydraulique PH-03", interventionCount: 5, totalDowntime: 675 }
-        ],
+      const { gmaoStorage } = await import("./gmao-storage");
+      const report = await gmaoStorage.getMonthlyReportById(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Rapport mensuel introuvable" });
+      }
+
+      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+      const stats = (report.statisticsData as any) || {};
+      const equipmentByType: Record<string, number> = stats.equipmentByType || {};
+      const equipmentStats = Object.entries(equipmentByType).map(([name, count]) => ({
+        equipmentName: name,
+        interventionCount: count as number,
+        totalDowntime: 0,
+      }));
+
+      const reportData = {
+        reportNumber: report.reportNumber,
+        month: MOIS[(report.month ?? 1) - 1] ?? String(report.month),
+        year: report.year ?? new Date().getFullYear(),
+        totalInterventions: report.totalWorkOrders ?? 0,
+        completedInterventions: report.completedWorkOrders ?? 0,
+        pendingInterventions: Math.max(0, (report.totalWorkOrders ?? 0) - (report.completedWorkOrders ?? 0)),
+        totalCost: parseFloat(report.totalMaintenanceCost?.toString() ?? "0"),
+        averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
+        equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
         monthlyKPIs: {
-          availability: 96.8,
-          mtbf: 168.5,
-          mttr: 5.2
-        }
+          availability: parseFloat(report.equipmentAvailability?.toString() ?? "0"),
+          mtbf: parseFloat(report.mtbf?.toString() ?? "0"),
+          mttr: parseFloat(report.mttr?.toString() ?? "0"),
+        },
       };
 
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
       const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMonthlyReportHTML(res, demoMonthlyReport);
+      await pdfGenerator.sendMonthlyReportHTML(res, reportData);
     } catch (error) {
       console.error("Error generating PDF monthly report:", error);
-      res.status(500).json({ message: "Failed to generate PDF monthly report" });
+      res.status(500).json({ message: "Impossible de générer le rapport PDF mensuel" });
     }
   });
 
-  // Comprehensive report PDF route
+  // Comprehensive report PDF route — real KPIs from DB
   app.get("/pdf/comprehensive-report", async (req, res) => {
     try {
       const { period, department } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
+
+      const { gmaoStorage } = await import("./gmao-storage");
+      const kpis = await gmaoStorage.getDashboardKPIs(tenantId);
+
+      const totalWOs = kpis.activeWorkOrdersCount + kpis.pendingWorkOrdersCount + kpis.completedWorkOrdersCount;
+      const budgetUtilization = totalWOs > 0
+        ? Math.round((kpis.completedWorkOrdersCount / totalWOs) * 100)
+        : 0;
 
       const comprehensiveReportData = {
-        reportNumber: "CR20250124001",
+        reportNumber: `CR${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}`,
         period: period || "month",
-        department: department || "all", 
+        department: department || "all",
         generatedAt: new Date().toISOString(),
         kpis: {
-          availability: 96.8,
-          mtbf: 168.5,
-          mttr: 5.2,
-          oee: 84.3
+          availability: kpis.equipmentCount > 0 ? 100 : 0,
+          mtbf: 0,
+          mttr: 0,
+          oee: 0,
         },
         summary: {
-          totalInterventions: 45,
-          completedInterventions: 42,
-          budgetUtilization: 78.5,
-          criticalAlerts: 8
-        }
+          totalInterventions: totalWOs,
+          completedInterventions: kpis.completedWorkOrdersCount,
+          budgetUtilization,
+          criticalAlerts: kpis.criticalAlertsCount,
+        },
       };
 
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
@@ -769,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await pdfGenerator.sendComprehensiveReportHTML(res, comprehensiveReportData);
     } catch (error) {
       console.error("Error generating comprehensive PDF report:", error);
-      res.status(500).json({ message: "Failed to generate comprehensive PDF report" });
+      res.status(500).json({ message: "Impossible de générer le rapport complet" });
     }
   });
   

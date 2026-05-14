@@ -36,6 +36,74 @@ function hasRole(req: any, ...roles: string[]): boolean {
   return !!role && roles.includes(role);
 }
 
+const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+// Helper: map DB MaintenanceReport + associated records to PDF data structure
+function buildMaintenanceReportPDFData(report: any, workOrder?: any, equipment?: any): MaintenanceReportData {
+  const startDate = report.startTime ? new Date(report.startTime) : new Date();
+  const dateStr = `${startDate.getDate()} ${MOIS_FR[startDate.getMonth()]} ${startDate.getFullYear()}`;
+  const parts = Array.isArray(report.partsUsed)
+    ? (report.partsUsed as any[]).map((p: any) => ({
+        name: p.partNumber || p.name || "Pièce",
+        quantity: p.quantity ?? 1,
+        unitCost: parseFloat(p.cost ?? p.unitCost ?? 0),
+      }))
+    : [];
+  const recommendations: string[] = [];
+  if (report.followUpNotes) recommendations.push(report.followUpNotes);
+  if (report.qualityNotes) recommendations.push(report.qualityNotes);
+
+  return {
+    reportNumber: report.reportNumber,
+    equipment: equipment?.equipmentName || `Équipement #${report.equipmentId ?? "—"}`,
+    description: report.workDescription || report.actionsTaken || "—",
+    technician: report.technician || "—",
+    date: dateStr,
+    duration: report.actualDuration ?? report.plannedDuration ?? 0,
+    status: report.status || "draft",
+    priority: workOrder?.priority || "normal",
+    workOrderNumber: workOrder?.orderNumber || `WO-${report.workOrderId ?? report.id}`,
+    interventionType: report.interventionType || "repair",
+    partsUsed: parts,
+    laborCost: parseFloat(report.laborCost?.toString() ?? "0"),
+    totalCost: parseFloat(report.totalCost?.toString() ?? "0"),
+    nextMaintenanceDate: report.followUpDate
+      ? new Date(report.followUpDate).toLocaleDateString("fr-FR")
+      : undefined,
+    recommendations,
+    supervisor: report.supervisor ?? undefined,
+    actualDuration: report.actualDuration ?? undefined,
+  };
+}
+
+// Helper: map DB MonthlyReport to PDF data structure
+function buildMonthlyReportPDFData(report: any): MonthlyReportData {
+  const stats = (report.statisticsData as any) || {};
+  const equipmentByType: Record<string, number> = stats.equipmentByType || {};
+  const equipmentStats = Object.entries(equipmentByType).map(([name, count]) => ({
+    equipmentName: name,
+    interventionCount: count as number,
+    totalDowntime: 0,
+  }));
+
+  return {
+    reportNumber: report.reportNumber,
+    month: MOIS_FR[(report.month ?? 1) - 1] ?? String(report.month),
+    year: report.year ?? new Date().getFullYear(),
+    totalInterventions: report.totalWorkOrders ?? 0,
+    completedInterventions: report.completedWorkOrders ?? 0,
+    pendingInterventions: Math.max(0, (report.totalWorkOrders ?? 0) - (report.completedWorkOrders ?? 0)),
+    totalCost: parseFloat(report.totalMaintenanceCost?.toString() ?? "0"),
+    averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
+    equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
+    monthlyKPIs: {
+      availability: parseFloat(report.equipmentAvailability?.toString() ?? "0"),
+      mtbf: parseFloat(report.mtbf?.toString() ?? "0"),
+      mttr: parseFloat(report.mttr?.toString() ?? "0"),
+    },
+  };
+}
+
 export function registerGMAORoutes(app: Express) {
   
   // ============= EQUIPMENT REGISTRY ROUTES =============
@@ -1377,166 +1445,48 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Download maintenance report as PDF
+  // Download maintenance report as PDF — connected to real DB
   app.get("/api/maintenance-reports/:id/pdf", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
       if (isNaN(reportId)) {
-        return res.status(400).json({ message: "Invalid report ID" });
+        return res.status(400).json({ message: "ID de rapport invalide" });
+      }
+      const tenantId = (req as any).tenantId || 'default-tenant';
+
+      const report = await gmaoStorage.getMaintenanceReportById(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Rapport de maintenance introuvable" });
       }
 
-      // Get report data - using demo data for now
-      const demoReport: MaintenanceReportData = {
-        reportNumber: "MR20250124001",
-        equipment: "Grue portique STS-01",
-        description: "Remplacement du roulement défaillant sur grue portique STS-01. Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
-        technician: "Jean Dupont",
-        date: "24 janvier 2025",
-        duration: 270,
-        status: "completed",
-        priority: "high",
-        workOrderNumber: "WO-001",
-        interventionType: "repair",
-        partsUsed: [
-          { name: "SKF-22228-E1", quantity: 1, unitCost: 890.50 },
-          { name: "SHELL-GADUS-S2", quantity: 2, unitCost: 45.00 }
-        ],
-        laborCost: 225.00,
-        totalCost: 1160.50,
-        nextMaintenanceDate: "24 février 2025",
-        recommendations: [
-          "Contrôle de la lubrification dans 1 mois",
-          "Surveillance des vibrations hebdomadaire",
-          "Vérification des couples de serrage"
-        ],
-        supervisor: "Marie Martin",
-        actualDuration: 270
-      };
+      // Fetch associated work order and equipment for enriched PDF
+      const [workOrder, equipment] = await Promise.all([
+        report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
+        report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
+      ]);
 
+      const reportData = buildMaintenanceReportPDFData(report, workOrder, equipment);
       const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMaintenanceReportHTML(res, demoReport);
+      await pdfGenerator.sendMaintenanceReportHTML(res, reportData);
     } catch (error) {
-      console.error("Error generating maintenance report:", error);
-      res.status(500).json({ message: "Failed to generate report" });
+      console.error("Error generating maintenance report PDF:", error);
+      res.status(500).json({ message: "Impossible de générer le rapport PDF" });
     }
   });
 
-  // Get maintenance reports - Override with DEMO data
-  app.get("/api/maintenance-reports", (req, res) => {
+  // Get maintenance reports — real data from DB
+  app.get("/api/maintenance-reports", async (req, res) => {
     try {
-      // Return demo data for testing
-      res.json([
-        {
-          id: 1,
-          reportNumber: "MR20250124001",
-          workOrderId: 1,
-          equipmentId: 1,
-          reportType: "corrective",
-          interventionType: "repair",
-          technician: "Jean Dupont",
-          supervisor: "Marie Martin",
-          startTime: "2025-01-24T08:00:00Z",
-          endTime: "2025-01-24T12:30:00Z",
-          actualDuration: 270,
-          plannedDuration: 240,
-          workDescription: "Remplacement du roulement défaillant sur grue portique STS-01",
-          problemDiagnosis: "Usure prématurée du roulement principal due à une lubrification insuffisante",
-          actionsTaken: "Démontage de l'ancien roulement, nettoyage complet, installation du nouveau roulement SKF, re-lubrification selon spécifications",
-          partsUsed: [
-            { partId: 1, partNumber: "SKF-22228-E1", quantity: 1, cost: 890.50 },
-            { partId: 2, partNumber: "SHELL-GADUS-S2", quantity: 2, cost: 45.00 }
-          ],
-          toolsUsed: ["Extracteur hydraulique", "Clé dynamométrique", "Pistolet à graisse"],
-          safetyIncidents: null,
-          qualityCheck: true,
-          qualityNotes: "Contrôle vibratoire validé, fonctionnement nominal",
-          followUpRequired: true,
-          followUpDate: "2025-02-24T00:00:00Z",
-          followUpNotes: "Contrôle de la lubrification dans 1 mois",
-          totalCost: 1160.50,
-          laborCost: 225.00,
-          partsCost: 935.50,
-          status: "approved",
-          approvedBy: "Marie Martin",
-          approvalDate: "2025-01-24T13:00:00Z",
-          createdAt: "2025-01-24T12:45:00Z",
-          updatedAt: "2025-01-24T13:00:00Z"
-        },
-        {
-          id: 2,
-          reportNumber: "MR20250123002",
-          workOrderId: 2,
-          equipmentId: 2,
-          reportType: "preventive",
-          interventionType: "inspection",
-          technician: "Pierre Leroy",
-          supervisor: null,
-          startTime: "2025-01-23T14:00:00Z",
-          endTime: "2025-01-23T16:00:00Z",
-          actualDuration: 120,
-          plannedDuration: 120,
-          workDescription: "Maintenance préventive trimestrielle - Grue RTG-02",
-          problemDiagnosis: null,
-          actionsTaken: "Inspection visuelle complète, contrôle des câbles, graissage des points de lubrification, test des systèmes de sécurité",
-          partsUsed: [
-            { partId: 3, partNumber: "GREASE-GENERAL", quantity: 1, cost: 25.00 }
-          ],
-          toolsUsed: ["Pistolet à graisse", "Multimètre", "Endoscope"],
-          safetyIncidents: null,
-          qualityCheck: true,
-          qualityNotes: "Tous les systèmes fonctionnent correctement",
-          followUpRequired: false,
-          followUpDate: null,
-          followUpNotes: null,
-          totalCost: 125.00,
-          laborCost: 100.00,
-          partsCost: 25.00,
-          status: "approved",
-          approvedBy: "Système automatique",
-          approvalDate: "2025-01-23T16:15:00Z",
-          createdAt: "2025-01-23T16:10:00Z",
-          updatedAt: "2025-01-23T16:15:00Z"
-        },
-        {
-          id: 3,
-          reportNumber: "MR20250122003",
-          workOrderId: 3,
-          equipmentId: 3,
-          reportType: "corrective",
-          interventionType: "replacement",
-          technician: "Sophie Dubois",
-          supervisor: "Jean-Claude Marin",
-          startTime: "2025-01-22T09:00:00Z",
-          endTime: "2025-01-22T17:30:00Z",
-          actualDuration: 510,
-          plannedDuration: 480,
-          workDescription: "Remplacement du moteur hydraulique défaillant sur reach stacker RS-01",
-          problemDiagnosis: "Fuite interne importante du moteur hydraulique, perte de puissance",
-          actionsTaken: "Démontage complet du groupe hydraulique, remplacement du moteur, test de pression, remise en service",
-          partsUsed: [
-            { partId: 4, partNumber: "BOSCH-A2FM80", quantity: 1, cost: 2850.00 },
-            { partId: 5, partNumber: "JOINT-KIT-HYD", quantity: 1, cost: 125.00 }
-          ],
-          toolsUsed: ["Pont roulant", "Clés hydrauliques", "Manomètre"],
-          safetyIncidents: "Petite fuite d'huile hydraulique nettoyée immédiatement",
-          qualityCheck: true,
-          qualityNotes: "Test de charge validé à 80% de la capacité maximale",
-          followUpRequired: true,
-          followUpDate: "2025-01-29T00:00:00Z",
-          followUpNotes: "Contrôle après 40h de fonctionnement",
-          totalCost: 3400.00,
-          laborCost: 425.00,
-          partsCost: 2975.00,
-          status: "approved",
-          approvedBy: "Jean-Claude Marin",
-          approvalDate: "2025-01-22T18:00:00Z",
-          createdAt: "2025-01-22T17:45:00Z",
-          updatedAt: "2025-01-22T18:00:00Z"
-        }
-      ]);
+      const { reportType, status, equipmentId } = req.query;
+      const reports = await gmaoStorage.getMaintenanceReports({
+        ...(reportType && { reportType: reportType as string }),
+        ...(status && { status: status as string }),
+        ...(equipmentId && { equipmentId: parseInt(equipmentId as string) }),
+      });
+      res.json(reports);
     } catch (error) {
       console.error("Error fetching maintenance reports:", error);
-      res.status(500).json({ message: "Failed to fetch maintenance reports" });
+      res.status(500).json({ message: "Impossible de charger les rapports de maintenance" });
     }
   });
 
@@ -1554,148 +1504,37 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Download monthly report as PDF
+  // Download monthly report as PDF — connected to real DB
   app.get("/api/monthly-reports/:id/pdf", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
       if (isNaN(reportId)) {
-        return res.status(400).json({ message: "Invalid report ID" });
+        return res.status(400).json({ message: "ID de rapport invalide" });
       }
 
-      // Get report data - using demo data for now
-      const demoReport: MonthlyReportData = {
-        id: reportId,
-        reportNumber: "MM20250124001",
-        month: 1,
-        year: 2025,
-        periodStart: "2025-01-01T00:00:00Z",
-        periodEnd: "2025-01-31T23:59:59Z",
-        generatedBy: "Système GMAO",
-        generatedAt: new Date().toISOString(),
-        totalEquipment: 5,
-        activeEquipment: 4,
-        equipmentAvailability: 85.2,
-        totalWorkOrders: 12,
-        completedWorkOrders: 9,
-        preventiveWorkOrders: 7,
-        correctiveWorkOrders: 5,
-        averageCompletionTime: 3.2,
-        mtbf: 168.5,
-        mttr: 2.8,
-        plannedMaintenanceRatio: 58.3,
-        maintenanceEfficiency: 75.0,
-        totalMaintenanceCost: 15420.75,
-        laborCost: 8950.00,
-        partsCost: 6470.75,
-        contractorCost: 0,
-        costPerWorkOrder: 1285.06,
-        partsConsumed: 23,
-        inventoryTurnover: 4.2,
-        stockouts: 2,
-        emergencyPurchases: 1,
-        totalAlerts: 18,
-        criticalAlerts: 3,
-        safetyIncidents: 0,
-        qualityIssues: 1,
-        performanceScore: 78,
-        improvementAreas: ["Maintenance préventive", "Disponibilité équipements"],
-        recommendations: [
-          "Augmenter la proportion de maintenance préventive pour réduire les pannes",
-          "Optimiser la planification des interventions pour améliorer la disponibilité",
-          "Renforcer la surveillance préventive pour réduire les alertes critiques"
-        ],
-        status: "generated",
-        notes: "Rapport automatique généré par le système GMAO"
-      };
+      const report = await gmaoStorage.getMonthlyReportById(reportId);
+      if (!report) {
+        return res.status(404).json({ message: "Rapport mensuel introuvable" });
+      }
 
+      const reportData = buildMonthlyReportPDFData(report);
       const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMonthlyReportHTML(res, demoReport);
+      await pdfGenerator.sendMonthlyReportHTML(res, reportData);
     } catch (error) {
-      console.error("Error generating monthly report:", error);
-      res.status(500).json({ message: "Failed to generate report" });
+      console.error("Error generating monthly report PDF:", error);
+      res.status(500).json({ message: "Impossible de générer le rapport PDF" });
     }
   });
 
-  // Get monthly reports - DEMO VERSION
+  // Get monthly reports — real data from DB
   app.get("/api/monthly-reports", async (req, res) => {
     try {
-      // Return demo data for now since database implementation needs more work
-      res.json([
-        {
-          id: 1,
-          reportNumber: "MM20250124001",
-          month: 1,
-          year: 2025,
-          periodStart: "2025-01-01T00:00:00Z",
-          periodEnd: "2025-01-31T23:59:59Z",
-          generatedBy: "Système GMAO",
-          generatedAt: new Date().toISOString(),
-          totalEquipment: 5,
-          activeEquipment: 4,
-          equipmentAvailability: 85.2,
-          totalWorkOrders: 12,
-          completedWorkOrders: 9,
-          preventiveWorkOrders: 7,
-          correctiveWorkOrders: 5,
-          averageCompletionTime: 3.2,
-          mtbf: 168.5,
-          mttr: 2.8,
-          plannedMaintenanceRatio: 58.3,
-          maintenanceEfficiency: 75.0,
-          totalMaintenanceCost: 15420.75,
-          laborCost: 8950.00,
-          partsCost: 6470.75,
-          contractorCost: 0,
-          costPerWorkOrder: 1285.06,
-          partsConsumed: 23,
-          inventoryTurnover: 4.2,
-          stockouts: 2,
-          emergencyPurchases: 1,
-          totalAlerts: 18,
-          criticalAlerts: 3,
-          safetyIncidents: 0,
-          qualityIssues: 1,
-          performanceScore: 78,
-          improvementAreas: ["Maintenance préventive", "Disponibilité équipements"],
-          recommendations: [
-            "Augmenter la proportion de maintenance préventive pour réduire les pannes",
-            "Optimiser la planification des interventions pour améliorer la disponibilité",
-            "Renforcer la surveillance préventive pour réduire les alertes critiques"
-          ],
-          statisticsData: {
-            equipmentByType: {
-              "Grue portique": 2,
-              "Grue mobile": 1,
-              "Reach stacker": 1,
-              "Spreader": 1
-            },
-            workOrdersByStatus: {
-              "completed": 9,
-              "in_progress": 2,
-              "pending": 1
-            }
-          },
-          chartsData: {
-            equipmentAvailabilityChart: {
-              labels: ["Disponible", "En maintenance", "Arrêté"],
-              data: [4, 1, 0]
-            },
-            maintenanceTypeChart: {
-              labels: ["Préventive", "Corrective"],
-              data: [7, 5]
-            },
-            costBreakdownChart: {
-              labels: ["Main d'œuvre", "Pièces détachées"],
-              data: [8950, 6470.75]
-            }
-          },
-          status: "generated",
-          notes: "Rapport automatique généré par le système GMAO"
-        }
-      ]);
+      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const reports = await gmaoStorage.getMonthlyReports(year);
+      res.json(reports);
     } catch (error) {
       console.error("Error fetching monthly reports:", error);
-      res.status(500).json({ message: "Failed to fetch monthly reports" });
+      res.status(500).json({ message: "Impossible de charger les rapports mensuels" });
     }
   });
 
@@ -1797,76 +1636,41 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Generate purchase order with letterhead
+  // Generate purchase order with letterhead — real data from DB
   app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      
-      // For demo purposes, use demo data directly
-      const demoPurchaseOrders = [
-        {
-          id: 1,
-          orderNumber: "PO-2025-001",
-          orderType: "Pièces de rechange",
-          description: "Commande de roulements et joints pour maintenance préventive",
-          supplier: "Roulement Industriel SA",
-          items: [
-            { partNumber: "RLT-001", description: "Roulement SKF 6308", quantity: 4, unitPrice: 125.50 },
-            { partNumber: "JNT-045", description: "Joint hydraulique NBR", quantity: 10, unitPrice: 15.20 }
-          ],
-          totalAmount: "654.00",
-          currency: "EUR",
-          validationStatus: "pending",
-          priority: "medium",
-          requestedBy: "Jean Martin",
-          deliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-          createdAt: new Date()
-        },
-        {
-          id: 2,
-          orderNumber: "PO-2025-002",
-          orderType: "Équipement",
-          description: "Acquisition d'un nouveau moteur électrique haute performance",
-          supplier: "Moteurs Électriques Pro", 
-          items: [
-            { partNumber: "MOT-HP-75", description: "Moteur 75kW IP55 IE4", quantity: 1, unitPrice: 4250.00 }
-          ],
-          totalAmount: "4250.00",
-          currency: "EUR",
-          validationStatus: "pending",
-          priority: "high",
-          requestedBy: "Marie Dupont",
-          deliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-          createdAt: new Date()
-        }
-      ];
-      
-      const demoOrder = demoPurchaseOrders.find(order => order.id === purchaseOrderId);
-      
-      if (!demoOrder) {
+
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
-      
-      // Import PDFKit generator
+
+      // Enrich with line items
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const enrichedOrder = {
+        ...order,
+        items: items.map(i => ({
+          partNumber: i.partNumber || `ITEM-${i.id}`,
+          description: i.description || "—",
+          quantity: i.quantity ?? 0,
+          unitPrice: parseFloat(i.unitPrice?.toString() ?? "0"),
+        })),
+      };
+
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      
-      // Get company config for letterhead
       const companyConfig = await gmaoStorage.getCompanyConfig();
-      
-      // Generate PDF using PDFKit
-      const pdfDoc = generatePurchaseOrderPDF(demoOrder, companyConfig || undefined);
-      
-      // Set PDF headers
+      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, companyConfig || undefined);
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${order.orderNumber}.pdf"`);
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      
-      // Stream PDF to response
+
       pdfDoc.pipe(res);
       pdfDoc.end();
     } catch (error) {
       console.error("Error generating purchase order with letterhead:", error);
-      res.status(500).json({ message: "Failed to generate purchase order with letterhead" });
+      res.status(500).json({ message: "Impossible de générer le bon de commande" });
     }
   });
 
@@ -1914,73 +1718,40 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Download purchase order as PDF endpoint
+  // Download purchase order as PDF — real data from DB
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
       const purchaseOrderId = parseInt(req.params.id);
-      
-      // For demo purposes, use demo data directly
-      const demoPurchaseOrders = [
-        {
-          id: 1,
-          orderNumber: "PO-2025-001",
-          orderType: "Pièces de rechange",
-          description: "Commande de roulements et joints pour maintenance préventive",
-          supplier: "Roulement Industriel SA",
-          items: [
-            { partNumber: "RLT-001", description: "Roulement SKF 6308", quantity: 4, unitPrice: 125.50 },
-            { partNumber: "JNT-045", description: "Joint hydraulique NBR", quantity: 10, unitPrice: 15.20 }
-          ],
-          totalAmount: "654.00",
-          currency: "EUR",
-          validationStatus: "pending",
-          priority: "medium",
-          requestedBy: "Jean Martin",
-          deliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-          createdAt: new Date()
-        },
-        {
-          id: 2,
-          orderNumber: "PO-2025-002",
-          orderType: "Équipement",
-          description: "Acquisition d'un nouveau moteur électrique haute performance",
-          supplier: "Moteurs Électriques Pro", 
-          items: [
-            { partNumber: "MOT-HP-75", description: "Moteur 75kW IP55 IE4", quantity: 1, unitPrice: 4250.00 }
-          ],
-          totalAmount: "4250.00",
-          currency: "EUR",
-          validationStatus: "pending",
-          priority: "high",
-          requestedBy: "Marie Dupont",
-          deliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-          createdAt: new Date()
-        }
-      ];
-      
-      const demoOrder = demoPurchaseOrders.find(order => order.id === purchaseOrderId) || demoPurchaseOrders[0];
-      
-      // Import PDFKit generator
+
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      if (!order) {
+        return res.status(404).json({ message: "Bon de commande introuvable" });
+      }
+
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const enrichedOrder = {
+        ...order,
+        items: items.map(i => ({
+          partNumber: i.partNumber || `ITEM-${i.id}`,
+          description: i.description || "—",
+          quantity: i.quantity ?? 0,
+          unitPrice: parseFloat(i.unitPrice?.toString() ?? "0"),
+        })),
+      };
+
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      
-      // Get company config for letterhead
       const companyConfig = await gmaoStorage.getCompanyConfig();
-      
-      // Generate PDF using PDFKit
-      const pdfDoc = generatePurchaseOrderPDF(demoOrder, companyConfig || undefined);
-      
-      // Set PDF headers
+      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, companyConfig || undefined);
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${demoOrder.orderNumber}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${order.orderNumber}.pdf"`);
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      
-      // Stream PDF to response
+
       pdfDoc.pipe(res);
       pdfDoc.end();
-      
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res.status(500).json({ message: "Failed to generate PDF" });
+      res.status(500).json({ message: "Impossible de générer le PDF du bon de commande" });
     }
   });
 

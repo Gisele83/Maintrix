@@ -1079,6 +1079,11 @@ export class GMAOStorage {
     return query.orderBy(desc(maintenanceReports.createdAt));
   }
 
+  async getMaintenanceReportById(id: number): Promise<MaintenanceReport | undefined> {
+    const [report] = await db.select().from(maintenanceReports).where(eq(maintenanceReports.id, id));
+    return report;
+  }
+
   // Approve maintenance report
   async approveMaintenanceReport(reportId: number, approvedBy: string): Promise<MaintenanceReport> {
     const [report] = await db
@@ -1258,12 +1263,15 @@ export class GMAOStorage {
   // Get monthly reports
   async getMonthlyReports(year?: number): Promise<MonthlyReport[]> {
     let query = db.select().from(monthlyReports);
-    
     if (year) {
       query = query.where(eq(monthlyReports.year, year));
     }
-    
     return query.orderBy(desc(monthlyReports.year), desc(monthlyReports.month));
+  }
+
+  async getMonthlyReportById(id: number): Promise<MonthlyReport | undefined> {
+    const [report] = await db.select().from(monthlyReports).where(eq(monthlyReports.id, id));
+    return report;
   }
 
   // Helper method to generate report numbers
