@@ -40,7 +40,15 @@ import {
   Timer,
   Euro,
   ChevronRight,
-  X
+  X,
+  Loader2,
+  ListChecks,
+  ShieldAlert,
+  Lightbulb,
+  TreePine,
+  CalendarCheck,
+  BadgeAlert,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -106,7 +114,10 @@ export default function SmartDiagnostic() {
   const [similarIncidents, setSimilarIncidents] = useState<any[]>([]);
   const [failureTrends, setFailureTrends] = useState<any[]>([]);
   const [engineSources, setEngineSources] = useState<string[]>([]);
-  
+  const [aiDeepAnalysis, setAiDeepAnalysis] = useState<any | null>(null);
+  const [isLoadingAiDeepAnalysis, setIsLoadingAiDeepAnalysis] = useState(false);
+  const [lastDiagnosticInput, setLastDiagnosticInput] = useState<any | null>(null);
+
   // Equipment identifiers from database
   const { data: equipmentData } = useQuery({
     queryKey: ["/api/diagnostic/equipment-identifiers"],
@@ -430,7 +441,7 @@ export default function SmartDiagnostic() {
       const response = await apiRequest(endpoint, { method: "POST", body: data });
       return response;
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: any, variables: any) => {
       console.log("ML Diagnostic API response:", result);
       setDiagnosticResults(result.suggestions || []);
       setCurrentSessionId(result.sessionId ?? null);
@@ -461,6 +472,13 @@ export default function SmartDiagnostic() {
         title: "Diagnostic terminé",
         description: `Analyse IA complétée${mlType}${cloudNote} - ${result.suggestions?.length || 0} suggestions trouvées`,
       });
+
+      // Auto-trigger Claude deep analysis
+      if (result.suggestions && result.suggestions.length > 0) {
+        const input = typeof variables === 'string' ? JSON.parse(variables) : (variables || {});
+        setLastDiagnosticInput(input);
+        runAiDeepAnalysis(input, result.suggestions || [], result.contextSignals || []);
+      }
     },
     onError: () => {
       setIsAnalyzing(false);
@@ -472,10 +490,39 @@ export default function SmartDiagnostic() {
     },
   });
 
+  const runAiDeepAnalysis = async (
+    formInput: any,
+    suggestions: any[],
+    signals: any[]
+  ) => {
+    setIsLoadingAiDeepAnalysis(true);
+    setAiDeepAnalysis(null);
+    try {
+      const response = await apiRequest("/api/diagnostic/ai-deep-analysis", {
+        method: "POST",
+        body: {
+          equipmentType: formInput.equipmentType || '',
+          symptoms: formInput.symptoms || '',
+          urgency: formInput.urgency || 'Normale',
+          zone: formInput.zone || undefined,
+          suggestions,
+          contextSignals: signals
+        }
+      });
+      setAiDeepAnalysis((response as any).analysis || null);
+    } catch (err) {
+      console.warn("Deep AI analysis not available:", err);
+    } finally {
+      setIsLoadingAiDeepAnalysis(false);
+    }
+  };
+
   const handleDiagnosticSubmit = async (data: any) => {
     console.log("Raw form data received:", data);
     setIsAnalyzing(true);
     setDiagnosticResults([]);
+    setAiDeepAnalysis(null);
+    setLastDiagnosticInput(data);
     
     const cleanData = typeof data === 'string' ? JSON.parse(data) : data;
     console.log("Clean data to send:", cleanData);
@@ -766,6 +813,273 @@ export default function SmartDiagnostic() {
                               engineSources={engineSources}
                             />
                           )}
+
+                          {/* ═══ CLAUDE AI DEEP ANALYSIS PANEL ═══ */}
+                          {(isLoadingAiDeepAnalysis || aiDeepAnalysis) && diagnosticResults.length > 0 && (
+                            <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden">
+                              {/* Header gradient */}
+                              <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-6 py-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
+                                      <Brain className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                        Analyse Approfondie Claude
+                                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-normal">
+                                          claude-sonnet-4
+                                        </span>
+                                      </h3>
+                                      <p className="text-purple-200 text-sm">Diagnostic expert enrichi par IA générative</p>
+                                    </div>
+                                  </div>
+                                  {!isLoadingAiDeepAnalysis && lastDiagnosticInput && (
+                                    <button
+                                      onClick={() => runAiDeepAnalysis(lastDiagnosticInput, diagnosticResults, contextSignals)}
+                                      className="text-white/70 hover:text-white transition-colors"
+                                      title="Relancer l'analyse"
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <CardContent className="p-6 space-y-6 bg-gradient-to-b from-violet-50/50 to-white">
+                                {isLoadingAiDeepAnalysis ? (
+                                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <div className="relative">
+                                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-violet-400 to-indigo-400 animate-pulse" />
+                                      <Loader2 className="h-8 w-8 text-white animate-spin absolute top-4 left-4" />
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="font-semibold text-gray-900">Claude analyse la situation...</p>
+                                      <p className="text-sm text-gray-500 mt-1">Raisonnement expert en cours, veuillez patienter</p>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      {[0,1,2].map(i => (
+                                        <div key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : aiDeepAnalysis && (
+                                  <div className="space-y-5">
+                                    {/* Criticality banner */}
+                                    <div className={`flex items-center justify-between p-4 rounded-2xl border-2 ${
+                                      aiDeepAnalysis.criticality === 'CRITIQUE' ? 'bg-red-50 border-red-200' :
+                                      aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'bg-orange-50 border-orange-200' :
+                                      aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'bg-yellow-50 border-yellow-200' :
+                                      'bg-green-50 border-green-200'
+                                    }`}>
+                                      <div className="flex items-center space-x-3">
+                                        <BadgeAlert className={`h-6 w-6 ${
+                                          aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-red-600' :
+                                          aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-orange-600' :
+                                          aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-yellow-600' : 'text-green-600'
+                                        }`} />
+                                        <div>
+                                          <p className="font-bold text-gray-900">
+                                            Criticité : <span className={
+                                              aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-red-600' :
+                                              aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-orange-600' :
+                                              aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-yellow-600' : 'text-green-600'
+                                            }>{aiDeepAnalysis.criticality}</span>
+                                          </p>
+                                          <p className="text-sm text-gray-600">{aiDeepAnalysis.overallAssessment}</p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-2xl font-bold text-gray-900">{aiDeepAnalysis.criticalityScore}%</div>
+                                        <div className="text-xs text-gray-500">Score risque</div>
+                                      </div>
+                                    </div>
+
+                                    {/* Technician summary */}
+                                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                                      <div className="flex items-start space-x-3">
+                                        <div className="bg-indigo-100 p-2 rounded-lg mt-0.5">
+                                          <Wrench className="h-4 w-4 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                          <p className="font-semibold text-indigo-900 mb-1">Résumé pour le technicien</p>
+                                          <p className="text-indigo-800 text-sm leading-relaxed">{aiDeepAnalysis.technicianSummary}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {/* Root cause tree */}
+                                      {aiDeepAnalysis.rootCauseTree && (
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                          <div className="flex items-center space-x-2 mb-3">
+                                            <TreePine className="h-5 w-5 text-emerald-600" />
+                                            <h4 className="font-semibold text-gray-900">Arbre des Causes</h4>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <div className="bg-red-50 rounded-lg px-3 py-2">
+                                              <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Cause principale</p>
+                                              <p className="text-sm text-gray-800 mt-0.5">{aiDeepAnalysis.rootCauseTree.primaryCause}</p>
+                                            </div>
+                                            {aiDeepAnalysis.rootCauseTree.contributingFactors?.map((f: string, i: number) => (
+                                              <div key={i} className="flex items-start space-x-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0" />
+                                                <p className="text-sm text-gray-700">{f}</p>
+                                              </div>
+                                            ))}
+                                            {aiDeepAnalysis.rootCauseTree.underlyingMechanisms?.map((m: string, i: number) => (
+                                              <div key={i} className="flex items-start space-x-2 ml-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-2 flex-shrink-0" />
+                                                <p className="text-xs text-gray-500 italic">{m}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Immediate actions */}
+                                      {aiDeepAnalysis.immediateActions?.length > 0 && (
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                          <div className="flex items-center space-x-2 mb-3">
+                                            <ListChecks className="h-5 w-5 text-blue-600" />
+                                            <h4 className="font-semibold text-gray-900">Actions Immédiates</h4>
+                                          </div>
+                                          <div className="space-y-2">
+                                            {aiDeepAnalysis.immediateActions.map((action: any, i: number) => (
+                                              <div key={i} className="flex items-start space-x-3 p-2 bg-blue-50 rounded-lg">
+                                                <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                  {action.priority}
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-gray-800">{action.action}</p>
+                                                  <p className="text-xs text-blue-600 mt-0.5">{action.timeframe}</p>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Safety briefing */}
+                                    {aiDeepAnalysis.safetyBriefing && (
+                                      <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                                        <div className="flex items-center space-x-2 mb-3">
+                                          <ShieldAlert className="h-5 w-5 text-red-600" />
+                                          <h4 className="font-semibold text-red-900">Briefing Sécurité</h4>
+                                          {aiDeepAnalysis.safetyBriefing.lockoutTagout && (
+                                            <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-auto">
+                                              CONSIGNATION REQUISE
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <p className="text-xs font-semibold text-red-700 uppercase mb-1">Risques</p>
+                                            {aiDeepAnalysis.safetyBriefing.risks?.map((r: string, i: number) => (
+                                              <p key={i} className="text-sm text-red-800 flex items-center gap-1">
+                                                <span className="w-1 h-1 rounded-full bg-red-500 flex-shrink-0" />{r}
+                                              </p>
+                                            ))}
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-semibold text-red-700 uppercase mb-1">EPI Requis</p>
+                                            {aiDeepAnalysis.safetyBriefing.ppe?.map((p: string, i: number) => (
+                                              <p key={i} className="text-sm text-red-800 flex items-center gap-1">
+                                                <Shield className="h-3 w-3 flex-shrink-0" />{p}
+                                              </p>
+                                            ))}
+                                          </div>
+                                        </div>
+                                        {aiDeepAnalysis.safetyBriefing.authorizedPersonnel && (
+                                          <p className="text-xs text-red-600 mt-2 pt-2 border-t border-red-200">
+                                            Habilitation requise : {aiDeepAnalysis.safetyBriefing.authorizedPersonnel}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Cost estimate + preventive recommendations */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {aiDeepAnalysis.costEstimate && (
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                          <div className="flex items-center space-x-2 mb-3">
+                                            <Euro className="h-5 w-5 text-purple-600" />
+                                            <h4 className="font-semibold text-gray-900">Estimation Coûts</h4>
+                                          </div>
+                                          <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">Réparation :</span>
+                                              <span className="font-medium text-gray-900">{aiDeepAnalysis.costEstimate.repairCost}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">Prévention :</span>
+                                              <span className="font-medium text-green-600">{aiDeepAnalysis.costEstimate.preventionCost}</span>
+                                            </div>
+                                            <div className="flex justify-between border-t pt-2">
+                                              <span className="text-gray-600">Risque arrêt :</span>
+                                              <span className="font-medium text-red-600">{aiDeepAnalysis.costEstimate.downTimeCost}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {aiDeepAnalysis.preventiveRecommendations && (
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                          <div className="flex items-center space-x-2 mb-3">
+                                            <CalendarCheck className="h-5 w-5 text-teal-600" />
+                                            <h4 className="font-semibold text-gray-900">Recommandations Préventives</h4>
+                                          </div>
+                                          <div className="space-y-1.5 text-sm">
+                                            {aiDeepAnalysis.preventiveRecommendations.shortTerm?.slice(0,2).map((r: string, i: number) => (
+                                              <p key={i} className="flex items-start gap-2 text-orange-700">
+                                                <Clock className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />{r}
+                                              </p>
+                                            ))}
+                                            {aiDeepAnalysis.preventiveRecommendations.mediumTerm?.slice(0,1).map((r: string, i: number) => (
+                                              <p key={i} className="flex items-start gap-2 text-blue-700">
+                                                <TrendingUp className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />{r}
+                                              </p>
+                                            ))}
+                                            {aiDeepAnalysis.nextInspectionDate && (
+                                              <p className="text-xs text-gray-500 pt-1 border-t">
+                                                Prochaine inspection : <strong>{aiDeepAnalysis.nextInspectionDate}</strong>
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Expert insight */}
+                                    {aiDeepAnalysis.expertInsight && (
+                                      <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl p-4">
+                                        <div className="flex items-start space-x-3">
+                                          <div className="bg-violet-100 p-2 rounded-lg mt-0.5">
+                                            <Lightbulb className="h-4 w-4 text-violet-700" />
+                                          </div>
+                                          <div>
+                                            <p className="font-semibold text-violet-900 mb-1">Insight Expert Claude</p>
+                                            <p className="text-violet-800 text-sm leading-relaxed">{aiDeepAnalysis.expertInsight}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t">
+                                      <span className="flex items-center gap-1">
+                                        <Sparkles className="h-3 w-3" />
+                                        Analyse par claude-sonnet-4-20250514
+                                      </span>
+                                      <span>Confiance IA : {aiDeepAnalysis.aiConfidence}%</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+
                           </div>
                         )}
                       </>

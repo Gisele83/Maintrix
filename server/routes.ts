@@ -4235,6 +4235,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Deep Diagnostic Analysis - Full Claude analysis on diagnostic results
+  app.post('/api/diagnostic/ai-deep-analysis', diagnosticRateLimit, async (req: any, res) => {
+    try {
+      const { equipmentType, symptoms, urgency, zone, suggestions, contextSignals } = req.body;
+      
+      if (!equipmentType || !symptoms) {
+        return res.status(400).json({ 
+          error: "MISSING_PARAMETERS", 
+          message: "Type d'équipement et symptômes requis" 
+        });
+      }
+
+      if (!anthropicService || !(anthropicService as any).isAvailable()) {
+        return res.status(503).json({ 
+          error: "AI_NOT_AVAILABLE", 
+          message: "Service IA Claude non disponible. Vérifiez la clé ANTHROPIC_API_KEY." 
+        });
+      }
+
+      const topSuggestions = (suggestions || []).slice(0, 3).map((s: any) => ({
+        diagnosis: s.diagnosis || '',
+        solution: s.solution || '',
+        confidence: s.confidence || 0,
+        source: s.source || 'hybrid'
+      }));
+
+      const signals = (contextSignals || []).slice(0, 5).map((s: any) => ({
+        label: s.label || '',
+        detail: s.detail || ''
+      }));
+
+      console.log(`🧠 Claude deep analysis: ${equipmentType} / ${symptoms.substring(0, 50)}...`);
+
+      const analysis = await (anthropicService as any).runFullDiagnosticAnalysis(
+        equipmentType,
+        symptoms,
+        urgency || 'Normale',
+        zone,
+        topSuggestions,
+        signals
+      );
+
+      res.json({
+        analysis,
+        model: "claude-sonnet-4-20250514",
+        aiPowered: true,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("AI Deep Analysis error:", error);
+      res.status(500).json({ 
+        error: "AI_DEEP_ANALYSIS_FAILED", 
+        message: "Analyse approfondie échouée. Réessayez dans un moment.",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // ============================
   // CLIENT PORTAL API
   // ============================
