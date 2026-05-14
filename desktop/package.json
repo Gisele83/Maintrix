@@ -1,0 +1,89 @@
+{
+  "name": "maintrix-desktop",
+  "version": "2.0.0",
+  "description": "Maintrix — Supervision Industrielle Adaptative (Application Desktop)",
+  "main": "src/main.js",
+  "homepage": "https://maintrix.app",
+  "author": {
+    "name": "Maintrix SAS",
+    "email": "contact@maintrix.app"
+  },
+  "license": "Proprietary",
+  "scripts": {
+    "start": "electron .",
+    "dev": "ELECTRON_IS_DEV=1 electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7",
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "app.maintrix.desktop",
+    "productName": "Maintrix",
+    "copyright": "Copyright © 2025 Maintrix SAS",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64", "ia32"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "assets/icon.ico",
+      "publisherName": "Maintrix SAS",
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["arm64"] }
+      ],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.business",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "icon": "assets/icon.png",
+      "category": "Office",
+      "synopsis": "Supervision industrielle adaptative"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Maintrix",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "maintrix",
+      "repo": "maintrix-desktop"
+    },
+    "extraMetadata": {
+      "main": "src/main.js"
+    }
+  }
+}

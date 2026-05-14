@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintrix</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 480px; height: 320px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      border-radius: 16px; overflow: hidden;
+      -webkit-app-region: drag;
+    }
+    .logo-container {
+      width: 88px; height: 88px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+      margin-bottom: 20px;
+    }
+    .logo { font-size: 48px; }
+    .brand { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+    .subtitle { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 6px; }
+    .loader {
+      margin-top: 32px;
+      width: 200px; height: 3px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px; overflow: hidden;
+    }
+    .loader-bar {
+      height: 100%; width: 0;
+      background: #fff; border-radius: 2px;
+      animation: load 1.5s ease-in-out forwards;
+    }
+    @keyframes load {
+      0% { width: 0; }
+      60% { width: 70%; }
+      100% { width: 100%; }
+    }
+    .version { position: absolute; bottom: 16px; font-size: 11px; color: rgba(255,255,255,0.5); }
+  </style>
+</head>
+<body>
+  <div class="logo-container">
+    <span class="logo">⚙️</span>
+  </div>
+  <div class="brand">Maintrix</div>
+  <div class="subtitle">Supervision Industrielle Adaptative</div>
+  <div class="loader"><div class="loader-bar"></div></div>
+  <div class="version">v2.0.0 — Application Desktop</div>
+</body>
+</html>
