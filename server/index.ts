@@ -19,6 +19,8 @@ import crypto from 'crypto';
 import cookieParser from 'cookie-parser';
 import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
 import { securityHeaders } from './security-middleware';
+import { setupSwagger } from './swagger-config';
+import { licenseEnforcementMiddleware } from './license-enforcement-middleware';
 
 // ═══════════════════════════════════════════════════════════════════
 // 🔒 GÉNÉRATION AUTOMATIQUE DES SECRETS EN DÉVELOPPEMENT
@@ -290,6 +292,12 @@ app.use((req, res, next) => {
       console.error('❌ Error initializing license system:', error);
     }
   }
+
+  // 📖 SWAGGER API DOCUMENTATION
+  setupSwagger(app);
+
+  // 🔐 LICENSE ENFORCEMENT — bloque les API si licence expirée
+  app.use('/api', licenseEnforcementMiddleware as any);
 
   const server = await registerRoutes(app);
 

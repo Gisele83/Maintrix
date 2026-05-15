@@ -1,0 +1,208 @@
+1. OBJECTIF GLOBAL DU PROJET
+
+Développer une plateforme industrielle intelligente de :
+
+supervision des équipements industriels,
+contrôle adaptatif des installations,
+gestion de maintenance assistée par ordinateur (GMAO),
+suivi des alarmes et incidents,
+visualisation temps réel,
+gestion énergétique,
+reporting et analyse décisionnelle,
+
+accessible sous plusieurs formats selon les besoins du client :
+
+version Web,
+version Desktop (installation PC),
+version Mobile.
+2. LIVRABLES LOGICIELS ATTENDUS
+2.1 Version Web (Cloud / Serveur)
+
+L’IA devra générer :
+
+✔ Application Web complète responsive
+
+Compatible :
+
+Chrome
+Edge
+Firefox
+Safari
+✔ Fonctionnalités attendues
+Tableau de bord temps réel
+Supervision SCADA
+Monitoring IoT / API / Modbus / OPC-UA
+Gestion alarmes
+Gestion maintenance préventive et corrective
+Gestion des tickets
+Historique des interventions
+Gestion des utilisateurs et rôles
+KPI industriels
+Rapports PDF / Excel
+Notifications Email / SMS / Push
+Gestion énergétique
+Historisation des données
+Visualisation graphique avancée
+✔ Livrables techniques
+Code source complet
+Frontend
+Backend
+Base de données
+Documentation API
+Dockerisation
+Scripts de déploiement
+Documentation administrateur
+2.2 Version Desktop (PC)
+
+L’IA devra produire :
+
+✔ Application installable Windows
+
+Formats attendus :
+
+.EXE
+.MSI
+✔ Compatibilité
+Windows 10
+Windows 11
+✔ Fonctionnalités
+Fonctionnement local ou connecté au cloud
+Synchronisation automatique
+Mode offline partiel
+Tableau de bord temps réel
+Notifications locales
+Impression rapports
+✔ Livrables attendus
+Setup d’installation
+Assistant d’installation
+Désinstallateur
+Gestion mises à jour
+Signature numérique si possible
+2.3 Version Mobile
+
+L’IA devra générer :
+
+✔ Application mobile Android et iOS
+
+Formats :
+
+APK Android
+AAB Play Store
+IPA iOS
+✔ Fonctionnalités mobiles
+Consultation temps réel
+Alertes push
+Gestion maintenance terrain
+Scan QR code équipements
+Photos incidents
+Validation interventions
+Rapports mobiles
+Signature électronique
+✔ Compatibilité
+Smartphones
+Tablettes
+3. SYSTÈME D’ABONNEMENT ET LICENCES
+
+L’IA devra intégrer :
+
+✔ Gestion des licences logicielles
+Licence annuelle
+Licence perpétuelle
+Gestion activation
+Gestion expiration
+Clé de licence sécurisée
+✔ Gestion des abonnements
+Mensuel
+Annuel
+Multi-sites
+Multi-utilisateurs
+✔ Activation conditionnelle
+
+L’installation complète et l’activation des fonctionnalités avancées doivent être possibles uniquement :
+
+après acquittement de la licence,
+ou
+validation de l’abonnement.
+4. VERSION D’ESSAI GRATUITE
+
+L’IA devra intégrer :
+
+✔ Free Trial 14 jours
+
+Fonctionnalités :
+
+activation automatique,
+compteur de jours,
+limitation automatique à expiration,
+notifications avant expiration,
+conversion vers abonnement payant.
+✔ Gestion sécurisée
+Anti-contournement
+Vérification serveur
+Activation unique appareil si nécessaire
+5. INSTALLATION ET DÉPLOIEMENT
+
+L’IA devra prévoir :
+
+✔ Installation sur site client
+Procédure d’installation automatisée
+Configuration initiale
+Paramétrage équipements
+Création comptes utilisateurs
+Mise en service
+✔ Déploiement cloud
+AWS / Azure / OVH / Google Cloud
+SSL sécurisé
+Sauvegarde automatique
+6. SÉCURITÉ ET INDUSTRIALISATION
+✔ Sécurité attendue
+Authentification sécurisée
+Chiffrement données
+Gestion rôles utilisateurs
+Journalisation des actions
+Sauvegardes automatiques
+✔ Conformité industrielle
+Architecture scalable
+Haute disponibilité
+Temps réel
+Sécurité industrielle
+7. DOCUMENTATIONS ATTENDUES
+
+L’IA devra générer :
+
+✔ Documentation technique complète
+Architecture logicielle
+Base de données
+APIs
+Déploiement
+Sécurité
+✔ Documentation utilisateur
+Manuel utilisateur
+Manuel administrateur
+Guide installation
+Guide maintenance
+8. LIVRABLES FINAUX
+
+Le projet devra être livré avec :
+
+Livrable	Format
+Version Web	Cloud / Docker
+Version PC	EXE / MSI
+Version Mobile	APK / IPA
+Code source	Git / ZIP
+Base de données	SQL
+Documentation	PDF / DOCX
+API Documentation	Swagger/Postman
+Procédures installation	PDF
+Procédures maintenance	PDF
+9. OBJECTIF FINAL
+
+La solution devra être :
+
+professionnelle,
+évolutive,
+industrialisable,
+sécurisée,
+commercialisable sous licence,
+compatible multi-plateformes,
+adaptée aux environnements industriels critiques.
