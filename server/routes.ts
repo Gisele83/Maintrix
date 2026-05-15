@@ -58,6 +58,7 @@ import { registerBudgetRoutes as registerBudgetPlanRoutes } from "./budget-route
 import { registerSupplierRoutes } from "./supplier-routes";
 import { registerWarrantyRoutes } from "./warranty-routes";
 import { registerMaintenancePlanRoutes } from "./maintenance-plan-routes";
+import { registerRecommendationRoutes } from "./maintenance-recommendations";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -348,6 +349,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register System Health routes
   registerSystemHealthRoutes(app);
+
+  // Register Maintenance Recommendations routes
+  registerRecommendationRoutes(app);
 
   // Register Habilitation routes
   registerHabilitationRoutes(app);

@@ -21,7 +21,8 @@ import {
   CreditCard,
   Home,
   TrendingUp,
-  Activity
+  Activity,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -70,6 +71,7 @@ export function ModernNavigation() {
     { name: "Supervision Adaptative", href: "/cognitive-infrastructure", icon: Brain },
     { name: "Diagnostic Hybride", href: "/smart-diagnostic", icon: Database },
     { name: "GMAO Intégrée", href: "/gmao", icon: Settings },
+    { name: "Recommandations", href: "/maintenance-recommendations", icon: Sparkles },
     { name: "Insights Prédictifs", href: "/predictive-insights", icon: TrendingUp },
     { name: "Perception IoT", href: "/iot-gamification", icon: BarChart3 },
     { name: "Inventaire", href: "/inventaire", icon: Package },
