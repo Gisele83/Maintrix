@@ -7,7 +7,7 @@
 import type { Express } from "express";
 import { Pool } from "pg";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
-import { generalRateLimit } from "./security-middleware";
+import { generalRateLimit, requireRole } from "./security-middleware";
 import os from "os";
 import fs from "fs";
 import path from "path";
@@ -126,7 +126,9 @@ function getModuleStatus() {
 export function registerSystemHealthRoutes(app: Express) {
   const auth = EnterpriseAuthMiddleware.requireAuthentication;
 
-  app.get("/api/system/health", generalRateLimit, auth, async (_req, res) => {
+  const adminOnly = requireRole(["admin", "owner", "super_admin"]);
+
+  app.get("/api/system/health", generalRateLimit, auth, adminOnly, async (_req, res) => {
     try {
       const [db, system, code, modules] = await Promise.all([
         getDbHealth(),

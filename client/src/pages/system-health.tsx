@@ -5,9 +5,11 @@ import { Progress } from "@/components/ui/progress";
 import {
   Activity, Database, Cpu, HardDrive, Server, CheckCircle2,
   AlertTriangle, XCircle, RefreshCw, Code2, Layers, Clock,
-  MemoryStick, Package
+  MemoryStick, Package, ShieldOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 
 interface HealthData {
   overall: "healthy" | "warning" | "degraded" | "error";
@@ -79,10 +81,31 @@ const TABLE_LABELS: Record<string, string> = {
 };
 
 export default function SystemHealthPage() {
+  const { user } = useAuth();
   const { data, isLoading, refetch, dataUpdatedAt } = useQuery<HealthData>({
     queryKey: ["/api/system/health"],
     refetchInterval: 30000,
+    enabled: user?.role === "admin",
   });
+
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <ShieldOff className="h-16 w-16 text-red-400 mx-auto" />
+          <h2 className="text-2xl font-bold text-white">Accès refusé</h2>
+          <p className="text-slate-400 max-w-sm mx-auto">
+            Cette page est réservée aux administrateurs de la plateforme.
+          </p>
+          <Link href="/">
+            <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 mt-2">
+              Retour à l'accueil
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
