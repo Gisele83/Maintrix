@@ -20,7 +20,8 @@ import {
   Database,
   CreditCard,
   Home,
-  TrendingUp
+  TrendingUp,
+  Activity
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -74,6 +75,7 @@ export function ModernNavigation() {
     { name: "Inventaire", href: "/inventaire", icon: Package },
     { name: "Historique", href: "/historique", icon: History },
     ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
+    ...(user && user.role === "admin" ? [{ name: "Santé système", href: "/system-health", icon: Activity }] : []),
     { name: "Documentation", href: "/documentation", icon: FileText },
     { name: "Télécharger", href: "/download", icon: Download },
   ];

@@ -62,6 +62,7 @@ import SensorHub from "@/pages/sensor-hub";
 import PredictiveInsights from "@/pages/predictive-insights";
 import EquipmentQR from "@/pages/equipment-qr";
 import CognitiveInfrastructure from "@/pages/cognitive-infrastructure";
+import SystemHealthPage from "@/pages/system-health";
 import CommunicationIntegrations from "@/pages/communication-integrations";
 import PermitToWork from "@/pages/permit-to-work";
 import RcaPage from "@/pages/rca";
@@ -347,6 +348,9 @@ function Router() {
       </Route>
       <Route path="/cognitive-infrastructure">
         {(params) => <ProtectedRoute component={CognitiveInfrastructure} {...params} />}
+      </Route>
+      <Route path="/system-health">
+        {(params) => <ProtectedRoute component={SystemHealthPage} {...params} />}
       </Route>
       <Route path="/cognitive">
         {(params) => <ProtectedRoute component={CognitiveInfrastructure} {...params} />}
