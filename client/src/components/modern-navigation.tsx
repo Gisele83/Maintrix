@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
   Menu, 
@@ -22,7 +23,8 @@ import {
   Home,
   TrendingUp,
   Activity,
-  Sparkles
+  Sparkles,
+  Bell
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,6 +33,13 @@ export function ModernNavigation() {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const [showReturnToAdmin, setShowReturnToAdmin] = useState(false);
+
+  const { data: notifData } = useQuery<{ unreadCount: number }>({
+    queryKey: ["/api/mobile/notifications"],
+    refetchInterval: 30_000,
+    select: (d: any) => ({ unreadCount: d?.unreadCount ?? 0 }),
+  });
+  const unreadCount = notifData?.unreadCount ?? 0;
 
   const handleLogout = () => {
     logout();
@@ -139,6 +148,18 @@ export function ModernNavigation() {
 
           {/* User Menu */}
           <div className="hidden md:flex items-center space-x-4">
+            {/* Notification Bell */}
+            <Link href="/mobile-notifications">
+              <button className="relative p-2 rounded-xl text-gray-600 hover:text-blue-600 hover:bg-white/20 transition-all duration-200">
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            </Link>
+
             <div className="flex items-center space-x-3 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                 <User className="w-4 h-4 text-white" />

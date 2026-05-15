@@ -77,6 +77,7 @@ import SupplierPage from "@/pages/supplier-portal";
 import WarrantyPage from "@/pages/warranty";
 import MaintenancePlanPage from "@/pages/maintenance-plan";
 import MaintenanceRecommendations from "@/pages/maintenance-recommendations";
+import MobileNotificationsPage from "@/pages/mobile-notifications";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -256,6 +257,9 @@ function Router() {
       </Route>
       <Route path="/maintenance-recommendations">
         {(params) => <ProtectedRoute component={MaintenanceRecommendations} {...params} />}
+      </Route>
+      <Route path="/mobile-notifications">
+        {(params) => <ProtectedRoute component={MobileNotificationsPage} {...params} />}
       </Route>
       <Route path="/download">
         {() => <DownloadCenterPage />}

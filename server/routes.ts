@@ -59,6 +59,7 @@ import { registerSupplierRoutes } from "./supplier-routes";
 import { registerWarrantyRoutes } from "./warranty-routes";
 import { registerMaintenancePlanRoutes } from "./maintenance-plan-routes";
 import { registerRecommendationRoutes } from "./maintenance-recommendations";
+import { registerPushNotificationRoutes, notifyTaskAssigned, notifyCriticalAlert } from "./push-notification-service";
 import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
@@ -352,6 +353,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Maintenance Recommendations routes
   registerRecommendationRoutes(app);
+
+  // Register Push Notifications routes (mobile PWA)
+  registerPushNotificationRoutes(app);
 
   // Register Habilitation routes
   registerHabilitationRoutes(app);

@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { notifyTaskAssigned } from "./push-notification-service";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
 import { cctpComplianceService } from "./cctp-compliance-system";
@@ -377,8 +378,23 @@ export function registerGMAORoutes(app: Express) {
       }
       
       const tenantId = (req as any).tenantId || 'default-tenant';
+      const prevWorkOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
       const workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
-      
+
+      // 📱 PUSH: Notify technician when task is newly assigned
+      if (
+        workOrder &&
+        processedUpdates.assignedTo &&
+        processedUpdates.assignedTo !== prevWorkOrder?.assignedTo
+      ) {
+        try {
+          const equipment = workOrder.equipmentId
+            ? await gmaoStorage.getEquipmentById(workOrder.equipmentId, tenantId)
+            : null;
+          notifyTaskAssigned(processedUpdates.assignedTo, workOrder, equipment).catch(() => {});
+        } catch {}
+      }
+
       // 🔄 CCTP AUTO-GENERATION: Déclencher génération automatique de rapport si OT terminé
       if (processedUpdates.status === 'completed' && workOrder) {
         try {

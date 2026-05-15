@@ -2146,4 +2146,59 @@ export const insertPermitToWorkSchema = createInsertSchema(permitToWork).omit({
 export type PermitToWork = typeof permitToWork.$inferSelect;
 export type InsertPermitToWork = z.infer<typeof insertPermitToWorkSchema>;
 
+// ═══════════════════════════════════════════════════════════════════
+// PUSH NOTIFICATION SUBSCRIPTIONS — Mobile & PWA push notifications
+// ═══════════════════════════════════════════════════════════════════
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => userProfiles.id, { onDelete: "cascade" }).notNull(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  deviceName: varchar("device_name", { length: 200 }),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// MOBILE NOTIFICATIONS — Persistent in-app notification feed
+// ═══════════════════════════════════════════════════════════════════
+export const mobileNotifications = pgTable("mobile_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => userProfiles.id, { onDelete: "cascade" }).notNull(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(), // critical_alert | task_assigned | maintenance_due | work_order_update | system
+  severity: varchar("severity", { length: 20 }).default("medium"), // low | medium | high | critical | emergency
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  relatedEntityType: varchar("related_entity_type", { length: 50 }), // work_order | equipment | alert
+  relatedEntityId: integer("related_entity_id"),
+  actionUrl: text("action_url"),
+  isRead: boolean("is_read").default(false),
+  isDismissed: boolean("is_dismissed").default(false),
+  pushSent: boolean("push_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
+export const insertMobileNotificationSchema = createInsertSchema(mobileNotifications).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+});
+
+export type MobileNotification = typeof mobileNotifications.$inferSelect;
+export type InsertMobileNotification = z.infer<typeof insertMobileNotificationSchema>;
+
 // Authentication system cleaned up - now using userProfiles as the main user table
