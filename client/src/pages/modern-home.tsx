@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { ModernNavigation } from "@/components/modern-navigation";
 import FeatureCards, { QuickStats } from "@/components/feature-cards";
+import { useAuth } from "@/hooks/useAuth";
 
 import {
   Brain,
@@ -20,249 +21,275 @@ import {
   ArrowRight,
   Wrench,
   Cpu,
+  Network,
+  Clock,
+  ClipboardList,
+  Package,
+  Gauge,
+  GitBranch,
+  Layers,
+  ChevronRight,
+  Bell,
+  CalendarClock,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 
-export default function ModernHome() {
-  const { data: alerts = [] } = useQuery({
-    queryKey: ["/api/alerts"],
-    refetchInterval: 5000
-  });
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bonjour";
+  if (h < 18) return "Bon après-midi";
+  return "Bonsoir";
+}
 
-  const activeAlerts = (alerts as any[]).filter((alert: any) => alert.status === 'active').length;
+export default function ModernHome() {
+  const { user } = useAuth() as any;
+  const { data: alerts = [] } = useQuery({ queryKey: ["/api/alerts"], refetchInterval: 5000 });
+  const { data: equipment = [] } = useQuery({ queryKey: ["/api/equipment"] });
+  const { data: workOrders = [] } = useQuery({ queryKey: ["/api/work-orders"] });
+  const { data: licenseStatus } = useQuery({ queryKey: ["/api/license/status"] });
+
+  const activeAlerts = (alerts as any[]).filter((a: any) => a.status === "active").length;
+  const criticalAlerts = (alerts as any[]).filter((a: any) => a.severity === "critical" && a.status === "active").length;
+  const totalEquipment = (equipment as any[]).length;
+  const openOrders = (workOrders as any[]).filter((o: any) => o.status === "open" || o.status === "in_progress").length;
+  const license = licenseStatus as any;
+
+  const displayName = user?.firstName ? `${user.firstName}` : user?.username || "Utilisateur";
+  const isTrialActive = license?.isTrialActive;
+  const trialDays = license?.trialDaysRemaining ?? 0;
+
+  const quickModules = [
+    { href: "/gmao", icon: ClipboardList, label: "Ordres de travail", sub: `${openOrders} en cours`, color: "blue", bg: "from-blue-500/15 to-blue-600/5", border: "border-blue-500/25" },
+    { href: "/equipment-management", icon: Settings, label: "Équipements", sub: `${totalEquipment} enregistrés`, color: "emerald", bg: "from-emerald-500/15 to-emerald-600/5", border: "border-emerald-500/25" },
+    { href: "/smart-diagnostic", icon: Brain, label: "Diagnostic IA", sub: "Lancer une analyse", color: "violet", bg: "from-violet-500/15 to-violet-600/5", border: "border-violet-500/25" },
+    { href: "/oee", icon: Gauge, label: "OEE", sub: "Efficacité globale", color: "amber", bg: "from-amber-500/15 to-amber-600/5", border: "border-amber-500/25" },
+    { href: "/rca", icon: GitBranch, label: "Analyse RCA", sub: "Causes racines", color: "rose", bg: "from-rose-500/15 to-rose-600/5", border: "border-rose-500/25" },
+    { href: "/asset-lifecycle", icon: Layers, label: "Actifs", sub: "Cycle de vie", color: "sky", bg: "from-sky-500/15 to-sky-600/5", border: "border-sky-500/25" },
+  ];
+
+  const mainModules = [
+    {
+      href: "/gmao",
+      icon: Settings,
+      title: "Module GMAO",
+      subtitle: "Backbone Opérationnel",
+      desc: "Planification des interventions, gestion des techniciens, ordres de travail, maintenance préventive et stocks de pièces détachées.",
+      tags: ["Multi-tenant", "Workflow avancé", "120 cas réels"],
+      color: "blue",
+      cta: "Accéder au GMAO",
+    },
+    {
+      href: "/cognitive-infrastructure",
+      icon: Brain,
+      title: "Supervision Adaptative",
+      subtitle: "Contrôle Industriel Avancé",
+      desc: "Architecture 5 modules coopératifs brevetée. Knowledge Graph causal, autonomie graduée 0-5, multi-agent et boucle fermée.",
+      tags: ["Causalité", "Multi-Agent", "Niveaux 0-5"],
+      color: "violet",
+      cta: "Ouvrir la Supervision",
+      cta2: { href: "/smart-diagnostic", label: "Diagnostic IA", icon: Cpu },
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 relative overflow-hidden">
-      {/* Soft background elements */}
+      {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
       </div>
-      
-      <ModernNavigation />
-      
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        
-        {/* Hero Section - Clean & Elegant */}
-        <div className="text-center mb-20">
-          <div className="mb-10">
-            {/* Icon instead of logo */}
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25 mb-8">
-              <Brain className="w-10 h-10 text-white" />
-            </div>
-            
-            {/* Main title - softer gradient */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-800 leading-tight mb-4">
-              Maintrix
-            </h1>
-            
-            <p className="text-lg text-slate-500 font-medium">
-              L'Intelligence Cognitive au Service de l'Industrie
-            </p>
-          </div>
-          
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Système de supervision et contrôle adaptatif à modélisation causale dynamique — 5 modules coopératifs pour limiter les dérives, réduire les cascades et stabiliser vos opérations.
-          </p>
-          
-          {/* Feature badges - softer colors */}
-          <div className="flex justify-center items-center flex-wrap gap-3 mb-14">
-            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-emerald-100 transition-colors">
-              5 Modules Coopératifs
-            </Badge>
-            <Badge className="bg-violet-50 text-violet-700 border border-violet-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-violet-100 transition-colors">
-              Modélisation Causale
-            </Badge>
-            <Badge className="bg-sky-50 text-sky-700 border border-sky-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-sky-100 transition-colors">
-              3 Objectifs Coopératifs
-            </Badge>
-            <Badge className="bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 text-sm font-medium rounded-full hover:bg-amber-100 transition-colors">
-              Autonomie Graduée
-            </Badge>
-          </div>
-          
-          {/* Module Cards - Clean design */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-14">
-            {/* Module GMAO */}
-            <div className="group bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md hover:border-blue-200/60 transition-all duration-300">
-              <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/20">
-                  <Settings className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-1">Module GMAO</h3>
-              <p className="text-sm text-slate-500 font-medium mb-4">Backbone Opérationnel</p>
-              <p className="text-slate-600 leading-relaxed mb-6">
-                Planification des interventions, gestion des techniciens, ordres de travail et maintenance préventive
-              </p>
-              <div className="flex flex-wrap gap-2 mb-6 justify-center">
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Multi-tenant</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">Workflow avancé</span>
-                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">120 cas réels</span>
-              </div>
-              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl py-3 shadow-sm">
-                <Link href="/gmao">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Accéder au GMAO
-                </Link>
-              </Button>
-            </div>
-            
-            {/* Intelligence Cognitive */}
-            <div className="group bg-white border border-slate-200/60 rounded-2xl p-8 shadow-sm hover:shadow-md hover:border-violet-200/60 transition-all duration-300 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="flex items-center justify-center mb-6 relative">
-                <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-110 transition-transform">
-                  <Brain className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-2 group-hover:text-violet-600 transition-colors">Supervision Adaptative</h3>
-              <p className="text-sm text-slate-500 font-semibold mb-4">Contrôle Industriel Avancé</p>
-              <p className="text-slate-600 leading-relaxed mb-6 font-medium">
-                Architecture en 5 modules coopératifs pour une supervision causale et un contrôle dynamique de vos actifs.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-8 justify-center">
-                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Causalité</span>
-                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Multi-Agent</span>
-                <span className="text-xs bg-violet-50 text-violet-600 px-3 py-1 rounded-full font-bold border border-violet-100">Niveaux 0-5</span>
-              </div>
-              <div className="space-y-3">
-                <Button asChild className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl py-6 shadow-md font-bold">
-                  <Link href="/cognitive-infrastructure">
-                    <Brain className="w-5 h-5 mr-2" />
-                    Ouvrir la Supervision
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" className="w-full text-slate-600 hover:bg-slate-50 rounded-xl py-6 font-bold">
-                  <Link href="/diagnostic">
-                    <Cpu className="w-5 h-5 mr-2" />
-                    Diagnostic IA
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Status Indicators - Subtle */}
-          <div className="flex justify-center items-center flex-wrap gap-3 mt-10">
-            <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span>Système adaptatif actif</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-              <Activity className="h-4 w-4 text-blue-500" />
-              <span>IoT temps réel</span>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-              <Shield className="h-4 w-4 text-violet-500" />
-              <span>Autonomie Niveau 1</span>
-            </div>
-            {activeAlerts > 0 && (
-              <div className="flex items-center space-x-2 text-sm text-amber-700 bg-amber-50 px-4 py-2 rounded-full border border-amber-200">
-                <AlertTriangle className="h-4 w-4" />
-                <span>{activeAlerts} alertes actives</span>
-              </div>
-            )}
-          </div>
 
-          {/* Admin link - discreet */}
-          <div className="flex justify-center mt-6">
-            <Link href="/admin-login">
-              <button className="text-xs text-slate-400 hover:text-slate-600 transition-colors duration-200 px-3 py-1">
-                Administration Plateforme
+      <ModernNavigation />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+        {/* ── Trial Banner ────────────────────────────────── */}
+        {isTrialActive && trialDays <= 7 && (
+          <div className={`mb-6 rounded-2xl border px-5 py-4 flex items-center justify-between gap-4 ${trialDays <= 3 ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-200"}`}>
+            <div className="flex items-center gap-3">
+              <Clock className={`w-5 h-5 ${trialDays <= 3 ? "text-rose-500" : "text-amber-500"}`} />
+              <span className={`text-sm font-medium ${trialDays <= 3 ? "text-rose-700" : "text-amber-700"}`}>
+                Essai gratuit — {trialDays} jour{trialDays > 1 ? "s" : ""} restant{trialDays > 1 ? "s" : ""}
+              </span>
+            </div>
+            <Link href="/subscription">
+              <Button size="sm" className={trialDays <= 3 ? "bg-rose-600 hover:bg-rose-500" : "bg-amber-600 hover:bg-amber-500"}>
+                Activer un plan
+                <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* ── Welcome Header ──────────────────────────────── */}
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="text-slate-500 text-sm mb-1">{getGreeting()},</p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-800">
+                {displayName} <span className="wave" role="img" aria-label="wave">👋</span>
+              </h1>
+              <p className="text-slate-500 mt-1 text-sm">
+                {new Date().toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-2 rounded-full shadow-sm text-sm text-slate-600">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                Système actif
+              </div>
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-2 rounded-full shadow-sm text-sm text-slate-600">
+                <Activity className="w-4 h-4 text-blue-500" />
+                IoT temps réel
+              </div>
+              {activeAlerts > 0 && (
+                <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full shadow-sm text-sm border ${criticalAlerts > 0 ? "bg-rose-50 border-rose-200 text-rose-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
+                  <AlertTriangle className="w-4 h-4" />
+                  {activeAlerts} alerte{activeAlerts > 1 ? "s" : ""}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Quick Stats ─────────────────────────────────── */}
+        <QuickStats />
+
+        {/* ── Quick Module Grid ───────────────────────────── */}
+        <div className="mb-12 mt-10">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-slate-800">Accès rapide</h2>
+            <Link href="/gmao">
+              <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                Tout voir <ChevronRight className="w-4 h-4" />
               </button>
             </Link>
           </div>
-        </div>
-
-        {/* Quick Stats Dashboard */}
-        <QuickStats />
-
-        {/* Architecture Cognitive Industrielle Section */}
-        <div className="mb-16">
-          <div className="text-center mb-10">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-200 mb-4">
-              Supervision & Contrôle Adaptatif
-            </span>
-            <h2 className="text-3xl font-bold text-slate-800 mb-3">
-              Architecture de Supervision Adaptative
-            </h2>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              5 modules coopératifs avec modélisation causale dynamique et autonomie graduée
-            </p>
-          </div>
-          
-          {/* Architecture highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            <Card className="border border-slate-200/60 shadow-sm bg-white">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Brain className="w-6 h-6 text-rose-600" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {quickModules.map(({ href, icon: Icon, label, sub, color, bg, border }) => (
+              <Link key={href} href={href}>
+                <div className={`group bg-gradient-to-br ${bg} border ${border} rounded-2xl p-4 hover:scale-[1.04] transition-all duration-200 cursor-pointer h-full`}>
+                  <div className={`w-10 h-10 bg-${color}-500/15 border border-${color}-500/25 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                    <Icon className={`w-5 h-5 text-${color}-600`} />
+                  </div>
+                  <div className="text-sm font-semibold text-slate-800 leading-tight mb-0.5">{label}</div>
+                  <div className="text-xs text-slate-500">{sub}</div>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Modèle Causal</h3>
-                <p className="text-sm text-slate-600">Graphe de connaissances, relations pondérées, prédiction cascade</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-slate-200/60 shadow-sm bg-white">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-6 h-6 text-sky-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Knowledge Graph</h3>
-                <p className="text-sm text-slate-600">48+ noeuds, 46+ arêtes, raisonnement causal</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-slate-200/60 shadow-sm bg-white">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-violet-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Autonomie Graduée</h3>
-                <p className="text-sm text-slate-600">Niveaux 0-5, du monitoring à l'autonomie complète</p>
-              </CardContent>
-            </Card>
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* Feature Cards Grid */}
-        <div className="mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold text-slate-800 mb-3">
-              Modules & Fonctionnalités
-            </h2>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-              Découvrez toutes les capacités du système de supervision adaptatif
-            </p>
+        {/* ── Main Module Cards ───────────────────────────── */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold text-slate-800 mb-5">Modules principaux</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {mainModules.map((m) => (
+              <div key={m.href} className="group bg-white border border-slate-200/60 rounded-2xl p-7 shadow-sm hover:shadow-md hover:border-slate-300/60 transition-all duration-300">
+                <div className="flex items-center gap-4 mb-5">
+                  <div className={`w-14 h-14 bg-gradient-to-br from-${m.color}-500 to-${m.color}-600 rounded-xl flex items-center justify-center shadow-lg shadow-${m.color}-500/20 group-hover:scale-105 transition-transform`}>
+                    <m.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-bold text-slate-800 group-hover:text-${m.color}-600 transition-colors`}>{m.title}</h3>
+                    <p className="text-sm text-slate-500">{m.subtitle}</p>
+                  </div>
+                </div>
+                <p className="text-slate-600 leading-relaxed mb-5 text-sm">{m.desc}</p>
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {m.tags.map((t) => (
+                    <span key={t} className={`text-xs bg-${m.color}-50 text-${m.color}-600 border border-${m.color}-100 px-3 py-1 rounded-full font-medium`}>{t}</span>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <Button asChild className={`w-full bg-${m.color}-600 hover:bg-${m.color}-700 rounded-xl`}>
+                    <Link href={m.href}>
+                      <m.icon className="w-4 h-4 mr-2" />
+                      {m.cta}
+                    </Link>
+                  </Button>
+                  {m.cta2 && (
+                    <Button asChild variant="ghost" className="w-full text-slate-600 hover:bg-slate-50 rounded-xl">
+                      <Link href={m.cta2.href}>
+                        <m.cta2.icon className="w-4 h-4 mr-2" />
+                        {m.cta2.label}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Architecture Cards ──────────────────────────── */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Architecture de Supervision</h2>
+              <p className="text-slate-500 text-sm">5 modules coopératifs avec modélisation causale dynamique</p>
+            </div>
+            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Autonomie Niveau 1
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: Brain, title: "Modèle Causal", desc: "Graphe de connaissances, relations pondérées, prédiction cascade", color: "rose", bg: "bg-rose-50" },
+              { icon: Zap, title: "Knowledge Graph", desc: "48+ nœuds, 46+ arêtes, raisonnement causal temps réel", color: "sky", bg: "bg-sky-50" },
+              { icon: Shield, title: "Autonomie Graduée", desc: "Niveaux 0–5, du monitoring à l'action corrective autonome", color: "violet", bg: "bg-violet-50" },
+            ].map(({ icon: Icon, title, desc, color, bg }) => (
+              <Card key={title} className="border border-slate-200/60 shadow-sm bg-white hover:shadow-md transition-shadow">
+                <CardContent className="p-5 text-center">
+                  <div className={`w-11 h-11 ${bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                    <Icon className={`w-5 h-5 text-${color}-600`} />
+                  </div>
+                  <h3 className="text-base font-semibold text-slate-800 mb-1">{title}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Feature Cards ───────────────────────────────── */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Modules & Fonctionnalités</h2>
+              <p className="text-slate-500 text-sm">Toutes les capacités du système de supervision</p>
+            </div>
           </div>
           <FeatureCards />
         </div>
 
-        {/* Live Performance Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-16">
+        {/* ── Live + Activity ─────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           <Card className="border border-slate-200/60 shadow-sm bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-xl text-slate-800">
-                <TrendingUp className="h-5 w-5 mr-3 text-blue-600" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg text-slate-800">
+                <TrendingUp className="h-5 w-5 mr-2.5 text-blue-600" />
                 Performance en Temps Réel
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-5">
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-slate-600">Disponibilité Multi-Tenant</span>
-                  <span className="text-2xl font-bold text-slate-800">99.9%</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-slate-600">Cas Industriels Traités</span>
-                  <span className="text-2xl font-bold text-slate-800">1,540</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-slate-600">Précision IA Ensemble</span>
-                  <span className="text-2xl font-bold text-slate-800">98.2%</span>
-                </div>
+              <div className="space-y-4">
+                {[
+                  { label: "Disponibilité Multi-Tenant", value: "99.9%", sub: "SLA garanti" },
+                  { label: "Cas Industriels Traités", value: "1 540", sub: "Depuis le démarrage" },
+                  { label: "Précision IA Ensemble", value: "98.2%", sub: "Dernière validation" },
+                ].map(({ label, value, sub }) => (
+                  <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                    <div>
+                      <div className="text-sm text-slate-700 font-medium">{label}</div>
+                      <div className="text-xs text-slate-400">{sub}</div>
+                    </div>
+                    <span className="text-2xl font-bold text-slate-800">{value}</span>
+                  </div>
+                ))}
                 <Link href="/advanced-reporting">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl mt-4">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl mt-2">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Voir Analytics
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -273,36 +300,29 @@ export default function ModernHome() {
           </Card>
 
           <Card className="border border-slate-200/60 shadow-sm bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-xl text-slate-800">
-                <Activity className="h-5 w-5 mr-3 text-violet-600" />
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg text-slate-800">
+                <Activity className="h-5 w-5 mr-2.5 text-violet-600" />
                 Activité Récente
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 flex-1">Nouvel utilisateur créé</span>
-                  <span className="text-xs text-slate-400">il y a 2min</span>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 flex-1">Email d'identifiants envoyé</span>
-                  <span className="text-xs text-slate-400">il y a 3min</span>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-2 h-2 bg-violet-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 flex-1">Diagnostic ML - 98% confiance</span>
-                  <span className="text-xs text-slate-400">il y a 5min</span>
-                </div>
-                <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                  <span className="text-sm text-slate-700 flex-1">Maintenance préventive planifiée</span>
-                  <span className="text-xs text-slate-400">il y a 8min</span>
-                </div>
+              <div className="space-y-2">
+                {[
+                  { dot: "bg-emerald-500", text: "Nouvel utilisateur créé", time: "il y a 2min" },
+                  { dot: "bg-blue-500", text: "Email d'identifiants envoyé", time: "il y a 3min" },
+                  { dot: "bg-violet-500", text: "Diagnostic ML — 98% confiance", time: "il y a 5min" },
+                  { dot: "bg-amber-500", text: "Maintenance préventive planifiée", time: "il y a 8min" },
+                  { dot: "bg-rose-500", text: "Alerte capteur vibration résolue", time: "il y a 12min" },
+                ].map(({ dot, text, time }, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100/80 transition-colors">
+                    <div className={`w-2 h-2 ${dot} rounded-full flex-shrink-0`} />
+                    <span className="text-sm text-slate-700 flex-1">{text}</span>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">{time}</span>
+                  </div>
+                ))}
                 <Link href="/iot-gamification">
-                  <Button className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl mt-4">
+                  <Button className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl mt-2">
                     <Activity className="h-4 w-4 mr-2" />
                     Monitoring IoT
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -313,43 +333,40 @@ export default function ModernHome() {
           </Card>
         </div>
 
-        {/* Quick Access Section */}
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-slate-800 mb-6">Accès Rapide</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/profiles">
-              <Button variant="outline" className="h-20 w-full rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50/50 transition-all">
-                <div className="text-center">
-                  <Users className="h-6 w-6 mx-auto mb-2 text-blue-600" />
-                  <span className="text-sm font-medium text-slate-700">Utilisateurs</span>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/documentation">
-              <Button variant="outline" className="h-20 w-full rounded-xl border border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all">
-                <div className="text-center">
-                  <Settings className="h-6 w-6 mx-auto mb-2 text-emerald-600" />
-                  <span className="text-sm font-medium text-slate-700">Documentation</span>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/support-chatbot">
-              <Button variant="outline" className="h-20 w-full rounded-xl border border-slate-200 hover:border-violet-200 hover:bg-violet-50/50 transition-all">
-                <div className="text-center">
-                  <Brain className="h-6 w-6 mx-auto mb-2 text-violet-600" />
-                  <span className="text-sm font-medium text-slate-700">Assistant IA</span>
-                </div>
-              </Button>
-            </Link>
-            <Button variant="outline" disabled className="h-20 rounded-xl border border-slate-200 opacity-50">
-              <div className="text-center">
-                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-slate-400" />
-                <span className="text-sm font-medium text-slate-500">Bientôt disponible</span>
-              </div>
-            </Button>
+        {/* ── Bottom quick access ─────────────────────────── */}
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 mb-5">Outils & Ressources</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { href: "/profiles", icon: Users, label: "Utilisateurs", color: "blue" },
+              { href: "/documentation", icon: BookOpen, label: "Documentation", color: "emerald" },
+              { href: "/support-chatbot", icon: MessageSquare, label: "Assistant IA", color: "violet" },
+              { href: "/advanced-reporting", icon: BarChart3, label: "Rapports", color: "amber" },
+            ].map(({ href, icon: Icon, label, color }) => (
+              <Link key={href} href={href}>
+                <Button
+                  variant="outline"
+                  className={`h-20 w-full rounded-xl border border-slate-200 hover:border-${color}-200 hover:bg-${color}-50/50 transition-all`}
+                >
+                  <div className="text-center">
+                    <Icon className={`h-5 w-5 mx-auto mb-1.5 text-${color}-600`} />
+                    <span className="text-sm font-medium text-slate-700">{label}</span>
+                  </div>
+                </Button>
+              </Link>
+            ))}
           </div>
         </div>
-        
+
+        {/* Admin link */}
+        <div className="flex justify-center mt-10">
+          <Link href="/admin-login">
+            <button className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1">
+              Administration Plateforme
+            </button>
+          </Link>
+        </div>
+
       </main>
     </div>
   );
