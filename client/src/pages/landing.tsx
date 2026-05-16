@@ -28,12 +28,15 @@ import {
   Menu,
   X,
   Download,
+  Mail,
+  Phone,
 } from "lucide-react";
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [counter, setCounter] = useState({ uptime: 0, cases: 0, nodes: 0, accuracy: 0 });
+  const [showSalesModal, setShowSalesModal] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -450,13 +453,22 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href={p.id === "enterprise" ? "/contact" : `/register?plan=${p.id}`}>
+                {p.id === "enterprise" ? (
                   <Button
-                    className={`w-full rounded-xl ${p.popular ? "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" : "bg-slate-800 hover:bg-slate-700 border border-slate-700"}`}
+                    onClick={() => setShowSalesModal(true)}
+                    className="w-full rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700"
                   >
                     {p.cta}
                   </Button>
-                </Link>
+                ) : (
+                  <Link href={`/register?plan=${p.id}`}>
+                    <Button
+                      className={`w-full rounded-xl ${p.popular ? "bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20" : "bg-slate-800 hover:bg-slate-700 border border-slate-700"}`}
+                    >
+                      {p.cta}
+                    </Button>
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -569,6 +581,76 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── Modal Contact Commercial ─────────────────────────── */}
+      {showSalesModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShowSalesModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setShowSalesModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-500/30">
+                <Phone className="w-6 h-6 text-blue-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Contactez nos ventes</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Notre équipe commerciale vous répond sous 24h pour construire votre offre sur-mesure.
+              </p>
+            </div>
+
+            {/* Contact info */}
+            <div className="space-y-4">
+              <a
+                href="mailto:contact@mantrix-t.com"
+                className="flex items-center gap-4 rounded-xl border border-slate-700 bg-slate-800 p-4 hover:border-blue-500/50 hover:bg-slate-800/80 transition-all group"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20">
+                  <Mail className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">Email commercial</p>
+                  <p className="text-sm font-medium text-white group-hover:text-blue-300 transition-colors">
+                    contact@mantrix-t.com
+                  </p>
+                </div>
+              </a>
+
+              <a
+                href="tel:+33628352828"
+                className="flex items-center gap-4 rounded-xl border border-slate-700 bg-slate-800 p-4 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all group"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20">
+                  <Phone className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-0.5">Téléphone</p>
+                  <p className="text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+                    +33 6 28 35 28 28
+                  </p>
+                </div>
+              </a>
+            </div>
+
+            <p className="mt-6 text-center text-xs text-slate-600">
+              Lun–Ven · 9h–18h · Heure de Paris
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
