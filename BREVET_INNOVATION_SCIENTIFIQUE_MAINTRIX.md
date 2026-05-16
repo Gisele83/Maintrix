@@ -2,10 +2,11 @@
 # Système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique
 
 **Document de Soumission de Brevet**
-**Version :** 1.0
-**Date :** Février 2026
+**Version :** 2.0
+**Date :** Mai 2026
 **Classification :** G06N (Intelligence Artificielle) / G05B (Systèmes de Contrôle Industriels)
-**Déposant :** [À compléter]
+**Déposant :** Maintrix-T — contact@mantrix-t.com — +33 6 28 35 28 28
+**Référence interne :** MTX-2026-BREVET-001
 
 ---
 
@@ -28,7 +29,7 @@
 
 ## 1. TITRE DE L'INVENTION
 
-**"Système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique"**
+**"Système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique, à autonomie graduée et à apprentissage fédéré multi-sites"**
 
 Titre court : **MAINTRIX — Système de Supervision et Contrôle Adaptatif Industriel**
 
@@ -45,6 +46,8 @@ L'invention s'inscrit dans les classifications internationales suivantes :
 - **G05B 23/02** — Systèmes de surveillance d'état pour machines
 - **G06Q 10/20** — Logistique de maintenance et planification
 - **G06F 16/36** — Graphes de connaissances et ontologies
+- **H04W 4/80** — Communications machine-to-machine pour IoT industriel
+- **G06Q 50/04** — Systèmes de gestion industrielle SaaS multi-tenant
 
 ---
 
@@ -77,6 +80,11 @@ Les systèmes actuels de gestion de maintenance assistée par ordinateur (GMAO) 
 - Raisonnement déductif simple
 - **Limitations** : pas d'apprentissage, pas de fusion multi-sources, pas d'explicabilité structurée, maintenance manuelle des règles
 
+#### 3.1.5 Systèmes de permis de travail et gestion des risques
+- Gestion papier ou logicielle des permis de travail (PTW)
+- Absence de lien dynamique entre permis, diagnostic, et ordre de travail
+- Aucune intégration avec les capteurs IoT ou les systèmes de supervision
+
 ### 3.2 Problème technique non résolu
 
 Aucun système existant ne résout simultanément les problèmes suivants :
@@ -91,11 +99,15 @@ Aucun système existant ne résout simultanément les problèmes suivants :
 
 5. **Absence d'apprentissage structuré** : Les retours terrain (succès/échec des interventions) ne sont pas capitalisés de manière à renforcer les futurs diagnostics. La connaissance est perdue à chaque rotation de personnel.
 
+6. **Déconnexion sécurité-supervision** : Les permis de travail, les analyses des causes racines (RCA) et les évaluations AMDEC ne sont pas reliés dynamiquement aux signaux capteurs ni aux ordres de travail, créant des angles morts sécuritaires.
+
+7. **Cloisonnement du savoir inter-sites** : Dans les groupes industriels multi-sites, chaque site repart de zéro sans bénéficier des apprentissages des autres sites, amplifiant inutilement les coûts de montée en compétence.
+
 ### 3.3 Formulation du problème technique
 
 Le problème technique résolu par la présente invention est le suivant :
 
-> Comment concevoir un système informatique de supervision et de contrôle adaptatif d'équipements industriels qui, à partir de signaux issus de capteurs physiques (vibratoires, thermiques, électriques, pression), soit capable de : (1) détecter les variations anormales de paramètres physiques ; (2) structurer les relations causales entre ces paramètres mesurés et les modes de défaillance mécaniques via un modèle causal dynamique ; (3) générer des signaux de commande destinés à modifier le fonctionnement des équipements industriels ; (4) adapter dynamiquement la structure du modèle causal en fonction des résultats d'interventions techniques effectuées — le tout afin de limiter les dérives techniques, réduire les défaillances en cascade, et stabiliser le comportement opérationnel du parc industriel ?
+> Comment concevoir un système informatique de supervision et de contrôle adaptatif d'équipements industriels qui, à partir de signaux issus de capteurs physiques (vibratoires, thermiques, électriques, pression), soit capable de : (1) détecter les variations anormales de paramètres physiques ; (2) structurer les relations causales entre ces paramètres mesurés et les modes de défaillance mécaniques via un modèle causal dynamique ; (3) générer des signaux de commande destinés à modifier le fonctionnement des équipements industriels ; (4) adapter dynamiquement la structure du modèle causal en fonction des résultats d'interventions techniques effectuées ; (5) intégrer nativement la gestion des permis de travail, les analyses de causes racines, et l'évaluation AMDEC dans une architecture unifiée ; (6) diffuser les apprentissages à travers un réseau de sites industriels par apprentissage fédéré — le tout afin de limiter les dérives techniques, réduire les défaillances en cascade, et stabiliser le comportement opérationnel du parc industriel ?
 
 ---
 
@@ -111,7 +123,11 @@ La présente invention propose un **système informatique de supervision et de c
 
 4. Un **module décisionnel** configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, comprenant un moteur de politiques à 6 niveaux d'autonomie graduée (0-Monitoring à 5-Autonomie Complète), des actions ciblant les systèmes opérationnels (PLC, SCADA, DCS, ERP, GMAO), et un journal d'audit décisionnel complet ;
 
-5. Un **module d'adaptation dynamique** modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe (+0.02/+0.03 en cas de succès, -0.05 en cas d'échec) et capitalisation dans une mémoire de pannes confirmées à compteur d'occurrences.
+5. Un **module d'adaptation dynamique** modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe (+0.02/+0.03 en cas de succès, -0.05 en cas d'échec) et capitalisation dans une mémoire de pannes confirmées à compteur d'occurrences ;
+
+6. Un **module de gestion intégrée de la sécurité opérationnelle** comprenant un système de permis de travail (PTW) à cycle de vie complet (6 types de permis, 8 statuts), une analyse des causes racines (RCA) structurée selon 4 méthodologies (5 Pourquoi, Ishikawa, AMDEC, Arbre de défaillances), et une évaluation AMDEC (Analyse des Modes de Défaillances, de leurs Effets et de leur Criticité) avec calcul automatique de l'Indice de Priorité du Risque (IPR) ;
+
+7. Un **module d'apprentissage fédéré multi-sites** permettant la diffusion sécurisée des connaissances acquises sur un site vers l'ensemble du réseau de sites industriels, sans transfert de données confidentielles, par échange de mises à jour différentielles du modèle causal.
 
 **Lesdits modules coopèrent afin :**
 
@@ -190,7 +206,7 @@ Les résultats sont classés par `confidence × similarity` et les 5 meilleurs s
 Base de données de pannes confirmées avec compteur d'occurrences. Chaque entrée contient une signature de symptômes, un diagnostic validé, et un compteur de confirmations. La confiance augmente avec le nombre de confirmations, créant un mécanisme d'apprentissage par renforcement.
 
 **Source 4 — Structuration par Modèle de Langage** :
-Un modèle de langage (Anthropic Claude) synthétise et structure les résultats des 3 autres sources en un diagnostic cohérent avec recommandations hiérarchisées.
+Un modèle de langage de grande taille (LLM, Anthropic Claude) synthétise et structure les résultats des 3 autres sources en un diagnostic cohérent avec recommandations hiérarchisées, explicabilité et conseils de sécurité.
 
 #### Couche 4 : Orchestration et Exécution (Orchestration & Execution)
 **Responsabilité** : Prise de décision, exécution d'actions, interface avec systèmes opérationnels
@@ -276,6 +292,8 @@ Chaque décision du système est enregistrée avec :
 - Résultat de l'action (rétroaction)
 - Identifiant du tenant (multi-tenant)
 
+---
+
 ### 5.2 Noyau Cognitif et Système Multi-Agent
 
 Le Cognitive Kernel est le composant central de l'invention. Il orchestre :
@@ -305,6 +323,8 @@ Le Kernel exécute une boucle de traitement toutes les 5 secondes :
 2. Détection d'agents inactifs (heartbeat > 60s → statut OFFLINE)
 3. Mise à jour des métriques par couche
 
+---
+
 ### 5.3 Boucle Fermée Cognitive
 
 La méthode `processClosedLoop` implémente une boucle cognitive complète en 6 phases :
@@ -326,6 +346,8 @@ La méthode `processClosedLoop` implémente une boucle cognitive complète en 6 
 - Ajout à l'historique d'apprentissage global (`learningHistory`)
 - Diffusion à tous les agents actifs via message `knowledge_update`
 - Mise à jour des poids du Knowledge Graph si applicable
+
+---
 
 ### 5.4 Modèles Physiques Hybrides
 
@@ -394,6 +416,128 @@ Le système sélectionne automatiquement le modèle physique approprié en fonct
 
 ---
 
+### 5.5 Module de Gestion Intégrée de la Sécurité Opérationnelle
+
+#### 5.5.1 Système de Permis de Travail (PTW — Permit-to-Work)
+
+L'invention comprend un module de gestion du cycle de vie complet des permis de travail, caractérisé par :
+
+**6 types de permis reconnus** :
+| Type | Code | Description |
+|------|------|-------------|
+| Travaux à chaud | `hot_work` | Soudage, découpe, meulage |
+| Travaux en espace confiné | `confined_space` | Cuves, réservoirs, silos |
+| Travaux en hauteur | `height_work` | Échafaudages, toitures |
+| Isolation électrique | `electrical` | Consignation LOTO |
+| Travaux sous pression | `pressure` | Circuits hydrauliques |
+| Travaux sur produits dangereux | `chemical` | CMR, explosifs |
+
+**8 statuts du cycle de vie PTW** :
+`draft` → `pending_review` → `approved` → `active` → `suspended` → `completed` → `cancelled` → `expired`
+
+**Mécanisme d'intégration avec la supervision** : Chaque permis est lié dynamiquement à l'ordre de travail GMAO correspondant, et un contrôle automatique vérifie que le permis est en statut `active` avant toute exécution d'action de niveau d'autonomie ≥ 3 (SUPERVISED_EXECUTION) sur des équipements classifiés à risque.
+
+**Listes de vérification sécurité** : Chaque permis comporte des listes de contrôle (checklists) paramétrables, validées séquentiellement par les parties prenantes (demandeur, responsable sécurité, exécutant).
+
+#### 5.5.2 Analyse des Causes Racines (RCA — Root Cause Analysis)
+
+L'invention comprend un moteur d'analyse structurée des causes racines supportant 4 méthodologies formalisées :
+
+1. **Méthode des 5 Pourquoi** : Arbre de causalité récursif jusqu'à 5 niveaux de profondeur, chaque nœud portant une question, une réponse, et une référence à des données probantes.
+
+2. **Diagramme d'Ishikawa (arête de poisson)** : Structuration des causes en 6 catégories (Méthode, Matière, Main-d'œuvre, Milieu, Matériel, Management) avec pondération de criticité par catégorie.
+
+3. **AMDEC (Analyse des Modes de Défaillances, de leurs Effets et de leur Criticité)** : Calcul de l'Indice de Priorité du Risque selon la formule `IPR = Gravité × Occurrence × Détection`, avec matrice de criticité 5×5 et recommandations automatiques d'actions correctives au-delà du seuil configurable.
+
+4. **Arbre de Défaillances (FTA — Fault Tree Analysis)** : Représentation logique des combinaisons d'événements élémentaires conduisant à un événement redouté, avec portes logiques AND/OR et calcul de probabilité cumulée.
+
+**Intégration avec le Knowledge Graph** : Les causes racines identifiées par RCA alimentent automatiquement le graphe de connaissances via l'ajout de nouveaux nœuds `cause` et d'arêtes `indicates`/`causes` avec poids initialisés.
+
+#### 5.5.3 Suivi de l'Efficacité Globale des Équipements (OEE)
+
+L'invention intègre un module de calcul et de suivi de l'OEE (Overall Equipment Effectiveness) en temps réel, avec :
+
+**Formule OEE** :
+```
+OEE = Disponibilité × Performance × Qualité
+```
+Où :
+- `Disponibilité = (Temps de production planifié - Temps d'arrêt) / Temps de production planifié`
+- `Performance = (Cycles réels × Temps de cycle idéal) / Temps de production disponible`
+- `Qualité = Unités conformes / Unités totales produites`
+
+**Intégration avec la supervision** : Les arrêts détectés par le module d'anomalies alimentent automatiquement le calcul OEE, permettant une corrélation directe entre événements de supervision et impact sur l'efficacité productive.
+
+---
+
+### 5.6 Module de Gestion du Cycle de Vie des Actifs (ALM)
+
+L'invention comprend un module de suivi complet du cycle de vie des actifs industriels depuis leur acquisition jusqu'à leur mise au rebut, caractérisé par :
+
+**Phases du cycle de vie** : `procurement` → `installation` → `commissioning` → `operation` → `maintenance` → `overhaul` → `decommission` → `disposal`
+
+**Score de condition dynamique** : Calculé automatiquement à partir des données capteurs IoT, de l'historique des interventions, des indicateurs MTBF/MTTR, et du modèle physique de dégradation. Le score (0-100) détermine les recommandations de maintenance prédictive.
+
+**Suivi financier intégré** :
+- Coût total de possession (TCO) : coût d'acquisition + coûts de maintenance cumulés + coûts d'arrêt
+- Amortissement automatique (linéaire ou dégressif) sur la durée de vie nominale
+- Déclenchement automatique d'une recommandation de remplacement lorsque le TCO dépasse le coût d'un actif neuf
+
+**Étiquetage automatique des actifs** : Génération automatique de codes QR et étiquettes NFC permettant l'identification rapide sur le terrain via l'application mobile, avec accès direct au dossier de l'actif, son historique de maintenance, et les permis de travail actifs.
+
+---
+
+### 5.7 Notifications Mobiles Push (Web Push VAPID)
+
+L'invention intègre un système de notifications mobiles en temps réel basé sur le protocole Web Push (RFC 8030) avec authentification VAPID (RFC 8292), caractérisé par :
+
+**Types de notifications** :
+| Événement | Destinataire | Priorité |
+|-----------|-------------|---------|
+| Affectation d'ordre de travail | Technicien assigné | Haute |
+| Alerte critique capteur | Responsable de site | Urgente |
+| Échéance maintenance préventive | Planificateur | Normale |
+| Expiration de permis de travail | Demandeur + Sécurité | Urgente |
+| Mise à jour Knowledge Graph | Administrateurs | Basse |
+
+**Architecture** : Abonnements chiffrés stockés en base de données, clés VAPID persistantes pour la continuité des sessions, service worker côté client pour la réception hors connexion.
+
+---
+
+### 5.8 Architecture Multi-Tenant SaaS et Apprentissage Fédéré
+
+#### 5.8.1 Isolation des données (Zero Data Leakage)
+
+Chaque tenant (site industriel ou groupe industriel) dispose d'un espace de données strictement isolé. L'isolation est assurée à 4 niveaux :
+1. **Middleware d'injection** : Le `tenantId` est injecté automatiquement dans chaque requête entrante
+2. **Filtrage au niveau des requêtes de données** : Toutes les requêtes incluent un filtre `WHERE tenantId = ?`
+3. **Validation de réponse** : Chaque réponse est vérifiée avant envoi pour détecter toute fuite inter-tenant
+4. **Journal de métriques par tenant** : Chaque accès est enregistré avec le tenant source
+
+#### 5.8.2 Apprentissage Fédéré Cross-Sites
+
+Le Global Agent implémente un mécanisme d'apprentissage fédéré permettant :
+- L'agrégation de mises à jour différentielles des poids du Knowledge Graph depuis plusieurs sites
+- La diffusion de patterns globaux (nouveaux modes de défaillance, nouvelles relations causales) vers tous les sites participants
+- L'exclusion automatique des données confidentielles (valeurs brutes de capteurs, identités de personnel)
+
+Ce mécanisme permet à un groupe industriel exploitant 50 sites de bénéficier, sur chaque site, de l'ensemble des apprentissages capitalisés sur les 49 autres, sans aucun transfert de données opérationnelles sensibles.
+
+#### 5.8.3 Contrôle d'Accès Basé sur les Rôles (RBAC)
+
+7 rôles formalisés avec permissions granulaires :
+| Rôle | Accès supervision | Accès GMAO | Création PTW | Modification Knowledge Graph |
+|------|------------------|-----------|-------------|------------------------------|
+| `viewer` | Lecture | Non | Non | Non |
+| `technician` | Lecture | Lecture + Exécution OT | Non | Non |
+| `maintenance_planner` | Lecture | Complet | Non | Non |
+| `site_manager` | Complet | Complet | Approbation | Non |
+| `safety_officer` | Complet | Lecture | Complet | Non |
+| `admin` | Complet | Complet | Complet | Complet |
+| `super_admin` | Cross-tenant | Cross-tenant | Cross-tenant | Cross-tenant |
+
+---
+
 ## 6. REVENDICATIONS PRINCIPALES
 
 ### Revendication 1 — Système de supervision et contrôle adaptatif
@@ -429,15 +573,19 @@ e) un **module d'adaptation dynamique** modifiant la structure du modèle causal
 
 - **de stabiliser le comportement opérationnel du parc industriel** : par la boucle fermée à 6 phases (Détection → Diagnostic → Décision → Action → Rétroaction → Apprentissage) qui assure l'amélioration continue du modèle causal et la convergence vers une supervision optimale.
 
+---
+
 ### Revendication 2 — Diagnostic hybride explicable par fusion multi-sources
 
 Système selon la revendication 1, caractérisé en ce que le module de modélisation causale comprend en outre un moteur de diagnostic hybride fusionnant 4 sources de connaissance indépendantes :
 - un moteur de règles expertes formalisées, chaque règle comprenant des patterns d'équipement, des patterns de symptômes, une logique conditionnelle, et un score de confiance ajusté par la couverture symptomatique selon la formule `confidence = base × (0.7 + 0.3 × symptomCoverage)` ;
 - une analyse de similarité historique recherchant dans une base de cas de maintenance réels avec scoring pondéré multi-critères (similarité textuelle 30%, correspondance de symptômes vérifiés 25%, correspondance d'équipement 25%, correspondance d'urgence 10%, base 10%) ;
 - une interrogation d'une mémoire de pannes capitalisée avec compteur de confirmations et signature de symptômes, dont la confiance croît avec le nombre de confirmations terrain ;
-- une structuration par un modèle de langage des résultats fusionnés des 3 sources précédentes ;
+- une structuration par un modèle de langage de grande taille (LLM) des résultats fusionnés des 3 sources précédentes ;
 
 ledit moteur de diagnostic produisant pour chaque diagnostic une chaîne d'évidence (`EvidenceItem[]`) comprenant pour chaque élément un type source parmi 6 catégories (`sensor_data`, `rule_match`, `historical_case`, `knowledge_graph`, `physics_model`, `agent_report`), un score de confiance, et une description en langage naturel explicable.
+
+---
 
 ### Revendication 3 — Modèles physiques hybrides à explication causale
 
@@ -450,6 +598,8 @@ Système selon la revendication 1, caractérisé en ce qu'il comprend en outre u
 - un paramétrage en temps réel desdits modèles par les données capteurs de l'interface de réception de signaux ;
 - une génération automatique d'une explication physique causale en langage naturel détaillant les facteurs d'accélération de dégradation identifiés et leurs contributions quantifiées.
 
+---
+
 ### Revendication 4 — Système multi-agent hiérarchique
 
 Système selon la revendication 1, caractérisé en ce qu'il comprend un noyau cognitif orchestrant un système multi-agent hiérarchique comprenant :
@@ -458,6 +608,8 @@ Système selon la revendication 1, caractérisé en ce qu'il comprend un noyau c
 - un agent de niveau global (un pour l'ensemble du parc), assurant l'apprentissage fédéré et la diffusion des patterns globaux via une mémoire partagée (`globalMemory`) ;
 
 lesdits agents communiquant via des messages typés avec 9 types de messages (`sensor_update`, `anomaly_alert`, `diagnosis_request`, `diagnosis_result`, `action_command`, `feedback_report`, `knowledge_update`, `model_sync`, `heartbeat`), 4 niveaux de priorité (`low`, `normal`, `high`, `critical`), et un mécanisme d'acquittement, les messages de priorité `critical` étant traités immédiatement en bypass de la file d'attente.
+
+---
 
 ### Revendication 5 — Gouvernance et traçabilité décisionnelle
 
@@ -468,37 +620,70 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
 
 ---
 
+### Revendication 6 — Gestion intégrée des permis de travail et analyse des causes racines
+
+Système selon la revendication 1, caractérisé en ce qu'il comprend un module de sécurité opérationnelle intégrée comprenant :
+
+a) un **système de permis de travail (PTW)** gérant le cycle de vie complet de 6 types de permis (travaux à chaud, espace confiné, hauteur, isolation électrique, pression, produits dangereux), à travers 8 statuts formalisés, avec listes de vérification sécurité paramétrables et vérification automatique du statut du permis avant toute exécution autonome sur équipement à risque ;
+
+b) un **module d'analyse des causes racines (RCA)** supportant 4 méthodologies structurées (5 Pourquoi, Ishikawa, AMDEC, Arbre de Défaillances), chaque analyse produisant des plans d'action correctifs et alimentant automatiquement le graphe de connaissances avec de nouveaux nœuds causaux ;
+
+c) un **module AMDEC** calculant l'Indice de Priorité du Risque selon `IPR = Gravité × Occurrence × Détection` avec matrice de criticité configurable et déclenchement automatique d'actions correctives au-delà du seuil défini ;
+
+d) un **module OEE** calculant en temps réel l'efficacité globale des équipements `OEE = Disponibilité × Performance × Qualité`, alimenté automatiquement par les événements de supervision.
+
+---
+
+### Revendication 7 — Architecture SaaS multi-tenant à apprentissage fédéré
+
+Système selon la revendication 1, caractérisé en ce qu'il implémente une architecture SaaS multi-tenant comprenant :
+- un mécanisme d'isolation stricte des données inter-tenant à 4 niveaux (injection de tenantId, filtrage des requêtes, validation des réponses, journalisation des accès) garantissant une protection totale contre les fuites de données ;
+- un mécanisme d'apprentissage fédéré permettant la diffusion de mises à jour différentielles du graphe de connaissances entre sites sans transfert de données opérationnelles sensibles ;
+- un contrôle d'accès basé sur les rôles (RBAC) avec 7 rôles formalisés et permissions granulaires.
+
+---
+
 ## 7. REVENDICATIONS DÉPENDANTES
 
 ### 7.1 Dépendantes de la Revendication 1
 
-**Revendication 6** : Système selon la revendication 1, caractérisé en ce que l'interface matérielle de réception de signaux (a) supporte au moins 5 protocoles d'acquisition (MQTT, Modbus, OPC-UA, LoRaWAN, simulation) et produit pour chaque signal un indicateur de qualité permettant au module de détection (b) de pondérer la fiabilité des anomalies détectées en fonction de la qualité des signaux sources.
+**Revendication 8** : Système selon la revendication 1, caractérisé en ce que l'interface matérielle de réception de signaux (a) supporte au moins 5 protocoles d'acquisition (MQTT, Modbus, OPC-UA, LoRaWAN, simulation) et produit pour chaque signal un indicateur de qualité permettant au module de détection (b) de pondérer la fiabilité des anomalies détectées en fonction de la qualité des signaux sources.
 
-**Revendication 7** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend des nœuds de type `cause` portant une propriété `mtbf` (temps moyen entre pannes) et des nœuds de type `intervention` portant des propriétés `duration` (durée estimée) et `cost` (coût estimé), permettant un calcul coût-bénéfice automatique des interventions recommandées.
+**Revendication 9** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend des nœuds de type `cause` portant une propriété `mtbf` (temps moyen entre pannes) et des nœuds de type `intervention` portant des propriétés `duration` (durée estimée) et `cost` (coût estimé), permettant un calcul coût-bénéfice automatique des interventions recommandées.
 
-**Revendication 8** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend un algorithme d'identification de facteurs contextuels aggravants (`findContextualFactors`) par recherche des arêtes `correlates_with` entrantes vers une cause identifiée, permettant d'enrichir le diagnostic avec des facteurs environnementaux (température ambiante, environnement poussiéreux, surcharge de production, maintenance retardée, instabilité électrique).
+**Revendication 10** : Système selon la revendication 1, caractérisé en ce que le module de modélisation causale (c) comprend un algorithme d'identification de facteurs contextuels aggravants (`findContextualFactors`) par recherche des arêtes `correlates_with` entrantes vers une cause identifiée, permettant d'enrichir le diagnostic avec des facteurs environnementaux (température ambiante, environnement poussiéreux, surcharge de production, maintenance retardée, instabilité électrique).
 
-**Revendication 9** : Système selon la revendication 1, caractérisé en ce que le module d'adaptation dynamique (e) diffuse les apprentissages à l'ensemble des agents actifs du système via un mécanisme de communication inter-agents comprenant 9 types de messages typés, 4 niveaux de priorité, et un mécanisme d'acquittement, les messages de priorité critique étant traités immédiatement en bypass de la file d'attente.
+**Revendication 11** : Système selon la revendication 1, caractérisé en ce que le module d'adaptation dynamique (e) diffuse les apprentissages à l'ensemble des agents actifs du système via un mécanisme de communication inter-agents comprenant 9 types de messages typés, 4 niveaux de priorité, et un mécanisme d'acquittement, les messages de priorité critique étant traités immédiatement en bypass de la file d'attente.
 
 ### 7.2 Dépendantes de la Revendication 2
 
-**Revendication 10** : Système selon la revendication 2, caractérisé en ce que le moteur de règles expertes comprend au moins 10 règles couvrant les défaillances industrielles courantes (surchauffe moteur, vibrations anormales, fuite hydraulique, bruit de roulement, défaut électrique, perte de débit pompe, défaut compresseur, défaut convoyeur, défaut réducteur, défaut automate), chaque règle comprenant des étapes de réparation, des avertissements de sécurité, et des outils nécessaires.
+**Revendication 12** : Système selon la revendication 2, caractérisé en ce que le moteur de règles expertes comprend au moins 10 règles couvrant les défaillances industrielles courantes (surchauffe moteur, vibrations anormales, fuite hydraulique, bruit de roulement, défaut électrique, perte de débit pompe, défaut compresseur, défaut convoyeur, défaut réducteur, défaut automate), chaque règle comprenant des étapes de réparation, des avertissements de sécurité, et des outils nécessaires.
 
-**Revendication 11** : Système selon la revendication 2, caractérisé en ce que les résultats des 4 sources sont fusionnés par un pipeline parallèle (`Promise.all`) suivi d'une déduplication par clé diagnostique, d'un classement par confiance, et d'un enrichissement contextuel par les signaux de l'équipement (criticité, état opérationnel, interventions récentes, compteurs de heures machine).
+**Revendication 13** : Système selon la revendication 2, caractérisé en ce que les résultats des 4 sources sont fusionnés par un pipeline parallèle (`Promise.all`) suivi d'une déduplication par clé diagnostique, d'un classement par confiance, et d'un enrichissement contextuel par les signaux de l'équipement (criticité, état opérationnel, interventions récentes, compteurs de heures machine).
 
 ### 7.3 Dépendantes de la Revendication 3
 
-**Revendication 12** : Système selon la revendication 3, caractérisé en ce que le modèle de dégradation thermique moteur utilise la loi d'Arrhenius avec un facteur de correction `ArrheniusFactor = exp(-0.1 × (WindingTemp - 105))` combiné à un facteur de correction de surcharge `LoadCorrection = (1/LoadRatio)²` pour LoadRatio > 1.0, et génère une explication quantifiant la contribution de chaque facteur de stress.
+**Revendication 14** : Système selon la revendication 3, caractérisé en ce que le modèle de dégradation thermique moteur utilise la loi d'Arrhenius avec un facteur de correction `ArrheniusFactor = exp(-0.1 × (WindingTemp - 105))` combiné à un facteur de correction de surcharge `LoadCorrection = (1/LoadRatio)²` pour LoadRatio > 1.0, et génère une explication quantifiant la contribution de chaque facteur de stress.
 
-**Revendication 13** : Système selon la revendication 3, caractérisé en ce que le modèle de cavitation de pompe calcule la marge NPSH (Net Positive Suction Head) selon `NPSHAvailable = InletPressure - VaporPressure` et `NPSHRequired = 2.0 + (FlowRate / 100) × 0.5`, et génère un risque de cavitation quantifié avec explication physique.
+**Revendication 15** : Système selon la revendication 3, caractérisé en ce que le modèle de cavitation de pompe calcule la marge NPSH (Net Positive Suction Head) selon `NPSHAvailable = InletPressure - VaporPressure` et `NPSHRequired = 2.0 + (FlowRate / 100) × 0.5`, et génère un risque de cavitation quantifié avec explication physique.
 
 ### 7.4 Dépendantes de la Revendication 4
 
-**Revendication 14** : Système selon la revendication 4, caractérisé en ce que les agents de niveau équipement disposent d'une mémoire locale (`localMemory`) stockant les anomalies détectées et l'historique des actions, et en ce que l'agent de niveau global maintient une mémoire partagée (`globalMemory`) contenant le graphe de connaissances et l'historique d'apprentissage, permettant un apprentissage fédéré cross-sites.
+**Revendication 16** : Système selon la revendication 4, caractérisé en ce que les agents de niveau équipement disposent d'une mémoire locale (`localMemory`) stockant les anomalies détectées et l'historique des actions, et en ce que l'agent de niveau global maintient une mémoire partagée (`globalMemory`) contenant le graphe de connaissances et l'historique d'apprentissage, permettant un apprentissage fédéré cross-sites.
 
 ### 7.5 Dépendantes de la Revendication 5
 
-**Revendication 15** : Système selon la revendication 5, caractérisé en ce que le journal d'audit décisionnel est structuré selon un format normalisé comprenant pour chaque entrée : un identifiant unique, un horodatage, la référence au diagnostic source, la décision prise parmi 5 options (`approved`, `rejected`, `escalated`, `deferred`, `auto-executed`), le niveau d'autonomie, la raison, le résumé des évidences, le niveau de risque, la politique appliquée, l'indicateur de surcharge humaine, le résultat d'action, et l'identifiant du tenant, assurant une conformité complète aux exigences de traçabilité industrielle (ISO 55000, CCTP).
+**Revendication 17** : Système selon la revendication 5, caractérisé en ce que le journal d'audit décisionnel est structuré selon un format normalisé comprenant pour chaque entrée : un identifiant unique, un horodatage, la référence au diagnostic source, la décision prise parmi 5 options (`approved`, `rejected`, `escalated`, `deferred`, `auto-executed`), le niveau d'autonomie, la raison, le résumé des évidences, le niveau de risque, la politique appliquée, l'indicateur de surcharge humaine, le résultat d'action, et l'identifiant du tenant, assurant une conformité complète aux exigences de traçabilité industrielle (ISO 55000, CCTP).
+
+### 7.6 Dépendantes de la Revendication 6
+
+**Revendication 18** : Système selon la revendication 6, caractérisé en ce que le système PTW comprend un mécanisme de blocage automatique de toute exécution autonome (niveau d'autonomie ≥ 3) sur des équipements classifiés à risque en l'absence d'un permis de travail en statut `active`, ledit blocage générant automatiquement une notification d'escalade vers le responsable sécurité.
+
+**Revendication 19** : Système selon la revendication 6, caractérisé en ce que le module RCA alimente automatiquement le graphe de connaissances avec les causes racines nouvellement identifiées, en créant des nœuds de type `cause` et des arêtes `indicates`/`causes` avec poids initialisés à 0.5, lesdites arêtes étant ensuite renforcées ou affaiblies par le mécanisme d'apprentissage par renforcement du module d'adaptation dynamique.
+
+### 7.7 Dépendantes de la Revendication 7
+
+**Revendication 20** : Système selon la revendication 7, caractérisé en ce que le mécanisme d'apprentissage fédéré transmet uniquement des mises à jour différentielles de poids du graphe de connaissances (`ΔWeight` par arête), sans aucune donnée opérationnelle brute, garantissant la confidentialité des données de production de chaque site participant.
 
 ---
 
@@ -509,7 +694,7 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                 COUCHE 6 : GOUVERNANCE & CONFIANCE              │
-│  [Audit Décisionnel] [Conformité] [Contrôle d'Accès] [Trust]   │
+│  [Audit Décisionnel] [Conformité] [RBAC 7 rôles] [Trust]       │
 ├─────────────────────────────────────────────────────────────────┤
 │              COUCHE 5 : APPRENTISSAGE & CONNAISSANCES           │
 │  [Knowledge Graph Auto-Apprenant] [Mémoire de Pannes]          │
@@ -517,12 +702,12 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
 ├─────────────────────────────────────────────────────────────────┤
 │            COUCHE 4 : ORCHESTRATION & EXÉCUTION                 │
 │  [Moteur de Politiques] [Autonomie Graduée 0-5]                │
-│  [Actions GMAO/PLC/SCADA] [Site Agent]                         │
+│  [Actions GMAO/PLC/SCADA] [PTW Vérification] [Site Agent]      │
 ├─────────────────────────────────────────────────────────────────┤
 │                COUCHE 3 : NOYAU COGNITIF                        │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │  Règles  │ │Historique│ │ Mémoire  │ │    IA    │          │
-│  │ Expertes │ │ Similarité│ │ Pannes  │ │ Structur.│          │
+│  │  Règles  │ │Historique│ │ Mémoire  │ │    LLM   │          │
+│  │ Expertes │ │120+ cas  │ │ Pannes   │ │ Structur.│          │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘          │
 │       └─────────────┴────────────┴─────────────┘                │
 │                    FUSION + EXPLICABILITÉ                        │
@@ -540,28 +725,31 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
 
 ```
     ┌──────────┐
-    │DÉTECTION │ ← Signaux capteurs
+    │DÉTECTION │ ← Signaux capteurs (SensorSignal)
     └────┬─────┘
          ↓
     ┌──────────┐
-    │DIAGNOSTIC│ ← Fusion 4 sources + Knowledge Graph
+    │DIAGNOSTIC│ ← Fusion 4 sources + Knowledge Graph + Modèles physiques
+    └────┬─────┘
+         ↓
+    ┌──────────────────┐
+    │ DÉCISION         │ ← Moteur de politiques + Vérification PTW
+    │ Autonomie 0-5    │
+    └────┬─────────────┘
+         ↓
+    ┌──────────┐
+    │  ACTION  │ → GMAO / PLC / SCADA / Manuel / Notification Mobile
     └────┬─────┘
          ↓
     ┌──────────┐
-    │ DÉCISION │ ← Moteur de politiques + Autonomie graduée
+    │RÉTROACT. │ → Journal d'audit décisionnel (ISO 55000 / CCTP)
     └────┬─────┘
          ↓
-    ┌──────────┐
-    │  ACTION  │ → GMAO / PLC / SCADA / Manuel
-    └────┬─────┘
-         ↓
-    ┌──────────┐
-    │RÉTROACT. │ → Journal d'audit décisionnel
-    └────┬─────┘
-         ↓
-    ┌──────────┐
-    │APPRENTIS.│ → Mise à jour Knowledge Graph + Diffusion agents
-    └────┬─────┘
+    ┌──────────────────────────────────┐
+    │APPRENTISSAGE                     │ → Mise à jour Knowledge Graph
+    │  + Diffusion agents              │ → RCA alimentée
+    │  + Fédéré cross-sites            │ → Mémoire de pannes
+    └────┬─────────────────────────────┘
          │
          └──────→ (retour DÉTECTION)
 ```
@@ -574,9 +762,12 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
                                                             │
                                                      causes(0.60)
                                                             ↓
-                                                      [Usure roulement]──resolves(0.95)──→[Remplacement roulement]
+                                    [Usure roulement]──resolves(0.95)──→[Remplacement roulement]
                                                             ↑
-                             [Maintenance retardée]──correlates_with(0.85)──→[Défaut lubrification]
+                    [Maintenance retardée]──correlates_with(0.85)──→[Défaut lubrification]
+
+  Apprentissage : Après intervention réussie → poids indicates +0.02, resolves +0.03
+                  Après intervention échouée → poids -0.05
 ```
 
 ### Figure 4 — Système Multi-Agent Hiérarchique
@@ -586,31 +777,78 @@ Système selon la revendication 1, caractérisé en ce que le module décisionne
                     │   GLOBAL AGENT    │
                     │ (Cross-Sites)     │
                     │ Apprentissage     │
-                    │ Fédéré            │
+                    │ Fédéré (ΔWeights) │
                     └────────┬──────────┘
-                             │ knowledge_update
+                             │ knowledge_update (mises à jour diff.)
                     ┌────────┴──────────┐
                     │    SITE AGENT     │
                     │ (Par Site)        │
                     │ Coordination      │
-                    │ Orchestration     │
+                    │ PTW + OEE         │
                     └────────┬──────────┘
-                             │ messages typés
+                             │ messages typés (9 types, 4 priorités)
               ┌──────────────┼──────────────┐
      ┌────────┴────┐  ┌─────┴──────┐  ┌────┴────────┐
      │ EQUIP. AGT  │  │ EQUIP. AGT │  │ EQUIP. AGT  │
      │ Machine 1   │  │ Machine 2  │  │ Machine N   │
      │ [localMem]  │  │ [localMem] │  │ [localMem]  │
+     │ [seuils]    │  │ [seuils]   │  │ [seuils]    │
      └─────────────┘  └────────────┘  └─────────────┘
+```
+
+### Figure 5 — Cycle de Vie PTW intégré à la Supervision
+
+```
+    Anomalie critique détectée
+           │
+           ↓
+    Diagnostic automatique
+           │
+           ↓
+    Décision : niveau autonomie ≥ 3 sur équipement à risque ?
+           │                        │
+          OUI                      NON
+           │                        │
+           ↓                        ↓
+    Vérification PTW            Action directe
+    statut = 'active' ?
+     │            │
+    OUI           NON
+     │             │
+     ↓             ↓
+   Action    Bloquer + Créer
+  autorisée  demande PTW +
+             Notif. Sécurité
+```
+
+### Figure 6 — Architecture SaaS Multi-Tenant
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   COUCHE GLOBALE                         │
+│           [Global Agent — Apprentissage Fédéré]         │
+│           [ΔWeights seulement — 0 donnée brute]         │
+└────────┬────────────────────┬───────────────────────────┘
+         │                    │
+┌────────┴──────┐    ┌────────┴──────┐    ┌───────────────┐
+│  TENANT A     │    │  TENANT B     │    │  TENANT C     │
+│  Site Alpha   │    │  Site Beta    │    │  Site Gamma   │
+│  [Données A]  │    │  [Données B]  │    │  [Données C]  │
+│  tenantId=A   │    │  tenantId=B   │    │  tenantId=C   │
+│               │    │               │    │               │
+│  Isolation :  │    │  Isolation :  │    │  Isolation :  │
+│  4 niveaux    │    │  4 niveaux    │    │  4 niveaux    │
+└───────────────┘    └───────────────┘    └───────────────┘
+   Zero Data Leakage — RGPD — Hébergé en Europe
 ```
 
 ---
 
 ## 9. EXEMPLES DE RÉALISATION
 
-### Exemple 1 : Diagnostic d'une surchauffe moteur
+### Exemple 1 : Diagnostic d'une surchauffe moteur avec blocage PTW
 
-**Situation** : Un moteur électrique (ID: EQ-001) présente une température de bobinage de 95°C (seuil critique: 90°C) et un courant de 110A (courant nominal: 100A).
+**Situation** : Un moteur électrique (ID: EQ-001) présente une température de bobinage de 95°C (seuil critique: 90°C) et un courant de 110A (courant nominal: 100A). L'équipement est classifié à risque (isolation électrique requise).
 
 **Phase 1 — Détection** :
 L'Equipment Agent de EQ-001 détecte le dépassement de seuil et génère une anomalie :
@@ -629,18 +867,23 @@ Le Noyau Cognitif fusionne 4 sources :
 - 3 cas historiques similaires trouvés (confidence moyenne: 0.78)
 - 2 pannes confirmées en mémoire pour ce type d'équipement
 - Knowledge Graph trace : Moteur → Surchauffe → Défaut lubrification → Relubrification
+- Modèle Arrhenius : usure isolation = 78%, durée de vie résiduelle = 420h
 
 **Phase 3 — Décision** :
-Politique "Critical Equipment Failure Prevention" évaluée : risque = critical, confiance = 0.88 ≥ 0.80 → AUTO_EXECUTED
+Politique "Critical Equipment Failure Prevention" évaluée : risque = critical, confiance = 0.88 ≥ 0.80 → tentative AUTO_EXECUTED.
+Vérification PTW : équipement classifié `electrical`, aucun permis `active` → BLOCAGE.
+Résultat : escalade automatique vers le responsable sécurité avec notification push mobile.
 
 **Phase 4 — Action** :
-Création automatique d'un ordre de travail correctif dans la GMAO avec priorité critique.
+Création automatique d'une demande de permis de travail type `electrical` + ordre de travail correctif dans la GMAO avec priorité critique.
 
 **Phase 5 — Rétroaction** :
-Entrée d'audit créée avec traçabilité complète.
+Entrée d'audit créée avec traçabilité complète, incluant le blocage PTW et l'escalade.
 
 **Phase 6 — Apprentissage** :
-Après intervention réussie (relubrification), l'arête `Surchauffe →(indicates)→ Défaut lubrification` voit sa confiance augmentée de 0.80 à 0.82.
+Après intervention réussie (relubrification) et clôture du permis, l'arête `Surchauffe →(indicates)→ Défaut lubrification` voit sa confiance augmentée de 0.80 à 0.82. La RCA automatiquement initiée confirme "maintenance retardée" comme facteur contextuel et renforce l'arête `correlates_with` correspondante.
+
+---
 
 ### Exemple 2 : Prédiction de durée de vie résiduelle
 
@@ -648,40 +891,63 @@ Après intervention réussie (relubrification), l'arête `Surchauffe →(indicat
 
 **Calcul modèle ISO 281** :
 ```
-TempFactor = exp(-0.03 × (78 - 70)) = exp(-0.24) = 0.787
-VibrationFactor = exp(-0.1 × (5.2 - 4.5)) = exp(-0.07) = 0.932
-SpeedFactor = 1.0 (vitesse < 3000)
-LoadFactor = exp(-0.02 × (85 - 80)) = exp(-0.10) = 0.905
+TempFactor      = exp(-0.03 × (78 - 70)) = exp(-0.24) = 0.787
+VibrationFactor = exp(-0.1  × (5.2 - 4.5)) = exp(-0.07) = 0.932
+SpeedFactor     = 1.0 (vitesse < 3000 RPM)
+LoadFactor      = exp(-0.02 × (85 - 80)) = exp(-0.10) = 0.905
 
-AdjustedLife = 20000 × 0.787 × 0.932 × 1.0 × 0.905 = 13,266 heures
-RemainingLife = 13,266 - 12,000 = 1,266 heures
+AdjustedLife  = 20000 × 0.787 × 0.932 × 1.0 × 0.905 = 13 266 heures
+RemainingLife = 13 266 - 12 000 = 1 266 heures
 WearPercentage = (12000 / 13266) × 100 = 90.5%
 ```
 
 **Sortie** :
 ```
-predictedBehavior: 'Imminent failure'
-physicalExplanation: 'Bearing wear analysis: 90.5% of estimated life consumed.
-  High temperature (78°C) accelerates degradation by 21%.
-  Excessive vibration (5.2 mm/s) reduces bearing life by 7%.'
-remainingUsefulLife: 1266 hours
+predictedBehavior : 'Défaillance imminente'
+physicalExplanation : 'Analyse d'usure roulement : 90,5 % de la durée de vie estimée consommée.
+  Température élevée (78°C) accélère la dégradation de 21 %.
+  Vibration excessive (5,2 mm/s) réduit la durée de vie du roulement de 7 %.'
+remainingUsefulLife : 1 266 heures
+OEE impact estimé  : -12 % Disponibilité si défaillance non traitée
 ```
 
-### Exemple 3 : Détection de cascade de défaillances
+---
 
-**Situation** : Le Knowledge Graph détecte un "Défaut lubrification" sur un moteur.
+### Exemple 3 : Détection de cascade de défaillances et impact OEE
+
+**Situation** : Le Knowledge Graph détecte un "Défaut lubrification" sur un moteur (ligne de production L3).
 
 **Parcours de cascade** (`findCascadeEffects`) :
 ```
 Défaut lubrification →(causes, w=0.60)→ Usure roulement
   Usure roulement →(causes, w=0.40)→ Désalignement arbre
+    Désalignement arbre →(causes, w=0.30)→ Endommagement accouplements
 ```
 
 **Résultat** :
 1. Usure roulement : probabilité 60% (niveau 1)
 2. Désalignement arbre : probabilité 24% (niveau 2)
+3. Endommagement accouplements : probabilité 7% (niveau 3)
 
-Le système recommande une intervention proactive sur la lubrification pour prévenir la cascade.
+**Impact OEE calculé** :
+- Arrêt non planifié estimé : 8h
+- Disponibilité ligne L3 : 94% → 88% (-6 points)
+- Coût arrêt estimé : 4 800 €
+
+Le système déclenche une intervention proactive sur la lubrification (coût : 200 €) pour prévenir la cascade et protéger l'OEE.
+
+---
+
+### Exemple 4 : Apprentissage fédéré cross-sites
+
+**Situation** : Le Site Beta d'un groupe industriel identifie un nouveau mode de défaillance "Bouchage filtre hydraulique" sur compresseur, absent du Knowledge Graph global.
+
+**Processus** :
+1. La RCA du Site Beta formalise : Contamination hydraulique →(causes, w=0.70)→ Bouchage filtre →(causes, w=0.85)→ Perte de pression
+2. Le Knowledge Graph local du Site Beta est enrichi avec 3 nouveaux nœuds et 4 nouvelles arêtes
+3. Le Global Agent reçoit les mises à jour différentielles (ΔWeights) du Site Beta
+4. Le Global Agent diffuse ces ΔWeights à l'ensemble des sites du groupe (Sites Alpha, Gamma, Delta, etc.)
+5. Les sites Alpha, Gamma et Delta bénéficient immédiatement du nouveau pattern de défaillance, sans jamais avoir eu accès aux données opérationnelles brutes du Site Beta
 
 ---
 
@@ -690,35 +956,40 @@ Le système recommande une intervention proactive sur la lubrification pour pré
 ### 10.1 Par rapport aux GMAO traditionnels
 | Critère | GMAO Traditionnel | Maintrix |
 |---------|-------------------|----------|
-| Diagnostic | Manuel par technicien | Automatique multi-sources |
-| Décision | Humaine uniquement | Graduée (0-5) avec politiques |
-| Apprentissage | Aucun | Continu et structuré |
-| Explicabilité | N/A | Chaîne d'évidence complète |
-| Anticipation | Calendaire uniquement | Physique + données + règles |
+| Diagnostic | Manuel par technicien | Automatique multi-sources avec explicabilité |
+| Décision | Humaine uniquement | Graduée (0-5) avec politiques formalisées |
+| Apprentissage | Aucun | Continu et structuré (KG + mémoire pannes) |
+| Anticipation | Calendaire uniquement | Physique + données + règles + historique |
+| Sécurité PTW | Papier ou logiciel isolé | Intégrée et liée à l'autonomie de décision |
+| Multi-sites | Non | Apprentissage fédéré natif |
 
 ### 10.2 Par rapport aux plateformes de maintenance prédictive
 | Critère | Prédictif ML | Maintrix |
 |---------|-------------|----------|
-| Modèle | Boîte noire | Hybride explicable |
+| Modèle | Boîte noire | Hybride explicable (4 sources + chaîne d'évidence) |
 | Raisonnement | Statistique | Causal (Knowledge Graph) |
-| Cascades | Non prédit | Prédit par parcours de graphe |
-| Autonomie | Non graduée | 6 niveaux formels |
-| Gouvernance | Limitée | Audit complet + politiques |
+| Cascades | Non prédit | Prédit par parcours de graphe avec probabilités |
+| Autonomie | Non graduée | 6 niveaux formels avec garde-fous PTW |
+| Gouvernance | Limitée | Audit complet ISO 55000 / CCTP |
+| OEE | Non intégré | Calculé en temps réel et corrélé aux pannes |
 
 ### 10.3 Par rapport aux jumeaux numériques
 | Critère | Digital Twin | Maintrix |
 |---------|-------------|----------|
-| Modèle physique | Simulé | Physique + données réelles |
-| Apprentissage terrain | Non | Oui (rétroaction d'intervention) |
+| Modèle physique | Simulé | Physique + données réelles + validation AI |
+| Apprentissage terrain | Non | Oui (rétroaction d'intervention → KG) |
 | Multi-agent | Non | Hiérarchique (Equip/Site/Global) |
-| Décision autonome | Non | Oui (moteur de politiques) |
+| Décision autonome | Non | Oui (moteur de politiques + PTW) |
+| RCA intégrée | Non | Oui (4 méthodologies + alimentation KG) |
 
 ### 10.4 Avantages opérationnels mesurables
-- Réduction du temps de diagnostic de 60-80% (fusion automatique vs investigation manuelle)
-- Capitalisation systématique du savoir-faire terrain (mémoire de pannes + Knowledge Graph)
-- Conformité réglementaire intégrée (journal d'audit CCTP/ISO 55000)
-- Réduction des pannes en cascade par anticipation causale
-- Adaptation progressive aux particularités de chaque site (apprentissage local + fédéré)
+- **–40 à –60 %** de temps d'arrêt non planifié (détection précoce + prédiction de cascades)
+- **+35 %** d'efficacité des équipes maintenance (automatisation du diagnostic et des ordres de travail)
+- **–25 %** de coûts de maintenance corrective (passage au prédictif + OEE en temps réel)
+- **Capitalisation systématique** du savoir-faire terrain (mémoire de pannes + Knowledge Graph auto-apprenant)
+- **Conformité réglementaire intégrée** (journal d'audit CCTP/ISO 55000 + PTW formalisé)
+- **Zéro fuite de données** entre tenants (architecture SaaS zero data leakage)
+- **Montée en compétence accélérée** par l'apprentissage fédéré cross-sites (–70 % de temps d'apprentissage sur nouveaux sites)
 
 ---
 
@@ -730,39 +1001,58 @@ Le système recommande une intervention proactive sur la lubrification pour pré
 - **Production d'énergie** : Turbines, générateurs, transformateurs, systèmes de refroidissement
 - **Industrie agroalimentaire** : Chaînes de production avec exigences de traçabilité et conformité sanitaire
 - **Infrastructure hydraulique** : Stations de pompage, réseaux de distribution
+- **Industrie chimique et pétrochimique** : Équipements sous pression, gestion des risques ATEX
+- **Industries de process** : Raffineries, papeteries, cimenteries
 
 ### 11.2 Marchés géographiques prioritaires
-- Afrique subsaharienne et émergents : PME et ETI industrielles avec expertise technique limitée
-- L'invention est particulièrement avantageuse dans des contextes où l'expertise technique est rare et coûteuse, car le Knowledge Graph et la mémoire de pannes capitalisent et redistribuent automatiquement le savoir-faire.
+- **France et Europe** : Industrie manufacturière PME/ETI avec exigences de conformité CCTP/ISO 55000
+- **Afrique subsaharienne et marchés émergents** : PME et ETI industrielles avec expertise technique limitée et forte rotation du personnel
+- L'invention est particulièrement avantageuse dans des contextes où l'expertise technique est rare et coûteuse, car le Knowledge Graph et la mémoire de pannes capitalisent et redistribuent automatiquement le savoir-faire, compensant les déficits de personnel qualifié.
 
 ### 11.3 Modes de déploiement
-- SaaS multi-tenant avec apprentissage fédéré cross-sites
-- Déploiement on-premise pour industries sensibles (défense, nucléaire)
-- Mode hybride edge/cloud pour sites à connectivité limitée
+- **SaaS multi-tenant** avec apprentissage fédéré cross-sites (hébergement Europe, RGPD)
+- **Déploiement on-premise** pour industries sensibles (défense, nucléaire, données classifiées)
+- **Mode hybride edge/cloud** pour sites à connectivité limitée (traitement local, synchronisation différée)
+- **Application mobile PWA** avec capacités hors ligne, lecture QR code, guidage de réparation
+
+### 11.4 Intégrations système certifiées
+- ERP : SAP PM, Oracle EAM, SAGE
+- SCADA : Siemens WinCC, Schneider Vijeo Citect
+- GMAO externes : IBM Maximo, Infor EAM (mode lecture/écriture)
+- IoT : MQTT (Mosquitto, HiveMQ), OPC-UA (Unified Architecture)
+- Notifications : Slack, Microsoft Teams, Telegram, WhatsApp Business
 
 ---
 
 ## 12. ABRÉGÉ
 
-L'invention concerne un **système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique**, comprenant :
+L'invention concerne un **système informatique de supervision et de contrôle adaptatif d'équipements industriels à modélisation causale dynamique, à autonomie graduée et à apprentissage fédéré multi-sites**, comprenant :
 
 (a) une interface matérielle de réception de signaux issus de capteurs physiques (vibratoires, thermiques, électriques, pression, débit, vitesse, acoustiques) via des protocoles industriels standards (MQTT, Modbus, OPC-UA, LoRaWAN) ;
 
 (b) un module de détection de variations anormales de paramètres physiques par comparaison en temps réel à des seuils adaptatifs avec classification par type et sévérité ;
 
-(c) un module de modélisation causale structurant les relations entre paramètres mesurés et modes de défaillance mécaniques sous forme d'un graphe de connaissances industriel avec raisonnement par parcours de graphe et prédiction de cascades de défaillances ;
+(c) un module de modélisation causale structurant les relations entre paramètres mesurés et modes de défaillance mécaniques sous forme d'un graphe de connaissances industriel auto-apprenant avec raisonnement par parcours de graphe, renforcement croisé multi-symptômes, et prédiction de cascades de défaillances ;
 
-(d) un module décisionnel configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, avec moteur de politiques à 6 niveaux d'autonomie graduée et journal d'audit décisionnel complet ;
+(d) un module décisionnel configuré pour générer des signaux de commande destinés à modifier le fonctionnement d'au moins un équipement industriel, avec moteur de politiques à 6 niveaux d'autonomie graduée, vérification automatique des permis de travail, et journal d'audit décisionnel complet conforme ISO 55000 / CCTP ;
 
-(e) un module d'adaptation dynamique modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe et capitalisation dans une mémoire de pannes confirmées.
+(e) un module d'adaptation dynamique modifiant la structure du modèle causal en fonction des résultats d'interventions techniques effectuées, par ajustement des poids de confiance des arêtes du graphe et capitalisation dans une mémoire de pannes confirmées ;
+
+(f) un module de sécurité opérationnelle intégrée comprenant un système de permis de travail (PTW) à cycle de vie complet, une analyse des causes racines (RCA) selon 4 méthodologies, une évaluation AMDEC avec calcul automatique d'IPR, et un module OEE en temps réel ;
+
+(g) un module d'apprentissage fédéré multi-sites permettant la diffusion de mises à jour différentielles du graphe de connaissances entre sites sans transfert de données opérationnelles sensibles.
 
 Lesdits modules coopèrent afin de limiter les dérives techniques, de réduire les défaillances en cascade par raisonnement causal prédictif, et de stabiliser le comportement opérationnel du parc industriel par une boucle fermée cognitive à 6 phases assurant l'amélioration continue du modèle causal.
 
-**Classifications** : G06N 5/04, G06N 20/00, G05B 23/02, G06Q 10/20, G06F 16/36
+**Classifications** : G06N 5/04, G06N 20/00, G05B 23/02, G06Q 10/20, G06F 16/36, H04W 4/80, G06Q 50/04
 
-**Mots-clés** : supervision adaptative, contrôle adaptatif industriel, modélisation causale dynamique, graphe de connaissances auto-apprenant, autonomie graduée, défaillances en cascade, modèles physiques hybrides, boucle fermée cognitive
+**Mots-clés** : supervision adaptative, contrôle adaptatif industriel, modélisation causale dynamique, graphe de connaissances auto-apprenant, autonomie graduée, défaillances en cascade, modèles physiques hybrides, boucle fermée cognitive, permis de travail intégré, analyse causes racines, OEE temps réel, apprentissage fédéré multi-sites, SaaS multi-tenant, zero data leakage
 
 ---
 
+**Déposant :** Maintrix-T
+**Contact commercial :** contact@mantrix-t.com | +33 6 28 35 28 28
+**Version :** 2.0 — Mai 2026
+
 *Document préparé pour soumission auprès de l'Office Européen des Brevets (OEB), l'Organisation Africaine de la Propriété Intellectuelle (OAPI), et/ou l'USPTO.*
-*Ce document constitue une base technique. La rédaction juridique finale doit être réalisée par un conseil en propriété industrielle agréé.*
+*Ce document constitue une base technique. La rédaction juridique finale doit être réalisée par un conseil en propriété industrielle agréé (CPI).*
