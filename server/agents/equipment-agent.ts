@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { AgentType, AgentStatus, AutonomyLevel, AnomalyDetection } from '../cognitive-layers/layer-contracts.js';
 import { getCognitiveKernel, CognitiveAgent } from '../cognitive-kernel/index.js';
+import { slidingWindowJSD, JSD_THRESHOLDS } from '../js-divergence.js';
 
 export interface EquipmentState {
   equipmentId: number;
@@ -179,13 +180,34 @@ export class EquipmentAgent extends EventEmitter {
 
       const history = this.sensorHistory;
       for (const [sensorType, values] of history) {
-        if (values.length >= 20) {
-          const recentMean = values.slice(-20).reduce((a, b) => a + b, 0) / 20;
+        if (values.length >= 30) {
+          // Jensen-Shannon divergence sur fenêtres glissantes
+          // Remplace : drift = |recentMean - baseline.mean| / baseline.mean  (% simple)
+          const jsdResult = slidingWindowJSD(values, Math.min(20, Math.floor(values.length / 3)), 5);
+          const lastJSD = jsdResult.lastDrift?.jsdDistance ?? 0;
+
+          if (lastJSD > JSD_THRESHOLDS.light) {
+            // JSD > seuil "légère" → mise à jour du taux de dégradation
+            // Échelle : JSD_distance ∈ [0,1] → degradationRate ∈ [0,1]
+            this.state.localModel.degradationRate = Math.max(
+              this.state.localModel.degradationRate,
+              lastJSD
+            );
+          }
+        } else if (values.length >= 20) {
+          // Fallback pour historique court : comparaison simple mais normalisée
           const baseline = this.state.localModel.baselineValues.get(sensorType);
-          if (baseline) {
-            const drift = Math.abs(recentMean - baseline.mean) / baseline.mean;
-            if (drift > 0.1) {
-              this.state.localModel.degradationRate = Math.max(this.state.localModel.degradationRate, drift);
+          if (baseline && baseline.stdDev > 0) {
+            const recentMean = values.slice(-10).reduce((a, b) => a + b, 0) / 10;
+            // Écart normalisé par stdDev (z-score) → plus robuste que %
+            const zDrift = Math.abs(recentMean - baseline.mean) / baseline.stdDev;
+            // Conversion en échelle [0,1] équivalente JSD
+            const driftEquiv = Math.min(1, zDrift / 4);
+            if (driftEquiv > JSD_THRESHOLDS.light) {
+              this.state.localModel.degradationRate = Math.max(
+                this.state.localModel.degradationRate,
+                driftEquiv
+              );
             }
           }
         }

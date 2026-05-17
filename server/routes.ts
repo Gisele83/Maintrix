@@ -70,6 +70,7 @@ import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { registerImcaRoutes } from "./imca-routes";
 import { registerProspectiveSimulationRoutes } from "./prospective-simulation-routes";
 import { registerISCRoutes } from "./isc-routes";
+import { registerJSDRoutes } from "./js-divergence-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -383,6 +384,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register ISC Aggregation Φ_i routes (Brevet N°3 — ISC 4D + Agrégation Fédérée)
   registerISCRoutes(app);
+
+  // Register Jensen-Shannon Divergence routes (Dérive conceptuelle sur fenêtres glissantes)
+  registerJSDRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

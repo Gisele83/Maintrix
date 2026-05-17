@@ -3,21 +3,31 @@
  * Brevet N°1 MAINTRIX-SCA-IMCA
  *
  * Four sub-indices:
- *   ISD  — Indice de Santé Dynamique       (vraie distance Mahalanobis multivariée)
- *   IDC  — Indice de Dérive Comportementale (divergence Kullback-Leibler sur fenêtre glissante)
- *   ISO  — Indice de Stress Opérationnel    (score de charge relative et d'alarmes)
+ *   ISD  — Indice de Santé Dynamique         (vraie distance Mahalanobis multivariée)
+ *   IDC  — Indice de Dérive Comportementale  (divergence Jensen-Shannon sur fenêtres glissantes)
+ *   ISO  — Indice de Stress Opérationnel     (score de charge relative et d'alarmes)
  *   IRS  — Indice de Résilience Structurelle (MTBF, âge, historique qualité)
  *
  * Composite: IMCA = w_ISD × ISD + w_IDC × IDC + w_ISO × ISO + w_IRS × IRS
+ *
+ * IDC upgrade: KL divergence (asymétrique, non borné) → Jensen-Shannon distance
+ *   (symétrique, bornée [0,1], métrique propre, robuste aux zéros)
  */
 
 import { db } from "./db";
 import { iotSensorData, equipmentRegistry, workOrders, alertsNotifications } from "@shared/schema";
 import { eq, and, gte, desc, lte } from "drizzle-orm";
+import {
+  computeIDCWithJSD,
+  buildHistogram,
+  type SlidingWindowResult,
+} from "./js-divergence";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface IMCAResult {
+  // jsDivergence replaces klDivergence as primary drift metric
+  jsDivergence: number;       // √JSD ∈ [0,1] — Jensen-Shannon distance (bounded, symmetric)
   equipmentId: number;
   equipmentName: string;
   timestamp: Date;
@@ -123,30 +133,8 @@ function mahalanobisDistance(x: Record<string, number>, model: NominalModel): nu
   return Math.sqrt(Math.max(d2, 0));
 }
 
-// ─── Kullback-Leibler divergence (discrete, histogram) ───────────────────────
-
-function buildHistogram(values: number[], bins: number = 20): number[] {
-  if (values.length === 0) return Array(bins).fill(1 / bins);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const hist = Array(bins).fill(0);
-  for (const v of values) {
-    const bin = Math.min(Math.floor(((v - min) / range) * bins), bins - 1);
-    hist[bin]++;
-  }
-  const total = hist.reduce((a, b) => a + b, 0);
-  const alpha = 1 / (total + bins); // Laplace smoothing
-  return hist.map(h => (h + alpha) / (total + bins * alpha));
-}
-
-function klDivergence(P: number[], Q: number[]): number {
-  let kl = 0;
-  for (let i = 0; i < P.length; i++) {
-    if (P[i] > 0 && Q[i] > 0) kl += P[i] * Math.log(P[i] / Q[i]);
-  }
-  return Math.max(kl, 0);
-}
+// buildHistogram is imported from ./js-divergence
+// klDivergence replaced by Jensen-Shannon divergence (see ./js-divergence)
 
 // ─── Sub-index computations ──────────────────────────────────────────────────
 
@@ -178,30 +166,27 @@ function computeISD(
 
 /**
  * IDC — Indice de Dérive Comportementale
- * IDC(t) = 100 × (1 − tanh(β × D_KL(P_obs(t), P_obs(t−T))))
- * Compares recent distribution vs reference window (30-90j)
+ * IDC(t) = 100 × (1 − tanh(β × JSD_mean))
+ *
+ * Upgrade KL → Jensen-Shannon (symétrique, bornée [0,1], métrique propre).
+ * JSD_mean = moyenne de √JSD sur les fenêtres glissantes.
+ *
+ * Comparaison fenêtre récente vs fenêtre de référence (30-90j).
  */
 function computeIDC(
   recentValues: number[],
   referenceValues: number[],
   beta: number = 3.0
-): { value: number; kl: number; explanation: string } {
-  if (recentValues.length < 5 || referenceValues.length < 5) {
-    return { value: 80, kl: 0, explanation: "Historique insuffisant pour calculer la dérive comportementale." };
-  }
-  const P = buildHistogram(recentValues, 20);
-  const Q = buildHistogram(referenceValues, 20);
-  const kl = klDivergence(P, Q);
-  const idc = Math.round(100 * (1 - Math.tanh(beta * kl)));
-  const explanation =
-    kl < 0.05
-      ? `Distribution stable (D_KL=${kl.toFixed(3)}). Aucune dérive comportementale détectée.`
-      : kl < 0.2
-      ? `Dérive légère (D_KL=${kl.toFixed(3)}). La distribution des signaux évolue progressivement.`
-      : kl < 0.5
-      ? `Dérive modérée (D_KL=${kl.toFixed(3)}). Le comportement actuel diverge de la référence historique.`
-      : `Dérive sévère (D_KL=${kl.toFixed(3)}). Changement de régime opérationnel probable — investigation requise.`;
-  return { value: Math.max(0, Math.min(100, idc)), kl, explanation };
+): { value: number; kl: number; jsd: number; jsdDistance: number; slidingResult: SlidingWindowResult; explanation: string } {
+  const result = computeIDCWithJSD(recentValues, referenceValues, beta, 20, 20);
+  return {
+    value: result.value,
+    kl: result.kl_compat,           // compatibilité ascendante (tableau de bord)
+    jsd: result.jsd,
+    jsdDistance: result.jsdDistance,
+    slidingResult: result.slidingResult,
+    explanation: result.explanation,
+  };
 }
 
 /**
@@ -416,7 +401,7 @@ export async function computeIMCA(
   const subValues = [isdResult.value, idcResult.value, isoResult.value, irsResult.value];
   const minSub = Math.min(...subValues);
   const trend: IMCAResult["trend"] =
-    IMCA >= 75 && idcResult.kl < 0.1 ? "improving"
+    IMCA >= 75 && idcResult.jsdDistance < 0.10 ? "improving"  // JSD_distance < seuil stable
     : IMCA >= 55 ? "stable"
     : minSub < 40 ? "critical"
     : "degrading";
@@ -457,7 +442,8 @@ export async function computeIMCA(
     IRS: irsResult.value,
     IMCA,
     mahalanobisDistance: parseFloat(isdResult.dM.toFixed(3)),
-    klDivergence: parseFloat(idcResult.kl.toFixed(4)),
+    klDivergence: parseFloat(idcResult.kl.toFixed(4)),   // conservé pour compat. ascendante
+    jsDivergence: parseFloat(idcResult.jsdDistance.toFixed(4)), // √JSD ∈ [0,1] — métrique principale
     weights,
     trend,
     alertLevel,

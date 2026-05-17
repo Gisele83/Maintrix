@@ -15,7 +15,9 @@ import {
 interface IMCAResult {
   equipmentId: number; equipmentName: string; timestamp: string;
   ISD: number; IDC: number; ISO: number; IRS: number; IMCA: number;
-  mahalanobisDistance: number; klDivergence: number;
+  mahalanobisDistance: number;
+  klDivergence: number;       // conservé pour compat. ascendante
+  jsDivergence: number;       // √JSD ∈ [0,1] — métrique principale (symétrique, bornée)
   weights: { ISD: number; IDC: number; ISO: number; IRS: number };
   trend: "improving" | "stable" | "degrading" | "critical";
   alertLevel: "ok" | "watch" | "warning" | "critical";
@@ -171,9 +173,14 @@ function DetailPanel({ r }: { r: IMCAResult }) {
           <p className="text-xs text-slate-600">ISD = 100 × exp(−0.4 × D_M)</p>
         </div>
         <div className="rounded-xl bg-slate-800/60 border border-slate-700/50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Divergence KL (D_KL)</p>
-          <p className="text-lg font-bold text-white">{r.klDivergence.toFixed(4)}</p>
-          <p className="text-xs text-slate-600">IDC = 100 × (1 − tanh(3 × D_KL))</p>
+          <p className="text-xs text-slate-500 mb-1">Distance Jensen-Shannon (√JSD)</p>
+          <p className="text-lg font-bold text-white">
+            {((r.jsDivergence ?? r.klDivergence) || 0).toFixed(4)}
+            <span className="text-xs text-slate-500 ml-1">
+              {(r.jsDivergence ?? 0) < 0.10 ? "🟢" : (r.jsDivergence ?? 0) < 0.22 ? "🟡" : (r.jsDivergence ?? 0) < 0.38 ? "🟠" : "🔴"}
+            </span>
+          </p>
+          <p className="text-xs text-slate-600">IDC = 100 × (1 − tanh(β × √JSD_glissant))</p>
         </div>
         {r.rul_hours !== null && (
           <div className="col-span-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-center gap-3">
@@ -249,7 +256,7 @@ export default function IMCADashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">IMCA — Indice Cognitif Composite</h1>
-              <p className="text-sm text-slate-400">Brevet N°1 · Mahalanobis · Kullback-Leibler · Fusion adaptative ISD · IDC · ISO · IRS</p>
+              <p className="text-sm text-slate-400">Brevet N°1 · Mahalanobis · Jensen-Shannon Divergence · Fenêtres Glissantes · ISD · IDC · ISO · IRS</p>
             </div>
           </div>
         </div>
@@ -287,9 +294,9 @@ export default function IMCADashboard() {
               <div className="text-slate-500">ISD = 100 × exp(−0.4 × D_M)</div>
             </div>
             <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-              <div className="text-blue-400 font-bold mb-1">IDC — Kullback-Leibler</div>
-              <div className="text-slate-400">D_KL(P‖Q) = Σ P(x) log(P(x)/Q(x))</div>
-              <div className="text-slate-500">IDC = 100 × (1 − tanh(3 × D_KL))</div>
+              <div className="text-blue-400 font-bold mb-1">IDC — Jensen-Shannon (fenêtres glissantes)</div>
+              <div className="text-slate-400">M = ½P+½Q · JSD = ½KL(P‖M)+½KL(Q‖M)</div>
+              <div className="text-slate-500">IDC = 100 × (1 − tanh(β × √JSD<sub>glissant</sub>))</div>
             </div>
             <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
               <div className="text-emerald-400 font-bold mb-1">ISO — Stress Opérationnel</div>
@@ -420,7 +427,7 @@ export default function IMCADashboard() {
           </div>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-500">
             <div><span className="font-semibold text-slate-400">ISD</span> Indice de Santé Dynamique (Mahalanobis)</div>
-            <div><span className="font-semibold text-slate-400">IDC</span> Dérive Comportementale (Kullback-Leibler)</div>
+            <div><span className="font-semibold text-slate-400">IDC</span> Dérive Comportementale (Jensen-Shannon · fenêtres glissantes · √JSD ∈ [0,1])</div>
             <div><span className="font-semibold text-slate-400">ISO</span> Stress Opérationnel (alarmes + surcharge)</div>
             <div><span className="font-semibold text-slate-400">IRS</span> Résilience Structurelle (MTBF + âge)</div>
           </div>
