@@ -68,6 +68,7 @@ import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-route
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { registerImcaRoutes } from "./imca-routes";
+import { registerProspectiveSimulationRoutes } from "./prospective-simulation-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -375,6 +376,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register IMCA routes (Brevet N°1 — Indice Cognitif Composite)
   registerImcaRoutes(app);
+
+  // Register Prospective Simulation routes (Brevet N°2 — Immédiat / Différé / Non-intervention)
+  registerProspectiveSimulationRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);
