@@ -71,6 +71,7 @@ import { registerImcaRoutes } from "./imca-routes";
 import { registerProspectiveSimulationRoutes } from "./prospective-simulation-routes";
 import { registerISCRoutes } from "./isc-routes";
 import { registerJSDRoutes } from "./js-divergence-routes";
+import { registerStochasticRULRoutes } from "./stochastic-rul-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -387,6 +388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Jensen-Shannon Divergence routes (Dérive conceptuelle sur fenêtres glissantes)
   registerJSDRoutes(app);
+
+  // Register Stochastic RUL routes (Wiener · Inverse Gaussienne · Gamma · Monte Carlo)
+  registerStochasticRULRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

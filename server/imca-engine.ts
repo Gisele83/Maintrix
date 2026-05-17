@@ -22,6 +22,10 @@ import {
   buildHistogram,
   type SlidingWindowResult,
 } from "./js-divergence";
+import {
+  computeStochasticRUL,
+  type StochasticRULResult,
+} from "./stochastic-rul";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +47,7 @@ export interface IMCAResult {
   alertLevel: "ok" | "watch" | "warning" | "critical";
   explanation: IMCAExplanation;
   rul_hours: number | null;
+  stochasticRUL?: StochasticRULResult; // projection Wiener/Gamma avec intervalles de confiance
 }
 
 export interface IMCAExplanation {
@@ -425,9 +430,38 @@ export async function computeIMCA(
       ? `Planifier une intervention préventive. Facteur limitant : ${worst.label}.`
       : `Intervention corrective urgente recommandée. L'IMCA indique un risque de défaillance élevé sur ${worst.label}.`;
 
-  // ─── Estimated RUL (simplified) ──────────────────────────────────────────
+  // ─── Stochastic RUL (Wiener + Gamma avec intervalles de confiance) ────────
+  // Reconstruit une série IMCA proxy depuis l'historique IoT disponible
+  const imcaProxy: number[] = [];
+  if (hasIot && recentSensors.length > 5) {
+    // Grouper les capteurs récents par tranches de 24h
+    const sorted = [...recentSensors].sort((a, b) =>
+      (a.timestamp?.getTime() ?? 0) - (b.timestamp?.getTime() ?? 0)
+    );
+    const binMs = 86_400_000; // 24h en ms
+    const t0 = sorted[0].timestamp?.getTime() ?? Date.now();
+    const bins = new Map<number, number[]>();
+    for (const s of sorted) {
+      const bin = Math.floor(((s.timestamp?.getTime() ?? t0) - t0) / binMs);
+      if (!bins.has(bin)) bins.set(bin, []);
+      bins.get(bin)!.push(s.value ?? 0);
+    }
+    for (const [, vals] of [...bins.entries()].sort(([a], [b]) => a - b)) {
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const allVals = sorted.map(s => s.value ?? 0);
+      const globalMed = allVals.sort((a, b) => a - b)[Math.floor(allVals.length / 2)] || 1;
+      const relDev = Math.abs(mean - globalMed) / (globalMed || 1);
+      imcaProxy.push(Math.round(Math.max(0, Math.min(100, 100 * Math.exp(-2 * relDev)))));
+    }
+  }
+  // Utiliser l'IMCA calculé comme dernier point (plus précis)
+  const imcaHistoryForRUL = imcaProxy.length >= 3 ? imcaProxy : [IMCA];
+  const stochasticRUL = computeStochasticRUL(imcaHistoryForRUL, IMCA, 24, 30);
+
+  // Compatibilité rul_hours : utiliser la médiane de la distribution recommandée
   const rul_hours: number | null =
-    IMCA < 20 ? Math.round(isdResult.dM > 0 ? 200 / isdResult.dM : 50)
+    stochasticRUL.recommended.median > 0 ? stochasticRUL.recommended.median
+    : IMCA < 20 ? Math.round(isdResult.dM > 0 ? 200 / isdResult.dM : 50)
     : IMCA < 40 ? Math.round(500 / Math.max(1, isdResult.dM))
     : IMCA < 60 ? Math.round(2000 / Math.max(0.5, isdResult.dM))
     : null;
@@ -448,6 +482,7 @@ export async function computeIMCA(
     trend,
     alertLevel,
     rul_hours,
+    stochasticRUL,
     explanation: {
       ISD: isdResult.explanation,
       IDC: idcResult.explanation,

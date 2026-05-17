@@ -12,16 +12,30 @@ import {
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+interface RULDistribution {
+  mean: number; median: number; mode: number; stdDev: number; unit: "heures";
+  confidenceIntervals: { p05: number; p10: number; p25: number; p50: number; p75: number; p90: number; p95: number };
+}
+interface StochasticRUL {
+  model: string; recommendedModel: "wiener" | "gamma" | "ensemble";
+  currentDegradation: number; failureThreshold: number; remainingMargin: number;
+  wienerRUL?: RULDistribution; gammaRUL?: RULDistribution;
+  recommended: RULDistribution; ensemble?: RULDistribution;
+  wienerParams?: { mu: number; sigma: number; r2: number };
+  gammaParams?: { alpha: number; beta: number; positiveRatio: number };
+  warnings: string[]; explanation: string;
+}
 interface IMCAResult {
   equipmentId: number; equipmentName: string; timestamp: string;
   ISD: number; IDC: number; ISO: number; IRS: number; IMCA: number;
   mahalanobisDistance: number;
-  klDivergence: number;       // conservé pour compat. ascendante
-  jsDivergence: number;       // √JSD ∈ [0,1] — métrique principale (symétrique, bornée)
+  klDivergence: number;
+  jsDivergence: number;
   weights: { ISD: number; IDC: number; ISO: number; IRS: number };
   trend: "improving" | "stable" | "degrading" | "critical";
   alertLevel: "ok" | "watch" | "warning" | "critical";
   rul_hours: number | null;
+  stochasticRUL?: StochasticRUL;
   explanation: { ISD: string; IDC: string; ISO: string; IRS: string; dominantFactor: string; recommendation: string };
 }
 interface FleetResult { results: IMCAResult[]; fleetIMCA: number; criticalCount: number; degradingCount: number; }
@@ -123,7 +137,13 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
       </div>
       {r.rul_hours !== null && (
         <div className="mt-2 flex items-center gap-1 text-xs text-amber-400">
-          <Clock className="w-3 h-3" /> RUL estimé : ~{r.rul_hours}h
+          <Clock className="w-3 h-3" />
+          RUL P50 : ~{r.stochasticRUL?.recommended.median ?? r.rul_hours}h
+          {r.stochasticRUL && (
+            <span className="text-slate-500 ml-1">
+              [IC90 : {r.stochasticRUL.recommended.confidenceIntervals.p05}–{r.stochasticRUL.recommended.confidenceIntervals.p95}h]
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -182,13 +202,105 @@ function DetailPanel({ r }: { r: IMCAResult }) {
           </p>
           <p className="text-xs text-slate-600">IDC = 100 × (1 − tanh(β × √JSD_glissant))</p>
         </div>
-        {r.rul_hours !== null && (
-          <div className="col-span-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-center gap-3">
-            <Clock className="w-5 h-5 text-amber-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-amber-400 font-medium">Durée de Vie Utile Résiduelle (RUL) estimée</p>
-              <p className="text-sm font-bold text-white">~{r.rul_hours} heures</p>
+        {r.stochasticRUL && (
+          <div className="col-span-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-3">
+            {/* Header */}
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-400 font-semibold">
+                RUL Stochastique —&nbsp;
+                {r.stochasticRUL.recommendedModel === "ensemble"
+                  ? "Fusion Wiener + Gamma"
+                  : r.stochasticRUL.recommendedModel === "wiener"
+                  ? "Processus de Wiener (Inverse Gaussienne)"
+                  : "Processus Gamma (Monte Carlo)"}
+              </span>
             </div>
+
+            {/* Median + mean */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-amber-500/10 p-2">
+                <p className="text-[10px] text-amber-300/70">Mode</p>
+                <p className="text-base font-bold text-amber-200">{r.stochasticRUL.recommended.mode}h</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/20 border border-amber-500/40 p-2">
+                <p className="text-[10px] text-amber-300">Médiane (P50)</p>
+                <p className="text-lg font-black text-amber-100">{r.stochasticRUL.recommended.median}h</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/10 p-2">
+                <p className="text-[10px] text-amber-300/70">Espérance</p>
+                <p className="text-base font-bold text-amber-200">{r.stochasticRUL.recommended.mean}h</p>
+              </div>
+            </div>
+
+            {/* Confidence interval bar */}
+            <div className="space-y-1">
+              <p className="text-[10px] text-slate-500 font-mono">Intervalles de confiance</p>
+              <div className="relative h-6 rounded-full bg-slate-800/60 overflow-hidden">
+                {(() => {
+                  const ci = r.stochasticRUL.recommended.confidenceIntervals;
+                  const max = Math.max(ci.p95 * 1.05, 1);
+                  const pct = (v: number) => `${Math.round((v / max) * 100)}%`;
+                  return (
+                    <>
+                      {/* P05–P95 range */}
+                      <div className="absolute top-0 h-full bg-amber-900/40 rounded-full"
+                        style={{ left: pct(ci.p05), width: `${Math.round(((ci.p95 - ci.p05) / max) * 100)}%` }} />
+                      {/* P10–P90 range */}
+                      <div className="absolute top-0 h-full bg-amber-700/50"
+                        style={{ left: pct(ci.p10), width: `${Math.round(((ci.p90 - ci.p10) / max) * 100)}%` }} />
+                      {/* P25–P75 IQR */}
+                      <div className="absolute top-0 h-full bg-amber-500/60"
+                        style={{ left: pct(ci.p25), width: `${Math.round(((ci.p75 - ci.p25) / max) * 100)}%` }} />
+                      {/* Median marker */}
+                      <div className="absolute top-0 h-full w-0.5 bg-white"
+                        style={{ left: pct(ci.p50) }} />
+                    </>
+                  );
+                })()}
+              </div>
+              <div className="flex justify-between text-[9px] text-slate-600 font-mono">
+                {[
+                  ["P05", r.stochasticRUL.recommended.confidenceIntervals.p05],
+                  ["P25", r.stochasticRUL.recommended.confidenceIntervals.p25],
+                  ["P50", r.stochasticRUL.recommended.confidenceIntervals.p50],
+                  ["P75", r.stochasticRUL.recommended.confidenceIntervals.p75],
+                  ["P95", r.stochasticRUL.recommended.confidenceIntervals.p95],
+                ].map(([label, val]) => (
+                  <span key={label as string}>{label}: {val}h</span>
+                ))}
+              </div>
+            </div>
+
+            {/* σ and margin */}
+            <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-slate-400">
+              <div>σ = ±{r.stochasticRUL.recommended.stdDev}h</div>
+              <div>Marge = {r.stochasticRUL.remainingMargin.toFixed(1)} pts</div>
+              {r.stochasticRUL.wienerParams && (
+                <div>μ̂ = {r.stochasticRUL.wienerParams.mu.toFixed(4)}/h</div>
+              )}
+            </div>
+
+            {/* Wiener vs Gamma comparison if both available */}
+            {r.stochasticRUL.wienerRUL && r.stochasticRUL.gammaRUL && (
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-amber-500/20">
+                <div className="text-[10px] text-slate-500">
+                  <span className="text-violet-400 font-semibold">Wiener IG</span>{" "}
+                  P50={r.stochasticRUL.wienerRUL.median}h · σ={r.stochasticRUL.wienerRUL.stdDev}h
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  <span className="text-emerald-400 font-semibold">Gamma MC</span>{" "}
+                  P50={r.stochasticRUL.gammaRUL.median}h · σ={r.stochasticRUL.gammaRUL.stdDev}h
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {r.stochasticRUL.warnings.length > 0 && (
+              <div className="text-[10px] text-yellow-500/80 italic">
+                ⚠ {r.stochasticRUL.warnings[0]}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -307,6 +419,16 @@ export default function IMCADashboard() {
               <div className="text-amber-400 font-bold mb-1">IMCA — Fusion composite adaptative</div>
               <div className="text-slate-400">IMCA = w₁·ISD + w₂·IDC + w₃·ISO + w₄·IRS</div>
               <div className="text-slate-500">Poids adaptatifs selon disponibilité données</div>
+            </div>
+            <div className="rounded-lg bg-slate-900/60 border border-violet-500/30 p-3">
+              <div className="text-violet-300 font-bold mb-1">RUL — Processus de Wiener</div>
+              <div className="text-slate-400">X(t) = X₀ + μt + σW(t)  →  T<sub>RUL</sub> ~ IG(m, λ)</div>
+              <div className="text-slate-500">m = D/μ̂ · λ = D²/σ̂² · F(t) = Φ(…) + e<sup>2λ/m</sup>Φ(…)</div>
+            </div>
+            <div className="rounded-lg bg-slate-900/60 border border-emerald-500/30 p-3">
+              <div className="text-emerald-300 font-bold mb-1">RUL — Processus Gamma (Monte Carlo)</div>
+              <div className="text-slate-400">ΔX(Δt) ~ Γ(α·Δt, β) · α̂ = μ²/σ² · β̂ = μ/σ²</div>
+              <div className="text-slate-500">IC via 15 000 trajectoires · Fusion bayésienne w<sub>W</sub>·R² + w<sub>Γ</sub>·pos%</div>
             </div>
           </div>
         </div>
