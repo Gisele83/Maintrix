@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "2MvIRqfejP71DCOjVJIZR"
+uri = "file://FONDEMENTS_SCIENTIFIQUES_MAINTRIX.md"
+type = "text"
+title = "Fondements Scientifiques et Techniques — Maintrix"
