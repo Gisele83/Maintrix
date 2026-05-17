@@ -67,6 +67,7 @@ import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
 import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-routes";
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
+import { registerImcaRoutes } from "./imca-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -371,6 +372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Maintenance Plan routes
   registerMaintenancePlanRoutes(app);
+
+  // Register IMCA routes (Brevet N°1 — Indice Cognitif Composite)
+  registerImcaRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

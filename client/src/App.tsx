@@ -78,6 +78,7 @@ import WarrantyPage from "@/pages/warranty";
 import MaintenancePlanPage from "@/pages/maintenance-plan";
 import MaintenanceRecommendations from "@/pages/maintenance-recommendations";
 import MobileNotificationsPage from "@/pages/mobile-notifications";
+import IMCADashboard from "@/pages/imca-dashboard";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -260,6 +261,9 @@ function Router() {
       </Route>
       <Route path="/mobile-notifications">
         {(params) => <ProtectedRoute component={MobileNotificationsPage} {...params} />}
+      </Route>
+      <Route path="/imca">
+        {(params) => <ProtectedRoute component={IMCADashboard} {...params} />}
       </Route>
       <Route path="/download">
         {() => <DownloadCenterPage />}
