@@ -80,6 +80,7 @@ import MaintenanceRecommendations from "@/pages/maintenance-recommendations";
 import MobileNotificationsPage from "@/pages/mobile-notifications";
 import IMCADashboard from "@/pages/imca-dashboard";
 import ProspectiveSimulationPage from "@/pages/prospective-simulation";
+import MultiAssetOptimizerPage from "@/pages/multi-asset-optimizer";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -268,6 +269,9 @@ function Router() {
       </Route>
       <Route path="/prospective-simulation">
         {(params) => <ProtectedRoute component={ProspectiveSimulationPage} {...params} />}
+      </Route>
+      <Route path="/multi-asset-optimizer">
+        {(params) => <ProtectedRoute component={MultiAssetOptimizerPage} {...params} />}
       </Route>
       <Route path="/download">
         {() => <DownloadCenterPage />}

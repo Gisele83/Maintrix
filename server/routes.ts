@@ -72,6 +72,7 @@ import { registerProspectiveSimulationRoutes } from "./prospective-simulation-ro
 import { registerISCRoutes } from "./isc-routes";
 import { registerJSDRoutes } from "./js-divergence-routes";
 import { registerStochasticRULRoutes } from "./stochastic-rul-routes";
+import { registerMultiAssetRoutes } from "./multi-asset-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -391,6 +392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Stochastic RUL routes (Wiener · Inverse Gaussienne · Gamma · Monte Carlo)
   registerStochasticRULRoutes(app);
+
+  // Register Multi-Asset Combinatorial Optimizer routes (MCKP · DP · Greedy · Pareto)
+  registerMultiAssetRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

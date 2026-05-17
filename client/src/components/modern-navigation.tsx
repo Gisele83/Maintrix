@@ -79,6 +79,7 @@ export function ModernNavigation() {
     { name: "Accueil", href: "/", icon: Home },
     { name: "IMCA — Indice Cognitif", href: "/imca", icon: Brain },
     { name: "Simulation Prospective", href: "/prospective-simulation", icon: Brain },
+    { name: "Optimiseur Multi-Actifs", href: "/multi-asset-optimizer", icon: BarChart3 },
     { name: "Supervision Adaptative", href: "/cognitive-infrastructure", icon: Brain },
     { name: "Diagnostic Hybride", href: "/smart-diagnostic", icon: Database },
     { name: "GMAO Intégrée", href: "/gmao", icon: Settings },
