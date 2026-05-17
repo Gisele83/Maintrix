@@ -81,6 +81,7 @@ import MobileNotificationsPage from "@/pages/mobile-notifications";
 import IMCADashboard from "@/pages/imca-dashboard";
 import ProspectiveSimulationPage from "@/pages/prospective-simulation";
 import MultiAssetOptimizerPage from "@/pages/multi-asset-optimizer";
+import CryptoJournalPage from "@/pages/crypto-journal";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -272,6 +273,9 @@ function Router() {
       </Route>
       <Route path="/multi-asset-optimizer">
         {(params) => <ProtectedRoute component={MultiAssetOptimizerPage} {...params} />}
+      </Route>
+      <Route path="/crypto-journal">
+        {(params) => <ProtectedRoute component={CryptoJournalPage} {...params} />}
       </Route>
       <Route path="/download">
         {() => <DownloadCenterPage />}

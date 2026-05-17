@@ -2201,4 +2201,41 @@ export const insertMobileNotificationSchema = createInsertSchema(mobileNotificat
 export type MobileNotification = typeof mobileNotifications.$inferSelect;
 export type InsertMobileNotification = z.infer<typeof insertMobileNotificationSchema>;
 
+// ═══════════════════════════════════════════════════════════════════
+// CRYPTO JOURNAL — Journal append-only chainé par hachage SHA-256
+// Enclavement cryptographique Brevet MAINTRIX-SCA
+// ═══════════════════════════════════════════════════════════════════
+export const cryptoJournalEntries = pgTable("crypto_journal_entries", {
+  id: serial("id").primaryKey(),
+  // Numéro de séquence monotone — unicité garantie au niveau applicatif
+  sequenceNumber: integer("sequence_number").notNull().unique(),
+  // Domaine d'exécution isolé (PTW_DOMAIN | GMAO_DOMAIN | IMCA_DOMAIN | SYSTEM_DOMAIN)
+  domain: varchar("domain", { length: 50 }).notNull(),
+  // Action normalisée (ex: PTW:APPROVE_PERMIT)
+  action: varchar("action", { length: 100 }).notNull(),
+  // Entité cible
+  entityType: varchar("entity_type", { length: 80 }).notNull(),
+  entityId: varchar("entity_id", { length: 100 }).notNull(),
+  // Acteur (dénormalisé pour immuabilité)
+  actorId: integer("actor_id"),
+  actorName: varchar("actor_name", { length: 255 }).notNull(),
+  // Snapshot payload de l'entité au moment de l'action
+  payload: jsonb("payload").notNull().default({}),
+  // Métadonnées contextuelles (IP, tenantId, userAgent…)
+  metadata: jsonb("metadata").notNull().default({}),
+  // Chaîne cryptographique
+  previousHash: varchar("previous_hash", { length: 64 }).notNull(),   // SHA-256 hex de l'entrée précédente
+  entryHash: varchar("entry_hash", { length: 64 }).notNull().unique(), // SHA-256 hex de cette entrée
+  // Timestamp immuable — jamais mis à jour
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCryptoJournalEntrySchema = createInsertSchema(cryptoJournalEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CryptoJournalEntry = typeof cryptoJournalEntries.$inferSelect;
+export type InsertCryptoJournalEntry = z.infer<typeof insertCryptoJournalEntrySchema>;
+
 // Authentication system cleaned up - now using userProfiles as the main user table

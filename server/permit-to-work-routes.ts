@@ -12,6 +12,29 @@ import { permitToWork, insertPermitToWorkSchema, userProfiles, equipmentRegistry
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
+import { journalizePTWMutation, PTW_ACTIONS } from "./crypto-journal";
+
+// ─── Journalisation helper ────────────────────────────────────────────────────
+// Extrait le contexte acteur depuis req.user et appelle le journal.
+// Best-effort : un échec de journalisation ne bloque pas la réponse HTTP.
+async function journal(
+  action: string,
+  permit: Record<string, unknown>,
+  req: any,
+): Promise<void> {
+  try {
+    const actorName = req.user
+      ? `${req.user.firstName ?? ""} ${req.user.lastName ?? ""}`.trim() || req.user.username || "unknown"
+      : "anonymous";
+    await journalizePTWMutation(action, permit, req.user?.id ?? null, actorName, {
+      tenantId: req.user?.tenantId,
+      ip: req.ip ?? req.socket?.remoteAddress,
+      userAgent: req.headers?.["user-agent"]?.slice(0, 200),
+    });
+  } catch (journalErr) {
+    console.error("[CryptoJournal] PTW journalisation failed (non-blocking):", journalErr);
+  }
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -238,6 +261,7 @@ export function registerPermitToWorkRoutes(app: Express) {
 
       const validated = insertPermitToWorkSchema.parse(permitData);
       const [created] = await db.insert(permitToWork).values(validated).returning();
+      journal(PTW_ACTIONS.CREATE, created as any, req);
       res.status(201).json(created);
     } catch (error: any) {
       if (error.name === 'ZodError') return res.status(400).json({ message: "Données invalides", errors: error.errors });
@@ -265,6 +289,7 @@ export function registerPermitToWorkRoutes(app: Express) {
         .set({ ...updateData, status: 'draft', updatedAt: new Date() })
         .where(eq(permitToWork.id, id))
         .returning();
+      journal(PTW_ACTIONS.UPDATE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       console.error("Error updating permit:", error);
@@ -283,6 +308,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const [updated] = await db.update(permitToWork)
         .set({ status: 'submitted', updatedAt: new Date() })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.SUBMIT, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de la soumission" });
@@ -314,6 +340,7 @@ export function registerPermitToWorkRoutes(app: Express) {
           updatedAt: new Date(),
         })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.APPROVE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de l'approbation" });
@@ -342,6 +369,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const [updated] = await db.update(permitToWork)
         .set({ status: 'rejected', rejectionReason: reason, updatedAt: new Date() })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.REJECT, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors du rejet" });
@@ -361,6 +389,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const [updated] = await db.update(permitToWork)
         .set({ status: 'active', issuedById: userId, actualStart: new Date(), updatedAt: new Date() })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.ACTIVATE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de l'activation" });
@@ -388,6 +417,7 @@ export function registerPermitToWorkRoutes(app: Express) {
           updatedAt: new Date(),
         })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.COMPLETE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de la clôture" });
@@ -407,6 +437,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const [updated] = await db.update(permitToWork)
         .set({ status: 'cancelled', updatedAt: new Date() })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.CANCEL, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de l'annulation" });
@@ -423,6 +454,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const [updated] = await db.update(permitToWork)
         .set({ checklistItems, updatedAt: new Date() })
         .where(eq(permitToWork.id, id)).returning();
+      journal(PTW_ACTIONS.CHECKLIST, updated as any, req);
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: "Erreur lors de la mise à jour de la checklist" });

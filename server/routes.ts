@@ -73,6 +73,7 @@ import { registerISCRoutes } from "./isc-routes";
 import { registerJSDRoutes } from "./js-divergence-routes";
 import { registerStochasticRULRoutes } from "./stochastic-rul-routes";
 import { registerMultiAssetRoutes } from "./multi-asset-routes";
+import { registerCryptoJournalRoutes } from "./crypto-journal-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -395,6 +396,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Multi-Asset Combinatorial Optimizer routes (MCKP · DP · Greedy · Pareto)
   registerMultiAssetRoutes(app);
+
+  // Register Crypto Journal routes (SHA-256 hash-chained append-only journal · PTW enclave)
+  registerCryptoJournalRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);
