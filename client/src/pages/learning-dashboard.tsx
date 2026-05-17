@@ -15,7 +15,12 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
-  Settings
+  Settings,
+  Layers,
+  FlaskConical,
+  Sigma,
+  GitMerge,
+  ShieldCheck
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -56,6 +61,23 @@ export default function LearningDashboard() {
 
   const { data: modelPerformance = [], isLoading: performanceLoading } = useQuery({
     queryKey: ["/api/model-performance"],
+    retry: false,
+  });
+
+  // Φ_i ISC summary — Brevet N°3
+  const { data: iscSummary, isLoading: iscLoading } = useQuery<{
+    totalPatterns: number;
+    avgPhi: number;
+    avgFiabilite: number;
+    avgMaturite: number;
+    avgISC: number;
+    phiDistribution: { high: number; medium: number; low: number };
+    topCategory: string | null;
+    categoryBreakdown: Record<string, number>;
+    iscWeights: { D1: number; D2: number; D3: number; D4: number };
+    phiConfig: { alpha: number; beta: number; gamma: number };
+  }>({
+    queryKey: ["/api/isc/summary"],
     retry: false,
   });
 
@@ -318,6 +340,149 @@ export default function LearningDashboard() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Brevet N°3 : ISC 4D + Φ_i Agrégation Fédérée ───────────────────── */}
+        <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-violet-600 rounded-lg">
+                  <Sigma className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="text-violet-800 font-bold">ISC 4D + Φ_i — Agrégation Fédérée</span>
+                  <p className="text-xs font-normal text-violet-500 mt-0.5">Brevet N°3 · MAINTRIX-SCA-FED · Φ_i = α·ISC + β·Fiabilité + γ·Maturité</p>
+                </div>
+              </div>
+              {iscSummary && (
+                <Badge className="bg-violet-600 text-white text-sm px-3 py-1">
+                  {iscSummary.totalPatterns} patterns fédérés
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {iscLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 mx-auto"></div>
+                <p className="text-violet-500 mt-2">Calcul des indices ISC et Φ_i...</p>
+              </div>
+            ) : !iscSummary || iscSummary.totalPatterns === 0 ? (
+              <div className="text-center py-10">
+                <GitMerge className="w-12 h-12 text-violet-300 mx-auto mb-3" />
+                <p className="text-violet-600 font-medium">Aucun pattern fédéré disponible</p>
+                <p className="text-sm text-violet-400 mt-1">Les patterns seront collectés lors des diagnostics</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Φ_i KPIs */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100 text-center">
+                    <div className="text-3xl font-black text-violet-700">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-violet-500 mt-1">Φ_i moyen</div>
+                    <div className="text-xs text-gray-400">α·ISC + β·F + γ·M</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100 text-center">
+                    <div className="text-3xl font-black text-emerald-700">{(iscSummary.avgFiabilite * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-emerald-500 mt-1">Fiabilité (β)</div>
+                    <div className="text-xs text-gray-400">eff. + succès + consistance</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 text-center">
+                    <div className="text-3xl font-black text-amber-700">{(iscSummary.avgMaturite * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-amber-500 mt-1">Maturité (γ)</div>
+                    <div className="text-xs text-gray-400">confirmations + âge + diversité</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 text-center">
+                    <div className="text-3xl font-black text-blue-700">4D</div>
+                    <div className="text-xs font-semibold text-blue-500 mt-1">Dimensions ISC</div>
+                    <div className="text-xs text-gray-400">D1·D2·D3·D4</div>
+                  </div>
+                </div>
+
+                {/* Φ_i Distribution */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-violet-500" />
+                    Distribution Φ_i des patterns fédérés
+                  </h4>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Haute pertinence (Φ ≥ 0.7)", count: iscSummary.phiDistribution.high, color: "bg-emerald-500", text: "text-emerald-700" },
+                      { label: "Pertinence modérée (0.4 ≤ Φ < 0.7)", count: iscSummary.phiDistribution.medium, color: "bg-amber-400", text: "text-amber-700" },
+                      { label: "Faible pertinence (Φ < 0.4)", count: iscSummary.phiDistribution.low, color: "bg-rose-400", text: "text-rose-700" },
+                    ].map(({ label, count, color, text }) => {
+                      const pct = iscSummary.totalPatterns > 0 ? (count / iscSummary.totalPatterns) * 100 : 0;
+                      return (
+                        <div key={label} className="flex items-center gap-3">
+                          <div className="w-40 text-xs text-gray-600 flex-shrink-0">{label}</div>
+                          <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                            <div className={`h-3 rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className={`w-12 text-xs font-bold text-right ${text}`}>{count}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ISC 4 dimensions weights + Φ_i config */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
+                    <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-blue-500" />
+                      Poids ISC 4 Dimensions
+                    </h4>
+                    <div className="space-y-2">
+                      {[
+                        { d: "D1", label: "Type d'équipement", w: iscSummary.iscWeights.D1 },
+                        { d: "D2", label: "Profil d'usage", w: iscSummary.iscWeights.D2 },
+                        { d: "D3", label: "Stress opérationnel", w: iscSummary.iscWeights.D3 },
+                        { d: "D4", label: "Historique défaillances", w: iscSummary.iscWeights.D4, isNew: true },
+                      ].map(({ d, label, w, isNew }) => (
+                        <div key={d} className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${isNew ? "bg-violet-600" : "bg-blue-500"}`}>{d}</span>
+                          <span className="text-xs text-gray-600 flex-1">{label}{isNew && <Badge className="ml-1 text-[10px] bg-violet-100 text-violet-700 px-1 py-0">4e dim.</Badge>}</span>
+                          <div className="w-20 bg-gray-100 rounded-full h-2">
+                            <div className="h-2 rounded-full bg-blue-500" style={{ width: `${w * 100}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-blue-700 w-10 text-right">{(w * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100">
+                    <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-violet-500" />
+                      Coefficients Φ_i
+                    </h4>
+                    <div className="space-y-2">
+                      {[
+                        { lbl: "α — ISC (similarité contextuelle)", val: iscSummary.phiConfig.alpha, color: "bg-blue-500" },
+                        { lbl: "β — Fiabilité", val: iscSummary.phiConfig.beta, color: "bg-emerald-500" },
+                        { lbl: "γ — Maturité", val: iscSummary.phiConfig.gamma, color: "bg-amber-500" },
+                      ].map(({ lbl, val, color }) => (
+                        <div key={lbl} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600 flex-1">{lbl}</span>
+                          <div className="w-20 bg-gray-100 rounded-full h-2">
+                            <div className={`h-2 rounded-full ${color}`} style={{ width: `${val * 100}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-violet-700 w-10 text-right">{(val * 100).toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                    {iscSummary.topCategory && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500">Catégorie dominante :</p>
+                        <p className="text-sm font-semibold text-violet-700 capitalize mt-0.5">{iscSummary.topCategory}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

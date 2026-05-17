@@ -69,6 +69,7 @@ import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-route
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
 import { registerImcaRoutes } from "./imca-routes";
 import { registerProspectiveSimulationRoutes } from "./prospective-simulation-routes";
+import { registerISCRoutes } from "./isc-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -379,6 +380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Prospective Simulation routes (Brevet N°2 — Immédiat / Différé / Non-intervention)
   registerProspectiveSimulationRoutes(app);
+
+  // Register ISC Aggregation Φ_i routes (Brevet N°3 — ISC 4D + Agrégation Fédérée)
+  registerISCRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

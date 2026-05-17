@@ -2,6 +2,17 @@ import { db } from "./db";
 import { federatedLearning, maintenanceCases, diagnosticSessions, tenants } from "@shared/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import crypto from "crypto";
+import {
+  patternSimilarityISC4D,
+  computePhiContributionWeight,
+  calculateFiabilite,
+  calculateMaturite,
+  computePhi,
+  aggregatePatternsByPhi,
+  ISC_WEIGHTS,
+  PHI_DEFAULTS,
+  type PatternWithPhi,
+} from "./isc-aggregation";
 
 // =====================================================
 // FEDERATED AI LEARNING SYSTEM
@@ -297,9 +308,9 @@ export class FederatedAIService {
   }
 
   private calculateContributionWeight(effectiveness: number, resolutionTime: number): number {
-    // Plus l'efficacité est haute et le temps de résolution bas, plus le poids est élevé
-    const timeScore = Math.max(0, 1 - (resolutionTime / 480)); // Normalized against 8h
-    return (effectiveness * 0.7) + (timeScore * 0.3);
+    // Φ_i formula: ISC=1 (self-context), Fiabilité + Maturité derived from effectiveness/time
+    const successRate = Math.max(0, 1 - resolutionTime / 480);
+    return computePhiContributionWeight(effectiveness, successRate, 1, null, 1, PHI_DEFAULTS);
   }
 
   private categorizeSymptoms(symptoms: string): string[] {
@@ -325,31 +336,9 @@ export class FederatedAIService {
   }
 
   private calculatePatternSimilarity(pattern1: any, pattern2: any): number {
-    let similarity = 0;
-    let factors = 0;
-
-    // Similarité du type d'équipement
-    if (pattern1.equipmentType === pattern2.equipmentType) {
-      similarity += 0.4;
-    }
-    factors += 0.4;
-
-    // Similarité des catégories de symptômes
-    const cats1 = pattern1.symptomCategories || [];
-    const cats2 = pattern2.symptomCategories || [];
-    const commonCats = cats1.filter((c: string) => cats2.includes(c));
-    if (cats1.length > 0 && cats2.length > 0) {
-      similarity += (commonCats.length / Math.max(cats1.length, cats2.length)) * 0.4;
-    }
-    factors += 0.4;
-
-    // Similarité du niveau d'urgence
-    if (pattern1.urgencyLevel === pattern2.urgencyLevel) {
-      similarity += 0.2;
-    }
-    factors += 0.2;
-
-    return factors > 0 ? similarity / factors : 0;
+    // ISC 4 dimensions — Brevet N°3
+    // D1: type équipement, D2: profil usage, D3: stress opérationnel, D4: historique défaillances
+    return patternSimilarityISC4D(pattern1, pattern2);
   }
 }
 

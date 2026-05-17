@@ -7,6 +7,12 @@ import crypto from "crypto";
 import { eq, sql, and, gt, desc } from "drizzle-orm";
 import { db } from "./db";
 import { federatedLearning, maintenanceCases, diagnosticSessions, tenants } from "@shared/schema";
+import {
+  computePhiContributionWeight,
+  buildFailureHistoryProfile,
+  PHI_DEFAULTS,
+  type FailureHistoryProfile,
+} from "./isc-aggregation";
 
 export interface AnonymizedPattern {
   patternHash: string;
@@ -19,6 +25,10 @@ export interface AnonymizedPattern {
       operationalPatterns: number[];
       historicalIndicators: boolean[];
     };
+    // ── 4e dimension ISC : historique de défaillances (Brevet N°3) ──
+    failureHistory: FailureHistoryProfile;
+    operationalComplexity: number;   // 0-1
+    urgencyLevel: string;
   };
   solutionEffectiveness: number;
   anonymizedMetrics: {
@@ -71,26 +81,40 @@ export class FederatedLearningService {
       const patterns: AnonymizedPattern[] = [];
 
       for (const session of recentSessions) {
-        // Anonymize the data
+        const symptomCats = this.categorizeSymptoms(session.symptoms);
+        const confidence = session.confidence || 0;
+        const complexityScore = this.estimateComplexity(session.symptoms);
+
+        // ── D4 : historique de défaillances (4e dimension ISC — Brevet N°3) ──
+        const failureHistory = buildFailureHistoryProfile(
+          Math.round(confidence * 10), // estimé : fréquence proportionnelle à la confiance
+          confidence >= 0.8 ? 90 : confidence >= 0.5 ? 30 : 7, // MTBF estimé en jours
+          symptomCats,
+          Math.round((1 - confidence) * 480) // temps récupération estimé (inverse confiance)
+        );
+
         const anonymizedPattern: AnonymizedPattern = {
           patternHash: this.generatePatternHash(session),
           equipmentCategory: this.categorizeEquipment(session.equipmentType),
           problemPattern: {
-            symptomCategories: this.categorizeSymptoms(session.symptoms),
-            severityLevel: this.calculateSeverityLevel(session.confidence || 0),
+            symptomCategories: symptomCats,
+            severityLevel: this.calculateSeverityLevel(confidence),
             contextFeatures: {
-              environmentalFactors: [], // Anonymized environmental data
-              operationalPatterns: [], // Statistical operational data
-              historicalIndicators: [] // Boolean patterns without specific values
-            }
+              environmentalFactors: [],
+              operationalPatterns: [],
+              historicalIndicators: [],
+            },
+            failureHistory,
+            operationalComplexity: complexityScore,
+            urgencyLevel: confidence >= 0.8 ? "critical" : confidence >= 0.5 ? "high" : "normal",
           },
-          solutionEffectiveness: session.confidence || 0,
+          solutionEffectiveness: confidence,
           anonymizedMetrics: {
-            resolutionTime: Math.round((session.confidence || 0) * 100), // Normalized time
-            successRate: session.confidence || 0,
-            userSatisfaction: this.estimateUserSatisfaction(session.confidence || 0),
-            confidenceScore: session.confidence || 0
-          }
+            resolutionTime: Math.round(confidence * 100),
+            successRate: confidence,
+            userSatisfaction: this.estimateUserSatisfaction(confidence),
+            confidenceScore: confidence,
+          },
         };
 
         patterns.push(anonymizedPattern);
@@ -365,17 +389,31 @@ export class FederatedLearningService {
   }
 
   private estimateUserSatisfaction(confidence: number): number {
-    // Rough estimate based on confidence
     return Math.min(confidence + 0.1, 1.0);
   }
 
+  private estimateComplexity(symptoms: string): number {
+    if (!symptoms) return 0.2;
+    const words = symptoms.toLowerCase().split(/[\s,;]+/).filter(Boolean);
+    const uniqueWords = new Set(words).size;
+    const categoryCount = [
+      "vibration", "bruit", "température", "chaleur", "pression",
+      "hydraulique", "électrique", "courant", "fuite", "corrosion"
+    ].filter(kw => symptoms.toLowerCase().includes(kw)).length;
+    return Math.min((uniqueWords / 30) + (categoryCount / 10), 1.0);
+  }
+
   private calculateContributionWeight(pattern: AnonymizedPattern): number {
-    // Weight based on pattern quality and uniqueness
-    const baseWeight = pattern.solutionEffectiveness;
-    const complexityBonus = pattern.problemPattern.symptomCategories.length * 0.1;
-    const confidenceBonus = pattern.anonymizedMetrics.confidenceScore * 0.2;
-    
-    return Math.min(baseWeight + complexityBonus + confidenceBonus, 2.0);
+    // Φ_i formula — Brevet N°3 : α·ISC + β·Fiabilité + γ·Maturité
+    // ISC=1 (self-context), Fiabilité from effectiveness + successRate, Maturité from confirmations
+    return computePhiContributionWeight(
+      pattern.solutionEffectiveness,
+      pattern.anonymizedMetrics.successRate,
+      1,    // première contribution
+      null, // firstSeenDate inconnue
+      1,    // tenant unique
+      PHI_DEFAULTS
+    );
   }
 
   private calculateGlobalImprovementScore(accepted: number, patterns: AnonymizedPattern[]): number {
