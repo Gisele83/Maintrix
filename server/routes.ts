@@ -74,6 +74,7 @@ import { registerJSDRoutes } from "./js-divergence-routes";
 import { registerStochasticRULRoutes } from "./stochastic-rul-routes";
 import { registerMultiAssetRoutes } from "./multi-asset-routes";
 import { registerCryptoJournalRoutes } from "./crypto-journal-routes";
+import { registerFederatedAdaptationRoutes } from "./federated-adaptation-routes";
 import { advancedDiagnosticOptimizer } from "./advanced-diagnostic-optimizer";
 import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
@@ -399,6 +400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Crypto Journal routes (SHA-256 hash-chained append-only journal · PTW enclave)
   registerCryptoJournalRoutes(app);
+
+  // Register Federated Differential Adaptation routes (pFed · λ-elastic · SPI · FedAvg pondéré)
+  registerFederatedAdaptationRoutes(app);
 
   // Register GMAO routes
   registerGMAORoutes(app);

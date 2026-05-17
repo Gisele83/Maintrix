@@ -82,6 +82,7 @@ import IMCADashboard from "@/pages/imca-dashboard";
 import ProspectiveSimulationPage from "@/pages/prospective-simulation";
 import MultiAssetOptimizerPage from "@/pages/multi-asset-optimizer";
 import CryptoJournalPage from "@/pages/crypto-journal";
+import FederatedAdaptationPage from "@/pages/federated-adaptation";
 
 function ProtectedRoute({ component: Component, ...props }: any) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -276,6 +277,9 @@ function Router() {
       </Route>
       <Route path="/crypto-journal">
         {(params) => <ProtectedRoute component={CryptoJournalPage} {...params} />}
+      </Route>
+      <Route path="/federated-adaptation">
+        {(params) => <ProtectedRoute component={FederatedAdaptationPage} {...params} />}
       </Route>
       <Route path="/download">
         {() => <DownloadCenterPage />}
