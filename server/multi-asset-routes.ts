@@ -119,10 +119,10 @@ export function registerMultiAssetRoutes(app: Express) {
       const allEquipment = await db
         .select({
           id: equipmentRegistry.id,
-          name: equipmentRegistry.name,
-          type: equipmentRegistry.type,
-          status: equipmentRegistry.status,
-          maintenanceCost: equipmentRegistry.maintenanceCost,
+          name: equipmentRegistry.equipmentName,
+          type: equipmentRegistry.equipmentType,
+          status: equipmentRegistry.operationalState,
+          criticalityLevel: equipmentRegistry.criticalityLevel,
         })
         .from(equipmentRegistry)
         .limit(30); // limiter pour performance
@@ -140,8 +140,8 @@ export function registerMultiAssetRoutes(app: Express) {
       for (let i = 0; i < allEquipment.length; i += batchSize) {
         const batch = allEquipment.slice(i, i + batchSize);
         const results = await Promise.allSettled(
-          batch.map(eq =>
-            computeIMCA(eq.id, windowDays, windowDays * 3).catch(() => null)
+          batch.map(item =>
+            computeIMCA(item.id, "default-tenant", windowDays, windowDays * 3).catch(() => null)
           )
         );
 
@@ -151,6 +151,12 @@ export function registerMultiAssetRoutes(app: Express) {
           const imca = imcaResult?.IMCA ?? 70;
           const alert = imcaResult?.alertLevel ?? "ok";
 
+          // Estimer le coût de référence selon le niveau de criticité
+          const costByCriticality: Record<string, number> = {
+            critical: 15000, high: 10000, medium: 5000, low: 2500,
+          };
+          const baseCost = costByCriticality[eq.criticalityLevel ?? "medium"] ?? 5000;
+
           assetInputs.push({
             equipmentId: eq.id,
             equipmentName: eq.name,
@@ -158,7 +164,7 @@ export function registerMultiAssetRoutes(app: Express) {
             currentIMCA: imca,
             alertLevel: alert,
             isMandatory: imca < 25,
-            maintenanceCost: eq.maintenanceCost ?? 5000,
+            maintenanceCost: baseCost,
             rul_hours: imcaResult?.rul_hours ?? null,
           });
         }
@@ -178,6 +184,7 @@ export function registerMultiAssetRoutes(app: Express) {
         computedAt: new Date().toISOString(),
       });
     } catch (err: any) {
+      console.error("[multi-asset/fleet] ERROR:", err.stack ?? err.message);
       res.status(500).json({ error: err.message });
     }
   });
