@@ -6,3 +6,9 @@ id = "2MvIRqfejP71DCOjVJIZR"
 uri = "file://FONDEMENTS_SCIENTIFIQUES_MAINTRIX.md"
 type = "text"
 title = "Fondements Scientifiques et Techniques — Maintrix"
+
+[[outputs]]
+id = "vTfJ7V_SZuNMBod-9N6A-"
+uri = "file://RAPPORT_TEST_GLOBAL.md"
+type = "text"
+title = "Rapport de Test Global — Maintrix v1.0"

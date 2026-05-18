@@ -129,4 +129,7 @@ export async function initDatabase(): Promise<boolean> {
 
 export { connectionString as databaseUrl };
 
+// Rendre l'URL locale disponible pour les modules qui utilisent getPool()
+(global as any).__localDbUrl = connectionString;
+
 export const db = drizzle({ client: pool, schema });

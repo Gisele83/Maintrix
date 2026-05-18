@@ -61,8 +61,8 @@ export function registerSupplierRoutes(app: Express) {
       const params: any[] = []; let i = 1;
       if (type) { sql += ` AND supplier_type=$${i++}`; params.push(type); }
       if (status) { sql += ` AND status=$${i++}`; params.push(status); }
-      if (search) { sql += ` AND (LOWER(name) LIKE $${i++} OR supplier_code LIKE $${i++})`; const s = `%${String(search).toLowerCase()}%`; params.push(s, s); i--; }
-      sql += ` ORDER BY name ASC`;
+      if (search) { sql += ` AND (LOWER(company_name) LIKE $${i++} OR supplier_code LIKE $${i++})`; const s = `%${String(search).toLowerCase()}%`; params.push(s, s); i--; }
+      sql += ` ORDER BY company_name ASC`;
       const { rows } = await getPool().query(sql, params);
       res.json(rows.map(r => ({ ...r, certifications: safeJson(r.certifications, []), specialties: safeJson(r.specialties, []), documents: safeJson(r.documents, []) })));
     } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -80,7 +80,7 @@ export function registerSupplierRoutes(app: Express) {
         COUNT(*) FILTER (WHERE contract_end BETWEEN NOW() AND NOW()+INTERVAL '60 days')::int AS contracts_expiring
         FROM suppliers`);
       const { rows: byType } = await getPool().query(`SELECT supplier_type, COUNT(*)::int AS count FROM suppliers GROUP BY supplier_type ORDER BY count DESC`);
-      const { rows: top } = await getPool().query(`SELECT name, total_spend, rating, supplier_type FROM suppliers WHERE total_spend>0 ORDER BY total_spend DESC LIMIT 5`);
+      const { rows: top } = await getPool().query(`SELECT company_name AS name, total_spend, rating, supplier_type FROM suppliers WHERE total_spend>0 ORDER BY total_spend DESC LIMIT 5`);
       res.json({ ...s[0], byType, topSuppliers: top });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });

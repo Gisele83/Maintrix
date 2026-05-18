@@ -69,7 +69,7 @@ export function registerWarrantyRoutes(app: Express) {
   app.get("/api/warranties", generalRateLimit, auth, async (req, res) => {
     try {
       const { status, type } = req.query;
-      let sql = `SELECT w.*, s.name AS sup_name FROM warranties w LEFT JOIN suppliers s ON s.id=w.supplier_id WHERE 1=1`;
+      let sql = `SELECT w.*, s.company_name AS sup_name FROM warranties w LEFT JOIN suppliers s ON s.id=w.supplier_id WHERE 1=1`;
       const params: any[] = []; let i = 1;
       if (type) { sql += ` AND w.warranty_type=$${i++}`; params.push(type); }
       sql += ` ORDER BY w.warranty_end ASC`;
