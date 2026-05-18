@@ -54,7 +54,7 @@ const SCORE_COLOR = (s: number) =>
 const SCORE_BG = (s: number) =>
   s >= 75 ? "border-emerald-500/30 bg-emerald-500/5" : s >= 55 ? "border-yellow-500/30 bg-yellow-500/5"
   : s >= 35 ? "border-orange-500/30 bg-orange-500/5" : "border-red-500/30 bg-red-500/5";
-const FMT = (n: number) => n.toLocaleString("fr-FR");
+const FMT = (n: number | undefined | null) => (n ?? 0).toLocaleString("fr-FR");
 
 // ─── Pareto mini-chart ────────────────────────────────────────────────────────
 function ParetoChart({ points, budget }: { points: ParetoPoint[]; budget: number }) {
