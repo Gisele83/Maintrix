@@ -4,3 +4,12 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Données PostgreSQL locales — ne doivent jamais être versionnées (contiennent des données réelles,
+# y compris des hash de mots de passe)
+.pgdata/
+
+# Secrets locaux — .env.example et .env.test restent trackés (aucune valeur réelle dedans)
+.env
+.env.local
+.env.production

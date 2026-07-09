@@ -90,9 +90,9 @@ Calcul Client Type (50 équipements):
 > 
 > **Démonstration :** Regardez, je tape 'pompe fait du bruit bizarre' et le noyau cognitif fournit le diagnostic complet..."
 
-#### **Témoignage Client**
+#### **Témoignage Client (exemple illustratif — à remplacer par un vrai retour client une fois disponible)**
 > *"Nos anciens techniciens de 55 ans utilisent l'infrastructure cognitive mieux que les jeunes. C'est intuitif comme poser une question à un expert."*  
-> — Jean Durand, Maintenance Manager, Usine Renault
+> — Exemple de retour attendu, non un témoignage réel à ce jour
 
 ### **"On a déjà un GMAO qui fonctionne"**
 
@@ -149,12 +149,13 @@ Phase 3 (Mois 7+): Infrastructure cognitive complète
 
 #### **Références Sectorielles**
 ```
-Témoignages Disponibles:
-├── Agroalimentaire: Danone, Lactalis (+30% efficacité)
-├── Automobile: PSA, Renault (-40% pannes)
-├── Chimie: Total, Air Liquide (+25% disponibilité)
-├── Portuaire: Port du Havre (-50% temps diagnostic)
-└── Énergie: EDF, Engie (+35% maintenance prédictive)
+Objectifs de gains visés par secteur (hypothèses de vente, à valider par de vrais
+POC/clients — aucune référence client confirmée à ce jour) :
+├── Agroalimentaire : gain d'efficacité visé
+├── Automobile : réduction de pannes visée
+├── Chimie : gain de disponibilité visé
+├── Portuaire : réduction du temps de diagnostic visée
+└── Énergie : gain en maintenance prédictive visé
 ```
 
 ### **"Nos données sont trop sensibles pour le cloud"**
@@ -271,10 +272,10 @@ ROI: 450% première année
 2. **Calcul temps :** "16 jours de réflexion = 5,600€ de risque"
 3. **Action immédiate :** "POC dès la semaine prochaine ?"
 
-### **Preuve Sociale**
-1. **Référence leader :** "Renault a choisi l'infrastructure cognitive Maintrix"  
-2. **Chiffre adoption :** "2,000+ équipements déjà sous surveillance cognitive"
-3. **Tendance marché :** "85% des leaders adoptent l'IA cognitive pour la maintenance"
+### **Preuve Sociale (à activer une fois de vraies références disponibles)**
+1. **Référence leader :** [à compléter avec un vrai client de référence]
+2. **Chiffre adoption :** [à compléter avec le nombre réel d'équipements sous surveillance]
+3. **Tendance marché :** "85% des leaders adoptent l'IA cognitive pour la maintenance" *(statistique sectorielle à sourcer précisément avant usage commercial)*
 
 ### **Réciprocité**
 1. **Valeur gratuite :** "Audit maintenance cognitif gratuit inclus"

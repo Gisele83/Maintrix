@@ -65,8 +65,7 @@ export default function LocalhostDiagnostic() {
         'Redémarrez votre navigateur',
         'Lancez le navigateur en mode administrateur', 
         'Désactivez temporairement votre antivirus',
-        'Vérifiez les paramètres de proxy',
-        'Utilisez la version cloud sur Replit'
+        'Vérifiez les paramètres de proxy'
       );
     }
 
@@ -198,8 +197,8 @@ export default function LocalhostDiagnostic() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              <Button 
+
+              <Button
                 onClick={() => window.open('http://localhost:5000', '_blank')}
                 className="h-auto p-4 flex flex-col items-start gap-2 bg-blue-600 hover:bg-blue-700"
               >
@@ -207,7 +206,7 @@ export default function LocalhostDiagnostic() {
                 <span className="text-xs opacity-90">Accès standard</span>
               </Button>
 
-              <Button 
+              <Button
                 onClick={() => window.open('http://127.0.0.1:5000', '_blank')}
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-start gap-2"
@@ -216,7 +215,7 @@ export default function LocalhostDiagnostic() {
                 <span className="text-xs text-gray-600">Alternative IP</span>
               </Button>
 
-              <Button 
+              <Button
                 onClick={() => window.open('/download', '_self')}
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-start gap-2"
@@ -226,14 +225,6 @@ export default function LocalhostDiagnostic() {
                   <span className="font-semibold">Télécharger</span>
                 </div>
                 <span className="text-xs text-gray-600">Scripts de diagnostic</span>
-              </Button>
-
-              <Button 
-                onClick={() => window.open('https://replit.com/@your-username/maintrix', '_blank')}
-                className="h-auto p-4 flex flex-col items-start gap-2 bg-purple-600 hover:bg-purple-700"
-              >
-                <span className="font-semibold">Version Cloud</span>
-                <span className="text-xs opacity-90">Accès immédiat sur Replit</span>
               </Button>
             </div>
           </CardContent>

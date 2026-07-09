@@ -25,7 +25,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://maintrix-staging.replit.app",
+        "EXPO_PUBLIC_API_URL": "https://staging.your-domain.com",
         "EXPO_PUBLIC_ENV": "staging"
       },
       "channel": "preview"
@@ -39,7 +39,7 @@
         "enterpriseProvisioning": "universal"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://maintrix.replit.app",
+        "EXPO_PUBLIC_API_URL": "https://your-domain.com",
         "EXPO_PUBLIC_ENV": "production"
       },
       "channel": "production"

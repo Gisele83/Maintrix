@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Default Maintrix server URL ───────────────────────────────────────────
-// Change this to your Replit domain or your production server URL.
+// Change this to your production server URL.
 // Can also be overridden at runtime via Settings screen or AsyncStorage.
-export const DEFAULT_SERVER_URL = 'https://39ace9b4-1788-4681-b0fc-5dfa699bfaaa-00-39d1rkmv0qfax.worf.replit.dev';
+export const DEFAULT_SERVER_URL = 'https://your-domain.com';
 
 const SERVER_URL_KEY = 'maintrix_server_url';
 

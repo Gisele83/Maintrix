@@ -1,5 +1,6 @@
 # 🔒 CONFIGURATION ISTIO mTLS
 # Configuration Service Mesh pour chiffrement inter-services
+# ⚠️ Remplacer "maintrix.example.com" (6 occurrences) par votre vrai domaine de production avant déploiement.
 
 # Politique TLS globale - chiffrement obligatoire
 apiVersion: security.istio.io/v1beta1
@@ -104,7 +105,7 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - maintrix.replit.app
+    - maintrix.example.com
     - "*.maintrix.com"
     tls:
       httpsRedirect: true
@@ -115,7 +116,7 @@ spec:
       name: https
       protocol: HTTPS
     hosts:
-    - maintrix.replit.app  
+    - maintrix.example.com  
     - "*.maintrix.com"
     tls:
       mode: SIMPLE
@@ -130,7 +131,7 @@ metadata:
   namespace: maintrix
 spec:
   hosts:
-  - maintrix.replit.app
+  - maintrix.example.com
   - "*.maintrix.com"
   gateways:
   - smart-gmao-gateway
@@ -188,9 +189,9 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: maintrix.replit.app
+  commonName: maintrix.example.com
   dnsNames:
-  - maintrix.replit.app
+  - maintrix.example.com
   - "*.maintrix.com"
 
 ---
@@ -206,7 +207,7 @@ spec:
       app: maintrix
   jwtRules:
   - issuer: "maintrix"
-    jwksUri: "https://maintrix.replit.app/.well-known/jwks.json"
+    jwksUri: "https://maintrix.example.com/.well-known/jwks.json"
     audiences:
     - "maintrix-api"
     forwardOriginalToken: true

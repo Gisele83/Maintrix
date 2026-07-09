@@ -105,9 +105,7 @@ function generateTenantInvitationEmail(tenantData: {
   domain?: string;
   tenantId: string;
 }): string {
-  const baseUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://maintrix.replit.app' 
-    : 'http://localhost:5000';
+  const baseUrl = process.env.APP_URL ?? 'http://localhost:5000';
   
   const loginUrl = tenantData.domain 
     ? `https://${tenantData.domain}` 
