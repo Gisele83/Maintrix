@@ -61,6 +61,23 @@ export async function apiRequest(
   return await res.json();
 }
 
+// 📎 Upload multipart (FormData) — ne pas utiliser apiRequest() qui force JSON.
+export async function uploadFile(url: string, formData: FormData): Promise<any> {
+  const headers: Record<string, string> = {};
+  const csrfToken = getCsrfToken();
+  if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers, // pas de Content-Type : le navigateur fixe le boundary multipart lui-même
+    body: formData,
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return await res.json();
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;

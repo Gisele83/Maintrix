@@ -282,9 +282,12 @@ export function registerGMAORoutes(app: Express) {
       // Transform and clean the data before validation
       const cleanedData: any = {};
       
-      // For creation via web interface, find or create equipment
+      // Équipement : privilégier un equipmentId réel envoyé par un sélecteur,
+      // sinon retomber sur l'ancien comportement find-or-create par nom (compatibilité).
       let equipmentId = null;
-      if (req.body.equipmentName) {
+      if (req.body.equipmentId) {
+        equipmentId = parseInt(req.body.equipmentId, 10);
+      } else if (req.body.equipmentName) {
         // Try to find existing equipment by name
         const tenantId = (req as any).tenantId || 'default-tenant';
         const existingEquipment = await gmaoStorage.searchEquipment({ equipmentName: req.body.equipmentName }, tenantId);
@@ -302,7 +305,7 @@ export function registerGMAORoutes(app: Express) {
           equipmentId = newEquipment.id;
         }
       }
-      
+
       // Copy and transform each field explicitly
       if (equipmentId) cleanedData.equipmentId = equipmentId;
       cleanedData.orderType = req.body.category === 'Préventif' ? 'preventive' : 'corrective';
@@ -310,9 +313,8 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.description) cleanedData.description = req.body.description;
       if (req.body.priority) cleanedData.priority = req.body.priority;
       if (req.body.status) cleanedData.status = req.body.status;
-      if (req.body.assignedTo && req.body.assignedTo !== "Non assigné") {
-        // For now, skip assignedTo parsing since we don't have user IDs
-        // cleanedData.assignedTo = parseInt(req.body.assignedTo);
+      if (req.body.assignedTo && !isNaN(parseInt(req.body.assignedTo, 10))) {
+        cleanedData.assignedTo = parseInt(req.body.assignedTo, 10);
       }
       if (req.body.estimatedHours) cleanedData.estimatedDuration = parseInt(req.body.estimatedHours) * 60; // Convert to minutes
       if (req.body.dueDate) cleanedData.scheduledStart = req.body.dueDate; // Keep as string for validation
@@ -358,9 +360,32 @@ export function registerGMAORoutes(app: Express) {
       const updates = req.body;
       
       console.log("Updating work order:", id, "with updates:", updates);
-      
+
+      // Traduction des noms de champs utilisés par le formulaire web (mêmes alias que POST /api/work-orders)
+      // vers les vraies colonnes de work_orders, avant tout traitement.
+      const processedUpdates: any = { ...updates };
+      if (processedUpdates.category !== undefined) {
+        processedUpdates.orderType = processedUpdates.category === 'Préventif' ? 'preventive' : 'corrective';
+        delete processedUpdates.category;
+      }
+      if (processedUpdates.estimatedHours !== undefined) {
+        processedUpdates.estimatedDuration = Math.round(parseFloat(processedUpdates.estimatedHours) * 60);
+        delete processedUpdates.estimatedHours;
+      }
+      if (processedUpdates.dueDate !== undefined) {
+        processedUpdates.scheduledStart = processedUpdates.dueDate;
+        delete processedUpdates.dueDate;
+      }
+      if (processedUpdates.equipmentId !== undefined && processedUpdates.equipmentId !== null) {
+        processedUpdates.equipmentId = parseInt(processedUpdates.equipmentId, 10);
+      }
+      if (processedUpdates.assignedTo !== undefined) {
+        processedUpdates.assignedTo = processedUpdates.assignedTo === "" || processedUpdates.assignedTo === null
+          ? null
+          : parseInt(processedUpdates.assignedTo, 10);
+      }
+
       // Convert date strings to Date objects for timestamp fields
-      const processedUpdates = { ...updates };
       if (processedUpdates.scheduledStart && typeof processedUpdates.scheduledStart === 'string') {
         processedUpdates.scheduledStart = new Date(processedUpdates.scheduledStart);
       }

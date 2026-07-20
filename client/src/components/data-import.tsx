@@ -15,8 +15,7 @@ export function DataImport() {
   // Mutation pour l'importation CSV de maintenance
   const importMaintenanceCSVMutation = useMutation({
     mutationFn: async (csvContent: string) => {
-      const response = await apiRequest("POST", "/api/import/maintenance-csv", { csvContent });
-      return await response.json();
+      return await apiRequest("/api/import/maintenance-csv", { method: "POST", body: { csvContent } });
     },
     onSuccess: (result) => {
       setImportResults(result);
@@ -39,8 +38,7 @@ export function DataImport() {
   // Mutation pour l'importation CSV de cas signalés
   const importReportedCSVMutation = useMutation({
     mutationFn: async (csvContent: string) => {
-      const response = await apiRequest("POST", "/api/import/reported-cases-csv", { csvContent });
-      return await response.json();
+      return await apiRequest("/api/import/reported-cases-csv", { method: "POST", body: { csvContent } });
     },
     onSuccess: (result) => {
       setImportResults(result);

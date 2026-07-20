@@ -26,6 +26,7 @@ import {
   computeStochasticRUL,
   type StochasticRULResult,
 } from "./stochastic-rul";
+import { getDependencyGraph, propagateAnomalyMonitoring, type PropagatedMonitoring } from "./component-propagation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,8 @@ export interface IMCAResult {
   explanation: IMCAExplanation;
   rul_hours: number | null;
   stochasticRUL?: StochasticRULResult; // projection Wiener/Gamma avec intervalles de confiance
+  /** Propagation de surveillance vers les composants avals (Brevet 1, rev. 1c/4) — renseigné si alertLevel ∈ {warning, critical}. */
+  propagatedMonitoring?: PropagatedMonitoring[];
 }
 
 export interface IMCAExplanation {
@@ -151,7 +154,7 @@ function mahalanobisDistance(x: Record<string, number>, model: NominalModel): nu
 function computeISD(
   currentMeans: Record<string, number>,
   model: NominalModel,
-  alpha: number = 0.4
+  alpha: number = 0.1
 ): { value: number; dM: number; explanation: string } {
   if (model.sensorTypes.length === 0 || !model.covarianceInverse) {
     return { value: 75, dM: 0, explanation: "Données capteurs insuffisantes pour calibration nominale." };
@@ -196,51 +199,57 @@ function computeIDC(
 
 /**
  * ISO — Indice de Stress Opérationnel
- * Fusionne : taux de dépassement de seuils, fréquence d'alarmes, surcharge relative
+ * ISO(t) = 100 × Π_j (1 − β_j × γ_j(t))
+ * Formule multiplicative par condition exceptionnelle j (Brevet N°1, §5.5).
+ * Chaque condition j (surcharge, alarmes, criticité) contribue indépendamment
+ * via son facteur d'occurrence γ_j ∈ [0,1] et son coefficient d'impact β_j.
  */
 function computeISO(
-  alarmCount: number,
-  warningCount: number,
-  criticalCount: number,
-  overloadRatio: number, // fraction de mesures au-delà du seuil nominal
-  windowDays: number
+  conditions: { label: string; gamma: number; beta: number }[]
 ): { value: number; explanation: string } {
-  const alarmRate = (alarmCount + warningCount * 0.5 + criticalCount * 2) / Math.max(windowDays, 1);
-  const stressScore = alarmRate * 0.6 + overloadRatio * 0.4;
-  const iso = Math.round(100 * Math.exp(-2.5 * stressScore));
+  let product = 1;
+  const active: string[] = [];
+  for (const c of conditions) {
+    const gamma = Math.max(0, Math.min(1, c.gamma));
+    product *= 1 - c.beta * gamma;
+    if (gamma > 0.05) active.push(`${c.label} (γ=${gamma.toFixed(2)})`);
+  }
+  const iso = Math.round(100 * Math.max(0, product));
+  const conditionsText = active.length > 0 ? active.join(", ") : "aucune condition exceptionnelle notable";
   const explanation =
-    stressScore < 0.05
+    iso >= 90
       ? `Stress opérationnel faible. Équipement dans sa plage de fonctionnement nominal.`
-      : stressScore < 0.2
-      ? `Stress modéré (score=${stressScore.toFixed(2)}). ${alarmCount} alarmes et ${Math.round(overloadRatio * 100)}% de surcharge sur la période.`
-      : stressScore < 0.5
-      ? `Stress élevé (score=${stressScore.toFixed(2)}). Fréquence d'alarmes significative. Révision des seuils conseillée.`
-      : `Stress critique (score=${stressScore.toFixed(2)}). L'actif est régulièrement sollicité hors limites — révision urgente.`;
+      : iso >= 70
+      ? `Stress modéré. Conditions : ${conditionsText}.`
+      : iso >= 40
+      ? `Stress élevé. Conditions cumulées significatives : ${conditionsText}. Révision des seuils conseillée.`
+      : `Stress critique. Conditions cumulées : ${conditionsText} — révision urgente.`;
   return { value: Math.max(0, Math.min(100, iso)), explanation };
 }
 
 /**
  * IRS — Indice de Résilience Structurelle
- * Fusionne : MTBF tendance, âge vs cycle de vie, qualité de maintenance récente
+ * IRS(t) = 100 / (1 + β × τ_moyen(t))
+ * où τ_moyen est le temps moyen observé de retour à l'état nominal après une
+ * perturbation (Brevet N°1, §5.6) — ici la durée moyenne entre le signalement
+ * d'une intervention corrective/urgente et sa clôture effective.
  */
 function computeIRS(
-  mtbfTrend: number,       // MTBF actuel vs MTBF nominal (ratio 0-2+)
-  ageRatio: number,        // âge actuel / durée de vie nominale (0-1+)
-  maintenanceQuality: number, // score qualité maintenance [0-1]
-  recentFailures: number   // nombre de défaillances dans la fenêtre
+  tauMoyenHours: number | null,  // temps moyen de retour à l'état nominal (heures), null si aucune donnée
+  beta: number = 0.02
 ): { value: number; explanation: string } {
-  const mtbfScore = Math.min(1, mtbfTrend);
-  const ageScore = 1 - Math.min(1, ageRatio);
-  const failurePenalty = Math.exp(-0.5 * recentFailures);
-  const irs = Math.round(100 * (0.35 * mtbfScore + 0.30 * ageScore + 0.20 * maintenanceQuality + 0.15 * failurePenalty));
-  const explanation =
-    irs >= 80
-      ? `Résilience structurelle excellente. MTBF stable, maintenance de qualité, âge maîtrisé.`
-      : irs >= 60
-      ? `Résilience correcte. Ratio âge/cycle=${Math.round(ageRatio * 100)}%, MTBF tendance=${Math.round(mtbfTrend * 100)}% du nominal.`
-      : irs >= 40
-      ? `Résilience dégradée. ${recentFailures} défaillances récentes. Plan de maintenance renforcé recommandé.`
-      : `Résilience critique. L'actif montre des signes structurels de vieillissement prématuré ou de surexploitation.`;
+  const hasData = tauMoyenHours !== null;
+  const tau = tauMoyenHours ?? 24; // valeur neutre par défaut en l'absence d'historique de perturbation
+  const irs = Math.round(100 / (1 + beta * tau));
+  const explanation = !hasData
+    ? `Aucune perturbation résolue dans l'historique — résilience estimée par défaut (τ_moyen=${tau}h).`
+    : tau < 8
+    ? `Résilience structurelle excellente. Retour à l'état nominal en ${tau.toFixed(1)}h en moyenne après perturbation.`
+    : tau < 24
+    ? `Résilience correcte. Temps moyen de récupération τ_moyen=${tau.toFixed(1)}h.`
+    : tau < 72
+    ? `Résilience dégradée. τ_moyen=${tau.toFixed(1)}h — temps de récupération élevé après incident.`
+    : `Résilience critique. τ_moyen=${tau.toFixed(1)}h — l'actif met très longtemps à revenir à l'état nominal.`;
   return { value: Math.max(0, Math.min(100, irs)), explanation };
 }
 
@@ -257,8 +266,8 @@ function adaptiveWeights(
     // No history: lean on current sensors
     return { ISD: 0.45, IDC: 0.05, ISO: 0.35, IRS: 0.15 };
   }
-  // Full data
-  return { ISD: 0.35, IDC: 0.25, ISO: 0.25, IRS: 0.15 };
+  // Full data — pondérations par défaut du Brevet N°1
+  return { ISD: 0.35, IDC: 0.25, ISO: 0.20, IRS: 0.20 };
 }
 
 // ─── Main IMCA computation ────────────────────────────────────────────────────
@@ -279,7 +288,7 @@ export async function computeIMCA(
     .from(equipmentRegistry)
     .where(and(eq(equipmentRegistry.id, equipmentId), eq(equipmentRegistry.tenantId, tenantId)));
 
-  const equipmentName = equipment?.name ?? `Équipement #${equipmentId}`;
+  const equipmentName = equipment?.equipmentName ?? `Équipement #${equipmentId}`;
 
   // ── Fetch sensor readings ─────────────────────────────────────────────────
   const recentSensors = await db
@@ -355,7 +364,7 @@ export async function computeIMCA(
 
   // ─── ISD ─────────────────────────────────────────────────────────────────
   const isdResult = nominalModel
-    ? computeISD(currentMeans, nominalModel, 0.4)
+    ? computeISD(currentMeans, nominalModel, 0.1)
     : { value: 70, dM: 0, explanation: "Modèle nominal non calibré — historique de capteurs insuffisant." };
 
   // ─── IDC ─────────────────────────────────────────────────────────────────
@@ -372,24 +381,29 @@ export async function computeIMCA(
   const overloadRatio = hasIot
     ? recentSensors.filter(s => s.alarmState !== "normal").length / Math.max(recentSensors.length, 1)
     : 0.1;
-  const isoResult = computeISO(alarmRows.length, 0, criticalRows.length, overloadRatio, windowDaysShort);
+  const alarmGamma = Math.min(1, alarmRows.length / Math.max(windowDaysShort, 1) / 2);
+  const criticalGamma = Math.min(1, criticalRows.length / Math.max(windowDaysShort, 1));
+  const isoResult = computeISO([
+    { label: "alarmes fréquentes", gamma: alarmGamma, beta: 0.35 },
+    { label: "alertes critiques", gamma: criticalGamma, beta: 0.55 },
+    { label: "surcharge capteurs", gamma: overloadRatio, beta: 0.45 },
+  ]);
 
   // ─── IRS ─────────────────────────────────────────────────────────────────
-  const corrective = recentWOs.filter(w => w.type === "corrective" || w.type === "emergency");
-  const preventive = recentWOs.filter(w => w.type === "preventive");
-  const completed = recentWOs.filter(w => w.status === "completed");
-  const maintenanceQuality = recentWOs.length > 0 ? (completed.length / recentWOs.length) * (1 - preventive.length / Math.max(recentWOs.length, 1) * 0.5) : 0.5;
+  // NB: workOrders utilise "orderType" (pas "type") pour la catégorie d'intervention.
+  const corrective = recentWOs.filter(w => w.orderType === "corrective" || w.orderType === "emergency");
 
-  const installDate = equipment?.installationDate ? new Date(equipment.installationDate) : null;
-  const lifespan = equipment?.lifespan ?? 20; // years
-  const ageYears = installDate ? (now.getTime() - installDate.getTime()) / (365.25 * 86_400_000) : 0;
-  const ageRatio = lifespan > 0 ? ageYears / lifespan : 0.3;
+  // τ_moyen : durée moyenne entre signalement (createdAt) et clôture (actualEnd)
+  // des interventions correctives/urgentes résolues — proxy du retour à l'état nominal.
+  const resolvedCorrective = corrective.filter(w => w.status === "completed" && w.actualEnd && w.createdAt);
+  const recoveryTimesHours = resolvedCorrective.map(
+    w => (new Date(w.actualEnd!).getTime() - new Date(w.createdAt!).getTime()) / 3_600_000
+  ).filter(h => h >= 0);
+  const tauMoyenHours = recoveryTimesHours.length > 0
+    ? recoveryTimesHours.reduce((a, b) => a + b, 0) / recoveryTimesHours.length
+    : null;
 
-  // MTBF trend: compare corrective WO rate vs baseline expectation
-  const correctiveRate = corrective.length / Math.max(windowDaysLong / 30, 1); // per month
-  const mtbfTrend = Math.exp(-0.3 * correctiveRate); // 1.0 = no failures, <1 = degrading
-
-  const irsResult = computeIRS(mtbfTrend, ageRatio, Math.min(1, maintenanceQuality), corrective.length);
+  const irsResult = computeIRS(tauMoyenHours);
 
   // ─── IMCA composite ──────────────────────────────────────────────────────
   const imcaRaw =
@@ -444,11 +458,11 @@ export async function computeIMCA(
     for (const s of sorted) {
       const bin = Math.floor(((s.timestamp?.getTime() ?? t0) - t0) / binMs);
       if (!bins.has(bin)) bins.set(bin, []);
-      bins.get(bin)!.push(s.value ?? 0);
+      bins.get(bin)!.push(parseFloat(s.value as string) || 0);
     }
     for (const [, vals] of [...bins.entries()].sort(([a], [b]) => a - b)) {
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const allVals = sorted.map(s => s.value ?? 0);
+      const allVals = sorted.map(s => parseFloat(s.value as string) || 0);
       const globalMed = allVals.sort((a, b) => a - b)[Math.floor(allVals.length / 2)] || 1;
       const relDev = Math.abs(mean - globalMed) / (globalMed || 1);
       imcaProxy.push(Math.round(Math.max(0, Math.min(100, 100 * Math.exp(-2 * relDev)))));
@@ -465,6 +479,17 @@ export async function computeIMCA(
     : IMCA < 40 ? Math.round(500 / Math.max(1, isdResult.dM))
     : IMCA < 60 ? Math.round(2000 / Math.max(0.5, isdResult.dM))
     : null;
+
+  // ─── Propagation de surveillance (jumeau comportemental, Brevet 1 rev. 1c/4) ──
+  // Sur anomalie significative, propage l'intensité de surveillance depuis le
+  // composant le plus amont du graphe de dépendances de l'équipement.
+  let propagatedMonitoring: PropagatedMonitoring[] | undefined;
+  if (alertLevel === "warning" || alertLevel === "critical") {
+    const graph = await getDependencyGraph(equipmentId).catch(() => null);
+    if (graph && graph.nodes.length > 0) {
+      propagatedMonitoring = await propagateAnomalyMonitoring(equipmentId, graph.nodes[0]).catch(() => undefined);
+    }
+  }
 
   return {
     equipmentId,
@@ -483,6 +508,7 @@ export async function computeIMCA(
     alertLevel,
     rul_hours,
     stochasticRUL,
+    propagatedMonitoring,
     explanation: {
       ISD: isdResult.explanation,
       IDC: idcResult.explanation,

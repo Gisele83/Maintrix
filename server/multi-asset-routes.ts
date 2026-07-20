@@ -22,6 +22,7 @@ import {
   CRITICALITY_WEIGHT,
 } from "./multi-asset-optimizer";
 import { computeIMCA } from "./imca-engine";
+import { getArbitrationWeights, type ArbitrationWeights } from "./arbitration-learning";
 
 export function registerMultiAssetRoutes(app: Express) {
   /**
@@ -76,7 +77,7 @@ export function registerMultiAssetRoutes(app: Express) {
    *   constraints: { totalBudget, maxTechDays, minCriticalInterventions? },
    * }
    */
-  app.post("/api/multi-asset/optimize", (req, res) => {
+  app.post("/api/multi-asset/optimize", async (req, res) => {
     try {
       const { assets, constraints } = req.body;
 
@@ -93,7 +94,15 @@ export function registerMultiAssetRoutes(app: Express) {
         minCriticalInterventions: constraints.minCriticalInterventions,
       };
 
-      const result = optimizeMultiAsset(assets, safeConstraints);
+      const tenantId = (req as any).tenantId ?? "default-tenant";
+      const learnedWeights = await getArbitrationWeights(tenantId);
+      const arbitrationWeights: ArbitrationWeights = {
+        riskWeight: learnedWeights.riskWeight,
+        costWeight: learnedWeights.costWeight,
+        availabilityWeight: learnedWeights.availabilityWeight,
+      };
+
+      const result = optimizeMultiAsset(assets, safeConstraints, undefined, arbitrationWeights);
 
       res.json({
         ...result,
@@ -175,7 +184,15 @@ export function registerMultiAssetRoutes(app: Express) {
         maxTechDays,
       };
 
-      const result = optimizeMultiAsset(assetInputs, constraints);
+      const tenantId = (req as any).tenantId ?? "default-tenant";
+      const learnedWeights = await getArbitrationWeights(tenantId);
+      const arbitrationWeights: ArbitrationWeights = {
+        riskWeight: learnedWeights.riskWeight,
+        costWeight: learnedWeights.costWeight,
+        availabilityWeight: learnedWeights.availabilityWeight,
+      };
+
+      const result = optimizeMultiAsset(assetInputs, constraints, undefined, arbitrationWeights);
 
       res.json({
         totalEquipment: allEquipment.length,

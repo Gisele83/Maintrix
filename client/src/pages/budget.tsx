@@ -88,22 +88,22 @@ export default function BudgetPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/budgets"] }); qc.invalidateQueries({ queryKey: ["/api/budgets/stats"] }); };
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiRequest("POST", "/api/budgets", d),
+    mutationFn: (d: any) => apiRequest("/api/budgets", { method: "POST", body: d }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Budget créé" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/budgets/${id}`, data),
-    onSuccess: async (res: any) => { invalidate(); const d = await res.json(); setSelected(d); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/budgets/${id}`, { method: "PATCH", body: data }),
+    onSuccess: async (res: any) => { invalidate(); setSelected(res); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const addTxMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("POST", `/api/budgets/${id}/transactions`, data),
-    onSuccess: async () => { if (selected) { const res = await apiRequest("GET", `/api/budgets/${selected.id}`); setSelected(await (res as any).json()); } invalidate(); setShowTx(false); txForm.reset(); toast({ title: "Transaction enregistrée" }); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/budgets/${id}/transactions`, { method: "POST", body: data }),
+    onSuccess: async () => { if (selected) { const res = await apiRequest(`/api/budgets/${selected.id}`); setSelected(res); } invalidate(); setShowTx(false); txForm.reset(); toast({ title: "Transaction enregistrée" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/budgets/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/budgets/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Budget supprimé" }); },
   });
 
@@ -111,8 +111,8 @@ export default function BudgetPage() {
   const txForm = useForm<TxForm>({ resolver: zodResolver(TxSchema), defaultValues: { transactionType: "expense", transactionDate: new Date().toISOString().split("T")[0] } });
 
   const openDetail = async (b: Budget) => {
-    const res = await apiRequest("GET", `/api/budgets/${b.id}`);
-    setSelected(await (res as any).json());
+    const res = await apiRequest(`/api/budgets/${b.id}`);
+    setSelected(res);
   };
 
   const saveLine = () => {

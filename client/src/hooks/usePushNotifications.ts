@@ -100,9 +100,12 @@ export function usePushNotifications(): PushNotificationState {
         ? `Mobile — ${navigator.platform}`
         : `Desktop — ${navigator.platform}`;
 
-      await apiRequest("POST", "/api/push/subscribe", {
-        subscription: subscription.toJSON(),
-        deviceName,
+      await apiRequest("/api/push/subscribe", {
+        method: "POST",
+        body: {
+          subscription: subscription.toJSON(),
+          deviceName,
+        },
       });
 
       setIsSubscribed(true);
@@ -123,8 +126,9 @@ export function usePushNotifications(): PushNotificationState {
       const existing = await sw.pushManager.getSubscription();
       if (existing) {
         await existing.unsubscribe();
-        await apiRequest("DELETE", "/api/push/unsubscribe", {
-          endpoint: existing.endpoint,
+        await apiRequest("/api/push/unsubscribe", {
+          method: "DELETE",
+          body: { endpoint: existing.endpoint },
         });
       }
       setIsSubscribed(false);

@@ -71,17 +71,17 @@ export default function CCTPCompliancePage() {
 
   const { data: purchaseOrderConfig, isLoading: loadingPOConfig } = useQuery({
     queryKey: ["/api/cctp/tenant", tenantId, "purchase-order-config"],
-    queryFn: () => apiRequest("GET", `/api/cctp/tenant/${tenantId}/purchase-order-config`).then(res => res.json())
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/purchase-order-config`)
   });
 
   const { data: reportingConfig, isLoading: loadingReportingConfig } = useQuery({
     queryKey: ["/api/cctp/tenant", tenantId, "reporting-config"],
-    queryFn: () => apiRequest("GET", `/api/cctp/tenant/${tenantId}/reporting-config`).then(res => res.json())
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/reporting-config`)
   });
 
   const { data: compliance, isLoading: loadingCompliance } = useQuery({
     queryKey: ["/api/cctp/tenant", tenantId, "cctp-compliance"],
-    queryFn: () => apiRequest("GET", `/api/cctp/tenant/${tenantId}/cctp-compliance`).then(res => res.json())
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/cctp-compliance`)
   });
 
   // =====================================================
@@ -90,7 +90,7 @@ export default function CCTPCompliancePage() {
 
   const updatePOConfigMutation = useMutation({
     mutationFn: (config: PurchaseOrderConfig) => 
-      apiRequest("PUT", `/api/cctp/tenant/${tenantId}/purchase-order-config`, config),
+      apiRequest(`/api/cctp/tenant/${tenantId}/purchase-order-config`, { method: "PUT", body: config }),
     onSuccess: () => {
       toast({ title: "Configuration Bon de Commande mise à jour", variant: "default" });
       queryClient.invalidateQueries({ queryKey: ["/api/cctp/tenant", tenantId] });
@@ -106,7 +106,7 @@ export default function CCTPCompliancePage() {
 
   const updateReportingConfigMutation = useMutation({
     mutationFn: (config: ReportingConfig) => 
-      apiRequest("PUT", `/api/cctp/tenant/${tenantId}/reporting-config`, config),
+      apiRequest(`/api/cctp/tenant/${tenantId}/reporting-config`, { method: "PUT", body: config }),
     onSuccess: () => {
       toast({ title: "Configuration Rapports mise à jour", variant: "default" });
       queryClient.invalidateQueries({ queryKey: ["/api/cctp/tenant", tenantId] });
@@ -122,7 +122,7 @@ export default function CCTPCompliancePage() {
 
   const enableAutoReportsMutation = useMutation({
     mutationFn: (enabled: boolean) => 
-      apiRequest("PUT", `/api/cctp/tenant/${tenantId}/auto-reports`, { enabled }),
+      apiRequest(`/api/cctp/tenant/${tenantId}/auto-reports`, { method: "PUT", body: { enabled } }),
     onSuccess: () => {
       toast({ title: "Auto-génération de rapports mise à jour", variant: "default" });
       queryClient.invalidateQueries({ queryKey: ["/api/cctp/tenant", tenantId] });

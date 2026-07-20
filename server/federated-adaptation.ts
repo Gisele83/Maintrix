@@ -39,9 +39,10 @@
  */
 
 import { db } from "./db";
-import { federatedLearning, diagnosticSessions, maintenanceCases, tenants, workOrders } from "@shared/schema";
+import { federatedLearning, diagnosticSessions, maintenanceCases, tenants, workOrders, federatedSyncState } from "@shared/schema";
 import { eq, and, count, avg, max, min, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { buildParametersDelta, verifyParametersDelta, ParametersDeltaSchema, type ParametersDelta } from "./parameters-delta";
 
 // ─── Model vector dimensions ──────────────────────────────────────────────────
 // θ ∈ ℝ^12 — vecteur de poids du modèle diagnostique
@@ -319,6 +320,47 @@ function computeDifferentialFedAvg(
 /**
  * Construit le profil local d'un site à partir de ses patterns en BDD
  */
+/**
+ * Construit, signe et vérifie le ParametersDelta représentant la mise à jour
+ * du vecteur local d'un site (Brevet 3, rev. 1c/15) — seul artefact qui
+ * franchirait une frontière site→agrégation globale dans une architecture
+ * distribuée réelle. Persiste le vecteur courant comme référence pour le
+ * prochain delta. Best-effort : n'interrompt jamais le calcul d'agrégation.
+ */
+async function syncLocalVectorViaParametersDelta(
+  tenantId: string,
+  currentVector: number[]
+): Promise<ParametersDelta | null> {
+  try {
+    const [existing] = await db
+      .select()
+      .from(federatedSyncState)
+      .where(eq(federatedSyncState.tenantId, tenantId))
+      .limit(1);
+
+    const previousVector = (existing?.lastSentVector as number[] | undefined) ?? null;
+    const delta = buildParametersDelta(previousVector, currentVector);
+
+    // Propriété d'exclusion structurelle vérifiée à l'exécution, pas seulement au typage.
+    if (!verifyParametersDelta(delta) || !ParametersDeltaSchema.safeParse(delta).success) {
+      throw new Error("ParametersDelta invalide ou signature incorrecte — synchronisation refusée");
+    }
+
+    await db
+      .insert(federatedSyncState)
+      .values({ tenantId, lastSentVector: currentVector })
+      .onConflictDoUpdate({
+        target: federatedSyncState.tenantId,
+        set: { lastSentVector: currentVector, updatedAt: new Date() },
+      });
+
+    return delta;
+  } catch (err) {
+    console.error(`[ParametersDelta] Synchronisation échouée pour ${tenantId} (best-effort):`, err);
+    return null;
+  }
+}
+
 async function buildSiteProfile(
   tenant: { id: string; name: string },
 ): Promise<SiteProfile> {
@@ -336,6 +378,7 @@ async function buildSiteProfile(
     .limit(200);
 
   const localModelVector = buildLocalModelFromPatterns(patterns);
+  await syncLocalVectorViaParametersDelta(tenant.id, localModelVector);
 
   // Identifier les dimensions où le site est > moyenne globale (spécialisations)
   const specializations = DIM_LABELS

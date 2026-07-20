@@ -27,6 +27,15 @@ import AIAssistantPage from "@/pages/ai-assistant";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import WorkOrders from "@/pages/work-orders";
+import MaintenanceExecutionPage from "@/pages/maintenance-execution";
+import KnowledgeGraphPage from "@/pages/knowledge-graph";
+import MaintenanceEngineeringPlatformPage from "@/pages/maintenance-engineering-platform";
+import SmmPage from "@/pages/smm";
+import KnowledgeHubPage from "@/pages/knowledge-hub";
+import DigitalTwinPage from "@/pages/digital-twin";
+import PredictiveEnginePage from "@/pages/predictive-engine";
+import EngineeringExpertisePage from "@/pages/engineering-expertise";
+import MultiAgentTeamPage from "@/pages/multi-agent-team";
 import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import MaintenanceDashboard from "@/pages/maintenance-dashboard";
@@ -223,6 +232,33 @@ function Router() {
       </Route>
       <Route path="/work-orders">
         {(params) => <ProtectedRoute component={WorkOrders} {...params} />}
+      </Route>
+      <Route path="/maintenance-execution/:workOrderId?">
+        {(params) => <ProtectedRoute component={MaintenanceExecutionPage} {...params} />}
+      </Route>
+      <Route path="/knowledge-graph">
+        {(params) => <ProtectedRoute component={KnowledgeGraphPage} {...params} />}
+      </Route>
+      <Route path="/maintenance-platform">
+        {(params) => <ProtectedRoute component={MaintenanceEngineeringPlatformPage} {...params} />}
+      </Route>
+      <Route path="/smm">
+        {(params) => <ProtectedRoute component={SmmPage} {...params} />}
+      </Route>
+      <Route path="/knowledge-hub">
+        {(params) => <ProtectedRoute component={KnowledgeHubPage} {...params} />}
+      </Route>
+      <Route path="/digital-twin">
+        {(params) => <ProtectedRoute component={DigitalTwinPage} {...params} />}
+      </Route>
+      <Route path="/predictive-engine">
+        {(params) => <ProtectedRoute component={PredictiveEnginePage} {...params} />}
+      </Route>
+      <Route path="/engineering-expertise">
+        {(params) => <ProtectedRoute component={EngineeringExpertisePage} {...params} />}
+      </Route>
+      <Route path="/multi-agent-team">
+        {(params) => <ProtectedRoute component={MultiAgentTeamPage} {...params} />}
       </Route>
       <Route path="/permit-to-work">
         {(params) => <ProtectedRoute component={PermitToWork} {...params} />}

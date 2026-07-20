@@ -6,6 +6,9 @@
  */
 
 import { Request, Response } from 'express';
+import { eq, and } from 'drizzle-orm';
+import { db } from './db';
+import { userProfiles } from '@shared/schema';
 
 // Interface pour l'envoi d'emails
 export interface EmailOptions {
@@ -92,6 +95,30 @@ export async function sendPushNotification(
     console.error('❌ Push notification failed:', error);
     return false;
   }
+}
+
+/**
+ * Notifie par push tous les utilisateurs d'un tenant portant un rôle donné
+ * (ex. "safety_officer" lors d'une interruption par l'enclave PTW).
+ * Best-effort : les échecs individuels n'interrompent pas la diffusion.
+ */
+export async function notifyByRole(
+  tenantId: string,
+  role: string,
+  title: string,
+  message: string
+): Promise<number> {
+  const recipients = await db
+    .select({ id: userProfiles.id })
+    .from(userProfiles)
+    .where(and(eq(userProfiles.tenantId, tenantId), eq(userProfiles.role, role)));
+
+  let sent = 0;
+  for (const recipient of recipients) {
+    const ok = await sendPushNotification(recipient.id, title, message).catch(() => false);
+    if (ok) sent++;
+  }
+  return sent;
 }
 
 /**

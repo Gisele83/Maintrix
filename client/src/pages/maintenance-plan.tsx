@@ -107,24 +107,24 @@ export default function MaintenancePlanPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/maintenance-plans"] }); qc.invalidateQueries({ queryKey: ["/api/maintenance-plans/stats"] }); };
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiRequest("POST", "/api/maintenance-plans", d),
+    mutationFn: (d: any) => apiRequest("/api/maintenance-plans", { method: "POST", body: d }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Plan créé" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/maintenance-plans/${id}`, data),
-    onSuccess: async (res: any) => { invalidate(); const d = await res.json(); setSelected(d); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/maintenance-plans/${id}`, { method: "PATCH", body: data }),
+    onSuccess: async (res: any) => { invalidate(); setSelected(res); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/maintenance-plans/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/maintenance-plans/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Plan supprimé" }); },
   });
 
   const form = useForm<CreateForm>({ resolver: zodResolver(CreateSchema), defaultValues: { fiscalYear: new Date().getFullYear(), budgetAllocated: 0 } });
   const taskForm = useForm<TaskFormData>({ resolver: zodResolver(TaskSchema), defaultValues: { taskType: "preventive", priority: "medium", plannedMonth: new Date().getMonth() + 1 } });
 
-  const openDetail = async (p: Plan) => { try { const res = await apiRequest("GET", `/api/maintenance-plans/${p.id}`); setSelected(await (res as any).json()); } catch { setSelected(p); } };
+  const openDetail = async (p: Plan) => { try { const res = await apiRequest(`/api/maintenance-plans/${p.id}`); setSelected(res); } catch { setSelected(p); } };
 
   const addTask = (data: TaskFormData) => {
     if (!selected) return;

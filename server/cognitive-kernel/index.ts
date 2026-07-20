@@ -5,6 +5,7 @@ import {
   DecisionOutcome, ClosedLoopPhase, PolicyRule, PolicyCondition, SuggestedAction,
   RiskAssessment, LayerStatus, ModelVersion
 } from '../cognitive-layers/layer-contracts.js';
+import { checkInterlock, autoGeneratePermitRequest } from '../ptw-interlock.js';
 
 export interface CognitiveAgent {
   agentId: string;
@@ -110,7 +111,7 @@ export class CognitiveKernel extends EventEmitter {
     return fullMessage.messageId;
   }
 
-  async processClosedLoop(equipmentId: number, triggerSignal: any): Promise<{
+  async processClosedLoop(equipmentId: number, triggerSignal: any, tenantId: string = 'default'): Promise<{
     phase: ClosedLoopPhase;
     diagnosis?: CognitiveDiagnosis;
     action?: OrchestratedAction;
@@ -133,10 +134,10 @@ export class CognitiveKernel extends EventEmitter {
 
     if (decision.outcome === DecisionOutcome.APPROVED || decision.outcome === DecisionOutcome.AUTO_EXECUTED) {
       this.closedLoopState.set(loopId, ClosedLoopPhase.ACTION);
-      const action = await this.executeAction(diagnosis, decision);
+      const { action, interlock } = await this.executeAction(diagnosis, decision, tenantId);
 
       this.closedLoopState.set(loopId, ClosedLoopPhase.FEEDBACK);
-      const auditEntry = this.createAuditEntry(diagnosis, decision, action);
+      const auditEntry = this.createAuditEntry(diagnosis, decision, tenantId, action, interlock);
       this.decisionAuditLog.push(auditEntry);
 
       this.closedLoopState.set(loopId, ClosedLoopPhase.LEARNING);
@@ -145,7 +146,7 @@ export class CognitiveKernel extends EventEmitter {
       return { phase: ClosedLoopPhase.LEARNING, diagnosis, action, auditEntry };
     }
 
-    const auditEntry = this.createAuditEntry(diagnosis, decision);
+    const auditEntry = this.createAuditEntry(diagnosis, decision, tenantId);
     this.decisionAuditLog.push(auditEntry);
     return { phase: ClosedLoopPhase.DECISION, diagnosis, auditEntry };
   }
@@ -220,40 +221,68 @@ export class CognitiveKernel extends EventEmitter {
     return diagnosis;
   }
 
-  private async makeDecision(diagnosis: CognitiveDiagnosis): Promise<{ outcome: DecisionOutcome; reason: string }> {
+  private async makeDecision(diagnosis: CognitiveDiagnosis): Promise<{ outcome: DecisionOutcome; reason: string; policyId: string | null }> {
     const matchingPolicies = this.evaluatePolicies(diagnosis);
 
     if (matchingPolicies.length === 0) {
-      return { outcome: DecisionOutcome.ESCALATED, reason: 'No matching policy found — escalating to human' };
+      return { outcome: DecisionOutcome.ESCALATED, reason: 'No matching policy found — escalating to human', policyId: null };
     }
 
     const bestPolicy = matchingPolicies.sort((a, b) => b.priority - a.priority)[0];
 
     if (this.systemAutonomyLevel >= AutonomyLevel.SUPERVISED_EXECUTION && !bestPolicy.requiresApproval) {
-      return { outcome: DecisionOutcome.AUTO_EXECUTED, reason: `Auto-executed per policy: ${bestPolicy.name}` };
+      return { outcome: DecisionOutcome.AUTO_EXECUTED, reason: `Auto-executed per policy: ${bestPolicy.name}`, policyId: bestPolicy.policyId };
     }
 
     if (bestPolicy.requiresApproval) {
-      return { outcome: DecisionOutcome.DEFERRED, reason: `Awaiting approval per policy: ${bestPolicy.name}` };
+      return { outcome: DecisionOutcome.DEFERRED, reason: `Awaiting approval per policy: ${bestPolicy.name}`, policyId: bestPolicy.policyId };
     }
 
-    return { outcome: DecisionOutcome.APPROVED, reason: `Approved per policy: ${bestPolicy.name}` };
+    return { outcome: DecisionOutcome.APPROVED, reason: `Approved per policy: ${bestPolicy.name}`, policyId: bestPolicy.policyId };
   }
 
-  private async executeAction(diagnosis: CognitiveDiagnosis, decision: { outcome: DecisionOutcome; reason: string }): Promise<OrchestratedAction> {
+  private async executeAction(
+    diagnosis: CognitiveDiagnosis,
+    decision: { outcome: DecisionOutcome; reason: string },
+    tenantId: string
+  ): Promise<{ action: OrchestratedAction; interlock: Awaited<ReturnType<typeof checkInterlock>> }> {
     const topAction = diagnosis.suggestedActions[0];
+
+    // Enclave PTW (revendications 1/9) : toute commande à autonomie ≥ SUPERVISED_EXECUTION
+    // sur équipement classé à risque exige un permis actif. Vérifiée avant émission,
+    // interposée matériellement dans la chaîne — aucune voie ne contourne ce contrôle.
+    const interlock = await checkInterlock(diagnosis.equipmentId, this.systemAutonomyLevel, tenantId);
+
     const action: OrchestratedAction = {
       executionId: `exec-${Date.now()}`,
       diagnosisId: diagnosis.diagnosisId,
+      equipmentId: diagnosis.equipmentId,
       actionId: topAction?.actionId || 'manual',
       targetSystem: topAction?.automatable ? 'gmao' : 'manual',
       command: { type: topAction?.type, description: topAction?.description },
       autonomyLevel: this.systemAutonomyLevel,
-      approvalStatus: decision.outcome,
-      executedAt: new Date()
+      approvalStatus: interlock.allowed ? decision.outcome : DecisionOutcome.ESCALATED,
+      executedAt: new Date(),
+      result: interlock.allowed ? undefined : 'blocked_by_ptw_interlock',
+      projectedCost: topAction?.estimatedCost ?? 0,
+      projectedDuration: topAction?.estimatedDuration ?? 0,
+      // Heuristique : l'action projetée est supposée réduire de moitié la probabilité
+      // de défaillance résiduelle — calibrée finement par l'apprentissage post-action.
+      projectedImcaImpact: Math.round((diagnosis.riskAssessment?.failureProbability ?? 0) * 100 * 0.5),
     };
 
+    if (!interlock.allowed) {
+      await autoGeneratePermitRequest(diagnosis.equipmentId, tenantId, decision.reason);
+      return { action, interlock };
+    }
+
     this.emit('action:executed', action);
+
+    if (action.targetSystem === 'gmao') {
+      await this.createTrackedWorkOrder(diagnosis, action, tenantId).catch(err =>
+        console.error('Création de l\'OT lié à la décision automatisée échouée (best-effort):', err)
+      );
+    }
 
     const equipmentAgent = this.findAgentForEquipment(diagnosis.equipmentId);
     if (equipmentAgent) {
@@ -262,7 +291,42 @@ export class CognitiveKernel extends EventEmitter {
       equipmentAgent.localMemory.set('actionHistory', history);
     }
 
-    return action;
+    return { action, interlock };
+  }
+
+  /**
+   * Crée l'ordre de travail réel associé à une décision automatisée, en y
+   * portant les valeurs projetées (coût, impact IMCA) et l'IMCA mesuré à
+   * l'instant de création — nécessaires à la comparaison projection/réalité
+   * de l'apprentissage post-action (revendications 1g/3/10) lors de la
+   * clôture de l'OT (voir gmao-storage.ts::updateWorkOrder).
+   */
+  private async createTrackedWorkOrder(
+    diagnosis: CognitiveDiagnosis,
+    action: OrchestratedAction,
+    tenantId: string
+  ): Promise<void> {
+    const { db } = await import('../db.js');
+    const { workOrders } = await import('@shared/schema');
+    const { computeIMCA } = await import('../imca-engine.js');
+
+    const imcaAtCreation = await computeIMCA(diagnosis.equipmentId, tenantId)
+      .then(r => r.IMCA)
+      .catch(() => null);
+
+    await db.insert(workOrders).values({
+      tenantId,
+      orderNumber: `AUTO-${action.executionId}`,
+      equipmentId: diagnosis.equipmentId,
+      orderType: 'corrective',
+      title: `[Décision automatisée] ${action.command.description ?? diagnosis.rootCause}`,
+      description: `Généré automatiquement par le moteur d'arbitrage (diagnosisId=${diagnosis.diagnosisId}). Cause racine : ${diagnosis.rootCause}.`,
+      status: 'pending',
+      estimatedDuration: action.projectedDuration,
+      projectedCost: action.projectedCost.toFixed(2),
+      projectedImcaImpact: action.projectedImcaImpact,
+      imcaAtCreation: imcaAtCreation ?? undefined,
+    });
   }
 
   private async learnFromOutcome(diagnosis: CognitiveDiagnosis, action: OrchestratedAction, audit: DecisionAuditEntry): Promise<void> {
@@ -271,7 +335,7 @@ export class CognitiveKernel extends EventEmitter {
       rootCause: diagnosis.rootCause,
       confidence: diagnosis.rootCauseConfidence,
       actionTaken: action.actionId,
-      outcome: audit.outcome,
+      outcome: audit.actionOutcome,
       timestamp: new Date()
     };
 
@@ -424,23 +488,63 @@ export class CognitiveKernel extends EventEmitter {
 
   private createAuditEntry(
     diagnosis: CognitiveDiagnosis,
-    decision: { outcome: DecisionOutcome; reason: string },
-    action?: OrchestratedAction
+    decision: { outcome: DecisionOutcome; reason: string; policyId: string | null },
+    tenantId: string,
+    action?: OrchestratedAction,
+    interlock?: Awaited<ReturnType<typeof checkInterlock>>
   ): DecisionAuditEntry {
-    return {
+    const entry: DecisionAuditEntry = {
       auditId: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
       timestamp: new Date(),
       diagnosisId: diagnosis.diagnosisId,
-      decision: decision.outcome,
+      decision: action ? action.approvalStatus : decision.outcome,
       autonomyLevel: this.systemAutonomyLevel,
-      decisionReason: decision.reason,
-      evidenceSummary: diagnosis.evidenceChain.map(e => e.description).join('; '),
+      appliedPolicyId: decision.policyId,
+      evidenceSummary: `${decision.reason}; ${diagnosis.evidenceChain.map(e => e.description).join('; ')}`,
       riskLevel: diagnosis.riskAssessment.overallRisk,
-      policyApplied: decision.reason,
       humanOverride: false,
-      outcome: action?.result,
-      tenantId: 'default'
+      ptwReference: interlock?.permit?.permitNumber ?? null,
+      actionOutcome: action?.result ?? null,
+      tenantId,
+      decisionMaker: 'system'
     };
+    this.persistAuditEntry(entry).catch(err =>
+      console.error('Decision audit journal persist failed (best-effort, in-memory copy retained):', err)
+    );
+    return entry;
+  }
+
+  /**
+   * Persiste l'entrée d'audit décisionnel dans le journal append-only à
+   * chaînage de hachage (revendication 1h) — les 13 champs sont portés
+   * intégralement dans le payload canonique signé par la chaîne SHA-256.
+   */
+  private async persistAuditEntry(entry: DecisionAuditEntry): Promise<void> {
+    const { appendJournalEntry, DOMAINS } = await import('../crypto-journal.js');
+    await appendJournalEntry({
+      domain: DOMAINS.IMCA,
+      action: 'DECISION:AUDIT_ENTRY',
+      entityType: 'decision_audit',
+      entityId: entry.auditId,
+      actorId: null,
+      actorName: entry.decisionMaker,
+      payload: {
+        auditId: entry.auditId,
+        timestamp: entry.timestamp.toISOString(),
+        diagnosisId: entry.diagnosisId,
+        decision: entry.decision,
+        autonomyLevel: entry.autonomyLevel,
+        appliedPolicyId: entry.appliedPolicyId,
+        evidenceSummary: entry.evidenceSummary,
+        riskLevel: entry.riskLevel,
+        humanOverride: entry.humanOverride,
+        ptwReference: entry.ptwReference,
+        actionOutcome: entry.actionOutcome,
+        tenantId: entry.tenantId,
+        decisionMaker: entry.decisionMaker
+      },
+      metadata: { tenantId: entry.tenantId }
+    });
   }
 
   private findAgentForEquipment(equipmentId: number): CognitiveAgent | undefined {

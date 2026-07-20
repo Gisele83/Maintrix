@@ -61,7 +61,7 @@ export default function EmailDiagnostic() {
 
   // Test configuration SendGrid
   const sendgridTestMutation = useMutation({
-    mutationFn: () => apiRequest("GET", "/api/super-admin/test-sendgrid"),
+    mutationFn: () => apiRequest("/api/super-admin/test-sendgrid"),
     onSuccess: (data: any) => {
       setDiagnosticProgress(50);
       setCurrentStep(1);
@@ -75,7 +75,7 @@ export default function EmailDiagnostic() {
 
   // Test d'envoi email réel
   const emailTestMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/super-admin/test-email", { body: emailTestData }),
+    mutationFn: () => apiRequest("/api/super-admin/test-email", { method: "POST", body: emailTestData }),
     onSuccess: (data: any) => {
       setDiagnosticProgress(100);
       setCurrentStep(2);

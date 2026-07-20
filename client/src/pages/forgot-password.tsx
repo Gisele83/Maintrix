@@ -34,16 +34,10 @@ export default function ForgotPassword() {
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/enterprise-auth/forgot-password', {
+      await apiRequest('/api/enterprise-auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: data
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors de la demande de réinitialisation');
-      }
 
       setSubmittedEmail(data.email);
       setIsEmailSent(true);

@@ -44,10 +44,10 @@ export class DataImporter {
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
-    const results = { success: 0, errors: [] };
+    const results: { success: number; errors: Array<{ line: number; error: string; data: any }> } = { success: 0, errors: [] };
 
     try {
-      const records = parse(csvContent, {
+      const records = parse<Record<string, any>>(csvContent, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
@@ -90,11 +90,10 @@ export class DataImporter {
             solution: validatedData.solution,
             duration: validatedData.duration || 60,
             urgency: validatedData.urgency,
-            notes: validatedData.notes,
           });
 
           results.success++;
-        } catch (error) {
+        } catch (error: any) {
           results.errors.push({
             line: i + 2, // +2 car ligne 1 = headers et index commence à 0
             error: error.message,
@@ -102,7 +101,7 @@ export class DataImporter {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       results.errors.push({
         line: 0,
         error: `Erreur de parsing CSV: ${error.message}`,
@@ -120,7 +119,7 @@ export class DataImporter {
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
-    const results = { success: 0, errors: [] };
+    const results: { success: number; errors: Array<{ line: number; error: string; data: any }> } = { success: 0, errors: [] };
 
     try {
       const workbook = XLSX.read(excelBuffer, { type: 'buffer' });
@@ -128,7 +127,7 @@ export class DataImporter {
       const worksheet = workbook.Sheets[sheetName];
       
       // Conversion en JSON
-      const records = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const records = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
 
       for (let i = 0; i < records.length; i++) {
         const record = records[i];
@@ -164,11 +163,10 @@ export class DataImporter {
             solution: validatedData.solution,
             duration: validatedData.duration || 60,
             urgency: validatedData.urgency,
-            notes: validatedData.notes,
           });
 
           results.success++;
-        } catch (error) {
+        } catch (error: any) {
           results.errors.push({
             line: i + 2,
             error: error.message,
@@ -176,7 +174,7 @@ export class DataImporter {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       results.errors.push({
         line: 0,
         error: `Erreur de lecture Excel: ${error.message}`,
@@ -194,10 +192,10 @@ export class DataImporter {
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
-    const results = { success: 0, errors: [] };
+    const results: { success: number; errors: Array<{ line: number; error: string; data: any }> } = { success: 0, errors: [] };
 
     try {
-      const records = parse(csvContent, {
+      const records = parse<Record<string, any>>(csvContent, {
         columns: true,
         skip_empty_lines: true,
         trim: true,
@@ -225,15 +223,13 @@ export class DataImporter {
             equipmentType: validatedData.equipmentType,
             equipmentId: validatedData.equipmentId || `EQ-${Date.now()}-${i}`,
             zone: validatedData.zone || "unknown",
-            sector: validatedData.sector || "unknown",
             description: validatedData.description,
-            urgency: validatedData.urgency,
-            reportedBy: validatedData.reportedBy,
-            status: validatedData.status,
+            impact: validatedData.urgency,
+            contact: validatedData.reportedBy,
           });
 
           results.success++;
-        } catch (error) {
+        } catch (error: any) {
           results.errors.push({
             line: i + 2,
             error: error.message,
@@ -241,7 +237,7 @@ export class DataImporter {
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       results.errors.push({
         line: 0,
         error: `Erreur de parsing CSV: ${error.message}`,

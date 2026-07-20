@@ -32,7 +32,7 @@ export default function UserProfiles() {
     mutationFn: async (data: InsertUserProfile) => {
       return await apiRequest("/api/user-profiles", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: data,
       });
     },
     onSuccess: () => {
@@ -57,7 +57,7 @@ export default function UserProfiles() {
     mutationFn: async ({ id, data }: { id: number; data: Partial<UserProfile> }) => {
       return await apiRequest(`/api/user-profiles/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: data,
       });
     },
     onSuccess: () => {

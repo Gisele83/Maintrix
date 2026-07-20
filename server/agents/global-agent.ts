@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { AgentType } from '../cognitive-layers/layer-contracts.js';
 import { getCognitiveKernel } from '../cognitive-kernel/index.js';
 import { SiteAgent } from './site-agent.js';
+import { EquipmentAgent } from './equipment-agent.js';
 
 export interface GlobalLearning {
   patternId: string;
@@ -166,6 +167,16 @@ export class GlobalAgent extends EventEmitter {
 
   getSite(siteId: string): SiteAgent | undefined {
     return this.sites.get(siteId);
+  }
+
+  /** Retrouve l'EquipmentAgent d'un équipement sans connaître son site — utilisé par
+   * le Predictive Maintenance Engine unifié pour la détection d'anomalie à la demande. */
+  findEquipmentAgent(equipmentId: number): EquipmentAgent | undefined {
+    for (const site of this.sites.values()) {
+      const agent = site.getEquipmentAgent(equipmentId);
+      if (agent) return agent;
+    }
+    return undefined;
   }
 
   async shutdown(): Promise<void> {

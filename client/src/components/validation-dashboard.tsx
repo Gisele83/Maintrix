@@ -172,9 +172,9 @@ export default function ValidationDashboard({
     try {
       const response = await apiRequest(`/api/purchase-orders/${purchaseOrderId}/mark-printed`, {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           printedBy: userId
-        })
+        }
       });
 
       toast({

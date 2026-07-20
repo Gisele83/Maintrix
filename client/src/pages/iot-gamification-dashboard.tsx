@@ -280,7 +280,7 @@ export default function IoTGamificationDashboard() {
       try {
         await apiRequest(`/api/notifications/${notificationId}/action`, {
           method: 'POST',
-          body: JSON.stringify({ userId: selectedUserId, actionTaken: action }),
+          body: { userId: selectedUserId, actionTaken: action },
         });
         return { notificationId, action };
       } catch (error) {

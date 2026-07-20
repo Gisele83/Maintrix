@@ -54,6 +54,7 @@ import {
   type ValidationLog,
   type InsertValidationLog,
   type UserProfile,
+  type InsertUserProfile,
   maintenanceReports,
   monthlyReports,
   reportTemplates,
@@ -132,7 +133,8 @@ export class GMAOStorage {
 
   async createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry> {
     try {
-      const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
+      const equipmentId = data.equipmentId || `EQ-${Date.now()}`;
+      const [equipment] = await db.insert(equipmentRegistry).values({ ...data, equipmentId }).returning();
       return equipment;
     } catch (error) {
       console.error("createEquipment error:", error);
@@ -247,7 +249,15 @@ export class GMAOStorage {
   async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
     try {
       const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-      const [workOrder] = await db.insert(workOrders).values({ ...data, orderNumber }).returning();
+      const { cost, laborCost, materialCost, externalCost, ...rest } = data;
+      const [workOrder] = await db.insert(workOrders).values({
+        ...rest,
+        orderNumber,
+        cost: cost?.toString(),
+        laborCost: laborCost?.toString(),
+        materialCost: materialCost?.toString(),
+        externalCost: externalCost?.toString(),
+      }).returning();
       return workOrder;
     } catch (error) {
       console.error("createWorkOrder error:", error);
@@ -261,6 +271,11 @@ export class GMAOStorage {
       if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
       if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
 
+      const [existing] = await db
+        .select()
+        .from(workOrders)
+        .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)));
+
       const [workOrder] = await db
         .update(workOrders)
         .set({ ...safeUpdates, updatedAt: new Date() })
@@ -268,11 +283,48 @@ export class GMAOStorage {
         .returning();
 
       if (!workOrder) throw new Error(`Ordre de travail #${id} non trouvé ou accès refusé`);
+
+      if (existing?.status !== 'completed' && workOrder.status === 'completed' && workOrder.projectedCost != null) {
+        this.recordAutomatedProjectionOutcome(workOrder).catch(err =>
+          console.error("Apprentissage post-action échoué (best-effort):", err)
+        );
+      }
+
       return workOrder;
     } catch (error) {
       console.error("updateWorkOrder error:", error);
       throw error;
     }
+  }
+
+  /**
+   * Compare le résultat réel d'un OT lié à une décision automatisée à sa
+   * projection (coût, durée, impact IMCA) et ajuste λ_k/ω_j en conséquence
+   * (apprentissage post-action, Brevet 2 rev. 1g/3/10). Best-effort — ne
+   * doit jamais faire échouer la clôture de l'OT appelante.
+   */
+  private async recordAutomatedProjectionOutcome(workOrder: WorkOrder): Promise<void> {
+    const { recordProjectionOutcome } = await import("./arbitration-learning");
+    const { computeIMCA } = await import("./imca-engine");
+
+    const actualCost = workOrder.cost != null ? parseFloat(workOrder.cost as unknown as string) : 0;
+    const actualDuration = workOrder.actualDuration ?? workOrder.estimatedDuration ?? 0;
+
+    let actualImcaImpact = 0;
+    if (workOrder.equipmentId != null && workOrder.imcaAtCreation != null) {
+      const after = await computeIMCA(workOrder.equipmentId, workOrder.tenantId).catch(() => null);
+      if (after) actualImcaImpact = Math.max(0, after.IMCA - workOrder.imcaAtCreation);
+    }
+
+    await recordProjectionOutcome(
+      workOrder.tenantId,
+      {
+        cost: parseFloat((workOrder.projectedCost as unknown as string) ?? "0"),
+        duration: workOrder.estimatedDuration ?? 0,
+        imcaImpact: workOrder.projectedImcaImpact ?? 0,
+      },
+      { cost: actualCost, duration: actualDuration, imcaImpact: actualImcaImpact }
+    );
   }
 
   async deleteWorkOrder(id: number, tenantId: string): Promise<boolean> {
@@ -390,7 +442,7 @@ export class GMAOStorage {
     await db.insert(counterHistory).values({
       tenantId,
       counterId: id,
-      previousValue: counter.currentValue,
+      previousValue: counter.currentValue ?? 0,
       resetReason: resetReason || "Manual reset",
       performedBy,
       workOrderId
@@ -431,7 +483,8 @@ export class GMAOStorage {
 
   // Helper method to check and generate alerts for counters
   private async checkAndGenerateCounterAlert(counter: MaintenanceCounter): Promise<void> {
-    const percentage = (counter.currentValue / counter.thresholdValue) * 100;
+    if (!counter.thresholdValue) return;
+    const percentage = ((counter.currentValue ?? 0) / counter.thresholdValue) * 100;
     let alertLevel: "info" | "warning" | "critical" = "info";
     let shouldGenerateAlert = false;
 
@@ -463,8 +516,8 @@ export class GMAOStorage {
         severity: alertLevel,
         title: `Maintenance due: ${counter.equipmentName}`,
         message: `${counter.maintenanceType} is due for ${counter.equipmentName}. Current value: ${counter.currentValue}/${counter.thresholdValue} ${counter.counterType}`,
-        triggerValue: counter.currentValue,
-        thresholdValue: counter.thresholdValue
+        triggerValue: counter.currentValue?.toString(),
+        thresholdValue: counter.thresholdValue?.toString()
       });
 
       // Mark email as sent
@@ -573,51 +626,50 @@ export class GMAOStorage {
 
   // IoT Sensor Data Methods
   async getIotSensorData(equipmentId?: number, sensorType?: string, limit: number = 1000): Promise<IotSensorData[]> {
-    let query = db.select().from(iotSensorData);
-    
     const conditions = [];
     if (equipmentId) conditions.push(eq(iotSensorData.equipmentId, equipmentId));
     if (sensorType) conditions.push(eq(iotSensorData.sensorType, sensorType));
-    
-    if (conditions.length > 0) {
-      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
-    
-    return await query.orderBy(desc(iotSensorData.timestamp)).limit(limit);
+
+    return await db.select().from(iotSensorData)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(iotSensorData.timestamp))
+      .limit(limit);
   }
 
   // Get alerts for equipment
   async getAlerts(equipmentId?: number, limit: number = 50): Promise<any[]> {
     // For now, generate mock alerts based on recent sensor data
     const sensorData = await this.getIotSensorData(equipmentId, undefined, 20);
-    const alerts = [];
+    const alerts: any[] = [];
     let alertId = 1;
     
     sensorData.forEach(reading => {
-      if (reading.sensorType === 'temperature' && reading.value > 75) {
+      const value = parseFloat(reading.value);
+
+      if (reading.sensorType === 'temperature' && value > 75) {
         alerts.push({
           id: alertId++,
-          severity: reading.value > 85 ? 'critical' : 'warning',
+          severity: value > 85 ? 'critical' : 'warning',
           message: `Température élevée: ${reading.value}°C`,
           timestamp: reading.timestamp,
           equipmentId: reading.equipmentId
         });
       }
-      
-      if (reading.sensorType === 'vibration' && reading.value > 4.5) {
+
+      if (reading.sensorType === 'vibration' && value > 4.5) {
         alerts.push({
           id: alertId++,
-          severity: reading.value > 6.0 ? 'critical' : 'warning',
+          severity: value > 6.0 ? 'critical' : 'warning',
           message: `Vibration excessive: ${reading.value} mm/s`,
           timestamp: reading.timestamp,
           equipmentId: reading.equipmentId
         });
       }
-      
-      if (reading.sensorType === 'pressure' && reading.value > 4.0) {
+
+      if (reading.sensorType === 'pressure' && value > 4.0) {
         alerts.push({
           id: alertId++,
-          severity: reading.value > 5.0 ? 'critical' : 'warning',
+          severity: value > 5.0 ? 'critical' : 'warning',
           message: `Pression anormale: ${reading.value} bar`,
           timestamp: reading.timestamp,
           equipmentId: reading.equipmentId
@@ -642,13 +694,9 @@ export class GMAOStorage {
 
   // Predictive Analytics Methods
   async getPredictiveAnalytics(equipmentId?: number): Promise<PredictiveAnalytics[]> {
-    let query = db.select().from(predictiveAnalytics);
-    
-    if (equipmentId) {
-      query = query.where(eq(predictiveAnalytics.equipmentId, equipmentId));
-    }
-    
-    return await query.orderBy(desc(predictiveAnalytics.createdAt));
+    return await db.select().from(predictiveAnalytics)
+      .where(equipmentId ? eq(predictiveAnalytics.equipmentId, equipmentId) : undefined)
+      .orderBy(desc(predictiveAnalytics.createdAt));
   }
 
   async createPredictiveAnalytics(data: InsertPredictiveAnalytics): Promise<PredictiveAnalytics> {
@@ -666,17 +714,13 @@ export class GMAOStorage {
 
   // KPI Metrics Methods
   async getKpiMetrics(equipmentId?: number, metricType?: string): Promise<KpiMetrics[]> {
-    let query = db.select().from(kpiMetrics);
-    
     const conditions = [];
     if (equipmentId) conditions.push(eq(kpiMetrics.equipmentId, equipmentId));
     if (metricType) conditions.push(eq(kpiMetrics.metricType, metricType));
-    
-    if (conditions.length > 0) {
-      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
-    
-    return await query.orderBy(desc(kpiMetrics.calculationDate));
+
+    return await db.select().from(kpiMetrics)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(kpiMetrics.calculationDate));
   }
 
   async createKpiMetrics(data: InsertKpiMetrics): Promise<KpiMetrics> {
@@ -1051,13 +1095,9 @@ export class GMAOStorage {
 
   // Integration Log Methods
   async getIntegrationLog(systemName?: string): Promise<IntegrationLog[]> {
-    let query = db.select().from(integrationLog);
-    
-    if (systemName) {
-      query = query.where(eq(integrationLog.systemName, systemName));
-    }
-    
-    return await query.orderBy(desc(integrationLog.processedAt));
+    return await db.select().from(integrationLog)
+      .where(systemName ? eq(integrationLog.systemName, systemName) : undefined)
+      .orderBy(desc(integrationLog.processedAt));
   }
 
   async createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog> {
@@ -1077,13 +1117,10 @@ export class GMAOStorage {
       conditions.push(eq(alertsNotifications.tenantId, tenantId));
     }
     
-    let query = db.select().from(alertsNotifications);
-    
-    if (conditions.length > 0) {
-      query = query.where(conditions.length === 1 ? conditions[0] : and(...conditions));
-    }
-    
-    return await query.orderBy(desc(alertsNotifications.createdAt)).limit(maxLimit);
+    return await db.select().from(alertsNotifications)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(alertsNotifications.createdAt))
+      .limit(maxLimit);
   }
 
   async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
@@ -1249,11 +1286,13 @@ export class GMAOStorage {
     const createdOrders: PurchaseOrder[] = [];
 
     for (const rule of rules) {
+      if (rule.sparePartId == null) continue;
       const part = await this.getSparePartById(rule.sparePartId, tenantId);
       if (!part) continue;
+      const currentStock = part.currentStock ?? 0;
 
       // Check if stock is below reorder point
-      if (part.currentStock <= rule.reorderPoint) {
+      if (currentStock <= rule.reorderPoint) {
         // Check if not recently triggered (prevent spam)
         const hoursSinceLastTrigger = rule.lastTriggered 
           ? (Date.now() - rule.lastTriggered.getTime()) / (1000 * 60 * 60)
@@ -1269,11 +1308,11 @@ export class GMAOStorage {
           await this.createAlert({
             alertType: "stock_low",
             equipmentId: null,
-            severity: part.currentStock <= 0 ? "critical" : "high",
+            severity: currentStock <= 0 ? "critical" : "high",
             title: "Stock faible détecté",
-            message: `Stock de "${part.partName}" (${part.partNumber}) est descendu à ${part.currentStock} unités. Seuil de réapprovisionnement: ${rule.reorderPoint}`,
-            triggerValue: part.currentStock,
-            thresholdValue: rule.reorderPoint
+            message: `Stock de "${part.partName}" (${part.partNumber}) est descendu à ${currentStock} unités. Seuil de réapprovisionnement: ${rule.reorderPoint}`,
+            triggerValue: currentStock.toString(),
+            thresholdValue: rule.reorderPoint?.toString()
           });
 
           // If auto-order is enabled, create purchase order
@@ -1289,9 +1328,9 @@ export class GMAOStorage {
                 supplierId: rule.supplierId,
                 orderType: "spare_parts",
                 status: "draft",
-                priority: part.currentStock <= 0 ? "urgent" : "high",
+                priority: currentStock <= 0 ? "urgent" : "high",
                 requestedBy: "Auto-Reorder System",
-                totalAmount: part.unitPrice ? parseFloat((parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2)) : 0,
+                totalAmount: (part.unitPrice ? (parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2) : "0"),
                 currency: "EUR",
                 expectedDelivery,
                 deliveryAddress: "Magasin principal",
@@ -1306,8 +1345,8 @@ export class GMAOStorage {
                 partNumber: part.partNumber,
                 description: part.partName,
                 quantity: rule.reorderQuantity,
-                unitPrice: part.unitPrice ? parseFloat(part.unitPrice) : 0,
-                totalPrice: part.unitPrice ? parseFloat((parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2)) : 0,
+                unitPrice: part.unitPrice ? part.unitPrice.toString() : "0",
+                totalPrice: (part.unitPrice ? (parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2) : "0"),
                 expectedDelivery
               });
 
@@ -1372,7 +1411,8 @@ export class GMAOStorage {
       Array.isArray(reportData.partsUsed) ? 
         reportData.partsUsed.reduce((sum: number, part: any) => sum + (part.cost || 0), 0) : 0 : 0;
     
-    const laborCost = reportData.laborCost || 
+    const laborCost = reportData.laborCost != null ?
+      parseFloat(reportData.laborCost.toString()) :
       (actualDuration ? (actualDuration / 60) * 50 : 0); // 50€/hour default rate
 
     const totalCost = partsCost + laborCost;
@@ -1400,9 +1440,9 @@ export class GMAOStorage {
       followUpRequired: reportData.followUpRequired || false,
       followUpDate: reportData.followUpDate,
       followUpNotes: reportData.followUpNotes,
-      totalCost,
-      laborCost,
-      partsCost,
+      totalCost: totalCost.toString(),
+      laborCost: laborCost.toString(),
+      partsCost: partsCost.toString(),
       status: "draft",
       ...reportData
     };
@@ -1426,22 +1466,16 @@ export class GMAOStorage {
     startDate?: Date;
     endDate?: Date;
   }): Promise<MaintenanceReport[]> {
-    let query = db.select().from(maintenanceReports);
-    
-    if (filters) {
-      const conditions = [];
-      if (filters.equipmentId) conditions.push(eq(maintenanceReports.equipmentId, filters.equipmentId));
-      if (filters.reportType) conditions.push(eq(maintenanceReports.reportType, filters.reportType));
-      if (filters.status) conditions.push(eq(maintenanceReports.status, filters.status));
-      if (filters.startDate) conditions.push(gte(maintenanceReports.createdAt, filters.startDate));
-      if (filters.endDate) conditions.push(lte(maintenanceReports.createdAt, filters.endDate));
-      
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-    }
-    
-    return query.orderBy(desc(maintenanceReports.createdAt));
+    const conditions = [];
+    if (filters?.equipmentId) conditions.push(eq(maintenanceReports.equipmentId, filters.equipmentId));
+    if (filters?.reportType) conditions.push(eq(maintenanceReports.reportType, filters.reportType));
+    if (filters?.status) conditions.push(eq(maintenanceReports.status, filters.status));
+    if (filters?.startDate) conditions.push(gte(maintenanceReports.createdAt, filters.startDate));
+    if (filters?.endDate) conditions.push(lte(maintenanceReports.createdAt, filters.endDate));
+
+    return db.select().from(maintenanceReports)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(maintenanceReports.createdAt));
   }
 
   async getMaintenanceReportById(id: number): Promise<MaintenanceReport | undefined> {
@@ -1484,15 +1518,15 @@ export class GMAOStorage {
     const workOrders = await this.getWorkOrdersByDateRange(periodStart, periodEnd);
     const totalWorkOrders = workOrders.length;
     const completedWorkOrders = workOrders.filter(wo => wo.status === "completed").length;
-    const preventiveWorkOrders = workOrders.filter(wo => wo.type === "preventive").length;
-    const correctiveWorkOrders = workOrders.filter(wo => wo.type === "corrective").length;
+    const preventiveWorkOrders = workOrders.filter(wo => wo.orderType === "preventive").length;
+    const correctiveWorkOrders = workOrders.filter(wo => wo.orderType === "corrective").length;
 
     // Calculate average completion time
-    const completedWOs = workOrders.filter(wo => wo.status === "completed" && wo.actualEndTime);
-    const averageCompletionTime = completedWOs.length > 0 ? 
+    const completedWOs = workOrders.filter(wo => wo.status === "completed" && wo.actualEnd);
+    const averageCompletionTime = completedWOs.length > 0 ?
       completedWOs.reduce((sum, wo) => {
-        const duration = wo.actualEndTime && wo.startTime ? 
-          (new Date(wo.actualEndTime).getTime() - new Date(wo.startTime).getTime()) / (1000 * 60 * 60) : 0;
+        const duration = wo.actualEnd && wo.actualStart ?
+          (new Date(wo.actualEnd).getTime() - new Date(wo.actualStart).getTime()) / (1000 * 60 * 60) : 0;
         return sum + duration;
       }, 0) / completedWOs.length : 0;
 
@@ -1588,30 +1622,30 @@ export class GMAOStorage {
       generatedBy: generatedBy || "System",
       totalEquipment,
       activeEquipment,
-      equipmentAvailability,
+      equipmentAvailability: equipmentAvailability.toString(),
       totalWorkOrders,
       completedWorkOrders,
       preventiveWorkOrders,
       correctiveWorkOrders,
-      averageCompletionTime,
-      mtbf,
-      mttr,
-      plannedMaintenanceRatio,
-      maintenanceEfficiency,
-      totalMaintenanceCost,
-      laborCost,
-      partsCost,
-      contractorCost: 0,
-      costPerWorkOrder,
+      averageCompletionTime: averageCompletionTime.toString(),
+      mtbf: mtbf.toString(),
+      mttr: mttr.toString(),
+      plannedMaintenanceRatio: plannedMaintenanceRatio.toString(),
+      maintenanceEfficiency: maintenanceEfficiency.toString(),
+      totalMaintenanceCost: totalMaintenanceCost.toString(),
+      laborCost: laborCost.toString(),
+      partsCost: partsCost.toString(),
+      contractorCost: "0",
+      costPerWorkOrder: costPerWorkOrder.toString(),
       partsConsumed: this.calculatePartsConsumed(maintenanceReportsInPeriod),
-      inventoryTurnover: 0, // Could be calculated from stock movements
+      inventoryTurnover: "0", // Could be calculated from stock movements
       stockouts: 0,
       emergencyPurchases: 0,
       totalAlerts,
       criticalAlerts,
       safetyIncidents: this.countSafetyIncidents(maintenanceReportsInPeriod),
       qualityIssues: this.countQualityIssues(maintenanceReportsInPeriod),
-      performanceScore,
+      performanceScore: performanceScore.toString(),
       improvementAreas: this.identifyImprovementAreas(performanceScore, plannedMaintenanceRatio, equipmentAvailability),
       recommendations,
       statisticsData,
@@ -1627,11 +1661,9 @@ export class GMAOStorage {
 
   // Get monthly reports
   async getMonthlyReports(year?: number): Promise<MonthlyReport[]> {
-    let query = db.select().from(monthlyReports);
-    if (year) {
-      query = query.where(eq(monthlyReports.year, year));
-    }
-    return query.orderBy(desc(monthlyReports.year), desc(monthlyReports.month));
+    return db.select().from(monthlyReports)
+      .where(year ? eq(monthlyReports.year, year) : undefined)
+      .orderBy(desc(monthlyReports.year), desc(monthlyReports.month));
   }
 
   async getMonthlyReportById(id: number): Promise<MonthlyReport | undefined> {
@@ -1876,18 +1908,15 @@ export class GMAOStorage {
     if (validationLevel === 1) {
       query = and(
         eq(purchaseOrders.validationStatus, "pending"),
-        isNull(purchaseOrders.level1ValidatedBy)
+        isNull(purchaseOrders.chefServiceValidatedBy)
       );
     } else if (validationLevel === 2) {
       query = and(
         eq(purchaseOrders.validationStatus, "chef_service_validated"),
-        isNull(purchaseOrders.level2ValidatedBy)
+        isNull(purchaseOrders.directeurValidatedBy)
       );
     } else if (validationLevel === 3) {
-      query = and(
-        eq(purchaseOrders.validationStatus, "directeur_validated"),
-        isNull(purchaseOrders.level3ValidatedBy)
-      );
+      query = eq(purchaseOrders.validationStatus, "directeur_validated");
     } else {
       throw new Error("Invalid validation level for purchase orders");
     }
@@ -1940,8 +1969,6 @@ export class GMAOStorage {
         // Validation finale - bon prêt pour impression
         updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
           validationStatus: "ready_for_print",
-          level3ValidatedBy: data.validatorId,
-          level3ValidatedAt: currentDate,
           canPrint: true
         });
       }
@@ -1989,8 +2016,6 @@ export class GMAOStorage {
     dateFrom?: Date;
     dateTo?: Date;
   }) {
-    let query = this.db.select().from(validationLogs);
-    
     const conditions = [];
     if (filters.validatorId) {
       conditions.push(eq(validationLogs.validatedBy, filters.validatorId));
@@ -2002,11 +2027,8 @@ export class GMAOStorage {
       conditions.push(lte(validationLogs.validationDate, filters.dateTo));
     }
 
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-
-    const logs = await query;
+    const logs = await this.db.select().from(validationLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
 
     // Calculate statistics
     const total = logs.length;
@@ -2091,13 +2113,13 @@ export class GMAOStorage {
         validated: purchaseOrder.chefServiceValidatedBy !== null,
         validatedBy: purchaseOrder.chefServiceValidatedBy,
         validatedAt: purchaseOrder.chefServiceValidatedAt,
-        notes: purchaseOrder.chefServiceValidationNotes
+        rejectionReason: purchaseOrder.chefServiceRejectionReason
       },
       directeur: {
         validated: purchaseOrder.directeurValidatedBy !== null,
         validatedBy: purchaseOrder.directeurValidatedBy,
         validatedAt: purchaseOrder.directeurValidatedAt,
-        notes: purchaseOrder.directeurValidationNotes
+        rejectionReason: purchaseOrder.directeurRejectionReason
       },
       documentsJustificatifs: purchaseOrder.documentsJustificatifs,
       rejection: {

@@ -29,7 +29,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
   // Update step completion
   const updateStepMutation = useMutation({
     mutationFn: async ({ stepId, completed }: { stepId: number; completed: boolean }) => {
-      return apiRequest("PATCH", `/api/repair/step/${stepId}`, { completed });
+      return apiRequest(`/api/repair/step/${stepId}`, { method: "PATCH", body: { completed } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/repair", caseId] });

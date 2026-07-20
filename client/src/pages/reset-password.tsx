@@ -81,13 +81,7 @@ export default function ResetPassword() {
 
     const verifyToken = async () => {
       try {
-        const response = await apiRequest(`/api/enterprise-auth/reset-password/verify/${token}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.message || 'Token invalide');
-        }
-
+        const data = await apiRequest(`/api/enterprise-auth/reset-password/verify/${token}`);
         setTokenVerification(data);
       } catch (error: any) {
         toast({
@@ -146,20 +140,14 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/enterprise-auth/reset-password', {
+      await apiRequest('/api/enterprise-auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           token,
           newPassword: data.newPassword,
           confirmPassword: data.confirmPassword
-        })
+        }
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors de la réinitialisation');
-      }
 
       setIsPasswordReset(true);
       

@@ -3,8 +3,10 @@
 ## Le cerveau cognitif de l'industrie — Vision complete
 
 **Date : Fevrier 2026**
-**Version : 2.0**
-**Mise a jour : Fevrier 2026**
+**Version : 2.1 (corrigee suite audit code)**
+**Mise a jour : 19 Juillet 2026**
+
+> **Note de mise a jour (19/07/2026)** — Ce document decrivait initialement une architecture cible sans verification systematique face au code. Un audit complet du repository a corrige plusieurs ecarts (voir encadre ci-dessous et statuts mis a jour dans les tableaux). Le schema en 6 couches ci-dessous reste le **modele conceptuel/logique** du systeme, mais **ne correspond pas a une separation en modules de code distincts** : voir la note dans la section D.1.
 
 ---
 
@@ -125,9 +127,12 @@
 
 ### A.1 Connecteur IoT multi-protocole
 
+> **Correction (audit 19/07/2026)** : il existe deux connecteurs IoT distincts dans le code, a ne pas confondre. `iot-connector.ts` utilise le vrai package `mqtt` et se connecte reellement a un broker si `MQTT_BROKER_URL` pointe vers une adresse externe (bascule en simulation seulement si l'URL est `localhost`/`127.*`, typiquement en dev). `advanced-iot-connector.ts`, initialise au demarrage du serveur, est en revanche **entierement simule** (client MQTT mocke, devices codes en dur) — c'est ce second connecteur qui tourne par defaut au boot.
+
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Collecte MQTT | **SIMULE** | Simulation MQTT operationnelle, code de connexion reelle commente | Integration broker MQTT reel (Mosquitto, HiveMQ) |
+| Collecte MQTT (iot-connector.ts) | **PARTIEL / HYBRIDE** | Vrai client mqtt, connexion reelle si broker externe configure, simulation si localhost | Deployer avec un broker industriel reel en environnement cible |
+| Advanced IoT Connector (init au boot) | **SIMULE** | advanced-iot-connector.ts, client MQTT mocke, devices codes en dur | Remplacer par une vraie connexion ou retirer si redondant avec iot-connector.ts |
 | Collecte Modbus | **SIMULE** | Architecture prevue, protocole declare | Implementer client Modbus TCP/RTU reel |
 | Collecte OPC-UA | **SIMULE** | Architecture prevue, protocole declare | Implementer client OPC-UA reel |
 | Collecte LoRaWAN | **SIMULE** | Architecture prevue, protocole declare | Implementer passerelle LoRaWAN |
@@ -135,8 +140,8 @@
 | Simulation temps reel | **OPERATIONNEL** | 8 types de capteurs (vibration, temperature, pression, courant, bruit, debit, humidite, vitesse) | — |
 | Stockage donnees capteurs | **OPERATIONNEL** | Table iot_sensor_data, insertion validee | — |
 
-**Estimation R&D restante : 80 000 - 120 000 EUR**
-- Integration MQTT reelle avec brokers industriels : 15 000 EUR
+**Estimation R&D restante : 65 000 - 105 000 EUR** (revisee : le cablage MQTT reel existe deja dans iot-connector.ts, il reste a le brancher en production et clarifier la redondance avec advanced-iot-connector.ts)
+- Unifier iot-connector.ts et advanced-iot-connector.ts, deployer contre un broker reel : 15 000 EUR
 - Client Modbus TCP/RTU certifie : 20 000 EUR
 - Client OPC-UA conforme OPC Foundation : 25 000 EUR
 - Passerelle LoRaWAN : 20 000 EUR
@@ -280,12 +285,15 @@
 
 ### D.1 Cognitive Kernel
 
+> **Correction (audit 19/07/2026)** : le repertoire `server/cognitive-layers/` contient bien des sous-dossiers nommes `physical/`, `edge/`, `cognitive-core/`, `orchestration/`, `learning/`, `governance/`, mais **ces dossiers sont vides** — ce ne sont que des emplacements reserves. Le systeme ne comporte **pas de separation en 6 modules de code distincts**. Toute l'orchestration reelle est centralisee dans `server/cognitive-kernel/index.ts` (classe unique `CognitiveKernel`, singleton) et `server/agents/` (Equipment/Site/Global Agent), avec deux fichiers plats complementaires : `cognitive-layers/knowledge-graph.ts` et `cognitive-layers/physics-models.ts`. Le schema en 6 couches reste un **modele conceptuel valide pour comprendre le flux fonctionnel**, mais ne doit pas etre lu comme une cartographie du code.
+
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Orchestrateur central | **OPERATIONNEL** | cognitive-kernel/index.ts, coordination des 6 couches | — |
-| Policy Engine | **OPERATIONNEL** | Regles metier et decisionnelles | — |
-| Boucle fermee complete | **OPERATIONNEL** | Detection → Diagnostic → Decision → Action → Feedback → Learning | — |
+| Orchestrateur central | **OPERATIONNEL** | cognitive-kernel/index.ts (classe CognitiveKernel, singleton), boucle de traitement toutes les 5s | — |
+| Policy Engine | **OPERATIONNEL** | Regles metier et decisionnelles, integre au kernel (pas un module separe) | — |
+| Boucle fermee complete | **OPERATIONNEL** | processClosedLoop() : Detection → Diagnostic → Decision → Action → Feedback → Learning, ecrit de vrais ordres de travail en base et journalise chaque decision (crypto-journal.ts) | — |
 | Mode degrade sans IA | **OPERATIONNEL** | Les regles expert fonctionnent offline | — |
+| Modularisation en 6 couches distinctes | **A DEVELOPPER** | Dossiers physical/, edge/, cognitive-core/, orchestration/, learning/, governance/ crees mais vides | Extraire la logique du kernel monolithique vers des modules dedies si la separation devient necessaire |
 
 ### D.2 Pipeline de diagnostic hybride
 
@@ -300,13 +308,16 @@
 
 ### D.3 IA ensemble avancee
 
+> **Correction (audit 19/07/2026)** : le fichier `diagnostic-ml-engine.ts` invoquait des scripts Python externes (`ml_diagnostic_engine.py`, `enhanced_ml_diagnostic.py`, `continuous_learning_engine.py`) censes implementer les "9 algorithmes ML combines". Ces scripts **n'existent pas dans le repository** — les appels echouaient systematiquement (ENOENT). Ce module etait donc du code mort, jamais fonctionnel. Il a ete supprime (voir changelog en fin de document). Le diagnostic robuste reel repose sur `hybrid-diagnostic-pipeline.ts` : moteur de regles expert + base de similarite historique (120+ cas) + IA Claude (Anthropic), qui reste pleinement operationnel (voir C.2, C.3, C.4).
+
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| 9 algorithmes ML combines | **OPERATIONNEL** | Ensemble de modeles pour diagnostics robustes | — |
+| Ensemble ML Python (9 algorithmes) | **SUPPRIME (code mort)** | Appelait des scripts Python absents du repo, jamais fonctionnel | Si souhaite : implementer reellement un ensemble ML, sinon s'appuyer sur le pipeline hybride existant |
+| Pipeline hybride regles + similarite + IA | **OPERATIONNEL** | hybrid-diagnostic-pipeline.ts, seul moteur de diagnostic combine reellement actif | — |
 | Modeles specifiques par secteur | **A DEVELOPPER** | — | Modeles pre-entraines par industrie (cimenterie, agroalimentaire, mines, energie) |
 | AutoML pour optimisation | **A DEVELOPPER** | — | Selection automatique du meilleur modele par contexte |
 
-**Estimation R&D restante : 80 000 - 120 000 EUR**
+**Estimation R&D restante : 80 000 - 120 000 EUR** (inchangee — le module supprime n'apportait deja aucune valeur reelle)
 
 ---
 
@@ -604,6 +615,7 @@
 | CloudFormation | **OPERATIONNEL** | Template infrastructure | — |
 | Monitoring production | **PARTIEL** | Logs basiques | APM, metriques, alerting (Datadog/Grafana) |
 | Auto-scaling | **A DEVELOPPER** | — | Scalabilite horizontale automatique |
+| Historique de migrations DB | **CORRIGE (19/07/2026)** | 84 tables definies dans shared/schema.ts mais un seul snapshot de migration existait (aout 2025) — usage de `drizzle-kit push` en synchronisation directe sans historique versionne. Une migration baseline a jour a ete generee lors de cet audit. | Maintenir la discipline `drizzle-kit generate` a chaque evolution du schema |
 
 **Estimation R&D restante : 30 000 - 50 000 EUR**
 
@@ -642,18 +654,32 @@
 
 **Estimation R&D restante : 50 000 - 90 000 EUR**
 
-### K.3 Integrations externes
+### K.2bis Application desktop (nouvellement documentee)
+
+> **Ajout (audit 19/07/2026)** : ce module n'existait pas dans la version precedente du document. Deux implementations Electron distinctes coexistent dans le repository, **non reliees entre elles** (aucun import croise) — un doublon non intentionnel a resoudre.
 
 | Sous-module | Statut | Detail | R&D restante |
 |---|---|---|---|
-| Connecteur SAP | **SIMULE** | sap-connector.ts, simulation | Integration reelle API SAP |
-| Connecteur SCADA | **SCHEMA** | Table scada_connections | Implementer connecteurs SCADA reels |
+| `desktop/` — client leger | **OPERATIONNEL** | v2.0.0, charge une URL serveur (local ou cloud) via electron-store, auto-update (electron-updater), aucun backend embarque | — |
+| `electron/` — client avec backend embarque | **OPERATIONNEL** | v2.6.0, tente d'embarquer un backend Node local + SQLite, tray, menu natif, notifications systeme | — |
+| Choix de l'implementation a conserver | **DECISION EN ATTENTE** | Aucune trace dans la CI/CD (ni ci.yml ni deploy-ec2/ecs.yml ne referencent l'un ou l'autre) ; indice git : `desktop/` ajoute par un commit dedie ("Add installable desktop application and PWA"), `electron/` touche seulement par un commit generique sans rapport | Trancher puis supprimer l'implementation non retenue |
+
+**Estimation R&D restante : a definir apres decision produit**
+
+### K.3 Integrations externes
+
+> **Correction (audit 19/07/2026)** : SAP, SCADA et Maximo etaient decrits comme simules/schema uniquement. En realite, `sap-connector.ts`, `scada-connector.ts` et `maximo-connector.ts` effectuent de vrais appels HTTP (`fetch`) vers des endpoints externes reels (OData SAP, REST SCADA, OSLC Maximo) avec credentials lus depuis les variables d'environnement. Ces connecteurs sont donc **fonctionnels des lors qu'un endpoint externe est configure** — il ne s'agit pas de simulation de donnees.
+
+| Sous-module | Statut | Detail | R&D restante |
+|---|---|---|---|
+| Connecteur SAP | **OPERATIONNEL** | sap-connector.ts, appels reels OData (API_MAINTENANCE_ORDER_SRV, API_EQUIPMENT_SRV) via credentials env | Tests d'integration avec instance SAP client reelle, gestion d'erreurs avancee |
+| Connecteur SCADA | **OPERATIONNEL** | scada-connector.ts, appels REST reels (/tags/read, /alarms/active) via SCADA_ENDPOINT env | Tests d'integration avec systemes SCADA reels varies |
+| Connecteur Maximo | **OPERATIONNEL** | maximo-connector.ts, appels OSLC reels via MAXIMO_BASE_URL/USERNAME/PASSWORD env | Tests d'integration avec instance Maximo reelle |
 | Connecteur ERP generique | **SCHEMA** | Table erp_systems | API RESTful bidirectionnelle |
 | Integration Power BI | **SCHEMA** | Tables presentes | Connecteur Power BI reel |
 | Webhook / API tierce | **PARTIEL** | API REST disponible | SDK et documentation API publique |
-| Integration Maximo | **SCHEMA** | Architecture prevue | Connecteur bidirectionnel |
 
-**Estimation R&D restante : 100 000 - 200 000 EUR**
+**Estimation R&D restante : 40 000 - 100 000 EUR** (revisee a la baisse : SAP/SCADA/Maximo necessitent des tests contre instances reelles, pas un developpement de connecteur depuis zero)
 
 ### K.4 Gamification et formation
 
@@ -677,9 +703,9 @@
 |---|---|---|
 | **Frontend** | React 18 + TypeScript | SPA avec Vite, TailwindCSS, shadcn/ui |
 | **Backend** | Node.js + Express | API REST, TypeScript |
-| **Base de donnees** | PostgreSQL (Neon) | Drizzle ORM, multi-tenant |
-| **IA** | Anthropic Claude | Structuration diagnostics, assistant conversationnel |
-| **IoT** | MQTT, Modbus, OPC-UA, LoRaWAN | Simulation operationnelle, integration reelle en cours |
+| **Base de donnees** | PostgreSQL | Driver node-postgres (pg) + Drizzle ORM, multi-tenant (le driver Neon serverless est present en dependance mais non utilise) |
+| **IA** | Anthropic Claude | Structuration diagnostics, assistant conversationnel — 2 clients Anthropic distincts (pipeline diagnostic + chat assistant), appels API reels si cle configuree |
+| **IoT** | MQTT (reel/hybride), Modbus/OPC-UA/LoRaWAN (simules) | MQTT reellement cable (iot-connector.ts) mais connecteur "advanced" mocke tourne par defaut au boot |
 | **Mobile** | React Native + Expo | Mode offline SQLite, scanner QR |
 | **Authentification** | bcrypt, sessions, MFA (TOTP) | JWT, OIDC, enterprise auth |
 | **Paiements** | Stripe, PayPal | Integration complete |
@@ -689,7 +715,7 @@
 | **Infrastructure** | AWS (ECS Fargate, EC2, CloudFormation) | Multi-region capable |
 | **Monitoring** | Grafana, Prometheus | Dashboards et metriques |
 | **Cache** | Redis | Sessions, cache de donnees |
-| **Cognitive** | Knowledge Graph, Regles Expert, ML Ensemble | 6 couches cognitives |
+| **Cognitive** | Knowledge Graph, Regles Expert, Pipeline hybride (regles + similarite + Claude) | Orchestration centralisee dans cognitive-kernel/ (pas de separation en 6 modules de code) — l'ancien "ML Ensemble" Python etait du code mort, supprime |
 | **Agents** | Equipment, Site, Global | Systeme multi-agents distribue |
 
 ---
@@ -780,7 +806,24 @@ MATURITE GLOBALE                 ███████████████�
 
 ---
 
+## CHANGELOG DES CORRECTIONS (audit code du 19/07/2026)
+
+Corrections apportees suite a un audit complet du repository (exploration directe des fichiers source, pas de la documentation) :
+
+1. **6 couches cognitives** — clarifie que `server/cognitive-layers/{physical,edge,cognitive-core,orchestration,learning,governance}/` sont des dossiers vides ; toute la logique est centralisee dans `cognitive-kernel/` + `agents/`. Le schema 6 couches reste un modele conceptuel, pas une cartographie du code (section D.1).
+2. **Ensemble ML Python (9 algorithmes)** — identifie comme code mort (`diagnostic-ml-engine.ts` appelait des scripts Python inexistants) et **supprime** du code. Le diagnostic robuste repose reellement sur le pipeline hybride regles + similarite + Claude (section D.3).
+3. **Connecteurs SAP, SCADA, Maximo** — reclasses de SIMULE/SCHEMA vers OPERATIONNEL : ce sont de vrais appels HTTP vers des API externes (OData, REST, OSLC), pas des simulations (section K.3).
+4. **Connecteur IoT MQTT** — nuance entre `iot-connector.ts` (reel/hybride, vrai client mqtt) et `advanced-iot-connector.ts` (entierement mocke, actif par defaut au demarrage) — l'ancien statut "SIMULE" global etait imprecis (section A.1).
+5. **Driver base de donnees** — corrige de "PostgreSQL (Neon)" vers driver `pg` (node-postgres) classique ; le driver Neon serverless est en dependance mais non utilise (Stack technique).
+6. **Application desktop** — ajout d'une section documentant le doublon non resolu entre `desktop/` et `electron/` (deux implementations Electron non reliees), absent du document original (section K.2bis).
+7. **Historique de migrations DB** — signale l'absence d'historique de migrations versionne malgre 84 tables ; une migration baseline (`migrations/0000_baseline_84_tables.sql`, 1608 lignes) a ete generee via `drizzle-kit generate`, sans connexion a la base de production. L'ancien snapshot (aout 2025, desynchronise) a ete sauvegarde dans `migrations_legacy_backup_2026-07-19/` plutot que supprime (section J.4).
+
+Les estimations de budget R&D globales (section SYNTHESE R&D) n'ont pas ete recalculees dans leur ensemble suite a cet audit — seules les lignes directement concernees par les corrections ci-dessus ont ete revisees. Une revue complete des chiffrages est recommandee au prochain cycle.
+
+---
+
 **Document prepare par l'equipe Maintrix**
 **Fevrier 2026 — Version 2.0**
+**Corrige le 19 Juillet 2026 — Version 2.1 (audit code)**
 
 *Ce document constitue la reference architecturale unique et la feuille de route technique complete de Maintrix. Il doit etre mis a jour a chaque milestone de developpement.*

@@ -70,8 +70,7 @@ export default function StockMovementModal({
 
       return apiRequest(endpoint, {
         method: "POST",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" }
+        body: payload,
       });
     },
     onSuccess: () => {

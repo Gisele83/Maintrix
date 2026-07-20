@@ -51,7 +51,7 @@ export function CaseReporting() {
   // Submit report mutation
   const submitReportMutation = useMutation({
     mutationFn: async (data: ReportForm) => {
-      return apiRequest("POST", "/api/report", data);
+      return apiRequest("/api/report", { method: "POST", body: data });
     },
     onSuccess: () => {
       toast({
@@ -72,7 +72,7 @@ export function CaseReporting() {
   });
 
   // Fetch reported cases
-  const { data: reportedCases = [] } = useQuery({
+  const { data: reportedCases = [] } = useQuery<any[]>({
     queryKey: ["/api/reports"],
   });
 

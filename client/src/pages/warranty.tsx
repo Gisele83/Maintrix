@@ -98,28 +98,28 @@ export default function WarrantyPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/warranties"] }); qc.invalidateQueries({ queryKey: ["/api/warranties/stats"] }); };
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiRequest("POST", "/api/warranties", d),
+    mutationFn: (d: any) => apiRequest("/api/warranties", { method: "POST", body: d }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Garantie créée" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/warranties/${id}`, data),
-    onSuccess: async (res: any) => { invalidate(); const d = await res.json(); setSelected(d); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/warranties/${id}`, { method: "PATCH", body: data }),
+    onSuccess: async (res: any) => { invalidate(); setSelected(res); },
   });
   const addClaimMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("POST", `/api/warranties/${id}/claims`, data),
-    onSuccess: async (res: any) => { const d = await res.json(); setSelected(d); invalidate(); setShowClaim(false); claimForm.reset(); toast({ title: "Réclamation ajoutée" }); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/warranties/${id}/claims`, { method: "POST", body: data }),
+    onSuccess: async (res: any) => { setSelected(res); invalidate(); setShowClaim(false); claimForm.reset(); toast({ title: "Réclamation ajoutée" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/warranties/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/warranties/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Garantie supprimée" }); },
   });
 
   const form = useForm<CreateForm>({ resolver: zodResolver(CreateSchema), defaultValues: { warrantyType: "manufacturer", deductible: 0, alertDaysBefore: 60 } });
   const claimForm = useForm<ClaimForm>({ resolver: zodResolver(ClaimFormSchema), defaultValues: { date: new Date().toISOString().split("T")[0], status: "open" } });
 
-  const openDetail = async (w: Warranty) => { try { const res = await apiRequest("GET", `/api/warranties/${w.id}`); setSelected(await (res as any).json()); } catch { setSelected(w); } };
+  const openDetail = async (w: Warranty) => { try { const res = await apiRequest(`/api/warranties/${w.id}`); setSelected(res); } catch { setSelected(w); } };
 
   const filtered = warranties.filter(w => {
     const q = search.toLowerCase();

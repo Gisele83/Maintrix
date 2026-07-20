@@ -179,7 +179,7 @@ export default function PredictiveInsights() {
   });
 
   const seedMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/predictive-insights/seed-demo"),
+    mutationFn: () => apiRequest("/api/predictive-insights/seed-demo", { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/predictive-insights"] });
       refetch();

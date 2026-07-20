@@ -137,22 +137,22 @@ export default function HabilitationPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/habilitations"] }); qc.invalidateQueries({ queryKey: ["/api/habilitations/stats"] }); };
 
   const createMutation = useMutation({
-    mutationFn: (d: any) => apiRequest("POST", "/api/habilitations", d),
+    mutationFn: (d: any) => apiRequest("/api/habilitations", { method: "POST", body: d }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Habilitation créée" }); },
     onError: () => toast({ title: "Erreur création", variant: "destructive" }),
   });
 
   const renewMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("POST", `/api/habilitations/${id}/renew`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/habilitations/${id}/renew`, { method: "POST", body: data }),
     onSuccess: async (res: any) => {
-      invalidate(); const d = await res.json(); setSelected(d); setShowRenew(false);
+      invalidate(); setSelected(res); setShowRenew(false);
       toast({ title: "Habilitation renouvelée" });
     },
     onError: () => toast({ title: "Erreur renouvellement", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/habilitations/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/habilitations/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Habilitation supprimée" }); },
   });
 
@@ -168,7 +168,7 @@ export default function HabilitationPage() {
   const isPermanentWatch = form.watch("isPermanent");
 
   const openDetail = async (h: Habilitation) => {
-    try { const res = await apiRequest("GET", `/api/habilitations/${h.id}`); setSelected(await (res as any).json()); }
+    try { const res = await apiRequest(`/api/habilitations/${h.id}`); setSelected(res); }
     catch { setSelected(h); }
   };
 

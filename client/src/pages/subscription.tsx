@@ -266,7 +266,7 @@ export default function SubscriptionPage() {
   });
 
   const startTrialMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/trial/start"),
+    mutationFn: () => apiRequest("/api/trial/start", { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/license/status"] });
       toast({ title: "Essai démarré", description: "Votre période d'essai gratuite de 30 jours a commencé !" });
@@ -275,7 +275,7 @@ export default function SubscriptionPage() {
   });
 
   const validateMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/license/validate"),
+    mutationFn: () => apiRequest("/api/license/validate", { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/license/status"] });
       toast({ title: "Licence validée", description: "Le cache local a été mis à jour." });

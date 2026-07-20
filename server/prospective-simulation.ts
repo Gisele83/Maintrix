@@ -13,9 +13,11 @@
 
 import { db } from "./db";
 import {
-  equipmentRegistry, iotSensorData, workOrders, alertsNotifications,
+  equipmentRegistry, workOrders,
 } from "@shared/schema";
-import { eq, and, gte, desc } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
+import { computeIMCA } from "./imca-engine";
+import { inverseGaussianCDF, type WienerParams } from "./stochastic-rul";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -99,6 +101,37 @@ function projectIMCA(
 ): number {
   const degraded = imca0 * Math.exp(-lambda * Math.pow(t / tau, beta));
   return Math.max(0, Math.min(100, degraded));
+}
+
+/**
+ * Projection de dégradation par processus de Wiener (Brevet N°1, chapitre 6) —
+ * trajectoire moyenne X(t) = X₀ + μt réutilisant la dérive μ estimée par MLE
+ * dans le moteur RUL stochastique, plutôt qu'un modèle de Weibull disjoint.
+ * μPerDay est exprimé en points de dégradation IMCA par jour.
+ */
+function projectIMCAWiener(imca0: number, tDays: number, muPerDay: number): number {
+  const d0 = 100 - imca0;
+  const dt = d0 + muPerDay * tDays;
+  return Math.max(0, Math.min(100, 100 - dt));
+}
+
+/**
+ * Probabilité de défaillance à l'horizon tDays via la CDF Inverse Gaussienne
+ * exacte du processus de Wiener (chapitre 6.2.1), au lieu d'une heuristique
+ * ad hoc. D = marge de dégradation restante ; m = D/μ ; λ = D²/σ².
+ */
+function wienerFailureProbAtDay(
+  tDays: number,
+  currentDegradation: number,
+  failureThresholdDegradation: number,
+  wienerParams: WienerParams
+): number {
+  const D = failureThresholdDegradation - currentDegradation;
+  if (D <= 0) return 1;
+  if (wienerParams.mu <= 0) return 0;
+  const m = D / wienerParams.mu;
+  const lambda = (D ** 2) / (wienerParams.sigma ** 2);
+  return Math.max(0, Math.min(1, inverseGaussianCDF(tDays * 24, m, lambda)));
 }
 
 /**
@@ -201,11 +234,20 @@ function buildScenario(
   lambda: number,
   beta: number,
   costParams: CostParams,
-  mu: number = 1.0
+  mu: number = 1.0,
+  wienerParams?: WienerParams,
+  failureThresholdDegradation: number = 70
 ): ScenarioResult {
   const horizon = 90;
   const steps = 91; // day 0 to day 90
   const deferDays = costParams.deferDays;
+
+  // Trajectoire de dégradation libre : processus de Wiener réel (Brevet N°1,
+  // chapitre 6) quand la dérive μ estimée par MLE est disponible et positive,
+  // sinon repli sur l'heuristique de Weibull.
+  const useWiener = !!wienerParams && wienerParams.mu > 0;
+  const projectFree = (t: number) =>
+    useWiener ? projectIMCAWiener(imca0, t, wienerParams!.mu * 24) : projectIMCA(imca0, t, lambda, beta);
 
   const degradationCurve: DegradationPoint[] = [];
 
@@ -221,14 +263,14 @@ function buildScenario(
       }
     } else if (type === "DEFERRED") {
       if (d <= deferDays) {
-        imca = projectIMCA(imca0, d, lambda, beta);
+        imca = projectFree(d);
       } else {
-        const imcaAtDefer = projectIMCA(imca0, deferDays, lambda, beta);
+        const imcaAtDefer = projectFree(deferDays);
         imca = projectPostMaintenance(imcaAtDefer, 88, d - deferDays, 0.18);
       }
     } else {
       // NO_INTERVENTION — free degradation
-      imca = projectIMCA(imca0, d, lambda, beta);
+      imca = projectFree(d);
     }
 
     degradationCurve.push({
@@ -239,8 +281,18 @@ function buildScenario(
     });
   }
 
-  const fp30 = cumulativeFailureProb(degradationCurve, 30);
-  const fp90 = cumulativeFailureProb(degradationCurve, 90);
+  // Probabilité de défaillance : CDF Inverse Gaussienne exacte du processus de
+  // Wiener pour le scénario NON_INTERVENTION (dégradation libre pure, fidèle
+  // au modèle du chapitre 6) ; intégration numérique du risque instantané
+  // pour les scénarios avec récupération post-intervention (hors périmètre
+  // du modèle de premier passage).
+  const currentDegradation = 100 - imca0;
+  const fp30 = type === "NO_INTERVENTION" && useWiener
+    ? wienerFailureProbAtDay(30, currentDegradation, failureThresholdDegradation, wienerParams!)
+    : cumulativeFailureProb(degradationCurve, 30);
+  const fp90 = type === "NO_INTERVENTION" && useWiener
+    ? wienerFailureProbAtDay(90, currentDegradation, failureThresholdDegradation, wienerParams!)
+    : cumulativeFailureProb(degradationCurve, 90);
   const avgOeeLoss = degradationCurve.reduce((s, p) => s + p.oeeImpact, 0) / steps;
   const imcaAtEnd = degradationCurve[90]?.imca ?? 0;
   const imcaAtDecision = type === "DEFERRED" ? degradationCurve[Math.min(deferDays, 90)]?.imca ?? imca0 : imca0;
@@ -347,46 +399,32 @@ export async function runProspectiveSimulation(
   const [equipment] = await db.select().from(equipmentRegistry)
     .where(and(eq(equipmentRegistry.id, equipmentId), eq(equipmentRegistry.tenantId, tenantId)));
 
-  const equipmentName = equipment?.name ?? `Équipement #${equipmentId}`;
+  const equipmentName = equipment?.equipmentName ?? `Équipement #${equipmentId}`;
   const criticalityLevel = equipment?.criticalityLevel ?? "medium";
 
-  // ── Fetch sensor data ─────────────────────────────────────────────────────
-  const sensors = await db.select().from(iotSensorData)
-    .where(and(eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp!, window30)))
-    .orderBy(desc(iotSensorData.timestamp!))
-    .limit(500);
+  // ── IMCA réel (moteur IMCA, Brevet N°1) et RUL stochastique associé ───────
+  // Remplace l'ancienne estimation heuristique déconnectée : l'IMCA affiché
+  // ici est désormais identique à celui du tableau de bord IMCA pour le même
+  // équipement, et la dérive de Wiener (μ, σ) est réutilisée pour projeter
+  // la trajectoire de dégradation (chapitre 8.2 : "combine le modèle
+  // stochastique RUL").
+  const imcaResult = await computeIMCA(equipmentId, tenantId);
+  const currentIMCA = imcaResult.IMCA;
+  const wienerParams = imcaResult.stochasticRUL?.wienerParams;
 
-  // ── Fetch alerts ──────────────────────────────────────────────────────────
-  const alerts = await db.select().from(alertsNotifications)
-    .where(and(eq(alertsNotifications.equipmentId, equipmentId), gte(alertsNotifications.createdAt!, window30)))
-    .limit(200);
-
-  // ── Fetch recent work orders ──────────────────────────────────────────────
+  // ── Fetch recent work orders (contexte confiance + fallback) ──────────────
   const wos = await db.select().from(workOrders)
     .where(and(eq(workOrders.equipmentId, equipmentId), gte(workOrders.createdAt!, window30)))
     .limit(50);
 
-  // ── Estimate current IMCA (simplified, without IMCA engine dependency) ───
-  const totalSensors = sensors.length;
-  const alarmSensors = sensors.filter(s => s.alarmState !== "normal").length;
-  const criticalAlerts = alerts.filter(a => a.severity === "critical").length;
-  const warningAlerts = alerts.filter(a => a.severity === "warning").length;
-  const alarmRate = totalSensors > 0 ? alarmSensors / totalSensors : 0;
-  const alertRate = (criticalAlerts * 2 + warningAlerts) / Math.max(30, 1);
-
-  // Heuristic IMCA based on alarm/alert data (0-100)
-  const currentIMCA = Math.max(10, Math.min(95,
-    100 - alarmRate * 50 - alertRate * 5 - (wos.filter(w => w.type === "corrective").length) * 3
-  ));
-
-  // ── Estimate degradation rate (lambda) ────────────────────────────────────
-  // Based on alarm frequency + criticality
+  // ── Fallback lambda (Weibull) — utilisé uniquement si la dérive de Wiener
+  // n'est pas exploitable (μ ≤ 0 ou historique insuffisant) ─────────────────
   const criticalityMultiplier: Record<string, number> = {
     low: 0.3, medium: 0.6, high: 0.9, critical: 1.4,
   };
-  const baseLambda = 0.05 + alertRate * 0.1 + alarmRate * 0.15;
+  const baseLambda = 0.05 + (100 - currentIMCA) * 0.003;
   const lambda = baseLambda * (criticalityMultiplier[criticalityLevel] ?? 0.6);
-  const beta = 1.3; // Weibull shape: accelerating wear-out
+  const beta = 1.3; // Weibull shape: accelerating wear-out (repli)
 
   // ── Cost parameters (defaults, scaled by criticality) ─────────────────────
   const costBase: Record<string, { maint: number; failCost: number; prodPerHour: number; downHours: number }> = {
@@ -410,12 +448,15 @@ export async function runProspectiveSimulation(
   const mu = criticalityMultiplier[criticalityLevel] ?? 0.6;
 
   // ── Build 3 scenarios ─────────────────────────────────────────────────────
-  const immediate = buildScenario("IMMEDIATE", currentIMCA, lambda, beta, costParams, mu);
-  const deferred = buildScenario("DEFERRED", currentIMCA, lambda, beta, costParams, mu);
-  const noIntervention = buildScenario("NO_INTERVENTION", currentIMCA, lambda, beta, costParams, mu);
+  const failureThresholdDegradation = 100 - 30; // IMCA < 30 = défaillance, cohérent avec stochastic-rul.ts
+  const immediate = buildScenario("IMMEDIATE", currentIMCA, lambda, beta, costParams, mu, wienerParams, failureThresholdDegradation);
+  const deferred = buildScenario("DEFERRED", currentIMCA, lambda, beta, costParams, mu, wienerParams, failureThresholdDegradation);
+  const noIntervention = buildScenario("NO_INTERVENTION", currentIMCA, lambda, beta, costParams, mu, wienerParams, failureThresholdDegradation);
 
   // ── Current degradation rate (points/day) ─────────────────────────────────
-  const imcaDay1 = projectIMCA(currentIMCA, 1, lambda, beta);
+  const imcaDay1 = wienerParams && wienerParams.mu > 0
+    ? projectIMCAWiener(currentIMCA, 1, wienerParams.mu * 24)
+    : projectIMCA(currentIMCA, 1, lambda, beta);
   const currentDegradationRate = parseFloat((currentIMCA - imcaDay1).toFixed(3));
 
   // ── Recommendation ────────────────────────────────────────────────────────
@@ -431,7 +472,7 @@ export async function runProspectiveSimulation(
     : currentIMCA < 70 ? "moderate"
     : "low";
 
-  const confidence = Math.min(0.95, 0.5 + (totalSensors > 0 ? 0.3 : 0) + (wos.length > 0 ? 0.15 : 0));
+  const confidence = Math.min(0.95, 0.5 + (wienerParams ? 0.3 : 0) + (wos.length > 0 ? 0.15 : 0));
 
   const rationale = urgencyLevel === "critical"
     ? `L'actif est en zone critique (IMCA=${currentIMCA.toFixed(0)}). Probabilité de défaillance à 30j : ${noIntervention.failureProbability30d.toFixed(1)}%. Une intervention immédiate est formellement requise pour éviter un arrêt catastrophique.`

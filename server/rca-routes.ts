@@ -5,21 +5,15 @@
  */
 
 import type { Express } from "express";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
+import { findOrCreateNode, reinforceOrCreateEdge } from "./kg-sync-service";
 
-// Pool direct pour tables non-Drizzle
-let pool: Pool | null = null;
 function getPool(): Pool {
-  if (!pool) {
-    const connStr = (global as any).__localDbUrl ||
-      process.env.DATABASE_URL ||
-      "postgresql://runner@localhost:5433/maintrix?host=/tmp";
-    pool = new Pool({ connectionString: connStr });
-  }
-  return pool;
+  return sharedPool;
 }
 
 function generateRcaNumber(): string {
@@ -224,6 +218,32 @@ export function registerRcaRoutes(app: Express) {
       const { rows } = await db.query(`UPDATE rca_analyses SET ${sets.join(",")} WHERE id = $${idx} RETURNING *`, params);
       if (!rows[0]) return res.status(404).json({ error: "RCA introuvable" });
       const r = rows[0];
+
+      // Capitalisation : une RCA clôturée avec une cause racine identifiée alimente le
+      // Knowledge Graph — même logique que kg-sync-service.ts pour Maintenance Execution.
+      if ((r.status === "closed" || r.status === "verified") && r.root_cause) {
+        try {
+          const tenantId = (req as any).tenantId || "default-tenant";
+          const causeNodeId = await findOrCreateNode({
+            tenantId, nodeType: "failure_mode", label: r.root_cause,
+            refTable: "rca_analyses", refId: String(r.id),
+          });
+          if (r.equipment_id) {
+            const equipmentNodeId = await findOrCreateNode({
+              tenantId, nodeType: "equipment", label: `Équipement #${r.equipment_id}`,
+              refTable: "equipment_registry", refId: String(r.equipment_id),
+            });
+            await reinforceOrCreateEdge({ tenantId, fromNodeId: equipmentNodeId, toNodeId: causeNodeId, relationType: "causes" });
+          }
+          if (r.preventive_measures) {
+            const procedureNodeId = await findOrCreateNode({ tenantId, nodeType: "procedure", label: r.preventive_measures });
+            await reinforceOrCreateEdge({ tenantId, fromNodeId: causeNodeId, toNodeId: procedureNodeId, relationType: "resolved_by_procedure" });
+          }
+        } catch (kgError) {
+          console.warn("[rca] Synchronisation Knowledge Graph échouée:", kgError);
+        }
+      }
+
       res.json({
         ...r,
         contributingFactors: safeJson(r.contributing_factors, []),

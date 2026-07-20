@@ -77,7 +77,7 @@ export function ProcurementDashboard() {
 
   // Mutations
   const triggerReorderMutation = useMutation({
-    mutationFn: () => apiRequest('/api/trigger-reorder-check', 'POST'),
+    mutationFn: () => apiRequest('/api/trigger-reorder-check', { method: 'POST' }),
     onSuccess: (data) => {
       toast({
         title: "Vérification terminée ✅",
@@ -95,7 +95,7 @@ export function ProcurementDashboard() {
   });
 
   const createSupplierMutation = useMutation({
-    mutationFn: (supplier: any) => apiRequest('/api/suppliers', 'POST', supplier),
+    mutationFn: (supplier: any) => apiRequest('/api/suppliers', { method: 'POST', body: supplier }),
     onSuccess: () => {
       toast({
         title: "Fournisseur créé",
@@ -107,7 +107,7 @@ export function ProcurementDashboard() {
   });
 
   const createPurchaseOrderMutation = useMutation({
-    mutationFn: (order: any) => apiRequest('/api/purchase-orders', 'POST', order),
+    mutationFn: (order: any) => apiRequest('/api/purchase-orders', { method: 'POST', body: order }),
     onSuccess: () => {
       toast({
         title: "Bon de commande créé",

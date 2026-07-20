@@ -18,6 +18,8 @@
  *   4. Branch & Bound   — exact avec élagage, meilleur pour grands N
  */
 
+import type { ArbitrationWeights } from "./arbitration-learning";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ActionType = "none" | "inspection" | "preventive" | "corrective" | "overhaul";
@@ -90,6 +92,7 @@ export interface ParetoPoint {
 export interface MultiAssetOptimizationResult {
   optimal: OptimizationResult;          // DP-MCKP exact
   greedy: OptimizationResult;           // Greedy ROI
+  branchBound: OptimizationResult;      // Branch & Bound (recommandé pour N > 20 actifs)
   paretoFront: ParetoPoint[];           // courbe budget ↔ gain
   mandatoryBudget: number;             // budget minimum pour actifs critiques obligatoires
   actionCatalog: Record<number, AssetAction[]>; // catalogue actions par actif
@@ -111,6 +114,51 @@ export const CRITICALITY_WEIGHT: Record<string, number> = {
   watch: 1.5,
   ok: 1.0,
 };
+
+// ─── Objectif multi-critères λ_k (Brevet N°2, apprentissage post-action) ──────
+
+/**
+ * Poids λ_k des critères d'optimisation utilisés par défaut quand aucun état
+ * appris n'est fourni (équivaut au comportement historique : pondération par
+ * criticité seule, aucune préférence coût/disponibilité).
+ */
+export const DEFAULT_ARBITRATION_WEIGHTS: ArbitrationWeights = {
+  riskWeight: 1,
+  costWeight: 0,
+  availabilityWeight: 0,
+};
+
+/**
+ * Combine la pondération de criticité (existante) avec les poids λ_k appris
+ * (risque / coût / disponibilité) pour produire, par actif et par action, un
+ * multiplicateur de valeur utilisé par les quatre solveurs :
+ *   value_ij = criticité_i × (λ_risk + λ_cost × U_cost_ij + λ_avail × U_avail_ij)
+ * où U_cost_ij et U_avail_ij ∈ [0,1] favorisent respectivement les actions
+ * moins coûteuses et moins immobilisantes au sein du catalogue de l'actif i.
+ * Le gain IMCA physique (gainIMCA) n'est jamais altéré — seul ce multiplicateur
+ * objectif (utilisé pour la sélection) diffère du gain réellement reporté.
+ */
+function computeObjectiveWeightMatrix(
+  assets: AssetInput[],
+  actionsPerAsset: AssetAction[][],
+  arbitrationWeights: ArbitrationWeights,
+): number[][] {
+  return assets.map((asset, i) => {
+    const acts = actionsPerAsset[i];
+    const criticality = CRITICALITY_WEIGHT[asset.alertLevel] ?? 1.0;
+    const maxCost = Math.max(...acts.map(a => a.cost), 1);
+    const maxDuration = Math.max(...acts.map(a => a.duration), 1);
+    return acts.map(a => {
+      const costUtility = 1 - a.cost / maxCost;
+      const availUtility = 1 - a.duration / maxDuration;
+      const blend =
+        arbitrationWeights.riskWeight +
+        arbitrationWeights.costWeight * costUtility +
+        arbitrationWeights.availabilityWeight * availUtility;
+      return criticality * blend;
+    });
+  });
+}
 
 // ─── Action catalog generator ──────────────────────────────────────────────────
 
@@ -188,77 +236,88 @@ export function generateActionCatalog(asset: AssetInput): AssetAction[] {
 
 /**
  * Résout le Multiple Choice Knapsack Problem par programmation dynamique
- * Complexité : O(N × K × S) où S = slots budgétaires
+ * Complexité : O(N × K × Sb × Sr) où Sb = slots budgétaires, Sr = slots techDays
  *
- * State : dp[b] = valeur maximale pondérée avec budget ≤ b×resolution
- * Trace : prev[i][b] = action choisie pour l'actif i avec budget b
+ * State : dp[b][r] = valeur maximale pondérée avec budget ≤ b×resB ET
+ *         ressources techniciens·jours ≤ r×resR — les DEUX contraintes du
+ *         Brevet N°1 (§10.2 : Σx_ij·c_ij ≤ B et Σx_ij·r_ij ≤ R) sont
+ *         respectées pendant l'optimisation, pas seulement vérifiées a posteriori.
+ * Trace : trace[i][b][r] = action choisie pour l'actif i à l'état (b,r)
  */
 function solveDP_MCKP(
   assets: AssetInput[],
   actions: AssetAction[][],
   constraints: BudgetConstraints,
-  slots: number = 200,
-): { dp: number[]; trace: number[][] } {
+  weightMatrix: number[][],
+  budgetSlots: number = 200,
+  techSlots: number = 50,
+): { trace: number[][][] } {
   const B = constraints.totalBudget;
-  const resolution = B / slots;
+  const R = constraints.maxTechDays > 0 ? constraints.maxTechDays : Infinity;
+  const resB = B / budgetSlots;
+  const resR = Number.isFinite(R) ? R / techSlots : Infinity;
   const N = assets.length;
 
-  // dp[b] = valeur pondérée max avec b slots de budget
-  let dp = new Float64Array(slots + 1).fill(0);
-  // trace[i][b] = index action choisie pour actif i avec budget b
-  const trace: number[][] = Array.from({ length: N }, () => new Array(slots + 1).fill(0));
+  let dp: Float64Array[] = Array.from({ length: budgetSlots + 1 }, () => new Float64Array(techSlots + 1).fill(0));
+  const trace: number[][][] = Array.from({ length: N }, () =>
+    Array.from({ length: budgetSlots + 1 }, () => new Array(techSlots + 1).fill(0))
+  );
 
   for (let i = 0; i < N; i++) {
     const acts = actions[i];
-    const w = CRITICALITY_WEIGHT[assets[i].alertLevel] ?? 1.0;
-    const newDp = new Float64Array(dp);
+    const newDp: Float64Array[] = dp.map(row => new Float64Array(row));
 
-    // Itération en sens inverse pour éviter d'utiliser le même actif deux fois
-    for (let b = slots; b >= 0; b--) {
-      let bestVal = dp[b]; // action "none" (action 0)
-      let bestJ = 0;
+    for (let b = budgetSlots; b >= 0; b--) {
+      for (let r = techSlots; r >= 0; r--) {
+        let bestVal = dp[b][r]; // action "none" (action 0)
+        let bestJ = 0;
 
-      for (let j = 1; j < acts.length; j++) {
-        const costSlots = Math.ceil(acts[j].cost / resolution);
-        if (costSlots > b) continue;
+        for (let j = 1; j < acts.length; j++) {
+          const costSlots = Math.ceil(acts[j].cost / resB);
+          const techUsed = Number.isFinite(resR) ? Math.ceil(acts[j].techDays / resR) : 0;
+          if (costSlots > b || techUsed > r) continue;
 
-        // Vérification contrainte techDays (approx sur budget)
-        const prevBudget = b - costSlots;
-        const val = dp[prevBudget] + acts[j].gainIMCA * w;
-        if (val > bestVal) {
-          bestVal = val;
-          bestJ = j;
+          const val = dp[b - costSlots][r - techUsed] + acts[j].gainIMCA * weightMatrix[i][j];
+          if (val > bestVal) {
+            bestVal = val;
+            bestJ = j;
+          }
         }
-      }
 
-      newDp[b] = bestVal;
-      trace[i][b] = bestJ;
+        newDp[b][r] = bestVal;
+        trace[i][b][r] = bestJ;
+      }
     }
 
     dp = newDp;
   }
 
-  return { dp: Array.from(dp), trace };
+  return { trace };
 }
 
 /**
- * Reconstruit le chemin optimal depuis la table DP
+ * Reconstruit le chemin optimal depuis la table DP 2D (budget × techDays)
  */
 function reconstructDPSolution(
   assets: AssetInput[],
   actions: AssetAction[][],
-  trace: number[][],
+  trace: number[][][],
   constraints: BudgetConstraints,
-  slots: number = 200,
+  weightMatrix: number[][],
+  budgetSlots: number = 200,
+  techSlots: number = 50,
 ): AllocationDecision[] {
-  const resolution = constraints.totalBudget / slots;
-  let b = slots;
+  const R = constraints.maxTechDays > 0 ? constraints.maxTechDays : Infinity;
+  const resB = constraints.totalBudget / budgetSlots;
+  const resR = Number.isFinite(R) ? R / techSlots : Infinity;
+  let b = budgetSlots;
+  let r = techSlots;
   const decisions: AllocationDecision[] = [];
 
   for (let i = assets.length - 1; i >= 0; i--) {
-    const j = trace[i][b];
+    const j = trace[i][b][r];
     const action = actions[i][j];
-    const w = CRITICALITY_WEIGHT[assets[i].alertLevel] ?? 1.0;
+    const w = weightMatrix[i][j];
 
     decisions.unshift({
       equipmentId: assets[i].equipmentId,
@@ -272,11 +331,125 @@ function reconstructDPSolution(
       roi: action.cost > 0 ? action.gainIMCA / (action.cost / 1000) : 0,
     });
 
-    const costSlots = Math.ceil(action.cost / resolution);
+    const costSlots = Math.ceil(action.cost / resB);
+    const techUsed = Number.isFinite(resR) ? Math.ceil(action.techDays / resR) : 0;
     b = Math.max(0, b - costSlots);
+    r = Math.max(0, r - techUsed);
   }
 
   return decisions;
+}
+
+// ─── Branch & Bound Solver (recommandé pour N > 20 actifs) ────────────────────
+
+/**
+ * Résolution par séparation et évaluation avec élagage par borne supérieure
+ * (Brevet N°1, §10.3 — 4e solveur, absent jusqu'ici de l'implémentation).
+ * Borne supérieure : relaxation fractionnaire du MCKP restant (autorise une
+ * fraction de la meilleure action par actif), qui majore strictement toute
+ * solution entière réalisable — permet un élagage correct.
+ */
+function solveBranchAndBound(
+  assets: AssetInput[],
+  actions: AssetAction[][],
+  constraints: BudgetConstraints,
+  weightMatrix: number[][],
+  maxNodes: number = 200_000,
+): { decisions: AllocationDecision[]; nodesExplored: number; optimal: boolean } {
+  const N = assets.length;
+  const maxTech = constraints.maxTechDays > 0 ? constraints.maxTechDays : Infinity;
+
+  // Ordre de branchement : meilleur ratio valeur/coût décroissant (convergence rapide)
+  const bestRatio = actions.map((acts, i) => {
+    let best = 0;
+    for (let j = 1; j < acts.length; j++) {
+      if (acts[j].cost > 0) best = Math.max(best, (acts[j].gainIMCA * weightMatrix[i][j]) / acts[j].cost);
+    }
+    return best;
+  });
+  const order = assets.map((_, i) => i).sort((a, b) => bestRatio[b] - bestRatio[a]);
+
+  function upperBound(idx: number, remBudget: number, remTech: number): number {
+    let bound = 0;
+    for (let k = idx; k < N; k++) {
+      const i = order[k];
+      const acts = actions[i];
+      let best = 0;
+      for (let j = 1; j < acts.length; j++) {
+        const a = acts[j];
+        const fitsBudget = a.cost <= remBudget;
+        const fitsTech = !Number.isFinite(remTech) || a.techDays <= remTech;
+        if (fitsBudget && fitsTech) {
+          best = Math.max(best, a.gainIMCA * weightMatrix[i][j]);
+        } else if (a.cost > 0) {
+          const fracBudget = Math.min(1, remBudget / a.cost);
+          const fracTech = Number.isFinite(remTech) && a.techDays > 0 ? Math.min(1, remTech / a.techDays) : 1;
+          best = Math.max(best, a.gainIMCA * weightMatrix[i][j] * Math.min(fracBudget, fracTech));
+        }
+      }
+      bound += best;
+    }
+    return bound;
+  }
+
+  let bestValue = -Infinity;
+  let bestChoice: number[] = new Array(N).fill(0);
+  let nodesExplored = 0;
+
+  function dfs(idx: number, remBudget: number, remTech: number, currentValue: number, choice: number[]) {
+    nodesExplored++;
+    if (nodesExplored > maxNodes) return;
+
+    if (idx === N) {
+      if (currentValue > bestValue) {
+        bestValue = currentValue;
+        bestChoice = [...choice];
+      }
+      return;
+    }
+
+    if (currentValue + upperBound(idx, remBudget, remTech) <= bestValue) return; // élagage
+
+    const i = order[idx];
+    const acts = actions[i];
+    const byGainDesc = acts.map((_, j) => j).sort((a, b) => acts[b].gainIMCA - acts[a].gainIMCA);
+
+    for (const j of byGainDesc) {
+      const a = acts[j];
+      if (a.cost > remBudget) continue;
+      if (Number.isFinite(remTech) && a.techDays > remTech) continue;
+      choice[idx] = j;
+      dfs(idx + 1, remBudget - a.cost, remTech - a.techDays, currentValue + a.gainIMCA * weightMatrix[i][j], choice);
+      if (nodesExplored > maxNodes) return;
+    }
+  }
+
+  dfs(0, constraints.totalBudget, maxTech, 0, new Array(N).fill(0));
+
+  const decisionsByOrder = order.map((i, k) => {
+    const j = bestChoice[k];
+    const action = actions[i][j];
+    const w = weightMatrix[i][j];
+    return {
+      assetIdx: i,
+      decision: {
+        equipmentId: assets[i].equipmentId,
+        equipmentName: assets[i].equipmentName,
+        currentIMCA: assets[i].currentIMCA,
+        selectedAction: action,
+        projectedIMCA: Math.min(100, assets[i].currentIMCA + action.gainIMCA),
+        gainIMCA: action.gainIMCA,
+        weightedGain: action.gainIMCA * w,
+        isMandatory: assets[i].isMandatory ?? false,
+        roi: action.cost > 0 ? action.gainIMCA / (action.cost / 1000) : 0,
+      } as AllocationDecision,
+    };
+  });
+
+  const byAssetIdx = new Map(decisionsByOrder.map(d => [d.assetIdx, d.decision]));
+  const decisions = assets.map((_, i) => byAssetIdx.get(i)!);
+
+  return { decisions, nodesExplored, optimal: nodesExplored <= maxNodes };
 }
 
 // ─── Greedy ROI Solver ────────────────────────────────────────────────────────
@@ -290,6 +463,7 @@ function solveGreedy(
   assets: AssetInput[],
   actions: AssetAction[][],
   constraints: BudgetConstraints,
+  weightMatrix: number[][],
 ): AllocationDecision[] {
   // Construire une liste plate de (actif, action, score_roi)
   type Candidate = {
@@ -303,10 +477,10 @@ function solveGreedy(
 
   const candidates: Candidate[] = [];
   for (let i = 0; i < assets.length; i++) {
-    const w = CRITICALITY_WEIGHT[assets[i].alertLevel] ?? 1.0;
     for (let j = 1; j < actions[i].length; j++) {
       const a = actions[i][j];
       if (a.cost === 0) continue;
+      const w = weightMatrix[i][j];
       const roi = (a.gainIMCA * w) / (a.cost / 1000);
       candidates.push({ assetIdx: i, actionIdx: j, roi, cost: a.cost, gain: a.gainIMCA, weightedGain: a.gainIMCA * w });
     }
@@ -348,7 +522,7 @@ function solveGreedy(
   for (let i = 0; i < assets.length; i++) {
     const j = selected.get(i) ?? 0;
     const action = actions[i][j];
-    const w = CRITICALITY_WEIGHT[assets[i].alertLevel] ?? 1.0;
+    const w = weightMatrix[i][j];
     decisions.push({
       equipmentId: assets[i].equipmentId,
       equipmentName: assets[i].equipmentName,
@@ -375,6 +549,7 @@ function computeParetoFront(
   assets: AssetInput[],
   actions: AssetAction[][],
   maxBudget: number,
+  weightMatrix: number[][],
   nPoints: number = 25,
 ): ParetoPoint[] {
   const points: ParetoPoint[] = [];
@@ -382,7 +557,7 @@ function computeParetoFront(
   for (let k = 0; k <= nPoints; k++) {
     const budget = (k / nPoints) * maxBudget;
     const constraints: BudgetConstraints = { totalBudget: budget, maxTechDays: 9999 };
-    const greedy = solveGreedy(assets, actions, constraints);
+    const greedy = solveGreedy(assets, actions, constraints, weightMatrix);
     const totalCost = greedy.reduce((s, d) => s + d.selectedAction.cost, 0);
     const totalGain = greedy.reduce((s, d) => s + d.weightedGain, 0);
     const unweightedGain = greedy.reduce((s, d) => s + d.gainIMCA, 0);
@@ -472,6 +647,7 @@ export function optimizeMultiAsset(
   assets: AssetInput[],
   constraints: BudgetConstraints,
   customActions?: Record<number, AssetAction[]>,
+  arbitrationWeights: ArbitrationWeights = DEFAULT_ARBITRATION_WEIGHTS,
 ): MultiAssetOptimizationResult {
   if (assets.length === 0) {
     const empty: OptimizationResult = {
@@ -481,7 +657,7 @@ export function optimizeMultiAsset(
       explanation: "Aucun actif fourni.",
     };
     return {
-      optimal: empty, greedy: empty, paretoFront: [], mandatoryBudget: 0,
+      optimal: empty, greedy: empty, branchBound: empty, paretoFront: [], mandatoryBudget: 0,
       actionCatalog: {}, constraints,
       summary: { nAssets: 0, nInterventions: 0, avgIMCAGain: 0, criticalCovered: 0, totalFleetGain: 0 },
     };
@@ -506,20 +682,29 @@ export function optimizeMultiAsset(
     }
   }
 
-  // ── DP-MCKP (optimal) ──────────────────────────────────────────────────────
+  // Poids objectif λ_k (risque/coût/disponibilité) — apprentissage post-action
+  const weightMatrix = computeObjectiveWeightMatrix(assets, actionsPerAsset, arbitrationWeights);
+
+  // ── DP-MCKP (optimal, budget ET techDays) ─────────────────────────────────
   const t0dp = Date.now();
-  const slots = Math.min(400, Math.max(100, assets.length * 20));
-  const { trace } = solveDP_MCKP(assets, actionsPerAsset, constraints, slots);
-  const dpDecisions = reconstructDPSolution(assets, actionsPerAsset, trace, constraints, slots);
+  const budgetSlots = Math.min(400, Math.max(100, assets.length * 20));
+  const techSlots = Math.min(100, Math.max(20, assets.length * 4));
+  const { trace } = solveDP_MCKP(assets, actionsPerAsset, constraints, weightMatrix, budgetSlots, techSlots);
+  const dpDecisions = reconstructDPSolution(assets, actionsPerAsset, trace, constraints, weightMatrix, budgetSlots, techSlots);
   const optimalResult = buildResult("dp_mckp", assets, dpDecisions, constraints, Date.now() - t0dp);
 
   // ── Greedy ROI ─────────────────────────────────────────────────────────────
   const t0g = Date.now();
-  const greedyDecisions = solveGreedy(assets, actionsPerAsset, constraints);
+  const greedyDecisions = solveGreedy(assets, actionsPerAsset, constraints, weightMatrix);
   const greedyResult = buildResult("greedy_roi", assets, greedyDecisions, constraints, Date.now() - t0g);
 
+  // ── Branch & Bound (recommandé pour N > 20 actifs, Brevet N°1 §10.3) ──────
+  const t0bb = Date.now();
+  const bbSolution = solveBranchAndBound(assets, actionsPerAsset, constraints, weightMatrix);
+  const branchBoundResult = buildResult("branch_bound", assets, bbSolution.decisions, constraints, Date.now() - t0bb);
+
   // ── Front de Pareto ────────────────────────────────────────────────────────
-  const paretoFront = computeParetoFront(assets, actionsPerAsset, constraints.totalBudget, 25);
+  const paretoFront = computeParetoFront(assets, actionsPerAsset, constraints.totalBudget, weightMatrix, 25);
 
   // ── Summary ────────────────────────────────────────────────────────────────
   const criticalAssets = assets.filter(a => a.alertLevel === "critical" || a.alertLevel === "warning");
@@ -536,7 +721,7 @@ export function optimizeMultiAsset(
     totalFleetGain: optimalResult.fleetIMCAAfter - optimalResult.fleetIMCABefore,
   };
 
-  return { optimal: optimalResult, greedy: greedyResult, paretoFront, mandatoryBudget, actionCatalog, constraints, summary };
+  return { optimal: optimalResult, greedy: greedyResult, branchBound: branchBoundResult, paretoFront, mandatoryBudget, actionCatalog, constraints, summary };
 }
 
 // ─── Sensitivity analysis ──────────────────────────────────────────────────────
@@ -552,6 +737,7 @@ export function sensitivityAnalysis(
 ): Array<{ value: number; totalGain: number; nInterventions: number; totalCost: number }> {
   const results = [];
   const actionCatalog: AssetAction[][] = assets.map(a => generateActionCatalog(a));
+  const weightMatrix = computeObjectiveWeightMatrix(assets, actionCatalog, DEFAULT_ARBITRATION_WEIGHTS);
 
   for (let k = 0; k <= nSteps; k++) {
     const factor = 0.5 + (k / nSteps) * 1.5; // 50% → 200% du paramètre
@@ -560,7 +746,7 @@ export function sensitivityAnalysis(
       totalBudget: paramName === "budget" ? constraints.totalBudget * factor : constraints.totalBudget,
       maxTechDays: paramName === "techDays" ? constraints.maxTechDays * factor : constraints.maxTechDays,
     };
-    const decisions = solveGreedy(assets, actionCatalog, modifiedConstraints);
+    const decisions = solveGreedy(assets, actionCatalog, modifiedConstraints, weightMatrix);
     results.push({
       value: paramName === "budget" ? modifiedConstraints.totalBudget : modifiedConstraints.maxTechDays,
       totalGain: decisions.reduce((s, d) => s + d.weightedGain, 0),

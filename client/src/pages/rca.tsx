@@ -107,23 +107,23 @@ export default function RcaPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/rca"] }); qc.invalidateQueries({ queryKey: ["/api/rca/stats"] }); };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/rca", data),
+    mutationFn: (data: any) => apiRequest("/api/rca", { method: "POST", body: data }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "RCA créé avec succès" }); },
     onError: () => toast({ title: "Erreur", description: "Création impossible", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/rca/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/rca/${id}`, { method: "PATCH", body: data }),
     onSuccess: (_, vars) => {
       invalidate();
-      apiRequest("GET", `/api/rca/${vars.id}`).then((r: any) => r.json().then((d: any) => setSelected(d)));
+      apiRequest(`/api/rca/${vars.id}`).then((d: any) => setSelected(d));
       toast({ title: "RCA mis à jour" });
     },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/rca/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/rca/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "RCA supprimé" }); },
   });
 
@@ -142,9 +142,8 @@ export default function RcaPage() {
 
   const openDetail = async (rca: RCA) => {
     try {
-      const res = await apiRequest("GET", `/api/rca/${rca.id}`);
-      const d = await (res as any).json();
-      setSelected(d);
+      const res = await apiRequest(`/api/rca/${rca.id}`);
+      setSelected(res);
       setActiveTab(d.methodology === "fishbone" ? "fishbone" : "whys");
     } catch { setSelected(rca); }
   };

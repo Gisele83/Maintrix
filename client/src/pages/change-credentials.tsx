@@ -65,13 +65,7 @@ export default function ChangeCredentials() {
   useEffect(() => {
     const checkUserInfo = async () => {
       try {
-        const response = await apiRequest('/api/enterprise-auth/must-change-password');
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.message || 'Erreur lors de la vérification');
-        }
-
+        const data = await apiRequest('/api/enterprise-auth/must-change-password');
         setUserInfo(data);
         
         // Si l'utilisateur n'a pas besoin de changer son mot de passe, rediriger
@@ -140,21 +134,15 @@ export default function ChangeCredentials() {
   const onSubmit = async (data: ChangeCredentialsForm) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/enterprise-auth/change-credentials', {
+      await apiRequest('/api/enterprise-auth/change-credentials', {
         method: 'POST',
-        body: JSON.stringify({
+        body: {
           currentPassword: data.currentPassword,
           newPassword: data.newPassword,
           confirmPassword: data.confirmPassword,
           ...(userInfo?.canChangeUsername && data.newUsername ? { newUsername: data.newUsername } : {})
-        })
+        }
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors du changement d\'identifiants');
-      }
 
       toast({
         title: "✅ Identifiants mis à jour",

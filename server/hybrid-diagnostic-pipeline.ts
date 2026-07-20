@@ -2,6 +2,9 @@ import { db } from './db';
 import { maintenanceCases, diagnosticSessions, workOrders, equipmentRegistry, failureMemory, failureTrends, feedbackSessions, maintenanceCounters } from '../shared/schema';
 import { eq, and, like, desc, sql, gte, count } from 'drizzle-orm';
 import { diagnosticRulesEngine, type RuleMatch, type ExplanationFactor } from './diagnostic-rules-engine';
+import { getKnowledgeGraph } from './cognitive-layers/knowledge-graph';
+import { getRelevantContext } from './knowledge-hub-service';
+import { runTwin } from './digital-twin-service';
 import Anthropic from '@anthropic-ai/sdk';
 
 /*
@@ -29,7 +32,7 @@ export interface DiagnosticSuggestion {
   diagnosis: string;
   solution: string;
   confidence: number;
-  source: 'rules' | 'historical' | 'failure_memory' | 'ai_structured';
+  source: 'rules' | 'historical' | 'failure_memory' | 'ai_structured' | 'knowledge_graph' | 'digital_twin';
   explanationFactors: ExplanationFactor[];
   diagnosticReasoning: string;
   matchingCases: number;
@@ -98,6 +101,8 @@ export class HybridDiagnosticPipeline {
       ruleResults,
       historicalResults,
       failureMemoryResults,
+      knowledgeGraphResults,
+      digitalTwinResults,
       contextSignals,
       similarIncidents,
       trends
@@ -105,6 +110,8 @@ export class HybridDiagnosticPipeline {
       this.runRulesEngine(request),
       this.runSimilarityAnalysis(request),
       this.runFailureMemoryLookup(request),
+      this.runKnowledgeGraphEngine(request),
+      this.runDigitalTwinEngine(request),
       this.gatherContextSignals(request),
       this.findSimilarIncidents(request),
       this.getFailureTrends(request)
@@ -113,7 +120,9 @@ export class HybridDiagnosticPipeline {
     let allSuggestions: DiagnosticSuggestion[] = [
       ...ruleResults,
       ...historicalResults,
-      ...failureMemoryResults
+      ...failureMemoryResults,
+      ...knowledgeGraphResults,
+      ...digitalTwinResults
     ];
 
     allSuggestions = this.deduplicateAndRank(allSuggestions);
@@ -130,7 +139,7 @@ export class HybridDiagnosticPipeline {
       }
     }
 
-    const engineSources = this.getEngineSources(ruleResults, historicalResults, failureMemoryResults);
+    const engineSources = this.getEngineSources(ruleResults, historicalResults, failureMemoryResults, knowledgeGraphResults, digitalTwinResults);
     const overallConfidence = structuredSuggestions.length > 0
       ? structuredSuggestions[0].confidence
       : 0;
@@ -625,6 +634,17 @@ export class HybridDiagnosticPipeline {
   ): Promise<DiagnosticSuggestion[]> {
     if (!this.anthropic) return suggestions;
 
+    // Engineering Knowledge Hub : consulter la documentation technique pertinente
+    // AVANT de répondre (schémas, normes, bulletins, REX) — voir knowledge-hub-service.ts.
+    let knowledgeHubContext = '';
+    if (request.tenantId) {
+      try {
+        knowledgeHubContext = await getRelevantContext(`${request.equipmentType} ${request.symptoms}`, request.tenantId, 3);
+      } catch (error) {
+        console.warn('Knowledge Hub lookup failed, continuing without it:', error);
+      }
+    }
+
     const prompt = `Vous êtes un expert en maintenance industrielle. Structurez et enrichissez les diagnostics suivants pour un technicien de terrain.
 
 ÉQUIPEMENT: ${request.equipmentType}
@@ -632,6 +652,7 @@ SYMPTÔMES: ${request.symptoms}
 ${request.symptomsChecked?.length ? `SYMPTÔMES VÉRIFIÉS: ${request.symptomsChecked.join(', ')}` : ''}
 URGENCE: ${request.urgency}
 ${request.zone ? `ZONE: ${request.zone}` : ''}
+${knowledgeHubContext ? `\nDOCUMENTATION TECHNIQUE PERTINENTE (Engineering Knowledge Hub):\n${knowledgeHubContext}\n` : ''}
 
 SIGNAUX CONTEXTUELS:
 ${contextSignals.map(s => `- ${s.label}: ${s.detail}`).join('\n')}
@@ -880,13 +901,122 @@ INSTRUCTIONS:
     return `${Math.round(total)}€ (estimé)`;
   }
 
-  private getEngineSources(rules: DiagnosticSuggestion[], historical: DiagnosticSuggestion[], memory: DiagnosticSuggestion[]): string[] {
+  private getEngineSources(rules: DiagnosticSuggestion[], historical: DiagnosticSuggestion[], memory: DiagnosticSuggestion[], knowledgeGraph: DiagnosticSuggestion[] = [], digitalTwin: DiagnosticSuggestion[] = []): string[] {
     const sources: string[] = [];
     if (rules.length > 0) sources.push('Moteur de règles expert');
     if (historical.length > 0) sources.push('Analyse de similarité historique');
     if (memory.length > 0) sources.push('Mémoire des pannes');
+    if (knowledgeGraph.length > 0) sources.push('Graphe de connaissances causal');
+    if (digitalTwin.length > 0) sources.push('Jumeau numérique (modèle physique)');
     if (this.anthropic) sources.push('Structuration IA (Claude)');
     return sources;
+  }
+
+  /**
+   * Digital Twin — consulte le modèle physique calibré de l'équipement précis (pas un modèle
+   * générique par type). Voir digital-twin-service.ts. Ne remonte une suggestion que si la
+   * déviation par rapport à un fonctionnement normal est significative.
+   */
+  private async runDigitalTwinEngine(request: HybridDiagnosticRequest): Promise<DiagnosticSuggestion[]> {
+    try {
+      if (!request.equipmentId || !request.tenantId) return [];
+
+      const [equipment] = await db.select().from(equipmentRegistry)
+        .where(eq(equipmentRegistry.equipmentId, request.equipmentId)).limit(1);
+      if (!equipment) return [];
+
+      const { result } = await runTwin(equipment.id, request.tenantId);
+      if (!result || result.deviationFromNormal < 0.3) return [];
+
+      return [{
+        diagnosis: result.predictedBehavior,
+        solution: `Analyse physique (${result.modelName}) : ${result.physicalExplanation}`,
+        confidence: Math.round(result.confidence * 100),
+        source: 'digital_twin' as const,
+        explanationFactors: [{
+          type: 'digital_twin' as const,
+          label: `Jumeau numérique : ${result.modelName}`,
+          detail: result.physicalExplanation,
+          impact: result.deviationFromNormal > 0.7 ? 'high' as const : result.deviationFromNormal > 0.4 ? 'medium' as const : 'low' as const,
+        }],
+        diagnosticReasoning: `Le jumeau numérique de cet équipement (modèle physique calibré, pas générique) prédit : ${result.predictedBehavior}. ${result.physicalExplanation}`,
+        matchingCases: 0,
+        riskLevel: this.mapUrgencyToRisk(request.urgency),
+        aiInsights: `Modèle physique : ${result.modelName}${result.remainingUsefulLife !== undefined ? ` — durée de vie résiduelle estimée : ${Math.round(result.remainingUsefulLife)}h` : ''}`,
+        priority: 1,
+      }];
+    } catch (error) {
+      console.warn('Digital twin engine failed, skipping:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Raisonnement par graphe causal (IndustrialKnowledgeGraph) — chemins symptôme → cause → intervention.
+   * Combine la connaissance métier statique (fondationnelle) et les faits business appris depuis
+   * les interventions réelles via learnFromIntervention() (voir kg-sync-service.ts).
+   */
+  private async runKnowledgeGraphEngine(request: HybridDiagnosticRequest): Promise<DiagnosticSuggestion[]> {
+    try {
+      const symptomLabels = (request.symptomsChecked && request.symptomsChecked.length > 0)
+        ? request.symptomsChecked
+        : request.symptoms.split(/[,;.]+/).map(s => s.trim()).filter(s => s.length > 2);
+      if (symptomLabels.length === 0) return [];
+
+      const kg = getKnowledgeGraph();
+      const graphNodes = kg.getFullGraph().nodes;
+
+      type Path = { path: any[]; edges: any[]; totalConfidence: number };
+      const allPaths: Path[] = [];
+      for (const label of symptomLabels) {
+        const matchedSymptomNodes = graphNodes.filter(n =>
+          n.nodeType === 'symptom' &&
+          (n.label.toLowerCase().includes(label.toLowerCase()) || label.toLowerCase().includes(n.label.toLowerCase()))
+        );
+        for (const symptomNode of matchedSymptomNodes) {
+          for (const p of kg.findCausalPath(symptomNode.nodeId)) allPaths.push(p);
+        }
+      }
+      if (allPaths.length === 0) return [];
+
+      // Dédoublonner par paire (cause, intervention), garder la meilleure confiance
+      const bestByPair = new Map<string, Path>();
+      for (const p of allPaths) {
+        const key = `${p.path[1].nodeId}::${p.path[2].nodeId}`;
+        const existing = bestByPair.get(key);
+        if (!existing || p.totalConfidence > existing.totalConfidence) bestByPair.set(key, p);
+      }
+
+      return Array.from(bestByPair.values())
+        .sort((a, b) => b.totalConfidence - a.totalConfidence)
+        .slice(0, 3)
+        .map((p, index) => {
+          const [symptomNode, causeNode, interventionNode] = p.path;
+          const [indicatesEdge, resolvesEdge] = p.edges;
+          return {
+            diagnosis: causeNode.label,
+            solution: interventionNode.label,
+            confidence: Math.round(p.totalConfidence * 100),
+            source: 'knowledge_graph' as const,
+            explanationFactors: [{
+              type: 'knowledge_graph' as const,
+              label: `Graphe causal : ${symptomNode.label} → ${causeNode.label}`,
+              detail: `Relation connue (${Math.round(indicatesEdge.confidence * 100)}% confiance), résolution "${interventionNode.label}" validée ${resolvesEdge.occurrences} fois.`,
+              impact: p.totalConfidence > 0.7 ? 'high' as const : p.totalConfidence > 0.4 ? 'medium' as const : 'low' as const,
+            }],
+            diagnosticReasoning: `Le graphe de connaissances relie le symptôme "${symptomNode.label}" à la cause "${causeNode.label}" (${Math.round(indicatesEdge.confidence * 100)}% de confiance), résolue par "${interventionNode.label}" dans ${resolvesEdge.occurrences} cas historiques recensés.`,
+            matchingCases: resolvesEdge.occurrences,
+            duration: interventionNode.properties?.duration,
+            riskLevel: this.mapUrgencyToRisk(request.urgency),
+            costEstimate: interventionNode.properties?.cost ? `${interventionNode.properties.cost}€` : undefined,
+            aiInsights: `Raisonnement par graphe causal — chemin ${symptomNode.label} → ${causeNode.label} → ${interventionNode.label}`,
+            priority: index + 1,
+          } satisfies DiagnosticSuggestion;
+        });
+    } catch (error) {
+      console.warn('Knowledge graph reasoning failed, skipping:', error);
+      return [];
+    }
   }
 
   private buildExplanationSummary(suggestions: DiagnosticSuggestion[], sources: string[]): string {

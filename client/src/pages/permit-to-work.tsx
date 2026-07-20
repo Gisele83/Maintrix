@@ -141,7 +141,7 @@ export default function PermitToWork() {
 
   // ── Mutations ──
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/permits", data),
+    mutationFn: (data: any) => apiRequest("/api/permits", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/permits"] });
       queryClient.invalidateQueries({ queryKey: ["/api/permits/stats"] });
@@ -154,7 +154,7 @@ export default function PermitToWork() {
 
   const actionMutation = useMutation({
     mutationFn: ({ id, action, body }: { id: number; action: string; body?: any }) =>
-      apiRequest("POST", `/api/permits/${id}/${action}`, body || {}),
+      apiRequest(`/api/permits/${id}/${action}`, { method: "POST", body: body || {} }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/permits"] });
       queryClient.invalidateQueries({ queryKey: ["/api/permits/stats"] });
@@ -164,7 +164,7 @@ export default function PermitToWork() {
       toast({ title: "Mis à jour", description: `Permis ${labels[vars.action] || "mis à jour"}.` });
       // Refresh detail if open
       if (selectedPermit?.id === vars.id) {
-        apiRequest("GET", `/api/permits/${vars.id}`).then((p: any) => p.json().then((d: any) => setSelectedPermit(d)));
+        apiRequest(`/api/permits/${vars.id}`).then((d: any) => setSelectedPermit(d));
       }
     },
     onError: (e: any) => toast({ title: "Erreur", description: e.message || "Action impossible.", variant: "destructive" }),
@@ -172,7 +172,7 @@ export default function PermitToWork() {
 
   const checklistMutation = useMutation({
     mutationFn: ({ id, checklistItems }: { id: number; checklistItems: any[] }) =>
-      apiRequest("PATCH", `/api/permits/${id}/checklist`, { checklistItems }),
+      apiRequest(`/api/permits/${id}/checklist`, { method: "PATCH", body: { checklistItems } }),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["/api/permits"] });
       if (selectedPermit?.id === vars.id) {
@@ -238,8 +238,7 @@ export default function PermitToWork() {
 
   const openDetail = async (permit: Permit) => {
     try {
-      const res = await apiRequest("GET", `/api/permits/${permit.id}`);
-      const detail = await (res as any).json();
+      const detail = await apiRequest(`/api/permits/${permit.id}`);
       setSelectedPermit(detail);
     } catch {
       setSelectedPermit(permit);

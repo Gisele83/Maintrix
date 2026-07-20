@@ -5,21 +5,16 @@
  */
 
 import type { Express } from "express";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit, requireRole } from "./security-middleware";
 import os from "os";
 import fs from "fs";
 import path from "path";
 
-let pool: Pool | null = null;
 function getPool(): Pool {
-  if (!pool) {
-    const conn = (global as any).__localDbUrl || process.env.DATABASE_URL ||
-      "postgresql://runner@localhost:5433/maintrix?host=/tmp";
-    pool = new Pool({ connectionString: conn });
-  }
-  return pool;
+  return sharedPool;
 }
 
 async function getDbHealth(): Promise<Record<string, any>> {

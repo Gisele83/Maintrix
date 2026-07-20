@@ -102,13 +102,7 @@ export default function UserManagement() {
   // Charger la liste des utilisateurs
   const fetchUsers = async () => {
     try {
-      const response = await apiRequest('/api/enterprise-auth/admin/users');
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors du chargement des utilisateurs');
-      }
-
+      const data = await apiRequest('/api/enterprise-auth/admin/users');
       setUsers(data.users || []);
     } catch (error: any) {
       toast({
@@ -132,16 +126,10 @@ export default function UserManagement() {
   const onSubmit = async (data: CreateUserForm) => {
     setIsCreating(true);
     try {
-      const response = await apiRequest('/api/enterprise-auth/admin/create-user', {
+      const result = await apiRequest('/api/enterprise-auth/admin/create-user', {
         method: 'POST',
-        body: JSON.stringify(data)
+        body: data
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Erreur lors de la création de l\'utilisateur');
-      }
 
       setCreatedUserResult(result);
       setShowCreateDialog(false);

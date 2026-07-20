@@ -13,3 +13,7 @@ vite.config.ts.*
 .env
 .env.local
 .env.production
+
+# Config/état locaux d'outillage — spécifiques à la machine de dev, pas au projet
+.claude/
+.local/

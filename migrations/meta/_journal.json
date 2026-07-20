@@ -5,8 +5,57 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1756070497756,
-      "tag": "0000_funny_grim_reaper",
+      "when": 1784471986232,
+      "tag": "0000_baseline_84_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784501996032,
+      "tag": "0001_maintenance_execution_knowledge_graph",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784507285296,
+      "tag": "0002_smm_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784535474056,
+      "tag": "0003_knowledge_hub",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784537140952,
+      "tag": "0004_digital_twin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784567833813,
+      "tag": "0005_rcm",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784568325757,
+      "tag": "0006_rca_fmea_missing_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784576259658,
+      "tag": "0007_training_requests",
       "breakpoints": true
     }
   ]

@@ -164,13 +164,13 @@ class OfflineStorageManager {
     
     switch (action.type) {
       case 'diagnostic':
-        await apiRequest('POST', '/api/diagnostic-sessions', action.data);
+        await apiRequest('/api/diagnostic-sessions', { method: 'POST', body: action.data });
         break;
       case 'work_order':
-        await apiRequest('POST', '/api/work-orders', action.data);
+        await apiRequest('/api/work-orders', { method: 'POST', body: action.data });
         break;
       case 'equipment_update':
-        await apiRequest('PUT', `/api/equipment/${action.data.id}`, action.data);
+        await apiRequest(`/api/equipment/${action.data.id}`, { method: 'PUT', body: action.data });
         break;
       default:
         throw new Error(`Type d'action non supporté: ${action.type}`);

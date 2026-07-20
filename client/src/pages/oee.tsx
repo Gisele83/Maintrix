@@ -124,8 +124,7 @@ export default function OeePage() {
     queryKey: statsQKey,
     queryFn: async () => {
       const params = new URLSearchParams({ from: dateFrom, to: dateTo });
-      const res = await apiRequest("GET", `/api/oee/stats?${params}`);
-      return (res as any).json();
+      return await apiRequest(`/api/oee/stats?${params}`);
     },
   });
 
@@ -134,8 +133,7 @@ export default function OeePage() {
     queryFn: async () => {
       const params = new URLSearchParams({ from: dateFrom, to: dateTo });
       if (filterEquip) params.set("equipmentId", filterEquip);
-      const res = await apiRequest("GET", `/api/oee?${params}`);
-      return (res as any).json();
+      return await apiRequest(`/api/oee?${params}`);
     },
   });
 
@@ -145,19 +143,19 @@ export default function OeePage() {
   };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/oee", data),
+    mutationFn: (data: any) => apiRequest("/api/oee", { method: "POST", body: data }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Enregistrement OEE ajouté" }); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/oee/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/oee/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); toast({ title: "Enregistrement supprimé" }); },
   });
 
   const calcMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/oee/calculate", data),
-    onSuccess: async (res: any) => { const d = await res.json(); setLiveResult(d); },
+    mutationFn: (data: any) => apiRequest("/api/oee/calculate", { method: "POST", body: data }),
+    onSuccess: async (res: any) => { setLiveResult(res); },
   });
 
   const form = useForm<CreateForm>({

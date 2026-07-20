@@ -5,20 +5,14 @@
  */
 
 import type { Express } from "express";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
 
-let pool: Pool | null = null;
 function getPool(): Pool {
-  if (!pool) {
-    const connStr = (global as any).__localDbUrl ||
-      process.env.DATABASE_URL ||
-      "postgresql://runner@localhost:5433/maintrix?host=/tmp";
-    pool = new Pool({ connectionString: connStr });
-  }
-  return pool;
+  return sharedPool;
 }
 
 function computeOEE(planned: number, downtime: number, speedLoss: number, actualProd: number, plannedProd: number, defects: number) {

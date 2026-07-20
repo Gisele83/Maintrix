@@ -39,7 +39,6 @@ import {
   spareParts as sparePartsTable
 } from "@shared/schema";
 import { z } from "zod";
-import { spawn } from "child_process";
 import path from "path";
 import { performCloudDiagnostic, analyzeSymptomSimilarity, generateMaintenanceInsights, type CloudDiagnosticRequest } from "./cloud-diagnostic";
 import { hybridDiagnosticPipeline, type HybridDiagnosticRequest } from "./hybrid-diagnostic-pipeline";
@@ -48,6 +47,15 @@ import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
 import { registerPermitToWorkRoutes } from "./permit-to-work-routes";
 import { registerRcaRoutes } from "./rca-routes";
+import { registerInterventionExecutionRoutes } from "./intervention-execution-routes";
+import { registerSmmRoutes } from "./smm-routes";
+import { registerKnowledgeHubRoutes } from "./knowledge-hub-routes";
+import { registerDigitalTwinRoutes } from "./digital-twin-routes";
+import { registerPredictiveMaintenanceRoutes } from "./predictive-maintenance-routes";
+import { registerEngineeringExpertiseRoutes } from "./engineering-expertise-routes";
+import { registerRcmRoutes } from "./rcm-routes";
+import { registerFunctionalAgentsRoutes } from "./functional-agents-routes";
+import { registerTechLearnBridgeRoutes } from "./techlearn-bridge-routes";
 import { registerOeeRoutes } from "./oee-routes";
 import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
@@ -96,7 +104,6 @@ import rbacRoutes from "./rbac-routes";
 
 // ── ML Engine — functions extracted to server/diagnostic-ml-engine.ts ─────────
 import {
-  callMLEngine,
   mapOrderTypeToMaintenanceType,
   mapWorkOrderStatus,
   calculateTextSimilarity,
@@ -344,6 +351,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register RCA routes
   registerRcaRoutes(app);
 
+  // Register Maintenance Execution routes (cycle réel d'intervention → sync Knowledge Graph)
+  registerInterventionExecutionRoutes(app);
+
+  // Register SMM routes (manuels, procédures, checklists, audits, non-conformités)
+  registerSmmRoutes(app);
+
+  // Register Engineering Knowledge Hub routes (documents + recherche sémantique/mot-clé)
+  registerKnowledgeHubRoutes(app);
+
+  // Register Digital Twin routes (jumeau numérique par équipement)
+  registerDigitalTwinRoutes(app);
+
+  // Register Predictive Maintenance Engine routes (unifie Health Score, RUL, Anomaly Detection, Failure Prediction, Automatic Work Order)
+  registerPredictiveMaintenanceRoutes(app);
+
+  // Register Engineering Expertise routes (Expert Rules, RCA, FMEA, RCM consolidés)
+  registerEngineeringExpertiseRoutes(app);
+  registerRcmRoutes(app);
+  registerFunctionalAgentsRoutes(app);
+  registerTechLearnBridgeRoutes(app);
+
   // Register OEE routes
   registerOeeRoutes(app);
 
@@ -524,7 +552,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const engine = new PredictiveMaintenanceEngine();
       
       const equipmentId = parseInt(req.params.equipmentId);
-      const analysis = await engine.analyzeEquipmentHealth(equipmentId);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const analysis = await engine.analyzeEquipmentHealth(equipmentId, tenantId);
       
       res.json(analysis);
     } catch (error) {
@@ -627,109 +656,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Call ML engine for prediction
-      const mlArgs = [
-        data.equipmentType,
-        data.symptoms,
-        (data.symptomsChecked || []).join(','),
-        data.urgency,
-        data.zone || 'unknown',
-        data.sector || 'unknown'
-      ];
-      
-      try {
-        const mlResult = await callMLEngine('predict', mlArgs);
-        
-        if (mlResult.error) {
-          console.warn('ML prediction failed, using rule-based fallback:', mlResult.error);
-          // Generate fallback suggestions immediately
-          const fallbackSuggestions = [{
-            diagnosis: `Diagnostic ${data.equipmentType} - ${data.urgency}`,
-            solution: generateContextualSolution(`Problème ${data.equipmentType}`, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
-            confidence: 75,
-            matchingCases: 1,
-            caseId: 1001,
-            duration: 60,
-            riskLevel: data.urgency === "high" ? "Élevé" : data.urgency === "medium" ? "Moyen" : "Faible",
-            costEstimate: estimateRepairCost(60, data.equipmentType),
-            aiInsights: generateAIInsights({ equipmentType: data.equipmentType, symptoms: data.symptoms }, 75, 0.8),
-            mlPrediction: false,
-            predictiveTips: generatePredictiveTips(data.equipmentType, `Problème ${data.equipmentType}`)
-          }];
-          
-          await storage.updateDiagnosticSession(session.id, {
-            results: JSON.stringify(fallbackSuggestions),
-            status: "completed"
-          });
-          
-          return res.json({
-            sessionId: session.id,
-            suggestions: fallbackSuggestions,
-            mlEnabled: false,
-            modelAccuracy: "fallback"
-          });
-        }
-        
-        // Transform ML results to match expected format
-        const suggestions = mlResult.predictions?.map((pred: any, index: number) => ({
-          diagnosis: pred.diagnosis,
-          solution: generateContextualSolution(pred.diagnosis, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
-          confidence: Math.round(pred.confidence * 100),
-          matchingCases: 1,
-          caseId: 1000 + index, // Temporary ID for ML predictions
-          duration: 60,
-          riskLevel: pred.confidence > 0.8 ? "Faible" : pred.confidence > 0.6 ? "Moyen" : "Élevé",
-          costEstimate: estimateRepairCost(60, data.equipmentType),
-          aiInsights: `ML Analysis: ${mlResult.ml_insights || 'Analyse basée sur machine learning'}`,
-          mlPrediction: true,
-          anomalyScore: pred.anomaly_score
-        })) || [];
-        
-        // Update session with ML results
-        await storage.updateDiagnosticSession(session.id, {
-          results: JSON.stringify(suggestions),
-          status: "completed"
-        });
-        
-        res.json({
-          sessionId: session.id,
-          suggestions,
-          mlEnabled: true,
-          modelAccuracy: mlResult.model_accuracy,
-          featureImportance: mlResult.feature_importance
-        });
-        
-      } catch (mlError: unknown) {
-        const errorMessage = mlError instanceof Error ? mlError.message : String(mlError);
-        console.error('ML Engine call failed:', errorMessage);
-        // Generate immediate fallback suggestions
-        const fallbackSuggestions = [{
-          diagnosis: `Diagnostic système - ${data.equipmentType}`,
-          solution: generateContextualSolution(`Analyse ${data.equipmentType}`, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
-          confidence: 70,
-          matchingCases: 1,
-          caseId: 1002,
-          duration: 45,
-          riskLevel: data.urgency === "high" ? "Élevé" : data.urgency === "medium" ? "Moyen" : "Faible",
-          costEstimate: estimateRepairCost(45, data.equipmentType),
-          aiInsights: generateAIInsights({ equipmentType: data.equipmentType, symptoms: data.symptoms }, 70, 0.7),
-          mlPrediction: false,
-          predictiveTips: generatePredictiveTips(data.equipmentType, `Analyse ${data.equipmentType}`)
-        }];
-        
-        await storage.updateDiagnosticSession(session.id, {
-          results: JSON.stringify(fallbackSuggestions),
-          status: "completed"
-        });
-        
-        return res.json({
-          sessionId: session.id,
-          suggestions: fallbackSuggestions,
-          mlEnabled: false,
-          modelAccuracy: "error_fallback"
-        });
-      }
-      
+      // Suggestions basées sur règles (l'ancien moteur ML Python appelait des scripts absents du repo — retiré)
+      const fallbackSuggestions = [{
+        diagnosis: `Diagnostic système - ${data.equipmentType}`,
+        solution: generateContextualSolution(`Analyse ${data.equipmentType}`, data.equipmentType, data.zone ?? 'unknown', data.sector ?? 'unknown'),
+        confidence: 70,
+        matchingCases: 1,
+        caseId: 1002,
+        duration: 45,
+        riskLevel: data.urgency === "high" ? "Élevé" : data.urgency === "medium" ? "Moyen" : "Faible",
+        costEstimate: estimateRepairCost(45, data.equipmentType),
+        aiInsights: generateAIInsights({ equipmentType: data.equipmentType, symptoms: data.symptoms }, 70, 0.7),
+        mlPrediction: false,
+        predictiveTips: generatePredictiveTips(data.equipmentType, `Analyse ${data.equipmentType}`)
+      }];
+
+      await storage.updateDiagnosticSession(session.id, {
+        results: JSON.stringify(fallbackSuggestions),
+        status: "completed"
+      });
+
+      return res.json({
+        sessionId: session.id,
+        suggestions: fallbackSuggestions,
+        mlEnabled: false,
+        modelAccuracy: "rule_based"
+      });
+
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("ML Diagnostic error:", errorMessage);
@@ -1345,122 +1298,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Train ML model endpoint
-  app.post("/api/train-ml", async (req, res) => {
-    try {
-      console.log("Starting ML model training...");
-      const result = await callMLEngine('train');
-      
-      if (result.success) {
-        res.json({ 
-          success: true, 
-          message: "Modèle ML entraîné avec succès",
-          details: result.message 
-        });
-      } else {
-        res.status(500).json({ 
-          success: false, 
-          message: "Échec de l'entraînement du modèle ML",
-          error: result.message 
-        });
-      }
-    } catch (error) {
-      console.error("ML training error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Erreur lors de l'entraînement ML",
-        error: error.message 
-      });
-    }
-  });
-
-  // Train Enhanced ML model endpoint
-  app.post("/api/train-enhanced-ml", async (req, res) => {
-    try {
-      console.log("Starting Enhanced ML model training...");
-      const result = await callMLEngine('train', [], 'enhanced_ml_diagnostic.py');
-      
-      if (result.success) {
-        res.json({ 
-          success: true, 
-          message: "Modèle ML Enhanced entraîné avec succès",
-          details: result.message,
-          models_trained: result.models_trained,
-          model_scores: result.model_scores,
-          best_model: result.best_model
-        });
-      } else {
-        res.status(500).json({ 
-          success: false, 
-          message: "Échec de l'entraînement du modèle ML Enhanced",
-          error: result.message 
-        });
-      }
-    } catch (error) {
-      console.error("Enhanced ML training error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Erreur lors de l'entraînement ML Enhanced",
-        error: error.message 
-      });
-    }
-  });
-
-  // Train advanced ML models endpoint
-  app.post("/api/train-advanced-ml", async (req, res) => {
-    try {
-      console.log("Starting advanced ML model training...");
-      
-      const scriptPath = path.join(process.cwd(), 'server', 'advanced_ml_features.py');
-      const safeEnvAdv: NodeJS.ProcessEnv = {
-        PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER,
-        LANG: process.env.LANG, TMPDIR: process.env.TMPDIR, NODE_ENV: process.env.NODE_ENV,
-        PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages',
-      };
-      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
-        cwd: process.cwd(),
-        env: safeEnvAdv
-      });
-      
-      let output = '';
-      let errorOutput = '';
-      
-      childProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-      
-      childProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-      
-      childProcess.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const result = JSON.parse(output.trim());
-            res.json(result);
-          } catch (e) {
-            res.status(500).json({ success: false, message: "Invalid response from advanced ML training" });
-          }
-        } else {
-          console.error('Advanced ML training error:', errorOutput);
-          res.status(500).json({ 
-            success: false, 
-            message: "Erreur lors de l'entraînement ML avancé",
-            error: errorOutput 
-          });
-        }
-      });
-      
-    } catch (error) {
-      console.error("Advanced ML training error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Erreur lors de l'entraînement ML avancé",
-        error: error.message 
-      });
-    }
-  });
-
   // Advanced ML diagnostic endpoint - Simplified version
   app.post("/api/diagnostic-advanced-ml", diagnosticRateLimit, validateInput(z.object({
     equipmentType: z.string().min(1),
@@ -1550,61 +1387,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false,
         message: "Erreur lors du diagnostic ML avancé", 
-        error: error.message 
-      });
-    }
-  });
-
-  // Train ensemble ML models endpoint
-  app.post("/api/train-ensemble-ml", async (req, res) => {
-    try {
-      console.log("Starting ensemble ML model training...");
-      
-      const scriptPath = path.join(process.cwd(), 'server', 'ml_ensemble_engine.py');
-      const safeEnvEns: NodeJS.ProcessEnv = {
-        PATH: process.env.PATH, HOME: process.env.HOME, USER: process.env.USER,
-        LANG: process.env.LANG, TMPDIR: process.env.TMPDIR, NODE_ENV: process.env.NODE_ENV,
-        PYTHONPATH: '.pythonlibs/lib/python3.11/site-packages',
-      };
-      const childProcess = spawn('bash', ['-c', `python3 ${scriptPath} train`], {
-        cwd: process.cwd(),
-        env: safeEnvEns
-      });
-      
-      let output = '';
-      let errorOutput = '';
-      
-      childProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-      
-      childProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-      
-      childProcess.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const result = JSON.parse(output.trim());
-            res.json(result);
-          } catch (e) {
-            res.status(500).json({ success: false, message: "Invalid response from ensemble ML training" });
-          }
-        } else {
-          console.error('Ensemble ML training error:', errorOutput);
-          res.status(500).json({ 
-            success: false, 
-            message: "Erreur lors de l'entraînement ML ensemble",
-            error: errorOutput 
-          });
-        }
-      });
-      
-    } catch (error) {
-      console.error("Ensemble ML training error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Erreur lors de l'entraînement ML ensemble",
         error: error.message 
       });
     }
@@ -1869,7 +1651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enhanced ML diagnostic endpoint  
+  // Enhanced ML diagnostic endpoint (fallback règles — l'ancien moteur ML Python appelait des scripts absents du repo, retiré)
   app.post("/api/diagnostic-enhanced-ml", async (req, res) => {
     try {
       console.log("Starting Enhanced ML diagnostic...");
@@ -1884,112 +1666,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration: z.number().optional()
       }).parse(req.body);
 
-      // Call the Enhanced ML engine
-      const mlResult = await callMLEngine('predict', [
-        formData.equipmentType,
-        formData.symptoms,
-        JSON.stringify(formData.symptomsChecked || []),
-        formData.urgency,
-        formData.zone || "unknown",
-        formData.sector || "unknown",
-        formData.equipmentId || "unknown"
-      ], 'enhanced_ml_diagnostic.py');
+      const mlEnabled = false;
+      const modelAccuracy = "rule_based_fallback";
+      const enhancedMetrics = {};
+      const cases = await storage.getMaintenanceCases();
+      const matchingSuggestions = cases
+        .filter(case_ => case_.equipmentType === formData.equipmentType)
+        .slice(0, 1);
 
-      let suggestions = [];
-      let mlEnabled = false;
-      let modelAccuracy = "not_trained";
-      let enhancedMetrics = {};
-
-      if (mlResult && mlResult.success) {
-        // Enhanced ML predictions available
-        mlEnabled = true;
-        modelAccuracy = "enhanced_trained";
-        
-        enhancedMetrics = {
-          total_models: mlResult.total_models || 0,
-          consensus_count: mlResult.consensus_count || 0,
-          best_confidence: mlResult.confidence || 0,
-          anomaly_score: mlResult.anomaly_score || 0,
-          risk_assessment: mlResult.risk_assessment || {},
-          feature_importance: mlResult.feature_importance || {},
-          individual_models: Object.keys(mlResult.individual_predictions || {}).length
-        };
-        
-        suggestions = [{
-          diagnosis: mlResult.prediction || "Diagnostic incertain",
-          solution: `Solution optimisée par Enhanced ML pour: ${mlResult.prediction}`,
-          confidence: Math.round((mlResult.confidence || 0) * 100),
-          matchingCases: mlResult.consensus_count || 1,
-          caseId: 4000 + Math.floor(Math.random() * 1000),
-          duration: formData.duration || 60,
-          riskLevel: mlResult.risk_assessment?.risk_level || "Moyen",
-          costEstimate: estimateRepairCost(formData.duration || 60, formData.equipmentType),
-          aiInsights: `🧠 Enhanced ML: ${mlResult.total_models} modèles • 🎯 Confiance: ${Math.round((mlResult.confidence || 0) * 100)}% • 🤖 Consensus: ${mlResult.consensus_count}/${mlResult.total_models} • ⚡ Anomalie: ${Math.round((mlResult.anomaly_score || 0) * 100)}%`,
-          mlPrediction: true,
-          enhancedML: true,
-          totalModels: mlResult.total_models,
-          consensusCount: mlResult.consensus_count,
-          individualPredictions: mlResult.individual_predictions,
-          anomalyScore: mlResult.anomaly_score,
-          riskAssessment: mlResult.risk_assessment,
-          featureImportance: mlResult.feature_importance,
-          predictiveTips: [
-            "Enhanced ML: Multiple algorithmes convergent vers ce diagnostic",
-            `Consensus des modèles: ${mlResult.consensus_count}/${mlResult.total_models}`,
-            `Score d'anomalie: ${Math.round((mlResult.anomaly_score || 0) * 100)}% - ${mlResult.anomaly_score > 0.5 ? 'Situation inhabituelle détectée' : 'Comportement normal'}`
-          ]
-        }];
-      } else {
-        // Fallback to standard ML
-        const standardMlResult = await callMLEngine('predict', [
-          formData.equipmentType,
-          formData.symptoms,
-          JSON.stringify(formData.symptomsChecked || []),
-          formData.urgency,
-          formData.zone || "unknown",
-          formData.sector || "unknown",
-          (formData.duration || 60).toString()
-        ]);
-
-        if (standardMlResult?.success && standardMlResult.predictions) {
-          mlEnabled = true;
-          modelAccuracy = "standard_fallback";
-          
-          suggestions = standardMlResult.predictions.map((pred: any, index: number) => ({
-            diagnosis: pred.diagnosis,
-            solution: `Solution ML Standard (fallback): ${pred.diagnosis}`,
-            confidence: Math.round(pred.confidence * 100),
-            matchingCases: pred.matching_cases || 1,
-            caseId: 3500 + index,
-            duration: pred.duration || formData.duration || 60,
-            riskLevel: pred.risk_level || "Moyen",
-            costEstimate: estimateRepairCost(pred.duration || 60, formData.equipmentType),
-            aiInsights: `🔄 Fallback ML: Standard • 🎯 Confiance: ${Math.round(pred.confidence * 100)}% • ⚠️ Enhanced ML indisponible`,
-            mlPrediction: true,
-            predictiveTips: generatePredictiveTips(formData.equipmentType, pred.diagnosis)
-          }));
-        } else {
-          // Final fallback to rule-based
-          modelAccuracy = "rule_based_fallback";
-          const cases = await storage.getMaintenanceCases();
-          const matchingSuggestions = cases
-            .filter(case_ => case_.equipmentType === formData.equipmentType)
-            .slice(0, 1);
-
-          suggestions = matchingSuggestions.map((case_) => ({
-            diagnosis: case_.diagnosis,
-            solution: case_.solution,
-            confidence: 50,
-            matchingCases: 1,
-            caseId: case_.id,
-            duration: case_.duration,
-            riskLevel: "Moyen",
-            costEstimate: estimateRepairCost(case_.duration, formData.equipmentType),
-            aiInsights: "⚠️ Système basé sur les règles (ML indisponible)",
-            predictiveTips: generatePredictiveTips(formData.equipmentType, case_.diagnosis)
-          }));
-        }
-      }
+      const suggestions = matchingSuggestions.map((case_) => ({
+        diagnosis: case_.diagnosis,
+        solution: case_.solution,
+        confidence: 50,
+        matchingCases: 1,
+        caseId: case_.id,
+        duration: case_.duration,
+        riskLevel: "Moyen",
+        costEstimate: estimateRepairCost(case_.duration, formData.equipmentType),
+        aiInsights: "⚠️ Système basé sur les règles (ML indisponible)",
+        predictiveTips: generatePredictiveTips(formData.equipmentType, case_.diagnosis)
+      }));
 
       // Save diagnostic session
       const sessionData = {
@@ -2011,11 +1707,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId: session.id,
         suggestions,
         mlEnabled,
-        enhancedML: modelAccuracy === "enhanced_trained",
+        enhancedML: false,
         modelAccuracy,
         enhancedMetrics
       });
-      
+
     } catch (error) {
       console.error("Enhanced ML diagnostic error:", error);
       res.status(400).json({ 
@@ -2030,7 +1726,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
       const allProfiles = await storage.getUserProfiles();
-      const profiles = allProfiles.filter(p => p.tenantId === tenantId);
+      const profiles = allProfiles
+        .filter(p => p.tenantId === tenantId)
+        // 🔒 Ne jamais exposer les secrets d'authentification, même à un utilisateur authentifié
+        .map(({ password, mfaSecret, mfaBackupCodes, passwordResetToken, ...safe }) => safe);
       res.json(profiles);
     } catch (error) {
       console.error("Error fetching user profiles:", error);
@@ -2477,58 +2176,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Continuous learning analysis endpoint
-  app.get("/api/learning-analysis", async (req, res) => {
-    try {
-      const mlResult = await callMLEngine('plan', [], 'continuous_learning_engine.py');
-      res.json(mlResult || {});
-    } catch (error) {
-      console.error("Error in learning analysis:", error);
-      res.status(500).json({ error: "Failed to perform learning analysis" });
-    }
-  });
-
-  // Auto-improvement endpoint that analyzes patterns and updates ML models
+  // Auto-improvement endpoint that analyzes patterns and adjusts adaptive learning weights
+  // (le déclenchement de ré-entraînement ML Python a été retiré — script inexistant, cf. changelog architecture)
   app.post("/api/auto-improve", async (req, res) => {
     try {
-      const { equipmentType, forceRetrain } = req.body;
-      
+      const { equipmentType } = req.body;
+
       // Get learning metrics to assess current performance
-      const metrics = equipmentType 
+      const metrics = equipmentType
         ? await storage.getLearningMetricsByEquipment(equipmentType)
         : await storage.getLearningMetrics();
-      
+
       const improvements = [];
-      
+
       for (const metric of metrics) {
-        if (metric.successRate < 80 || forceRetrain) {
-          // Trigger ML model retraining for poor performing equipment types
-          try {
-            const mlResult = await callMLEngine('train', [], 'enhanced_ml_diagnostic.py');
-            if (mlResult?.success) {
-              await storage.updateModelPerformance({
-                modelType: "enhanced_ml",
-                equipmentType: metric.equipmentType,
-                accuracy: mlResult.accuracy || 0.85,
-                precision: mlResult.precision || 0.82,
-                recall: mlResult.recall || 0.88,
-                f1Score: mlResult.f1_score || 0.85,
-                sampleSize: mlResult.sample_size || 100,
-                crossValidationScore: mlResult.cv_score || 0.83
-              });
-              
-              improvements.push({
-                equipmentType: metric.equipmentType,
-                action: "retrained_model",
-                newAccuracy: mlResult.accuracy,
-                improvementReason: `Low success rate: ${metric.successRate}%`
-              });
-            }
-          } catch (error) {
-            console.error(`Failed to retrain model for ${metric.equipmentType}:`, error);
-          }
-        }
-        
         // Update adaptive learning weights based on performance
         if (metric.successRate < 70) {
           await storage.updateAdaptiveLearning(metric.equipmentType, {

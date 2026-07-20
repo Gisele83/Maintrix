@@ -104,7 +104,7 @@ function PushSettingsPanel() {
   const devices = devicesData?.subscriptions || [];
 
   const testMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/push/test", {}),
+    mutationFn: () => apiRequest("/api/push/test", { method: "POST", body: {} }),
     onSuccess: (data: any) => {
       if (data.pushSent) {
         toast({ title: "✅ Notification envoyée", description: "Vérifiez vos notifications système." });
@@ -333,17 +333,17 @@ export default function MobileNotificationsPage() {
   const others = notifications.filter(n => !["task_assigned", "maintenance_due"].includes(n.type) && n.severity !== "critical" && n.severity !== "emergency");
 
   const readMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("PATCH", `/api/mobile/notifications/${id}/read`, {}),
+    mutationFn: (id: number) => apiRequest(`/api/mobile/notifications/${id}/read`, { method: "PATCH" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/mobile/notifications"] }),
   });
 
   const dismissMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("POST", `/api/mobile/notifications/${id}/dismiss`, {}),
+    mutationFn: (id: number) => apiRequest(`/api/mobile/notifications/${id}/dismiss`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/mobile/notifications"] }),
   });
 
   const readAllMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/mobile/notifications/read-all", {}),
+    mutationFn: () => apiRequest("/api/mobile/notifications/read-all", { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/mobile/notifications"] });
       toast({ title: "Tout marqué comme lu" });

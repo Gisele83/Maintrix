@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Loader2, Users, Upload, Shield, Factory, ExternalLink, Activity, Sparkles, ChevronRight } from "lucide-react";
+import { Search, Wrench, History, Bug, Brain, GitBranch, Users, Upload, Shield, Factory, ExternalLink, Activity, Sparkles, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -86,90 +86,6 @@ export default function Dashboard() {
       toast({
         title: t("error", language),
         description: "Erreur lors du diagnostic",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Train ML model mutation
-  const trainMLMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("/api/train-ml", { method: "POST" });
-      return await response.json();
-    },
-    onSuccess: (result: any) => {
-      toast({
-        title: "ML Model Training",
-        description: result.message || "Modèle ML entraîné avec succès",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Training Error",
-        description: "Erreur lors de l'entraînement du modèle ML",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Train Enhanced ML models mutation
-  const trainEnhancedMLMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("/api/train-enhanced-ml", { method: "POST" });
-      return await response.json();
-    },
-    onSuccess: (result: any) => {
-      toast({
-        title: "Enhanced ML Training",
-        description: `${result.models_trained?.length || 0} modèles Enhanced ML entraînés avec succès`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Enhanced ML Training Error",
-        description: "Erreur lors de l'entraînement Enhanced ML",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Train advanced ML models mutation
-  const trainAdvancedMLMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("/api/train-advanced-ml", { method: "POST" });
-      return await response.json();
-    },
-    onSuccess: (result: any) => {
-      toast({
-        title: "Advanced ML Training",
-        description: result.message || "Modèles ML avancés entraînés avec succès",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Advanced Training Error",
-        description: "Erreur lors de l'entraînement des modèles ML avancés",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Train ensemble ML models mutation
-  const trainEnsembleMLMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("/api/train-ensemble-ml", { method: "POST" });
-      return await response.json();
-    },
-    onSuccess: (result: any) => {
-      toast({
-        title: "Ensemble ML Training",
-        description: result.message || "Modèles ML ensemble entraînés avec succès",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Ensemble Training Error",
-        description: "Erreur lors de l'entraînement des modèles ML ensemble",
         variant: "destructive",
       });
     },
@@ -460,68 +376,6 @@ export default function Dashboard() {
                           : "Mode ML standard avec Random Forest et Gradient Boosting"
                     }
                   </p>
-
-                  {/* ML Training Controls */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      onClick={() => trainMLMutation.mutate()}
-                      disabled={trainMLMutation.isPending}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      {trainMLMutation.isPending ? "Entraînement..." : "ML Standard"}
-                    </Button>
-                    <Button
-                      onClick={() => trainAdvancedMLMutation.mutate()}
-                      disabled={trainAdvancedMLMutation.isPending}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                    >
-                      {trainAdvancedMLMutation.isPending ? "Entraînement..." : "ML Avancé"}
-                    </Button>
-                    <Button
-                      onClick={() => trainEnhancedMLMutation.mutate()}
-                      disabled={trainEnhancedMLMutation.isPending}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
-                    >
-                      {trainEnhancedMLMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          Enhanced...
-                        </>
-                      ) : (
-                        <>
-                          <Brain className="w-3 h-3 mr-1" />
-                          Enhanced
-                        </>
-                      )}
-                    </Button>
-                    {ensembleMode && (
-                      <Button
-                        onClick={() => trainEnsembleMLMutation.mutate()}
-                        disabled={trainEnsembleMLMutation.isPending}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs col-span-3"
-                      >
-                        {trainEnsembleMLMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Entraînement Ensemble...
-                          </>
-                        ) : (
-                          <>
-                            <GitBranch className="w-3 h-3 mr-1" />
-                            Entraîner ML Ensemble
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
                 </div>
                 </CardContent>
               </Card>

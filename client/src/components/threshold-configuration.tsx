@@ -38,7 +38,7 @@ export default function ThresholdConfiguration() {
     mutationFn: async (data: ThresholdConfig) => {
       return await apiRequest("/api/company-config", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: data
       });
     },
     onSuccess: () => {

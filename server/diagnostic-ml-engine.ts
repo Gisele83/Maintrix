@@ -1,55 +1,19 @@
 /**
  * Diagnostic ML Engine
- * Fonctions d'intelligence artificielle et de similarité pour le diagnostic industriel.
+ * Fonctions de similarité et d'aide au diagnostic industriel (règles + texte + sémantique).
  * Extraites de routes.ts pour améliorer la maintenabilité.
+ *
+ * Note : la fonction callMLEngine() qui spawnait des scripts Python (ml_diagnostic_engine.py,
+ * enhanced_ml_diagnostic.py, ml_ensemble_engine.py, continuous_learning_engine.py,
+ * advanced_ml_features.py) a été supprimée le 19/07/2026 — ces scripts n'existaient pas
+ * dans le repository et les appels échouaient systématiquement. Voir le changelog dans
+ * ARCHITECTURE_GLOBALE_MAINTRIX.md.
  */
-
-import { spawn } from "child_process";
-import path from "path";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export type MaintenanceType = "preventive" | "corrective" | "emergency";
 export type WorkOrderStatus = "completed" | "in_progress" | "cancelled";
-
-// ── Subprocess ML Engine ───────────────────────────────────────────────────────
-
-export async function callMLEngine(
-  command: string,
-  args: string[] = [],
-  scriptName = "ml_diagnostic_engine.py"
-): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), "server", scriptName);
-    const safeEnv: NodeJS.ProcessEnv = {
-      PATH: process.env.PATH,
-      HOME: process.env.HOME,
-      USER: process.env.USER,
-      LANG: process.env.LANG,
-      LC_ALL: process.env.LC_ALL,
-      TMPDIR: process.env.TMPDIR,
-      PYTHONPATH: ".pythonlibs/lib/python3.11/site-packages",
-      NODE_ENV: process.env.NODE_ENV,
-    };
-    const child = spawn("python3", [scriptPath, command, ...args], {
-      cwd: process.cwd(),
-      env: safeEnv,
-    });
-    let output = "";
-    let errorOutput = "";
-    child.stdout.on("data", (d) => { output += d.toString(); });
-    child.stderr.on("data", (d) => { errorOutput += d.toString(); });
-    child.on("close", (code) => {
-      if (code === 0) {
-        try { resolve(JSON.parse(output.trim())); }
-        catch { resolve({ error: "Invalid JSON response from ML engine" }); }
-      } else {
-        reject(new Error(`ML engine failed with code ${code}: ${errorOutput}`));
-      }
-    });
-    child.on("error", (e) => reject(new Error(`Failed to start ML engine: ${e.message}`)));
-  });
-}
 
 // ── Mapping helpers ────────────────────────────────────────────────────────────
 

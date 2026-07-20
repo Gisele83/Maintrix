@@ -170,27 +170,25 @@ export default function AssetLifecyclePage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/assets"] }); qc.invalidateQueries({ queryKey: ["/api/assets/stats"] }); };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/assets", data),
+    mutationFn: (data: any) => apiRequest("/api/assets", { method: "POST", body: data }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Actif créé" }); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message || "Création impossible", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/assets/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/assets/${id}`, { method: "PATCH", body: data }),
     onSuccess: async (res: any) => {
       invalidate();
-      const d = await res.json();
-      setSelected(d);
+      setSelected(res);
     },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
   const addEventMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("POST", `/api/assets/${id}/events`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/assets/${id}/events`, { method: "POST", body: data }),
     onSuccess: async (res: any) => {
       invalidate();
-      const d = await res.json();
-      setSelected(d);
+      setSelected(res);
       setShowAddEvent(false);
       evtForm.reset();
       toast({ title: "Événement ajouté" });
@@ -199,7 +197,7 @@ export default function AssetLifecyclePage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/assets/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/assets/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Actif supprimé" }); },
   });
 
@@ -217,8 +215,8 @@ export default function AssetLifecyclePage() {
 
   const openDetail = async (asset: Asset) => {
     try {
-      const res = await apiRequest("GET", `/api/assets/${asset.id}`);
-      setSelected(await (res as any).json());
+      const res = await apiRequest(`/api/assets/${asset.id}`);
+      setSelected(res);
     } catch { setSelected(asset); }
   };
 

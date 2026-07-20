@@ -18,13 +18,13 @@ export interface RuleMatch {
 }
 
 export interface ExplanationFactor {
-  type: 'rule_match' | 'historical_cases' | 'failure_memory' | 'context_signal' | 'recurrence' | 'criticality' | 'recent_intervention' | 'machine_hours';
+  type: 'rule_match' | 'historical_cases' | 'failure_memory' | 'context_signal' | 'recurrence' | 'criticality' | 'recent_intervention' | 'machine_hours' | 'knowledge_graph' | 'digital_twin';
   label: string;
   detail: string;
   impact: 'high' | 'medium' | 'low';
 }
 
-interface DiagnosticRule {
+export interface DiagnosticRule {
   id: string;
   name: string;
   equipmentPatterns: string[];
@@ -265,6 +265,11 @@ const EXPERT_RULES: DiagnosticRule[] = [
 
 export class DiagnosticRulesEngine {
   private rules: DiagnosticRule[] = EXPERT_RULES;
+
+  /** Catalogue complet des règles expertes — consultation (couche Engineering Expertise), pas d'évaluation. */
+  getAllRules(): DiagnosticRule[] {
+    return this.rules;
+  }
 
   evaluateRules(equipmentType: string, symptoms: string, symptomsChecked?: string[]): RuleMatch[] {
     const normalizedEquipment = equipmentType.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');

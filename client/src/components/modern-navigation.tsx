@@ -24,7 +24,8 @@ import {
   TrendingUp,
   Activity,
   Sparkles,
-  Bell
+  Bell,
+  LayoutGrid
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -77,6 +78,9 @@ export function ModernNavigation() {
 
   const navigation = [
     { name: "Accueil", href: "/", icon: Home },
+    { name: "Plateforme Maintenance", href: "/maintenance-platform", icon: LayoutGrid },
+    { name: "Engineering Expertise", href: "/engineering-expertise", icon: Database },
+    { name: "Équipe Multi-Agent", href: "/multi-agent-team", icon: Users },
     { name: "IMCA — Indice Cognitif", href: "/imca", icon: Brain },
     { name: "Simulation Prospective", href: "/prospective-simulation", icon: Brain },
     { name: "Optimiseur Multi-Actifs", href: "/multi-asset-optimizer", icon: BarChart3 },

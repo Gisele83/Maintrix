@@ -129,6 +129,7 @@ export interface PhysicsValidation {
 export interface OrchestratedAction {
   executionId: string;
   diagnosisId: string;
+  equipmentId: number;
   actionId: string;
   targetSystem: 'plc' | 'scada' | 'dcs' | 'erp' | 'gmao' | 'manual';
   command: Record<string, any>;
@@ -138,6 +139,12 @@ export interface OrchestratedAction {
   executedAt?: Date;
   result?: string;
   feedback?: ActionFeedback;
+  /** Coût projeté (€) au moment de la décision — comparé au coût réel à la clôture de l'OT (apprentissage post-action). */
+  projectedCost: number;
+  /** Durée projetée (minutes). */
+  projectedDuration: number;
+  /** Impact IMCA projeté (points), heuristique proportionnelle à la probabilité de défaillance résiduelle. */
+  projectedImcaImpact: number;
 }
 
 export interface ActionFeedback {
@@ -215,20 +222,27 @@ export interface ModelPerformanceMetrics {
   meanTimeToDetection: number;
 }
 
+/**
+ * Treize champs obligatoires (Brevet MAINTRIX-SCA-ORC, revendication 1h) :
+ * auditId, timestamp, diagnosisId, decision, autonomyLevel, appliedPolicyId,
+ * evidenceSummary, riskLevel, humanOverride, ptwReference, actionOutcome,
+ * tenantId, decisionMaker.
+ */
 export interface DecisionAuditEntry {
   auditId: string;
   timestamp: Date;
   diagnosisId: string;
   decision: DecisionOutcome;
   autonomyLevel: AutonomyLevel;
-  decisionReason: string;
+  appliedPolicyId: string | null;
   evidenceSummary: string;
   riskLevel: string;
-  policyApplied: string;
   humanOverride: boolean;
-  overrideReason?: string;
-  outcome?: string;
+  ptwReference: string | null;
+  actionOutcome: string | null;
   tenantId: string;
+  decisionMaker: string;
+  overrideReason?: string;
 }
 
 export interface AgentMessage {

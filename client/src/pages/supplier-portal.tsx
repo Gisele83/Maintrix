@@ -93,24 +93,24 @@ export default function SupplierPortalPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/suppliers"] }); qc.invalidateQueries({ queryKey: ["/api/suppliers/stats"] }); };
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiRequest("POST", "/api/suppliers", d),
+    mutationFn: (d: any) => apiRequest("/api/suppliers", { method: "POST", body: d }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Fournisseur ajouté" }); },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
   const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/suppliers/${id}`, data),
-    onSuccess: async (res: any) => { invalidate(); const d = await res.json(); setSelected(d); },
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/suppliers/${id}`, { method: "PATCH", body: data }),
+    onSuccess: async (res: any) => { invalidate(); setSelected(res); },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/suppliers/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/suppliers/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Fournisseur supprimé" }); },
   });
 
   const form = useForm<CreateForm>({ resolver: zodResolver(CreateSchema), defaultValues: { supplierType: "supplier", paymentTermsDays: 30, country: "France" } });
 
   const openDetail = async (s: Supplier) => {
-    try { const res = await apiRequest("GET", `/api/suppliers/${s.id}`); setSelected(await (res as any).json()); } catch { setSelected(s); }
+    try { const res = await apiRequest(`/api/suppliers/${s.id}`); setSelected(res); } catch { setSelected(s); }
   };
 
   const filtered = suppliers.filter(s => {

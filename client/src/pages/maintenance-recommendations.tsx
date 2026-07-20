@@ -124,14 +124,17 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
   const [scheduledDate, setScheduledDate] = useState(rec.suggestedDate);
 
   const apply = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/maintenance-recommendations/apply", {
-      recommendationId: rec.id,
-      equipmentId: rec.equipmentId,
-      title: rec.title.replace(/^[⚠️📅🔄🔍]\s?/, ""),
-      description: rec.description,
-      scheduledDate,
-      estimatedDuration: rec.estimatedDuration,
-      priority: rec.priority,
+    mutationFn: () => apiRequest("/api/maintenance-recommendations/apply", {
+      method: "POST",
+      body: {
+        recommendationId: rec.id,
+        equipmentId: rec.equipmentId,
+        title: rec.title.replace(/^[⚠️📅🔄🔍]\s?/, ""),
+        description: rec.description,
+        scheduledDate,
+        estimatedDuration: rec.estimatedDuration,
+        priority: rec.priority,
+      },
     }),
     onSuccess: () => {
       toast({ title: "Ordre de travail créé", description: `OT planifié pour ${rec.equipmentName}` });

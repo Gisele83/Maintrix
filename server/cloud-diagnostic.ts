@@ -1,9 +1,16 @@
 import OpenAI from 'openai';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
-});
+// Lazy init : évite un crash au démarrage du serveur quand OPENAI_API_KEY n'est pas configurée
+// (fonctionnalité cloud optionnelle — cf. le même schéma pour SendGrid dans notifications.ts).
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY n'est pas configurée — le diagnostic cloud est indisponible.");
+  }
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 export interface CloudDiagnosticRequest {
   equipmentType: string;
@@ -43,7 +50,7 @@ export async function performCloudDiagnostic(request: CloudDiagnosticRequest): P
     // Construire le prompt pour l'analyse des symptômes
     const prompt = buildDiagnosticPrompt(request);
     
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
@@ -201,7 +208,7 @@ Répondez en JSON:
   "confidence": 75
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
@@ -269,7 +276,7 @@ Répondez en JSON:
   "patterns": ["Pattern 1", "Pattern 2"]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o",
       messages: [
         {

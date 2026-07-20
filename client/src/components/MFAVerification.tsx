@@ -46,16 +46,14 @@ export function MFAVerification({
     setError('');
     
     try {
-      const response = await apiRequest('/api/mfa/verify', {
+      const data = await apiRequest('/api/mfa/verify', {
         method: 'POST',
         body: {
           token: code,
           isBackupCode: isBackup
         }
       });
-      
-      const data = await response.json();
-      
+
       if (data.success) {
         toast({
           title: "Vérification réussie",

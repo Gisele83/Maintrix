@@ -49,9 +49,8 @@ export function MFASetup() {
 
   const loadMFAStatus = async () => {
     try {
-      const response = await apiRequest('/api/mfa/status');
-      const data = await response.json();
-      
+      const data = await apiRequest('/api/mfa/status');
+
       if (data.success) {
         setMfaStatus(data.data);
         
@@ -74,11 +73,10 @@ export function MFASetup() {
   const initiateMFASetup = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/mfa/setup/init', {
+      const data = await apiRequest('/api/mfa/setup/init', {
         method: 'POST'
       });
-      const data = await response.json();
-      
+
       if (data.success) {
         setSetupData(data.data);
         setCurrentStep('verify');
@@ -107,7 +105,7 @@ export function MFASetup() {
 
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/mfa/setup/complete', {
+      const data = await apiRequest('/api/mfa/setup/complete', {
         method: 'POST',
         body: {
           secret: setupData.secret,
@@ -115,9 +113,7 @@ export function MFASetup() {
           backupCodes: setupData.backupCodes
         }
       });
-      
-      const data = await response.json();
-      
+
       if (data.success) {
         setCurrentStep('complete');
         setShowBackupCodes(true);
@@ -149,16 +145,14 @@ export function MFASetup() {
 
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/mfa/verify', {
+      const data = await apiRequest('/api/mfa/verify', {
         method: 'POST',
         body: {
           token: backupCode,
           isBackupCode: true
         }
       });
-      
-      const data = await response.json();
-      
+
       if (data.success) {
         toast({
           title: "Code de récupération valide",
@@ -183,11 +177,10 @@ export function MFASetup() {
   const regenerateBackupCodes = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/mfa/backup-codes/regenerate', {
+      const data = await apiRequest('/api/mfa/backup-codes/regenerate', {
         method: 'POST'
       });
-      const data = await response.json();
-      
+
       if (data.success) {
         setSetupData(prev => prev ? { ...prev, backupCodes: data.data.backupCodes } : null);
         setShowBackupCodes(true);

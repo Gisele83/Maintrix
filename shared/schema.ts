@@ -605,6 +605,11 @@ export const workOrders = pgTable("work_orders", {
   rejectedAt: timestamp("rejected_at"),
   rejectionReason: text("rejection_reason"),
   canExecute: boolean("can_execute").default(false), // Only true after full validation
+  // ── Apprentissage post-action (Brevet 2, rev. 1g/3/10) — non renseigné si l'OT
+  // n'origine pas d'une décision automatisée du moteur d'arbitrage.
+  projectedCost: decimal("projected_cost", { precision: 10, scale: 2 }),
+  projectedImcaImpact: real("projected_imca_impact"),
+  imcaAtCreation: real("imca_at_creation"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -650,6 +655,7 @@ export const maintenanceCounters = pgTable("maintenance_counters", {
   intervalValue: real("interval_value"),
   warningThresholdPct: real("warning_threshold_pct"),
   lastServiceValue: real("last_service_value"),
+  alertEmailSent: boolean("alert_email_sent").default(false),
 });
 
 // Counter History - Track counter reset history
@@ -2147,6 +2153,71 @@ export type PermitToWork = typeof permitToWork.$inferSelect;
 export type InsertPermitToWork = z.infer<typeof insertPermitToWorkSchema>;
 
 // ═══════════════════════════════════════════════════════════════════
+// ARBITRATION WEIGHTS STATE — Apprentissage post-action (Brevet 2, rev. 1g/3/10)
+// λ_k (poids critères d'optimisation) et ω_j (coefficients d'impact économique)
+// ═══════════════════════════════════════════════════════════════════
+
+export const arbitrationWeightsState = pgTable("arbitration_weights_state", {
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).primaryKey(),
+  riskWeight: real("risk_weight").notNull().default(0.4),
+  costWeight: real("cost_weight").notNull().default(0.35),
+  availabilityWeight: real("availability_weight").notNull().default(0.25),
+  economicImpactWeights: jsonb("economic_impact_weights").notNull().default({
+    directCost: 1 / 6, downtimeCost: 1 / 6, safetyCost: 1 / 6,
+    environmentalCost: 1 / 6, productionLossCost: 1 / 6, qualityCost: 1 / 6,
+  }),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertArbitrationWeightsStateSchema = createInsertSchema(arbitrationWeightsState);
+export type ArbitrationWeightsState = typeof arbitrationWeightsState.$inferSelect;
+export type InsertArbitrationWeightsState = z.infer<typeof insertArbitrationWeightsStateSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// EQUIPMENT DEPENDENCY GRAPH — Jumeau comportemental, graphe de dépendances
+// fonctionnelles à coefficients de transmission de défaut (Brevet 1, rev. 1c/4)
+// ═══════════════════════════════════════════════════════════════════
+
+export const equipmentDependencyTemplates = pgTable("equipment_dependency_templates", {
+  equipmentType: varchar("equipment_type", { length: 100 }).primaryKey(),
+  nodes: jsonb("nodes").notNull(), // string[] — noms des composants élémentaires
+  edges: jsonb("edges").notNull(), // { from: string; to: string; transmissionCoefficient: number }[]
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEquipmentDependencyTemplateSchema = createInsertSchema(equipmentDependencyTemplates);
+export type EquipmentDependencyTemplate = typeof equipmentDependencyTemplates.$inferSelect;
+export type InsertEquipmentDependencyTemplate = z.infer<typeof insertEquipmentDependencyTemplateSchema>;
+
+export const equipmentDependencyOverrides = pgTable("equipment_dependency_overrides", {
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }).primaryKey(),
+  nodes: jsonb("nodes").notNull(),
+  edges: jsonb("edges").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEquipmentDependencyOverrideSchema = createInsertSchema(equipmentDependencyOverrides);
+export type EquipmentDependencyOverride = typeof equipmentDependencyOverrides.$inferSelect;
+export type InsertEquipmentDependencyOverride = z.infer<typeof insertEquipmentDependencyOverrideSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// FEDERATED SYNC STATE — dernier vecteur de modèle local transmis par site,
+// nécessaire au calcul du ParametersDelta (Brevet 3, rev. 1c/15)
+// ═══════════════════════════════════════════════════════════════════
+
+export const federatedSyncState = pgTable("federated_sync_state", {
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).primaryKey(),
+  lastSentVector: jsonb("last_sent_vector").notNull(), // number[] — dernier vecteur local envoyé
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFederatedSyncStateSchema = createInsertSchema(federatedSyncState);
+export type FederatedSyncState = typeof federatedSyncState.$inferSelect;
+export type InsertFederatedSyncState = z.infer<typeof insertFederatedSyncStateSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
 // PUSH NOTIFICATION SUBSCRIPTIONS — Mobile & PWA push notifications
 // ═══════════════════════════════════════════════════════════════════
 export const pushSubscriptions = pgTable("push_subscriptions", {
@@ -2237,5 +2308,450 @@ export const insertCryptoJournalEntrySchema = createInsertSchema(cryptoJournalEn
 
 export type CryptoJournalEntry = typeof cryptoJournalEntries.$inferSelect;
 export type InsertCryptoJournalEntry = z.infer<typeof insertCryptoJournalEntrySchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// MAINTENANCE EXECUTION — cycle réel d'intervention technicien
+// Réception → Inspection → Diagnostic → Réparation → Essais →
+// Contrôle Qualité → Livraison → REX
+// Voir CADRAGE_MAINTENANCE_EXECUTION_KNOWLEDGE_GRAPH.md
+// ═══════════════════════════════════════════════════════════════════
+
+export const interventionExecutions = pgTable("intervention_executions", {
+  id: serial("id").primaryKey(),
+  workOrderId: integer("work_order_id").references(() => workOrders.id).notNull(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id).notNull(),
+  currentStep: varchar("current_step", { length: 30 }).notNull().default("reception"),
+  // reception | inspection | diagnostic | reparation | essais | controle_qualite | livraison | rex | terminee
+  overallStatus: varchar("overall_status", { length: 20 }).notNull().default("in_progress"), // in_progress, completed, on_hold
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const interventionSteps = pgTable("intervention_steps", {
+  id: serial("id").primaryKey(),
+  executionId: integer("execution_id").references(() => interventionExecutions.id).notNull(),
+  stepType: varchar("step_type", { length: 30 }).notNull(),
+  // reception | inspection | diagnostic | reparation | essais | controle_qualite | livraison | rex
+  sequenceOrder: integer("sequence_order").notNull(), // ordre réel d'exécution (permet les boucles arrière)
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, in_progress, completed, rejected, skipped
+  technicianId: integer("technician_id").references(() => userProfiles.id),
+  diagnosticSessionId: integer("diagnostic_session_id").references(() => diagnosticSessions.id), // lien natif à l'étape "diagnostic"
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  durationMinutes: integer("duration_minutes"),
+  notes: text("notes"),
+  structuredData: jsonb("structured_data"), // contenu spécifique par type d'étape — voir cadrage
+  rejectionReason: text("rejection_reason"), // renseigné si status = rejected
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const interventionAttachments = pgTable("intervention_attachments", {
+  id: serial("id").primaryKey(),
+  stepId: integer("step_id").references(() => interventionSteps.id).notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // photo, video, document
+  url: text("url").notNull(),
+  caption: text("caption"),
+  uploadedBy: integer("uploaded_by").references(() => userProfiles.id),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const interventionMeasurements = pgTable("intervention_measurements", {
+  id: serial("id").primaryKey(),
+  stepId: integer("step_id").references(() => interventionSteps.id).notNull(),
+  measurementType: varchar("measurement_type", { length: 50 }).notNull(), // vibration, temperature, pression, courant...
+  value: real("value").notNull(),
+  unit: varchar("unit", { length: 20 }),
+  expectedMin: real("expected_min"),
+  expectedMax: real("expected_max"),
+  withinTolerance: boolean("within_tolerance"),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertInterventionExecutionSchema = createInsertSchema(interventionExecutions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertInterventionStepSchema = createInsertSchema(interventionSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertInterventionAttachmentSchema = createInsertSchema(interventionAttachments).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertInterventionMeasurementSchema = createInsertSchema(interventionMeasurements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InterventionExecution = typeof interventionExecutions.$inferSelect;
+export type InsertInterventionExecution = z.infer<typeof insertInterventionExecutionSchema>;
+export type InterventionStep = typeof interventionSteps.$inferSelect;
+export type InsertInterventionStep = z.infer<typeof insertInterventionStepSchema>;
+export type InterventionAttachment = typeof interventionAttachments.$inferSelect;
+export type InsertInterventionAttachment = z.infer<typeof insertInterventionAttachmentSchema>;
+export type InterventionMeasurement = typeof interventionMeasurements.$inferSelect;
+export type InsertInterventionMeasurement = z.infer<typeof insertInterventionMeasurementSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// KNOWLEDGE GRAPH MÉTIER — graphe nœuds/arêtes dérivé du réel
+// (remplace progressivement les données statiques de
+// server/cognitive-layers/knowledge-graph.ts)
+// Voir CADRAGE_MAINTENANCE_EXECUTION_KNOWLEDGE_GRAPH.md
+// ═══════════════════════════════════════════════════════════════════
+
+export const kgNodes = pgTable("kg_nodes", {
+  id: serial("id").primaryKey(),
+  nodeType: varchar("node_type", { length: 30 }).notNull(),
+  // equipment | component | failure_mode | symptom | error_code | measurement_type |
+  // test_type | procedure | technician | work_order | photo | client | plant | lesson_learned
+  refTable: varchar("ref_table", { length: 50 }), // nullable — ex: "equipment_registry", "user_profiles", "work_orders"
+  refId: varchar("ref_id", { length: 50 }), // nullable — id réel dans refTable
+  label: text("label").notNull(), // libellé affichable / normalisé pour le matching
+  metadata: jsonb("metadata"), // attributs libres
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const kgEdges = pgTable("kg_edges", {
+  id: serial("id").primaryKey(),
+  fromNodeId: integer("from_node_id").references(() => kgNodes.id).notNull(),
+  toNodeId: integer("to_node_id").references(() => kgNodes.id).notNull(),
+  relationType: varchar("relation_type", { length: 40 }).notNull(),
+  // has_component | causes | exhibits_symptom | has_error_code | measured_by | tested_by |
+  // resolved_by_procedure | repaired_by | performed_by | took_time | documented_by_photo |
+  // part_of_work_order | belongs_to_client | located_at_plant | generated_lesson
+  weight: real("weight").notNull().default(1.0), // renforcement — cf. learnFromIntervention existant
+  occurrenceCount: integer("occurrence_count").notNull().default(1),
+  lastReinforcedAt: timestamp("last_reinforced_at").defaultNow(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertKgNodeSchema = createInsertSchema(kgNodes).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertKgEdgeSchema = createInsertSchema(kgEdges).omit({
+  id: true,
+  createdAt: true,
+  lastReinforcedAt: true,
+});
+
+export type KgNode = typeof kgNodes.$inferSelect;
+export type InsertKgNode = z.infer<typeof insertKgNodeSchema>;
+export type KgEdge = typeof kgEdges.$inferSelect;
+export type InsertKgEdge = z.infer<typeof insertKgEdgeSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// SMM — SYSTÈME DE MANAGEMENT DE MAINTENANCE
+// Manuels, procédures, checklists, audits, non-conformités, amélioration continue.
+// Modèle consolidé (5 tables plutôt que 10) : les documents (manuel qualité, manuel
+// maintenance, procédures, modes opératoires, instructions) partagent la même structure
+// et sont distingués par documentType. La "capitalisation" se fait par synchronisation
+// des procédures vers kg_nodes (voir smm-routes.ts) plutôt que par une table dédiée.
+// Voir ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md, section 4.
+// ═══════════════════════════════════════════════════════════════════
+
+export const smmDocuments = pgTable("smm_documents", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  documentType: varchar("document_type", { length: 30 }).notNull(),
+  // manuel_qualite | manuel_maintenance | procedure | mode_operatoire | instruction
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  version: varchar("version", { length: 20 }).notNull().default("1.0"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, published, archived
+  equipmentType: varchar("equipment_type", { length: 100 }), // pour les procédures/modes opératoires ciblés
+  attachmentUrl: text("attachment_url"),
+  createdBy: integer("created_by").references(() => userProfiles.id),
+  approvedBy: integer("approved_by").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmChecklists = pgTable("smm_checklists", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  equipmentType: varchar("equipment_type", { length: 100 }),
+  items: jsonb("items").notNull().default([]), // [{ label: string, required: boolean }]
+  version: varchar("version", { length: 20 }).notNull().default("1.0"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"),
+  createdBy: integer("created_by").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmAudits = pgTable("smm_audits", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  auditNumber: varchar("audit_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  auditType: varchar("audit_type", { length: 20 }).notNull().default("interne"), // interne, externe, fournisseur
+  scope: text("scope"),
+  auditorId: integer("auditor_id").references(() => userProfiles.id),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  checklistId: integer("checklist_id").references(() => smmChecklists.id),
+  status: varchar("status", { length: 20 }).notNull().default("planned"), // planned, in_progress, completed
+  score: real("score"), // 0-100, calculé depuis findings si checklist utilisée
+  findings: jsonb("findings").default([]), // [{ item: string, conforme: boolean, commentaire?: string }]
+  scheduledDate: timestamp("scheduled_date"),
+  completedDate: timestamp("completed_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmNonConformities = pgTable("smm_non_conformities", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  ncNumber: varchar("nc_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  severity: varchar("severity", { length: 20 }).notNull().default("mineure"), // mineure, majeure, critique
+  source: varchar("source", { length: 30 }).notNull().default("autre"), // audit, controle_qualite, reclamation_client, autre
+  sourceAuditId: integer("source_audit_id").references(() => smmAudits.id),
+  sourceInterventionStepId: integer("source_intervention_step_id").references(() => interventionSteps.id),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  status: varchar("status", { length: 20 }).notNull().default("ouverte"), // ouverte, en_traitement, cloturee
+  detectedBy: integer("detected_by").references(() => userProfiles.id),
+  detectedAt: timestamp("detected_at").defaultNow(),
+  rootCause: text("root_cause"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const smmImprovementActions = pgTable("smm_improvement_actions", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  nonConformityId: integer("non_conformity_id").references(() => smmNonConformities.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  actionType: varchar("action_type", { length: 20 }).notNull().default("corrective"), // corrective, preventive, amelioration
+  responsibleId: integer("responsible_id").references(() => userProfiles.id),
+  dueDate: timestamp("due_date"),
+  status: varchar("status", { length: 20 }).notNull().default("a_faire"), // a_faire, en_cours, terminee, verifiee
+  effectivenessCheck: text("effectiveness_check"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSmmDocumentSchema = createInsertSchema(smmDocuments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSmmChecklistSchema = createInsertSchema(smmChecklists).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSmmAuditSchema = createInsertSchema(smmAudits).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSmmNonConformitySchema = createInsertSchema(smmNonConformities).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSmmImprovementActionSchema = createInsertSchema(smmImprovementActions).omit({ id: true, createdAt: true, updatedAt: true });
+
+export type SmmDocument = typeof smmDocuments.$inferSelect;
+export type InsertSmmDocument = z.infer<typeof insertSmmDocumentSchema>;
+export type SmmChecklist = typeof smmChecklists.$inferSelect;
+export type InsertSmmChecklist = z.infer<typeof insertSmmChecklistSchema>;
+export type SmmAudit = typeof smmAudits.$inferSelect;
+export type InsertSmmAudit = z.infer<typeof insertSmmAuditSchema>;
+export type SmmNonConformity = typeof smmNonConformities.$inferSelect;
+export type InsertSmmNonConformity = z.infer<typeof insertSmmNonConformitySchema>;
+export type SmmImprovementAction = typeof smmImprovementActions.$inferSelect;
+export type InsertSmmImprovementAction = z.infer<typeof insertSmmImprovementActionSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// ENGINEERING KNOWLEDGE HUB
+// Schémas, plans, notices, bulletins techniques, photos, vidéos, normes IEC/ISO,
+// procédures SAEM, REX. "L'IA va chercher ici avant de répondre" — voir
+// ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md section 6 et knowledge-hub-service.ts.
+// La colonne embedding reste vide tant qu'aucune clé OPENAI_API_KEY n'est configurée ;
+// la recherche retombe alors sur un scoring par mots-clés (voir knowledge-hub-service.ts).
+// ═══════════════════════════════════════════════════════════════════
+
+export const knowledgeHubDocuments = pgTable("knowledge_hub_documents", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  documentType: varchar("document_type", { length: 30 }).notNull(),
+  // schema | plan | notice | bulletin_technique | photo | video | norme | procedure_saem | rex
+  title: text("title").notNull(),
+  description: text("description"),
+  content: text("content"), // texte intégral/extrait recherchable (norme, REX, bulletin...)
+  tags: text("tags").array(),
+  equipmentType: varchar("equipment_type", { length: 100 }),
+  fileUrl: text("file_url"),
+  fileType: varchar("file_type", { length: 100 }),
+  embedding: jsonb("embedding"), // number[] — null si pas de clé OpenAI configurée
+  uploadedBy: integer("uploaded_by").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertKnowledgeHubDocumentSchema = createInsertSchema(knowledgeHubDocuments).omit({
+  id: true, createdAt: true, updatedAt: true, embedding: true,
+});
+
+export type KnowledgeHubDocument = typeof knowledgeHubDocuments.$inferSelect;
+export type InsertKnowledgeHubDocument = z.infer<typeof insertKnowledgeHubDocumentSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// DIGITAL TWIN — propriété de l'actif, pas seulement une fonction de l'IA
+// Une ligne par équipement (pas par type générique) : "calibration" porte les
+// paramètres physiques réels de CET équipement précis, qui surchargent les valeurs
+// par défaut génériques de server/cognitive-layers/physics-models.ts.
+// Voir ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md, section 7.
+// ═══════════════════════════════════════════════════════════════════
+
+export const digitalTwins = pgTable("digital_twins", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id).notNull().unique(),
+  calibration: jsonb("calibration").notNull().default({}), // ex: { bearingType, ratedCurrent, npsh, ratedLoad, ratedSpeed }
+  isCalibrated: boolean("is_calibrated").notNull().default(false),
+  lastResult: jsonb("last_result"), // dernier PhysicsModelResult calculé (voir physics-models.ts)
+  lastRemainingUsefulLife: real("last_remaining_useful_life"),
+  lastComputedAt: timestamp("last_computed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDigitalTwinSchema = createInsertSchema(digitalTwins).omit({
+  id: true, createdAt: true, updatedAt: true, lastResult: true, lastRemainingUsefulLife: true, lastComputedAt: true,
+});
+
+export type DigitalTwin = typeof digitalTwins.$inferSelect;
+export type InsertDigitalTwin = z.infer<typeof insertDigitalTwinSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// RCM — Reliability Centered Maintenance
+// Arbre de décision classique (Moubray, RCM II) : pour chaque mode de défaillance,
+// détermine la stratégie de maintenance applicable (conditionnelle, restauration
+// programmée, remplacement programmé, recherche de panne, run-to-failure, reconception).
+// Voir ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md, section 9, et server/rcm-engine.ts.
+// ═══════════════════════════════════════════════════════════════════
+
+export const rcmAnalyses = pgTable("rcm_analyses", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  functionDescription: text("function_description").notNull(), // "Fournir un débit de X m³/h à Y bar"
+  functionalFailure: text("functional_failure").notNull(), // "Incapable de fournir le débit requis"
+  failureMode: text("failure_mode").notNull(), // "Usure de la roue"
+  failureEffect: text("failure_effect"),
+  // Réponses aux 3 questions de l'arbre de décision RCM classique
+  evident: boolean("evident").notNull(), // la panne est-elle évidente en exploitation normale ?
+  safetyOrEnvironmental: boolean("safety_or_environmental").notNull().default(false),
+  operationalImpact: boolean("operational_impact").notNull().default(false),
+  conditionMonitoringPossible: boolean("condition_monitoring_possible").notNull().default(false),
+  // Résultat calculé par la logique de décision (server/rcm-engine.ts) — pas saisi manuellement
+  consequenceCategory: varchar("consequence_category", { length: 30 }), // hidden | safety_environmental | operational | non_operational
+  recommendedTaskType: varchar("recommended_task_type", { length: 30 }), // condition_based | scheduled_restoration | scheduled_discard | failure_finding | run_to_failure | redesign
+  reasoning: text("reasoning"),
+  taskDescription: text("task_description"),
+  intervalSuggestion: varchar("interval_suggestion", { length: 100 }),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, validated
+  createdBy: integer("created_by").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertRcmAnalysisSchema = createInsertSchema(rcmAnalyses).omit({
+  id: true, createdAt: true, updatedAt: true, consequenceCategory: true, recommendedTaskType: true, reasoning: true,
+});
+
+export type RcmAnalysis = typeof rcmAnalyses.$inferSelect;
+export type InsertRcmAnalysis = z.infer<typeof insertRcmAnalysisSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// RCA & FMEA — tables manquantes découvertes lors de la consolidation Engineering Expertise.
+// server/rca-routes.ts et server/fmea-routes.ts existaient depuis longtemps avec un code
+// CRUD complet (SQL brut via pool.query), mais interrogeaient des tables "rca_analyses" et
+// "fmea_analyses" qui n'ont jamais été créées nulle part dans le projet — les deux
+// fonctionnalités étaient donc cassées en pratique depuis leur écriture. Colonnes alignées
+// exactement sur les requêtes SQL existantes dans ces deux fichiers de routes.
+// ═══════════════════════════════════════════════════════════════════
+
+export const rcaAnalyses = pgTable("rca_analyses", {
+  id: serial("id").primaryKey(),
+  rcaNumber: varchar("rca_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  methodology: varchar("methodology", { length: 20 }).notNull().default("5_whys"), // 5_whys, fishbone, fmea, fault_tree
+  severity: varchar("severity", { length: 20 }).notNull().default("medium"),
+  failureDate: timestamp("failure_date"),
+  detectionDate: timestamp("detection_date"),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  failureMode: text("failure_mode"),
+  estimatedLoss: decimal("estimated_loss", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("EUR"),
+  whyChain: jsonb("why_chain").default([]),
+  fishbone: jsonb("fishbone").default({}),
+  contributingFactors: jsonb("contributing_factors").default([]),
+  actionPlans: jsonb("action_plans").default([]),
+  immediateCause: text("immediate_cause"),
+  rootCause: text("root_cause"),
+  lessonsLearned: text("lessons_learned"),
+  preventiveMeasures: text("preventive_measures"),
+  recurrenceRisk: text("recurrence_risk"),
+  status: varchar("status", { length: 20 }).notNull().default("open"), // open, in_progress, closed, verified
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const fmeaAnalyses = pgTable("fmea_analyses", {
+  id: serial("id").primaryKey(),
+  fmeaNumber: varchar("fmea_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  scope: text("scope"),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  equipmentName: text("equipment_name"),
+  processStep: text("process_step"),
+  entries: jsonb("entries").default([]), // lignes AMDEC : severity/occurrence/detection/RPN par mode de défaillance
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, in_review, approved, obsolete
+  revision: integer("revision").default(1),
+  reviewedById: integer("reviewed_by_id").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// PONT TECHLEARN — Maintrix détecte qu'un technicien assigné à un OT n'a
+// jamais réalisé d'intervention sur ce type d'équipement (server/techlearn-bridge-service.ts),
+// déclenche une demande de formation vers la plateforme TechLearn (LearnSmartHub, produit
+// séparé), et reçoit en retour le résultat du quiz/TP. Voir ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md
+// section 11. techlearnTpId/techlearnScore restent null tant que TechLearn n'a pas répondu —
+// l'intégration réseau entre les deux produits est un aller-retour asynchrone, pas garanti.
+// ═══════════════════════════════════════════════════════════════════
+
+export const trainingRequests = pgTable("training_requests", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  technicianId: integer("technician_id").references(() => userProfiles.id).notNull(),
+  equipmentType: text("equipment_type").notNull(),
+  gapReason: text("gap_reason").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("detected"), // detected, requested, in_progress, completed, dismissed
+  techlearnTpId: varchar("techlearn_tp_id", { length: 100 }),
+  techlearnTpTitle: text("techlearn_tp_title"),
+  techlearnTpUrl: text("techlearn_tp_url"),
+  techlearnScore: real("techlearn_score"), // 0-100, renseigné au retour du quiz
+  requestedBy: integer("requested_by").references(() => userProfiles.id),
+  requestedAt: timestamp("requested_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTrainingRequestSchema = createInsertSchema(trainingRequests).omit({
+  id: true, createdAt: true, updatedAt: true,
+});
+
+export type TrainingRequest = typeof trainingRequests.$inferSelect;
+export type InsertTrainingRequest = z.infer<typeof insertTrainingRequestSchema>;
 
 // Authentication system cleaned up - now using userProfiles as the main user table

@@ -51,7 +51,8 @@ export class IndustrialKnowledgeGraph {
       { id: 'cause-bobinage-defaut', label: 'Defaut bobinage', type: 'cause' as const, mtbf: 15000 },
       { id: 'cause-erosion-cavitation', label: 'Erosion par cavitation', type: 'cause' as const, mtbf: 9000 },
       { id: 'cause-contamination-huile', label: 'Contamination huile', type: 'cause' as const, mtbf: 4000 },
-      { id: 'cause-fatigue-metal', label: 'Fatigue metallique', type: 'cause' as const, mtbf: 20000 }
+      { id: 'cause-fatigue-metal', label: 'Fatigue metallique', type: 'cause' as const, mtbf: 20000 },
+      { id: 'cause-surchauffe', label: 'Surchauffe', type: 'cause' as const, mtbf: 5000 }
     ];
 
     const interventions = [
@@ -110,6 +111,7 @@ export class IndustrialKnowledgeGraph {
       { source: 'sym-chute-performance', target: 'cause-filtre-colmate', type: 'indicates', weight: 0.60 },
       { source: 'sym-cavitation', target: 'cause-erosion-cavitation', type: 'indicates', weight: 0.95 },
       { source: 'sym-desalignement', target: 'cause-desalignement', type: 'indicates', weight: 0.95 },
+      { source: 'sym-surchauffe', target: 'cause-surchauffe', type: 'indicates', weight: 0.55 },
 
       { source: 'cause-roulement-use', target: 'int-remplacement-roulement', type: 'resolves', weight: 0.95 },
       { source: 'cause-lubrification', target: 'int-relubrification', type: 'resolves', weight: 0.90 },
@@ -121,6 +123,7 @@ export class IndustrialKnowledgeGraph {
       { source: 'cause-bobinage-defaut', target: 'int-rebobinage', type: 'resolves', weight: 0.85 },
       { source: 'cause-contamination-huile', target: 'int-vidange-huile', type: 'resolves', weight: 0.90 },
       { source: 'cause-erosion-cavitation', target: 'int-inspection-complete', type: 'resolves', weight: 0.70 },
+      { source: 'cause-surchauffe', target: 'int-inspection-complete', type: 'resolves', weight: 0.70 },
 
       { source: 'eq-moteur', target: 'sym-vibration-elevee', type: 'affects', weight: 0.80 },
       { source: 'eq-moteur', target: 'sym-surchauffe', type: 'affects', weight: 0.85 },
@@ -280,7 +283,7 @@ export class IndustrialKnowledgeGraph {
       );
     });
 
-    const causeScores: Map<string, { confidence: number; evidence: string[] }> = new Map();
+    const causeScores: Map<string, { confidence: number; baseConfidence: number; symptomCount: number; evidence: string[] }> = new Map();
     const actionSet: Map<string, { action: string; priority: string; cost: number; duration: number }> = new Map();
     const cascadeRisks: { effect: string; probability: number }[] = [];
     const contextualFactors: { context: string; relevance: number }[] = [];
@@ -290,15 +293,24 @@ export class IndustrialKnowledgeGraph {
       for (const path of paths) {
         const causeNode = path.path[1];
         const interventionNode = path.path[2];
+        // Poids brut "indicates" (symptôme → cause), distinct de la confiance de chemin
+        // (qui inclut aussi le poids "resolves") — c'est ce poids que renforce la règle
+        // de convergence multi-symptômes du Brevet N°1, §5.4.3.
+        const indicatesConfidence = path.edges[0].confidence;
 
         const existing = causeScores.get(causeNode.nodeId);
         if (existing) {
-          existing.confidence = Math.min(existing.confidence + path.totalConfidence * 0.3, 1.0);
-          existing.evidence.push(`Symptom "${symptom.label}" indicates this cause (${(path.totalConfidence * 100).toFixed(0)}%)`);
+          existing.symptomCount += 1;
+          existing.baseConfidence = Math.max(existing.baseConfidence, indicatesConfidence);
+          // Renforcement croisé multi-symptômes : confiance(c) := min(1,0 ; confiance(c) × (1 + 0,30 × (k − 1)))
+          existing.confidence = Math.min(existing.baseConfidence * (1 + 0.30 * (existing.symptomCount - 1)), 1.0);
+          existing.evidence.push(`Symptom "${symptom.label}" indicates this cause (${(indicatesConfidence * 100).toFixed(0)}%)`);
         } else {
           causeScores.set(causeNode.nodeId, {
-            confidence: path.totalConfidence,
-            evidence: [`Symptom "${symptom.label}" indicates this cause (${(path.totalConfidence * 100).toFixed(0)}%)`]
+            confidence: indicatesConfidence,
+            baseConfidence: indicatesConfidence,
+            symptomCount: 1,
+            evidence: [`Symptom "${symptom.label}" indicates this cause (${(indicatesConfidence * 100).toFixed(0)}%)`]
           });
         }
 

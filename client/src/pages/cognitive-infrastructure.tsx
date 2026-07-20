@@ -642,7 +642,7 @@ export default function CognitiveInfrastructure() {
                               {entry.decision}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">{entry.decisionReason}</p>
+                          <p className="text-xs text-slate-500 mt-1">{entry.evidenceSummary}</p>
                         </div>
                       ))}
                     </div>

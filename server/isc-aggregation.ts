@@ -244,7 +244,7 @@ export interface PhiConfig {
   gamma: number; // poids Maturité
 }
 
-const DEFAULT_PHI_CONFIG: PhiConfig = { alpha: 0.45, beta: 0.35, gamma: 0.20 };
+const DEFAULT_PHI_CONFIG: PhiConfig = { alpha: 0.50, beta: 0.30, gamma: 0.20 };
 
 /**
  * Φ_i = α·ISC_i + β·Fiabilité + γ·Maturité
@@ -415,7 +415,7 @@ export function computePhiContributionWeight(
   const fiabilite = calculateFiabilite(solutionEffectiveness, successRate, []);
   const maturite = calculateMaturite(confirmationCount, firstSeenDate, tenantCount);
   const phi = computePhi(iscComponents, fiabilite, maturite, phiConfig);
-  return parseFloat(Math.max(0.01, phi.Phi * 2).toFixed(4)); // Scale to [0-2] for backward compat
+  return parseFloat(Math.max(0.01, phi.Phi).toFixed(4)); // Φ_i ∈ [0,1] — bornitude conforme au Brevet N°3
 }
 
 export const ISC_WEIGHTS = { D1: 0.30, D2: 0.30, D3: 0.20, D4: 0.20 };

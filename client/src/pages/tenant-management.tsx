@@ -82,7 +82,7 @@ const TenantManagement: React.FC = () => {
   // Create tenant mutation
   const createTenantMutation = useMutation({
     mutationFn: (tenantData: Partial<Tenant>) => 
-      apiRequest('POST', '/api/admin/tenants', tenantData),
+      apiRequest('/api/admin/tenants', { method: 'POST', body: tenantData }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tenants'] });
       setShowCreateModal(false);
@@ -103,7 +103,7 @@ const TenantManagement: React.FC = () => {
   // Update tenant mutation
   const updateTenantMutation = useMutation({
     mutationFn: ({ id, ...data }: Partial<Tenant> & { id: string }) => 
-      apiRequest('PUT', `/api/admin/tenants/${id}`, data),
+      apiRequest(`/api/admin/tenants/${id}`, { method: 'PUT', body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tenants'] });
       toast({
@@ -116,7 +116,7 @@ const TenantManagement: React.FC = () => {
   // Send invitation email mutation
   const sendInvitationMutation = useMutation({
     mutationFn: ({ tenantId, contactEmail }: { tenantId: string; contactEmail: string }) => 
-      apiRequest('POST', `/api/admin/tenants/${tenantId}/send-invitation`, { contactEmail }),
+      apiRequest(`/api/admin/tenants/${tenantId}/send-invitation`, { method: 'POST', body: { contactEmail } }),
     onSuccess: (data: any) => {
       toast({
         title: "Invitation envoyée",

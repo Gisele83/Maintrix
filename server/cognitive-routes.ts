@@ -117,7 +117,8 @@ export function registerCognitiveRoutes(app: Express): void {
       const equipmentId = parseInt(req.params.equipmentId);
       const triggerSignal = req.body;
 
-      const result = await kernel.processClosedLoop(equipmentId, triggerSignal);
+      const tenantId = (req as any).tenantId ?? 'default';
+      const result = await kernel.processClosedLoop(equipmentId, triggerSignal, tenantId);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: 'Closed loop processing failed' });

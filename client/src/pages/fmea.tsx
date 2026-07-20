@@ -175,24 +175,23 @@ export default function FmeaPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/fmea"] }); qc.invalidateQueries({ queryKey: ["/api/fmea/stats"] }); };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/fmea", data),
+    mutationFn: (data: any) => apiRequest("/api/fmea", { method: "POST", body: data }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "FMEA créé" }); },
     onError: () => toast({ title: "Erreur création", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/fmea/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/fmea/${id}`, { method: "PATCH", body: data }),
     onSuccess: async (res: any, vars) => {
       invalidate();
-      const d = await res.json();
-      setSelected(d);
+      setSelected(res);
       toast({ title: "FMEA mis à jour" });
     },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/fmea/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/fmea/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "FMEA supprimé" }); },
   });
 
@@ -200,8 +199,8 @@ export default function FmeaPage() {
 
   const openDetail = async (fmea: Fmea) => {
     try {
-      const res = await apiRequest("GET", `/api/fmea/${fmea.id}`);
-      setSelected(await (res as any).json());
+      const res = await apiRequest(`/api/fmea/${fmea.id}`);
+      setSelected(res);
     } catch { setSelected(fmea); }
   };
 

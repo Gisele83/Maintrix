@@ -421,7 +421,7 @@ export default function FederatedAdaptationPage() {
   });
 
   const aggregateMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/federated-adapt/aggregate"),
+    mutationFn: () => apiRequest("/api/federated-adapt/aggregate", { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/federated-adapt/sites"] });
       qc.invalidateQueries({ queryKey: ["/api/federated-adapt/specialization"] });

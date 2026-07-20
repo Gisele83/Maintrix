@@ -27,7 +27,7 @@ export function LicenseBanner() {
   });
 
   const startTrialMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/trial/start"),
+    mutationFn: () => apiRequest("/api/trial/start", { method: "POST" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/license/status"] }),
   });
 

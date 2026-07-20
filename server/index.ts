@@ -1,4 +1,6 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 
 // Extend Express Request type for CSRF token
 declare global {
@@ -123,6 +125,11 @@ app.use(cookieParser()); // CRITIQUE: Parsing des cookies
 
 // 🔒 Configure cookies sécurisés globalement
 app.use(EnterpriseAuthMiddleware.configureSecureCookies);
+
+// 📎 Fichiers uploadés (pièces jointes) — servis derrière l'authentification.
+// Corrige un gap existant : les fichiers multer (bons de commande, interventions)
+// étaient enregistrés sur disque mais jamais servis en HTTP.
+app.use('/uploads', EnterpriseAuthMiddleware.requireAuthentication, express.static(path.join(process.cwd(), 'uploads')));
 
 // 🔒 CSRF Protection Middleware
 app.use((req, res, next) => {
@@ -326,10 +333,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Port configurable via PORT (défaut 5000) — sert à la fois l'API et le client.
+  const port = parseInt(process.env.PORT ?? "5000", 10);
   // Essayer plusieurs configurations d'écoute
   server.listen(port, '0.0.0.0', () => {
     log(`✅ Serveur démarré sur le port ${port}`);

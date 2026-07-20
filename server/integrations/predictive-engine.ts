@@ -145,7 +145,7 @@ export class PredictiveMaintenanceEngine {
   /**
    * Analyze equipment health and predict failures
    */
-  async analyzeEquipmentHealth(equipmentId: number): Promise<{
+  async analyzeEquipmentHealth(equipmentId: number, tenantId: string): Promise<{
     healthScore: number;
     riskLevel: string;
     predictedFailures: any[];
@@ -154,7 +154,7 @@ export class PredictiveMaintenanceEngine {
   }> {
     try {
       // Get equipment details
-      const equipment = await gmaoStorage.getEquipmentById(equipmentId);
+      const equipment = await gmaoStorage.getEquipmentById(equipmentId, tenantId);
       if (!equipment) {
         throw new Error(`Equipment ${equipmentId} not found`);
       }
@@ -169,13 +169,13 @@ export class PredictiveMaintenanceEngine {
       }
 
       // Calculate health score
-      const healthScore = await this.calculateHealthScore(equipmentId, sensorData, model);
-      
+      const healthScore = await this.calculateHealthScore(equipmentId, sensorData, model, tenantId);
+
       // Predict failures
       const predictedFailures = await this.predictFailures(equipmentId, sensorData, model);
-      
+
       // Generate recommendations
-      const recommendations = await this.generateRecommendations(equipmentId, sensorData, model, healthScore);
+      const recommendations = await this.generateRecommendations(equipmentId, sensorData, model, healthScore, tenantId);
       
       // Calculate next maintenance date
       const nextMaintenanceDate = this.calculateNextMaintenanceDate(predictedFailures, recommendations);
@@ -189,7 +189,7 @@ export class PredictiveMaintenanceEngine {
         analysisType: 'health_assessment',
         remainingUsefulLife: this.estimateRUL(predictedFailures),
         failureProbability: 1 - (healthScore / 100),
-        anomalyScore: this.calculateAnomalyScore(sensorData),
+        anomalyScore: this.calculateAnomalyScore(sensorData, model),
         confidenceLevel: 0.85,
         riskLevel,
         recommendations,
@@ -224,7 +224,8 @@ export class PredictiveMaintenanceEngine {
   private async calculateHealthScore(
     equipmentId: number,
     sensorData: any[],
-    model: PredictiveModel
+    model: PredictiveModel,
+    tenantId: string
   ): Promise<number> {
     let healthScore = 100;
 
@@ -253,14 +254,14 @@ export class PredictiveMaintenanceEngine {
     }
 
     // Consider equipment age
-    const equipment = await gmaoStorage.getEquipmentById(equipmentId);
+    const equipment = await gmaoStorage.getEquipmentById(equipmentId, tenantId);
     if (equipment?.installationDate) {
       const ageYears = (Date.now() - equipment.installationDate.getTime()) / (365 * 24 * 60 * 60 * 1000);
       if (ageYears > 10) healthScore -= Math.min(15, (ageYears - 10) * 2);
     }
 
     // Consider maintenance history
-    const recentWorkOrders = await gmaoStorage.getWorkOrdersByEquipment(equipmentId);
+    const recentWorkOrders = await gmaoStorage.getWorkOrdersByEquipment(equipmentId, tenantId);
     const recentFailures = recentWorkOrders.filter(wo => 
       wo.orderType === 'corrective' && 
       wo.createdAt && 
@@ -322,7 +323,8 @@ export class PredictiveMaintenanceEngine {
     equipmentId: number,
     sensorData: any[],
     model: PredictiveModel,
-    healthScore: number
+    healthScore: number,
+    tenantId: string
   ): Promise<any[]> {
     const recommendations: any[] = [];
 
@@ -355,7 +357,7 @@ export class PredictiveMaintenanceEngine {
     }
 
     // Add predictive recommendations
-    const equipment = await gmaoStorage.getEquipmentById(equipmentId);
+    const equipment = await gmaoStorage.getEquipmentById(equipmentId, tenantId);
     if (equipment?.installationDate) {
       const ageYears = (Date.now() - equipment.installationDate.getTime()) / (365 * 24 * 60 * 60 * 1000);
       if (ageYears > 8) {
@@ -466,9 +468,29 @@ export class PredictiveMaintenanceEngine {
     return 'low';
   }
 
-  private calculateAnomalyScore(sensorData: any[]): number {
-    // Simplified anomaly score calculation
-    return Math.random() * 0.3; // Placeholder
+  /**
+   * Score d'anomalie 0-1 basé sur la déviation réelle de chaque capteur par rapport
+   * aux seuils du modèle (mêmes seuils que calculateHealthScore) — remplace l'ancien
+   * placeholder Math.random() qui ne reflétait aucune donnée réelle.
+   */
+  private calculateAnomalyScore(sensorData: any[], model: PredictiveModel): number {
+    if (sensorData.length === 0 || model.thresholds.length === 0) return 0;
+
+    let totalDeviation = 0;
+    let count = 0;
+    for (const threshold of model.thresholds) {
+      const relevant = sensorData.filter(d => d.sensorType === threshold.metricType);
+      if (relevant.length === 0) continue;
+
+      const latestValue = parseFloat(relevant[0].value);
+      const range = threshold.criticalLevel - threshold.warningLevel;
+      if (range === 0) continue;
+
+      const deviation = Math.max(0, (latestValue - threshold.warningLevel) / range);
+      totalDeviation += Math.min(1, deviation);
+      count++;
+    }
+    return count > 0 ? Math.round((totalDeviation / count) * 100) / 100 : 0;
   }
 
   private estimateRUL(predictedFailures: any[]): number {

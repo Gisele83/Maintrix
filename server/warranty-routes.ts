@@ -3,16 +3,13 @@
  * Gestion des garanties équipements / pièces
  */
 import type { Express } from "express";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
 
-let pool: Pool | null = null;
-const getPool = (): Pool => {
-  if (!pool) pool = new Pool({ connectionString: (global as any).__localDbUrl || process.env.DATABASE_URL || "postgresql://runner@localhost:5433/maintrix?host=/tmp" });
-  return pool;
-};
+const getPool = (): Pool => sharedPool;
 const safeJson = (v: any, fb: any) => { if (!v) return fb; if (typeof v === "object") return v; try { return JSON.parse(v); } catch { return fb; } };
 const genNum = () => `GAR-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
 

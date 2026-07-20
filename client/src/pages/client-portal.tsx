@@ -191,8 +191,7 @@ function PortalAdmin() {
 
   const generateToken = async () => {
     try {
-      const res = await apiRequest("POST", "/api/client-portal/generate-token");
-      const data = await res.json();
+      const data = await apiRequest("/api/client-portal/generate-token", { method: "POST" });
       setGeneratedToken(data.token);
       toast({ title: "Lien portail généré", description: "Partagez ce lien avec votre client." });
     } catch {

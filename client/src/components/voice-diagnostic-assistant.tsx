@@ -162,10 +162,13 @@ export default function VoiceDiagnosticAssistant() {
     
     try {
       // Call AI diagnostic API
-      const response = await apiRequest("POST", "/api/voice-diagnostic", {
-        query: query,
-        sessionId: sessionId,
-        timestamp: new Date().toISOString()
+      const response = await apiRequest("/api/voice-diagnostic", {
+        method: "POST",
+        body: {
+          query: query,
+          sessionId: sessionId,
+          timestamp: new Date().toISOString()
+        }
       });
       
       const diagnosticResult = response;

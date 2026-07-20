@@ -111,28 +111,28 @@ export default function CalibrationPage() {
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/calibrations"] }); qc.invalidateQueries({ queryKey: ["/api/calibrations/stats"] }); };
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/calibrations", data),
+    mutationFn: (data: any) => apiRequest("/api/calibrations", { method: "POST", body: data }),
     onSuccess: () => { invalidate(); setShowCreate(false); form.reset(); toast({ title: "Calibration créée" }); },
     onError: () => toast({ title: "Erreur création", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/calibrations/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/calibrations/${id}`, { method: "PATCH", body: data }),
     onSuccess: async (res: any) => {
-      invalidate(); const d = await res.json(); setSelected(d);
+      invalidate(); setSelected(res);
     },
     onError: () => toast({ title: "Erreur", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/calibrations/${id}`),
+    mutationFn: (id: number) => apiRequest(`/api/calibrations/${id}`, { method: "DELETE" }),
     onSuccess: () => { invalidate(); setSelected(null); toast({ title: "Calibration supprimée" }); },
   });
 
   const renewMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("POST", `/api/calibrations/${id}/renew`, data),
+    mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest(`/api/calibrations/${id}/renew`, { method: "POST", body: data }),
     onSuccess: async (res: any) => {
-      invalidate(); const d = await res.json(); setSelected(d); setShowRenew(false);
+      invalidate(); setSelected(res); setShowRenew(false);
       toast({ title: "Renouvellement enregistré" });
     },
     onError: () => toast({ title: "Erreur renouvellement", variant: "destructive" }),
@@ -149,8 +149,8 @@ export default function CalibrationPage() {
 
   const openDetail = async (cal: Calibration) => {
     try {
-      const res = await apiRequest("GET", `/api/calibrations/${cal.id}`);
-      setSelected(await (res as any).json());
+      const res = await apiRequest(`/api/calibrations/${cal.id}`);
+      setSelected(res);
     } catch { setSelected(cal); }
   };
 

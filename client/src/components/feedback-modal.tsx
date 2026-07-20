@@ -28,8 +28,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
 
   const feedbackMutation = useMutation({
     mutationFn: async (feedbackData: any) => {
-      const response = await apiRequest("POST", "/api/feedback", feedbackData);
-      return await response.json();
+      return await apiRequest("/api/feedback", { method: "POST", body: feedbackData });
     },
     onSuccess: () => {
       toast({

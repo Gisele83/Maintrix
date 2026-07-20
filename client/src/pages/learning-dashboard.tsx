@@ -83,8 +83,7 @@ export default function LearningDashboard() {
 
   const autoImproveMutation = useMutation({
     mutationFn: async (data: { equipmentType?: string; forceRetrain: boolean }) => {
-      const response = await apiRequest("POST", "/api/auto-improve", data);
-      return await response.json();
+      return await apiRequest("/api/auto-improve", { method: "POST", body: data });
     },
     onSuccess: (data) => {
       toast({
