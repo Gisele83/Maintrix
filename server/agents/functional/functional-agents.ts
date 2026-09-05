@@ -1,5 +1,6 @@
 import { pool as sharedPool } from "../../db";
 import { detectCompetencyGaps } from "../../techlearn-bridge-service";
+import { canTransition } from "../../equipment-lifecycle-engine";
 import { FunctionalDomain, type AgentSignal, type FunctionalAgentAssessment, type FunctionalAgentAssessor, worstSeverity } from "./types";
 
 function assessment(
@@ -69,7 +70,7 @@ const planningAgent: FunctionalAgentAssessor = async (tenantId) => {
 
 const reliabilityAgent: FunctionalAgentAssessor = async (tenantId) => {
   const r = await sharedPool.query(
-    `SELECT dt.last_remaining_useful_life AS rul, er.equipment_name
+    `SELECT dt.last_remaining_useful_life AS rul, er.equipment_name, er.lifecycle_stage
      FROM digital_twins dt
      JOIN equipment_registry er ON er.id = dt.equipment_id
      WHERE dt.tenant_id = $1 AND dt.last_remaining_useful_life IS NOT NULL
@@ -88,6 +89,22 @@ const reliabilityAgent: FunctionalAgentAssessor = async (tenantId) => {
     },
     { label: "Équipements 30-90j", value: warning.length, severity: warning.length > 0 ? "warning" : "info" },
   ];
+
+  const recommendations: string[] = [];
+  if (critical.length > 0) {
+    recommendations.push(`Planifier une intervention avant échéance pour : ${critical.map((c: any) => c.equipment_name).join(", ")}`);
+  }
+  // Ancrage cycle de vie ISO 55000 (section 12) : une RUL critique justifie de faire
+  // transiter l'équipement vers l'étape "Surveillance" — seulement si la machine à états
+  // l'autorise depuis l'étape courante (pas de suggestion pour un équipement déjà en
+  // réparation, par exemple).
+  const needsSurveillance = critical.filter((c: any) => c.lifecycle_stage !== "surveillance" && canTransition(c.lifecycle_stage, "surveillance"));
+  if (needsSurveillance.length > 0) {
+    recommendations.push(
+      `Faire transiter vers l'étape "Surveillance" (cycle de vie ISO 55000) : ${needsSurveillance.map((c: any) => c.equipment_name).join(", ")}`,
+    );
+  }
+
   return assessment(
     FunctionalDomain.RELIABILITY,
     "Reliability Agent",
@@ -95,7 +112,7 @@ const reliabilityAgent: FunctionalAgentAssessor = async (tenantId) => {
     r.rows.length === 0
       ? "Aucun jumeau numérique calibré avec estimation de durée de vie restante."
       : `${critical.length} équipement(s) à moins de 30 jours de fin de vie estimée.`,
-    critical.length > 0 ? [`Planifier une intervention avant échéance pour : ${critical.map((c: any) => c.equipment_name).join(", ")}`] : [],
+    recommendations,
   );
 };
 

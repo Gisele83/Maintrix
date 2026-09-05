@@ -162,9 +162,9 @@ export class CCTPComplianceService {
     }
 
     // Déterminer le type de document selon les seuils
-    const totalAmount = purchaseOrder.totalAmount || 0;
-    const documentType = forceType || 
-      (totalAmount >= config.purchaseOrderThreshold ? 'purchase_order' : 'letter');
+    const totalAmount = parseFloat(purchaseOrder.totalAmount || '0');
+    const documentType = forceType ||
+      (totalAmount >= Number(config.purchaseOrderThreshold) ? 'purchase_order' : 'letter');
 
     // Générer le HTML du document
     const documentHTML = this.generatePurchaseDocumentHTML(
@@ -350,7 +350,7 @@ export class CCTPComplianceService {
       date: workOrder.actualEnd?.toISOString() || new Date().toISOString(),
       duration: workOrder.actualDuration || 0,
       status: workOrder.status,
-      priority: workOrder.priority,
+      priority: workOrder.priority || 'medium',
       workOrderNumber: workOrder.orderNumber,
       interventionType: workOrder.orderType,
       totalCost: parseFloat(workOrder.cost || '0'),

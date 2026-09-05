@@ -20,24 +20,24 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
     try {
       const {
         userId,
-        companyId,
         equipmentId,
         equipmentType,
         symptoms,
         sensorData,
         confidentialityLevel = 'moderate'
       } = req.body;
+      const tenantId = (req as any).tenantId || 'default-tenant';
 
       // 1. Validation des permissions utilisateur
       const hasAccess = await companyDataAccess.verifyUserAccess(
-        userId, 
-        companyId, 
+        userId,
+        tenantId,
         'enhanced_diagnostic'
       );
 
       if (!hasAccess) {
-        return res.status(403).json({ 
-          error: "Accès refusé au diagnostic enrichi" 
+        return res.status(403).json({
+          error: "Accès refusé au diagnostic enrichi"
         });
       }
 
@@ -47,19 +47,19 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
         .from(equipmentRegistry)
         .where(and(
           eq(equipmentRegistry.id, equipmentId),
-          eq(equipmentRegistry.companyId, companyId) // Sécurité isolation entreprise
+          eq(equipmentRegistry.tenantId, tenantId) // Sécurité isolation tenant
         ))
         .limit(1);
 
       if (!equipment.length) {
-        return res.status(404).json({ 
-          error: "Équipement non trouvé ou accès non autorisé" 
+        return res.status(404).json({
+          error: "Équipement non trouvé ou accès non autorisé"
         });
       }
 
-      // 3. Données historiques propres à l'entreprise
+      // 3. Données historiques propres au tenant
       const companyHistorical = await companyDataAccess.getCompanyHistoricalData(
-        { companyId, userId, userRole: 'user' },
+        { tenantId, userId, userRole: 'user' },
         {
           equipmentTypes: [equipmentType],
           timeRange: {
@@ -72,7 +72,7 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
       // 4. Enrichissement avec données agrégées industrie
       const enrichedResult = await dataAggregationAlgorithm.enrichDiagnosticWithAggregatedData(
         userId,
-        companyId,
+        tenantId,
         {
           equipmentType,
           symptoms: Array.isArray(symptoms) ? symptoms : [symptoms],
@@ -115,8 +115,8 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
         diagnosticId: diagnosticSession.id,
         equipment: {
           id: equipment[0].id,
-          name: equipment[0].name,
-          type: equipment[0].type,
+          name: equipment[0].equipmentName,
+          type: equipment[0].equipmentType,
           manufacturer: equipment[0].manufacturer
         },
         diagnosis: {
@@ -138,7 +138,7 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
           avgSuccessRate: enrichedResult.industryBenchmarks.avgSuccessRate,
           avgCost: enrichedResult.industryBenchmarks.avgCost,
           avgDuration: enrichedResult.industryBenchmarks.avgDuration,
-          yourPerformance: this.calculateCompanyPerformance(companyHistorical)
+          yourPerformance: calculateCompanyPerformance(companyHistorical)
         },
         insights: enrichedResult.aggregatedInsights.map(insight => ({
           pattern: insight.pattern,
@@ -172,18 +172,19 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
   app.get("/api/industry-benchmarks/:equipmentType", async (req, res) => {
     try {
       const { equipmentType } = req.params;
-      const { userId, companyId } = req.query;
+      const { userId } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
 
       // Validation permissions
       const hasAccess = await companyDataAccess.verifyUserAccess(
-        parseInt(userId as string), 
-        parseInt(companyId as string), 
+        parseInt(userId as string),
+        tenantId,
         'view_industry_benchmarks'
       );
 
       if (!hasAccess) {
-        return res.status(403).json({ 
-          error: "Accès refusé aux benchmarks industrie" 
+        return res.status(403).json({
+          error: "Accès refusé aux benchmarks industrie"
         });
       }
 
@@ -200,15 +201,15 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
         lastUpdated: new Date(),
         industryMetrics: {
           totalCases: aggregatedInsights.reduce((sum, i) => sum + i.frequency, 0),
-          avgSuccessRate: this.calculateWeightedAverage(
+          avgSuccessRate: calculateWeightedAverage(
             aggregatedInsights.map(i => i.successRate),
             aggregatedInsights.map(i => i.frequency)
           ),
-          avgResolutionTime: this.calculateWeightedAverage(
+          avgResolutionTime: calculateWeightedAverage(
             aggregatedInsights.map(i => i.avgResolutionTime),
             aggregatedInsights.map(i => i.frequency)
           ),
-          avgCost: this.calculateWeightedAverage(
+          avgCost: calculateWeightedAverage(
             aggregatedInsights.map(i => i.avgCost),
             aggregatedInsights.map(i => i.frequency)
           ),
@@ -252,31 +253,32 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
    */
   app.get("/api/data-usage-stats", async (req, res) => {
     try {
-      const { companyId, userId } = req.query;
+      const { userId } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
 
       // Validation permissions admin
       const hasAccess = await companyDataAccess.verifyUserAccess(
-        parseInt(userId as string), 
-        parseInt(companyId as string), 
+        parseInt(userId as string),
+        tenantId,
         'view_data_usage_stats'
       );
 
       if (!hasAccess) {
-        return res.status(403).json({ 
-          error: "Accès refusé aux statistiques d'usage" 
+        return res.status(403).json({
+          error: "Accès refusé aux statistiques d'usage"
         });
       }
 
-      // Statistiques anonymisées
+      // Statistiques anonymisées (tenant tracé dans metadata, voir company-data-access.ts)
       const stats = await db
         .select({
           month: sql`DATE_TRUNC('month', accessed_at)`,
           accessType: dataAccessPermissions.permission,
-          accessCount: sql`COUNT(*)`,
-          uniqueUsers: sql`COUNT(DISTINCT user_id)`
+          accessCount: sql<number>`COUNT(*)`,
+          uniqueUsers: sql<number>`COUNT(DISTINCT user_id)`
         })
         .from(dataAccessPermissions)
-        .where(eq(dataAccessPermissions.companyId, parseInt(companyId as string)))
+        .where(sql`${dataAccessPermissions.metadata}->>'tenantId' = ${tenantId}`)
         .groupBy(
           sql`DATE_TRUNC('month', accessed_at)`,
           dataAccessPermissions.permission
@@ -286,7 +288,7 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
 
       res.json({
         company: {
-          id: companyId,
+          id: tenantId,
           dataUsageCompliant: true,
           privacyLevel: 'enterprise_grade'
         },
@@ -308,37 +310,41 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
     }
   });
 
-  // Méthodes utilitaires privées
-  app.locals.calculateWeightedAverage = function(values: number[], weights: number[]): number {
-    if (values.length === 0 || weights.length === 0) return 0;
-    
-    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
-    if (totalWeight === 0) return 0;
-    
-    const weightedSum = values.reduce((sum, val, i) => sum + (val * weights[i]), 0);
-    return Math.round((weightedSum / totalWeight) * 100) / 100;
-  };
+}
 
-  app.locals.calculateCompanyPerformance = function(historicalData: any[]): any {
-    if (historicalData.length === 0) {
-      return {
-        successRate: 0,
-        avgCost: 0,
-        avgDuration: 0,
-        totalCases: 0
-      };
-    }
+// Méthodes utilitaires
+function calculateWeightedAverage(values: number[], weights: number[]): number {
+  if (values.length === 0 || weights.length === 0) return 0;
 
-    const completed = historicalData.filter(h => h.success === 'completed');
-    const costs = historicalData.map(h => parseFloat(h.cost || '0')).filter(c => c > 0);
-    const durations = historicalData.map(h => parseInt(h.duration || '0')).filter(d => d > 0);
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  if (totalWeight === 0) return 0;
 
+  const weightedSum = values.reduce((sum, val, i) => sum + (val * weights[i]), 0);
+  return Math.round((weightedSum / totalWeight) * 100) / 100;
+}
+
+// Note: sans lien fiable diagnostic -> ordre de travail (voir company-data-access.ts),
+// historicalData n'expose plus success/cost/duration : cette fonction retombe donc
+// toujours sur des valeurs à 0, en attendant le branchement via interventionSteps.
+function calculateCompanyPerformance(historicalData: any[]): any {
+  if (historicalData.length === 0) {
     return {
-      successRate: Math.round((completed.length / historicalData.length) * 100),
-      avgCost: costs.length > 0 ? Math.round(costs.reduce((a, b) => a + b, 0) / costs.length) : 0,
-      avgDuration: durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0,
-      totalCases: historicalData.length
+      successRate: 0,
+      avgCost: 0,
+      avgDuration: 0,
+      totalCases: 0
     };
+  }
+
+  const completed = historicalData.filter(h => h.success === 'completed');
+  const costs = historicalData.map(h => parseFloat(h.cost || '0')).filter(c => c > 0);
+  const durations = historicalData.map(h => parseInt(h.duration || '0')).filter(d => d > 0);
+
+  return {
+    successRate: Math.round((completed.length / historicalData.length) * 100),
+    avgCost: costs.length > 0 ? Math.round(costs.reduce((a, b) => a + b, 0) / costs.length) : 0,
+    avgDuration: durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0,
+    totalCases: historicalData.length
   };
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "platform_edition" varchar(50) DEFAULT 'complete' NOT NULL;

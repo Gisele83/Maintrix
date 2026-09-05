@@ -336,8 +336,8 @@ ${JSON.stringify(policy, null, 2).replace(/"/g, '')}`;
     }
     
     // Vérifier que les ports essentiels sont ouverts
-    const hasHealthPort = policy.spec.ingress?.some(rule => 
-      rule.ports?.some(port => port.port === 8080)
+    const hasHealthPort = policy.spec.ingress?.some(rule =>
+      rule.ports?.some((port: any) => port.port === 8080)
     );
     
     if (!hasHealthPort) {

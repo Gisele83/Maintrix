@@ -1,4 +1,4 @@
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import AIAssistantChat from "@/components/ai-assistant-chat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ export default function AIAssistantPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="ai-assistant-page">
-      <Header />
+      <ModernNavigation />
       
       <div className="container mx-auto px-4 py-8">
         {/* Page Header */}

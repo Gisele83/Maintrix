@@ -4,7 +4,7 @@
  * base de données, modules, espace disque, mémoire, et métriques de code.
  */
 
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
@@ -13,29 +13,37 @@ import os from "os";
 import fs from "fs";
 import path from "path";
 
+interface TenantRequest extends Request {
+  tenantId?: string;
+  user?: any;
+}
+
 function getPool(): Pool {
   return sharedPool;
 }
 
-async function getDbHealth(): Promise<Record<string, any>> {
+// Toutes ces tables sont scopées par tenant (tenant_id) sauf iot_sensor_data (données du simulateur
+// IoT partagé, sans tenant_id) — comptées par tenant pour éviter qu'un admin d'un tenant ne voie les
+// volumes d'activité des autres tenants via ce endpoint de santé système.
+async function getDbHealth(tenantId: string): Promise<Record<string, any>> {
   const db = getPool();
   const start = Date.now();
   try {
     const { rows } = await db.query(`
       SELECT
-        (SELECT COUNT(*) FROM equipment_registry)::int  AS equipment,
-        (SELECT COUNT(*) FROM work_orders)::int         AS work_orders,
-        (SELECT COUNT(*) FROM oee_records)::int         AS oee_records,
-        (SELECT COUNT(*) FROM rca_analyses)::int        AS rca_analyses,
-        (SELECT COUNT(*) FROM fmea_analyses)::int       AS fmea_analyses,
-        (SELECT COUNT(*) FROM asset_lifecycle)::int     AS assets,
-        (SELECT COUNT(*) FROM budget_plans)::int        AS budgets,
-        (SELECT COUNT(*) FROM calibration_records)::int AS calibrations,
-        (SELECT COUNT(*) FROM maintenance_cases)::int   AS maintenance_cases,
-        (SELECT COUNT(*) FROM alerts_notifications)::int AS alerts,
+        (SELECT COUNT(*) FROM equipment_registry WHERE tenant_id = $1)::int  AS equipment,
+        (SELECT COUNT(*) FROM work_orders WHERE tenant_id = $1)::int         AS work_orders,
+        (SELECT COUNT(*) FROM oee_records WHERE tenant_id = $1)::int         AS oee_records,
+        (SELECT COUNT(*) FROM rca_analyses WHERE tenant_id = $1)::int        AS rca_analyses,
+        (SELECT COUNT(*) FROM fmea_analyses WHERE tenant_id = $1)::int       AS fmea_analyses,
+        (SELECT COUNT(*) FROM asset_lifecycle WHERE tenant_id = $1)::int     AS assets,
+        (SELECT COUNT(*) FROM budget_plans WHERE tenant_id = $1)::int        AS budgets,
+        (SELECT COUNT(*) FROM calibration_records WHERE tenant_id = $1)::int AS calibrations,
+        (SELECT COUNT(*) FROM maintenance_cases WHERE tenant_id = $1)::int   AS maintenance_cases,
+        (SELECT COUNT(*) FROM alerts_notifications WHERE tenant_id = $1)::int AS alerts,
         (SELECT COUNT(*) FROM iot_sensor_data)::int     AS iot_data,
         pg_size_pretty(pg_database_size(current_database())) AS db_size
-    `);
+    `, [tenantId]);
     const latencyMs = Date.now() - start;
     return { status: "ok", latencyMs, tables: rows[0] };
   } catch (e: any) {
@@ -123,10 +131,11 @@ export function registerSystemHealthRoutes(app: Express) {
 
   const adminOnly = requireRole(["admin", "owner", "super_admin"]);
 
-  app.get("/api/system/health", generalRateLimit, auth, adminOnly, async (_req, res) => {
+  app.get("/api/system/health", generalRateLimit, auth, adminOnly, async (req: TenantRequest, res: Response) => {
     try {
+      if (!req.tenantId) return res.status(400).json({ overall: "error", error: "Tenant non résolu pour cette requête" });
       const [db, system, code, modules] = await Promise.all([
-        getDbHealth(),
+        getDbHealth(req.tenantId),
         Promise.resolve(getSystemMetrics()),
         Promise.resolve(getCodebaseMetrics()),
         Promise.resolve(getModuleStatus()),

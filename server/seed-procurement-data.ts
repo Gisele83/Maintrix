@@ -198,7 +198,7 @@ export async function seedProcurementData() {
         status: "draft",
         priority: "normal",
         requestedBy: "Maintenance Manager",
-        totalAmount: 2450.00,
+        totalAmount: "2450.00",
         currency: "EUR",
         expectedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours
         deliveryAddress: "Port de Marseille - Magasin Central",
@@ -243,7 +243,7 @@ export async function testAutomaticReordering() {
   console.log("🔄 Testing automatic reordering system...");
   
   try {
-    const result = await gmaoStorage.checkStockLevelsAndTriggerReorders();
+    const result = await gmaoStorage.checkStockLevelsAndTriggerReorders('default-tenant');
     
     console.log(`📈 Automatic reorder check results:
     - Rules triggered: ${result.triggeredRules.length}

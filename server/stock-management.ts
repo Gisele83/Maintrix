@@ -332,9 +332,9 @@ export class StockManager {
         partName: part.partName,
         currentStock: part.currentStock,
         minStock: part.minStock,
-        recommendedOrder: Math.max(part.maxStock - part.currentStock, part.minStock * 2),
+        recommendedOrder: Math.max((part.maxStock ?? 0) - (part.currentStock ?? 0), (part.minStock ?? 0) * 2),
         supplier: part.supplier,
-        estimatedCost: (Math.max(part.maxStock - part.currentStock, part.minStock * 2) * parseFloat(part.unitPrice)).toFixed(2)
+        estimatedCost: (Math.max((part.maxStock ?? 0) - (part.currentStock ?? 0), (part.minStock ?? 0) * 2) * parseFloat(part.unitPrice ?? "0")).toFixed(2)
       }));
 
       return { alerts, recommendations };

@@ -44,6 +44,7 @@ export class EnterpriseAuthMiddleware {
       '/api/super-admin',
       '/api/health',
       '/api/ping',
+      '/api/platform/editions',
       '/api/payments/config',
       '/api/paypal/config',
       '/api/payments/create-payment-intent',
@@ -56,7 +57,14 @@ export class EnterpriseAuthMiddleware {
       '/paypal/create-order',
     ];
     
-    const isPublicPath = publicPaths.some(path => req.path.startsWith(path));
+    // req.path est relatif au point de montage quand ce middleware est enregistré via
+    // app.use('/api', requireAuthentication) (Express retire le préfixe '/api' de req.path
+    // dans ce cas précis) — ce qui fait que les entrées de publicPaths (écrites avec le préfixe
+    // '/api/...') ne correspondaient jamais. req.originalUrl n'est jamais réécrit par le montage,
+    // donc reste fiable quel que soit le point d'enregistrement de ce middleware (montage global
+    // ou route individuelle).
+    const requestPath = req.originalUrl.split('?')[0];
+    const isPublicPath = publicPaths.some(path => requestPath.startsWith(path));
     
     if (isPublicPath) {
       return next();
@@ -145,17 +153,22 @@ export class EnterpriseAuthMiddleware {
       };
       
       next();
-    } catch (error) {
-      // ✅ INTÉGRATION REDACTION PII : Logs sécurisés 
+    } catch (error: any) {
+      // ✅ INTÉGRATION REDACTION PII : Logs sécurisés
       logWithRedaction('error', "Session validation error:", {
         error: error.message,
         path: req.path,
         ip: req.ip,
         timestamp: new Date()
       });
-      return res.status(500).json({
-        error: "SESSION_VALIDATION_ERROR",
-        message: "Failed to validate session"
+      // 🔧 Le cas "session absente/expirée" est déjà traité plus haut avec un 401 propre
+      // (SESSION_INVALID) avant d'atteindre ce bloc catch — toute exception qui arrive ici vient
+      // donc d'une défaillance infra (base injoignable, requête inattendue), pas d'un problème
+      // d'identifiants. 503 (plutôt qu'un 500 générique) le signale correctement à l'appelant
+      // (retry raisonnable) et à la supervision, au lieu de ressembler à une erreur d'authentification.
+      return res.status(503).json({
+        error: "SESSION_VALIDATION_UNAVAILABLE",
+        message: "Service de validation de session temporairement indisponible — veuillez réessayer."
       });
     }
   }
@@ -295,7 +308,7 @@ export class EnterpriseAuthMiddleware {
           maxAge: 24 * 60 * 60 * 1000 // 24h par défaut
         };
         
-        return target.call(thisArg, name, value, secureOptions);
+        return (target as (...args: any[]) => any).call(thisArg, name, value, secureOptions);
       }
     });
     

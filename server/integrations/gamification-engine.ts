@@ -292,6 +292,12 @@ export class GamificationEngine extends EventEmitter {
         const skillProgress = userSkills.get(skillId);
         if (!skillProgress) continue;
 
+        // Sample-data cache always seeds real numbers; normalize the DB-inferred
+        // nullable typing so the level-up arithmetic below is well-typed.
+        skillProgress.currentLevel = skillProgress.currentLevel ?? 1;
+        skillProgress.experiencePoints = skillProgress.experiencePoints ?? 0;
+        skillProgress.nextLevelThreshold = skillProgress.nextLevelThreshold ?? this.calculateLevelThreshold(skillProgress.currentLevel);
+
         // Calculate experience gain with multipliers
         const baseExperience = event.experienceGained;
         const qualityMultiplier = event.qualityScore ? Math.min(2.0, event.qualityScore) : 1.0;
@@ -432,7 +438,7 @@ export class GamificationEngine extends EventEmitter {
    * Check if achievement requirements are met
    */
   private async checkAchievementRequirements(userId: number, requirements: any, userStats: any): Promise<boolean> {
-    for (const [key, value] of Object.entries(requirements)) {
+    for (const [key, value] of Object.entries(requirements) as [string, number][]) {
       if (userStats[key] === undefined || userStats[key] < value) {
         return false;
       }
@@ -623,8 +629,8 @@ export class GamificationEngine extends EventEmitter {
   async getUserLeaderboardPosition(userId: number): Promise<any> {
     try {
       const userSkills = this.getUserSkillProgress(userId);
-      const totalExperience = userSkills.reduce((sum, skill) => sum + skill.experiencePoints, 0);
-      const averageLevel = userSkills.reduce((sum, skill) => sum + skill.currentLevel, 0) / userSkills.length;
+      const totalExperience = userSkills.reduce((sum, skill) => sum + (skill.experiencePoints ?? 0), 0);
+      const averageLevel = userSkills.reduce((sum, skill) => sum + (skill.currentLevel ?? 1), 0) / userSkills.length;
       
       return {
         userId,
@@ -681,7 +687,7 @@ export class GamificationEngine extends EventEmitter {
         skill.skillId === (challenge.skillRequired === 'mechanical' ? 1 : 5)
       );
       
-      return relevantSkill && relevantSkill.currentLevel >= challenge.minLevel;
+      return relevantSkill && (relevantSkill.currentLevel ?? 1) >= challenge.minLevel;
     });
   }
 

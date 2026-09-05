@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { apiRequest } from "@/lib/queryClient";
 import {
   Activity, AlertTriangle, Brain, CheckCircle, ChevronDown, ChevronRight,
-  DollarSign, FlaskConical, Layers, RefreshCw, Shield, Target, TrendingUp,
+  DollarSign, Layers, RefreshCw, Shield, Target, TrendingUp,
   Users, Wrench, Zap
 } from "lucide-react";
 
@@ -175,7 +175,6 @@ export default function MultiAssetOptimizerPage() {
   const [budget, setBudget] = useState(50000);
   const [maxTechDays, setMaxTechDays] = useState(30);
   const [activeTab, setActiveTab] = useState<"optimal" | "greedy" | "pareto">("optimal");
-  const [showFormulas, setShowFormulas] = useState(false);
 
   const { data: config } = useQuery<any>({
     queryKey: ["/api/multi-asset/config"],
@@ -438,55 +437,6 @@ export default function MultiAssetOptimizerPage() {
               )}
             </div>
           ) : null}
-        </div>
-
-        {/* ── Scientific formulas ───────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-5">
-          <button
-            onClick={() => setShowFormulas(!showFormulas)}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-300 w-full text-left"
-          >
-            <FlaskConical className="w-4 h-4 text-violet-400" />
-            Formulation mathématique du problème d'optimisation
-            {showFormulas ? <ChevronDown className="w-3.5 h-3.5 ml-auto" /> : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
-          </button>
-          {showFormulas && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-              {[
-                {
-                  color: "text-violet-400", label: "Problème — MCKP",
-                  lines: ["max Σᵢ Σⱼ xᵢⱼ × (gainᵢⱼ × wᵢ)", "s.t. Σᵢ Σⱼ xᵢⱼ × costᵢⱼ ≤ B", "Σⱼ xᵢⱼ ≤ 1 ∀i · xᵢⱼ ∈ {0,1}"],
-                },
-                {
-                  color: "text-blue-400", label: "Solveur DP-MCKP",
-                  lines: ["dp[b] = max gain avec b slots budget", "Complexité : O(N × K × S)", "S = 200 slots · Optimal exact garanti"],
-                },
-                {
-                  color: "text-amber-400", label: "Greedy ROI",
-                  lines: ["ROIᵢⱼ = (gainᵢⱼ × wᵢ) / (costᵢⱼ/1000)", "Tri décroissant · Sélection greedy", "O(N·K·log N·K) · Heuristique rapide"],
-                },
-                {
-                  color: "text-emerald-400", label: "Pondération criticité",
-                  lines: ["w_critical = 4.0", "w_warning = 2.5 · w_watch = 1.5", "w_ok = 1.0 · Actifs critiques prioritaires"],
-                },
-                {
-                  color: "text-pink-400", label: "Front de Pareto",
-                  lines: ["25 niveaux budget [0 → B_max]", "Courbe gain ↔ budget (efficacité marginale)", "Aide à la décision budgétaire"],
-                },
-                {
-                  color: "text-cyan-400", label: "Catalogue d'actions",
-                  lines: ["4 types : inspection · preventive", "corrective · overhaul", "Coûts calibrés par score IMCA et urgence"],
-                },
-              ].map(({ color, label, lines }) => (
-                <div key={label} className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-                  <div className={`${color} font-bold mb-1`}>{label}</div>
-                  {lines.map((l, i) => (
-                    <div key={i} className={i === 0 ? "text-slate-400" : "text-slate-500"}>{l}</div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
       </div>

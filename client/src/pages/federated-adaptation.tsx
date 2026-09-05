@@ -35,8 +35,6 @@ import {
   Network,
   BarChart3,
   Cpu,
-  Shield,
-  Zap,
   Info,
 } from "lucide-react";
 
@@ -255,7 +253,7 @@ function LambdaCurve({ current }: { current: number }) {
       {/* Current site dot */}
       <circle cx={dotX} cy={dotY} r="5" fill="#22c55e" />
       <text x={dotX + 7} y={dotY + 1} fontSize="9" fill="#22c55e" dominantBaseline="middle">
-        λ={LAMBDA_MAX * (1 - Math.exp(-K * current)) .toFixed(2)}
+        λ={(LAMBDA_MAX * (1 - Math.exp(-K * current))).toFixed(2)}
       </text>
       {/* Axes labels */}
       <text x={20} y={H - 5} fontSize="8" fill="rgba(255,255,255,0.4)">M=0</text>
@@ -364,8 +362,8 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-white/10 p-4 space-y-4 bg-white/3">
           <div>
-            <div className="text-xs text-white/50 mb-1 font-mono">
-              λ(s) = 0.85 × (1 − e<sup>−3.5 × M</sup>) — couplage élastique
+            <div className="text-xs text-white/50 mb-1">
+              Couplage adaptatif entre le modèle global et le modèle local du site
             </div>
             <LambdaCurve current={profile.maturityScore} />
           </div>
@@ -458,7 +456,7 @@ export default function FederatedAdaptationPage() {
                   pFed · Couplage Élastique
                 </Badge>
                 <Badge variant="outline" className="text-xs border-purple-500/40 text-purple-300 bg-purple-500/10">
-                  λ-Mixing · θ̂ = (1−λ)θ_g + λθ_l
+                  Mélange adaptatif global/local
                 </Badge>
                 <Badge variant="outline" className="text-xs border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
                   SPI · FedAvg pondéré différentiel
@@ -550,9 +548,6 @@ export default function FederatedAdaptationPage() {
             </TabsTrigger>
             <TabsTrigger value="specialization" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60">
               <BarChart3 className="w-4 h-4 mr-2" />Rapport SPI
-            </TabsTrigger>
-            <TabsTrigger value="formulas" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60">
-              <Shield className="w-4 h-4 mr-2" />Formules
             </TabsTrigger>
           </TabsList>
 
@@ -703,93 +698,6 @@ export default function FederatedAdaptationPage() {
             )}
           </TabsContent>
 
-          {/* ── Formulas tab ──────────────────────────────────────────────── */}
-          <TabsContent value="formulas">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                {
-                  title: "Score de Maturité",
-                  icon: Activity,
-                  color: "from-emerald-500 to-teal-600",
-                  formula: "M(s) = α·min(1, N_cas/100) + β·min(1, N_pat/50) + γ·SR(s) + δ·min(1, J/365)",
-                  params: ["α = 0.35 — historique de cas", "β = 0.25 — richesse des patterns", "γ = 0.25 — taux de succès SR(s)", "δ = 0.15 — ancienneté en jours"],
-                  note: "M(s) ∈ [0,1] · saturation progressive vers 1",
-                },
-                {
-                  title: "Coefficient de Mélange Élastique",
-                  icon: Zap,
-                  color: "from-indigo-500 to-violet-600",
-                  formula: "λ(s) = λ_max × (1 − exp(−k × M(s)))",
-                  params: ["λ_max = 0.85 — plafond d'autonomie locale", "k = 3.5 — vitesse de convergence", "λ(0) = 0 → site neuf suit le global", "λ(1) ≈ 0.85 → site expert garde 85% local"],
-                  note: "Analogue à un couplage élastique modèle global ↔ modèle local",
-                },
-                {
-                  title: "Modèle Personnalisé",
-                  icon: Layers,
-                  color: "from-violet-500 to-purple-600",
-                  formula: "θ̂(s) = (1 − λ(s)) × θ_global + λ(s) × θ_local(s)",
-                  params: ["θ ∈ ℝ¹² — vecteur de poids diagnostiques", "θ_global — consensus multi-sites", "θ_local(s) — spécialisation du site s", "Minimise L(θ) = (1−λ)‖θ−θ_g‖² + λ‖θ−θ_l‖²"],
-                  note: "Solution analytique du problème de régularisation élastique",
-                },
-                {
-                  title: "Agrégation FedAvg Différentielle",
-                  icon: Network,
-                  color: "from-cyan-500 to-blue-600",
-                  formula: "θ_global = Σ_s w(s)·θ_local(s) / Σ_s w(s)",
-                  params: ["w(s) = n_s × (1 − λ(s))", "n_s — nombre de cas du site s", "Sites matures (λ→1) : w(s)→0", "Sites novices (λ→0) : w(s)→n_s"],
-                  note: "Propriété clé : les sites spécialisés n'altèrent pas le consensus global",
-                },
-                {
-                  title: "Indice de Préservation SPI",
-                  icon: Shield,
-                  color: "from-purple-500 to-fuchsia-600",
-                  formula: "SPI(s) = 1 − cosineSim(θ_global, θ_local(s))",
-                  params: ["SPI ∈ [0, 1]", "SPI → 0 : site identique au global", "SPI → 1 : site maximalement spécialisé", "SPI ∈ ]0.2, 0.5] : spécialisation émergente"],
-                  note: "Mesure la divergence directionnelle dans l'espace modèle ℝ¹²",
-                },
-                {
-                  title: "Vecteur Modèle θ ∈ ℝ¹²",
-                  icon: Cpu,
-                  color: "from-rose-500 to-pink-600",
-                  formula: "θ = [D₀…D₅, D₆…D₁₀, D₁₁]",
-                  params: [
-                    "D₀…D₅ — poids capteurs (vibr, temp, press, crt, acou, spd)",
-                    "D₆…D₁₀ — prob. modes (roulem, lubr, surch, cav, élec)",
-                    "D₁₁ — sensibilité seuil IMCA",
-                    "Prior uniforme : θ = 1/12 × 𝟏₁₂",
-                  ],
-                  note: "Extrait depuis les patterns anonymisés de chaque site",
-                },
-              ].map(({ title, icon: Icon, color, formula, params, note }) => (
-                <Card key={title} className="border-white/10 bg-white/5 backdrop-blur-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center shadow-md`}>
-                        <Icon className="w-4 h-4 text-white" />
-                      </div>
-                      <CardTitle className="text-sm font-semibold text-white">{title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="rounded-lg bg-black/30 border border-white/10 p-3 font-mono text-xs text-indigo-300 leading-relaxed">
-                      {formula}
-                    </div>
-                    <ul className="space-y-1">
-                      {params.map(p => (
-                        <li key={p} className="text-xs text-white/60 flex items-start gap-1.5">
-                          <span className="text-indigo-400 mt-0.5">·</span>
-                          {p}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="rounded-md bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 text-xs text-indigo-300/80 italic">
-                      {note}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </TooltipProvider>

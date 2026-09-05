@@ -114,7 +114,7 @@ export class TenantIsolationTester {
         timestamp: new Date()
       };
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "Maintenance Cases Isolation", 
         passed: false,
@@ -172,7 +172,7 @@ export class TenantIsolationTester {
         timestamp: new Date()
       };
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "Diagnostic Sessions Isolation",
         passed: false,
@@ -230,7 +230,7 @@ export class TenantIsolationTester {
         timestamp: new Date()
       };
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "Audit Logs Isolation",
         passed: false,
@@ -278,7 +278,7 @@ export class TenantIsolationTester {
         timestamp: new Date()
       };
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "Cross-Tenant Access Prevention",
         passed: false,
@@ -339,7 +339,7 @@ export class TenantIsolationTester {
         };
       }
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "SQL Injection Prevention",
         passed: false,
@@ -361,7 +361,7 @@ export class TenantIsolationTester {
       // Nettoyer données tenant 2
       await db.execute(sql`SELECT set_current_tenant(${tenant2})`);
       await db.delete(maintenanceCases).where(sql`equipment_type LIKE 'TEST_EQUIPMENT_%'`);
-    } catch (error) {
+    } catch (error: any) {
       console.warn("Cleanup warning:", error);
     }
   }
@@ -373,7 +373,7 @@ export class TenantIsolationTester {
       
       await db.execute(sql`SELECT set_current_tenant(${tenant2})`);
       await db.delete(diagnosticSessions).where(sql`equipment_type LIKE 'TEST_DIAG_%'`);
-    } catch (error) {
+    } catch (error: any) {
       console.warn("Diagnostic cleanup warning:", error);
     }
   }
@@ -385,7 +385,7 @@ export class TenantIsolationTester {
       
       await db.execute(sql`SELECT set_current_tenant(${tenant2})`);
       await db.delete(auditLogs).where(sql`action LIKE 'TEST_ACTION_%'`);
-    } catch (error) {
+    } catch (error: any) {
       console.warn("Audit cleanup warning:", error);
     }
   }
@@ -431,7 +431,7 @@ export class TenantIsolationTester {
         timestamp: new Date()
       };
       
-    } catch (error) {
+    } catch (error: any) {
       return {
         testName: "RLS Performance Test",
         passed: false,
@@ -466,7 +466,7 @@ export const tenantIsolationTestRoutes = {
         },
         results
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({
         success: false,
         error: error.message
@@ -517,7 +517,7 @@ export const tenantIsolationTestRoutes = {
       };
       
       res.json(complianceReport);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({
         success: false,
         error: error.message

@@ -6,7 +6,8 @@ export function registerEquipmentHealthRoutes(app: Express) {
   app.get("/api/equipment/health", async (req, res) => {
     try {
       const { equipmentId, timeRange } = req.query;
-      const equipment = await gmaoStorage.getEquipmentRegistry();
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
       
       const healthData = await Promise.all(equipment.map(async (eq) => {
         // Get recent sensor data for this equipment
@@ -61,9 +62,10 @@ export function registerEquipmentHealthRoutes(app: Express) {
   app.get("/api/equipment/alerts", async (req, res) => {
     try {
       const { timeRange } = req.query;
-      
+      const tenantId = (req as any).tenantId || 'default-tenant';
+
       // Generate sample alerts based on IoT data
-      const equipment = await gmaoStorage.getEquipmentRegistry();
+      const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
       const allAlerts = [];
       
       for (const eq of equipment) {
@@ -85,8 +87,9 @@ export function registerEquipmentHealthRoutes(app: Express) {
   // Get predictive maintenance recommendations
   app.get("/api/equipment/predictions", async (req, res) => {
     try {
-      const equipment = await gmaoStorage.getEquipmentRegistry();
-      
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
+
       const predictions = await Promise.all(equipment.map(async (eq) => {
         const sensorData = await gmaoStorage.getIotSensorData(eq.id, undefined, 100);
         return {
@@ -174,7 +177,7 @@ function getSensorReadings(sensorData: any[]): any[] {
 
 function generateTrendData(sensorData: any[]): any[] {
   // Group sensor data by timestamp (hourly intervals)
-  const groupedData = new Map();
+  const groupedData = new Map<string, { timestamp: string; temperature: number[]; vibration: number[]; pressure: number[]; current: number[] }>();
   
   sensorData.forEach(reading => {
     const hour = new Date(reading.timestamp);
@@ -191,9 +194,10 @@ function generateTrendData(sensorData: any[]): any[] {
       });
     }
     
-    const group = groupedData.get(hourKey);
-    if (group[reading.sensorType]) {
-      group[reading.sensorType].push(reading.value);
+    const group = groupedData.get(hourKey)!;
+    const sensorKey = reading.sensorType as keyof typeof group;
+    if (Array.isArray(group[sensorKey])) {
+      (group[sensorKey] as number[]).push(reading.value);
     }
   });
   
@@ -230,7 +234,7 @@ function generateTrendData(sensorData: any[]): any[] {
 }
 
 function generatePredictions(sensorData: any[], equipment: any): any[] {
-  const predictions = [];
+  const predictions: any[] = [];
   const sensorTypes = ['temperature', 'vibration', 'pressure', 'current'];
   
   sensorTypes.forEach(sensorType => {
@@ -280,7 +284,7 @@ function generatePredictions(sensorData: any[], equipment: any): any[] {
 }
 
 function generateAlertsFromSensorData(equipment: any, sensorData: any[]): any[] {
-  const alerts = [];
+  const alerts: any[] = [];
   let alertId = Math.floor(Math.random() * 10000);
   
   sensorData.forEach(reading => {

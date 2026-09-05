@@ -27,7 +27,7 @@ import {
   Factory,
   ExternalLink
 } from "lucide-react";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 
 interface GuideSection {
   id: string;
@@ -345,7 +345,7 @@ export default function Documentation() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <Header />
+      <ModernNavigation />
       
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">

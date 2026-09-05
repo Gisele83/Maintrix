@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -195,7 +195,7 @@ export default function PredictiveInsights() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-        <Header />
+        <ModernNavigation />
         <div className="flex items-center justify-center h-[70vh]">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -209,7 +209,7 @@ export default function PredictiveInsights() {
   if (isError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-        <Header />
+        <ModernNavigation />
         <div className="flex items-center justify-center h-[70vh]">
           <div className="text-center space-y-4 p-8 rounded-2xl bg-red-500/10 border border-red-500/20">
             <AlertTriangle className="w-12 h-12 text-red-400 mx-auto" />
@@ -225,7 +225,7 @@ export default function PredictiveInsights() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-      <Header />
+      <ModernNavigation />
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <div className="border-b border-white/10 bg-white/5 backdrop-blur-sm">

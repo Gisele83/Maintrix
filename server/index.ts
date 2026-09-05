@@ -182,13 +182,23 @@ app.use((req, res, next) => {
   if (isApiRoute && process.env.NODE_ENV === 'production' && (req.path.includes('/auth/') || req.path.includes('/enterprise-auth/'))) {
     const origin = req.headers.origin;
     const referer = req.headers.referer;
+    // 🔧 PRODUCTION READINESS: la liste était figée sur des origines localhost — en production
+    // réelle, aucun navigateur n'envoie jamais un Origin localhost, donc CHAQUE tentative de
+    // connexion échouait avec ORIGIN_NOT_ALLOWED (bug invisible en dev, car ce bloc ne s'active
+    // que si NODE_ENV=production). FRONTEND_URL est la même variable déjà utilisée pour les
+    // liens de réinitialisation de mot de passe (enterprise-auth-routes.ts) ; ALLOWED_ORIGINS
+    // accepte une liste supplémentaire séparée par des virgules (ex: domaine + sous-domaines).
     const allowedOrigins = [
+      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+      ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
       'http://localhost:5000',
+      'http://localhost:5050',
       'http://localhost:5173', // Vite dev server
       'https://localhost:5000',
+      'https://localhost:5050',
       'https://localhost:5173'
     ];
-    
+
     if (origin && !allowedOrigins.includes(origin)) {
       return res.status(403).json({
         error: 'ORIGIN_NOT_ALLOWED',

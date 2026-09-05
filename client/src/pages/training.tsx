@@ -22,7 +22,7 @@ import {
   Factory,
   ArrowLeft
 } from "lucide-react";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import { ModuleViewer } from "@/components/training/ModuleViewer";
 import { getModuleContent } from "@/data/trainingContent";
 
@@ -311,7 +311,7 @@ export default function Training() {
   if (selectedModule) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-        <Header />
+        <ModernNavigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
             <Button 
@@ -335,7 +335,7 @@ export default function Training() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <Header />
+      <ModernNavigation />
       
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">

@@ -30,11 +30,13 @@ export interface MonthlyReportData {
   completedWorkOrders: number;
   pendingWorkOrders: number;
   averageResolutionTime: number;
-  mtbf: number;
+  /** undefined si moins de 2 interventions correctives/urgentes sur la période — pas assez de données pour un intervalle. */
+  mtbf?: number;
   mttr: number;
   availability: number;
   reliability: number;
-  oee: number;
+  /** Toujours absent : Performance et Qualité (2 des 3 facteurs) supposent un suivi de production que ce rapport GMAO ne collecte pas — voir server/oee-routes.ts pour l'OEE réel, saisi séparément. */
+  oee?: number;
   costsBreakdown: {
     labor: number;
     parts: number;
@@ -552,7 +554,7 @@ export class PDFGeneratorClientSide {
                 </div>
                 <div class="stats-item">
                   <strong>MTBF</strong>
-                  <div class="stats-value">${(reportData.mtbf || 0).toFixed(0)}h</div>
+                  <div class="stats-value">${reportData.mtbf !== undefined ? reportData.mtbf.toFixed(0) + 'h' : 'N/D'}</div>
                 </div>
                 <div class="stats-item">
                   <strong>MTTR</strong>
@@ -560,9 +562,13 @@ export class PDFGeneratorClientSide {
                 </div>
                 <div class="stats-item">
                   <strong>OEE</strong>
-                  <div class="stats-value">${(reportData.oee || 0).toFixed(1)}%</div>
+                  <div class="stats-value">${reportData.oee !== undefined ? reportData.oee.toFixed(1) + '%' : 'N/D'}</div>
                 </div>
               </div>
+              ${reportData.oee === undefined || reportData.mtbf === undefined ? `
+              <p style="font-size: 11px; color: #6b7280; margin-top: 8px;">
+                N/D = non disponible.${reportData.oee === undefined ? ' L\'OEE nécessite un suivi de production (cadence, unités conformes) non collecté par ce rapport GMAO — voir le module OEE dédié.' : ''}${reportData.mtbf === undefined ? ' Le MTBF nécessite au moins deux interventions correctives/urgentes sur la période.' : ''}
+              </p>` : ''}
             </div>
             
             <div class="section">

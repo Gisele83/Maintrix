@@ -38,7 +38,7 @@ securityAuditRouter.get('/', async (req: Request, res: Response) => {
       const [auditResult] = await db
         .select({ count: count() })
         .from(auditLogs)
-        .where(gte(auditLogs.createdAt, since24h));
+        .where(gte(auditLogs.timestamp, since24h));
       auditEventCount = Number(auditResult?.count ?? 0);
     } catch { auditEventCount = 0; }
 

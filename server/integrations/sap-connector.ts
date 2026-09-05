@@ -12,6 +12,7 @@ export interface SAPConfig {
   password: string;
   client: string;
   language: string;
+  tenantId: string;
 }
 
 export interface SAPWorkOrder {
@@ -109,7 +110,9 @@ export class SAPConnector {
       // Convert and sync each work order
       for (const sapWO of sapWorkOrders) {
         const gmaoWorkOrder: InsertWorkOrder = {
-          orderNumber: sapWO.OrderNumber,
+          // orderNumber auto-généré par storage.createWorkOrder ; le n° SAP est
+          // préservé ci-dessous dans `notes` pour traçabilité.
+          tenantId: this.config.tenantId,
           orderType: this.mapSAPOrderType(sapWO.OrderType),
           title: sapWO.Description,
           description: sapWO.Description,
@@ -165,6 +168,7 @@ export class SAPConnector {
       // Convert and sync each equipment
       for (const sapEq of sapEquipment) {
         const gmaoEquipment: InsertEquipmentRegistry = {
+          tenantId: this.config.tenantId,
           equipmentId: sapEq.EquipmentNumber,
           equipmentName: sapEq.Description,
           equipmentType: this.detectEquipmentType(sapEq.Description),
@@ -208,7 +212,7 @@ export class SAPConnector {
       }
 
       // Get completed work orders that need to be synced back
-      const completedOrders = await gmaoStorage.getWorkOrdersByStatus('completed');
+      const completedOrders = await gmaoStorage.getWorkOrdersByStatus('completed', this.config.tenantId);
       let syncedCount = 0;
 
       for (const order of completedOrders) {
@@ -237,7 +241,7 @@ export class SAPConnector {
 
         if (response.ok) {
           // Mark as synced
-          await gmaoStorage.updateWorkOrder(order.id, {
+          await gmaoStorage.updateWorkOrder(order.id, this.config.tenantId, {
             notes: `${order.notes || ''} - SAP_SYNCED: ${new Date().toISOString()}`
           });
           syncedCount++;
@@ -303,7 +307,7 @@ export class SAPConnector {
 
   private async getEquipmentIdByNumber(equipmentNumber: string): Promise<number | undefined> {
     try {
-      const equipment = await gmaoStorage.getEquipmentByEquipmentId(equipmentNumber);
+      const equipment = await gmaoStorage.getEquipmentByEquipmentId(equipmentNumber, this.config.tenantId);
       return equipment?.id;
     } catch {
       return undefined;

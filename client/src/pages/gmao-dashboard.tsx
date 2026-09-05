@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import { useLanguage } from "@/hooks/use-language";
 import { t } from "@/lib/i18n";
 import { ProcurementDashboard } from "@/components/procurement-dashboard";
@@ -47,6 +47,7 @@ interface RecentWorkOrder {
   equipmentName?: string;
   assignedTo?: string;
   scheduledStart?: string;
+  createdAt?: string;
 }
 
 interface RecentAlert {
@@ -150,7 +151,7 @@ export default function GMAODashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-        <Header />
+        <ModernNavigation />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
         </div>
@@ -160,8 +161,7 @@ export default function GMAODashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <Header />
-      
+      <ModernNavigation />
 
       {/* Navigation Tabs */}
       <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
@@ -999,7 +999,7 @@ export default function GMAODashboard() {
                       <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         <span>#{alert.id}</span>
                         <span>•</span>
-                        <span>{new Date(alert.timestamp).toLocaleString('fr-FR')}</span>
+                        <span>{alert.createdAt ? new Date(alert.createdAt).toLocaleString('fr-FR') : 'N/A'}</span>
                       </div>
                     </div>
                     <Badge className={`${

@@ -57,6 +57,27 @@
       "when": 1784576259658,
       "tag": "0007_training_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784580164604,
+      "tag": "0008_equipment_lifecycle_iso55000",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784618633119,
+      "tag": "0009_maintenance_plans_missing_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784671427523,
+      "tag": "0010_platform_edition",
+      "breakpoints": true
     }
   ]
 }

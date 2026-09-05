@@ -1,10 +1,10 @@
 import { db } from "./db";
-import { companies, equipmentRegistry, diagnosticSessions, workOrders } from "@shared/schema";
-import { eq, and, sql, inArray, gte, lte } from "drizzle-orm";
+import { equipmentRegistry, diagnosticSessions } from "@shared/schema";
+import { eq, and, sql, gte } from "drizzle-orm";
 import { companyDataAccess } from "./company-data-access";
 
 /**
- * Algorithme d'agrégation et récupération des données historiques multi-entreprises
+ * Algorithme d'agrégation et récupération des données historiques multi-tenants
  * pour enrichir le diagnostic IA tout en préservant la confidentialité des données
  */
 
@@ -114,21 +114,19 @@ export class DataAggregationAlgorithm {
         successRate: sql<number>`
           AVG(CASE WHEN ${diagnosticSessions.status} = 'completed' THEN 1.0 ELSE 0.0 END) * 100
         `,
-        avgResolutionTime: sql<number>`
-          AVG(EXTRACT(EPOCH FROM (${diagnosticSessions.updatedAt} - ${diagnosticSessions.createdAt})) / 3600)
-        `,
-        distinctCompanies: sql<number>`COUNT(DISTINCT ${equipmentRegistry.companyId})`,
+        // Pas de lien fiable diagnostic -> ordre de travail dans le schéma actuel
+        // (voir company-data-access.ts) : durée de résolution et coût indisponibles ici.
+        avgResolutionTime: sql<number>`0`,
+        distinctCompanies: sql<number>`COUNT(DISTINCT ${equipmentRegistry.tenantId})`,
         equipmentVariety: sql<number>`COUNT(DISTINCT ${equipmentRegistry.manufacturer})`,
-        // Moyennes de coût (si disponibles via work orders)
-        avgCost: sql<number>`AVG(COALESCE(${workOrders.cost}, 0))`,
-        totalSavings: sql<number>`SUM(COALESCE(${workOrders.cost}, 0))`,
+        avgCost: sql<number>`0`,
+        totalSavings: sql<number>`0`,
       })
       .from(diagnosticSessions)
-      .innerJoin(equipmentRegistry, eq(diagnosticSessions.equipmentId, equipmentRegistry.id))
-      .leftJoin(workOrders, eq(diagnosticSessions.id, workOrders.diagnosticId))
+      .innerJoin(equipmentRegistry, eq(diagnosticSessions.equipmentId, sql`${equipmentRegistry.id}::text`))
       .where(
         and(
-          eq(equipmentRegistry.type, request.equipmentType),
+          eq(equipmentRegistry.equipmentType, request.equipmentType),
           gte(diagnosticSessions.createdAt, timeThreshold),
           sql`${diagnosticSessions.confidence} > 0.5` // Seuil minimal de confiance
         )
@@ -159,7 +157,7 @@ export class DataAggregationAlgorithm {
       .having(
         and(
           sql`COUNT(*) >= 5`, // Minimum 5 cas pour éviter identification
-          sql`COUNT(DISTINCT ${equipmentRegistry.companyId}) >= 3` // Au moins 3 entreprises
+          sql`COUNT(DISTINCT ${equipmentRegistry.tenantId}) >= 3` // Au moins 3 tenants
         )
       );
   }
@@ -415,7 +413,7 @@ export class DataAggregationAlgorithm {
    */
   async enrichDiagnosticWithAggregatedData(
     userId: number,
-    companyId: number,
+    tenantId: string,
     currentDiagnosis: {
       equipmentType: string;
       symptoms: string[];
@@ -458,7 +456,7 @@ export class DataAggregationAlgorithm {
       );
 
       // 6. Journalisation utilisation données agrégées
-      await companyDataAccess.logDataAccess(userId, companyId, 'aggregated_data_enrichment', {
+      await companyDataAccess.logDataAccess(userId, tenantId, 'aggregated_data_enrichment', {
         equipmentType: currentDiagnosis.equipmentType,
         insightsUsed: aggregatedInsights.length,
         confidenceBoost: confidenceBoost,
@@ -563,7 +561,7 @@ export class DataAggregationAlgorithm {
     // Best practices industrie
     if (benchmarks.bestPractices.length > 0) {
       recommendations.push('✨ Meilleures pratiques industrie:');
-      recommendations.push(...benchmarks.bestPractices.slice(0, 2).map(bp => `  • ${bp}`));
+      recommendations.push(...benchmarks.bestPractices.slice(0, 2).map((bp: string) => `  • ${bp}`));
     }
 
     // Recommandation action immédiate si insights significatifs

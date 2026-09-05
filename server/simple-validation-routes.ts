@@ -234,10 +234,10 @@ export function registerSimpleValidationRoutes(app: Express) {
           message: "Ordre de travail rejeté avec succès"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error validating work order:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "Erreur lors de la validation de l'ordre de travail",
         error: error.message
       });

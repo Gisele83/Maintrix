@@ -56,6 +56,46 @@ function TrainingGapCheck({ workOrderId }: { workOrderId: number }) {
   );
 }
 
+interface LifecycleSuggestion {
+  toStage: string;
+  reason: string;
+}
+
+function LifecycleSuggestionBanner({ workOrderId, equipmentId }: { workOrderId: number; equipmentId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: suggestion } = useQuery<LifecycleSuggestion | null>({
+    queryKey: [`/api/equipment-lifecycle/${equipmentId}/suggestion?workOrderId=${workOrderId}`],
+  });
+
+  const applyTransition = useMutation({
+    mutationFn: () => apiRequest(`/api/equipment-lifecycle/${equipmentId}/transition`, {
+      method: 'POST',
+      body: { toStage: suggestion?.toStage, reason: suggestion?.reason, workOrderId },
+    }),
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/equipment-lifecycle/${equipmentId}/suggestion?workOrderId=${workOrderId}`] });
+      toast({ title: 'Cycle de vie mis à jour', description: `Nouvelle étape : ${result.equipment.lifecycleStage}` });
+    },
+    onError: (e: any) => toast({ title: 'Erreur', description: e.message, variant: 'destructive' }),
+  });
+
+  if (!suggestion) return null;
+
+  return (
+    <div className="md:col-span-2 flex items-center justify-between bg-teal-50 border border-teal-100 rounded-lg px-4 py-3">
+      <div className="text-xs text-teal-800 flex items-center gap-2">
+        <ClipboardList className="h-4 w-4 flex-shrink-0" />
+        Cycle de vie ISO 55000 — {suggestion.reason}. Faire transiter l'équipement vers « {suggestion.toStage} » ?
+      </div>
+      <Button size="sm" variant="outline" onClick={() => applyTransition.mutate()} disabled={applyTransition.isPending}>
+        {applyTransition.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+        Appliquer
+      </Button>
+    </div>
+  );
+}
+
 // ─── Types (correspondent aux champs réels renvoyés par /api/work-orders) ─────
 interface WorkOrderApi {
   id: number;
@@ -559,6 +599,7 @@ export default function WorkOrders() {
                 </div>
               </div>
               <TrainingGapCheck workOrderId={viewingOrder.id} />
+              {viewingOrder.equipmentId && <LifecycleSuggestionBanner workOrderId={viewingOrder.id} equipmentId={viewingOrder.equipmentId} />}
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">

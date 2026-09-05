@@ -2,7 +2,7 @@ export const translations = {
   fr: {
     // Header
     appTitle: "Maintrix",
-    appSubtitle: "Smart Diagnostic + Smart GMAO - Plateforme complète de maintenance",
+    appSubtitle: "Plateforme de maintenance industrielle assistée par IA",
     technician: "Technicien",
     
     // Navigation
@@ -164,6 +164,7 @@ export const translations = {
     casesDiagnosed: "cas diagnostiqués",
     successRate: "taux de réussite",
     averageTime: "temps moyen",
+    avgConfidence: "confiance moyenne",
     support: "Support",
     documentation: "Documentation",
     training: "Formations",
@@ -177,7 +178,7 @@ export const translations = {
   en: {
     // Header
     appTitle: "Maintrix",
-    appSubtitle: "Smart Diagnostic + Smart GMAO - Complete Maintenance Platform",
+    appSubtitle: "AI-assisted industrial maintenance platform",
     technician: "Technician",
     
     // Navigation
@@ -339,6 +340,7 @@ export const translations = {
     casesDiagnosed: "cases diagnosed",
     successRate: "success rate",
     averageTime: "average time",
+    avgConfidence: "avg. confidence",
     support: "Support",
     documentation: "Documentation",
     training: "Training",

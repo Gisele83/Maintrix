@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Activity, AlertTriangle, Brain, CheckCircle, ChevronDown, ChevronRight,
-  Clock, FlaskConical, RefreshCw, Shield, TrendingDown, TrendingUp, Zap
+  Clock, RefreshCw, Shield, TrendingDown, TrendingUp, Zap
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -188,9 +188,8 @@ function DetailPanel({ r }: { r: IMCAResult }) {
       {/* Technical metrics */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-slate-800/60 border border-slate-700/50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Distance Mahalanobis (D_M)</p>
+          <p className="text-xs text-slate-500 mb-1">Écart au comportement normal</p>
           <p className="text-lg font-bold text-white">{r.mahalanobisDistance.toFixed(3)}</p>
-          <p className="text-xs text-slate-600">ISD = 100 × exp(−0.4 × D_M)</p>
         </div>
         <div className="rounded-xl bg-slate-800/60 border border-slate-700/50 p-3">
           <p className="text-xs text-slate-500 mb-1">Distance Jensen-Shannon (√JSD)</p>
@@ -200,7 +199,6 @@ function DetailPanel({ r }: { r: IMCAResult }) {
               {(r.jsDivergence ?? 0) < 0.10 ? "🟢" : (r.jsDivergence ?? 0) < 0.22 ? "🟡" : (r.jsDivergence ?? 0) < 0.38 ? "🟠" : "🔴"}
             </span>
           </p>
-          <p className="text-xs text-slate-600">IDC = 100 × (1 − tanh(β × √JSD_glissant))</p>
         </div>
         {r.stochasticRUL && (
           <div className="col-span-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-3">
@@ -368,7 +366,7 @@ export default function IMCADashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">IMCA — Indice Cognitif Composite</h1>
-              <p className="text-sm text-slate-400">Brevet N°1 · Mahalanobis · Jensen-Shannon Divergence · Fenêtres Glissantes · ISD · IDC · ISO · IRS</p>
+              <p className="text-sm text-slate-400">Score de santé composite combinant comportement, dérive, stress opérationnel et résilience structurelle</p>
             </div>
           </div>
         </div>
@@ -390,46 +388,6 @@ export default function IMCADashboard() {
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center">
             <div className="text-4xl font-black mb-1 text-amber-400">{fleet?.degradingCount ?? "–"}</div>
             <div className="text-xs text-slate-400">En dégradation</div>
-          </div>
-        </div>
-
-        {/* Formula card */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-5 mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <FlaskConical className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-semibold text-slate-300">Formules scientifiques mobilisées</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-            <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-              <div className="text-violet-400 font-bold mb-1">ISD — Mahalanobis multivariée</div>
-              <div className="text-slate-400">D_M = √((x−μ)ᵀ Σ⁻¹ (x−μ))</div>
-              <div className="text-slate-500">ISD = 100 × exp(−0.4 × D_M)</div>
-            </div>
-            <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-              <div className="text-blue-400 font-bold mb-1">IDC — Jensen-Shannon (fenêtres glissantes)</div>
-              <div className="text-slate-400">M = ½P+½Q · JSD = ½KL(P‖M)+½KL(Q‖M)</div>
-              <div className="text-slate-500">IDC = 100 × (1 − tanh(β × √JSD<sub>glissant</sub>))</div>
-            </div>
-            <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-              <div className="text-emerald-400 font-bold mb-1">ISO — Stress Opérationnel</div>
-              <div className="text-slate-400">StressScore = 0.6 × AlarmRate + 0.4 × OverloadRatio</div>
-              <div className="text-slate-500">ISO = 100 × exp(−2.5 × StressScore)</div>
-            </div>
-            <div className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
-              <div className="text-amber-400 font-bold mb-1">IMCA — Fusion composite adaptative</div>
-              <div className="text-slate-400">IMCA = w₁·ISD + w₂·IDC + w₃·ISO + w₄·IRS</div>
-              <div className="text-slate-500">Poids adaptatifs selon disponibilité données</div>
-            </div>
-            <div className="rounded-lg bg-slate-900/60 border border-violet-500/30 p-3">
-              <div className="text-violet-300 font-bold mb-1">RUL — Processus de Wiener</div>
-              <div className="text-slate-400">X(t) = X₀ + μt + σW(t)  →  T<sub>RUL</sub> ~ IG(m, λ)</div>
-              <div className="text-slate-500">m = D/μ̂ · λ = D²/σ̂² · F(t) = Φ(…) + e<sup>2λ/m</sup>Φ(…)</div>
-            </div>
-            <div className="rounded-lg bg-slate-900/60 border border-emerald-500/30 p-3">
-              <div className="text-emerald-300 font-bold mb-1">RUL — Processus Gamma (Monte Carlo)</div>
-              <div className="text-slate-400">ΔX(Δt) ~ Γ(α·Δt, β) · α̂ = μ²/σ² · β̂ = μ/σ²</div>
-              <div className="text-slate-500">IC via 15 000 trajectoires · Fusion bayésienne w<sub>W</sub>·R² + w<sub>Γ</sub>·pos%</div>
-            </div>
           </div>
         </div>
 
@@ -549,7 +507,7 @@ export default function IMCADashboard() {
           </div>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-500">
             <div><span className="font-semibold text-slate-400">ISD</span> Indice de Santé Dynamique (Mahalanobis)</div>
-            <div><span className="font-semibold text-slate-400">IDC</span> Dérive Comportementale (Jensen-Shannon · fenêtres glissantes · √JSD ∈ [0,1])</div>
+            <div><span className="font-semibold text-slate-400">IDC</span> Dérive Comportementale (Jensen-Shannon · fenêtres glissantes)</div>
             <div><span className="font-semibold text-slate-400">ISO</span> Stress Opérationnel (alarmes + surcharge)</div>
             <div><span className="font-semibold text-slate-400">IRS</span> Résilience Structurelle (MTBF + âge)</div>
           </div>

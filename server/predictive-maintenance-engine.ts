@@ -13,7 +13,7 @@
 
 import { eq, gte, and, desc } from "drizzle-orm";
 import { db } from "./db";
-import { equipmentRegistry, iotSensorData, workOrders } from "@shared/schema";
+import { equipmentRegistry, iotSensorData, workOrders, digitalTwins } from "@shared/schema";
 import { PredictiveMaintenanceEngine } from "./integrations/predictive-engine";
 import { computeStochasticRUL, type StochasticRULResult } from "./stochastic-rul";
 import { getGlobalAgent } from "./agents/global-agent";
@@ -27,15 +27,41 @@ export interface UnifiedPredictiveResult {
   equipmentType: string;
   healthScore: number;
   riskLevel: "low" | "medium" | "high" | "critical";
-  rul: { available: boolean; result?: StochasticRULResult; nReadings?: number; message?: string };
+  rul: {
+    available: boolean; result?: StochasticRULResult; nReadings?: number; message?: string;
+    /** Digital Twin → APM : signal du jumeau numérique (lecture seule), s'il existe pour cet équipement. */
+    twinSignal?: { remainingUsefulLife: number; deviationFromNormal: number } | null;
+    /** Minimum entre le RUL stochastique et le RUL du jumeau — estimation la plus prudente des deux modèles indépendants. */
+    combinedRUL?: number;
+  };
   anomaly: { available: boolean; detections: AnomalyDetection[]; agentHealthScore?: number; message?: string };
   predictedFailures: any[];
   recommendations: any[];
   autoWorkOrder: { created: boolean; workOrderId?: number; orderNumber?: string; reason: string };
 }
 
+/**
+ * Digital Twin → APM : lecture (jamais un recalcul) du dernier résultat déjà persisté par
+ * server/digital-twin-service.ts::runTwin. Retourne null si aucun jumeau n'a encore été calculé
+ * pour cet équipement — dégradation propre, le RUL stochastique reste alors la seule source.
+ */
+async function getDigitalTwinSignal(equipmentId: number, tenantId: string): Promise<{ remainingUsefulLife: number; deviationFromNormal: number } | null> {
+  const [twin] = await db.select().from(digitalTwins)
+    .where(and(eq(digitalTwins.equipmentId, equipmentId), eq(digitalTwins.tenantId, tenantId))).limit(1);
+  if (!twin || twin.lastRemainingUsefulLife == null) return null;
+
+  const lastResult = twin.lastResult as { deviationFromNormal?: number } | null;
+  return {
+    remainingUsefulLife: twin.lastRemainingUsefulLife,
+    deviationFromNormal: lastResult?.deviationFromNormal ?? 0,
+  };
+}
+
 /** Étape 2 — RUL stochastique depuis les vraies lectures IoT (même logique que /api/stochastic-rul/equipment/:id). */
-async function computeEquipmentRUL(equipmentId: number, windowDays = 90, deltaTHours = 24, failureIMCA = 30) {
+async function computeEquipmentRUL(equipmentId: number, tenantId: string, windowDays = 90, deltaTHours = 24, failureIMCA = 30) {
+  // Digital Twin → APM : signal additionnel, ne remplace jamais le calcul stochastique existant.
+  const twinSignal = await getDigitalTwinSignal(equipmentId, tenantId);
+
   const cutoff = new Date(Date.now() - windowDays * 86_400_000);
   const sensorRows = await db.select({ value: iotSensorData.value, timestamp: iotSensorData.timestamp })
     .from(iotSensorData)
@@ -44,7 +70,7 @@ async function computeEquipmentRUL(equipmentId: number, windowDays = 90, deltaTH
     .limit(5000);
 
   if (sensorRows.length < 3) {
-    return { available: false as const, nReadings: sensorRows.length, message: "Données IoT insuffisantes pour ajuster un modèle stochastique" };
+    return { available: false as const, nReadings: sensorRows.length, message: "Données IoT insuffisantes pour ajuster un modèle stochastique", twinSignal };
   }
 
   const binMs = deltaTHours * 3_600_000;
@@ -69,12 +95,14 @@ async function computeEquipmentRUL(equipmentId: number, windowDays = 90, deltaTH
   }
 
   if (imcaHistory.length < 3) {
-    return { available: false as const, nReadings: sensorRows.length, message: "Trop peu de périodes temporelles distinctes pour ajuster un modèle" };
+    return { available: false as const, nReadings: sensorRows.length, message: "Trop peu de périodes temporelles distinctes pour ajuster un modèle", twinSignal };
   }
 
   const currentIMCA = imcaHistory[imcaHistory.length - 1];
   const result = computeStochasticRUL(imcaHistory, currentIMCA, deltaTHours, failureIMCA);
-  return { available: true as const, result, nReadings: sensorRows.length };
+  // Valeur la plus prudente entre les deux modèles indépendants — ne modifie pas `result` lui-même.
+  const combinedRUL = twinSignal ? Math.min(result.recommended.mean, twinSignal.remainingUsefulLife) : undefined;
+  return { available: true as const, result, nReadings: sensorRows.length, twinSignal, combinedRUL };
 }
 
 /**
@@ -156,11 +184,11 @@ export async function runPredictiveEngine(equipmentId: number, tenantId: string)
   // Étapes 1 + 4 : Health Score + Failure Prediction (anomalyScore désormais réel, pas Math.random())
   const analysis = await predictiveEngine.analyzeEquipmentHealth(equipmentId, tenantId);
 
-  // Étape 2 : RUL stochastique (données IoT réelles)
-  const rulOutcome = await computeEquipmentRUL(equipmentId);
+  // Étape 2 : RUL stochastique (données IoT réelles) + signal Digital Twin s'il existe
+  const rulOutcome = await computeEquipmentRUL(equipmentId, tenantId);
   const rul = rulOutcome.available
-    ? { available: true as const, result: rulOutcome.result, nReadings: rulOutcome.nReadings }
-    : { available: false as const, nReadings: rulOutcome.nReadings, message: rulOutcome.message };
+    ? { available: true as const, result: rulOutcome.result, nReadings: rulOutcome.nReadings, twinSignal: rulOutcome.twinSignal, combinedRUL: rulOutcome.combinedRUL }
+    : { available: false as const, nReadings: rulOutcome.nReadings, message: rulOutcome.message, twinSignal: rulOutcome.twinSignal };
 
   // Étape 3 : Anomaly Detection temps réel
   const anomalyOutcome = await runRealtimeAnomalyCheck(equipmentId);

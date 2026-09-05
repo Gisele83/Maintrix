@@ -422,20 +422,21 @@ export class SmartNotificationEngine extends EventEmitter {
    */
   private scheduleEscalation(rule: NotificationRule, alert: any): void {
     if (!rule.escalationRules) return;
-    
+    const escalationRules = rule.escalationRules;
+
     setTimeout(async () => {
       // Check if alert was acknowledged
       const wasAcknowledged = await this.checkIfAcknowledged(rule.id, alert.equipmentId);
-      
+
       if (!wasAcknowledged) {
         console.log(`⬆️ Escalating alert: ${alert.title}`);
-        
+
         // Create escalated notifications
-        for (const escalateToRole of rule.escalationRules.escalateTo) {
+        for (const escalateToRole of escalationRules.escalateTo) {
           const escalationAlert = {
             ...alert,
             title: `ESCALÉ: ${alert.title}`,
-            message: `ALERTE ESCALÉE - Non traitée après ${rule.escalationRules.timeoutMinutes} minutes: ${alert.message}`,
+            message: `ALERTE ESCALÉE - Non traitée après ${escalationRules.timeoutMinutes} minutes: ${alert.message}`,
             severity: 'critical'
           };
           
@@ -478,7 +479,7 @@ export class SmartNotificationEngine extends EventEmitter {
   private enrichMessage(baseMessage: string, alert: any, recipient: UserProfile): string {
     const enrichments = [
       baseMessage,
-      `\n📍 Destinataire: ${recipient.fullName} (${recipient.department})`,
+      `\n📍 Destinataire: ${[recipient.firstName, recipient.lastName].filter(Boolean).join(' ') || recipient.username} (${recipient.department})`,
       alert.metadata?.deviceId ? `\n🔧 Capteur: ${alert.metadata.deviceId}` : '',
       alert.estimatedTimeToFailure ? `\n⏰ Temps estimé avant défaillance: ${alert.estimatedTimeToFailure}h` : ''
     ];

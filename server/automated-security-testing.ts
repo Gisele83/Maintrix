@@ -69,7 +69,7 @@ export class AutomatedSecurityTestingService {
         testResults.push(result);
         
         console.log(`✅ ${testType}: ${result.score}/100 (${result.vulnerabilities.length} issues)`);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Failed to run test ${testType}:`, error);
         testResults.push({
           testType,
@@ -549,7 +549,7 @@ export default function () {
         vulnerable: response.status === 200,
         evidence: response.status === 200 ? 'Forged JWT token accepted' : 'Forged JWT token rejected'
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         vulnerable: false,
         evidence: `Request failed: ${error.message}`
@@ -578,7 +578,7 @@ export default function () {
         vulnerable: response.status === 200,
         evidence: response.status === 200 ? 'Expired JWT token still valid' : 'Expired JWT token rejected'
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         vulnerable: false,
         evidence: `Request failed: ${error.message}`
@@ -607,7 +607,7 @@ export default function () {
         vulnerable: response.status === 200,
         evidence: response.status === 200 ? 'Unsigned JWT token accepted' : 'Unsigned JWT token rejected'
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         vulnerable: false,
         evidence: `Request failed: ${error.message}`
@@ -645,7 +645,7 @@ export default function () {
             evidence: `SQL error exposed: ${responseText.substring(0, 100)}`
           };
         }
-      } catch (error) {
+      } catch (error: any) {
         // Erreur de requête peut indiquer injection réussie
         if (error.message.includes('timeout') || error.message.includes('connection')) {
           return {
@@ -690,7 +690,7 @@ export default function () {
             endpoint
           };
         }
-      } catch (error) {
+      } catch (error: any) {
         // Continuer avec l'endpoint suivant
       }
     }

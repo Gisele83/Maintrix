@@ -8,8 +8,66 @@
 
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "./db";
-import { digitalTwins, equipmentRegistry, iotSensorData, type DigitalTwin } from "@shared/schema";
+import { digitalTwins, equipmentRegistry, iotSensorData, workOrders, type DigitalTwin } from "@shared/schema";
 import { getPhysicsModel, type PhysicsModelResult } from "./cognitive-layers/physics-models";
+
+// Même seuil que la coloration "rouge" déjà visible par l'utilisateur côté client
+// (client/src/pages/digital-twin.tsx, fonction deviationColor) — pas un nouveau chiffre inventé,
+// on le rend simplement actionnable côté serveur.
+const CRITICAL_DEVIATION_THRESHOLD = 0.7;
+
+export interface TwinWorkOrderOutcome {
+  created: boolean;
+  workOrderId?: number;
+  orderNumber?: string;
+  reason: string;
+}
+
+/**
+ * Digital Twin → GMAO : auto-création d'un OT quand la déviation du jumeau dépasse le seuil
+ * critique. Même principe réactif que gmao-storage.ts::checkAndGenerateCounterAlert (déclenché
+ * juste après la mise à jour de l'état, pas de cron). Garde-fou anti-doublon identique à
+ * predictive-maintenance-engine.ts::maybeCreateAutoWorkOrder.
+ */
+async function maybeCreateWorkOrderFromTwin(
+  equipmentId: number, tenantId: string, result: PhysicsModelResult | null,
+): Promise<TwinWorkOrderOutcome> {
+  if (!result || result.deviationFromNormal <= CRITICAL_DEVIATION_THRESHOLD) {
+    return {
+      created: false,
+      reason: result
+        ? `Déviation ${result.deviationFromNormal.toFixed(2)} sous le seuil critique (${CRITICAL_DEVIATION_THRESHOLD})`
+        : "Aucun résultat de modèle physique disponible",
+    };
+  }
+
+  const existingOpen = await db.select().from(workOrders)
+    .where(and(eq(workOrders.equipmentId, equipmentId), eq(workOrders.tenantId, tenantId)))
+    .orderBy(desc(workOrders.createdAt))
+    .limit(5);
+  const alreadyOpen = existingOpen.find(wo => wo.orderType === "digital_twin" && wo.status !== "completed" && wo.status !== "cancelled");
+  if (alreadyOpen) {
+    return { created: false, workOrderId: alreadyOpen.id, orderNumber: alreadyOpen.orderNumber, reason: "Un OT jumeau numérique est déjà ouvert pour cet équipement" };
+  }
+
+  const [equipment] = await db.select().from(equipmentRegistry)
+    .where(and(eq(equipmentRegistry.id, equipmentId), eq(equipmentRegistry.tenantId, tenantId))).limit(1);
+  const equipmentName = equipment?.equipmentName ?? `Équipement #${equipmentId}`;
+
+  const orderNumber = `WO-TWIN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const [created] = await db.insert(workOrders).values({
+    tenantId,
+    orderNumber,
+    equipmentId,
+    orderType: "digital_twin",
+    title: `Intervention jumeau numérique — ${equipmentName}`,
+    description: `Déviation du jumeau numérique (${(result.deviationFromNormal * 100).toFixed(0)}%) au-delà du seuil critique. ${result.physicalExplanation}`,
+    priority: result.deviationFromNormal > 0.85 ? "urgent" : "high",
+    status: "pending",
+  }).returning();
+
+  return { created: true, workOrderId: created.id, orderNumber: created.orderNumber, reason: `Créé automatiquement — déviation ${(result.deviationFromNormal * 100).toFixed(0)}%` };
+}
 
 /** Trouve le jumeau d'un équipement, ou le crée (non calibré) au premier accès. */
 export async function getOrCreateTwin(equipmentId: number, tenantId: string): Promise<DigitalTwin> {
@@ -42,6 +100,7 @@ async function getLatestSensorReadings(equipmentId: number): Promise<Record<stri
 export interface DigitalTwinRunResult {
   twin: DigitalTwin;
   result: PhysicsModelResult | null;
+  autoWorkOrder?: TwinWorkOrderOutcome;
 }
 
 /**
@@ -70,13 +129,15 @@ export async function runTwin(equipmentId: number, tenantId: string): Promise<Di
     updatedAt: new Date(),
   }).where(eq(digitalTwins.id, twin.id)).returning();
 
-  return { twin: updated, result };
+  const autoWorkOrder = await maybeCreateWorkOrderFromTwin(equipmentId, tenantId, result);
+
+  return { twin: updated, result, autoWorkOrder };
 }
 
 export async function calibrateTwin(equipmentId: number, tenantId: string, calibration: Record<string, number>): Promise<DigitalTwin> {
   const twin = await getOrCreateTwin(equipmentId, tenantId);
   const [updated] = await db.update(digitalTwins).set({
-    calibration, isCalibrated: true, updatedAt: new Date(),
+    calibration, isCalibrated: Object.keys(calibration).length > 0, updatedAt: new Date(),
   }).where(eq(digitalTwins.id, twin.id)).returning();
   return updated;
 }

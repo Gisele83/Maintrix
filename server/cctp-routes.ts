@@ -111,7 +111,7 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding'
       ],
-      ignoreHTTPSErrors: true,
+      acceptInsecureCerts: true,
       ignoreDefaultArgs: ['--disable-extensions']
     });
     

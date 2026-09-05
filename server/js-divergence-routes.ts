@@ -150,7 +150,7 @@ export function registerJSDRoutes(app: Express) {
       for (const row of sensorRows) {
         const type = row.sensorType ?? "unknown";
         if (!sensorMap.has(type)) sensorMap.set(type, []);
-        sensorMap.get(type)!.push(row.value ?? 0);
+        sensorMap.get(type)!.push(parseFloat(row.value) || 0);
       }
 
       const multiResult = analyzeMultiSensorDrift(sensorMap, windowSize);
@@ -222,7 +222,7 @@ export function registerJSDRoutes(app: Express) {
       for (const row of rows) {
         const t = row.sensorType ?? "unknown";
         if (!sensorMap.has(t)) sensorMap.set(t, []);
-        sensorMap.get(t)!.push(row.value ?? 0);
+        sensorMap.get(t)!.push(parseFloat(row.value) || 0);
       }
 
       if (sensorMap.size === 0) {

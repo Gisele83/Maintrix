@@ -20,7 +20,7 @@ export function MaintenanceHistory() {
     status: "all",
   });
 
-  const { data: sessions = [], isLoading } = useQuery({
+  const { data: sessions = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/history", filters],
     queryFn: async () => {
       const searchParams = new URLSearchParams();

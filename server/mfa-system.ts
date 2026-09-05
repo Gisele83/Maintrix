@@ -263,7 +263,7 @@ export class MFAService {
   }
 
   private static encryptBackupCodes(codes: string[]): string[] {
-    const key = MFASystem.getMfaKey();
+    const key = MFAService.getMfaKey();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const cipher_fn = (crypto as any).createCipher as Function;
     return codes.map(code => {
@@ -278,7 +278,7 @@ export class MFAService {
    * Déchiffre les backup codes
    */
   private static decryptBackupCodes(encryptedCodes: string): string[] {
-    const key = MFASystem.getMfaKey();
+    const key = MFAService.getMfaKey();
     const codes = JSON.parse(encryptedCodes);
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const decipher_fn = (crypto as any).createDecipher as Function;

@@ -27,6 +27,35 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
+interface IoTDevicesResponse {
+  success: boolean;
+  data: any[];
+  summary: { totalDevices: number; activeDevices: number; lowBatteryDevices: number };
+}
+
+interface SmartNotificationsResponse {
+  success: boolean;
+  notifications: any[];
+  total: number;
+  summary: { unread: number; critical: number; actionRequired: number };
+}
+
+interface UserSkillsResponse {
+  success: boolean;
+  userId: number;
+  skills: any[];
+  leaderboard: { position?: number } | null;
+  summary: { totalSkills: number; averageLevel: number; totalExperience: number };
+}
+
+interface SystemStatusResponse {
+  success: boolean;
+  iot: { connected: boolean; devicesCount: number; recentReadings: number };
+  notifications: any;
+  gamification: { totalUsers?: number; [key: string]: any };
+  timestamp: string;
+}
+
 // IoT Device Status Component
 const IoTDeviceCard = ({ device }: { device: any }) => {
   const getBatteryColor = (level: number) => {
@@ -227,24 +256,24 @@ export default function IoTGamificationDashboard() {
   const { toast } = useToast();
 
   // IoT Devices Query
-  const { data: iotDevices = [], isLoading: iotLoading } = useQuery({
+  const { data: iotDevices = { success: false, data: [], summary: { totalDevices: 0, activeDevices: 0, lowBatteryDevices: 0 } }, isLoading: iotLoading } = useQuery<IoTDevicesResponse>({
     queryKey: ['/api/iot/devices'],
     refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   // Smart Notifications Query
-  const { data: notifications = [], isLoading: notificationsLoading } = useQuery({
+  const { data: notifications = { success: false, notifications: [], total: 0, summary: { unread: 0, critical: 0, actionRequired: 0 } }, isLoading: notificationsLoading } = useQuery<SmartNotificationsResponse>({
     queryKey: [`/api/notifications/smart/${selectedUserId}`],
     refetchInterval: 15000, // Refresh every 15 seconds
   });
 
   // User Skills Query
-  const { data: userSkills = [], isLoading: skillsLoading } = useQuery({
+  const { data: userSkills = { success: false, userId: selectedUserId, skills: [], leaderboard: null, summary: { totalSkills: 0, averageLevel: 0, totalExperience: 0 } }, isLoading: skillsLoading } = useQuery<UserSkillsResponse>({
     queryKey: [`/api/gamification/skills/${selectedUserId}`],
   });
 
   // System Status Query
-  const { data: systemStatus } = useQuery({
+  const { data: systemStatus } = useQuery<SystemStatusResponse>({
     queryKey: ['/api/iot-gamification/status'],
     refetchInterval: 30000, // Refresh every 30 seconds
   });

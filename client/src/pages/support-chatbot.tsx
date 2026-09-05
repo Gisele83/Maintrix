@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Bot, 
@@ -246,7 +246,7 @@ export default function SupportChatbot() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <Header />
+      <ModernNavigation />
       
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}

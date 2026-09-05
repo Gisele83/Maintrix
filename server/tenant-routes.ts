@@ -21,7 +21,7 @@ import {
   auditLogger, 
   rateLimitByTenant 
 } from "./tenant-middleware";
-import { federatedLearning as federatedService } from "./federated-learning";
+import { federatedLearningService as federatedService } from "./federated-learning";
 import { sendTenantAccessNotification, sendTenantAccessUpdateNotification } from "./notifications";
 // 🔒 VALIDATION SÉCURISÉE GDPR
 import { validateInput } from "./security-middleware";

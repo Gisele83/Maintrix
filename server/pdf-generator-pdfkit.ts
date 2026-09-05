@@ -32,7 +32,7 @@ interface CompanyConfig {
   primaryColor?: string;
 }
 
-export function generatePurchaseOrderPDF(orderData: PurchaseOrderData, companyConfig?: CompanyConfig): PDFDocument {
+export function generatePurchaseOrderPDF(orderData: PurchaseOrderData, companyConfig?: CompanyConfig): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
   
   // Colors

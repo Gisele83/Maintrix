@@ -83,9 +83,14 @@ export default function BudgetPage() {
   const [showTx, setShowTx] = useState(false);
   const [newLine, setNewLine] = useState<Partial<BudgetLine> | null>(null);
 
-  const { data: budgets = [], isLoading } = useQuery<Budget[]>({ queryKey: ["/api/budgets", year] });
-  const { data: stats } = useQuery<BudgetStats>({ queryKey: ["/api/budgets/stats", year] });
-  const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/budgets"] }); qc.invalidateQueries({ queryKey: ["/api/budgets/stats"] }); };
+  const { data: budgets = [], isLoading } = useQuery<Budget[]>({ queryKey: [`/api/budgets?year=${year}`] });
+  const { data: stats } = useQuery<BudgetStats>({ queryKey: [`/api/budgets/stats?year=${year}`] });
+  // Les clés ci-dessus embarquent l'année dans l'URL (un seul élément) — invalidateQueries({queryKey:["/api/budgets"]})
+  // ne les matcherait plus par préfixe (comparaison élément par élément, pas sous-chaîne). On invalide donc par
+  // prédicat sur le préfixe réel de l'URL, qui couvre à la fois /api/budgets et /api/budgets/stats en un seul appel.
+  const invalidate = () => {
+    qc.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === "string" && q.queryKey[0].startsWith("/api/budgets") });
+  };
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiRequest("/api/budgets", { method: "POST", body: d }),

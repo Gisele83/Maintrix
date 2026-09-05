@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { LogIn, UserPlus, Brain, Factory, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
+  email: z.string().email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -74,7 +74,7 @@ export default function LoginPage() {
     mutationFn: async (data: LoginForm) => {
       const response = await apiRequest("/api/enterprise-auth/login", {
         method: "POST",
-        body: { email: data.username, password: data.password },
+        body: { email: data.email, password: data.password },
       });
       return response;
     },
@@ -143,7 +143,7 @@ export default function LoginPage() {
         description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
       });
       setIsRegistering(false);
-      loginForm.setValue("username", data.user.username);
+      loginForm.setValue("email", data.user.email);
     },
     onError: (error: any) => {
       toast({
@@ -226,12 +226,12 @@ export default function LoginPage() {
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <FormField
                       control={loginForm.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nom d'utilisateur</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="Votre nom d'utilisateur" {...field} />
+                            <Input type="email" placeholder="vous@exemple.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

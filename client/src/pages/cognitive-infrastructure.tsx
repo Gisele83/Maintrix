@@ -108,17 +108,17 @@ export default function CognitiveInfrastructure() {
   const [whatIfVibIncrease, setWhatIfVibIncrease] = useState("2");
   const [reasoningSymptoms, setReasoningSymptoms] = useState("vibration");
 
-  const { data: status, isLoading: statusLoading } = useQuery({
+  const { data: status, isLoading: statusLoading } = useQuery<any>({
     queryKey: ["/api/cognitive/status"],
     refetchInterval: 10000
   });
 
-  const { data: autonomy } = useQuery({ queryKey: ["/api/cognitive/autonomy"] });
-  const { data: agents } = useQuery({ queryKey: ["/api/cognitive/agents"] });
-  const { data: policies } = useQuery({ queryKey: ["/api/cognitive/policies"] });
-  const { data: auditLog } = useQuery({ queryKey: ["/api/cognitive/audit-log"] });
-  const { data: knowledgeGraph } = useQuery({ queryKey: ["/api/cognitive/knowledge-graph"] });
-  const { data: globalLearning } = useQuery({ queryKey: ["/api/cognitive/global-learning"] });
+  const { data: autonomy } = useQuery<any>({ queryKey: ["/api/cognitive/autonomy"] });
+  const { data: agents } = useQuery<any>({ queryKey: ["/api/cognitive/agents"] });
+  const { data: policies } = useQuery<any>({ queryKey: ["/api/cognitive/policies"] });
+  const { data: auditLog } = useQuery<any>({ queryKey: ["/api/cognitive/audit-log"] });
+  const { data: knowledgeGraph } = useQuery<any>({ queryKey: ["/api/cognitive/knowledge-graph"] });
+  const { data: globalLearning } = useQuery<any>({ queryKey: ["/api/cognitive/global-learning"] });
 
   const setAutonomyMutation = useMutation({
     mutationFn: async (level: number) => {

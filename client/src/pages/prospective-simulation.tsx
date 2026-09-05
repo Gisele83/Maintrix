@@ -331,7 +331,7 @@ export default function ProspectiveSimulationPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">Simulation Prospective</h1>
-              <p className="text-sm text-slate-400">Brevet N°2 · Comparaison formelle Immédiat / Différé / Non-intervention avant toute décision autonome</p>
+              <p className="text-sm text-slate-400">Comparaison formelle Immédiat / Différé / Non-intervention avant toute décision autonome</p>
             </div>
           </div>
         </div>
@@ -469,16 +469,6 @@ export default function ProspectiveSimulationPage() {
                 {/* Comparison matrix */}
                 <ComparisonTable data={sim} />
 
-                {/* Formula legend */}
-                <div className="rounded-xl border border-slate-700/50 bg-slate-800/20 p-4">
-                  <p className="text-xs font-semibold text-slate-400 mb-2">Modèles utilisés</p>
-                  <div className="grid grid-cols-1 gap-1 text-xs font-mono text-slate-500">
-                    <div>IMCA(t) = IMCA₀ × exp(−λ × (t/τ)^β) · Weibull β=1.3</div>
-                    <div>P(défaillance) = 1 − exp(−μ × max(0, 60−IMCA)² / 800)</div>
-                    <div>OEE_loss = max(0, (80−IMCA) × 0.15) pts</div>
-                    <div>Score = 0.4×C_total + 0.4×RiskScore + 0.2×OEE_loss</div>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-12 text-center h-full flex flex-col items-center justify-center min-h-[400px]">

@@ -4,15 +4,26 @@ export async function seedWorkOrders() {
   try {
     console.log('🌱 Seeding work orders for validation testing...');
     
-    // Create test work orders for validation
-    const workOrdersData = [
+    const tenantId = "default-tenant";
+
+    // Create test work orders for validation.
+    // validationStatus/level*Validated* are system-managed (omitted from the insert
+    // schema) — they're applied via updateWorkOrder after creation, matching how the
+    // real validation workflow sets them.
+    const workOrdersData: Array<{
+      title: string; description: string; orderType: string;
+      priority: "low" | "medium" | "high"; status: "pending";
+      equipmentId: number; assignedTo: number; requestedBy: number;
+      estimatedDuration: number; cost: number;
+      scheduledStart: Date; scheduledEnd: Date;
+      validationUpdates?: Record<string, any>;
+    }> = [
       {
         title: "Maintenance préventive pompe hydraulique",
         description: "Révision complète de la pompe hydraulique principale - vérification des joints, remplacement des filtres et contrôle des pressions",
         orderType: "preventive",
-        priority: "medium" as const,
-        status: "pending" as const,
-        validationStatus: "pending" as const,
+        priority: "medium",
+        status: "pending",
         equipmentId: 1,
         assignedTo: 1,
         requestedBy: 1,
@@ -25,9 +36,8 @@ export async function seedWorkOrders() {
         title: "Réparation moteur électrique",
         description: "Diagnostic et réparation du moteur électrique de la ligne de production 2 - rebobinage nécessaire",
         orderType: "corrective",
-        priority: "high" as const,
-        status: "pending" as const,
-        validationStatus: "pending" as const,
+        priority: "high",
+        status: "pending",
         equipmentId: 2,
         assignedTo: 2,
         requestedBy: 1,
@@ -40,9 +50,8 @@ export async function seedWorkOrders() {
         title: "Calibrage capteurs de pression",
         description: "Calibrage et étalonnage des capteurs de pression du circuit principal selon normes ISO 9001",
         orderType: "preventive",
-        priority: "low" as const,
-        status: "pending" as const,
-        validationStatus: "pending" as const,
+        priority: "low",
+        status: "pending",
         equipmentId: 3,
         assignedTo: 3,
         requestedBy: 2,
@@ -55,9 +64,8 @@ export async function seedWorkOrders() {
         title: "Remplacement courroies transmission",
         description: "Remplacement des courroies de transmission usées sur le convoyeur principal - inspection complète du système d'entraînement",
         orderType: "corrective",
-        priority: "medium" as const,
-        status: "pending" as const,
-        validationStatus: "level1_validated" as const, // Déjà validé niveau 1
+        priority: "medium",
+        status: "pending",
         equipmentId: 4,
         assignedTo: 1,
         requestedBy: 3,
@@ -65,17 +73,19 @@ export async function seedWorkOrders() {
         cost: 450,
         scheduledStart: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
         scheduledEnd: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
-        level1ValidatedBy: 1,
-        level1ValidatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // Validé il y a 2h
-        level1ValidationNotes: "Ordre approuvé - pièces disponibles en stock"
+        validationUpdates: {
+          validationStatus: "level1_validated", // Déjà validé niveau 1
+          level1ValidatedBy: 1,
+          level1ValidatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // Validé il y a 2h
+          level1ValidationNotes: "Ordre approuvé - pièces disponibles en stock"
+        }
       },
       {
         title: "Inspection sécurité équipements",
         description: "Inspection annuelle de sécurité réglementaire - vérification des dispositifs de protection et mise à jour des certificats",
         orderType: "inspection",
-        priority: "high" as const,
-        status: "pending" as const,
-        validationStatus: "level2_validated" as const, // Déjà validé niveau 2
+        priority: "high",
+        status: "pending",
         equipmentId: 5,
         assignedTo: 2,
         requestedBy: 1,
@@ -83,19 +93,25 @@ export async function seedWorkOrders() {
         cost: 1100,
         scheduledStart: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
         scheduledEnd: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000),
-        level1ValidatedBy: 1,
-        level1ValidatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        level1ValidationNotes: "Ordre approuvé niveau 1",
-        level2ValidatedBy: 2,
-        level2ValidatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // Validé il y a 4h
-        level2ValidationNotes: "Inspection approuvée - budget alloué"
+        validationUpdates: {
+          validationStatus: "level2_validated", // Déjà validé niveau 2
+          level1ValidatedBy: 1,
+          level1ValidatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          level1ValidationNotes: "Ordre approuvé niveau 1",
+          level2ValidatedBy: 2,
+          level2ValidatedAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // Validé il y a 4h
+          level2ValidationNotes: "Inspection approuvée - budget alloué"
+        }
       }
     ];
 
-    // Insert work orders
+    // Insert work orders, then apply their validation state (system-managed fields)
     const createdOrders = [];
-    for (const orderData of workOrdersData) {
-      const workOrder = await gmaoStorage.createWorkOrder(orderData);
+    for (const { validationUpdates, ...orderData } of workOrdersData) {
+      let workOrder = await gmaoStorage.createWorkOrder({ tenantId, ...orderData });
+      if (validationUpdates) {
+        workOrder = await gmaoStorage.updateWorkOrder(workOrder.id, tenantId, validationUpdates);
+      }
       createdOrders.push(workOrder);
       console.log(`✅ Created work order: ${workOrder.orderNumber} (${workOrder.title})`);
     }

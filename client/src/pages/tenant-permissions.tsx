@@ -167,13 +167,13 @@ export default function TenantPermissions() {
   }
 
   // Récupérer les utilisateurs du tenant
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading } = useQuery<UserPermission[]>({
     queryKey: ['/api/tenant/users'],
     enabled: true
   });
 
   // Récupérer les modules disponibles
-  const { data: modules = [], isLoading: modulesLoading } = useQuery({
+  const { data: modules, isLoading: modulesLoading } = useQuery<{ availableModules: any[] }>({
     queryKey: ['/api/tenant/modules'],
     enabled: true
   });

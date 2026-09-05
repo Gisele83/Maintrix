@@ -33,8 +33,8 @@ export function registerDigitalTwinRoutes(app: Express) {
       const tenantId = requireTenant(req, res);
       if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId, 10);
-      const { twin, result } = await runTwin(equipmentId, tenantId);
-      res.json({ twin, result });
+      const { twin, result, autoWorkOrder } = await runTwin(equipmentId, tenantId);
+      res.json({ twin, result, autoWorkOrder });
     } catch (e: any) {
       console.error("Digital twin run error:", e.message);
       res.status(500).json({ error: "Erreur serveur" });

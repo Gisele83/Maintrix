@@ -36,7 +36,10 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   
   // Récupérer les identifiants d'équipement depuis la base de données
-  const { data: equipmentData } = useQuery({
+  const { data: equipmentData } = useQuery<{
+    success: boolean;
+    equipment: { id: number; name: string; type: string; identifier: string }[];
+  }>({
     queryKey: ["/api/diagnostic/equipment-identifiers"],
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });

@@ -72,7 +72,7 @@ export class TestDataGenerator {
       await db.execute(sql`DELETE FROM tenants WHERE name LIKE '%Test%' OR domain LIKE '%test%'`);
       
       console.log('  → Nettoyage terminé');
-    } catch (error) {
+    } catch (error: any) {
       console.warn('  ⚠️ Certaines données peuvent déjà être supprimées:', error.message);
     }
   }
@@ -108,7 +108,7 @@ export class TestDataGenerator {
   /**
    * Crée des utilisateurs de test
    */
-  private static async createTestUsers(count: number, tenantId: string): Promise<string[]> {
+  private static async createTestUsers(count: number, tenantId: string): Promise<number[]> {
     console.log(`👥 Création de ${count} utilisateurs de test...`);
     
     const testUsers = [
@@ -135,7 +135,7 @@ export class TestDataGenerator {
       },
     ];
 
-    const userIds: string[] = [];
+    const userIds: number[] = [];
     const passwordHash = await bcrypt.hash('Test123!', 10);
 
     for (let i = 0; i < count; i++) {
@@ -208,7 +208,7 @@ export class TestDataGenerator {
   /**
    * Crée des pièces détachées de test
    */
-  private static async createTestSpareParts(count: number, tenantId: string): Promise<string[]> {
+  private static async createTestSpareParts(count: number, tenantId: string): Promise<number[]> {
     console.log(`🔧 Création de ${count} pièces détachées de test...`);
     
     const partTypes = [
@@ -222,7 +222,7 @@ export class TestDataGenerator {
       { name: 'Graisse', category: 'Lubrification', unit: 'tube', minStock: 25, cost: 15.20 },
     ];
 
-    const sparePartIds: string[] = [];
+    const sparePartIds: number[] = [];
 
     for (let i = 0; i < count; i++) {
       const part = partTypes[i % partTypes.length];
@@ -278,10 +278,10 @@ export class TestDataGenerator {
         equipmentId,
         orderType: workOrder.type,
         priority: workOrder.priority,
-        orderStatus: ['open', 'in_progress', 'completed'][Math.floor(Math.random() * 3)],
+        status: ['open', 'in_progress', 'completed'][Math.floor(Math.random() * 3)],
         assignedTo,
         requestedBy: createdBy,
-        scheduledStartDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // 0-30 jours
+        scheduledStart: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000), // 0-30 jours
         estimatedDuration: Math.floor(Math.random() * 8) + 1, // 1-8 heures
       });
     }
@@ -318,14 +318,16 @@ export class TestDataGenerator {
     console.log('⏱️ Création des compteurs de maintenance...');
     
     for (let i = 0; i < Math.min(15, equipmentIds.length); i++) {
+      const thresholdCritical = 950 + Math.floor(Math.random() * 50);
+      const thresholdWarning = 800 + Math.floor(Math.random() * 200);
       await db.insert(maintenanceCounters).values({
         tenantId,
         equipmentId: equipmentIds[i],
-        counterName: `Compteur ${i + 1}`,
+        description: `Compteur ${i + 1}`,
         counterType: ['hours', 'cycles', 'kilometers'][Math.floor(Math.random() * 3)],
         currentValue: Math.floor(Math.random() * 1000),
-        thresholdWarning: 800 + Math.floor(Math.random() * 200),
-        thresholdCritical: 950 + Math.floor(Math.random() * 50),
+        thresholdValue: thresholdCritical,
+        warningThresholdPct: (thresholdWarning / thresholdCritical) * 100,
         lastResetValue: 0,
         lastResetDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
         isActive: true,
@@ -387,7 +389,7 @@ export class TestDataGenerator {
    * Crée des mouvements de stock de test
    */
   private static async createTestStockMovements(
-    sparePartIds: string[],
+    sparePartIds: number[],
     userIds: number[],
     tenantId: string
   ): Promise<void> {

@@ -193,7 +193,6 @@ export class IoTConnector {
         sensorId: reading.sensorId,
         value: reading.value.toString(),
         unit: reading.unit,
-        timestamp: reading.timestamp,
         quality: reading.quality,
         metadata: reading.metadata
       };
@@ -261,8 +260,8 @@ export class IoTConnector {
         message: `${reading.sensorType} value of ${reading.value} ${reading.unit} exceeds ${severity} threshold (${
           severity === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold
         } ${reading.unit})`,
-        triggerValue: reading.value,
-        thresholdValue: severity === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold
+        triggerValue: reading.value.toString(),
+        thresholdValue: (severity === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold).toString()
       };
 
       await gmaoStorage.createAlert(alert);
@@ -329,7 +328,7 @@ export class IoTConnector {
             severity: failureProbability > 0.8 ? 'critical' : 'high',
             title: 'Predictive Maintenance Alert',
             message: `Equipment shows signs of potential failure. Failure probability: ${Math.round(failureProbability * 100)}%`,
-            triggerValue: reading.value
+            triggerValue: reading.value.toString()
           };
 
           await gmaoStorage.createAlert(alert);

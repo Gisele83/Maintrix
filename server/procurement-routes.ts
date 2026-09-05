@@ -5,8 +5,7 @@
 
 import { Router } from "express";
 import { gmaoStorage } from "./gmao-storage";
-import { checkAndCreateAutomaticOrders, getAutomaticOrderingStatus } from "./automated-procurement";
-import { 
+import {
   insertSupplierSchema, 
   insertPurchaseOrderSchema,
   insertPurchaseOrderItemSchema,
@@ -255,7 +254,8 @@ router.get("/parts-needing-reorder", async (req, res) => {
 // Trigger stock check and automatic reordering
 router.post("/trigger-reorder-check", async (req, res) => {
   try {
-    const result = await gmaoStorage.checkStockLevelsAndTriggerReorders();
+    const tenantId = (req as any).tenantId || 'default-tenant';
+    const result = await gmaoStorage.checkStockLevelsAndTriggerReorders(tenantId);
     res.json({
       message: "Stock check completed",
       triggeredRules: result.triggeredRules.length,

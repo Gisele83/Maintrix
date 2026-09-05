@@ -62,15 +62,15 @@ export function ProcurementDashboard() {
   const [isPurchaseOrderDialogOpen, setIsPurchaseOrderDialogOpen] = useState(false);
 
   // Queries
-  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery<Supplier[]>({
     queryKey: ['/api/suppliers'],
   });
 
-  const { data: purchaseOrders = [], isLoading: ordersLoading } = useQuery({
+  const { data: purchaseOrders = [], isLoading: ordersLoading } = useQuery<PurchaseOrder[]>({
     queryKey: ['/api/purchase-orders'],
   });
 
-  const { data: reorderRules = [] } = useQuery({
+  const { data: reorderRules = [] } = useQuery<ReorderRule[]>({
     queryKey: ['/api/reorder-rules'],
   });
 

@@ -121,6 +121,23 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Search equipment
+  app.get("/api/equipment/search", async (req, res) => {
+    try {
+      const { equipmentType, zone, sector } = req.query;
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const equipment = await gmaoStorage.searchEquipment(tenantId, {
+        equipmentType: equipmentType as string,
+        zone: zone as string,
+        sector: sector as string
+      });
+      res.json(equipment);
+    } catch (error) {
+      console.error("Error searching equipment:", error);
+      res.status(500).json({ message: "Failed to search equipment" });
+    }
+  });
+
   // Get equipment by ID
   app.get("/api/equipment/:id", async (req, res) => {
     try {
@@ -223,23 +240,6 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Search equipment
-  app.get("/api/equipment/search", async (req, res) => {
-    try {
-      const { equipmentType, zone, sector } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
-      const equipment = await gmaoStorage.searchEquipment({
-        equipmentType: equipmentType as string,
-        zone: zone as string,
-        sector: sector as string
-      }, tenantId);
-      res.json(equipment);
-    } catch (error) {
-      console.error("Error searching equipment:", error);
-      res.status(500).json({ message: "Failed to search equipment" });
-    }
-  });
-
   // ============= WORK ORDERS ROUTES =============
   
   // Get all work orders
@@ -290,7 +290,7 @@ export function registerGMAORoutes(app: Express) {
       } else if (req.body.equipmentName) {
         // Try to find existing equipment by name
         const tenantId = (req as any).tenantId || 'default-tenant';
-        const existingEquipment = await gmaoStorage.searchEquipment({ equipmentName: req.body.equipmentName }, tenantId);
+        const existingEquipment = await gmaoStorage.searchEquipment(tenantId, { equipmentName: req.body.equipmentName });
         if (existingEquipment && existingEquipment.length > 0) {
           equipmentId = existingEquipment[0].id;
         } else {
@@ -424,11 +424,7 @@ export function registerGMAORoutes(app: Express) {
       if (processedUpdates.status === 'completed' && workOrder) {
         try {
           console.log(`🎯 OT ${workOrder.orderNumber} terminé - tentative auto-génération rapport`);
-          
-          // Récupérer le tenant ID depuis l'équipement ou default pour la démo
-          const equipment = await gmaoStorage.getEquipmentById(workOrder.equipmentId, tenantId);
-          const tenantId = equipment?.tenantId || 'default-tenant';
-          
+
           const reportHTML = await cctpComplianceService.checkAndGenerateWorkOrderReport(
             tenantId,
             workOrder.id
@@ -546,23 +542,28 @@ export function registerGMAORoutes(app: Express) {
         try {
           // Valider les données du compteur avec Zod
           const validatedCounter = createCounterFromPlanSchema.parse(req.body.counter);
-          
+          const counterEquipment = await gmaoStorage.getEquipmentById(validatedCounter.equipmentId, tenantId);
+
           const counterData = {
             tenantId,
             equipmentId: validatedCounter.equipmentId,
-            counterName: validatedCounter.counterName,
+            equipmentName: validatedCounter.equipmentName || counterEquipment?.equipmentName,
             counterType: validatedCounter.counterType,
             currentValue: validatedCounter.currentValue,
-            thresholdWarning: validatedCounter.thresholdWarning,
-            thresholdCritical: validatedCounter.thresholdCritical,
+            description: validatedCounter.counterName || validatedCounter.description,
+            maintenanceType: planData.equipmentType || "Maintenance préventive",
+            thresholdValue: validatedCounter.thresholdCritical,
+            warningThresholdPct: validatedCounter.thresholdCritical > 0
+              ? (validatedCounter.thresholdWarning / validatedCounter.thresholdCritical) * 100
+              : 90,
             isActive: true
           };
-          
+
           console.log("Creating validated counter:", counterData);
           const newCounter = await gmaoStorage.createMaintenanceCounter(counterData);
-          
+
           // Générer une alerte immédiate si la valeur actuelle dépasse déjà les seuils
-          if (validatedCounter.currentValue >= validatedCounter.thresholdCritical || 
+          if (validatedCounter.currentValue >= validatedCounter.thresholdCritical ||
               validatedCounter.currentValue >= validatedCounter.thresholdWarning) {
             await gmaoStorage.checkAndGenerateCounterAlert(newCounter);
           }
@@ -643,11 +644,24 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
+  // Get low stock parts
+  app.get("/api/spare-parts/low-stock", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const parts = await gmaoStorage.getLowStockParts(tenantId);
+      res.json(parts);
+    } catch (error) {
+      console.error("Error fetching low stock parts:", error);
+      res.status(500).json({ message: "Failed to fetch low stock parts" });
+    }
+  });
+
   // Get spare part by ID
   app.get("/api/spare-parts/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const part = await gmaoStorage.getSparePartById(id);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const part = await gmaoStorage.getSparePartById(id, tenantId);
       if (!part) {
         return res.status(404).json({ message: "Spare part not found" });
       }
@@ -676,7 +690,7 @@ export function registerGMAORoutes(app: Express) {
       // Vérifier si le numéro existe déjà
       while (true) {
         try {
-          const existing = await gmaoStorage.getSparePartByPartNumber(uniquePartNumber);
+          const existing = await gmaoStorage.getSparePartByPartNumber(uniquePartNumber, tenantId);
           if (!existing) {
             break; // Numéro unique trouvé
           }
@@ -732,7 +746,8 @@ export function registerGMAORoutes(app: Express) {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const part = await gmaoStorage.updateSparePart(id, updates);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const part = await gmaoStorage.updateSparePart(id, tenantId, updates);
       res.json(part);
     } catch (error) {
       console.error("Error updating spare part:", error);
@@ -787,17 +802,6 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Get low stock parts
-  app.get("/api/spare-parts/low-stock", async (req, res) => {
-    try {
-      const parts = await gmaoStorage.getLowStockParts();
-      res.json(parts);
-    } catch (error) {
-      console.error("Error fetching low stock parts:", error);
-      res.status(500).json({ message: "Failed to fetch low stock parts" });
-    }
-  });
-
   // ============= STOCK MOVEMENTS ROUTES =============
   
   // Get stock movements
@@ -815,8 +819,9 @@ export function registerGMAORoutes(app: Express) {
   // Create stock movement
   app.post("/api/stock-movements", async (req, res) => {
     try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
       const data = insertStockMovementSchema.parse(req.body);
-      const movement = await gmaoStorage.createStockMovement(data);
+      const movement = await gmaoStorage.createStockMovement(data, tenantId);
       res.status(201).json(movement);
     } catch (error) {
       console.error("Error creating stock movement:", error);
@@ -1029,18 +1034,9 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // ============= INTEGRATION ROUTES =============
-  
-  // Get integration logs
-  app.get("/api/integration-logs", async (req, res) => {
-    try {
-      const { systemName } = req.query;
-      const logs = await gmaoStorage.getIntegrationLog(systemName as string);
-      res.json(logs);
-    } catch (error) {
-      console.error("Error fetching integration logs:", error);
-      res.status(500).json({ message: "Failed to fetch integration logs" });
-    }
-  });
+
+  // GET /api/integration-logs est géré par advanced-integrations-routes.ts (isolation par
+  // tenant + filtres sourceSystem/entityType/status — cette version-ci n'en avait aucun).
 
   // Create integration log
   app.post("/api/integration-logs", async (req, res) => {
@@ -1164,61 +1160,10 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // ============= PROCUREMENT AND SUPPLIER MANAGEMENT ROUTES =============
-
-  // SUPPLIERS MANAGEMENT
-  // OLD suppliers route - will be replaced by demo version below
-
-  app.post("/api/suppliers", async (req, res) => {
-    try {
-      const supplier = await gmaoStorage.createSupplier(req.body);
-      res.status(201).json(supplier);
-    } catch (error) {
-      console.error("Error creating supplier:", error);
-      res.status(500).json({ message: "Failed to create supplier" });
-    }
-  });
-
-  // PURCHASE ORDERS MANAGEMENT
-  // OLD purchase orders route - will be replaced by demo version below
-
-  // Check document type based on amount
-  app.post("/api/purchase-orders/document-type", async (req, res) => {
-    try {
-      const { amount } = req.body;
-      const numAmount = parseFloat(amount);
-      
-      if (isNaN(numAmount)) {
-        return res.status(400).json({ error: "Invalid amount" });
-      }
-
-      // Use fixed thresholds for now (avoid database dependency)
-      const purchaseOrderThreshold = 1500;
-      const commandLetterThreshold = 1500;
-      
-      let documentType, validationLevels, message;
-      
-      if (numAmount <= purchaseOrderThreshold) {
-        documentType = "purchase_order";
-        validationLevels = 2;
-        message = `Montant ≤ ${purchaseOrderThreshold}€ : Bon de Commande avec validation 2 niveaux (Chef Service + Directeur)`;
-      } else {
-        documentType = "command_letter";
-        validationLevels = 2;
-        message = `Montant > ${commandLetterThreshold}€ : Lettre de Commande avec validation 2 niveaux (Chef Service + Directeur)`;
-      }
-
-      res.json({
-        documentType,
-        validationLevels,
-        threshold: purchaseOrderThreshold,
-        commandThreshold: commandLetterThreshold,
-        message
-      });
-    } catch (error) {
-      console.error("Error determining document type:", error);
-      res.status(500).json({ error: "Failed to determine document type" });
-    }
-  });
+  // POST /api/suppliers et GET /api/suppliers sont gérés par supplier-routes.ts
+  // (registerSupplierRoutes, enregistré avant ce fichier — table réelle, authentifié).
+  // POST /api/purchase-orders/document-type : voir la version basée sur la config
+  // entreprise (gmaoStorage.getCompanyConfig()) plus bas dans ce fichier.
 
   app.post("/api/purchase-orders", async (req, res) => {
     try {
@@ -1247,12 +1192,12 @@ export function registerGMAORoutes(app: Express) {
         message: `${documentType === "purchase_order" ? "Bon de commande" : "Lettre de commande"} créé avec succès`,
         order
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating purchase order:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         message: "Erreur lors de la création de la commande",
-        error: error.message 
+        error: error.message
       });
     }
   });
@@ -1278,226 +1223,47 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Trigger automatic reorder check - DIRECT DEMO
-  app.post("/api/trigger-reorder-check", (req, res) => {
-    console.log("🚀 Demo: Automatic procurement system...");
-    
-    res.json({
-      success: true,
-      message: "Vérification automatique terminée avec succès",
-      triggeredRules: 4,
-      createdOrders: 4,
-      totalAmount: 7132.50,
-      orders: [
-        {
-          partNumber: "ROB-001",
-          partName: "Roulement moteur principal STS",
-          quantity: 20,
-          supplier: "SKF Roulements France",
-          amount: 3000.00,
-          priority: "urgent"
-        },
-        {
-          partNumber: "JNT-002", 
-          partName: "Joint pompe hydraulique RTG",
-          quantity: 15,
-          supplier: "Grundfos Pompes",
-          amount: 382.50,
-          priority: "high"
-        },
-        {
-          partNumber: "CTR-003",
-          partName: "Contacteur électrique 40A", 
-          quantity: 10,
-          supplier: "Schneider Electric",
-          amount: 850.00,
-          priority: "high"
-        },
-        {
-          partNumber: "BLT-005",
-          partName: "Courroie transmission principale",
-          quantity: 12,
-          supplier: "Siemens Industrial Solutions", 
-          amount: 900.00,
-          priority: "high"
-        }
-      ],
-      timestamp: new Date().toISOString()
-    });
+  // Trigger automatic reorder check — real stock levels, real purchase orders
+  app.post("/api/trigger-reorder-check", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const { triggeredRules, createdOrders } = await gmaoStorage.checkStockLevelsAndTriggerReorders(tenantId);
+      const totalAmount = createdOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount || "0"), 0);
+      res.json({
+        success: true,
+        message: "Vérification automatique terminée avec succès",
+        triggeredRules: triggeredRules.length,
+        createdOrders: createdOrders.length,
+        totalAmount,
+        orders: createdOrders,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error triggering reorder check:", error);
+      res.status(500).json({ success: false, message: "Échec de la vérification automatique" });
+    }
   });
 
-  // Get parts needing reorder - DIRECT DEMO
-  app.get("/api/parts-needing-reorder", (req, res) => {
-    res.json([
-      {
-        id: 1,
-        partNumber: "ROB-001",
-        partName: "Roulement moteur principal STS",
-        currentStock: 2,
-        reorderPoint: 5,
-        reorderQuantity: 20,
-        autoOrder: true,
-        priority: "urgent",
-        supplier: "SKF Roulements France",
-        unitPrice: 150.00,
-        estimatedCost: 3000.00
-      },
-      {
-        id: 2, 
-        partNumber: "JNT-002",
-        partName: "Joint pompe hydraulique RTG",
-        currentStock: 1,
-        reorderPoint: 3,
-        reorderQuantity: 15,
-        autoOrder: true,
-        priority: "high",
-        supplier: "Grundfos Pompes",
-        unitPrice: 25.50,
-        estimatedCost: 382.50
-      },
-      {
-        id: 3,
-        partNumber: "CTR-003", 
-        partName: "Contacteur électrique 40A",
-        currentStock: 1,
-        reorderPoint: 2,
-        reorderQuantity: 10,
-        autoOrder: true,
-        priority: "high",
-        supplier: "Schneider Electric",
-        unitPrice: 85.00,
-        estimatedCost: 850.00
-      },
-      {
-        id: 5,
-        partNumber: "BLT-005",
-        partName: "Courroie transmission principale",
-        currentStock: 2,
-        reorderPoint: 4, 
-        reorderQuantity: 12,
-        autoOrder: true,
-        priority: "high",
-        supplier: "Siemens Industrial Solutions",
-        unitPrice: 75.00,
-        estimatedCost: 900.00
-      }
-    ]);
+  // Get parts needing reorder — real stock levels from DB
+  app.get("/api/parts-needing-reorder", async (req, res) => {
+    try {
+      const parts = await gmaoStorage.getPartsNeedingReorder();
+      res.json(parts);
+    } catch (error) {
+      console.error("Error fetching parts needing reorder:", error);
+      res.status(500).json({ message: "Failed to fetch parts needing reorder" });
+    }
   });
 
-  // Get suppliers - DIRECT DEMO
-  app.get("/api/suppliers", (req, res) => {
-    res.json([
-      {
-        id: 1,
-        supplierCode: "SUP001",
-        companyName: "Siemens Industrial Solutions",
-        contactPerson: "Marie Dubois",
-        email: "marie.dubois@siemens.com", 
-        phone: "+33 1 49 22 33 44",
-        rating: 4,
-        paymentTerms: "NET 30",
-        deliveryTime: 7,
-        isActive: true,
-        lastOrder: "2025-01-20"
-      },
-      {
-        id: 2,
-        supplierCode: "SUP002", 
-        companyName: "SKF Roulements France",
-        contactPerson: "Jean Martin",
-        email: "jean.martin@skf.com",
-        phone: "+33 1 64 49 30 00", 
-        rating: 5,
-        paymentTerms: "NET 30",
-        deliveryTime: 3,
-        isActive: true,
-        lastOrder: "2025-01-23"
-      },
-      {
-        id: 3,
-        supplierCode: "SUP003",
-        companyName: "Schneider Electric",
-        contactPerson: "Pierre Lefebvre", 
-        email: "pierre.lefebvre@schneider-electric.com",
-        phone: "+33 1 41 29 70 00",
-        rating: 4,
-        paymentTerms: "NET 30", 
-        deliveryTime: 5,
-        isActive: true,
-        lastOrder: "2025-01-18"
-      },
-      {
-        id: 4,
-        supplierCode: "SUP004",
-        companyName: "Grundfos Pompes",
-        contactPerson: "Sophie Durand",
-        email: "sophie.durand@grundfos.com",
-        phone: "+33 1 56 52 65 00",
-        rating: 4,
-        paymentTerms: "NET 30",
-        deliveryTime: 5,
-        isActive: true,
-        lastOrder: "2025-01-22"
-      },
-      {
-        id: 5,
-        supplierCode: "SUP005", 
-        companyName: "Atlas Copco France",
-        contactPerson: "Marc Rousseau",
-        email: "marc.rousseau@atlascopco.com",
-        phone: "+33 1 39 30 68 00",
-        rating: 4,
-        paymentTerms: "NET 30",
-        deliveryTime: 10,
-        isActive: true,
-        lastOrder: "2025-01-15"
-      }
-    ]);
-  });
-
-  // Get purchase orders - DIRECT DEMO
-  app.get("/api/purchase-orders", (req, res) => {
-    res.json([
-      {
-        id: 1,
-        orderNumber: "AUTO-20250124-ROB-001",
-        supplierId: 2,
-        supplierName: "SKF Roulements France",
-        status: "sent",
-        priority: "urgent", 
-        totalAmount: 3000.00,
-        currency: "EUR",
-        requestedBy: "Système Automatique",
-        expectedDelivery: "2025-01-31",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 2,
-        orderNumber: "AUTO-20250124-JNT-002", 
-        supplierId: 4,
-        supplierName: "Grundfos Pompes",
-        status: "draft",
-        priority: "high",
-        totalAmount: 382.50,
-        currency: "EUR",
-        requestedBy: "Système Automatique", 
-        expectedDelivery: "2025-01-29",
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: 3,
-        orderNumber: "AUTO-20250124-CTR-003",
-        supplierId: 3,
-        supplierName: "Schneider Electric",
-        status: "confirmed",
-        priority: "high",
-        totalAmount: 850.00,
-        currency: "EUR",
-        requestedBy: "Système Automatique",
-        expectedDelivery: "2025-01-27", 
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
-      }
-    ]);
+  // Get purchase orders — real data from DB
+  app.get("/api/purchase-orders", async (req, res) => {
+    try {
+      const orders = await gmaoStorage.getPurchaseOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching purchase orders:", error);
+      res.status(500).json({ message: "Failed to fetch purchase orders" });
+    }
   });
 
   // ============= MAINTENANCE REPORTS ROUTES =============
@@ -1506,7 +1272,8 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/maintenance-reports", async (req, res) => {
     try {
       const { workOrderId, ...reportData } = req.body;
-      const report = await gmaoStorage.generateMaintenanceReport(workOrderId, reportData);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const report = await gmaoStorage.generateMaintenanceReport(workOrderId, tenantId, reportData);
       res.status(201).json(report);
     } catch (error) {
       console.error("Error generating maintenance report:", error);
@@ -1565,7 +1332,8 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/monthly-reports", async (req, res) => {
     try {
       const { month, year, generatedBy } = req.body;
-      const report = await gmaoStorage.generateMonthlyReport(month, year, generatedBy);
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const report = await gmaoStorage.generateMonthlyReport(month, year, tenantId, generatedBy);
       res.status(201).json(report);
     } catch (error) {
       console.error("Error generating monthly report:", error);
@@ -1715,10 +1483,18 @@ export function registerGMAORoutes(app: Express) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
-      // Enrich with line items
+      // Enrich with line items and resolved supplier name
       const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
+        description: order.notes || "",
+        supplier: supplier?.companyName || "—",
+        totalAmount: order.totalAmount ?? "0",
+        currency: order.currency || "EUR",
+        validationStatus: order.validationStatus || "pending",
+        requestedBy: order.requestedBy || "—",
+        createdAt: order.createdAt ?? undefined,
         items: items.map(i => ({
           partNumber: i.partNumber || `ITEM-${i.id}`,
           description: i.description || "—",
@@ -1729,7 +1505,17 @@ export function registerGMAORoutes(app: Express) {
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
       const companyConfig = await gmaoStorage.getCompanyConfig();
-      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, companyConfig || undefined);
+      const pdfCompanyConfig = companyConfig ? {
+        companyName: companyConfig.companyName,
+        address: companyConfig.address || "",
+        phone: companyConfig.phone || "",
+        email: companyConfig.email || "",
+        website: companyConfig.website || "",
+        taxNumber: companyConfig.taxNumber || "",
+        logoBase64: companyConfig.logoBase64 || undefined,
+        primaryColor: companyConfig.primaryColor || undefined,
+      } : undefined;
+      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, pdfCompanyConfig);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${order.orderNumber}.pdf"`);
@@ -1798,8 +1584,16 @@ export function registerGMAORoutes(app: Express) {
       }
 
       const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
+        description: order.notes || "",
+        supplier: supplier?.companyName || "—",
+        totalAmount: order.totalAmount ?? "0",
+        currency: order.currency || "EUR",
+        validationStatus: order.validationStatus || "pending",
+        requestedBy: order.requestedBy || "—",
+        createdAt: order.createdAt ?? undefined,
         items: items.map(i => ({
           partNumber: i.partNumber || `ITEM-${i.id}`,
           description: i.description || "—",
@@ -1810,7 +1604,17 @@ export function registerGMAORoutes(app: Express) {
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
       const companyConfig = await gmaoStorage.getCompanyConfig();
-      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, companyConfig || undefined);
+      const pdfCompanyConfig = companyConfig ? {
+        companyName: companyConfig.companyName,
+        address: companyConfig.address || "",
+        phone: companyConfig.phone || "",
+        email: companyConfig.email || "",
+        website: companyConfig.website || "",
+        taxNumber: companyConfig.taxNumber || "",
+        logoBase64: companyConfig.logoBase64 || undefined,
+        primaryColor: companyConfig.primaryColor || undefined,
+      } : undefined;
+      const pdfDoc = generatePurchaseOrderPDF(enrichedOrder, pdfCompanyConfig);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="bon_commande_${order.orderNumber}.pdf"`);
@@ -1831,12 +1635,12 @@ export function registerGMAORoutes(app: Express) {
     try {
       const result = await createValidationDemo();
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating validation demo:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "Erreur lors de la création des données de démonstration",
-        error: error.message 
+        error: error.message
       });
     }
   });

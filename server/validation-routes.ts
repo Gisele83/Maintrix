@@ -204,7 +204,8 @@ router.put("/users/:userId/permissions", async (req, res) => {
 router.get("/work-orders/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const status = await gmaoStorage.getWorkOrderValidationStatus(Number(id));
+    const tenantId = (req as any).tenantId || 'default-tenant';
+    const status = await gmaoStorage.getWorkOrderValidationStatus(Number(id), tenantId);
     res.json(status);
   } catch (error) {
     console.error("Error fetching work order validation status:", error);

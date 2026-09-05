@@ -482,7 +482,7 @@ export class GMAOStorage {
   }
 
   // Helper method to check and generate alerts for counters
-  private async checkAndGenerateCounterAlert(counter: MaintenanceCounter): Promise<void> {
+  async checkAndGenerateCounterAlert(counter: MaintenanceCounter): Promise<void> {
     if (!counter.thresholdValue) return;
     const percentage = ((counter.currentValue ?? 0) / counter.thresholdValue) * 100;
     let alertLevel: "info" | "warning" | "critical" = "info";
@@ -576,7 +576,7 @@ export class GMAOStorage {
     try {
       const result = await db.delete(spareParts)
         .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)));
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } catch (error) {
       console.error("Error deleting spare part:", error);
       return false;
@@ -1192,7 +1192,7 @@ export class GMAOStorage {
   }
 
   // Purchase Orders management
-  async createPurchaseOrder(orderData: InsertPurchaseOrder): Promise<PurchaseOrder> {
+  async createPurchaseOrder(orderData: Omit<InsertPurchaseOrder, 'orderNumber'> & { orderNumber?: string }): Promise<PurchaseOrder> {
     const orderNumber = `${orderData.documentType === "command_letter" ? "CL" : "PO"}-${Date.now()}`;
     
     const [order] = await db
@@ -1379,7 +1379,7 @@ export class GMAOStorage {
 
     for (const part of partsQuery) {
       const rule = await this.getReorderRuleByPartId(part.id);
-      if (rule && part.currentStock <= rule.reorderPoint) {
+      if (rule && (part.currentStock ?? 0) <= rule.reorderPoint) {
         results.push({ ...part, reorderRule: rule });
       }
     }
@@ -1390,9 +1390,9 @@ export class GMAOStorage {
   // ============= MAINTENANCE REPORTS MANAGEMENT =============
 
   // Generate maintenance report after work order completion
-  async generateMaintenanceReport(workOrderId: number, reportData: Partial<InsertMaintenanceReport>): Promise<MaintenanceReport> {
+  async generateMaintenanceReport(workOrderId: number, tenantId: string, reportData: Partial<InsertMaintenanceReport>): Promise<MaintenanceReport> {
     // Get work order details
-    const workOrder = await this.getWorkOrderById(workOrderId);
+    const workOrder = await this.getWorkOrderById(workOrderId, tenantId);
     if (!workOrder) {
       throw new Error("Work order not found");
     }
@@ -1501,21 +1501,21 @@ export class GMAOStorage {
   // ============= MONTHLY REPORTS MANAGEMENT =============
 
   // Generate monthly maintenance report
-  async generateMonthlyReport(month: number, year: number, generatedBy?: string): Promise<MonthlyReport> {
+  async generateMonthlyReport(month: number, year: number, tenantId: string, generatedBy?: string): Promise<MonthlyReport> {
     const reportNumber = await this.generateReportNumber("MM");
-    
+
     // Calculate period dates
     const periodStart = new Date(year, month - 1, 1);
     const periodEnd = new Date(year, month, 0, 23, 59, 59);
 
     // Calculate equipment statistics
-    const equipment = await this.getEquipmentRegistry();
+    const equipment = await this.getEquipmentRegistry(tenantId);
     const totalEquipment = equipment.length;
     const activeEquipment = equipment.filter(eq => eq.operationalState === "operational").length;
     const equipmentAvailability = activeEquipment > 0 ? (activeEquipment / totalEquipment) * 100 : 0;
 
     // Calculate work orders statistics
-    const workOrders = await this.getWorkOrdersByDateRange(periodStart, periodEnd);
+    const workOrders = await this.getWorkOrdersByDateRange(periodStart, periodEnd, tenantId);
     const totalWorkOrders = workOrders.length;
     const completedWorkOrders = workOrders.filter(wo => wo.status === "completed").length;
     const preventiveWorkOrders = workOrders.filter(wo => wo.orderType === "preventive").length;
@@ -1559,7 +1559,7 @@ export class GMAOStorage {
     const costPerWorkOrder = completedWorkOrders > 0 ? totalMaintenanceCost / completedWorkOrders : 0;
 
     // Get alerts for the period
-    const alerts = await this.getAlertsForPeriod(periodStart, periodEnd);
+    const alerts = await this.getAlertsForPeriod(periodStart, periodEnd, tenantId);
     const totalAlerts = alerts.length;
     const criticalAlerts = alerts.filter(alert => alert.severity === "critical").length;
 
@@ -1570,7 +1570,8 @@ export class GMAOStorage {
         return acc;
       }, {}),
       workOrdersByStatus: workOrders.reduce((acc: any, wo) => {
-        acc[wo.status] = (acc[wo.status] || 0) + 1;
+        const status = wo.status || "unknown";
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {}),
       dailyWorkOrders: this.calculateDailyWorkOrders(workOrders, periodStart, periodEnd),
@@ -1681,17 +1682,19 @@ export class GMAOStorage {
   }
 
   // Helper methods for monthly report calculations
-  private async getWorkOrdersByDateRange(startDate: Date, endDate: Date): Promise<WorkOrder[]> {
+  private async getWorkOrdersByDateRange(startDate: Date, endDate: Date, tenantId: string): Promise<WorkOrder[]> {
     return db.select().from(workOrders)
       .where(and(
+        eq(workOrders.tenantId, tenantId),
         gte(workOrders.createdAt, startDate),
         lte(workOrders.createdAt, endDate)
       ));
   }
 
-  private async getAlertsForPeriod(startDate: Date, endDate: Date): Promise<AlertsNotifications[]> {
+  private async getAlertsForPeriod(startDate: Date, endDate: Date, tenantId: string): Promise<AlertsNotifications[]> {
     return db.select().from(alertsNotifications)
       .where(and(
+        eq(alertsNotifications.tenantId, tenantId),
         gte(alertsNotifications.createdAt, startDate),
         lte(alertsNotifications.createdAt, endDate)
       ));
@@ -1707,7 +1710,7 @@ export class GMAOStorage {
       dayEnd.setHours(23, 59, 59);
       
       const dayWorkOrders = workOrders.filter(wo => {
-        const woDate = new Date(wo.createdAt);
+        const woDate = new Date(wo.createdAt ?? 0);
         return woDate >= dayStart && woDate <= dayEnd;
       });
       
@@ -1724,7 +1727,7 @@ export class GMAOStorage {
 
   private calculateCostTrends(reports: MaintenanceReport[]): any[] {
     const costByWeek = reports.reduce((acc: any, report) => {
-      const week = this.getWeekNumber(new Date(report.createdAt));
+      const week = this.getWeekNumber(new Date(report.createdAt ?? 0));
       acc[week] = (acc[week] || 0) + parseFloat(report.totalCost?.toString() || "0");
       return acc;
     }, {});
@@ -2068,8 +2071,8 @@ export class GMAOStorage {
   }
 
   // Validation Status Methods
-  async getWorkOrderValidationStatus(workOrderId: number) {
-    const workOrder = await this.getWorkOrderById(workOrderId);
+  async getWorkOrderValidationStatus(workOrderId: number, tenantId: string) {
+    const workOrder = await this.getWorkOrderById(workOrderId, tenantId);
     if (!workOrder) {
       throw new Error("Work order not found");
     }

@@ -31,8 +31,8 @@
 
 export interface DriftPoint {
   index: number;          // position dans la série temporelle
-  jsd: number;            // J-S Distance √JSD ∈ [0,1]
-  jsdRaw: number;         // JSD brut ∈ [0,1]
+  jsd: number;            // JSD brut ∈ [0,1]
+  jsdDistance: number;    // J-S Distance √JSD ∈ [0,1]
   isAlert: boolean;       // au-dessus du seuil adaptatif ?
   driftLevel: "stable" | "light" | "moderate" | "severe" | "critical";
   referenceWindow: [number, number]; // indices [start, end]

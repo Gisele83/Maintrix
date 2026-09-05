@@ -36,6 +36,7 @@ import DigitalTwinPage from "@/pages/digital-twin";
 import PredictiveEnginePage from "@/pages/predictive-engine";
 import EngineeringExpertisePage from "@/pages/engineering-expertise";
 import MultiAgentTeamPage from "@/pages/multi-agent-team";
+import EquipmentLifecyclePage from "@/pages/equipment-lifecycle";
 import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import MaintenanceDashboard from "@/pages/maintenance-dashboard";
@@ -259,6 +260,9 @@ function Router() {
       </Route>
       <Route path="/multi-agent-team">
         {(params) => <ProtectedRoute component={MultiAgentTeamPage} {...params} />}
+      </Route>
+      <Route path="/equipment-lifecycle">
+        {(params) => <ProtectedRoute component={EquipmentLifecyclePage} {...params} />}
       </Route>
       <Route path="/permit-to-work">
         {(params) => <ProtectedRoute component={PermitToWork} {...params} />}

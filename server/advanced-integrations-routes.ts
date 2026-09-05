@@ -6,7 +6,7 @@
 import type { Express } from "express";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { 
   erpSystems, 
   scadaConnections, 
@@ -287,32 +287,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
     }
   });
 
-  // Get predictions for equipment
-  app.get("/api/equipment/:equipmentId/predictions", async (req, res) => {
-    try {
-      const equipmentId = parseInt(req.params.equipmentId);
-      
-      const predictions = await db
-        .select({
-          prediction: predictivePredictions,
-          model: aiModels,
-        })
-        .from(predictivePredictions)
-        .innerJoin(aiModels, eq(predictivePredictions.modelId, aiModels.id))
-        .where(
-          and(
-            eq(predictivePredictions.equipmentId, equipmentId),
-            gte(predictivePredictions.validUntil, new Date())
-          )
-        )
-        .orderBy(desc(predictivePredictions.createdAt));
-        
-      res.json(predictions);
-    } catch (error) {
-      console.error("Error fetching predictions:", error);
-      res.status(500).json({ error: "Failed to fetch predictions" });
-    }
-  });
+  // GET /api/equipment/:equipmentId/predictions est géré par gmao-routes.ts
+  // (gmaoStorage.getLatestPredictions, enregistré plus tôt).
 
   // Generate new prediction
   app.post("/api/equipment/:equipmentId/predict", async (req, res) => {

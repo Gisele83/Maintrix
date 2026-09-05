@@ -112,6 +112,7 @@ export default function SuperAdminDashboard() {
   const [createdUserCredentials, setCreatedUserCredentials] = useState<{
     user: any;
     temporaryCredentials: any;
+    tenant: any;
     message: string;
     emailSent: boolean;
   } | null>(null);

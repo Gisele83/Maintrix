@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Header } from "@/components/header";
+import { ModernNavigation } from "@/components/modern-navigation";
 import { useLanguage } from "@/hooks/use-language";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -55,7 +55,7 @@ export default function SensorHub() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-        <Header />
+        <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
         </div>
@@ -97,7 +97,7 @@ export default function SensorHub() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-      <Header />
+      <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -40,7 +40,7 @@ export function registerImcaRoutes(app: Express) {
     try {
       const tenantId = (req as any).tenantId || "default-tenant";
       const equipments = await db
-        .select({ id: equipmentRegistry.id, name: equipmentRegistry.name, type: equipmentRegistry.type, status: equipmentRegistry.status })
+        .select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType, status: equipmentRegistry.operationalState })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.tenantId, tenantId))
         .limit(100);

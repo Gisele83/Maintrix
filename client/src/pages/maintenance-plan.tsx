@@ -102,8 +102,14 @@ export default function MaintenancePlanPage() {
   const [filterMonth, setFilterMonth] = useState(0);
   const [showGantt, setShowGantt] = useState(false);
 
-  const { data: plans = [], isLoading } = useQuery<Plan[]>({ queryKey: ["/api/maintenance-plans", year] });
-  const { data: stats } = useQuery<PlanStats>({ queryKey: ["/api/maintenance-plans/stats", year] });
+  const { data: plans = [], isLoading } = useQuery<Plan[]>({
+    queryKey: ["/api/maintenance-plans", year],
+    queryFn: () => apiRequest(`/api/maintenance-plans?year=${year}`),
+  });
+  const { data: stats } = useQuery<PlanStats>({
+    queryKey: ["/api/maintenance-plans/stats", year],
+    queryFn: () => apiRequest(`/api/maintenance-plans/stats?year=${year}`),
+  });
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["/api/maintenance-plans"] }); qc.invalidateQueries({ queryKey: ["/api/maintenance-plans/stats"] }); };
 
   const createMut = useMutation({

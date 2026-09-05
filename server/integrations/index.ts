@@ -242,7 +242,7 @@ export class IntegrationHub {
     }
 
     try {
-      await gmaoStorage.getEquipmentRegistry();
+      await gmaoStorage.getEquipmentRegistry('default-tenant');
       results.database = { success: true, message: 'Database connection successful' };
     } catch (error) {
       results.database = { success: false, message: `Database connection failed: ${error}` };

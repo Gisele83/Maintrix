@@ -139,7 +139,19 @@ export class TenantMiddleware {
 
       // Attach tenant context to request
       req.tenantId = tenant.id;
-      req.tenantData = tenant;
+      req.tenantData = {
+        id: tenant.id,
+        name: tenant.name,
+        plan: tenant.plan,
+        isActive: tenant.isActive ?? false,
+        maxUsers: tenant.maxUsers ?? 1,
+        currentUsers: tenant.currentUsers ?? 0,
+        dataRetentionDays: tenant.dataRetentionDays ?? 365,
+        gdprCompliant: tenant.gdprCompliant ?? false,
+        auditLogsEnabled: tenant.auditLogsEnabled ?? true,
+        settings: tenant.settings,
+        features: tenant.features,
+      };
 
       // CRITIQUE: Définir le tenant_id dans PostgreSQL pour RLS
       await this.setPostgreSQLTenantContext(tenant.id);
@@ -222,7 +234,7 @@ export class TenantMiddleware {
             newValues: responseBody && responseStatusCode < 300 ? responseBody : null,
             ipAddress: req.ip || req.connection.remoteAddress,
             userAgent: req.get('User-Agent'),
-            sessionId: req.sessionID,
+            sessionId: (req as any).sessionID,
             success: responseStatusCode < 400,
             errorMessage: responseStatusCode >= 400 ? responseBody?.message : null,
           });

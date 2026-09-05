@@ -14,9 +14,6 @@ import {
   Sparkles,
   Shield,
   Database,
-  Wrench,
-  AlertTriangle,
-  TrendingUp,
   Cpu
 } from "lucide-react";
 
@@ -148,63 +145,6 @@ export default function FeatureCards() {
               </div>
             </div>
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Quick access stats component
-export function QuickStats() {
-  const stats = [
-    {
-      label: "Équipements Surveillés",
-      value: "24",
-      icon: Cpu,
-      color: "text-blue-600",
-      bg: "bg-blue-100"
-    },
-    {
-      label: "Alertes Actives",
-      value: "7",
-      icon: AlertTriangle,
-      color: "text-red-600",
-      bg: "bg-red-100"
-    },
-    {
-      label: "OT en Cours",
-      value: "12",
-      icon: Wrench,
-      color: "text-orange-600",
-      bg: "bg-orange-100"
-    },
-    {
-      label: "Disponibilité",
-      value: "94.7%",
-      icon: TrendingUp,
-      color: "text-green-600",
-      bg: "bg-green-100"
-    }
-  ];
-
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {stats.map((stat, index) => {
-        const IconComponent = stat.icon;
-        return (
-          <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <IconComponent className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         );
       })}
     </div>

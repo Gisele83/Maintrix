@@ -15,16 +15,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertUserProfileSchema, type UserProfile, type InsertUserProfile } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, User, Phone, Mail, Building, Award } from "lucide-react";
-import { useLanguage } from "@/hooks/use-language";
 
 export default function UserProfiles() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<UserProfile | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
 
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profiles = [], isLoading } = useQuery<UserProfile[]>({
     queryKey: ["/api/user-profiles"],
   });
 
@@ -155,7 +153,7 @@ export default function UserProfiles() {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeColor = (role: string | null) => {
     switch (role) {
       case "admin":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
@@ -168,7 +166,7 @@ export default function UserProfiles() {
     }
   };
 
-  const getExperienceBadgeColor = (level: string) => {
+  const getExperienceBadgeColor = (level: string | null) => {
     switch (level) {
       case "expert":
         return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
@@ -238,7 +236,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="jean.dupont@entreprise.fr" {...field} />
+                          <Input type="email" placeholder="jean.dupont@entreprise.fr" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -254,7 +252,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Prénom</FormLabel>
                         <FormControl>
-                          <Input placeholder="Jean" {...field} />
+                          <Input placeholder="Jean" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -268,7 +266,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Nom</FormLabel>
                         <FormControl>
-                          <Input placeholder="Dupont" {...field} />
+                          <Input placeholder="Dupont" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -283,7 +281,7 @@ export default function UserProfiles() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Rôle *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Sélectionner un rôle" />
@@ -306,7 +304,7 @@ export default function UserProfiles() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Niveau d'expérience</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Niveau d'expérience" />
@@ -332,7 +330,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Département</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Maintenance" {...field} />
+                          <Input placeholder="Ex: Maintenance" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -346,7 +344,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Téléphone</FormLabel>
                         <FormControl>
-                          <Input placeholder="+33 1 23 45 67 89" {...field} />
+                          <Input placeholder="+33 1 23 45 67 89" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -360,7 +358,7 @@ export default function UserProfiles() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Langue préférée</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner une langue" />
@@ -389,7 +387,7 @@ export default function UserProfiles() {
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
@@ -561,7 +559,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Prénom</FormLabel>
                         <FormControl>
-                          <Input placeholder="Jean" {...field} />
+                          <Input placeholder="Jean" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -575,7 +573,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Nom</FormLabel>
                         <FormControl>
-                          <Input placeholder="Dupont" {...field} />
+                          <Input placeholder="Dupont" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -590,7 +588,7 @@ export default function UserProfiles() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="jean.dupont@entreprise.fr" {...field} />
+                        <Input type="email" placeholder="jean.dupont@entreprise.fr" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -604,7 +602,7 @@ export default function UserProfiles() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Rôle</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Sélectionner un rôle" />
@@ -627,7 +625,7 @@ export default function UserProfiles() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Niveau d'expérience</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value ?? undefined}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Niveau d'expérience" />
@@ -653,7 +651,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Département</FormLabel>
                         <FormControl>
-                          <Input placeholder="Ex: Maintenance" {...field} />
+                          <Input placeholder="Ex: Maintenance" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -667,7 +665,7 @@ export default function UserProfiles() {
                       <FormItem>
                         <FormLabel>Téléphone</FormLabel>
                         <FormControl>
-                          <Input placeholder="+33 1 23 45 67 89" {...field} />
+                          <Input placeholder="+33 1 23 45 67 89" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -688,7 +686,7 @@ export default function UserProfiles() {
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          checked={field.value ?? false}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>

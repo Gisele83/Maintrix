@@ -62,6 +62,14 @@ import {
 import { db } from "./db";
 import { eq, ilike, or, and, desc, arrayContains, sql } from "drizzle-orm";
 
+/** IA → Analytics : agrégats réels sur diagnostic_sessions, surfacés dans le Reporting. */
+export interface DiagnosticStats {
+  totalSessions: number;
+  avgConfidence: number;
+  completionRate: number;
+  mlPredictionRate: number;
+}
+
 export interface IStorage {
   // Maintenance Cases
   getMaintenanceCases(): Promise<MaintenanceCase[]>;
@@ -83,6 +91,7 @@ export interface IStorage {
   getDiagnosticSessions(): Promise<DiagnosticSession[]>;
   createDiagnosticSession(data: InsertDiagnosticSession): Promise<DiagnosticSession>;
   updateDiagnosticSession(id: number, updates: Partial<DiagnosticSession>): Promise<DiagnosticSession>;
+  getDiagnosticStats(tenantId: string): Promise<DiagnosticStats>;
 
   // User Profiles
   getUserProfiles(): Promise<UserProfile[]>;
@@ -121,6 +130,7 @@ export interface IStorage {
 
   // GMAO - Work Orders
   getWorkOrders(): Promise<WorkOrder[]>;
+  getWorkOrdersByTenant(tenantId: string): Promise<WorkOrder[]>;
   getWorkOrderById(id: number): Promise<WorkOrder | undefined>;
   getWorkOrdersByEquipment(equipmentId: number): Promise<WorkOrder[]>;
   getWorkOrdersByStatus(status: string): Promise<WorkOrder[]>;
@@ -150,21 +160,21 @@ export interface IStorage {
   createStockMovement(data: InsertStockMovement): Promise<StockMovement>;
 
   // IoT Sensor Data
-  getIotSensorData(equipmentId?: number, sensorType?: string, limit?: number): Promise<IotSensorData[]>;
+  getIotSensorData(equipmentId?: number, limit?: number): Promise<IotSensorData[]>;
   createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData>;
   getLatestSensorData(equipmentId: number): Promise<IotSensorData[]>;
 
   // Predictive Analytics
-  getPredictiveAnalytics(equipmentId?: number): Promise<PredictiveAnalytics[]>;
+  getPredictiveAnalytics(tenantId?: string, limit?: number): Promise<PredictiveAnalytics[]>;
   createPredictiveAnalytics(data: InsertPredictiveAnalytics): Promise<PredictiveAnalytics>;
   getLatestPredictions(equipmentId: number): Promise<PredictiveAnalytics | undefined>;
 
   // KPI Metrics
-  getKpiMetrics(equipmentId?: number, metricType?: string): Promise<KpiMetrics[]>;
+  getKpiMetrics(tenantId?: string, limit?: number): Promise<KpiMetrics[]>;
   createKpiMetrics(data: InsertKpiMetrics): Promise<KpiMetrics>;
 
   // Integration Log
-  getIntegrationLog(systemName?: string): Promise<IntegrationLog[]>;
+  getIntegrationLog(limit?: number): Promise<IntegrationLog[]>;
   createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog>;
 
   // Alerts and Notifications
@@ -174,595 +184,125 @@ export interface IStorage {
   updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
 }
 
-export class MemStorage implements IStorage {
-  private maintenanceCases: Map<number, MaintenanceCase>;
-  private repairProcedures: Map<number, RepairProcedure>;
-  private reportedCases: Map<number, ReportedCase>;
-  private diagnosticSessions: Map<number, DiagnosticSession>;
-  private userProfiles: Map<number, UserProfile>;
-  private feedbackSessions: Map<number, FeedbackSession>;
-  private learningMetrics: Map<string, LearningMetrics>;
-  private modelPerformance: Map<string, ModelPerformance>;
-  private adaptiveLearning: Map<string, AdaptiveLearning>;
-  private currentId: number;
-
-  constructor() {
-    this.maintenanceCases = new Map();
-    this.repairProcedures = new Map();
-    this.reportedCases = new Map();
-    this.diagnosticSessions = new Map();
-    this.userProfiles = new Map();
-    this.feedbackSessions = new Map();
-    this.learningMetrics = new Map();
-    this.modelPerformance = new Map();
-    this.adaptiveLearning = new Map();
-    this.currentId = 1;
-    this.initializeData();
-    this.initializeUserProfiles();
-    this.initializeLearningSystem();
-  }
-
-  private initializeData() {
-    // Initialize with comprehensive maintenance cases based on industrial experience
-    const cases: MaintenanceCase[] = [
-      {
-        id: 1,
-        equipmentType: "moteur",
-        equipmentId: "MOT-001",
-        zone: "production",
-        sector: "Ligne 1",
-        symptoms: "Bruit anormal et vibrations importantes",
-        symptomsChecked: ["bruit_anormal", "vibrations"],
-        diagnosis: "Roulement défectueux",
-        solution: "Remplacer le roulement côté libre, vérifier l'alignement",
-        duration: 135, // 2h 15m
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.92,
-        createdAt: new Date("2024-01-15T14:30:00Z"),
-      },
-      {
-        id: 2,
-        equipmentType: "pompe",
-        equipmentId: "PUMP-A23",
-        zone: "production",
-        sector: "Hydraulique",
-        symptoms: "Fuite hydraulique et pression faible",
-        symptomsChecked: ["fuite", "performance_degradee"],
-        diagnosis: "Joint d'étanchéité usé",
-        solution: "Remplacer les joints d'étanchéité et vérifier la pression",
-        duration: 105, // 1h 45m
-        resolved: true,
-        urgency: "high",
-        confidence: 0.89,
-        createdAt: new Date("2024-01-14T09:15:00Z"),
-      },
-      {
-        id: 3,
-        equipmentType: "convoyeur",
-        equipmentId: "CONV-B12",
-        zone: "conditionnement",
-        sector: "Secteur B",
-        symptoms: "Arrêt intempestif, capteur défaillant",
-        symptomsChecked: ["panne_electrique"],
-        diagnosis: "Capteur de position HS",
-        solution: "Remplacer le capteur de position et recalibrer",
-        duration: 45,
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.95,
-        createdAt: new Date("2024-01-13T16:45:00Z"),
-      },
-      {
-        id: 4,
-        equipmentType: "moteur",
-        equipmentId: "MOT-005",
-        zone: "production",
-        sector: "Ligne 2",
-        symptoms: "Surchauffe moteur, température élevée",
-        symptomsChecked: ["surchauffe"],
-        diagnosis: "Problème de ventilation",
-        solution: "Nettoyer le système de refroidissement, remplacer le ventilateur",
-        duration: 90,
-        resolved: true,
-        urgency: "high",
-        confidence: 0.87,
-        createdAt: new Date("2024-01-12T11:20:00Z"),
-      },
-      {
-        id: 5,
-        equipmentType: "variateur",
-        equipmentId: "VAR-001",
-        zone: "production",
-        sector: "Automatisme",
-        symptoms: "Défaut F001 affichage, moteur ne démarre pas",
-        symptomsChecked: ["panne_electrique"],
-        diagnosis: "Erreur de paramétrage",
-        solution: "Reprogrammer les paramètres par défaut, vérifier les connexions",
-        duration: 60,
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.91,
-        createdAt: new Date("2024-01-11T08:45:00Z"),
-      },
-      {
-        id: 6,
-        equipmentType: "compresseur",
-        equipmentId: "COMP-A1",
-        zone: "utilites",
-        sector: "Air comprimé",
-        symptoms: "Pression instable, fuite d'air audible",
-        symptomsChecked: ["fuite", "performance_degradee"],
-        diagnosis: "Clapet anti-retour défaillant",
-        solution: "Remplacer le clapet anti-retour, purger le circuit",
-        duration: 120,
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.85,
-        createdAt: new Date("2024-01-10T15:30:00Z"),
-      },
-      {
-        id: 7,
-        equipmentType: "capteur",
-        equipmentId: "TEMP-01",
-        zone: "production",
-        sector: "Four",
-        symptoms: "Lecture de température incohérente",
-        symptomsChecked: ["panne_electrique"],
-        diagnosis: "Sonde de température défaillante",
-        solution: "Remplacer la sonde PT100, étalonner le système",
-        duration: 75,
-        resolved: true,
-        urgency: "high",
-        confidence: 0.93,
-        createdAt: new Date("2024-01-09T13:15:00Z"),
-      },
-      {
-        id: 8,
-        equipmentType: "pompe",
-        equipmentId: "PUMP-B15",
-        zone: "stockage",
-        sector: "Transfert",
-        symptoms: "Débit réduit, bruit de cavitation",
-        symptomsChecked: ["bruit_anormal", "performance_degradee"],
-        diagnosis: "Amorçage déficient",
-        solution: "Vérifier l'aspiration, purger l'air, contrôler le niveau",
-        duration: 50,
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.88,
-        createdAt: new Date("2024-01-08T10:00:00Z"),
-      },
-
-      // === ÉQUIPEMENTS DE LEVAGE PORTUAIRE ===
-
-      // Grue STS (Ship to Shore) - Cas 9
-      {
-        id: 9,
-        equipmentType: "sts",
-        equipmentId: "STS-003",
-        zone: "exterieur",
-        sector: "Terminal à conteneurs",
-        symptoms: "Désalignement du trolley et balancement excessif du bloc de charge lors des opérations de levage",
-        symptomsChecked: ["trolley_misalignment", "load_block_swing"],
-        diagnosis: "Défaut d'alignement des rails du trolley et usure des guides anti-balancement",
-        solution: "1. Arrêter immédiatement les opérations. 2. Contrôler l'alignement des rails avec un théodolite. 3. Ajuster les rails et remplacer les guides anti-balancement. 4. Calibrer le système de positionnement du trolley. 5. Test complet avant remise en service.",
-        duration: 480, // 8h - intervention lourde
-        resolved: true,
-        urgency: "high",
-        confidence: 0.94,
-        createdAt: new Date("2024-01-20T06:00:00Z"),
-      },
-
-      // Grue RTG (Rubber Tired Gantry) - Cas 10
-      {
-        id: 10,
-        equipmentType: "rtg",
-        equipmentId: "RTG-012",
-        zone: "stockage",
-        sector: "Parc à conteneurs Zone A",
-        symptoms: "Moteur diesel qui cale fréquemment et consommation de carburant anormalement élevée",
-        symptomsChecked: ["diesel_engine_fault", "fuel_consumption_high"],
-        diagnosis: "Encrassement du système d'injection et filtre à air colmaté",
-        solution: "1. Nettoyer ou remplacer le filtre à air. 2. Nettoyer les injecteurs diesel. 3. Vérifier et nettoyer le circuit d'admission d'air. 4. Contrôler la qualité du carburant. 5. Réglage paramètres injection. 6. Test de performance moteur.",
-        duration: 240, // 4h
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.88,
-        createdAt: new Date("2024-01-19T08:30:00Z"),
-      },
-
-      // Reach Stacker - Cas 11
-      {
-        id: 11,
-        equipmentType: "reach_stacker",
-        equipmentId: "RS-007",
-        zone: "stockage",
-        sector: "Zone stockage vides",
-        symptoms: "Défaut d'inclinaison du mât et fuite hydraulique importante au niveau du circuit de portée",
-        symptomsChecked: ["mast_tilt_fault", "reach_hydraulic_leak"],
-        diagnosis: "Vérin d'inclinaison défaillant et fuite sur flexible hydraulique haute pression",
-        solution: "1. Sécuriser la zone et abaisser complètement le mât. 2. Remplacer le vérin d'inclinaison du mât. 3. Remplacer le flexible hydraulique défaillant. 4. Purger le circuit hydraulique. 5. Calibrer les capteurs d'inclinaison. 6. Test fonctionnel complet.",
-        duration: 360, // 6h
-        resolved: true,
-        urgency: "high",
-        confidence: 0.91,
-        createdAt: new Date("2024-01-18T10:15:00Z"),
-      },
-
-      // Grue Mobile Portuaire - Cas 12
-      {
-        id: 12,
-        equipmentType: "grue_mobile",
-        equipmentId: "GMH-005",
-        zone: "reception",
-        sector: "Quai de déchargement",
-        symptoms: "Défaillance des stabilisateurs et alerte constante du système de moment de charge",
-        symptomsChecked: ["outrigger_malfunction", "load_moment_warning"],
-        diagnosis: "Capteur de pression stabilisateur défectueux et calibrage système LMI (Load Moment Indicator) incorrect",
-        solution: "1. Arrêt immédiat des opérations de levage. 2. Vérifier l'extension complète des stabilisateurs. 3. Remplacer le capteur de pression défaillant. 4. Recalibrer le système LMI avec charges d'étalonnage. 5. Test de tous les dispositifs de sécurité. 6. Formation opérateur sur nouveaux paramètres.",
-        duration: 300, // 5h
-        resolved: true,
-        urgency: "high",
-        confidence: 0.93,
-        createdAt: new Date("2024-01-17T07:45:00Z"),
-      },
-
-      // Straddle Carrier - Cas 13
-      {
-        id: 13,
-        equipmentType: "straddle_carrier",
-        equipmentId: "SC-009",
-        zone: "stockage",
-        sector: "Terminal intermodal",
-        symptoms: "Problème d'alignement des jambes et dérive en direction lors des déplacements",
-        symptomsChecked: ["leg_alignment_issue", "steering_drift"],
-        diagnosis: "Usure des articulations des jambes et déréglage du système de direction",
-        solution: "1. Immobiliser l'équipement en position sécurisée. 2. Remplacer les articulations usées des jambes. 3. Contrôler et ajuster la géométrie de direction. 4. Vérifier l'usure des pneumatiques et pression. 5. Calibrer le système de direction assistée. 6. Test de manœuvrabilité.",
-        duration: 420, // 7h
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.87,
-        createdAt: new Date("2024-01-16T09:00:00Z"),
-      },
-
-      // Spreader Automatique - Cas 14
-      {
-        id: 14,
-        equipmentType: "spreader",
-        equipmentId: "SPR-004",
-        zone: "production",
-        sector: "Poste de manutention",
-        symptoms: "Coincement des twist-locks et fissure détectée sur le châssis du spreader",
-        symptomsChecked: ["twist_lock_jam", "spreader_frame_crack"],
-        diagnosis: "Usure excessive des mécanismes twist-lock et fatigue structurelle du châssis",
-        solution: "1. Mise hors service immédiate pour sécurité. 2. Démontage complet des twist-locks pour nettoyage et remplacement des pièces usées. 3. Soudure réparatrice de la fissure châssis par soudeur certifié. 4. Contrôle non destructif de la soudure. 5. Test de fonctionnement et certification. 6. Mise à jour du carnet de maintenance.",
-        duration: 600, // 10h - intervention critique
-        resolved: true,
-        urgency: "high",
-        confidence: 0.96,
-        createdAt: new Date("2024-01-15T06:30:00Z"),
-      },
-
-      // Grue STS - Cas de capteur vent - Cas 15
-      {
-        id: 15,
-        equipmentType: "sts",
-        equipmentId: "STS-001",
-        zone: "exterieur",
-        sector: "Terminal principal",
-        symptoms: "Défaut du capteur de vent et désactivation du système anti-collision",
-        symptomsChecked: ["wind_sensor_fault", "anti_collision_fault"],
-        diagnosis: "Capteur anémométrique défaillant et perte de communication système anti-collision",
-        solution: "1. Restriction des opérations par vent fort. 2. Remplacer le capteur anémométrique. 3. Vérifier le câblage du système anti-collision. 4. Tester la communication entre grues. 5. Calibrage des seuils de vent. 6. Formation équipes sécurité.",
-        duration: 180, // 3h
-        resolved: true,
-        urgency: "high",
-        confidence: 0.89,
-        createdAt: new Date("2024-01-14T14:20:00Z"),
-      },
-
-      // RTG - Cas pneumatiques et spreader - Cas 16
-      {
-        id: 16,
-        equipmentType: "rtg",
-        equipmentId: "RTG-008",
-        zone: "stockage",
-        sector: "Parc conteneurs Zone B",
-        symptoms: "Usure avancée des pneumatiques et blocage des twist-locks du spreader",
-        symptomsChecked: ["tire_wear", "spreader_twist_lock"],
-        diagnosis: "Pneumatiques en fin de vie et mécanisme twist-lock encrassé",
-        solution: "1. Immobilisation pour sécurité. 2. Remplacement des 8 pneumatiques. 3. Démontage et nettoyage complet des twist-locks. 4. Lubrification des mécanismes. 5. Vérification géométrie roues. 6. Test de manutention conteneur.",
-        duration: 480, // 8h
-        resolved: true,
-        urgency: "medium",
-        confidence: 0.92,
-        createdAt: new Date("2024-01-13T11:00:00Z"),
-      }
-    ];
-
-    cases.forEach(maintenanceCase => {
-      this.maintenanceCases.set(maintenanceCase.id, maintenanceCase);
-    });
-
-    // Initialize repair procedures
-    const procedures: RepairProcedure[] = [
-      {
-        id: 1,
-        caseId: 1,
-        stepNumber: 1,
-        title: "Consignation électrique",
-        titleEn: "Electrical lockout",
-        description: "Couper l'alimentation principale et apposer les étiquettes de consignation.",
-        descriptionEn: "Cut main power supply and apply lockout tags.",
-        safetyWarning: "Vérifier l'absence de tension avant toute intervention",
-        safetyWarningEn: "Verify absence of voltage before any intervention",
-        toolsRequired: ["Voltmètre", "Étiquettes de consignation"],
-        toolsRequiredEn: ["Voltmeter", "Lockout tags"],
-        estimatedTime: 15,
-        isCompleted: true,
-      },
-      {
-        id: 2,
-        caseId: 1,
-        stepNumber: 2,
-        title: "Dépose du capot moteur",
-        titleEn: "Remove motor cover",
-        description: "Retirer les vis de fixation du capot et accéder au roulement côté libre.",
-        descriptionEn: "Remove cover fixing screws and access the free-end bearing.",
-        toolsRequired: ["Clés Allen", "Tournevis cruciforme"],
-        toolsRequiredEn: ["Allen keys", "Phillips screwdriver"],
-        estimatedTime: 20,
-        isCompleted: true,
-      },
-      {
-        id: 3,
-        caseId: 1,
-        stepNumber: 3,
-        title: "Extraction du roulement défaillant",
-        titleEn: "Extract faulty bearing",
-        description: "Utiliser l'extracteur de roulement pour retirer le roulement côté libre de l'arbre moteur.",
-        descriptionEn: "Use bearing puller to remove the free-end bearing from motor shaft.",
-        toolsRequired: ["Extracteur de roulement", "Marteau en plastique", "Dégrippant"],
-        toolsRequiredEn: ["Bearing puller", "Plastic hammer", "Penetrating oil"],
-        estimatedTime: 30,
-        isCompleted: false,
-      }
-    ];
-
-    procedures.forEach(procedure => {
-      this.repairProcedures.set(procedure.id, procedure);
-    });
-
-    this.currentId = 20;
-  }
-
-  private initializeUserProfiles() {
-    // Initialize with sample user profiles for development
-    const profiles: UserProfile[] = [
-      {
-        id: 1,
-        username: "marc.dupont",
-        firstName: "Marc",
-        lastName: "Dupont",
-        email: "marc.dupont@entreprise.fr",
-        role: "supervisor",
-        department: "Maintenance",
-        phoneNumber: "+33 1 23 45 67 89",
-        preferredLanguage: "fr",
-        specializations: ["Moteurs électriques", "Systèmes hydrauliques", "Automatisation"],
-        experienceLevel: "expert",
-        isActive: true,
-        lastLogin: new Date("2024-07-15T08:30:00Z"),
-        createdAt: new Date("2024-01-15T09:00:00Z"),
-        updatedAt: new Date("2024-07-15T08:30:00Z"),
-      },
-      {
-        id: 2,
-        username: "sarah.martin",
-        firstName: "Sarah",
-        lastName: "Martin",
-        email: "sarah.martin@entreprise.fr",
-        role: "technician",
-        department: "Production",
-        phoneNumber: "+33 1 23 45 67 90",
-        preferredLanguage: "fr",
-        specializations: ["Convoyeurs", "Emballage", "Contrôle qualité"],
-        experienceLevel: "intermediate",
-        isActive: true,
-        lastLogin: new Date("2024-07-16T07:45:00Z"),
-        createdAt: new Date("2024-02-01T10:00:00Z"),
-        updatedAt: new Date("2024-07-16T07:45:00Z"),
-      },
-      {
-        id: 3,
-        username: "thomas.bernard",
-        firstName: "Thomas",
-        lastName: "Bernard",
-        email: "thomas.bernard@entreprise.fr",
-        role: "technician",
-        department: "Maintenance",
-        phoneNumber: "+33 1 23 45 67 91",
-        preferredLanguage: "fr",
-        specializations: ["Pneumatique", "Mécanique générale"],
-        experienceLevel: "beginner",
-        isActive: true,
-        lastLogin: new Date("2024-07-16T06:00:00Z"),
-        createdAt: new Date("2024-06-01T08:00:00Z"),
-        updatedAt: new Date("2024-07-16T06:00:00Z"),
-      },
-    ];
-
-    profiles.forEach(profile => {
-      this.userProfiles.set(profile.id, profile);
-    });
-
-    // Update currentId to be higher than existing IDs
-    this.currentId = Math.max(this.currentId, ...profiles.map(p => p.id)) + 1;
-  }
-
-  // Maintenance Cases
-  async getMaintenanceCases(): Promise<MaintenanceCase[]> {
-    return Array.from(this.maintenanceCases.values());
-  }
-
-  async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
-    return this.maintenanceCases.get(id);
-  }
-
-  async createMaintenanceCase(data: InsertMaintenanceCase): Promise<MaintenanceCase> {
-    const id = this.currentId++;
-    const maintenanceCase: MaintenanceCase = {
-      ...data,
-      id,
-      createdAt: new Date(),
-    };
-    this.maintenanceCases.set(id, maintenanceCase);
-    return maintenanceCase;
-  }
-
-  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]> {
-    const cases = Array.from(this.maintenanceCases.values());
-    
-    return cases.filter(maintenanceCase => {
-      if (query.equipmentType && maintenanceCase.equipmentType !== query.equipmentType) {
-        return false;
-      }
-      
-      if (query.symptoms && query.symptoms.length > 0) {
-        const caseSymptoms = maintenanceCase.symptomsChecked || [];
-        const matchingSymptoms = query.symptoms.filter(symptom => 
-          caseSymptoms.includes(symptom) || 
-          maintenanceCase.symptoms.toLowerCase().includes(symptom.toLowerCase())
-        );
-        return matchingSymptoms.length > 0;
-      }
-      
-      return true;
-    });
-  }
-
-  // Repair Procedures
-  async getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]> {
-    const procedures = Array.from(this.repairProcedures.values());
-    return procedures.filter(proc => proc.caseId === caseId).sort((a, b) => a.stepNumber - b.stepNumber);
-  }
-
-  async createRepairProcedure(data: InsertRepairProcedure): Promise<RepairProcedure> {
-    const id = this.currentId++;
-    const procedure: RepairProcedure = { ...data, id };
-    this.repairProcedures.set(id, procedure);
-    return procedure;
-  }
-
-  async updateRepairProcedureCompletion(id: number, completed: boolean): Promise<RepairProcedure> {
-    const procedure = this.repairProcedures.get(id);
-    if (!procedure) {
-      throw new Error(`Repair procedure with id ${id} not found`);
-    }
-    procedure.isCompleted = completed;
-    this.repairProcedures.set(id, procedure);
-    return procedure;
-  }
-
-  // Reported Cases
-  async getReportedCases(): Promise<ReportedCase[]> {
-    return Array.from(this.reportedCases.values());
-  }
-
-  async createReportedCase(data: InsertReportedCase): Promise<ReportedCase> {
-    const id = this.currentId++;
-    const reportedCase: ReportedCase = {
-      ...data,
-      id,
-      status: "pending",
-      createdAt: new Date(),
-    };
-    this.reportedCases.set(id, reportedCase);
-    return reportedCase;
-  }
-
-  async updateReportedCaseStatus(id: number, status: string): Promise<ReportedCase> {
-    const reportedCase = this.reportedCases.get(id);
-    if (!reportedCase) {
-      throw new Error(`Reported case with id ${id} not found`);
-    }
-    reportedCase.status = status;
-    this.reportedCases.set(id, reportedCase);
-    return reportedCase;
-  }
-
-  // Diagnostic Sessions
-  async getDiagnosticSessions(): Promise<DiagnosticSession[]> {
-    return Array.from(this.diagnosticSessions.values());
-  }
-
-  async createDiagnosticSession(data: InsertDiagnosticSession): Promise<DiagnosticSession> {
-    const id = this.currentId++;
-    const session: DiagnosticSession = {
-      ...data,
-      id,
-      status: "pending",
-      createdAt: new Date(),
-    };
-    this.diagnosticSessions.set(id, session);
-    return session;
-  }
-
-  async updateDiagnosticSession(id: number, updates: Partial<DiagnosticSession>): Promise<DiagnosticSession> {
-    const session = this.diagnosticSessions.get(id);
-    if (!session) {
-      throw new Error(`Diagnostic session with id ${id} not found`);
-    }
-    Object.assign(session, updates);
-    this.diagnosticSessions.set(id, session);
-    return session;
-  }
-
-  // User Profile Methods
-  async getUserProfiles(): Promise<UserProfile[]> {
-    return Array.from(this.userProfiles.values());
-  }
-
-  async getUserProfileById(id: number): Promise<UserProfile | undefined> {
-    return this.userProfiles.get(id);
-  }
-
-  async getUserProfileByUsername(username: string): Promise<UserProfile | undefined> {
-    return Array.from(this.userProfiles.values()).find(profile => profile.username === username);
-  }
-
-  async createUserProfile(data: InsertUserProfile): Promise<UserProfile> {
-    const id = this.currentId++;
-    const userProfile: UserProfile = {
-      ...data,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      lastLogin: null,
-    };
-    this.userProfiles.set(id, userProfile);
-    return userProfile;
-  }
-
-  async updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile> {
-    const existing = this.userProfiles.get(id);
-    if (!existing) {
-      throw new Error("User profile not found");
-    }
-    const updated = { ...existing, ...updates, updatedAt: new Date() };
-    this.userProfiles.set(id, updated);
-    return updated;
-  }
-
-  async deleteUserProfile(id: number): Promise<boolean> {
-    return this.userProfiles.delete(id);
-  }
-}
-
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
-  
+
+  // Continuous Learning System — implémentations manquantes découvertes lors de l'audit des
+  // erreurs TypeScript : ces méthodes étaient appelées par server/routes.ts (feedback,
+  // apprentissage, performance des modèles) mais n'existaient nulle part sur DatabaseStorage —
+  // chaque appel plantait avec un TypeError à l'exécution.
+  async createFeedbackSession(data: InsertFeedbackSession): Promise<FeedbackSession> {
+    const [record] = await db.insert(feedbackSessions).values(data).returning();
+    return record;
+  }
+
+  async getFeedbackSessions(): Promise<FeedbackSession[]> {
+    return await db.select().from(feedbackSessions).orderBy(desc(feedbackSessions.createdAt));
+  }
+
+  async getFeedbackBySessionId(sessionId: number): Promise<FeedbackSession | undefined> {
+    const [record] = await db.select().from(feedbackSessions).where(eq(feedbackSessions.sessionId, sessionId));
+    return record;
+  }
+
+  // Learning Metrics
+  async getLearningMetrics(): Promise<LearningMetrics[]> {
+    return await db.select().from(learningMetrics).orderBy(desc(learningMetrics.lastUpdated));
+  }
+
+  async getLearningMetricsByEquipment(equipmentType: string): Promise<LearningMetrics[]> {
+    return await db.select().from(learningMetrics).where(eq(learningMetrics.equipmentType, equipmentType));
+  }
+
+  async updateLearningMetrics(equipmentType: string, symptomPattern: string, wasSuccessful: boolean): Promise<void> {
+    const [existing] = await db.select().from(learningMetrics)
+      .where(and(eq(learningMetrics.equipmentType, equipmentType), eq(learningMetrics.symptomPattern, symptomPattern)));
+
+    if (existing) {
+      const totalCases = (existing.totalCases ?? 0) + 1;
+      const successfulCases = (existing.successfulCases ?? 0) + (wasSuccessful ? 1 : 0);
+      await db.update(learningMetrics).set({
+        totalCases,
+        successfulCases,
+        successRate: totalCases > 0 ? successfulCases / totalCases : 0,
+        lastUpdated: new Date(),
+      }).where(eq(learningMetrics.id, existing.id));
+    } else {
+      await db.insert(learningMetrics).values({
+        equipmentType,
+        symptomPattern,
+        totalCases: 1,
+        successfulCases: wasSuccessful ? 1 : 0,
+        successRate: wasSuccessful ? 1 : 0,
+      });
+    }
+  }
+
+  // Model Performance Tracking
+  async getModelPerformance(): Promise<ModelPerformance[]> {
+    return await db.select().from(modelPerformance).orderBy(desc(modelPerformance.trainingDate));
+  }
+
+  async updateModelPerformance(data: InsertModelPerformance): Promise<ModelPerformance> {
+    const [record] = await db.insert(modelPerformance).values(data).returning();
+    return record;
+  }
+
+  // Adaptive Learning
+  async getAdaptiveLearning(): Promise<AdaptiveLearning[]> {
+    return await db.select().from(adaptiveLearning).orderBy(desc(adaptiveLearning.lastUpdate));
+  }
+
+  async getAdaptiveLearningByEquipment(equipmentType: string): Promise<AdaptiveLearning | undefined> {
+    const [record] = await db.select().from(adaptiveLearning).where(eq(adaptiveLearning.equipmentType, equipmentType));
+    return record;
+  }
+
+  async updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void> {
+    const [existing] = await db.select().from(adaptiveLearning).where(eq(adaptiveLearning.equipmentType, equipmentType));
+    if (existing) {
+      await db.update(adaptiveLearning).set({ ...learningData, lastUpdate: new Date() })
+        .where(eq(adaptiveLearning.id, existing.id));
+    } else {
+      await db.insert(adaptiveLearning).values({ equipmentType, ...learningData });
+    }
+  }
+
+  // Alerts and Notifications
+  async createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
+    const [record] = await db.insert(alertsNotifications).values(data).returning();
+    return record;
+  }
+
+  async updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
+    const [record] = await db.update(alertsNotifications).set(updates).where(eq(alertsNotifications.id, id)).returning();
+    if (!record) throw new Error(`Alert with id ${id} not found`);
+    return record;
+  }
+
+  async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
+    return await db.select().from(alertsNotifications)
+      .where(eq(alertsNotifications.equipmentId, equipmentId))
+      .orderBy(desc(alertsNotifications.createdAt));
+  }
+
+  // Dernière lecture capteur / prédiction par équipement (utilisées pour des vues détail,
+  // distinctes des listes paginées getIotSensorData / getPredictiveAnalytics ci-dessous).
+  async getLatestSensorData(equipmentId: number): Promise<IotSensorData[]> {
+    return await db.select().from(iotSensorData)
+      .where(eq(iotSensorData.equipmentId, equipmentId))
+      .orderBy(desc(iotSensorData.timestamp))
+      .limit(50);
+  }
+
+  async getLatestPredictions(equipmentId: number): Promise<PredictiveAnalytics | undefined> {
+    const [record] = await db.select().from(predictiveAnalytics)
+      .where(eq(predictiveAnalytics.equipmentId, equipmentId))
+      .orderBy(desc(predictiveAnalytics.predictionDate))
+      .limit(1);
+    return record;
+  }
+
   // GMAO - Equipment Registry
   async getEquipmentRegistry(): Promise<EquipmentRegistry[]> {
     return await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
@@ -779,7 +319,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEquipment(data: InsertEquipmentRegistry): Promise<EquipmentRegistry> {
-    const [equipment] = await db.insert(equipmentRegistry).values(data).returning();
+    // insertEquipmentRegistrySchema documente equipmentId comme optionnel ("auto-generated"
+    // côté appelant) — c'est ici, au seul point d'écriture réel, qu'il faut tenir cette promesse.
+    const equipmentId = data.equipmentId || `EQ-${Date.now().toString(36).toUpperCase()}`;
+    const [equipment] = await db.insert(equipmentRegistry).values({ ...data, equipmentId }).returning();
     return equipment;
   }
 
@@ -801,8 +344,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchEquipment(query: { equipmentType?: string; zone?: string; sector?: string }): Promise<EquipmentRegistry[]> {
-    let baseQuery = db.select().from(equipmentRegistry);
-
     const conditions = [];
     if (query.equipmentType) {
       conditions.push(ilike(equipmentRegistry.equipmentType, `%${query.equipmentType}%`));
@@ -814,16 +355,20 @@ export class DatabaseStorage implements IStorage {
       conditions.push(ilike(equipmentRegistry.sector, `%${query.sector}%`));
     }
 
-    if (conditions.length > 0) {
-      baseQuery = baseQuery.where(and(...conditions));
-    }
-
-    return await baseQuery.orderBy(desc(equipmentRegistry.createdAt));
+    return await db.select().from(equipmentRegistry)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(equipmentRegistry.createdAt));
   }
 
   // Work Orders - GMAO methods placeholders
   async getWorkOrders(): Promise<WorkOrder[]> {
     return await db.select().from(workOrders).orderBy(desc(workOrders.createdAt));
+  }
+
+  async getWorkOrdersByTenant(tenantId: string): Promise<WorkOrder[]> {
+    return await db.select().from(workOrders)
+      .where(eq(workOrders.tenantId, tenantId))
+      .orderBy(desc(workOrders.createdAt));
   }
 
   async getWorkOrderById(id: number): Promise<WorkOrder | undefined> {
@@ -850,7 +395,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
-    const [order] = await db.insert(workOrders).values(data).returning();
+    // insertWorkOrderSchema omet orderNumber avec le commentaire "Auto-generated by storage
+    // layer" — même convention que gmao-storage.ts::createWorkOrder pour rester cohérent.
+    const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    // cost/laborCost/materialCost/externalCost sont number côté API (insertWorkOrderSchema)
+    // mais decimal (string) côté colonne Postgres/Drizzle — conversion au seul point d'écriture.
+    const { cost, laborCost, materialCost, externalCost, ...rest } = data;
+    const [order] = await db.insert(workOrders).values({
+      ...rest,
+      orderNumber,
+      cost: cost != null ? String(cost) : undefined,
+      laborCost: laborCost != null ? String(laborCost) : undefined,
+      materialCost: materialCost != null ? String(materialCost) : undefined,
+      externalCost: externalCost != null ? String(externalCost) : undefined,
+    }).returning();
     return order;
   }
 
@@ -922,7 +480,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(preventiveMaintenancePlans)
       .where(eq(preventiveMaintenancePlans.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getSpareParts(): Promise<SparePart[]> {
@@ -1060,7 +618,7 @@ export class DatabaseStorage implements IStorage {
   async getIntegrationLog(limit = 200): Promise<IntegrationLog[]> {
     try {
       return await db.select().from(integrationLog)
-        .orderBy(desc(integrationLog.createdAt)).limit(limit);
+        .orderBy(desc(integrationLog.processedAt)).limit(limit);
     } catch (error) {
       console.error('getIntegrationLog error:', error);
       return [];
@@ -1097,14 +655,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {
-    try {
-      return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
-    } catch (error) {
-      // In legacy mode, the table might not have tenant_id column yet
-      console.log("Falling back to legacy mode for maintenance cases");
-      // Return the in-memory data as fallback
-      return this.maintenance_cases;
-    }
+    return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
   }
 
   async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
@@ -1224,11 +775,36 @@ export class DatabaseStorage implements IStorage {
       .set(updates)
       .where(eq(diagnosticSessions.id, id))
       .returning();
-    
+
     if (!session) {
       throw new Error(`Diagnostic session with id ${id} not found`);
     }
     return session;
+  }
+
+  /**
+   * IA → Analytics : agrégats réels sur diagnostic_sessions pour ce tenant. Scoping identique à
+   * getEquipment/getWorkOrders (eq(tenantId, ...)) — ne pas imiter le pattern non-scopé de
+   * getKpiMetrics/getBudgets. Les sessions à tenantId null (ancien chemin d'écriture legacy) ne
+   * sont délibérément pas comptées ici : les mélanger à un tenant précis serait une fuite.
+   */
+  async getDiagnosticStats(tenantId: string): Promise<DiagnosticStats> {
+    const [row] = await db
+      .select({
+        totalSessions: sql<number>`COUNT(*)`,
+        avgConfidence: sql<number>`COALESCE(AVG(${diagnosticSessions.confidence}), 0)`,
+        completionRate: sql<number>`COALESCE(AVG(CASE WHEN ${diagnosticSessions.status} = 'completed' THEN 1.0 ELSE 0.0 END) * 100, 0)`,
+        mlPredictionRate: sql<number>`COALESCE(AVG(CASE WHEN ${diagnosticSessions.mlPrediction} = true THEN 1.0 ELSE 0.0 END) * 100, 0)`,
+      })
+      .from(diagnosticSessions)
+      .where(eq(diagnosticSessions.tenantId, tenantId));
+
+    return {
+      totalSessions: Number(row?.totalSessions ?? 0),
+      avgConfidence: Number(row?.avgConfidence ?? 0),
+      completionRate: Math.round(Number(row?.completionRate ?? 0)),
+      mlPredictionRate: Math.round(Number(row?.mlPredictionRate ?? 0)),
+    };
   }
 
   // User Profile Methods for DatabaseStorage
@@ -1271,193 +847,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(userProfiles)
       .where(eq(userProfiles.id, id));
-    return result.rowCount > 0;
-  }
-}
-
-export class MemStorageWithLearning extends MemStorage {
-  // Initialize Learning System
-  private initializeLearningSystem() {
-    // Initialize learning metrics for each equipment type
-    const equipmentTypes = ["moteur", "pompe", "compresseur", "convoyeur", "variateur", "capteur", 
-                           "sts", "rtg", "grue_mobile", "reach_stacker", "straddle_carrier", "spreader"];
-    
-    equipmentTypes.forEach(equipmentType => {
-      // Learning metrics
-      const metrics: LearningMetrics = {
-        id: this.currentId++,
-        equipmentType,
-        symptomPattern: "general",
-        successRate: 0.75, // Start with 75% baseline
-        avgConfidence: 0.80,
-        totalCases: 0,
-        successfulCases: 0,
-        lastUpdated: new Date(),
-        improvementSuggestions: []
-      };
-      this.learningMetrics.set(`${equipmentType}_general`, metrics);
-
-      // Adaptive learning
-      const adaptive: AdaptiveLearning = {
-        id: this.currentId++,
-        equipmentType,
-        symptomKeywords: this.getInitialKeywords(equipmentType),
-        commonFailures: this.getCommonFailures(equipmentType),
-        seasonalPatterns: {},
-        zoneSpecificIssues: {},
-        learningWeight: 1.0,
-        confidenceAdjustment: 0,
-        lastUpdate: new Date()
-      };
-      this.adaptiveLearning.set(equipmentType, adaptive);
-    });
-  }
-
-  private getInitialKeywords(equipmentType: string): any {
-    const keywords = {
-      "moteur": ["vibration", "bruit", "surchauffe", "roulement", "alignement"],
-      "pompe": ["cavitation", "joint", "étanchéité", "débit", "pression"],
-      "sts": ["trolley", "câble", "spreader", "rail", "collision"],
-      "rtg": ["pneumatique", "diesel", "hydraulique", "twist-lock"],
-      "grue_mobile": ["stabilisateur", "flèche", "charge", "orientation"],
-      "reach_stacker": ["mât", "hydraulique", "transmission", "refroidissement"],
-      "straddle_carrier": ["jambe", "direction", "guide", "hydraulique"],
-      "spreader": ["twist-lock", "châssis", "télescopage", "vérin"]
-    };
-    return keywords[equipmentType] || ["général", "panne", "défaut"];
-  }
-
-  private getCommonFailures(equipmentType: string): any {
-    const failures = {
-      "moteur": ["roulement usé", "désalignement", "surcharge thermique"],
-      "pompe": ["joint défaillant", "cavitation", "usure rotor"],
-      "sts": ["désalignement trolley", "usure câbles", "défaut spreader"],
-      "rtg": ["usure pneumatiques", "problème moteur diesel", "fuite hydraulique"],
-      "grue_mobile": ["problème stabilisateurs", "usure flèche", "surcharge"],
-      "reach_stacker": ["défaut mât", "fuite hydraulique", "surchauffe transmission"],
-      "straddle_carrier": ["problème jambes", "défaut direction", "usure guides"],
-      "spreader": ["blocage twist-locks", "défaut châssis", "problème télescopage"]
-    };
-    return failures[equipmentType] || ["panne générale"];
-  }
-
-  // Continuous Learning Methods
-  async createFeedbackSession(data: InsertFeedbackSession): Promise<FeedbackSession> {
-    const id = this.currentId++;
-    const feedback: FeedbackSession = { ...data, id, createdAt: new Date() };
-    this.feedbackSessions.set(id, feedback);
-    
-    // Auto-update learning metrics based on feedback
-    if (data.sessionId) {
-      const session = this.diagnosticSessions.get(data.sessionId);
-      if (session) {
-        await this.updateLearningMetrics(
-          session.equipmentType, 
-          session.symptoms, 
-          data.wasAccurate || false
-        );
-      }
-    }
-    
-    return feedback;
-  }
-
-  async getFeedbackSessions(): Promise<FeedbackSession[]> {
-    return Array.from(this.feedbackSessions.values());
-  }
-
-  async getFeedbackBySessionId(sessionId: number): Promise<FeedbackSession | undefined> {
-    return Array.from(this.feedbackSessions.values())
-      .find(f => f.sessionId === sessionId);
-  }
-
-  async getLearningMetrics(): Promise<LearningMetrics[]> {
-    return Array.from(this.learningMetrics.values());
-  }
-
-  async getLearningMetricsByEquipment(equipmentType: string): Promise<LearningMetrics[]> {
-    return Array.from(this.learningMetrics.values())
-      .filter(m => m.equipmentType === equipmentType);
-  }
-
-  async updateLearningMetrics(equipmentType: string, symptomPattern: string, wasSuccessful: boolean): Promise<void> {
-    const key = `${equipmentType}_general`;
-    let metrics = this.learningMetrics.get(key);
-    
-    if (!metrics) {
-      metrics = {
-        id: this.currentId++,
-        equipmentType,
-        symptomPattern: "general",
-        successRate: 0.75,
-        avgConfidence: 0.80,
-        totalCases: 0,
-        successfulCases: 0,
-        lastUpdated: new Date(),
-        improvementSuggestions: []
-      };
-    }
-
-    metrics.totalCases++;
-    if (wasSuccessful) {
-      metrics.successfulCases++;
-    }
-    
-    metrics.successRate = (metrics.successfulCases / metrics.totalCases) * 100;
-    metrics.lastUpdated = new Date();
-    
-    // Generate improvement suggestions based on performance
-    if (metrics.successRate < 70) {
-      metrics.improvementSuggestions = [
-        "Collecter plus de données historiques pour cet équipement",
-        "Améliorer la description des symptômes",
-        "Réentraîner le modèle ML avec de nouveaux cas"
-      ];
-    }
-    
-    this.learningMetrics.set(key, metrics);
-  }
-
-  async getModelPerformance(): Promise<ModelPerformance[]> {
-    return Array.from(this.modelPerformance.values());
-  }
-
-  async updateModelPerformance(data: InsertModelPerformance): Promise<ModelPerformance> {
-    const id = this.currentId++;
-    const key = `${data.modelType}_${data.equipmentType}`;
-    const performance: ModelPerformance = { ...data, id, trainingDate: new Date() };
-    this.modelPerformance.set(key, performance);
-    return performance;
-  }
-
-  async getAdaptiveLearning(): Promise<AdaptiveLearning[]> {
-    return Array.from(this.adaptiveLearning.values());
-  }
-
-  async getAdaptiveLearningByEquipment(equipmentType: string): Promise<AdaptiveLearning | undefined> {
-    return this.adaptiveLearning.get(equipmentType);
-  }
-
-  async updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void> {
-    let adaptive = this.adaptiveLearning.get(equipmentType);
-    
-    if (!adaptive) {
-      adaptive = {
-        id: this.currentId++,
-        equipmentType,
-        symptomKeywords: this.getInitialKeywords(equipmentType),
-        commonFailures: this.getCommonFailures(equipmentType),
-        seasonalPatterns: {},
-        zoneSpecificIssues: {},
-        learningWeight: 1.0,
-        confidenceAdjustment: 0,
-        lastUpdate: new Date()
-      };
-    }
-    
-    // Update with new learning data
-    Object.assign(adaptive, learningData, { lastUpdate: new Date() });
-    this.adaptiveLearning.set(equipmentType, adaptive);
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

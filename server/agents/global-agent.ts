@@ -78,8 +78,8 @@ export class GlobalAgent extends EventEmitter {
 
   private detectCrossSiteCorrelations(): void {
     const siteStatuses = Array.from(this.sites.entries()).map(([id, site]) => ({
-      siteId: id,
-      ...site.getSiteStatus()
+      ...site.getSiteStatus(),
+      siteId: id
     }));
 
     const degradedSites = siteStatuses.filter(s => s.productionStatus !== 'normal');

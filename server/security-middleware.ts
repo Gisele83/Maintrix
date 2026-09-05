@@ -50,7 +50,7 @@ export const diagnosticRateLimit = rateLimit({
   legacyHeaders: false,
   skip: (req) => {
     // Skip pour les utilisateurs authentifiés avec accès premium
-    return req.user?.planType === 'enterprise';
+    return (req as any).user?.planType === 'enterprise';
   }
 });
 

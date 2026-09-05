@@ -21,7 +21,8 @@ import {
   RefreshCw,
   Calendar,
   Users,
-  Wrench
+  Wrench,
+  Brain
 } from "lucide-react";
 
 export default function AdvancedReporting() {
@@ -31,32 +32,37 @@ export default function AdvancedReporting() {
   const [selectedDepartment, setSelectedDepartment] = useState("all");
 
   // Fetch budget data
-  const { data: budgets = [] } = useQuery({
+  const { data: budgets = [] } = useQuery<any[]>({
     queryKey: ["/api/budgets"],
   });
 
-  const { data: budgetSummary } = useQuery({
+  const { data: budgetSummary } = useQuery<{ totalAllocated: number; totalSpent: number; totalRemaining: number; utilizationRate: number; byCategory: any[] } | undefined>({
     queryKey: ["/api/budget-summary"],
   });
 
-  const { data: budgetRequests = [] } = useQuery({
+  const { data: budgetRequests = [] } = useQuery<any[]>({
     queryKey: ["/api/budget-requests"],
   });
 
-  const { data: kpiMetrics = [] } = useQuery({
+  const { data: kpiMetrics = [] } = useQuery<any[]>({
     queryKey: ["/api/kpi-metrics"],
   });
 
-  const { data: workOrders = [] } = useQuery({
+  const { data: workOrders = [] } = useQuery<any[]>({
     queryKey: ["/api/work-orders"],
   });
 
-  const { data: equipment = [] } = useQuery({
+  const { data: equipment = [] } = useQuery<any[]>({
     queryKey: ["/api/equipment"],
   });
 
-  const { data: allAlerts = [] } = useQuery({
+  const { data: allAlerts = [] } = useQuery<any[]>({
     queryKey: ["/api/alerts"],
+  });
+
+  // IA → Analytics : statistiques réelles sur les sessions de diagnostic
+  const { data: diagnosticStats } = useQuery<{ totalSessions: number; avgConfidence: number; completionRate: number; mlPredictionRate: number }>({
+    queryKey: ["/api/diagnostic-stats"],
   });
 
   // Filter alerts to only show counter-based maintenance alerts, not generic IoT alerts
@@ -360,6 +366,36 @@ export default function AdvancedReporting() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Diagnostic IA — collaboration réelle IA → Analytics */}
+        <Card className="border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Brain className="h-5 w-5 text-violet-600" />
+              <span>Diagnostic IA</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-violet-50 rounded-lg">
+                <p className="text-sm text-gray-600">Sessions de diagnostic</p>
+                <p className="text-2xl font-bold text-violet-900">{diagnosticStats?.totalSessions ?? 0}</p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600">Confiance moyenne</p>
+                <p className="text-2xl font-bold text-blue-900">{Math.round((diagnosticStats?.avgConfidence ?? 0) * 100)}%</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-sm text-gray-600">Taux de complétion</p>
+                <p className="text-2xl font-bold text-green-900">{diagnosticStats?.completionRate ?? 0}%</p>
+              </div>
+              <div className="text-center p-4 bg-amber-50 rounded-lg">
+                <p className="text-sm text-gray-600">Part avec prédiction ML</p>
+                <p className="text-2xl font-bold text-amber-900">{diagnosticStats?.mlPredictionRate ?? 0}%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Performance Trends */}
         <Card className="border-0 shadow-xl">

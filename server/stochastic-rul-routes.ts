@@ -127,7 +127,7 @@ export function registerStochasticRULRoutes(app: Express) {
       }
 
       const equipment = await db
-        .select({ name: equipmentRegistry.name, type: equipmentRegistry.type })
+        .select({ name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.id, equipmentId))
         .limit(1);
@@ -159,11 +159,11 @@ export function registerStochasticRULRoutes(app: Express) {
       for (const row of sensorRows) {
         const bin = Math.floor(((row.timestamp?.getTime() ?? t0) - t0) / binMs);
         if (!bins.has(bin)) bins.set(bin, []);
-        bins.get(bin)!.push(row.value ?? 0);
+        bins.get(bin)!.push(parseFloat(row.value) || 0);
       }
 
       // IMCA proxy: normalise chaque bin en [0,100] relatif à la médiane globale
-      const allValues = sensorRows.map(r => r.value ?? 0);
+      const allValues = sensorRows.map(r => parseFloat(r.value) || 0);
       const sorted = [...allValues].sort((a, b) => a - b);
       const globalMedian = sorted[Math.floor(sorted.length / 2)] || 1;
 

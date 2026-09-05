@@ -4,7 +4,7 @@
  * Méthodologies: 5 Pourquoi, Ishikawa (Fishbone), FMEA
  */
 
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
@@ -14,6 +14,57 @@ import { findOrCreateNode, reinforceOrCreateEdge } from "./kg-sync-service";
 
 function getPool(): Pool {
   return sharedPool;
+}
+
+interface TenantRequest extends Request {
+  tenantId?: string;
+  user?: any;
+}
+
+function requireTenant(req: TenantRequest, res: Response): string | null {
+  if (!req.tenantId) {
+    res.status(400).json({ error: "Tenant non résolu pour cette requête" });
+    return null;
+  }
+  return req.tenantId;
+}
+
+// Traduit une ligne SQL (colonnes snake_case) vers la forme JSON attendue côté client (camelCase) — même
+// convention que les modules reconstruits cette session (voir server/oee-routes.ts). rca.tsx lit
+// exclusivement des clés camelCase (rcaNumber, createdAt, equipmentName...) ; l'ancienne version ne
+// traduisait que les champs JSON désérialisés, laissant les colonnes réelles en snake_case — le filtre de
+// recherche (`r.rcaNumber.toLowerCase()`) plantait dès qu'une recherche ne matchait pas le titre.
+function toApiShape(r: any) {
+  return {
+    id: r.id,
+    rcaNumber: r.rca_number,
+    title: r.title,
+    description: r.description,
+    methodology: r.methodology,
+    severity: r.severity,
+    status: r.status,
+    failureDate: r.failure_date,
+    detectionDate: r.detection_date,
+    equipmentId: r.equipment_id,
+    equipmentName: r.equipment_name,
+    equipmentLocation: r.equipment_location,
+    workOrderId: r.work_order_id,
+    failureMode: r.failure_mode,
+    immediateCause: r.immediate_cause,
+    rootCause: r.root_cause,
+    contributingFactors: safeJson(r.contributing_factors, []),
+    whyChain: safeJson(r.why_chain, []),
+    fishbone: safeJson(r.fishbone, defaultFishbone()),
+    actionPlans: safeJson(r.action_plans, []),
+    lessonsLearned: r.lessons_learned,
+    preventiveMeasures: r.preventive_measures,
+    recurrenceRisk: r.recurrence_risk,
+    estimatedLoss: r.estimated_loss != null ? Number(r.estimated_loss) : undefined,
+    currency: r.currency,
+    closedAt: r.closed_at,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
 
 function generateRcaNumber(): string {
@@ -72,31 +123,26 @@ export function registerRcaRoutes(app: Express) {
   const auth = EnterpriseAuthMiddleware.requireAuthentication;
 
   // ── GET /api/rca ─────────────────────────────────────────────────────────
-  app.get("/api/rca", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/rca", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { status, severity, methodology } = req.query;
-      let sql = `SELECT r.*, 
+      let sql = `SELECT r.*,
         eq.equipment_name AS equipment_name,
         eq.location AS equipment_location
         FROM rca_analyses r
         LEFT JOIN equipment_registry eq ON eq.id = r.equipment_id
-        WHERE 1=1`;
-      const params: any[] = [];
-      let idx = 1;
+        WHERE r.tenant_id = $1`;
+      const params: any[] = [tenantId];
+      let idx = 2;
       if (status) { sql += ` AND r.status = $${idx++}`; params.push(status); }
       if (severity) { sql += ` AND r.severity = $${idx++}`; params.push(severity); }
       if (methodology) { sql += ` AND r.methodology = $${idx++}`; params.push(methodology); }
       sql += ` ORDER BY r.created_at DESC`;
       const { rows } = await db.query(sql, params);
-      const parsed = rows.map(r => ({
-        ...r,
-        contributingFactors: safeJson(r.contributing_factors, []),
-        whyChain: safeJson(r.why_chain, []),
-        fishbone: safeJson(r.fishbone, defaultFishbone()),
-        actionPlans: safeJson(r.action_plans, []),
-      }));
-      res.json(parsed);
+      res.json(rows.map(toApiShape));
     } catch (e: any) {
       console.error("RCA list error:", e.message);
       res.status(500).json({ error: "Erreur serveur" });
@@ -104,8 +150,10 @@ export function registerRcaRoutes(app: Express) {
   });
 
   // ── GET /api/rca/stats ────────────────────────────────────────────────────
-  app.get("/api/rca/stats", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/rca/stats", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { rows } = await db.query(`SELECT
         COUNT(*)::int AS total,
@@ -116,10 +164,17 @@ export function registerRcaRoutes(app: Express) {
         COUNT(*) FILTER (WHERE severity = 'high')::int AS high,
         COUNT(*) FILTER (WHERE recurrence_risk = 'high' OR recurrence_risk = 'critical')::int AS high_recurrence,
         COALESCE(SUM(estimated_loss), 0) AS total_loss
-        FROM rca_analyses`);
-      const byMethodology = await db.query(`SELECT methodology, COUNT(*)::int AS count FROM rca_analyses GROUP BY methodology`);
+        FROM rca_analyses WHERE tenant_id = $1`, [tenantId]);
+      const byMethodology = await db.query(`SELECT methodology, COUNT(*)::int AS count FROM rca_analyses WHERE tenant_id = $1 GROUP BY methodology`, [tenantId]);
       res.json({
-        ...rows[0],
+        total: rows[0].total,
+        open: rows[0].open,
+        in_progress: rows[0].in_progress,
+        closed: rows[0].closed,
+        critical: rows[0].critical,
+        high: rows[0].high,
+        highRecurrence: rows[0].high_recurrence,
+        totalLoss: Number(rows[0].total_loss || 0),
         byMethodology: Object.fromEntries(byMethodology.rows.map(r => [r.methodology, r.count])),
       });
     } catch (e: any) {
@@ -128,31 +183,28 @@ export function registerRcaRoutes(app: Express) {
   });
 
   // ── GET /api/rca/:id ──────────────────────────────────────────────────────
-  app.get("/api/rca/:id", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/rca/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { rows } = await db.query(`
         SELECT r.*, eq.equipment_name AS equipment_name, eq.location AS equipment_location
         FROM rca_analyses r
         LEFT JOIN equipment_registry eq ON eq.id = r.equipment_id
-        WHERE r.id = $1`, [req.params.id]);
+        WHERE r.id = $1 AND r.tenant_id = $2`, [req.params.id, tenantId]);
       if (!rows[0]) return res.status(404).json({ error: "RCA introuvable" });
-      const r = rows[0];
-      res.json({
-        ...r,
-        contributingFactors: safeJson(r.contributing_factors, []),
-        whyChain: safeJson(r.why_chain, []),
-        fishbone: safeJson(r.fishbone, defaultFishbone()),
-        actionPlans: safeJson(r.action_plans, []),
-      });
+      res.json(toApiShape(rows[0]));
     } catch (e: any) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
 
   // ── POST /api/rca ─────────────────────────────────────────────────────────
-  app.post("/api/rca", generalRateLimit, auth, async (req, res) => {
+  app.post("/api/rca", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = CreateRcaSchema.parse(req.body);
       const db = getPool();
       const rcaNumber = generateRcaNumber();
@@ -160,13 +212,13 @@ export function registerRcaRoutes(app: Express) {
         ? [1,2,3,4,5].map(i => ({ why: `Pourquoi ${i} ?`, answer: "" })) : [];
       const { rows } = await db.query(`
         INSERT INTO rca_analyses
-          (rca_number, title, description, methodology, severity, failure_date, detection_date,
+          (tenant_id, rca_number, title, description, methodology, severity, failure_date, detection_date,
            equipment_id, work_order_id, failure_mode, estimated_loss, currency,
            why_chain, fishbone, contributing_factors, action_plans)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
         RETURNING *`,
         [
-          rcaNumber, body.title, body.description || null, body.methodology,
+          tenantId, rcaNumber, body.title, body.description || null, body.methodology,
           body.severity, body.failureDate || null, body.detectionDate || null,
           body.equipmentId || null, body.workOrderId || null,
           body.failureMode || null, body.estimatedLoss || null, body.currency,
@@ -174,7 +226,7 @@ export function registerRcaRoutes(app: Express) {
           JSON.stringify([]), JSON.stringify([]),
         ]
       );
-      res.status(201).json(rows[0]);
+      res.status(201).json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       console.error("RCA create error:", e.message);
@@ -183,8 +235,10 @@ export function registerRcaRoutes(app: Express) {
   });
 
   // ── PATCH /api/rca/:id ────────────────────────────────────────────────────
-  app.patch("/api/rca/:id", generalRateLimit, auth, async (req, res) => {
+  app.patch("/api/rca/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = UpdateRcaSchema.parse(req.body);
       const db = getPool();
       const sets: string[] = [];
@@ -214,8 +268,8 @@ export function registerRcaRoutes(app: Express) {
       add("updated_at", new Date());
 
       if (sets.length === 0) return res.json({ message: "Rien à mettre à jour" });
-      params.push(req.params.id);
-      const { rows } = await db.query(`UPDATE rca_analyses SET ${sets.join(",")} WHERE id = $${idx} RETURNING *`, params);
+      params.push(req.params.id, tenantId);
+      const { rows } = await db.query(`UPDATE rca_analyses SET ${sets.join(",")} WHERE id = $${idx++} AND tenant_id = $${idx} RETURNING *`, params);
       if (!rows[0]) return res.status(404).json({ error: "RCA introuvable" });
       const r = rows[0];
 
@@ -223,7 +277,6 @@ export function registerRcaRoutes(app: Express) {
       // Knowledge Graph — même logique que kg-sync-service.ts pour Maintenance Execution.
       if ((r.status === "closed" || r.status === "verified") && r.root_cause) {
         try {
-          const tenantId = (req as any).tenantId || "default-tenant";
           const causeNodeId = await findOrCreateNode({
             tenantId, nodeType: "failure_mode", label: r.root_cause,
             refTable: "rca_analyses", refId: String(r.id),
@@ -244,13 +297,7 @@ export function registerRcaRoutes(app: Express) {
         }
       }
 
-      res.json({
-        ...r,
-        contributingFactors: safeJson(r.contributing_factors, []),
-        whyChain: safeJson(r.why_chain, []),
-        fishbone: safeJson(r.fishbone, defaultFishbone()),
-        actionPlans: safeJson(r.action_plans, []),
-      });
+      res.json(toApiShape(r));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       console.error("RCA update error:", e.message);
@@ -259,10 +306,12 @@ export function registerRcaRoutes(app: Express) {
   });
 
   // ── DELETE /api/rca/:id ───────────────────────────────────────────────────
-  app.delete("/api/rca/:id", generalRateLimit, auth, async (req, res) => {
+  app.delete("/api/rca/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
-      const { rowCount } = await db.query("DELETE FROM rca_analyses WHERE id = $1", [req.params.id]);
+      const { rowCount } = await db.query("DELETE FROM rca_analyses WHERE id = $1 AND tenant_id = $2", [req.params.id, tenantId]);
       if (!rowCount) return res.status(404).json({ error: "RCA introuvable" });
       res.json({ success: true });
     } catch (e: any) {

@@ -3,7 +3,7 @@
  * Gestion des habilitations, certifications et compétences des techniciens
  */
 
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
@@ -14,6 +14,19 @@ function getPool(): Pool {
   return sharedPool;
 }
 
+interface TenantRequest extends Request {
+  tenantId?: string;
+  user?: any;
+}
+
+function requireTenant(req: TenantRequest, res: Response): string | null {
+  if (!req.tenantId) {
+    res.status(400).json({ error: "Tenant non résolu pour cette requête" });
+    return null;
+  }
+  return req.tenantId;
+}
+
 function genHabNumber() {
   return `HAB-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
 }
@@ -22,6 +35,44 @@ function safeJson(v: any, fb: any) {
   if (!v) return fb;
   if (typeof v === "object") return v;
   try { return JSON.parse(v); } catch { return fb; }
+}
+
+// Traduit une ligne SQL (colonnes snake_case) vers la forme JSON attendue côté client (camelCase) — même
+// convention que server/oee-routes.ts / server/budget-routes.ts / server/asset-lifecycle-routes.ts.
+// habilitation.tsx lit exclusivement des clés camelCase (technicianName, habilitationNumber, issueDate...) ;
+// sans traduction chaque valeur arrive `undefined`.
+function toApiShape(r: any) {
+  const computedStatus = computeStatus(r.expiry_date, r.is_permanent, r.renewal_alert_days);
+  return {
+    id: r.id,
+    habilitationNumber: r.habilitation_number,
+    technicianName: r.technician_name,
+    technicianId: r.technician_id,
+    technicianEmail: r.technician_email,
+    department: r.department,
+    habilitationType: r.habilitation_type,
+    category: r.category,
+    level: r.level,
+    title: r.title,
+    issuingBody: r.issuing_body,
+    certificateNumber: r.certificate_number,
+    issueDate: r.issue_date,
+    expiryDate: r.expiry_date,
+    isPermanent: r.is_permanent,
+    status: r.status,
+    renewalAlertDays: r.renewal_alert_days,
+    trainingDurationHours: r.training_duration_hours != null ? Number(r.training_duration_hours) : undefined,
+    trainingLocation: r.training_location,
+    assessor: r.assessor,
+    scope: r.scope,
+    restrictions: r.restrictions,
+    renewalHistory: safeJson(r.renewal_history, []),
+    documents: safeJson(r.documents, []),
+    computedStatus,
+    daysUntilExpiry: r.expiry_date ? Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / (1000 * 86400)) : null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
 
 function computeStatus(expiryDate: string | null, isPermanent: boolean, alertDays: number): string {
@@ -72,33 +123,31 @@ export function registerHabilitationRoutes(app: Express) {
   const auth = EnterpriseAuthMiddleware.requireAuthentication;
 
   // LIST
-  app.get("/api/habilitations", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/habilitations", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { technicianName, type, status, department } = req.query;
-      let sql = `SELECT * FROM technician_habilitations WHERE 1=1`;
-      const params: any[] = [];
-      let i = 1;
+      let sql = `SELECT * FROM technician_habilitations WHERE tenant_id=$1`;
+      const params: any[] = [tenantId];
+      let i = 2;
       if (technicianName) { sql += ` AND LOWER(technician_name) LIKE $${i++}`; params.push(`%${String(technicianName).toLowerCase()}%`); }
       if (type) { sql += ` AND habilitation_type=$${i++}`; params.push(type); }
       if (department) { sql += ` AND department=$${i++}`; params.push(department); }
       sql += ` ORDER BY technician_name ASC, expiry_date ASC`;
       const { rows } = await db.query(sql, params);
-      const enriched = rows.map(r => ({
-        ...r,
-        documents: safeJson(r.documents, []),
-        renewalHistory: safeJson(r.renewal_history, []),
-        computedStatus: computeStatus(r.expiry_date, r.is_permanent, r.renewal_alert_days),
-        daysUntilExpiry: r.expiry_date ? Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / (1000 * 86400)) : null,
-      }));
+      const enriched = rows.map(toApiShape);
       const filtered = status && status !== "all" ? enriched.filter(r => r.computedStatus === status) : enriched;
       res.json(filtered);
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
   // STATS
-  app.get("/api/habilitations/stats", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/habilitations/stats", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { rows: s } = await db.query(`SELECT
         COUNT(*)::int AS total,
@@ -107,46 +156,53 @@ export function registerHabilitationRoutes(app: Express) {
         COUNT(*) FILTER (WHERE expiry_date IS NOT NULL AND expiry_date < NOW())::int AS expired_count,
         COUNT(*) FILTER (WHERE expiry_date BETWEEN NOW() AND NOW() + INTERVAL '60 days')::int AS expiring_60d,
         COUNT(*) FILTER (WHERE expiry_date BETWEEN NOW() AND NOW() + INTERVAL '30 days')::int AS expiring_30d
-        FROM technician_habilitations`);
-      const { rows: byType } = await db.query(`SELECT habilitation_type, COUNT(*)::int AS count FROM technician_habilitations GROUP BY habilitation_type ORDER BY count DESC LIMIT 15`);
-      const { rows: byTech } = await db.query(`SELECT technician_name, COUNT(*)::int AS count FROM technician_habilitations GROUP BY technician_name ORDER BY count DESC LIMIT 10`);
-      const { rows: expiringSoon } = await db.query(`SELECT technician_name, title, habilitation_type, expiry_date FROM technician_habilitations WHERE expiry_date BETWEEN NOW() AND NOW() + INTERVAL '60 days' ORDER BY expiry_date ASC LIMIT 10`);
-      res.json({ ...s[0], byType, byTech, expiringSoon });
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
-
-  // GET ONE
-  app.get("/api/habilitations/:id", generalRateLimit, auth, async (req, res) => {
-    try {
-      const { rows } = await getPool().query("SELECT * FROM technician_habilitations WHERE id=$1", [req.params.id]);
-      if (!rows[0]) return res.status(404).json({ error: "Habilitation introuvable" });
-      const r = rows[0];
+        FROM technician_habilitations WHERE tenant_id=$1`, [tenantId]);
+      const { rows: byType } = await db.query(`SELECT habilitation_type, COUNT(*)::int AS count FROM technician_habilitations WHERE tenant_id=$1 GROUP BY habilitation_type ORDER BY count DESC LIMIT 15`, [tenantId]);
+      const { rows: byTech } = await db.query(`SELECT technician_name, COUNT(*)::int AS count FROM technician_habilitations WHERE tenant_id=$1 GROUP BY technician_name ORDER BY count DESC LIMIT 10`, [tenantId]);
+      const { rows: expiringSoon } = await db.query(`SELECT technician_name, title, habilitation_type, expiry_date FROM technician_habilitations WHERE tenant_id=$1 AND expiry_date BETWEEN NOW() AND NOW() + INTERVAL '60 days' ORDER BY expiry_date ASC LIMIT 10`, [tenantId]);
       res.json({
-        ...r, documents: safeJson(r.documents, []), renewalHistory: safeJson(r.renewal_history, []),
-        computedStatus: computeStatus(r.expiry_date, r.is_permanent, r.renewal_alert_days),
-        daysUntilExpiry: r.expiry_date ? Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / (1000 * 86400)) : null,
+        total: s[0].total,
+        totalTechnicians: s[0].total_technicians,
+        permanentCount: s[0].permanent_count,
+        expiredCount: s[0].expired_count,
+        expiring60d: s[0].expiring_60d,
+        expiring30d: s[0].expiring_30d,
+        byType, byTech, expiringSoon,
       });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  // CREATE
-  app.post("/api/habilitations", generalRateLimit, auth, async (req, res) => {
+  // GET ONE
+  app.get("/api/habilitations/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rows } = await getPool().query("SELECT * FROM technician_habilitations WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
+      if (!rows[0]) return res.status(404).json({ error: "Habilitation introuvable" });
+      res.json(toApiShape(rows[0]));
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+
+  // CREATE
+  app.post("/api/habilitations", generalRateLimit, auth, async (req: TenantRequest, res) => {
+    try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = CreateHabSchema.parse(req.body);
       const db = getPool();
       const status = computeStatus(body.expiryDate || null, body.isPermanent, body.renewalAlertDays);
       const { rows } = await db.query(
-        `INSERT INTO technician_habilitations (habilitation_number, technician_name, technician_id, technician_email, department,
+        `INSERT INTO technician_habilitations (tenant_id, habilitation_number, technician_name, technician_id, technician_email, department,
           habilitation_type, category, level, title, issuing_body, certificate_number, issue_date, expiry_date,
           is_permanent, status, renewal_alert_days, training_duration_hours, training_location, assessor, scope, restrictions)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
-        [genHabNumber(), body.technicianName, body.technicianId||null, body.technicianEmail||null, body.department||null,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING *`,
+        [tenantId, genHabNumber(), body.technicianName, body.technicianId||null, body.technicianEmail||null, body.department||null,
          body.habilitationType, body.category||null, body.level||null, body.title, body.issuingBody||null,
          body.certificateNumber||null, body.issueDate, body.expiryDate||null, body.isPermanent, status,
          body.renewalAlertDays, body.trainingDurationHours||null, body.trainingLocation||null,
          body.assessor||null, body.scope||null, body.restrictions||null]
       );
-      res.status(201).json({ ...rows[0], computedStatus: status, renewalHistory: [], documents: [] });
+      res.status(201).json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       if (e.code === "23505") return res.status(409).json({ error: "Numéro d'habilitation déjà utilisé" });
@@ -155,11 +211,13 @@ export function registerHabilitationRoutes(app: Express) {
   });
 
   // UPDATE
-  app.patch("/api/habilitations/:id", generalRateLimit, auth, async (req, res) => {
+  app.patch("/api/habilitations/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = UpdateHabSchema.parse(req.body);
       const db = getPool();
-      const { rows: old } = await db.query("SELECT * FROM technician_habilitations WHERE id=$1", [req.params.id]);
+      const { rows: old } = await db.query("SELECT * FROM technician_habilitations WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!old[0]) return res.status(404).json({ error: "Habilitation introuvable" });
       const sets: string[] = [];
       const params: any[] = [];
@@ -182,14 +240,9 @@ export function registerHabilitationRoutes(app: Express) {
       add("status", computeStatus(newExpiry, newPermanent, newAlert));
       add("updated_at", new Date());
       if (!sets.length) return res.json({ message: "Rien à mettre à jour" });
-      params.push(req.params.id);
-      const { rows } = await db.query(`UPDATE technician_habilitations SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, params);
-      const r = rows[0];
-      res.json({
-        ...r, renewalHistory: safeJson(r.renewal_history, []), documents: safeJson(r.documents, []),
-        computedStatus: computeStatus(r.expiry_date, r.is_permanent, r.renewal_alert_days),
-        daysUntilExpiry: r.expiry_date ? Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / (1000 * 86400)) : null,
-      });
+      params.push(req.params.id, tenantId);
+      const { rows } = await db.query(`UPDATE technician_habilitations SET ${sets.join(",")} WHERE id=$${i++} AND tenant_id=$${i} RETURNING *`, params);
+      res.json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       res.status(500).json({ error: e.message });
@@ -197,11 +250,13 @@ export function registerHabilitationRoutes(app: Express) {
   });
 
   // RENEW
-  app.post("/api/habilitations/:id/renew", generalRateLimit, auth, async (req, res) => {
+  app.post("/api/habilitations/:id/renew", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const renewal = RenewalSchema.parse(req.body);
       const db = getPool();
-      const { rows: old } = await db.query("SELECT * FROM technician_habilitations WHERE id=$1", [req.params.id]);
+      const { rows: old } = await db.query("SELECT * FROM technician_habilitations WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!old[0]) return res.status(404).json({ error: "Habilitation introuvable" });
       const history = safeJson(old[0].renewal_history, []);
       history.push({ date: new Date().toISOString(), previousExpiry: old[0].expiry_date, ...renewal });
@@ -209,16 +264,12 @@ export function registerHabilitationRoutes(app: Express) {
       const { rows } = await db.query(
         `UPDATE technician_habilitations SET issue_date=$1, expiry_date=$2, certificate_number=$3,
           issuing_body=$4, assessor=$5, renewal_history=$6, status=$7, updated_at=NOW()
-         WHERE id=$8 RETURNING *`,
+         WHERE id=$8 AND tenant_id=$9 RETURNING *`,
         [renewal.issueDate, renewal.expiryDate||null, renewal.certificateNumber||old[0].certificate_number,
          renewal.issuingBody||old[0].issuing_body, renewal.assessor||old[0].assessor,
-         JSON.stringify(history), newStatus, req.params.id]
+         JSON.stringify(history), newStatus, req.params.id, tenantId]
       );
-      const r = rows[0];
-      res.json({
-        ...r, renewalHistory: history, computedStatus: newStatus,
-        daysUntilExpiry: r.expiry_date ? Math.ceil((new Date(r.expiry_date).getTime() - Date.now()) / (1000 * 86400)) : null,
-      });
+      res.json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       res.status(500).json({ error: e.message });
@@ -226,9 +277,11 @@ export function registerHabilitationRoutes(app: Express) {
   });
 
   // DELETE
-  app.delete("/api/habilitations/:id", generalRateLimit, auth, async (req, res) => {
+  app.delete("/api/habilitations/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const { rowCount } = await getPool().query("DELETE FROM technician_habilitations WHERE id=$1", [req.params.id]);
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rowCount } = await getPool().query("DELETE FROM technician_habilitations WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!rowCount) return res.status(404).json({ error: "Habilitation introuvable" });
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }

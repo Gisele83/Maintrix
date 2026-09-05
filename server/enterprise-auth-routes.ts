@@ -1148,148 +1148,15 @@ router.post('/admin/create-user',
     blockDurationMs: 15 * 60 * 1000 // 15 minutes
   }),
   async (req: any, res: Response) => {
-    try {
-      // Vérifier les permissions (seuls les admin et owner peuvent créer des utilisateurs)
-      if (!['owner', 'admin'].includes(req.user.role)) {
-        return res.status(403).json({
-          error: "INSUFFICIENT_PERMISSIONS",
-          message: "Seuls les administrateurs peuvent créer des utilisateurs"
-        });
-      }
-
-      const validatedData = createUserSchema.parse(req.body);
-      
-      // Vérifier si l'email existe déjà
-      const [existingUser] = await db
-        .select()
-        .from(userProfiles)
-        .where(eq(userProfiles.email, validatedData.email));
-
-      if (existingUser) {
-        return res.status(400).json({
-          error: "EMAIL_ALREADY_EXISTS",
-          message: "Un utilisateur avec cet email existe déjà"
-        });
-      }
-
-      // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
-      try {
-        await LicenseService.enforceUserLimit(req.tenantId);
-      } catch (error: any) {
-        if (error.code === "USER_LIMIT_REACHED") {
-          return res.status(403).json({
-            error: "USER_LIMIT_REACHED",
-            message: error.message,
-            details: error.details
-          });
-        }
-        throw error; // Re-lancer les autres erreurs
-      }
-
-      // Générer identifiants par défaut
-      const defaultCredentials = CredentialGenerator.generateTenantUserCredentials(
-        validatedData.role,
-        validatedData.email,
-        req.tenantId
-      );
-
-      // Créer l'utilisateur avec identifiants par défaut
-      const [newUser] = await db
-        .insert(userProfiles)
-        .values({
-          username: defaultCredentials.username,
-          email: validatedData.email,
-          password: await CredentialGenerator.hashPassword(defaultCredentials.password),
-          role: validatedData.role,
-          tenantId: req.tenantId,
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          department: validatedData.department,
-          isDefaultCredentials: true,
-          mustChangePassword: true,
-          passwordExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours pour changer
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning({
-          id: userProfiles.id,
-          username: userProfiles.username,
-          email: userProfiles.email,
-          role: userProfiles.role,
-          firstName: userProfiles.firstName,
-          lastName: userProfiles.lastName
-        });
-
-      console.log(`✅ Utilisateur créé avec identifiants par défaut: ${newUser.username} (${newUser.email})`);
-
-      const loginUrl = `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:5000'}/login`;
-
-      // Envoi de l'email d'identifiants
-      try {
-        const credentialNotification = createCredentialNotification({
-          toEmail: validatedData.email,
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          username: defaultCredentials.username,
-          temporaryPassword: defaultCredentials.password,
-          role: validatedData.role,
-          tenantName: req.tenantId,
-          loginUrl,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        });
-        const emailSent = await sendTenantCredentials(credentialNotification);
-        if (!emailSent) {
-          console.warn(`⚠️ Email d'identifiants non envoyé à ${validatedData.email} (SendGrid non configuré ou erreur)`);
-        } else {
-          console.log(`📧 Email d'identifiants envoyé à: ${validatedData.email}`);
-        }
-      } catch (emailError: any) {
-        console.error(`❌ Erreur envoi email identifiants: ${emailError?.message}`);
-        // Non-bloquant : l'utilisateur est créé même si l'email échoue
-      }
-
-      res.status(201).json({
-        success: true,
-        message: "Utilisateur créé avec succès",
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email,
-          role: newUser.role,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          mustChangePassword: true,
-          isDefaultCredentials: true
-        },
-        credentials: {
-          // En production, ne retourner que le username
-          username: defaultCredentials.username,
-          temporaryPassword: defaultCredentials.password, // À enlever en production
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        instructions: [
-          "L'utilisateur doit se connecter et changer son mot de passe sous 7 jours",
-          "Un email avec les identifiants a été envoyé à l'utilisateur",
-          "Le compte sera automatiquement désactivé si le mot de passe n'est pas changé"
-        ]
-      });
-
-    } catch (error: any) {
-      console.error("Error creating user with default credentials:", error);
-      
-      if (error.name === 'ZodError') {
-        return res.status(400).json({
-          error: "VALIDATION_ERROR",
-          message: "Données invalides",
-          details: error.errors
-        });
-      }
-
-      res.status(500).json({
-        error: "USER_CREATION_ERROR",
-        message: "Erreur lors de la création de l'utilisateur"
-      });
-    }
+    // 🚫 RESTRICTION SÉCURITÉ: la création d'utilisateurs avec identifiants par défaut
+    // est réservée au super-admin (voir CredentialGenerator.generateTenantUserCredentials,
+    // qui lève désormais une erreur pour tout appel depuis un contexte tenant admin/owner).
+    // Les admins/owners tenant ne peuvent plus créer de comptes depuis cette route ;
+    // utiliser POST /api/super-admin/create-user à la place.
+    res.status(403).json({
+      error: "SUPER_ADMIN_ONLY",
+      message: "La création d'utilisateurs est réservée au super-administrateur. Contactez votre super-admin pour créer un nouveau compte."
+    });
   }
 );
 
@@ -1422,7 +1289,7 @@ router.post('/forgot-password',
 
       // Envoyer l'email de réinitialisation
       const emailSent = await sendPasswordResetEmail({
-        recipientEmail: user.email,
+        recipientEmail: user.email || '',
         recipientName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
         resetUrl,
         expiresAt: resetTokenExpiry,

@@ -36,8 +36,8 @@ export const tenants = pgTable("tenants", {
   features: jsonb("features").default({}), // Enabled features per tenant
   // 🔧 CCTP COMPLIANCE: Bons de Commande Configuration
   purchaseOrderConfig: jsonb("purchase_order_config").default({}), // PO header, logos, thresholds
-  workOrderConfig: jsonb("work_order_config").default({}), // WO header, validation levels
-  reportingConfig: jsonb("reporting_config").default({}), // Auto-report generation settings
+  workOrderConfig: jsonb("work_order_config").$type<Record<string, any>>().default({}), // WO header, validation levels
+  reportingConfig: jsonb("reporting_config").$type<Record<string, any>>().default({}), // Auto-report generation settings
   // 📜 LICENCE SYSTEM: Automatic licensing based on user count
   licenseType: varchar("license_type", { length: 50 }).default("solo"), // solo, team, enterprise_s, enterprise_m, enterprise_l
   licensedUsers: integer("licensed_users").default(1), // Number of users the license allows
@@ -50,6 +50,10 @@ export const tenants = pgTable("tenants", {
   gracePeriodDays: integer("grace_period_days").default(7), // Days of offline grace period
   gracePeriodEnd: timestamp("grace_period_end"),       // When grace period expires
   lastLicenseCheckAt: timestamp("last_license_check_at"), // Last successful online validation
+  // 🎫 PLATFORM EDITION: functional-capability tier — independent of `plan` (billing) and `licenseType` (org-size limits).
+  // Internal key uses "complete" (not "enterprise") to avoid colliding with plan="enterprise" / licenseType="enterprise_l".
+  // Drives `enabledDomains` via PLATFORM_EDITIONS in server/platform-edition-service.ts.
+  platformEdition: varchar("platform_edition", { length: 50 }).notNull().default("complete"),
 });
 
 // 📜 LICENSE MANAGEMENT SYSTEM
@@ -103,8 +107,8 @@ export const auditLogs = pgTable("audit_logs", {
   action: varchar("action", { length: 100 }).notNull(), // CREATE, READ, UPDATE, DELETE, EXPORT, etc.
   resourceType: varchar("resource_type", { length: 100 }).notNull(), // table/entity name
   resourceId: varchar("resource_id", { length: 100 }), // record ID
-  oldValues: jsonb("old_values"), // Previous state
-  newValues: jsonb("new_values"), // New state
+  oldValues: jsonb("old_values").$type<Record<string, any>>(), // Previous state
+  newValues: jsonb("new_values").$type<Record<string, any>>(), // New state
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
   sessionId: varchar("session_id", { length: 100 }),
@@ -134,8 +138,8 @@ export const gdprRequests = pgTable("gdpr_requests", {
   subjectEmail: varchar("subject_email", { length: 255 }).notNull(),
   subjectUserId: integer("subject_user_id"),
   status: varchar("status", { length: 50 }).default("pending"), // pending, processing, completed, rejected
-  requestData: jsonb("request_data"),
-  responseData: jsonb("response_data"),
+  requestData: jsonb("request_data").$type<Record<string, any>>(),
+  responseData: jsonb("response_data").$type<Record<string, any>>(),
   processedBy: integer("processed_by"), // Admin user ID
   requestDate: timestamp("request_date").defaultNow(),
   processedDate: timestamp("processed_date"),
@@ -559,6 +563,13 @@ export const equipmentRegistry = pgTable("equipment_registry", {
   warrantyExpiry: timestamp("warranty_expiry"),
   criticalityLevel: varchar("criticality_level", { length: 20 }).default("medium"), // low, medium, high, critical
   operationalState: varchar("operational_state", { length: 20 }).default("operational"), // operational, maintenance, offline, decommissioned
+  // Cycle de vie ISO 55000 (12 étapes) — colonne vertébrale temporelle qui relie GMAO,
+  // Digital Twin, Predictive Engine et Engineering Expertise. Distinct de operationalState
+  // ci-dessus (qui est un statut court terme "en marche/en panne") et de asset_lifecycle
+  // (suivi financier/amortissement, table séparée, optionnelle par équipement). Voir
+  // server/equipment-lifecycle-engine.ts et ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md section 12.
+  lifecycleStage: varchar("lifecycle_stage", { length: 30 }).notNull().default("exploitation"),
+  lifecycleStageSince: timestamp("lifecycle_stage_since").defaultNow(),
   technicalSpecs: jsonb("technical_specs"), // JSON with technical specifications
   manuals: text("manuals").array(), // URLs to manuals and documentation
   spareParts: jsonb("spare_parts"), // JSON array of spare parts info
@@ -991,7 +1002,9 @@ export const createCounterFromPlanSchema = z.object({
   equipmentId: z.number().positive("ID d'équipement requis"),
   counterType: z.enum(["hours", "cycles", "kilometers", "units"]),
   currentValue: z.number().min(0, "Valeur actuelle doit être positive").default(0),
-  thresholdValue: z.number().min(0, "Seuil critique doit être positif"),
+  counterName: z.string().optional(),
+  thresholdWarning: z.number().min(0, "Seuil d'alerte doit être positif"),
+  thresholdCritical: z.number().min(0, "Seuil critique doit être positif"),
   equipmentName: z.string().optional(),
   description: z.string().optional(),
 });
@@ -1232,7 +1245,7 @@ export type InsertUserChallengeProgress = z.infer<typeof insertUserChallengeProg
 // Suppliers/Manufacturers table
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
-  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   supplierCode: varchar("supplier_code", { length: 50 }).unique().notNull(),
   companyName: varchar("company_name", { length: 200 }).notNull(),
   supplierType: varchar("supplier_type", { length: 50 }).notNull(), // manufacturer, distributor, service_provider
@@ -1248,6 +1261,28 @@ export const suppliers = pgTable("suppliers", {
   certifications: jsonb("certifications"), // ISO, quality certs
   notes: text("notes"),
   isActive: boolean("is_active").default(true),
+  // Portail Fournisseurs (server/supplier-routes.ts) — colonnes ajoutées migration 0019 : la
+  // table ne portait à l'origine que le nécessaire pour purchase_orders/reorder_rules (voir
+  // FK plus bas) ; le portail fournisseurs (contrats, assurance, KPI de performance) réutilise
+  // cette même table plutôt que d'en dupliquer une seconde.
+  siret: varchar("siret", { length: 50 }),
+  vatNumber: varchar("vat_number", { length: 50 }),
+  website: varchar("website", { length: 255 }),
+  paymentTermsDays: integer("payment_terms_days").default(30),
+  currency: varchar("currency", { length: 10 }).default("EUR"),
+  specialties: jsonb("specialties").default([]),
+  contractStart: timestamp("contract_start"),
+  contractEnd: timestamp("contract_end"),
+  contractNumber: varchar("contract_number", { length: 100 }),
+  insuranceExpiry: timestamp("insurance_expiry"),
+  insuranceAmount: decimal("insurance_amount", { precision: 12, scale: 2 }),
+  status: varchar("status", { length: 30 }).default("active"), // active, inactive, blacklisted, pending_approval
+  onTimeDeliveryPct: decimal("on_time_delivery_pct", { precision: 5, scale: 2 }),
+  qualityScore: decimal("quality_score", { precision: 5, scale: 2 }),
+  totalOrders: integer("total_orders").default(0),
+  totalSpend: decimal("total_spend", { precision: 12, scale: 2 }).default("0"),
+  lastOrderDate: timestamp("last_order_date"),
+  documents: jsonb("documents").default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2676,6 +2711,7 @@ export type InsertRcmAnalysis = z.infer<typeof insertRcmAnalysisSchema>;
 
 export const rcaAnalyses = pgTable("rca_analyses", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   rcaNumber: varchar("rca_number", { length: 50 }).notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
@@ -2705,6 +2741,7 @@ export const rcaAnalyses = pgTable("rca_analyses", {
 
 export const fmeaAnalyses = pgTable("fmea_analyses", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   fmeaNumber: varchar("fmea_number", { length: 50 }).notNull().unique(),
   title: text("title").notNull(),
   scope: text("scope"),
@@ -2715,6 +2752,238 @@ export const fmeaAnalyses = pgTable("fmea_analyses", {
   status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, in_review, approved, obsolete
   revision: integer("revision").default(1),
   reviewedById: integer("reviewed_by_id").references(() => userProfiles.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUDGET — server/budget-routes.ts existait depuis longtemps avec un CRUD complet (SQL brut)
+// mais interrogeait des tables qui n'ont jamais été créées nulle part dans le projet — même
+// situation que rca_analyses/fmea_analyses avant elle. tenant_id présent dès la création.
+// ═══════════════════════════════════════════════════════════════════
+
+export const budgetPlans = pgTable("budget_plans", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  budgetNumber: varchar("budget_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  fiscalYear: integer("fiscal_year").notNull(),
+  department: varchar("department", { length: 100 }),
+  budgetType: varchar("budget_type", { length: 20 }).notNull().default("maintenance"), // maintenance, capex, opex, emergency, project
+  totalAllocated: decimal("total_allocated", { precision: 12, scale: 2 }).default("0"),
+  totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).default("0"),
+  totalCommitted: decimal("total_committed", { precision: 12, scale: 2 }).default("0"),
+  contingencyPct: decimal("contingency_pct", { precision: 5, scale: 2 }).default("10"),
+  currency: varchar("currency", { length: 10 }).default("EUR"),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  lines: jsonb("lines").default([]), // BudgetLineSchema[] : category/description/allocated/spent/committed
+  notes: text("notes"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, approved, closed
+  approvedBy: varchar("approved_by", { length: 100 }),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const budgetTransactions = pgTable("budget_transactions", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  budgetId: integer("budget_id").references(() => budgetPlans.id, { onDelete: "cascade" }).notNull(),
+  budgetLineId: varchar("budget_line_id", { length: 50 }),
+  transactionType: varchar("transaction_type", { length: 20 }).notNull(), // expense, commitment, adjustment, refund
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  reference: varchar("reference", { length: 100 }),
+  supplierName: varchar("supplier_name", { length: 200 }),
+  workOrderId: integer("work_order_id").references(() => workOrders.id, { onDelete: "set null" }),
+  transactionDate: timestamp("transaction_date").notNull(),
+  category: varchar("category", { length: 100 }),
+  status: varchar("status", { length: 20 }).default("posted"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// OEE — server/oee-routes.ts existait depuis longtemps avec un CRUD complet (SQL brut) mais
+// interrogeait une table qui n'a jamais été créée nulle part dans le projet. Distinct du rapport
+// GMAO (server/gmao-report-kpi-service.ts) : ici la cadence/qualité de production est saisie
+// manuellement par équipe, à la différence des KPI GMAO calculés depuis les ordres de travail.
+// ═══════════════════════════════════════════════════════════════════
+
+export const oeeRecords = pgTable("oee_records", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }).notNull(),
+  equipmentName: text("equipment_name"),
+  recordDate: timestamp("record_date").notNull(),
+  shift: varchar("shift", { length: 20 }).notNull().default("day"), // day, evening, night, all
+  plannedTime: decimal("planned_time", { precision: 10, scale: 2 }).default("480"), // minutes
+  downtime: decimal("downtime", { precision: 10, scale: 2 }).default("0"),
+  speedLoss: decimal("speed_loss", { precision: 10, scale: 2 }).default("0"),
+  plannedProduction: integer("planned_production").default(0),
+  actualProduction: integer("actual_production").default(0),
+  defectiveUnits: integer("defective_units").default(0),
+  availability: decimal("availability", { precision: 6, scale: 4 }),
+  performance: decimal("performance", { precision: 6, scale: 4 }),
+  quality: decimal("quality", { precision: 6, scale: 4 }),
+  oee: decimal("oee", { precision: 6, scale: 4 }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// ASSET LIFECYCLE — server/asset-lifecycle-routes.ts existait depuis longtemps avec un CRUD
+// complet (SQL brut) mais interrogeait une table qui n'a jamais été créée nulle part dans le
+// projet. Distinct de equipmentRegistry.lifecycleStage (machine à états ISO 55000 déjà
+// fonctionnelle, voir plus haut) : ce module trace la valeur financière (amortissement), le
+// MTBF/MTTR par actif et le journal d'événements — complémentaire, pas redondant.
+// ═══════════════════════════════════════════════════════════════════
+
+export const assetLifecycle = pgTable("asset_lifecycle", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  assetTag: varchar("asset_tag", { length: 50 }).notNull().unique(),
+  name: text("name").notNull(),
+  category: varchar("category", { length: 100 }),
+  manufacturer: varchar("manufacturer", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  serialNumber: varchar("serial_number", { length: 100 }),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "set null" }),
+  lifecycleStage: varchar("lifecycle_stage", { length: 30 }).notNull().default("operation"), // procurement, commissioning, operation, maintenance, degradation, decommission, disposal
+  purchaseDate: timestamp("purchase_date"),
+  commissioningDate: timestamp("commissioning_date"),
+  plannedReplacementDate: timestamp("planned_replacement_date"),
+  actualDisposalDate: timestamp("actual_disposal_date"),
+  usefulLifeYears: decimal("useful_life_years", { precision: 6, scale: 2 }),
+  purchaseCost: decimal("purchase_cost", { precision: 12, scale: 2 }),
+  salvageValue: decimal("salvage_value", { precision: 12, scale: 2 }),
+  depreciationMethod: varchar("depreciation_method", { length: 30 }).default("linear"), // linear, declining, units_of_production
+  location: varchar("location", { length: 200 }),
+  criticality: varchar("criticality", { length: 20 }).default("medium"),
+  notes: text("notes"),
+  lifecycleEvents: jsonb("lifecycle_events").default([]), // purchase/commissioning/maintenance/repair/inspection/upgrade/incident/decommission/disposal
+  documents: jsonb("documents").default([]),
+  conditionScore: integer("condition_score"),
+  mtbfHours: decimal("mtbf_hours", { precision: 10, scale: 2 }),
+  mttrHours: decimal("mttr_hours", { precision: 10, scale: 2 }),
+  failureCount: integer("failure_count").default(0),
+  maintenanceCount: integer("maintenance_count").default(0),
+  totalMaintenanceCost: decimal("total_maintenance_cost", { precision: 12, scale: 2 }).default("0"),
+  totalDowntimeHours: decimal("total_downtime_hours", { precision: 10, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// HABILITATIONS — server/habilitation-routes.ts existait depuis longtemps avec un CRUD complet
+// (SQL brut) mais interrogeait une table qui n'a jamais été créée nulle part dans le projet.
+// ═══════════════════════════════════════════════════════════════════
+
+export const technicianHabilitations = pgTable("technician_habilitations", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  habilitationNumber: varchar("habilitation_number", { length: 50 }).notNull().unique(),
+  technicianName: varchar("technician_name", { length: 200 }).notNull(),
+  technicianId: integer("technician_id").references(() => userProfiles.id, { onDelete: "set null" }),
+  technicianEmail: varchar("technician_email", { length: 150 }),
+  department: varchar("department", { length: 100 }),
+  habilitationType: varchar("habilitation_type", { length: 100 }).notNull(),
+  category: varchar("category", { length: 100 }),
+  level: varchar("level", { length: 50 }),
+  title: text("title").notNull(),
+  issuingBody: varchar("issuing_body", { length: 200 }),
+  certificateNumber: varchar("certificate_number", { length: 100 }),
+  issueDate: timestamp("issue_date").notNull(),
+  expiryDate: timestamp("expiry_date"),
+  isPermanent: boolean("is_permanent").default(false),
+  status: varchar("status", { length: 20 }).default("valid"), // valid, expiring_soon, expired
+  renewalAlertDays: integer("renewal_alert_days").default(60),
+  trainingDurationHours: decimal("training_duration_hours", { precision: 6, scale: 2 }),
+  trainingLocation: varchar("training_location", { length: 200 }),
+  assessor: varchar("assessor", { length: 200 }),
+  scope: text("scope"),
+  restrictions: text("restrictions"),
+  renewalHistory: jsonb("renewal_history").default([]),
+  documents: jsonb("documents").default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// CALIBRATION — server/calibration-routes.ts existait depuis longtemps avec un CRUD complet
+// (SQL brut) mais interrogeait une table qui n'a jamais été créée nulle part dans le projet.
+// ═══════════════════════════════════════════════════════════════════
+
+export const calibrationRecords = pgTable("calibration_records", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  calibrationNumber: varchar("calibration_number", { length: 50 }).notNull().unique(),
+  instrumentName: varchar("instrument_name", { length: 200 }).notNull(),
+  instrumentTag: varchar("instrument_tag", { length: 100 }),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "set null" }),
+  equipmentName: varchar("equipment_name", { length: 200 }),
+  instrumentType: varchar("instrument_type", { length: 100 }),
+  manufacturer: varchar("manufacturer", { length: 100 }),
+  model: varchar("model", { length: 100 }),
+  serialNumber: varchar("serial_number", { length: 100 }),
+  location: varchar("location", { length: 200 }),
+  calibrationDate: timestamp("calibration_date").notNull(),
+  nextCalibrationDate: timestamp("next_calibration_date").notNull(),
+  calibrationIntervalDays: integer("calibration_interval_days").default(365),
+  performedBy: varchar("performed_by", { length: 200 }),
+  externalLab: varchar("external_lab", { length: 200 }),
+  certificateNumber: varchar("certificate_number", { length: 100 }),
+  standardUsed: varchar("standard_used", { length: 200 }),
+  method: varchar("method", { length: 200 }),
+  temperatureC: decimal("temperature_c", { precision: 5, scale: 2 }),
+  humidityPct: decimal("humidity_pct", { precision: 5, scale: 2 }),
+  result: varchar("result", { length: 20 }).default("pass"), // pass, fail, conditional
+  tolerancePct: decimal("tolerance_pct", { precision: 6, scale: 2 }),
+  asFound: jsonb("as_found").default([]),
+  asLeft: jsonb("as_left").default([]),
+  notes: text("notes"),
+  correctiveAction: text("corrective_action"),
+  outOfService: boolean("out_of_service").default(false),
+  status: varchar("status", { length: 20 }).default("compliant"), // compliant, due_soon, overdue, non_compliant, out_of_service
+  history: jsonb("history").default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// GARANTIES — server/warranty-routes.ts existait depuis longtemps avec un CRUD complet (SQL brut)
+// mais interrogeait une table qui n'a jamais été créée nulle part dans le projet.
+// ═══════════════════════════════════════════════════════════════════
+
+export const warranties = pgTable("warranties", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  warrantyNumber: varchar("warranty_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "set null" }),
+  equipmentName: varchar("equipment_name", { length: 200 }),
+  assetId: integer("asset_id").references(() => assetLifecycle.id, { onDelete: "set null" }),
+  supplierId: integer("supplier_id").references(() => suppliers.id, { onDelete: "set null" }),
+  supplierName: varchar("supplier_name", { length: 200 }),
+  warrantyType: varchar("warranty_type", { length: 30 }).default("manufacturer"), // manufacturer, extended, parts, service, performance
+  status: varchar("status", { length: 20 }).default("active"), // active, expiring_soon, expired
+  purchaseDate: timestamp("purchase_date"),
+  installationDate: timestamp("installation_date"),
+  warrantyStart: timestamp("warranty_start").notNull(),
+  warrantyEnd: timestamp("warranty_end").notNull(),
+  extendedWarrantyEnd: timestamp("extended_warranty_end"),
+  coverageDescription: text("coverage_description"),
+  exclusions: text("exclusions"),
+  maxCoverageAmount: decimal("max_coverage_amount", { precision: 12, scale: 2 }),
+  deductible: decimal("deductible", { precision: 12, scale: 2 }).default("0"),
+  contactName: varchar("contact_name", { length: 200 }),
+  contactEmail: varchar("contact_email", { length: 150 }),
+  contactPhone: varchar("contact_phone", { length: 50 }),
+  contractNumber: varchar("contract_number", { length: 100 }),
+  alertDaysBefore: integer("alert_days_before").default(60),
+  notes: text("notes"),
+  claims: jsonb("claims").default([]),
+  documents: jsonb("documents").default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -2753,5 +3022,70 @@ export const insertTrainingRequestSchema = createInsertSchema(trainingRequests).
 
 export type TrainingRequest = typeof trainingRequests.$inferSelect;
 export type InsertTrainingRequest = z.infer<typeof insertTrainingRequestSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// CYCLE DE VIE ISO 55000 — historique d'audit des transitions d'état. equipment_registry.
+// lifecycleStage porte l'état courant (lecture rapide) ; cette table porte la trace complète
+// (qui, quand, pourquoi, depuis/vers quoi, éventuellement rattaché à quel OT) — exigence de
+// traçabilité propre à la gestion d'actifs, pas un simple log applicatif.
+// ═══════════════════════════════════════════════════════════════════
+
+export const equipmentLifecycleTransitions = pgTable("equipment_lifecycle_transitions", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id).notNull(),
+  fromStage: varchar("from_stage", { length: 30 }).notNull(),
+  toStage: varchar("to_stage", { length: 30 }).notNull(),
+  reason: text("reason"),
+  triggeredBy: integer("triggered_by").references(() => userProfiles.id),
+  relatedWorkOrderId: integer("related_work_order_id").references(() => workOrders.id),
+  transitionedAt: timestamp("transitioned_at").defaultNow(),
+});
+
+export const insertEquipmentLifecycleTransitionSchema = createInsertSchema(equipmentLifecycleTransitions).omit({
+  id: true, transitionedAt: true,
+});
+
+export type EquipmentLifecycleTransition = typeof equipmentLifecycleTransitions.$inferSelect;
+export type InsertEquipmentLifecycleTransition = z.infer<typeof insertEquipmentLifecycleTransitionSchema>;
+
+// ═══════════════════════════════════════════════════════════════════
+// PLAN DE MAINTENANCE ANNUEL (PMA) — table manquante découverte lors de l'audit du code
+// mort : server/maintenance-plan-routes.ts a un CRUD complet (SQL brut via pool.query)
+// depuis longtemps, mais interroge une table "maintenance_plans" qui n'a jamais été créée
+// nulle part — la fonctionnalité était donc cassée en pratique depuis son écriture, comme
+// rca_analyses/fmea_analyses avant elle (voir plus haut).
+// tenantId ajouté (migration 0018) : l'absence initiale reproduisait sciemment le même défaut
+// que rca_analyses/fmea_analyses avaient avant leur propre correctif — cloisonnement par tenant
+// désormais systématique sur toute nouvelle table de ce type.
+// ═══════════════════════════════════════════════════════════════════
+
+export const maintenancePlans = pgTable("maintenance_plans", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  planNumber: varchar("plan_number", { length: 50 }).notNull().unique(),
+  title: text("title").notNull(),
+  fiscalYear: integer("fiscal_year").notNull(),
+  department: varchar("department", { length: 100 }),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  budgetAllocated: decimal("budget_allocated", { precision: 12, scale: 2 }).default("0"),
+  budgetSpent: decimal("budget_spent", { precision: 12, scale: 2 }).default("0"),
+  approvedBy: varchar("approved_by", { length: 100 }),
+  tasks: jsonb("tasks").default([]), // { id, title, taskType, priority, status, plannedMonth, ... }[]
+  notes: text("notes"),
+  totalTasks: integer("total_tasks").default(0),
+  completedTasks: integer("completed_tasks").default(0),
+  status: varchar("status", { length: 20 }).notNull().default("draft"), // draft, approved, in_progress, completed, archived
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertMaintenancePlanSchema = createInsertSchema(maintenancePlans).omit({
+  id: true, createdAt: true, updatedAt: true, totalTasks: true, completedTasks: true,
+});
+
+export type MaintenancePlan = typeof maintenancePlans.$inferSelect;
+export type InsertMaintenancePlan = z.infer<typeof insertMaintenancePlanSchema>;
 
 // Authentication system cleaned up - now using userProfiles as the main user table

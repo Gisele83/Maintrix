@@ -4,7 +4,7 @@
  * OEE = A × P × Q
  */
 
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
@@ -13,6 +13,70 @@ import { z } from "zod";
 
 function getPool(): Pool {
   return sharedPool;
+}
+
+interface TenantRequest extends Request {
+  tenantId?: string;
+  user?: any;
+}
+
+function requireTenant(req: TenantRequest, res: Response): string | null {
+  if (!req.tenantId) {
+    res.status(400).json({ error: "Tenant non résolu pour cette requête" });
+    return null;
+  }
+  return req.tenantId;
+}
+
+// Traduit une ligne SQL (colonnes snake_case) vers la forme JSON attendue côté client (camelCase) — même
+// convention que server/supplier-routes.ts. oee.tsx lit exclusivement des clés camelCase (recordDate,
+// equipmentName, avgOee, etc.) ; sans cette traduction chaque valeur arrive `undefined` côté frontend.
+function toApiShape(r: any) {
+  return {
+    id: r.id,
+    equipmentId: r.equipment_id,
+    equipmentName: r.equipment_name || r.eq_name || null,
+    equipmentLocation: r.eq_location ?? undefined,
+    recordDate: r.record_date,
+    shift: r.shift,
+    plannedTime: Number(r.planned_time),
+    downtime: Number(r.downtime),
+    speedLoss: Number(r.speed_loss),
+    plannedProduction: r.planned_production,
+    actualProduction: r.actual_production,
+    defectiveUnits: r.defective_units,
+    availability: Number(r.availability),
+    performance: Number(r.performance),
+    quality: Number(r.quality),
+    oee: Number(r.oee),
+    notes: r.notes,
+    createdAt: r.created_at,
+  };
+}
+
+function toStatsShape(agg: any, byEquip: any[], trend: any[]) {
+  return {
+    totalRecords: agg.total_records ?? 0,
+    avgOee: Number(agg.avg_oee ?? 0),
+    avgAvailability: Number(agg.avg_availability ?? 0),
+    avgPerformance: Number(agg.avg_performance ?? 0),
+    avgQuality: Number(agg.avg_quality ?? 0),
+    worldClassCount: agg.world_class_count ?? 0,
+    criticalCount: agg.critical_count ?? 0,
+    totalProduction: Number(agg.total_production ?? 0),
+    totalDefects: Number(agg.total_defects ?? 0),
+    totalDowntime: Number(agg.total_downtime ?? 0),
+    byEquipment: byEquip.map(e => ({
+      equipmentId: e.equipment_id,
+      equipmentName: e.equipment_name,
+      avgOee: Number(e.avg_oee ?? 0),
+      avgAvailability: Number(e.avg_availability ?? 0),
+      avgPerformance: Number(e.avg_performance ?? 0),
+      avgQuality: Number(e.avg_quality ?? 0),
+      recordCount: e.record_count,
+    })),
+    trend: trend.map(t => ({ recordDate: t.record_date, avgOee: Number(t.avg_oee ?? 0) })),
+  };
 }
 
 function computeOEE(planned: number, downtime: number, speedLoss: number, actualProd: number, plannedProd: number, defects: number) {
@@ -49,23 +113,25 @@ export function registerOeeRoutes(app: Express) {
   const auth = EnterpriseAuthMiddleware.requireAuthentication;
 
   // ── GET /api/oee ──────────────────────────────────────────────────────────
-  app.get("/api/oee", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/oee", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const { equipmentId, from, to, shift } = req.query;
       let sql = `SELECT o.*, eq.equipment_name AS eq_name, eq.location AS eq_location
         FROM oee_records o
         LEFT JOIN equipment_registry eq ON eq.id = o.equipment_id
-        WHERE 1=1`;
-      const params: any[] = [];
-      let idx = 1;
+        WHERE o.tenant_id = $1`;
+      const params: any[] = [tenantId];
+      let idx = 2;
       if (equipmentId) { sql += ` AND o.equipment_id = $${idx++}`; params.push(equipmentId); }
       if (from) { sql += ` AND o.record_date >= $${idx++}`; params.push(from); }
       if (to) { sql += ` AND o.record_date <= $${idx++}`; params.push(to); }
       if (shift) { sql += ` AND o.shift = $${idx++}`; params.push(shift); }
       sql += ` ORDER BY o.record_date DESC, o.created_at DESC LIMIT 500`;
       const { rows } = await db.query(sql, params);
-      res.json(rows);
+      res.json(rows.map(toApiShape));
     } catch (e: any) {
       console.error("OEE list error:", e.message);
       res.status(500).json({ error: "Erreur serveur" });
@@ -73,17 +139,18 @@ export function registerOeeRoutes(app: Express) {
   });
 
   // ── GET /api/oee/stats ────────────────────────────────────────────────────
-  app.get("/api/oee/stats", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/oee/stats", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const db = getPool();
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const { from, to } = req.query;
       let dateFilter = "";
-      const params: any[] = [];
+      const params: any[] = [tenantId];
       if (from) { dateFilter += ` AND record_date >= $${params.length + 1}`; params.push(from); }
       if (to) { dateFilter += ` AND record_date <= $${params.length + 1}`; params.push(to); }
 
       const [agg, byEquip, trend] = await Promise.all([
-        db.query(`SELECT
+        getPool().query(`SELECT
           COUNT(*)::int AS total_records,
           ROUND(AVG(oee)::numeric, 4) AS avg_oee,
           ROUND(AVG(availability)::numeric, 4) AS avg_availability,
@@ -94,25 +161,21 @@ export function registerOeeRoutes(app: Express) {
           SUM(actual_production)::bigint AS total_production,
           SUM(defective_units)::bigint AS total_defects,
           SUM(downtime)::numeric AS total_downtime
-          FROM oee_records WHERE 1=1 ${dateFilter}`, params),
-        db.query(`SELECT equipment_id, equipment_name,
+          FROM oee_records WHERE tenant_id = $1 ${dateFilter}`, params),
+        getPool().query(`SELECT equipment_id, equipment_name,
           ROUND(AVG(oee)::numeric, 4) AS avg_oee,
           ROUND(AVG(availability)::numeric, 4) AS avg_availability,
           ROUND(AVG(performance)::numeric, 4) AS avg_performance,
           ROUND(AVG(quality)::numeric, 4) AS avg_quality,
           COUNT(*)::int AS record_count
-          FROM oee_records WHERE 1=1 ${dateFilter}
+          FROM oee_records WHERE tenant_id = $1 ${dateFilter}
           GROUP BY equipment_id, equipment_name ORDER BY avg_oee ASC LIMIT 20`, params),
-        db.query(`SELECT record_date::text, ROUND(AVG(oee)::numeric, 4) AS avg_oee
-          FROM oee_records WHERE 1=1 ${dateFilter}
+        getPool().query(`SELECT record_date::text, ROUND(AVG(oee)::numeric, 4) AS avg_oee
+          FROM oee_records WHERE tenant_id = $1 ${dateFilter}
           GROUP BY record_date ORDER BY record_date DESC LIMIT 30`, params),
       ]);
 
-      res.json({
-        ...agg.rows[0],
-        byEquipment: byEquip.rows,
-        trend: trend.rows.reverse(),
-      });
+      res.json(toStatsShape(agg.rows[0], byEquip.rows, trend.rows.reverse()));
     } catch (e: any) {
       console.error("OEE stats error:", e.message);
       res.status(500).json({ error: "Erreur stats" });
@@ -120,21 +183,24 @@ export function registerOeeRoutes(app: Express) {
   });
 
   // ── GET /api/oee/equipment/:id ────────────────────────────────────────────
-  app.get("/api/oee/equipment/:id", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/oee/equipment/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const db = getPool();
-      const { rows } = await db.query(`
-        SELECT * FROM oee_records WHERE equipment_id = $1
-        ORDER BY record_date DESC LIMIT 90`, [req.params.id]);
-      res.json(rows);
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rows } = await getPool().query(`
+        SELECT * FROM oee_records WHERE equipment_id = $1 AND tenant_id = $2
+        ORDER BY record_date DESC LIMIT 90`, [req.params.id, tenantId]);
+      res.json(rows.map(toApiShape));
     } catch (e: any) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
 
   // ── POST /api/oee ─────────────────────────────────────────────────────────
-  app.post("/api/oee", generalRateLimit, auth, async (req, res) => {
+  app.post("/api/oee", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = CreateOeeSchema.parse(req.body);
       const { availability, performance, quality, oee } = computeOEE(
         body.plannedTime, body.downtime, body.speedLoss,
@@ -143,13 +209,13 @@ export function registerOeeRoutes(app: Express) {
       const db = getPool();
       const { rows } = await db.query(`
         INSERT INTO oee_records
-          (equipment_id, equipment_name, record_date, shift, planned_time, downtime, speed_loss,
+          (tenant_id, equipment_id, equipment_name, record_date, shift, planned_time, downtime, speed_loss,
            planned_production, actual_production, defective_units,
            availability, performance, quality, oee, notes)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
         RETURNING *`,
         [
-          body.equipmentId, body.equipmentName || null,
+          tenantId, body.equipmentId, body.equipmentName || null,
           body.recordDate, body.shift,
           body.plannedTime, body.downtime, body.speedLoss,
           body.plannedProduction, body.actualProduction, body.defectiveUnits,
@@ -157,7 +223,7 @@ export function registerOeeRoutes(app: Express) {
           body.notes || null,
         ]
       );
-      res.status(201).json(rows[0]);
+      res.status(201).json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       console.error("OEE create error:", e.message);
@@ -166,10 +232,11 @@ export function registerOeeRoutes(app: Express) {
   });
 
   // ── DELETE /api/oee/:id ───────────────────────────────────────────────────
-  app.delete("/api/oee/:id", generalRateLimit, auth, async (req, res) => {
+  app.delete("/api/oee/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const db = getPool();
-      const { rowCount } = await db.query("DELETE FROM oee_records WHERE id = $1", [req.params.id]);
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rowCount } = await getPool().query("DELETE FROM oee_records WHERE id = $1 AND tenant_id = $2", [req.params.id, tenantId]);
       if (!rowCount) return res.status(404).json({ error: "Enregistrement introuvable" });
       res.json({ success: true });
     } catch (e: any) {

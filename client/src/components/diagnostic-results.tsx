@@ -35,7 +35,7 @@ interface TrendInfo {
   lastOccurrence: string;
 }
 
-interface DiagnosticSuggestion {
+export interface DiagnosticSuggestion {
   diagnosis: string;
   solution: string;
   confidence: number;

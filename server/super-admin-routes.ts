@@ -389,7 +389,8 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
       domain,
       isActive: true,
       contactEmail: adminEmail,
-      plan: req.body.plan || 'pro'
+      plan: req.body.plan || 'pro',
+      platformEdition: req.body.platformEdition || 'starter', // capacités fonctionnelles — indépendant de `plan`
     }).returning();
 
     console.log(`🏢 TENANT CRÉÉ: ${newTenant.name} (${newTenant.id})`);
@@ -1118,9 +1119,10 @@ router.post('/cleanup-expired-sessions', authenticateSuperAdmin, async (req, res
     // Désactiver les sessions inactives depuis plus de 7 jours
     const inactiveSessions = await db
       .update(userSessions)
-      .set({ 
+      .set({
         isActive: false,
-        updatedAt: new Date()
+        revokedAt: new Date(),
+        revokedReason: "timeout"
       })
       .where(sql`last_activity_at < NOW() - INTERVAL '7 days' AND is_active = true`)
       .returning({ id: userSessions.id });

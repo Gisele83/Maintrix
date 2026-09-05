@@ -11,7 +11,7 @@
 
 import type { Express } from "express";
 import { db } from "./db";
-import { equipmentRegistry, workOrders, budgetItems } from "@shared/schema";
+import { equipmentRegistry, workOrders } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   optimizeMultiAsset,
@@ -124,6 +124,7 @@ export function registerMultiAssetRoutes(app: Express) {
       const totalBudget = parseFloat((req.query.totalBudget as string) ?? "50000");
       const maxTechDays = parseFloat((req.query.maxTechDays as string) ?? "30");
       const windowDays = parseInt((req.query.windowDays as string) ?? "60");
+      const tenantId = (req as any).tenantId ?? "default-tenant";
 
       const allEquipment = await db
         .select({
@@ -134,6 +135,7 @@ export function registerMultiAssetRoutes(app: Express) {
           criticalityLevel: equipmentRegistry.criticalityLevel,
         })
         .from(equipmentRegistry)
+        .where(eq(equipmentRegistry.tenantId, tenantId))
         .limit(30); // limiter pour performance
 
       if (allEquipment.length === 0) {
@@ -150,13 +152,14 @@ export function registerMultiAssetRoutes(app: Express) {
         const batch = allEquipment.slice(i, i + batchSize);
         const results = await Promise.allSettled(
           batch.map(item =>
-            computeIMCA(item.id, "default-tenant", windowDays, windowDays * 3).catch(() => null)
+            computeIMCA(item.id, tenantId, windowDays, windowDays * 3).catch(() => null)
           )
         );
 
         for (let j = 0; j < batch.length; j++) {
           const eq = batch[j];
-          const imcaResult = results[j].status === "fulfilled" ? results[j].value : null;
+          const settled = results[j];
+          const imcaResult = settled.status === "fulfilled" ? settled.value : null;
           const imca = imcaResult?.IMCA ?? 70;
           const alert = imcaResult?.alertLevel ?? "ok";
 
@@ -184,7 +187,6 @@ export function registerMultiAssetRoutes(app: Express) {
         maxTechDays,
       };
 
-      const tenantId = (req as any).tenantId ?? "default-tenant";
       const learnedWeights = await getArbitrationWeights(tenantId);
       const arbitrationWeights: ArbitrationWeights = {
         riskWeight: learnedWeights.riskWeight,
@@ -196,7 +198,6 @@ export function registerMultiAssetRoutes(app: Express) {
 
       res.json({
         totalEquipment: allEquipment.length,
-        constraints,
         ...result,
         computedAt: new Date().toISOString(),
       });
@@ -249,40 +250,46 @@ export function registerMultiAssetRoutes(app: Express) {
     try {
       const equipmentId = parseInt(req.params.id);
       if (isNaN(equipmentId)) return res.status(400).json({ error: "equipmentId invalide" });
+      const tenantId = (req as any).tenantId ?? "default-tenant";
 
-      const [eq] = await db
-        .select({ id: equipmentRegistry.id, name: equipmentRegistry.name, type: equipmentRegistry.type, maintenanceCost: equipmentRegistry.maintenanceCost })
+      const [equipment] = await db
+        .select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType, criticalityLevel: equipmentRegistry.criticalityLevel })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.id, equipmentId))
         .limit(1);
 
-      if (!eq) return res.status(404).json({ error: "Équipement non trouvé" });
+      if (!equipment) return res.status(404).json({ error: "Équipement non trouvé" });
 
       // Calcul IMCA simplifié
       let imca = 70;
       let alertLevel: AssetInput["alertLevel"] = "ok";
       try {
-        const imcaResult = await computeIMCA(equipmentId, 30, 90);
+        const imcaResult = await computeIMCA(equipmentId, tenantId, 30, 90);
         imca = imcaResult.IMCA;
         alertLevel = imcaResult.alertLevel;
       } catch {
         /* fallback */
       }
 
+      const costByCriticality: Record<string, number> = {
+        critical: 15000, high: 10000, medium: 5000, low: 2500,
+      };
+      const maintenanceCost = costByCriticality[equipment.criticalityLevel ?? "medium"] ?? 5000;
+
       const asset: AssetInput = {
         equipmentId,
-        equipmentName: eq.name,
-        equipmentType: eq.type ?? "unknown",
+        equipmentName: equipment.name,
+        equipmentType: equipment.type ?? "unknown",
         currentIMCA: imca,
         alertLevel,
-        maintenanceCost: eq.maintenanceCost ?? 5000,
+        maintenanceCost,
       };
 
       const catalog = generateActionCatalog(asset);
 
       res.json({
         equipmentId,
-        equipmentName: eq.name,
+        equipmentName: equipment.name,
         currentIMCA: imca,
         alertLevel,
         catalog,

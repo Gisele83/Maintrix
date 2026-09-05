@@ -151,12 +151,13 @@ export class MultiTenantAssessment {
     
     try {
       // Vérifier RLS sur maintenance_cases
-      const [rlsMaintenanceCases] = await db.execute(
-        sql`SELECT schemaname, tablename, rowsecurity 
-            FROM pg_tables 
+      const rlsResult = await db.execute(
+        sql`SELECT schemaname, tablename, rowsecurity
+            FROM pg_tables
             WHERE tablename = 'maintenance_cases'`
       );
-      
+      const rlsMaintenanceCases = rlsResult.rows[0];
+
       if ((rlsMaintenanceCases as any)?.rowsecurity) {
         implementedFeatures.push("✅ RLS activé sur maintenance_cases");
       } else {
@@ -164,11 +165,12 @@ export class MultiTenantAssessment {
       }
       
       // Vérifier fonctions utilitaires
-      const [tenantFunctions] = await db.execute(
-        sql`SELECT COUNT(*) as count FROM pg_proc 
+      const tenantFunctionsResult = await db.execute(
+        sql`SELECT COUNT(*) as count FROM pg_proc
             WHERE proname IN ('set_current_tenant', 'get_current_tenant')`
       );
-      
+      const tenantFunctions = tenantFunctionsResult.rows[0];
+
       if ((tenantFunctions as any)?.count >= 2) {
         implementedFeatures.push("✅ Fonctions tenant PostgreSQL créées");
       } else {
@@ -176,11 +178,12 @@ export class MultiTenantAssessment {
       }
       
       // Vérifier policies
-      const [policies] = await db.execute(
-        sql`SELECT COUNT(*) as count FROM pg_policies 
+      const policiesResult = await db.execute(
+        sql`SELECT COUNT(*) as count FROM pg_policies
             WHERE policyname LIKE 'tenant_isolation%'`
       );
-      
+      const policies = policiesResult.rows[0];
+
       if ((policies as any)?.count >= 3) {
         implementedFeatures.push("✅ Policies RLS tenant_isolation configurées");
       } else {

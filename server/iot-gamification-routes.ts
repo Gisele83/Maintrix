@@ -335,8 +335,8 @@ export function registerIoTGamificationRoutes(app: Express) {
         leaderboard: leaderboardPosition,
         summary: {
           totalSkills: skillProgress.length,
-          averageLevel: skillProgress.reduce((sum, s) => sum + s.currentLevel, 0) / skillProgress.length,
-          totalExperience: skillProgress.reduce((sum, s) => sum + s.experiencePoints, 0)
+          averageLevel: skillProgress.reduce((sum, s) => sum + (s.currentLevel ?? 0), 0) / skillProgress.length,
+          totalExperience: skillProgress.reduce((sum, s) => sum + (s.experiencePoints ?? 0), 0)
         }
       });
     } catch (error) {

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Wrench, History, Bug, Brain, GitBranch, Users, Upload, Shield, Factory, ExternalLink, Activity, Sparkles, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
-import { Header } from "@/components/header";
 import { DiagnosticForm } from "@/components/diagnostic-form";
-import { DiagnosticResults } from "@/components/diagnostic-results";
+import { DiagnosticResults, type DiagnosticSuggestion } from "@/components/diagnostic-results";
 import { RepairGuidance } from "@/components/repair-guidance";
 import { MaintenanceHistory } from "@/components/maintenance-history";
 import { CaseReporting } from "@/components/case-reporting";
@@ -12,26 +11,13 @@ import { DataImport } from "@/components/data-import";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ModernNavigation from "@/components/modern-navigation";
-import FeatureCards, { QuickStats } from "@/components/feature-cards";
+import FeatureCards from "@/components/feature-cards";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";
 import { apiRequest } from "@/lib/queryClient";
 
 type Tab = "diagnostic" | "repair" | "history" | "reporting" | "import";
-
-interface DiagnosticSuggestion {
-  diagnosis: string;
-  solution: string;
-  confidence: number;
-  matchingCases: number;
-  caseId: number;
-  duration?: number;
-  riskLevel?: string;
-  costEstimate?: string;
-  aiInsights?: string;
-  predictiveTips?: string[];
-}
 
 export default function Dashboard() {
   const { language } = useLanguage();
@@ -48,6 +34,10 @@ export default function Dashboard() {
   const [ensembleMode, setEnsembleMode] = useState(false);
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState<string>("");
+
+  const { data: diagnosticStats } = useQuery<{ totalSessions: number; avgConfidence: number; completionRate: number; mlPredictionRate: number }>({
+    queryKey: ["/api/diagnostic-stats"],
+  });
 
   // Submit diagnostic form with ML
   const diagnosticMutation = useMutation({
@@ -165,7 +155,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <Header />
+      <ModernNavigation />
       
       {/* Modern Hero Section */}
       <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">
@@ -440,9 +430,9 @@ export default function Dashboard() {
             <div>
               <h4 className="font-medium mb-3">{t("statistics", language)}</h4>
               <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• 1,247 {t("casesDiagnosed", language)}</li>
-                <li>• 89% {t("successRate", language)}</li>
-                <li>• 45 min {t("averageTime", language)}</li>
+                <li>• {diagnosticStats?.totalSessions ?? 0} {t("casesDiagnosed", language)}</li>
+                <li>• {diagnosticStats ? Math.round(diagnosticStats.completionRate) : 0}% {t("successRate", language)}</li>
+                <li>• {diagnosticStats ? Math.round(diagnosticStats.avgConfidence * 100) : 0}% {t("avgConfidence", language)}</li>
               </ul>
             </div>
             <div>
@@ -456,14 +446,14 @@ export default function Dashboard() {
             <div>
               <h4 className="font-medium mb-3">{t("system", language)}</h4>
               <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• {t("version", language)} 2.1.0</li>
+                <li>• {t("version", language)} 1.0.0</li>
                 <li>• {t("databaseUpdated", language)}</li>
                 <li>• Status: ✓ {t("operational", language)}</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-carbon-gray-70 mt-8 pt-6 text-center text-sm text-carbon-gray-50">
-            © 2024 {t("appTitle", language)} - {t("copyright", language)}
+            © {new Date().getFullYear()} {t("appTitle", language)} - {t("copyright", language)}
           </div>
         </div>
       </footer>

@@ -1,0 +1,20 @@
+CREATE TABLE "maintenance_plans" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"plan_number" varchar(50) NOT NULL,
+	"title" text NOT NULL,
+	"fiscal_year" integer NOT NULL,
+	"department" varchar(100),
+	"start_date" timestamp,
+	"end_date" timestamp,
+	"budget_allocated" numeric(12, 2) DEFAULT '0',
+	"budget_spent" numeric(12, 2) DEFAULT '0',
+	"approved_by" varchar(100),
+	"tasks" jsonb DEFAULT '[]'::jsonb,
+	"notes" text,
+	"total_tasks" integer DEFAULT 0,
+	"completed_tasks" integer DEFAULT 0,
+	"status" varchar(20) DEFAULT 'draft' NOT NULL,
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
+	CONSTRAINT "maintenance_plans_plan_number_unique" UNIQUE("plan_number")
+);

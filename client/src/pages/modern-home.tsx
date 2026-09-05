@@ -1,18 +1,16 @@
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { ModernNavigation } from "@/components/modern-navigation";
-import FeatureCards, { QuickStats } from "@/components/feature-cards";
+import FeatureCards from "@/components/feature-cards";
 import { useAuth } from "@/hooks/useAuth";
+import { ACCENT, type AccentColor } from "@/lib/accent-colors";
 
 import {
   Brain,
   Settings,
   Activity,
-  Shield,
-  Zap,
   BarChart3,
   Users,
   AlertTriangle,
@@ -42,6 +40,26 @@ function getGreeting() {
   return "Bonsoir";
 }
 
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${Math.floor(h / 24)}j`;
+}
+
+const WORK_ORDER_STATUS_LABEL: Record<string, string> = {
+  pending: "créé",
+  assigned: "assigné",
+  in_progress: "en cours",
+  paused: "en pause",
+  completed: "terminé",
+  cancelled: "annulé",
+};
+
 export default function ModernHome() {
   const { user } = useAuth() as any;
   const { data: alerts = [] } = useQuery({ queryKey: ["/api/alerts"], refetchInterval: 5000 });
@@ -59,6 +77,48 @@ export default function ModernHome() {
   const isTrialActive = license?.isTrialActive;
   const trialDays = license?.trialDaysRemaining ?? 0;
 
+  // ── Métriques réelles dérivées des données déjà chargées (pas de chiffres inventés) ──
+  const equipmentIdsWithActiveAlerts = new Set(
+    (alerts as any[]).filter((a: any) => a.status === "active").map((a: any) => a.equipmentId)
+  );
+  const healthyEquipmentPct = totalEquipment > 0
+    ? Math.round(((totalEquipment - equipmentIdsWithActiveAlerts.size) / totalEquipment) * 100)
+    : 100;
+
+  const completedOrders = (workOrders as any[]).filter((o: any) => o.status === "completed").length;
+  const pendingValidationOrders = (workOrders as any[]).filter((o: any) =>
+    ["pending", "level1_validated"].includes(o.validationStatus)
+  ).length;
+  const completionRate = (workOrders as any[]).length > 0
+    ? Math.round((completedOrders / (workOrders as any[]).length) * 100)
+    : 0;
+
+  const quickStats = [
+    { label: "Équipements Surveillés", value: String(totalEquipment), icon: Cpu, color: "text-blue-600", bg: "bg-blue-100" },
+    { label: "Alertes Actives", value: String(activeAlerts), icon: AlertTriangle, color: activeAlerts > 0 ? "text-red-600" : "text-green-600", bg: activeAlerts > 0 ? "bg-red-100" : "bg-green-100" },
+    { label: "OT en Cours", value: String(openOrders), icon: Wrench, color: "text-orange-600", bg: "bg-orange-100" },
+    { label: "Équipements Sains", value: `${healthyEquipmentPct}%`, icon: TrendingUp, color: "text-green-600", bg: "bg-green-100" },
+  ];
+
+  const recentActivity = [
+    ...(alerts as any[]).map((a: any) => ({
+      id: `alert-${a.id}`,
+      text: a.title || a.message || "Alerte équipement",
+      time: timeAgo(a.createdAt),
+      ts: a.createdAt ? new Date(a.createdAt).getTime() : 0,
+      dot: a.severity === "critical" ? "bg-rose-500" : a.severity === "high" ? "bg-amber-500" : "bg-blue-500",
+    })),
+    ...(workOrders as any[]).map((o: any) => ({
+      id: `wo-${o.id}`,
+      text: `${o.title || o.orderNumber || "Ordre de travail"} — ${WORK_ORDER_STATUS_LABEL[o.status] || o.status}`,
+      time: timeAgo(o.updatedAt || o.createdAt),
+      ts: new Date(o.updatedAt || o.createdAt || 0).getTime(),
+      dot: o.status === "completed" ? "bg-emerald-500" : o.status === "in_progress" ? "bg-violet-500" : "bg-slate-400",
+    })),
+  ]
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 5);
+
   const quickModules = [
     { href: "/gmao", icon: ClipboardList, label: "Ordres de travail", sub: `${openOrders} en cours`, color: "blue", bg: "from-blue-500/15 to-blue-600/5", border: "border-blue-500/25" },
     { href: "/equipment-management", icon: Settings, label: "Équipements", sub: `${totalEquipment} enregistrés`, color: "emerald", bg: "from-emerald-500/15 to-emerald-600/5", border: "border-emerald-500/25" },
@@ -66,30 +126,6 @@ export default function ModernHome() {
     { href: "/oee", icon: Gauge, label: "OEE", sub: "Efficacité globale", color: "amber", bg: "from-amber-500/15 to-amber-600/5", border: "border-amber-500/25" },
     { href: "/rca", icon: GitBranch, label: "Analyse RCA", sub: "Causes racines", color: "rose", bg: "from-rose-500/15 to-rose-600/5", border: "border-rose-500/25" },
     { href: "/asset-lifecycle", icon: Layers, label: "Actifs", sub: "Cycle de vie", color: "sky", bg: "from-sky-500/15 to-sky-600/5", border: "border-sky-500/25" },
-  ];
-
-  const mainModules = [
-    {
-      href: "/gmao",
-      icon: Settings,
-      title: "Module GMAO",
-      subtitle: "Backbone Opérationnel",
-      desc: "Planification des interventions, gestion des techniciens, ordres de travail, maintenance préventive et stocks de pièces détachées.",
-      tags: ["Multi-tenant", "Workflow avancé", "120 cas réels"],
-      color: "blue",
-      cta: "Accéder au GMAO",
-    },
-    {
-      href: "/cognitive-infrastructure",
-      icon: Brain,
-      title: "Supervision Adaptative",
-      subtitle: "Contrôle Industriel Avancé",
-      desc: "Architecture 5 modules coopératifs brevetée. Knowledge Graph causal, autonomie graduée 0-5, multi-agent et boucle fermée.",
-      tags: ["Causalité", "Multi-Agent", "Niveaux 0-5"],
-      color: "violet",
-      cta: "Ouvrir la Supervision",
-      cta2: { href: "/smart-diagnostic", label: "Diagnostic IA", icon: Cpu },
-    },
   ];
 
   return (
@@ -154,7 +190,23 @@ export default function ModernHome() {
         </div>
 
         {/* ── Quick Stats ─────────────────────────────────── */}
-        <QuickStats />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {quickStats.map((stat) => (
+            <Card key={stat.label} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${stat.bg}`}>
+                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         {/* ── Quick Module Grid ───────────────────────────── */}
         <div className="mb-12 mt-10">
@@ -170,85 +222,13 @@ export default function ModernHome() {
             {quickModules.map(({ href, icon: Icon, label, sub, color, bg, border }) => (
               <Link key={href} href={href}>
                 <div className={`group bg-gradient-to-br ${bg} border ${border} rounded-2xl p-4 hover:scale-[1.04] transition-all duration-200 cursor-pointer h-full`}>
-                  <div className={`w-10 h-10 bg-${color}-500/15 border border-${color}-500/25 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <Icon className={`w-5 h-5 text-${color}-600`} />
+                  <div className={`w-10 h-10 ${ACCENT[color as AccentColor].iconTile} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                    <Icon className={`w-5 h-5 ${ACCENT[color as AccentColor].icon600}`} />
                   </div>
                   <div className="text-sm font-semibold text-slate-800 leading-tight mb-0.5">{label}</div>
                   <div className="text-xs text-slate-500">{sub}</div>
                 </div>
               </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Main Module Cards ───────────────────────────── */}
-        <div className="mb-12">
-          <h2 className="text-xl font-bold text-slate-800 mb-5">Modules principaux</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mainModules.map((m) => (
-              <div key={m.href} className="group bg-white border border-slate-200/60 rounded-2xl p-7 shadow-sm hover:shadow-md hover:border-slate-300/60 transition-all duration-300">
-                <div className="flex items-center gap-4 mb-5">
-                  <div className={`w-14 h-14 bg-gradient-to-br from-${m.color}-500 to-${m.color}-600 rounded-xl flex items-center justify-center shadow-lg shadow-${m.color}-500/20 group-hover:scale-105 transition-transform`}>
-                    <m.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h3 className={`text-xl font-bold text-slate-800 group-hover:text-${m.color}-600 transition-colors`}>{m.title}</h3>
-                    <p className="text-sm text-slate-500">{m.subtitle}</p>
-                  </div>
-                </div>
-                <p className="text-slate-600 leading-relaxed mb-5 text-sm">{m.desc}</p>
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {m.tags.map((t) => (
-                    <span key={t} className={`text-xs bg-${m.color}-50 text-${m.color}-600 border border-${m.color}-100 px-3 py-1 rounded-full font-medium`}>{t}</span>
-                  ))}
-                </div>
-                <div className="space-y-2">
-                  <Button asChild className={`w-full bg-${m.color}-600 hover:bg-${m.color}-700 rounded-xl`}>
-                    <Link href={m.href}>
-                      <m.icon className="w-4 h-4 mr-2" />
-                      {m.cta}
-                    </Link>
-                  </Button>
-                  {m.cta2 && (
-                    <Button asChild variant="ghost" className="w-full text-slate-600 hover:bg-slate-50 rounded-xl">
-                      <Link href={m.cta2.href}>
-                        <m.cta2.icon className="w-4 h-4 mr-2" />
-                        {m.cta2.label}
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Architecture Cards ──────────────────────────── */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">Architecture de Supervision</h2>
-              <p className="text-slate-500 text-sm">5 modules coopératifs avec modélisation causale dynamique</p>
-            </div>
-            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Autonomie Niveau 1
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { icon: Brain, title: "Modèle Causal", desc: "Graphe de connaissances, relations pondérées, prédiction cascade", color: "rose", bg: "bg-rose-50" },
-              { icon: Zap, title: "Knowledge Graph", desc: "48+ nœuds, 46+ arêtes, raisonnement causal temps réel", color: "sky", bg: "bg-sky-50" },
-              { icon: Shield, title: "Autonomie Graduée", desc: "Niveaux 0–5, du monitoring à l'action corrective autonome", color: "violet", bg: "bg-violet-50" },
-            ].map(({ icon: Icon, title, desc, color, bg }) => (
-              <Card key={title} className="border border-slate-200/60 shadow-sm bg-white hover:shadow-md transition-shadow">
-                <CardContent className="p-5 text-center">
-                  <div className={`w-11 h-11 ${bg} rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                    <Icon className={`w-5 h-5 text-${color}-600`} />
-                  </div>
-                  <h3 className="text-base font-semibold text-slate-800 mb-1">{title}</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
-                </CardContent>
-              </Card>
             ))}
           </div>
         </div>
@@ -276,9 +256,9 @@ export default function ModernHome() {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { label: "Disponibilité Multi-Tenant", value: "99.9%", sub: "SLA garanti" },
-                  { label: "Cas Industriels Traités", value: "1 540", sub: "Depuis le démarrage" },
-                  { label: "Précision IA Ensemble", value: "98.2%", sub: "Dernière validation" },
+                  { label: "Ordres de Travail Terminés", value: String(completedOrders), sub: `sur ${(workOrders as any[]).length} au total` },
+                  { label: "Taux de Complétion", value: `${completionRate}%`, sub: "Ordres de travail terminés" },
+                  { label: "En Attente de Validation", value: String(pendingValidationOrders), sub: "Workflow de validation" },
                 ].map(({ label, value, sub }) => (
                   <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
                     <div>
@@ -308,19 +288,17 @@ export default function ModernHome() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {[
-                  { dot: "bg-emerald-500", text: "Nouvel utilisateur créé", time: "il y a 2min" },
-                  { dot: "bg-blue-500", text: "Email d'identifiants envoyé", time: "il y a 3min" },
-                  { dot: "bg-violet-500", text: "Diagnostic ML — 98% confiance", time: "il y a 5min" },
-                  { dot: "bg-amber-500", text: "Maintenance préventive planifiée", time: "il y a 8min" },
-                  { dot: "bg-rose-500", text: "Alerte capteur vibration résolue", time: "il y a 12min" },
-                ].map(({ dot, text, time }, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100/80 transition-colors">
-                    <div className={`w-2 h-2 ${dot} rounded-full flex-shrink-0`} />
-                    <span className="text-sm text-slate-700 flex-1">{text}</span>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">{time}</span>
-                  </div>
-                ))}
+                {recentActivity.length === 0 ? (
+                  <div className="text-sm text-slate-400 text-center py-6">Aucune activité récente</div>
+                ) : (
+                  recentActivity.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100/80 transition-colors">
+                      <div className={`w-2 h-2 ${item.dot} rounded-full flex-shrink-0`} />
+                      <span className="text-sm text-slate-700 flex-1 truncate">{item.text}</span>
+                      <span className="text-xs text-slate-400 whitespace-nowrap">{item.time}</span>
+                    </div>
+                  ))
+                )}
                 <Link href="/iot-gamification">
                   <Button className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl mt-2">
                     <Activity className="h-4 w-4 mr-2" />
@@ -346,10 +324,10 @@ export default function ModernHome() {
               <Link key={href} href={href}>
                 <Button
                   variant="outline"
-                  className={`h-20 w-full rounded-xl border border-slate-200 hover:border-${color}-200 hover:bg-${color}-50/50 transition-all`}
+                  className={`h-20 w-full rounded-xl border border-slate-200 ${ACCENT[color as AccentColor].hoverTile} transition-all`}
                 >
                   <div className="text-center">
-                    <Icon className={`h-5 w-5 mx-auto mb-1.5 text-${color}-600`} />
+                    <Icon className={`h-5 w-5 mx-auto mb-1.5 ${ACCENT[color as AccentColor].icon600}`} />
                     <span className="text-sm font-medium text-slate-700">{label}</span>
                   </div>
                 </Button>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ACCENT, type AccentColor } from "@/lib/accent-colors";
 import {
   Brain,
   Settings,
@@ -76,7 +77,7 @@ export default function LandingPage() {
     {
       icon: Brain,
       title: "Supervision Adaptative",
-      description: "5 modules coopératifs brevetés. Modélisation causale via Knowledge Graph (48+ nœuds, 46+ arêtes). Autonomie graduée de 0 à 5.",
+      description: "5 modules coopératifs. Modélisation causale via Knowledge Graph (48+ nœuds, 46+ arêtes). Autonomie graduée de 0 à 5.",
       color: "violet",
       bg: "from-violet-500/10 to-violet-600/5",
       border: "border-violet-200/50",
@@ -257,7 +258,7 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-20">
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 text-blue-400 text-sm px-4 py-2 rounded-full mb-8">
             <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-            Architecture brevetée · 5 modules coopératifs · Autonomie graduée 0-5
+            Architecture propriétaire · 5 modules coopératifs · Autonomie graduée 0-5
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6">
@@ -276,13 +277,13 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
             <Link href="/register">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-500 px-8 h-13 text-base rounded-xl shadow-xl shadow-blue-600/30 group">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-500 px-8 h-12 text-base rounded-xl shadow-xl shadow-blue-600/30 group">
                 Commencer gratuitement — 14 jours
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <a href="#how-it-works">
-              <Button size="lg" variant="outline" className="px-8 h-13 text-base rounded-xl border-slate-700 text-slate-300 hover:bg-white/5 hover:border-slate-500">
+              <Button size="lg" variant="outline" className="px-8 h-12 text-base rounded-xl border-slate-700 text-slate-300 hover:bg-white/5 hover:border-slate-500">
                 <Play className="mr-2 w-4 h-4" />
                 Voir comment ça marche
               </Button>
@@ -330,7 +331,7 @@ export default function LandingPage() {
               Une supervision industrielle complète
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Cinq modules coopératifs brevetés qui transforment vos machines en systèmes auto-contrôlés
+              Cinq modules coopératifs qui transforment vos machines en systèmes auto-contrôlés
             </p>
           </div>
 
@@ -340,8 +341,8 @@ export default function LandingPage() {
                 key={i}
                 className={`group relative bg-gradient-to-br ${f.bg} border ${f.border} rounded-2xl p-7 hover:scale-[1.02] transition-all duration-300 cursor-default`}
               >
-                <div className={`w-12 h-12 rounded-xl bg-${f.color}-500/15 border border-${f.color}-500/25 flex items-center justify-center mb-5 group-hover:-translate-y-0.5 transition-transform`}>
-                  <f.icon className={`w-6 h-6 text-${f.color}-400`} />
+                <div className={`w-12 h-12 rounded-xl ${ACCENT[f.color as AccentColor].iconTile} flex items-center justify-center mb-5 group-hover:-translate-y-0.5 transition-transform`}>
+                  <f.icon className={`w-6 h-6 ${ACCENT[f.color as AccentColor].icon400}`} />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">{f.title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">{f.description}</p>
@@ -363,13 +364,13 @@ export default function LandingPage() {
             {steps.map((s, i) => (
               <div key={i} className="flex gap-6 items-start group">
                 <div className="flex-shrink-0 flex flex-col items-center">
-                  <div className={`w-14 h-14 rounded-2xl bg-${s.color}-500/15 border border-${s.color}-500/30 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <s.icon className={`w-7 h-7 text-${s.color}-400`} />
+                  <div className={`w-14 h-14 rounded-2xl ${ACCENT[s.color as AccentColor].iconTile} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <s.icon className={`w-7 h-7 ${ACCENT[s.color as AccentColor].icon400}`} />
                   </div>
                   {i < steps.length - 1 && <div className="w-px h-8 bg-slate-700/60 mt-2" />}
                 </div>
                 <div className="pt-1.5">
-                  <div className={`text-xs font-bold text-${s.color}-500 mb-1 tracking-widest`}>{s.n}</div>
+                  <div className={`text-xs font-bold ${ACCENT[s.color as AccentColor].text500} mb-1 tracking-widest`}>{s.n}</div>
                   <h3 className="text-xl font-semibold text-white mb-2">{s.title}</h3>
                   <p className="text-slate-400 leading-relaxed">{s.desc}</p>
                 </div>
@@ -393,12 +394,12 @@ export default function LandingPage() {
               { icon: Smartphone, title: "Mobile", desc: "React Native iOS & Android. Mode hors-ligne complet avec synchronisation automatique.", color: "emerald", badge: "Bêta" },
             ].map(({ icon: Icon, title, desc, color, badge }) => (
               <div key={title} className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 text-center hover:border-slate-700 transition-colors">
-                <div className={`w-14 h-14 bg-${color}-500/10 border border-${color}-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-                  <Icon className={`w-7 h-7 text-${color}-400`} />
+                <div className={`w-14 h-14 ${ACCENT[color as AccentColor].iconTileSm} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <Icon className={`w-7 h-7 ${ACCENT[color as AccentColor].icon400}`} />
                 </div>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <h3 className="text-white font-semibold">{title}</h3>
-                  <Badge className={`text-[10px] bg-${color}-500/10 text-${color}-400 border border-${color}-500/20`}>{badge}</Badge>
+                  <Badge className={`text-[10px] ${ACCENT[color as AccentColor].badgeChip}`}>{badge}</Badge>
                 </div>
                 <p className="text-slate-500 text-sm">{desc}</p>
               </div>
@@ -523,13 +524,13 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/register">
-              <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100 px-8 h-13 rounded-xl font-semibold shadow-xl">
+              <Button size="lg" className="bg-white text-slate-900 hover:bg-slate-100 px-8 h-12 rounded-xl font-semibold shadow-xl">
                 Commencer gratuitement
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-white/5 px-8 h-13 rounded-xl">
+              <Button size="lg" variant="outline" className="border-slate-600 text-slate-300 hover:bg-white/5 px-8 h-12 rounded-xl">
                 J'ai déjà un compte
               </Button>
             </Link>
@@ -548,30 +549,34 @@ export default function LandingPage() {
                 </div>
                 <span className="text-white font-bold">Maintrix</span>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed">Supervision & Contrôle Adaptatif Industriel. Architecture brevetée à 5 modules coopératifs.</p>
+              <p className="text-slate-500 text-sm leading-relaxed">Supervision & Contrôle Adaptatif Industriel. Architecture propriétaire à 5 modules coopératifs.</p>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-3 text-sm">Produit</h4>
               <ul className="space-y-2">
-                {["Fonctionnalités", "Tarifs", "Télécharger", "API Documentation"].map(l => (
-                  <li key={l}><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">{l}</a></li>
+                {[["#features", "Fonctionnalités"], ["#pricing", "Tarifs"], ["/download", "Télécharger"], ["/api-docs", "API Documentation"]].map(([href, l]) => (
+                  <li key={l}><a href={href} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">{l}</a></li>
                 ))}
               </ul>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-3 text-sm">Ressources</h4>
               <ul className="space-y-2">
-                {["Documentation", "Guide d'installation", "Manuel utilisateur", "Support"].map(l => (
-                  <li key={l}><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">{l}</a></li>
-                ))}
+                <li><Link href="/documentation" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Documentation</Link></li>
+                <li><Link href="/support-chatbot" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Support</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-semibold mb-3 text-sm">Entreprise</h4>
               <ul className="space-y-2">
-                {["À propos", "Contact", "Mentions légales", "Politique de confidentialité"].map(l => (
-                  <li key={l}><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">{l}</a></li>
-                ))}
+                <li><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">À propos</a></li>
+                <li>
+                  <button onClick={() => setShowSalesModal(true)} className="text-slate-500 hover:text-slate-300 text-sm transition-colors text-left">
+                    Contact
+                  </button>
+                </li>
+                <li><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Mentions légales</a></li>
+                <li><a href="#" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">Politique de confidentialité</a></li>
               </ul>
             </div>
           </div>

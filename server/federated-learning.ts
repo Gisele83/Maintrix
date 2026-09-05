@@ -494,7 +494,7 @@ export class FederatedLearningService {
 
   private generateModelWeights(patterns: any[]): number[] {
     // Generate normalized weights for ML model improvement
-    const weights = [];
+    const weights: number[] = [];
     const categories = new Set<string>();
     
     patterns.forEach(pattern => {
@@ -527,5 +527,7 @@ export class FederatedLearningService {
   }
 }
 
-// Singleton instance
-export const federatedLearning = new FederatedLearningService();
+// Singleton instance — nommé différemment de la table Drizzle `federatedLearning` importée
+// plus haut (même nom masquait l'import : chaque .from(federatedLearning) du fichier
+// recevait en réalité cette instance de service au lieu de la table).
+export const federatedLearningService = new FederatedLearningService();

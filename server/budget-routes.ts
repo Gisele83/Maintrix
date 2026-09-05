@@ -2,7 +2,7 @@
  * Budget Management Routes
  * Gestion des budgets de maintenance et suivi des dépenses
  */
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
@@ -12,6 +12,19 @@ import { z } from "zod";
 const getPool = (): Pool => sharedPool;
 const safeJson = (v: any, fb: any) => { if (!v) return fb; if (typeof v === "object") return v; try { return JSON.parse(v); } catch { return fb; } };
 const genNum = () => `BUD-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+
+interface TenantRequest extends Request {
+  tenantId?: string;
+  user?: any;
+}
+
+function requireTenant(req: TenantRequest, res: Response): string | null {
+  if (!req.tenantId) {
+    res.status(400).json({ error: "Tenant non résolu pour cette requête" });
+    return null;
+  }
+  return req.tenantId;
+}
 
 const BudgetLineSchema = z.object({
   id: z.string().optional(),
@@ -51,24 +64,67 @@ const TransactionSchema = z.object({
   budgetLineId: z.string().optional(),
 });
 
+// Traduit une ligne SQL (colonnes snake_case) vers la forme JSON attendue côté client (camelCase) — même
+// convention que server/supplier-routes.ts et server/oee-routes.ts. budget.tsx lit exclusivement des clés
+// camelCase (fiscalYear, budgetType, budgetNumber...) ; sans cette traduction chaque valeur arrive `undefined`.
 function enrichBudget(r: any) {
   const lines = safeJson(r.lines, []);
   const totalSpent = Number(r.total_spent || 0);
   const totalAllocated = Number(r.total_allocated || 0);
-  const contingency = totalAllocated * (Number(r.contingency_pct || 10) / 100);
-  const availableBudget = totalAllocated - totalSpent - Number(r.total_committed || 0);
+  const totalCommitted = Number(r.total_committed || 0);
+  const contingencyPct = Number(r.contingency_pct || 10);
+  const contingency = totalAllocated * (contingencyPct / 100);
+  const availableBudget = totalAllocated - totalSpent - totalCommitted;
   const consumptionPct = totalAllocated > 0 ? Math.round((totalSpent / totalAllocated) * 100) : 0;
-  return { ...r, lines, totalSpent, totalAllocated, availableBudget, contingency, consumptionPct };
+  return {
+    id: r.id,
+    budgetNumber: r.budget_number,
+    title: r.title,
+    fiscalYear: r.fiscal_year,
+    department: r.department,
+    budgetType: r.budget_type,
+    status: r.status,
+    totalAllocated, totalSpent, totalCommitted, contingencyPct,
+    currency: r.currency,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    approvedBy: r.approved_by,
+    approvedAt: r.approved_at,
+    lines, notes: r.notes,
+    availableBudget, contingency, consumptionPct,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function toTxShape(r: any) {
+  return {
+    id: r.id,
+    budgetId: r.budget_id,
+    budgetLineId: r.budget_line_id,
+    transactionType: r.transaction_type,
+    amount: Number(r.amount),
+    description: r.description,
+    reference: r.reference,
+    supplierName: r.supplier_name,
+    workOrderId: r.work_order_id,
+    transactionDate: r.transaction_date,
+    category: r.category,
+    status: r.status,
+    createdAt: r.created_at,
+  };
 }
 
 export function registerBudgetRoutes(app: Express) {
   const auth = EnterpriseAuthMiddleware.requireAuthentication;
 
-  app.get("/api/budgets", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/budgets", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const { year, type, status } = req.query;
-      let sql = `SELECT * FROM budget_plans WHERE 1=1`;
-      const params: any[] = []; let i = 1;
+      let sql = `SELECT * FROM budget_plans WHERE tenant_id=$1`;
+      const params: any[] = [tenantId]; let i = 2;
       if (year) { sql += ` AND fiscal_year=$${i++}`; params.push(year); }
       if (type) { sql += ` AND budget_type=$${i++}`; params.push(type); }
       if (status) { sql += ` AND status=$${i++}`; params.push(status); }
@@ -78,8 +134,10 @@ export function registerBudgetRoutes(app: Express) {
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get("/api/budgets/stats", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/budgets/stats", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const year = req.query.year || new Date().getFullYear();
       const { rows: s } = await getPool().query(`SELECT
         COUNT(*)::int AS total,
@@ -88,30 +146,42 @@ export function registerBudgetRoutes(app: Express) {
         COALESCE(SUM(total_committed),0) AS total_committed,
         COUNT(*) FILTER (WHERE status='approved')::int AS approved,
         COUNT(*) FILTER (WHERE status='draft')::int AS draft
-        FROM budget_plans WHERE fiscal_year=$1`, [year]);
-      const { rows: byType } = await getPool().query(`SELECT budget_type, COALESCE(SUM(total_allocated),0) AS allocated, COALESCE(SUM(total_spent),0) AS spent FROM budget_plans WHERE fiscal_year=$1 GROUP BY budget_type`, [year]);
-      const { rows: monthly } = await getPool().query(`SELECT TO_CHAR(transaction_date,'MM') AS month, COALESCE(SUM(amount),0) AS total FROM budget_transactions WHERE EXTRACT(YEAR FROM transaction_date)=$1 AND transaction_type='expense' GROUP BY month ORDER BY month`, [year]);
-      res.json({ ...s[0], byType, monthly });
+        FROM budget_plans WHERE tenant_id=$1 AND fiscal_year=$2`, [tenantId, year]);
+      const { rows: byType } = await getPool().query(`SELECT budget_type, COALESCE(SUM(total_allocated),0) AS allocated, COALESCE(SUM(total_spent),0) AS spent FROM budget_plans WHERE tenant_id=$1 AND fiscal_year=$2 GROUP BY budget_type`, [tenantId, year]);
+      const { rows: monthly } = await getPool().query(`SELECT TO_CHAR(bt.transaction_date,'MM') AS month, COALESCE(SUM(bt.amount),0) AS total FROM budget_transactions bt WHERE bt.tenant_id=$1 AND EXTRACT(YEAR FROM bt.transaction_date)=$2 AND bt.transaction_type='expense' GROUP BY month ORDER BY month`, [tenantId, year]);
+      res.json({
+        total: s[0].total,
+        totalAllocated: Number(s[0].total_allocated || 0),
+        totalSpent: Number(s[0].total_spent || 0),
+        totalCommitted: Number(s[0].total_committed || 0),
+        approved: s[0].approved,
+        draft: s[0].draft,
+        byType, monthly,
+      });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get("/api/budgets/:id", generalRateLimit, auth, async (req, res) => {
+  app.get("/api/budgets/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const { rows } = await getPool().query("SELECT * FROM budget_plans WHERE id=$1", [req.params.id]);
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rows } = await getPool().query("SELECT * FROM budget_plans WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!rows[0]) return res.status(404).json({ error: "Budget introuvable" });
-      const { rows: txns } = await getPool().query("SELECT * FROM budget_transactions WHERE budget_id=$1 ORDER BY transaction_date DESC", [req.params.id]);
-      res.json({ ...enrichBudget(rows[0]), transactions: txns });
+      const { rows: txns } = await getPool().query("SELECT * FROM budget_transactions WHERE budget_id=$1 AND tenant_id=$2 ORDER BY transaction_date DESC", [req.params.id, tenantId]);
+      res.json({ ...enrichBudget(rows[0]), transactions: txns.map(toTxShape) });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post("/api/budgets", generalRateLimit, auth, async (req, res) => {
+  app.post("/api/budgets", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = CreateBudgetSchema.parse(req.body);
       const lines = body.lines.map((l, i) => ({ ...l, id: l.id || `line-${i}` }));
       const { rows } = await getPool().query(
-        `INSERT INTO budget_plans (budget_number,title,fiscal_year,department,budget_type,total_allocated,contingency_pct,currency,start_date,end_date,lines,notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-        [genNum(), body.title, body.fiscalYear, body.department||null, body.budgetType, body.totalAllocated, body.contingencyPct, body.currency, body.startDate||null, body.endDate||null, JSON.stringify(lines), body.notes||null]
+        `INSERT INTO budget_plans (tenant_id,budget_number,title,fiscal_year,department,budget_type,total_allocated,contingency_pct,currency,start_date,end_date,lines,notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+        [tenantId, genNum(), body.title, body.fiscalYear, body.department||null, body.budgetType, body.totalAllocated, body.contingencyPct, body.currency, body.startDate||null, body.endDate||null, JSON.stringify(lines), body.notes||null]
       );
       res.status(201).json(enrichBudget(rows[0]));
     } catch (e: any) {
@@ -120,8 +190,10 @@ export function registerBudgetRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/budgets/:id", generalRateLimit, auth, async (req, res) => {
+  app.patch("/api/budgets/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const db = getPool();
       const body = CreateBudgetSchema.partial().extend({ status: z.string().optional(), approvedBy: z.string().optional() }).parse(req.body);
       const sets: string[] = []; const params: any[] = []; let i = 1;
@@ -132,42 +204,46 @@ export function registerBudgetRoutes(app: Express) {
       if (body.status === "approved") add("approved_at", new Date());
       add("updated_at", new Date());
       if (!sets.length) return res.json({ message: "Rien à mettre à jour" });
-      params.push(req.params.id);
-      const { rows } = await db.query(`UPDATE budget_plans SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, params);
+      params.push(req.params.id, tenantId);
+      const { rows } = await db.query(`UPDATE budget_plans SET ${sets.join(",")} WHERE id=$${i++} AND tenant_id=$${i} RETURNING *`, params);
       if (!rows[0]) return res.status(404).json({ error: "Budget introuvable" });
       res.json(enrichBudget(rows[0]));
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });
 
-  app.post("/api/budgets/:id/transactions", generalRateLimit, auth, async (req, res) => {
+  app.post("/api/budgets/:id/transactions", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
       const body = TransactionSchema.parse(req.body);
       const db = getPool();
-      const { rows: bRows } = await db.query("SELECT * FROM budget_plans WHERE id=$1", [req.params.id]);
+      const { rows: bRows } = await db.query("SELECT * FROM budget_plans WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!bRows[0]) return res.status(404).json({ error: "Budget introuvable" });
       const { rows } = await db.query(
-        `INSERT INTO budget_transactions (budget_id,budget_line_id,transaction_type,amount,description,reference,supplier_name,work_order_id,transaction_date,category,status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'posted') RETURNING *`,
-        [req.params.id, body.budgetLineId||null, body.transactionType, body.amount, body.description, body.reference||null, body.supplierName||null, body.workOrderId||null, body.transactionDate, body.category||null]
+        `INSERT INTO budget_transactions (tenant_id,budget_id,budget_line_id,transaction_type,amount,description,reference,supplier_name,work_order_id,transaction_date,category,status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'posted') RETURNING *`,
+        [tenantId, req.params.id, body.budgetLineId||null, body.transactionType, body.amount, body.description, body.reference||null, body.supplierName||null, body.workOrderId||null, body.transactionDate, body.category||null]
       );
       // Update budget spent/committed
       if (body.transactionType === "expense") {
-        await db.query(`UPDATE budget_plans SET total_spent=COALESCE(total_spent,0)+$1, updated_at=NOW() WHERE id=$2`, [body.amount, req.params.id]);
+        await db.query(`UPDATE budget_plans SET total_spent=COALESCE(total_spent,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
       } else if (body.transactionType === "commitment") {
-        await db.query(`UPDATE budget_plans SET total_committed=COALESCE(total_committed,0)+$1, updated_at=NOW() WHERE id=$2`, [body.amount, req.params.id]);
+        await db.query(`UPDATE budget_plans SET total_committed=COALESCE(total_committed,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
       } else if (body.transactionType === "refund") {
-        await db.query(`UPDATE budget_plans SET total_spent=GREATEST(0,COALESCE(total_spent,0)-$1), updated_at=NOW() WHERE id=$2`, [body.amount, req.params.id]);
+        await db.query(`UPDATE budget_plans SET total_spent=GREATEST(0,COALESCE(total_spent,0)-$1), updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
       }
-      res.status(201).json(rows[0]);
+      res.status(201).json(toTxShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       res.status(500).json({ error: e.message });
     }
   });
 
-  app.delete("/api/budgets/:id", generalRateLimit, auth, async (req, res) => {
+  app.delete("/api/budgets/:id", generalRateLimit, auth, async (req: TenantRequest, res) => {
     try {
-      const { rowCount } = await getPool().query("DELETE FROM budget_plans WHERE id=$1", [req.params.id]);
+      const tenantId = requireTenant(req, res);
+      if (!tenantId) return;
+      const { rowCount } = await getPool().query("DELETE FROM budget_plans WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
       if (!rowCount) return res.status(404).json({ error: "Budget introuvable" });
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ error: e.message }); }

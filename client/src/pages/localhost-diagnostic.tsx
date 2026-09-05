@@ -24,15 +24,15 @@ export default function LocalhostDiagnostic() {
   const runDiagnostic = async () => {
     const results = {
       serverStatus: 'error',
-      apiStatus: 'error', 
+      apiStatus: 'error',
       portStatus: 'error',
-      recommendations: []
+      recommendations: [] as string[]
     };
 
     // Test 1: Serveur principal
     try {
       const response = await Promise.race([
-        fetch('http://localhost:5000/api/health'),
+        fetch('http://localhost:5050/api/health'),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
       ]);
       if (response.ok) {
@@ -41,18 +41,18 @@ export default function LocalhostDiagnostic() {
         results.portStatus = 'success';
       }
     } catch (error) {
-      results.recommendations.push('Le serveur principal sur localhost:5000 est inaccessible');
+      results.recommendations.push('Le serveur principal sur localhost:5050 est inaccessible');
     }
 
     // Test 2: Alternative 127.0.0.1
     if (results.serverStatus !== 'success') {
       try {
         const response = await Promise.race([
-          fetch('http://127.0.0.1:5000/api/health'),
+          fetch('http://127.0.0.1:5050/api/health'),
           new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
         ]);
         if (response.ok) {
-          results.recommendations.push('Utilisez http://127.0.0.1:5000 au lieu de localhost:5000');
+          results.recommendations.push('Utilisez http://127.0.0.1:5050 au lieu de localhost:5050');
         }
       } catch (error) {
         results.recommendations.push('Vérifiez votre pare-feu et antivirus');
@@ -100,7 +100,7 @@ export default function LocalhostDiagnostic() {
             🔍 Diagnostic d'Accès Localhost
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Diagnostic automatique pour résoudre les problèmes d'accès à Maintrix sur localhost:5000
+            Diagnostic automatique pour résoudre les problèmes d'accès à Maintrix sur localhost:5050
           </p>
         </div>
 
@@ -142,11 +142,11 @@ export default function LocalhostDiagnostic() {
                 </Badge>
               </div>
 
-              {/* Port 5000 */}
+              {/* Port 5050 */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(diagnosticResults.portStatus)}
-                  <span className="font-medium">Port 5000</span>
+                  <span className="font-medium">Port 5050</span>
                 </div>
                 <Badge className={getStatusColor(diagnosticResults.portStatus)}>
                   {diagnosticResults.portStatus === 'success' ? 'Ouvert' : 
@@ -199,19 +199,19 @@ export default function LocalhostDiagnostic() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               <Button
-                onClick={() => window.open('http://localhost:5000', '_blank')}
+                onClick={() => window.open('http://localhost:5050', '_blank')}
                 className="h-auto p-4 flex flex-col items-start gap-2 bg-blue-600 hover:bg-blue-700"
               >
-                <span className="font-semibold">http://localhost:5000</span>
+                <span className="font-semibold">http://localhost:5050</span>
                 <span className="text-xs opacity-90">Accès standard</span>
               </Button>
 
               <Button
-                onClick={() => window.open('http://127.0.0.1:5000', '_blank')}
+                onClick={() => window.open('http://127.0.0.1:5050', '_blank')}
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-start gap-2"
               >
-                <span className="font-semibold">http://127.0.0.1:5000</span>
+                <span className="font-semibold">http://127.0.0.1:5050</span>
                 <span className="text-xs text-gray-600">Alternative IP</span>
               </Button>
 
@@ -246,7 +246,7 @@ export default function LocalhostDiagnostic() {
                 <li>Ouvrez le Panneau de configuration → Système et sécurité</li>
                 <li>Cliquez sur "Pare-feu Windows Defender"</li>
                 <li>Sélectionnez "Paramètres avancés"</li>
-                <li>Créez une nouvelle règle de trafic entrant pour le port 5000</li>
+                <li>Créez une nouvelle règle de trafic entrant pour le port 5050</li>
               </ul>
             </div>
 
@@ -254,7 +254,7 @@ export default function LocalhostDiagnostic() {
               <h3 className="font-semibold text-gray-800 mb-2">🛡️ Antivirus</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
                 <li>Ajoutez Maintrix aux exceptions</li>
-                <li>Autorisez les connexions sur le port 5000</li>
+                <li>Autorisez les connexions sur le port 5050</li>
                 <li>Désactivez temporairement la protection en temps réel</li>
               </ul>
             </div>

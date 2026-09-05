@@ -79,7 +79,10 @@ export default function CCTPCompliancePage() {
     queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/reporting-config`)
   });
 
-  const { data: compliance, isLoading: loadingCompliance } = useQuery({
+  const { data: compliance, isLoading: loadingCompliance } = useQuery<{
+    overallScore: number;
+    requirements: Record<string, { status: string; score: number; details: string }>;
+  }>({
     queryKey: ["/api/cctp/tenant", tenantId, "cctp-compliance"],
     queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/cctp-compliance`)
   });

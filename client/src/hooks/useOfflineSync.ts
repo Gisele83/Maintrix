@@ -63,12 +63,12 @@ export function useOfflineSync() {
   }, [queryClient, toast]);
 
   // Sauvegarder automatiquement les données importantes pour usage offline
-  const { data: equipment } = useQuery({
+  const { data: equipment } = useQuery<any[]>({
     queryKey: ['/api/equipment'],
     enabled: !isOffline,
   });
 
-  const { data: maintenanceCases } = useQuery({
+  const { data: maintenanceCases } = useQuery<any[]>({
     queryKey: ['/api/maintenance-cases'],
     enabled: !isOffline,
   });

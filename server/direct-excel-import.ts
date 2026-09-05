@@ -92,6 +92,7 @@ print(json.dumps(result, default=str))
       for (const eq of equipments) {
         try {
           const equipmentData: InsertEquipmentRegistry = {
+            tenantId: 'default-tenant',
             equipmentId: eq.ID?.toString() || `EQ-${processed}`,
             equipmentName: `${eq.Marque || 'Marque'} ${eq.Modèle || 'Modèle'}`,
             equipmentType: this.normalizeType(eq.Type),
@@ -101,10 +102,7 @@ print(json.dumps(result, default=str))
             installationDate: new Date(eq['Date mise en service'] || new Date())
           };
           
-          // Import directly to database
-          const { db } = await import('./db');
-          const { equipmentRegistry } = await import('@shared/schema');
-          const [created] = await db.insert(equipmentRegistry).values(equipmentData).returning();
+          const created = await storage.createEquipment(equipmentData);
           console.log(`✅ Equipment created: ${created.equipmentId} - ${created.equipmentName}`);
           equipmentMap.set(eq.ID, { ...eq, dbId: created.id });
         } catch (error: any) {

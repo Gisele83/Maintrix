@@ -176,7 +176,7 @@ export class GDPRUXOptimizer {
         }
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('GDPR request creation failed:', error);
       return {
         success: false,
@@ -269,7 +269,7 @@ export class GDPRUXOptimizer {
     nextAllowedDate: Date;
   }> {
     // Périodes de refroidissement (en jours)
-    const cooldownPeriods = {
+    const cooldownPeriods: Record<string, number> = {
       access: 30,        // 1 mois
       portability: 90,   // 3 mois
       deletion: 365,     // 1 an
@@ -302,7 +302,7 @@ export class GDPRUXOptimizer {
       };
     }
 
-    const lastRequestDate = recentRequests[0].requestDate;
+    const lastRequestDate = recentRequests[0].requestDate ?? new Date();
     const nextAllowedDate = new Date(lastRequestDate);
     nextAllowedDate.setDate(nextAllowedDate.getDate() + cooldownDays);
     
@@ -515,8 +515,8 @@ export class GDPRUXOptimizer {
           type: request.requestType as any,
           status: request.status as any,
           progress,
-          submittedDate: request.requestDate,
-          lastUpdated: request.processedDate || request.requestDate,
+          submittedDate: request.requestDate ?? new Date(),
+          lastUpdated: request.processedDate || request.requestDate || new Date(),
           statusHistory: await this.getStatusHistory(request.id),
           dataTypes: ['Profile', 'Activity', 'Preferences'], // Mock
           downloadReady: request.status === 'completed',
@@ -600,8 +600,8 @@ export class GDPRUXOptimizer {
 
     return statusLogs.map(log => ({
       status: log.action.replace('GDPR_', '').toLowerCase(),
-      timestamp: log.timestamp,
-      note: log.newValues?.description
+      timestamp: log.timestamp ?? new Date(),
+      note: log.newValues?.description as string | undefined
     }));
   }
 
@@ -630,8 +630,8 @@ export class GDPRUXOptimizer {
     return activityLogs.map(log => ({
       type: log.action,
       description: log.newValues?.description || 'GDPR activity',
-      timestamp: log.timestamp,
-      status: log.success ? 'success' : 'error'
+      timestamp: log.timestamp ?? new Date(),
+      status: (log.success ? 'success' : 'error') as 'success' | 'error'
     }));
   }
 
@@ -709,7 +709,7 @@ export class GDPRUXOptimizer {
   }
 
   private static getEstimatedProcessingTime(requestType: string): number {
-    const processingTimes = {
+    const processingTimes: Record<string, number> = {
       access: 3,
       portability: 7,
       deletion: 30,
@@ -719,7 +719,7 @@ export class GDPRUXOptimizer {
   }
 
   private static getTotalSteps(requestType: string): number {
-    const stepCounts = {
+    const stepCounts: Record<string, number> = {
       access: 4,       // Validation, Extraction, Préparation, Livraison
       portability: 5,  // Validation, Extraction, Formatage, Emballage, Livraison
       deletion: 6,     // Validation, Analyse, Sauvegarde, Suppression, Vérification, Confirmation
@@ -729,7 +729,7 @@ export class GDPRUXOptimizer {
   }
 
   private static getUserFriendlyCreationMessage(requestType: string): string {
-    const messages = {
+    const messages: Record<string, string> = {
       access: 'Votre demande d\'accès aux données a été reçue avec succès. Nous préparerons un résumé complet de toutes vos informations.',
       portability: 'Votre demande de portabilité des données a été enregistrée. Nous préparerons vos données dans un format facilement réutilisable.',
       deletion: 'Votre demande de suppression des données a été reçue. Nous examinerons soigneusement votre demande conformément à la réglementation.',
@@ -739,7 +739,7 @@ export class GDPRUXOptimizer {
   }
 
   private static getNextStepsForUser(requestType: string): string[] {
-    const steps = {
+    const steps: Record<string, string[]> = {
       access: [
         'Surveillez votre email pour les mises à jour',
         'Consultez cette page pour suivre le progrès',
@@ -884,8 +884,8 @@ export const optimizedGDPRRoutes = {
         type: request.requestType as any,
         status: request.status as any,
         progress,
-        submittedDate: request.requestDate,
-        lastUpdated: request.processedDate || request.requestDate,
+        submittedDate: request.requestDate ?? new Date(),
+        lastUpdated: request.processedDate || request.requestDate || new Date(),
         statusHistory,
         dataTypes: ['Profile', 'Activity', 'Preferences'],
         downloadReady: request.status === 'completed',
@@ -896,9 +896,9 @@ export const optimizedGDPRRoutes = {
       res.json({
         success: true,
         request: trackingInfo,
-        userMessage: this.getStatusMessage(request.status)
+        userMessage: this.getStatusMessage(request.status ?? 'pending')
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to track GDPR request:', error);
       res.status(500).json({ 
         error: 'Failed to track request',
@@ -977,7 +977,7 @@ export const optimizedGDPRRoutes = {
 
   // Méthode utilitaire pour les messages de statut
   getStatusMessage(status: string): string {
-    const messages = {
+    const messages: Record<string, string> = {
       pending: 'Votre demande a été reçue et est en attente de traitement.',
       processing: 'Votre demande est actuellement en cours de traitement.',
       completed: 'Votre demande a été traitée avec succès.',

@@ -216,7 +216,7 @@ export function registerPermitToWorkRoutes(app: Express) {
         if (u) enriched.approvedByName = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username;
       }
       if (permit.equipmentId) {
-        const [eq2] = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.name, location: equipmentRegistry.location })
+        const [eq2] = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, location: equipmentRegistry.location })
           .from(equipmentRegistry).where(eq(equipmentRegistry.id, permit.equipmentId)).limit(1);
         if (eq2) enriched.equipment = eq2;
       }

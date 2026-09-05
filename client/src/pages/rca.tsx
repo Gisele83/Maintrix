@@ -144,7 +144,7 @@ export default function RcaPage() {
     try {
       const res = await apiRequest(`/api/rca/${rca.id}`);
       setSelected(res);
-      setActiveTab(d.methodology === "fishbone" ? "fishbone" : "whys");
+      setActiveTab(res.methodology === "fishbone" ? "fishbone" : "whys");
     } catch { setSelected(rca); }
   };
 

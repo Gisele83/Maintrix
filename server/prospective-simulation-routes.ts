@@ -28,7 +28,7 @@ export function registerProspectiveSimulationRoutes(app: Express) {
       const tenantId = (req as any).tenantId || "default-tenant";
       const deferDays = parseInt(req.query.deferDays as string) || 14;
 
-      const equipments = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.name, criticalityLevel: equipmentRegistry.criticalityLevel })
+      const equipments = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, criticalityLevel: equipmentRegistry.criticalityLevel })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.tenantId, tenantId))
         .limit(30);
@@ -69,7 +69,7 @@ export function registerProspectiveSimulationRoutes(app: Express) {
   app.get("/api/prospective/equipment-list", async (req: Request, res: Response) => {
     try {
       const tenantId = (req as any).tenantId || "default-tenant";
-      const list = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.name, type: equipmentRegistry.type, criticalityLevel: equipmentRegistry.criticalityLevel, status: equipmentRegistry.status })
+      const list = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType, criticalityLevel: equipmentRegistry.criticalityLevel, status: equipmentRegistry.operationalState })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.tenantId, tenantId))
         .limit(100);

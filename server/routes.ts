@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { gmaoStorage } from "./gmao-storage";
 import { TrialManager } from "./trial-management";
 import { AccessManager } from "./access-management";
 import { LicenseService, SUBSCRIPTION_PLANS } from "./license-service";
@@ -25,7 +26,6 @@ import {
   insertUserProfileSchema,
   insertEquipmentRegistrySchema,
   insertWorkOrderSchema,
-  insertPreventiveMaintenancePlanSchema,
   insertSparePartSchema,
   insertStockMovementSchema,
   insertIotSensorDataSchema,
@@ -36,7 +36,9 @@ import {
   userProfiles,
   workOrders as workOrdersTable,
   stockMovements as stockMovementsTable,
-  spareParts as sparePartsTable
+  spareParts as sparePartsTable,
+  type WorkOrder,
+  type PreventiveMaintenancePlan,
 } from "@shared/schema";
 import { z } from "zod";
 import path from "path";
@@ -56,6 +58,7 @@ import { registerEngineeringExpertiseRoutes } from "./engineering-expertise-rout
 import { registerRcmRoutes } from "./rcm-routes";
 import { registerFunctionalAgentsRoutes } from "./functional-agents-routes";
 import { registerTechLearnBridgeRoutes } from "./techlearn-bridge-routes";
+import { registerEquipmentLifecycleRoutes } from "./equipment-lifecycle-routes";
 import { registerOeeRoutes } from "./oee-routes";
 import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
@@ -88,11 +91,13 @@ import tenantRoutes from "./tenant-routes";
 import tenantPermissionsRoutes from "./tenant-permissions-routes";
 import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
+import procurementRoutes from "./procurement-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
 import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
 import { featureService } from "./feature-service.js";
 import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
 import { initializeERPSystem } from "./module-initializer.js";
+import { platformEditionService } from "./platform-edition-service.js";
 import { sectorTemplates } from "@shared/schema";
 import { registerCognitiveRoutes, initializeCognitiveInfrastructure } from "./cognitive-routes";
 
@@ -149,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🔧 INITIALIZE ERP MODULE SYSTEM
   try {
     await initializeERPSystem();
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Warning: ERP System initialization failed:", error);
     // Continue execution - the app can still work without the ERP system fully initialized
   }
@@ -222,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
       const pdfGenerator = new PDFGeneratorFunctional();
       await pdfGenerator.sendMaintenanceReportHTML(res, reportData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating PDF maintenance report:", error);
       res.status(500).json({ message: "Impossible de générer le rapport PDF" });
     }
@@ -270,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
       const pdfGenerator = new PDFGeneratorFunctional();
       await pdfGenerator.sendMonthlyReportHTML(res, reportData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating PDF monthly report:", error);
       res.status(500).json({ message: "Impossible de générer le rapport PDF mensuel" });
     }
@@ -312,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
       const pdfGenerator = new PDFGeneratorFunctional();
       await pdfGenerator.sendComprehensiveReportHTML(res, comprehensiveReportData);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating comprehensive PDF report:", error);
       res.status(500).json({ message: "Impossible de générer le rapport complet" });
     }
@@ -371,6 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerRcmRoutes(app);
   registerFunctionalAgentsRoutes(app);
   registerTechLearnBridgeRoutes(app);
+  registerEquipmentLifecycleRoutes(app);
 
   // Register OEE routes
   registerOeeRoutes(app);
@@ -434,7 +440,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register GMAO routes
   registerGMAORoutes(app);
-  
+
+  // Register Procurement routes (suppliers, purchase orders, reorder rules, attachments)
+  app.use('/api/procurement', procurementRoutes);
+
   // ⚡ NOUVELLES ROUTES SÉCURITÉ ET CONFORMITÉ 2025
   // Security Monitoring Dashboard & Alerts  
   app.get('/api/security/dashboard', enhancedAuditRoutes.getDashboard);
@@ -509,7 +518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const status = hub.getStatus();
       res.json(status);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting integration status:", error);
       res.status(500).json({ message: "Failed to get integration status" });
     }
@@ -524,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const results = await hub.testAllConnections();
       res.json(results);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error testing integrations:", error);
       res.status(500).json({ message: "Failed to test integrations" });
     }
@@ -539,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const results = await hub.forceSyncAll();
       res.json(results);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error forcing sync:", error);
       res.status(500).json({ message: "Failed to force sync" });
     }
@@ -556,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const analysis = await engine.analyzeEquipmentHealth(equipmentId, tenantId);
       
       res.json(analysis);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in predictive analysis:", error);
       res.status(500).json({ message: "Failed to perform predictive analysis" });
     }
@@ -573,7 +582,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const equipmentId = parseInt(req.params.equipmentId);
       const data = await hub.getIoTData(equipmentId);
       res.json(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting IoT data:", error);
       res.status(500).json({ message: "Failed to get IoT data" });
     }
@@ -726,7 +735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           cloudResult.similarSymptoms = similarityResult.similarSymptoms;
           cloudResult.suggestedKeywords = similarityResult.suggestedKeywords;
-        } catch (error) {
+        } catch (error: any) {
           console.error("Similarity analysis error:", error);
         }
       }
@@ -737,7 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Cloud diagnostic error:", error);
       res.status(400).json({ 
         message: "Erreur lors de la recherche cloud",
@@ -758,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update last check timestamp (resets grace period window)
       await LicenseService.recordLicenseCheck(tenantId);
       res.json(status);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting license status:", error);
       res.status(500).json({ message: "Erreur de récupération du statut de licence" });
     }
@@ -769,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { SUBSCRIPTION_PLANS } = await import("./license-service");
       res.json({ plans: SUBSCRIPTION_PLANS });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting plans:", error);
       res.status(500).json({ message: "Erreur de récupération des plans" });
     }
@@ -792,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await LicenseService.startTrial(tenantId);
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ success: true, message: "Période d'essai de 30 jours démarrée", status });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error starting trial:", error);
       res.status(500).json({ message: "Impossible de démarrer l'essai" });
     }
@@ -804,7 +813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting trial status:", error);
       res.status(500).json({ message: "Erreur de récupération du statut d'essai" });
     }
@@ -816,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting trial status:", error);
       res.status(500).json({ message: "Erreur de récupération du statut d'essai" });
     }
@@ -835,7 +844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await LicenseService.activateSubscription(tenantId, subscriptionId, plan, maxUsers || null);
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ success: true, message: "Abonnement activé avec succès", status });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error activating license:", error);
       res.status(500).json({ message: "Erreur d'activation de licence" });
     }
@@ -857,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trialDaysRemaining: status.trialDaysRemaining,
         timestamp: new Date().toISOString(),
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error validating license:", error);
       res.status(500).json({ valid: false, message: "Erreur de validation" });
     }
@@ -871,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await LicenseService.enterGracePeriod(tid, graceDays);
       const status = await LicenseService.getLicenseStatus(tid);
       res.json({ success: true, status });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error entering grace period:", error);
       res.status(500).json({ message: "Erreur" });
     }
@@ -883,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
       const history = await LicenseService.getTenantLicenseHistory(tenantId);
       res.json({ history });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting license history:", error);
       res.status(500).json({ message: "Erreur" });
     }
@@ -907,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       res.json({ success: true, accessGrant });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating access grant:", error);
       res.status(500).json({ message: "Failed to create access grant" });
     }
@@ -927,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notifications = AccessManager.getOwnerNotifications(ownerId, mockGrants);
       
       res.json({ grants: mockGrants, report, notifications });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching access grants:", error);
       res.status(500).json({ message: "Failed to fetch access grants" });
     }
@@ -944,7 +953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ message: "Failed to revoke access" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error revoking access:", error);
       res.status(500).json({ message: "Failed to revoke access" });
     }
@@ -961,7 +970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(400).json({ message: "Failed to extend access" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error extending access:", error);
       res.status(500).json({ message: "Failed to extend access" });
     }
@@ -976,7 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validation = AccessManager.validateAccess(mockGrant);
       
       res.json({ validation, grant: mockGrant });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error validating access:", error);
       res.status(500).json({ message: "Failed to validate access" });
     }
@@ -990,9 +999,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req, res) => {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
-      
-      const session = await storage.createDiagnosticSession(data);
-      
+      // 🔧 tenantId/userId résolus depuis la session authentifiée, pas depuis req.body : le
+      // middleware validateInput(commonSchemas.diagnosticInput) en amont ne déclare ni l'un ni
+      // l'autre dans son schéma, donc req.body les perdait silencieusement (Zod .parse() sur un
+      // objet sans .passthrough() retire les clés non déclarées) — chaque session de diagnostic
+      // était créée avec tenant_id/user_id NULL, invisible pour toute requête scopée par tenant
+      // (dont /api/diagnostic-stats). Faire confiance à la session plutôt qu'au client est aussi
+      // la bonne pratique déjà suivie ailleurs dans ce fichier (req.user?.tenantId || req.tenantId).
+      const tenantId = (req as any).user?.tenantId || (req as any).tenantId || "default-tenant";
+      const userId = (req as any).user?.id;
+
+      const session = await storage.createDiagnosticSession({ ...data, tenantId, userId });
+
       const hybridRequest: HybridDiagnosticRequest = {
         equipmentType: data.equipmentType,
         symptoms: data.symptoms,
@@ -1001,8 +1019,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         zone: data.zone || undefined,
         sector: data.sector || undefined,
         equipmentId: data.equipmentId || undefined,
-        tenantId: data.tenantId || undefined,
-        userId: data.userId || undefined
+        tenantId,
+        userId
       };
 
       const hybridResult = await hybridDiagnosticPipeline.runDiagnostic(hybridRequest);
@@ -1027,9 +1045,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId: session.id,
         ...sessionResults
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Diagnostic error:", error);
       res.status(400).json({ message: "Invalid diagnostic request" });
+    }
+  });
+
+  // 🧠 IA → Analytics : agrégats réels sur les sessions de diagnostic, pour le Reporting
+  app.get("/api/diagnostic-stats", async (req, res) => {
+    try {
+      const tenantId = (req as any).tenantId || 'default-tenant';
+      const stats = await storage.getDiagnosticStats(tenantId);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching diagnostic stats:", error);
+      res.status(500).json({ message: "Impossible de charger les statistiques de diagnostic" });
     }
   });
 
@@ -1052,7 +1082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Symptom analysis error:", error);
       res.status(400).json({ 
         message: "Erreur lors de l'analyse des symptômes",
@@ -1083,7 +1113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Maintenance insights error:", error);
       res.status(400).json({ 
         message: "Erreur lors de la génération des insights",
@@ -1176,7 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let maintenanceCase = null;
       try {
         maintenanceCase = await storage.getMaintenanceCaseById(caseId);
-      } catch (error) {
+      } catch (error: any) {
         console.log(`No maintenance case found for ID ${caseId}, proceeding with procedures only`);
       }
       
@@ -1189,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         procedures
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Repair procedures error:", error);
       res.status(500).json({ message: "Failed to get repair procedures" });
     }
@@ -1204,7 +1234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedStep = await storage.updateRepairProcedureCompletion(stepId, completed);
       
       res.json(updatedStep);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Step update error:", error);
       res.status(400).json({ message: "Failed to update step" });
     }
@@ -1214,7 +1244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/maintenance-history", async (req, res) => {
     try {
       const { gmaoStorage } = await import("./gmao-storage");
-      const workOrders = await gmaoStorage.getWorkOrders();
+      const tenantId = (req as any).tenantId || "default-tenant";
+      const workOrders = await gmaoStorage.getWorkOrders(tenantId);
 
       // Build technician lookup map (id -> full name) from DB
       const technicianIds = [...new Set(workOrders.map(wo => wo.assignedTo).filter(Boolean))] as number[];
@@ -1281,7 +1312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       
       res.json(maintenanceHistory);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching maintenance history:", error);
       res.status(500).json({ message: "Failed to fetch maintenance history" });
     }
@@ -1292,7 +1323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const cases = await storage.getMaintenanceCases();
       res.json(cases);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching maintenance cases:", error);
       res.status(500).json({ message: "Failed to fetch maintenance cases" });
     }
@@ -1507,10 +1538,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get completed work orders to add to history
       let completedWorkOrders = await gmaoStorage.getWorkOrders(tenantId);
-      completedWorkOrders = completedWorkOrders.filter(wo => wo.status === 'completed');
-      
+      completedWorkOrders = completedWorkOrders.filter((wo: WorkOrder) => wo.status === 'completed');
+
       // Transform work orders to match session format
-      const workOrderSessions = completedWorkOrders.map(wo => {
+      const workOrderSessions = completedWorkOrders.map((wo: WorkOrder) => {
         // Get equipment details for the work order
         const equipment = wo.equipmentId ? { type: 'unknown', id: wo.equipmentId.toString() } : null;
         
@@ -1518,7 +1549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: `wo-${wo.id}`,
           equipmentType: equipment?.type || 'unknown',
           equipmentId: equipment?.id || wo.equipmentId?.toString() || '',
-          zone: wo.location || '',
+          zone: '', // WorkOrder n'a pas de champ location propre — vient de l'équipement lié, non jointe ici
           symptoms: wo.description || 'Ordre de travail',
           diagnosis: `Ordre de travail ${wo.orderNumber}`,
           selectedDiagnosis: `Intervention: ${wo.title || wo.description}`,
@@ -1536,11 +1567,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get preventive maintenance plans (recent executions)
       const maintenancePlans = await gmaoStorage.getPreventiveMaintenancePlans(tenantId);
       const recentPlanExecutions = maintenancePlans
-        .filter(plan => plan.lastExecuted && new Date(plan.lastExecuted) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) // Last 90 days
-        .map(plan => ({
+        .filter((plan: PreventiveMaintenancePlan) => plan.lastExecuted && new Date(plan.lastExecuted) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) // Last 90 days
+        .map((plan: PreventiveMaintenancePlan) => ({
           id: `pm-${plan.id}`,
           equipmentType: plan.equipmentType || 'unknown',
-          equipmentId: plan.equipmentId?.toString() || '',
+          equipmentId: Array.isArray(plan.equipmentIds) && plan.equipmentIds.length > 0 ? String(plan.equipmentIds[0]) : '',
           zone: '',
           symptoms: 'Maintenance préventive planifiée',
           diagnosis: `Plan de maintenance: ${plan.planName}`,
@@ -1548,15 +1579,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           solution: Array.isArray(plan.tasks) ? plan.tasks.join(', ') : (plan.tasks || 'Maintenance effectuée'),
           duration: plan.estimatedDuration || 120,
           resolved: true,
-          urgency: plan.priority || 'medium',
+          urgency: 'medium', // PreventiveMaintenancePlan n'a pas de champ priority
           confidence: 1.0,
           status: 'completed',
-          createdAt: new Date(plan.lastExecuted),
+          createdAt: new Date(plan.lastExecuted!),
           source: 'preventive_maintenance'
         }));
       
-      // Combine all sessions
-      let allSessions = [...sessions, ...workOrderSessions, ...recentPlanExecutions];
+      // Combine all sessions — vue unifiée volontairement hétérogène (diagnostics, OT, plans
+      // préventifs) pour l'écran d'historique, pas un type métier discriminé.
+      let allSessions: any[] = [...sessions, ...workOrderSessions, ...recentPlanExecutions];
       
       // Apply filters
       if (equipmentType && equipmentType !== "") {
@@ -1600,7 +1632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       allSessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
       res.json(allSessions);
-    } catch (error) {
+    } catch (error: any) {
       console.error("History error:", error);
       res.status(500).json({ message: "Failed to get history" });
     }
@@ -1613,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const reportedCase = await storage.createReportedCase(data);
       
       res.status(201).json(reportedCase);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Report error:", error);
       res.status(400).json({ message: "Invalid report data" });
     }
@@ -1624,7 +1656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reports = await storage.getReportedCases();
       res.json(reports);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Get reports error:", error);
       res.status(500).json({ message: "Failed to get reports" });
     }
@@ -1645,7 +1677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
       
       res.json(types);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Equipment types error:", error);
       res.status(500).json({ message: "Failed to get equipment types" });
     }
@@ -1682,7 +1714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         caseId: case_.id,
         duration: case_.duration,
         riskLevel: "Moyen",
-        costEstimate: estimateRepairCost(case_.duration, formData.equipmentType),
+        costEstimate: estimateRepairCost(case_.duration ?? 60, formData.equipmentType),
         aiInsights: "⚠️ Système basé sur les règles (ML indisponible)",
         predictiveTips: generatePredictiveTips(formData.equipmentType, case_.diagnosis)
       }));
@@ -1712,7 +1744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enhancedMetrics
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Enhanced ML diagnostic error:", error);
       res.status(400).json({ 
         message: "Invalid enhanced ML diagnostic request",
@@ -1731,7 +1763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 🔒 Ne jamais exposer les secrets d'authentification, même à un utilisateur authentifié
         .map(({ password, mfaSecret, mfaBackupCodes, passwordResetToken, ...safe }) => safe);
       res.json(profiles);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profiles:", error);
       res.status(500).json({ error: "Failed to fetch user profiles" });
     }
@@ -1745,7 +1777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User profile not found" });
       }
       res.json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Failed to fetch user profile" });
     }
@@ -1781,7 +1813,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const profile = await storage.createUserProfile(validatedData);
       res.status(201).json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user profile:", error);
       if (error.name === 'ZodError') {
         res.status(400).json({ error: "Invalid profile data", details: error.errors });
@@ -1823,7 +1855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const profile = await storage.updateUserProfile(id, updates);
       res.json(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
       if (error.message && error.message.includes("not found")) {
         res.status(404).json({ error: "User profile not found" });
@@ -1841,69 +1873,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User profile not found" });
       }
       res.json({ success: true, message: "User profile deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user profile:", error);
       res.status(500).json({ error: "Failed to delete user profile" });
     }
   });
 
-  // Preventive Maintenance Plans API routes
-  app.get("/api/maintenance-plans", async (req, res) => {
-    try {
-      const plans = await storage.getPreventiveMaintenancePlans();
-      res.json(plans);
-    } catch (error) {
-      console.error("Error fetching maintenance plans:", error);
-      res.status(500).json({ error: "Failed to fetch maintenance plans" });
-    }
-  });
-
-  app.get("/api/maintenance-plans/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const plan = await storage.getPreventiveMaintenancePlanById(id);
-      if (!plan) {
-        return res.status(404).json({ error: "Maintenance plan not found" });
-      }
-      res.json(plan);
-    } catch (error) {
-      console.error("Error fetching maintenance plan:", error);
-      res.status(500).json({ error: "Failed to fetch maintenance plan" });
-    }
-  });
-
-  app.post("/api/maintenance-plans", async (req, res) => {
-    try {
-      const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
-      
-      // Transform frontend data to match database schema
-      const planData = {
-        planName: data.planName,
-        equipmentType: data.equipmentType,
-        equipmentIds: JSON.stringify(data.equipmentIds),
-        frequency: data.frequency,
-        frequencyValue: data.frequencyValue,
-        tasks: JSON.stringify(data.tasks || []),
-        estimatedDuration: data.estimatedDuration,
-        requiredSkills: data.requiredSkills || [],
-        safetyRequirements: data.safetyRequirements,
-        isActive: data.isActive,
-        lastExecuted: data.lastExecuted,
-        nextDue: data.nextDue
-      };
-      
-      const plan = await storage.createPreventiveMaintenancePlan(planData);
-      res.status(201).json(plan);
-    } catch (error) {
-      console.error("Error creating maintenance plan:", error);
-      if (error.name === 'ZodError') {
-        res.status(400).json({ error: "Invalid plan data", details: error.errors });
-      } else {
-        res.status(500).json({ error: "Failed to create maintenance plan" });
-      }
-    }
-  });
-
+  // GET /api/maintenance-plans, GET /:id et POST sont gérés par maintenance-plan-routes.ts
+  // (registerMaintenancePlanRoutes, enregistré plus tôt — table maintenance_plans, plans
+  // annuels par exercice fiscal). Les plans préventifs par type d'équipement (table
+  // preventive_maintenance_plans) sont exposés séparément sur /api/preventive-maintenance-plans
+  // (gmao-routes.ts, avec isolation par tenant). PUT ci-dessous reste le seul point d'accès
+  // pour la mise à jour via cette table — maintenance-plan-routes.ts n'a qu'un PATCH.
   app.put("/api/maintenance-plans/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1915,7 +1896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const plan = await storage.updatePreventiveMaintenancePlan(id, updates);
       res.json(plan);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating maintenance plan:", error);
       if (error.message.includes("not found")) {
         res.status(404).json({ error: "Maintenance plan not found" });
@@ -1925,19 +1906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/maintenance-plans/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deletePreventiveMaintenancePlan(id);
-      if (!success) {
-        return res.status(404).json({ error: "Maintenance plan not found" });
-      }
-      res.json({ success: true, message: "Maintenance plan deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting maintenance plan:", error);
-      res.status(500).json({ error: "Failed to delete maintenance plan" });
-    }
-  });
+  // DELETE /api/maintenance-plans/:id est géré par maintenance-plan-routes.ts (registered earlier).
 
   // Data Import/Export routes
   app.get('/api/templates/maintenance-csv', (req, res) => {
@@ -1975,7 +1944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: results.errors,
         hasErrors: results.errors.length > 0
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur importation CSV:', error);
       res.status(500).json({ 
         error: 'Erreur lors de l\'importation',
@@ -2001,7 +1970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: results.errors,
         hasErrors: results.errors.length > 0
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur importation CSV cas signalés:', error);
       res.status(500).json({ 
         error: 'Erreur lors de l\'importation',
@@ -2046,7 +2015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="equipment_types.csv"');
       res.send(csvHeader + csvContent);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error exporting equipment types:", error);
       res.status(500).json({ message: "Erreur lors de l'export des types d'équipements" });
     }
@@ -2054,7 +2023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper functions for equipment export
   function getDefautsTypiques(equipmentId: string): string {
-    const defauts = {
+    const defauts: Record<string, string> = {
       "moteur": "Roulements, alignement, surchauffe, vibrations",
       "pompe": "Joints, cavitation, amorçage, débit",
       "compresseur": "Soupapes, filtres, température, pression",
@@ -2079,7 +2048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   function getZonesRecommandees(equipmentId: string): string {
-    const zones = {
+    const zones: Record<string, string> = {
       "moteur": "Production, Atelier",
       "pompe": "Production, Stockage, Utilités",
       "compresseur": "Utilités, Énergie",
@@ -2124,7 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ success: true, feedback });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating feedback:", error);
       res.status(500).json({ error: "Failed to create feedback session" });
     }
@@ -2142,7 +2111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(metrics);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching learning metrics:", error);
       res.status(500).json({ error: "Failed to fetch learning metrics" });
     }
@@ -2152,7 +2121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const performance = await storage.getModelPerformance();
       res.json(performance);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching model performance:", error);
       res.status(500).json({ error: "Failed to fetch model performance" });
     }
@@ -2170,7 +2139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(adaptive);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching adaptive learning:", error);
       res.status(500).json({ error: "Failed to fetch adaptive learning data" });
     }
@@ -2191,18 +2160,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const metric of metrics) {
         // Update adaptive learning weights based on performance
-        if (metric.successRate < 70) {
+        // successRate est une fraction 0-1 (voir learningMetrics dans shared/schema.ts), pas
+        // un pourcentage 0-100 — comparer à 70/90 rendait tout équipement "sous-performant".
+        const successRate = metric.successRate ?? 0;
+        if (successRate < 0.70) {
           await storage.updateAdaptiveLearning(metric.equipmentType, {
             learningWeight: 1.2, // Increase learning rate for poor performers
             confidenceAdjustment: -0.1 // Decrease confidence for poor performers
           });
-          
+
           improvements.push({
             equipmentType: metric.equipmentType,
             action: "adjusted_learning_weights",
-            reason: `Performance below threshold: ${metric.successRate}%`
+            reason: `Performance below threshold: ${Math.round(successRate * 100)}%`
           });
-        } else if (metric.successRate > 90) {
+        } else if (successRate > 0.90) {
           await storage.updateAdaptiveLearning(metric.equipmentType, {
             learningWeight: 0.8, // Decrease learning rate for good performers
             confidenceAdjustment: 0.05 // Increase confidence for good performers
@@ -2216,7 +2188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Auto-improvement completed. ${improvements.length} optimizations applied.`
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in auto-improvement:", error);
       res.status(500).json({ error: "Failed to execute auto-improvement" });
     }
@@ -2379,7 +2351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const subscriptionId = invoice.subscription;
             console.log(`✅ Facture payée: ${invoice.id} — customer: ${customerId}`);
             if (subscriptionId) {
-              const subscription = await stripe.subscriptions.retrieve(subscriptionId as string);
+              const subscription = await stripe.subscriptions.retrieve(subscriptionId as string) as any;
               const tenantId = subscription.metadata?.tenantId;
               const planType = subscription.metadata?.planType;
               if (tenantId) {
@@ -2828,10 +2800,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import necessary modules for direct database query
       const { db } = await import('./db');
       const { equipmentRegistry } = await import('@shared/schema');
-      const { desc } = await import('drizzle-orm');
-      
+      const { desc, eq } = await import('drizzle-orm');
+
+      const tenantId = (req as any).tenantId || 'default-tenant';
       // Direct database query to get equipment
-      const equipment = await db.select().from(equipmentRegistry).orderBy(desc(equipmentRegistry.createdAt));
+      const equipment = await db.select().from(equipmentRegistry)
+        .where(eq(equipmentRegistry.tenantId, tenantId))
+        .orderBy(desc(equipmentRegistry.createdAt));
       const identifiers = equipment.map(eq => ({
         id: eq.id,
         name: eq.equipmentName || eq.equipmentId,
@@ -3043,7 +3018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in advanced diagnostic:", error);
       res.status(500).json({ 
         success: false,
@@ -3054,149 +3029,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comprehensive Report Export Routes for Advanced Reporting
-  app.get("/api/comprehensive-report/pdf", async (req, res) => {
+  app.get("/api/comprehensive-report/pdf", EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
-      const { period = 'monthly', department = 'all' } = req.query;
-      
-      // Generate comprehensive report data
+      const { period = 'monthly' } = req.query;
+      const tenantId = req.user?.tenantId || req.tenantId;
+      if (!tenantId) return res.status(400).json({ error: "Tenant non résolu pour cette requête" });
+
+      const [tenantWorkOrders, equipment, technicians] = await Promise.all([
+        storage.getWorkOrdersByTenant(tenantId),
+        storage.getEquipment(),
+        storage.getUserProfiles(),
+      ]);
+      const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
+      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+
+      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
+      const kpis = computeGmaoReportKpis(tenantWorkOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+
       const currentDate = new Date();
-      const reportData = {
+      const reportData: import("./pdf-generator-client-side").MonthlyReportData = {
         reportNumber: `GMAO-${period}-${currentDate.toISOString().split('T')[0]}`,
-        period: period as string,
-        department: department as string,
-        createdAt: currentDate,
-        
-        // Summary stats
-        totalWorkOrders: 156,
-        completedWorkOrders: 134,
-        pendingWorkOrders: 22,
-        
-        // KPIs
-        mtbf: 120.5,
-        mttr: 3.2,
-        oee: 87.3,
-        availability: 94.2,
-        
-        // Budget data
-        totalBudget: 450000,
-        spentBudget: 320000,
-        utilizationRate: 71.1,
-        
-        // Equipment and alerts
-        totalEquipment: 47,
-        criticalAlerts: 8,
-        activeAlerts: 12,
-        
-        // Generated content
-        insights: [
-          "Performance globale en amélioration de 12% ce mois",
-          "Réduction des temps d'arrêt de 8% grâce aux maintenances préventives",
-          "Budget maintenance respecté avec 29% de réserve disponible"
-        ],
-        recommendations: [
-          "Intensifier la maintenance préventive sur les équipements critiques",
-          "Optimiser la planification des interventions pour réduire MTTR",
-          "Investir dans la formation technique des équipes"
-        ],
-        totalAlerts: 20,
-        criticalIssues: 5,
-        safetyIncidents: 1,
-        qualityIssues: 2,
-        improvementAreas: [
-          "Optimisation de la planification maintenance",
-          "Formation des équipes techniques",
-          "Amélioration du système de surveillance IoT"
-        ]
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth() + 1,
+        performanceScore: kpis.performanceScore,
+        totalWorkOrders: kpis.totalWorkOrders,
+        completedWorkOrders: kpis.completedWorkOrders,
+        pendingWorkOrders: kpis.pendingWorkOrders,
+        averageResolutionTime: kpis.averageResolutionTime,
+        mtbf: kpis.mtbf,
+        mttr: kpis.mttr,
+        availability: kpis.availability,
+        reliability: kpis.reliability,
+        oee: undefined,
+        costsBreakdown: { labor: kpis.laborCost, parts: kpis.partsCost, contractor: kpis.contractorCost, total: kpis.totalCost },
+        topEquipmentIssues: kpis.topEquipmentIssues,
+        techniciansPerformance: kpis.techniciansPerformance.map(t => ({ ...t, rating: 0 })),
+        emergencyInterventions: kpis.emergencyInterventions,
+        preventiveCompliance: kpis.preventiveCompliance,
+        budgetVariance: 0,
+        recommendedActions: kpis.recommendedActions,
+        kpiTrends: { availability: [], mtbf: [], costs: [] },
+        equipmentHealth: kpis.equipmentHealth,
+        upcomingMaintenance: [],
+        stockStatus: { totalItems: 0, lowStock: 0, outOfStock: 0, totalValue: 0 },
+        partsConsumed: 0,
+        inventoryTurnover: 0,
+        stockouts: 0,
+        emergencyPurchases: 0,
+        laborCost: kpis.laborCost,
+        partsCost: kpis.partsCost,
+        contractorCost: kpis.contractorCost,
+        costPerWorkOrder: kpis.costPerWorkOrder,
+        improvementAreas: kpis.recommendedActions,
+        recommendations: kpis.recommendedActions,
       };
 
       // Use client-side PDF generator to create comprehensive report
       const { PDFGeneratorClientSide } = await import("./pdf-generator-client-side");
       const pdfGenerator = new PDFGeneratorClientSide();
       await pdfGenerator.sendMonthlyReportHTML(res, reportData);
-      
-    } catch (error) {
+
+    } catch (error: any) {
       console.error("Error generating comprehensive PDF report:", error);
       res.status(500).json({ message: "Failed to generate PDF report" });
     }
   });
 
-  app.get("/api/comprehensive-report/excel", async (req, res) => {
+  app.get("/api/comprehensive-report/excel", EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
       const { period = 'monthly', department = 'all' } = req.query;
+      const tenantId = req.user?.tenantId || req.tenantId;
+      if (!tenantId) return res.status(400).json({ error: "Tenant non résolu pour cette requête" });
       const XLSX = await import('xlsx');
-      
-      // Get data for Excel export
-      const workOrders = await storage.getWorkOrders();
+
+      // Get data for Excel export — ordres de travail et alertes scopés au tenant authentifié.
+      const workOrders = await storage.getWorkOrdersByTenant(tenantId);
       const equipment = await storage.getEquipment();
-      const alerts = await storage.getAlerts();
-      
+      const alerts = await storage.getAlertsNotifications(tenantId, 100);
+      const technicians = await storage.getUserProfiles();
+
+      // Enrichissement — WorkOrder ne porte que des clés étrangères (equipmentId, assignedTo),
+      // pas les libellés ; construits ici plutôt que de laisser des colonnes "undefined" dans l'export.
+      const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
+      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+      const lastMaintenanceByEquipment = new Map<number, Date>();
+      for (const wo of workOrders) {
+        if (wo.status === "completed" && wo.equipmentId && wo.actualEnd) {
+          const current = lastMaintenanceByEquipment.get(wo.equipmentId);
+          const end = new Date(wo.actualEnd);
+          if (!current || end > current) lastMaintenanceByEquipment.set(wo.equipmentId, end);
+        }
+      }
+
+      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
+      const kpis = computeGmaoReportKpis(workOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+
       // Create workbook
       const wb = XLSX.utils.book_new();
-      
-      // Summary sheet
+
+      // Summary sheet — indicateurs calculés depuis les ordres de travail réels du tenant sur
+      // la période (kpis.periodLabel) ; aucune colonne "Cible" n'est affichée quand aucune cible
+      // n'existe réellement dans le produit, plutôt que d'en inventer une.
       const summaryData = [
-        ['Rapport GMAO Complet', '', '', ''],
-        ['Période', period, '', ''],
-        ['Département', department, '', ''],
-        ['Date de génération', new Date().toLocaleDateString('fr-FR'), '', ''],
-        ['', '', '', ''],
-        ['KPI', 'Valeur', 'Cible', 'Status'],
-        ['MTBF (heures)', '120.5', '150', 'En amélioration'],
-        ['MTTR (heures)', '3.2', '3.0', 'Proche cible'],
-        ['OEE (%)', '87.3', '90', 'Bon'],
-        ['Disponibilité (%)', '94.2', '95', 'Excellent'],
-        ['', '', '', ''],
-        ['Budget', 'Montant (€)', '', ''],
-        ['Total alloué', '450000', '', ''],
-        ['Dépensé', '320000', '', ''],
-        ['Disponible', '130000', '', ''],
-        ['Taux utilisation (%)', '71.1', '', '']
+        ['Rapport GMAO Complet', '', ''],
+        ['Période', kpis.periodLabel, ''],
+        ['Département', department, ''],
+        ['Date de génération', new Date().toLocaleDateString('fr-FR'), ''],
+        ['', '', ''],
+        ['KPI', 'Valeur', 'Note'],
+        ['MTBF (heures)', kpis.mtbf !== undefined ? kpis.mtbf.toFixed(1) : 'N/D', kpis.mtbf === undefined ? 'Moins de 2 pannes sur la période' : ''],
+        ['MTTR (heures)', kpis.mttr.toFixed(1), ''],
+        ['OEE (%)', 'N/D', 'Nécessite un suivi de production (module OEE dédié)'],
+        ['Disponibilité (%)', kpis.availability.toFixed(1), ''],
+        ['Fiabilité (%)', kpis.reliability.toFixed(1), 'Part des OT non correctifs/urgents'],
+        ['Conformité préventive (%)', kpis.preventiveCompliance.toFixed(1), ''],
+        ['', '', ''],
+        ['Dépenses réelles', 'Montant (€)', ''],
+        ['Main d\'œuvre', kpis.laborCost.toFixed(2), ''],
+        ['Pièces', kpis.partsCost.toFixed(2), ''],
+        ['Sous-traitance', kpis.contractorCost.toFixed(2), ''],
+        ['Total', kpis.totalCost.toFixed(2), ''],
+        ['Coût moyen par OT', kpis.costPerWorkOrder.toFixed(2), ''],
       ];
-      
+
       const summaryWS = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(wb, summaryWS, 'Résumé');
-      
+
       // Work Orders sheet
-      const woData = workOrders.map(wo => ({
+      const woData = workOrders.map((wo: WorkOrder) => ({
         'ID': wo.id,
         'Titre': wo.title,
-        'Équipement': wo.equipmentName,
+        'Équipement': (wo.equipmentId && equipmentNameById.get(wo.equipmentId)) || 'N/A',
         'Status': wo.status,
         'Priorité': wo.priority,
-        'Technicien': wo.assignedTechnician,
-        'Date création': new Date(wo.createdAt).toLocaleDateString('fr-FR'),
-        'Durée prévue': `${wo.estimatedDuration} min`,
-        'Coût estimé': `${wo.estimatedCost?.toFixed(2)}€`
+        'Technicien': (wo.assignedTo && technicianNameById.get(wo.assignedTo)) || 'Non assigné',
+        'Date création': wo.createdAt ? new Date(wo.createdAt).toLocaleDateString('fr-FR') : 'N/A',
+        'Durée prévue': wo.estimatedDuration ? `${wo.estimatedDuration} min` : 'N/A',
+        'Coût': wo.cost ? `${Number(wo.cost).toFixed(2)}€` : 'N/A'
       }));
       
       const woWS = XLSX.utils.json_to_sheet(woData);
       XLSX.utils.book_append_sheet(wb, woWS, 'Ordres de Travail');
       
       // Equipment sheet
-      const equipData = equipment.map(eq => ({
-        'ID': eq.id,
-        'Nom': eq.equipmentName,
-        'Type': eq.equipmentType,
-        'Localisation': eq.location,
-        'Criticité': eq.criticalityLevel,
-        'Status': eq.status,
-        'Dernière maintenance': eq.lastMaintenanceDate ? new Date(eq.lastMaintenanceDate).toLocaleDateString('fr-FR') : 'N/A',
-        'Prochaine maintenance': eq.nextMaintenanceDate ? new Date(eq.nextMaintenanceDate).toLocaleDateString('fr-FR') : 'N/A'
-      }));
+      const equipData = equipment.map((eq: any) => {
+        const lastMaintenance = lastMaintenanceByEquipment.get(eq.id);
+        return {
+          'ID': eq.id,
+          'Nom': eq.equipmentName,
+          'Type': eq.equipmentType,
+          'Localisation': eq.location,
+          'Criticité': eq.criticalityLevel,
+          'Status': eq.operationalState,
+          'Dernière maintenance': lastMaintenance ? lastMaintenance.toLocaleDateString('fr-FR') : 'N/A',
+        };
+      });
       
       const equipWS = XLSX.utils.json_to_sheet(equipData);
       XLSX.utils.book_append_sheet(wb, equipWS, 'Équipements');
       
       // Alerts sheet
-      const alertData = alerts.slice(0, 100).map(alert => ({
+      const alertData = alerts.slice(0, 100).map((alert: any) => ({
         'ID': alert.id,
         'Type': alert.alertType,
-        'Équipement': alert.equipmentId,
+        'Équipement': (alert.equipmentId && equipmentNameById.get(alert.equipmentId)) || alert.equipmentId || 'N/A',
         'Message': alert.message,
-        'Seuil': alert.threshold,
-        'Valeur': alert.currentValue,
+        'Seuil': alert.thresholdValue ?? 'N/A',
+        'Valeur': alert.triggerValue ?? 'N/A',
         'Criticité': alert.severity,
-        'Date': new Date(alert.createdAt).toLocaleDateString('fr-FR')
+        'Date': alert.createdAt ? new Date(alert.createdAt).toLocaleDateString('fr-FR') : 'N/A'
       }));
       
       const alertWS = XLSX.utils.json_to_sheet(alertData);
@@ -3212,7 +3213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.send(buffer);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating comprehensive Excel report:", error);
       res.status(500).json({ message: "Failed to generate Excel report" });
     }
@@ -3325,7 +3326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         moduleSettings: tenantConfig.moduleSettings,
         sector: tenantConfig.sector
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching tenant modules:", error);
       res.status(500).json({ error: "FETCH_MODULES_FAILED" });
     }
@@ -3350,9 +3351,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: "Module configuration updated successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating tenant modules:", error);
       res.status(500).json({ error: "UPDATE_MODULES_FAILED" });
+    }
+  });
+
+  // 🎫 PLATFORM EDITION ROUTES — 3e couche de licence (capacités), indépendante de plan/licenseType
+  app.get('/api/platform/entitlements', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
+    try {
+      const tenantId = req.user?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "TENANT_REQUIRED" });
+      }
+
+      const [platformEdition, enabledDomains] = await Promise.all([
+        platformEditionService.getPlatformEdition(tenantId),
+        platformEditionService.getEnabledDomains(tenantId),
+      ]);
+
+      res.json({
+        platformEdition,
+        editionDisplayName: platformEditionService.getEditionDef(platformEdition)?.displayName ?? platformEdition,
+        enabledDomains,
+        editions: platformEditionService.getAllEditions(),
+      });
+    } catch (error: any) {
+      console.error("Error fetching platform entitlements:", error);
+      res.status(500).json({ error: "FETCH_ENTITLEMENTS_FAILED" });
+    }
+  });
+
+  app.get('/api/platform/editions', async (_req, res) => {
+    try {
+      res.json({
+        editions: platformEditionService.getAllEditions(),
+        domains: platformEditionService.getAllDomains(),
+      });
+    } catch (error: any) {
+      console.error("Error fetching platform editions:", error);
+      res.status(500).json({ error: "FETCH_EDITIONS_FAILED" });
     }
   });
 
@@ -3361,7 +3399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const templates = await db.select().from(sectorTemplates);
       res.json(templates);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching sector templates:", error);
       res.status(500).json({ error: "FETCH_TEMPLATES_FAILED" });
     }
@@ -3399,7 +3437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: `Sector template '${template.name}' applied successfully`,
         appliedTemplate: template
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error applying sector template:", error);
       res.status(500).json({ error: "APPLY_TEMPLATE_FAILED" });
     }
@@ -3415,7 +3453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { anthropicService: antService } = await import("./anthropic-service");
       anthropicService = antService;
       console.log("🤖 Anthropic AI service enabled");
-    } catch (error) {
+    } catch (error: any) {
       console.log("⚡ Using smart local assistant (Anthropic not available)");
     }
   } else {
@@ -3462,7 +3500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Chat error:", error);
       res.status(500).json({ 
         error: "AI_CHAT_FAILED", 
@@ -3502,7 +3540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Equipment Analysis error:", error);
       res.status(500).json({ 
         error: "AI_ANALYSIS_FAILED", 
@@ -3543,7 +3581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Maintenance Schedule error:", error);
       res.status(500).json({ 
         error: "AI_SCHEDULE_FAILED", 
@@ -3600,7 +3638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiPowered: true,
         timestamp: new Date().toISOString()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Deep Analysis error:", error);
       res.status(500).json({ 
         error: "AI_DEEP_ANALYSIS_FAILED", 
@@ -3637,7 +3675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           orderType: wo.orderType, createdAt: wo.createdAt
         }))
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Client portal error:", error);
       res.status(500).json({ error: "Portal access failed" });
     }
@@ -3648,7 +3686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = (req as any).tenantId || 'default-tenant';
       const token = Buffer.from(`${tenantId}:${Date.now()}`).toString('base64');
       res.json({ token, url: `/client-portal/${token}` });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: "Token generation failed" });
     }
   });
@@ -3710,7 +3748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalEquipment: healthScores.length
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Machine health scoring error:", error);
       res.status(500).json({ error: "Health scoring failed" });
     }
@@ -3765,7 +3803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           avgResponseTime: Math.round(slaMetrics.reduce((s: number, m: any) => s + m.hoursElapsed, 0) / total)
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("SLA management error:", error);
       res.status(500).json({ error: "SLA management failed" });
     }
@@ -3852,7 +3890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           predictive: allAlerts.filter(a => a.type === 'predictive').length
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Smart alerts error:", error);
       res.status(500).json({ error: "Smart alerts failed" });
     }
@@ -3913,7 +3951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           protocols: [...new Set(sensors.map(s => s.protocol))]
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sensor hub error:", error);
       res.status(500).json({ error: "Sensor hub failed" });
     }
@@ -3949,7 +3987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         qrData
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Equipment QR error:", error);
       res.status(500).json({ error: "QR code generation failed" });
     }
@@ -3974,7 +4012,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
       
       res.json({ equipment: qrBatch, total: qrBatch.length });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Equipment QR batch error:", error);
       res.status(500).json({ error: "QR batch generation failed" });
     }

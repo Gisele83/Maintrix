@@ -54,12 +54,12 @@ export default function LearningDashboard() {
   const queryClient = useQueryClient();
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
 
-  const { data: learningMetrics = [], isLoading: metricsLoading } = useQuery({
+  const { data: learningMetrics = [], isLoading: metricsLoading } = useQuery<LearningMetrics[]>({
     queryKey: ["/api/learning-metrics", selectedEquipment !== "all" ? selectedEquipment : undefined],
     retry: false,
   });
 
-  const { data: modelPerformance = [], isLoading: performanceLoading } = useQuery({
+  const { data: modelPerformance = [], isLoading: performanceLoading } = useQuery<ModelPerformance[]>({
     queryKey: ["/api/model-performance"],
     retry: false,
   });
@@ -344,7 +344,7 @@ export default function LearningDashboard() {
           </CardContent>
         </Card>
 
-        {/* ── Brevet N°3 : ISC 4D + Φ_i Agrégation Fédérée ───────────────────── */}
+        {/* ── ISC 4D + Φ_i Agrégation Fédérée ───────────────────── */}
         <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
@@ -354,7 +354,7 @@ export default function LearningDashboard() {
                 </div>
                 <div>
                   <span className="text-violet-800 font-bold">ISC 4D + Φ_i — Agrégation Fédérée</span>
-                  <p className="text-xs font-normal text-violet-500 mt-0.5">Brevet N°3 · MAINTRIX-SCA-FED · Φ_i = α·ISC + β·Fiabilité + γ·Maturité</p>
+                  <p className="text-xs font-normal text-violet-500 mt-0.5">Pertinence d'un pattern combinant similarité contextuelle, fiabilité et maturité</p>
                 </div>
               </div>
               {iscSummary && (
@@ -383,16 +383,16 @@ export default function LearningDashboard() {
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100 text-center">
                     <div className="text-3xl font-black text-violet-700">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
                     <div className="text-xs font-semibold text-violet-500 mt-1">Φ_i moyen</div>
-                    <div className="text-xs text-gray-400">α·ISC + β·F + γ·M</div>
+                    <div className="text-xs text-gray-400">Pertinence globale</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100 text-center">
                     <div className="text-3xl font-black text-emerald-700">{(iscSummary.avgFiabilite * 100).toFixed(0)}%</div>
-                    <div className="text-xs font-semibold text-emerald-500 mt-1">Fiabilité (β)</div>
+                    <div className="text-xs font-semibold text-emerald-500 mt-1">Fiabilité</div>
                     <div className="text-xs text-gray-400">eff. + succès + consistance</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 text-center">
                     <div className="text-3xl font-black text-amber-700">{(iscSummary.avgMaturite * 100).toFixed(0)}%</div>
-                    <div className="text-xs font-semibold text-amber-500 mt-1">Maturité (γ)</div>
+                    <div className="text-xs font-semibold text-amber-500 mt-1">Maturité</div>
                     <div className="text-xs text-gray-400">confirmations + âge + diversité</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 text-center">

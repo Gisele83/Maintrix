@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { CHART_COLOR, type ChartColor } from "@/lib/accent-colors";
 import { 
   Calendar, 
   Plus, 
@@ -873,20 +874,20 @@ export default function PreventiveMaintenance() {
                         <div className="space-y-4">
                           {['MTBF', 'MTTR', 'Disponibilité', 'Coûts'].map((metric, index) => {
                             const values = Array.from({ length: 12 }, () => Math.random() * 100);
-                            const color = ['blue', 'green', 'purple', 'orange'][index];
+                            const color = (['blue', 'green', 'purple', 'orange'] as ChartColor[])[index];
                             return (
                               <div key={metric} className="space-y-2">
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric}</span>
-                                  <span className={`text-sm font-bold text-${color}-600`}>
-                                    {metric === 'Coûts' ? `${Math.round(values[11] * 30)}€` : 
+                                  <span className={`text-sm font-bold ${CHART_COLOR[color].text600}`}>
+                                    {metric === 'Coûts' ? `${Math.round(values[11] * 30)}€` :
                                      metric === 'Disponibilité' ? `${(95 + values[11] * 0.05).toFixed(1)}%` :
                                      `${(values[11] * 2).toFixed(1)}h`}
                                   </span>
                                 </div>
                                 <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                                  <div 
-                                    className={`bg-${color}-600 h-2 rounded-full transition-all duration-500`}
+                                  <div
+                                    className={`${CHART_COLOR[color].bg600} h-2 rounded-full transition-all duration-500`}
                                     style={{ width: `${values[11]}%` }}
                                   ></div>
                                 </div>
@@ -905,21 +906,21 @@ export default function PreventiveMaintenance() {
                         </h4>
                         <div className="space-y-4">
                           {[
-                            { status: 'Excellent', count: 12, color: 'green' },
-                            { status: 'Bon', count: 8, color: 'blue' },
-                            { status: 'Moyen', count: 5, color: 'yellow' },
-                            { status: 'Critique', count: 2, color: 'red' }
+                            { status: 'Excellent', count: 12, color: 'green' as ChartColor },
+                            { status: 'Bon', count: 8, color: 'blue' as ChartColor },
+                            { status: 'Moyen', count: 5, color: 'yellow' as ChartColor },
+                            { status: 'Critique', count: 2, color: 'red' as ChartColor }
                           ].map((item) => (
                             <div key={item.status} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className={`w-4 h-4 bg-${item.color}-500 rounded-full`}></div>
+                                <div className={`w-4 h-4 ${CHART_COLOR[item.color].bg500} rounded-full`}></div>
                                 <span className="text-sm text-gray-600 dark:text-gray-400">{item.status}</span>
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-gray-900 dark:text-white">{item.count}</span>
                                 <div className="w-20 bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                                  <div 
-                                    className={`bg-${item.color}-500 h-2 rounded-full`}
+                                  <div
+                                    className={`${CHART_COLOR[item.color].bg500} h-2 rounded-full`}
                                     style={{ width: `${(item.count / 27) * 100}%` }}
                                   ></div>
                                 </div>

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { invitations, userProfiles, tenants, allowedDomains } from "@shared/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, lt } from "drizzle-orm";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -49,7 +49,7 @@ export class InvitationSystem {
         )
         .limit(1);
       
-      if (!inviter || !['owner', 'admin'].includes(inviter.role)) {
+      if (!inviter || !['owner', 'admin'].includes(inviter.role ?? '')) {
         throw new Error("Insufficient permissions to invite users");
       }
       
@@ -385,8 +385,8 @@ export class InvitationSystem {
       
       return {
         allowed: true,
-        autoProvision: allowedDomain.autoProvision,
-        defaultRole: allowedDomain.defaultRole
+        autoProvision: allowedDomain.autoProvision ?? false,
+        defaultRole: allowedDomain.defaultRole ?? 'viewer'
       };
       
     } catch (error) {
@@ -422,7 +422,7 @@ export class InvitationSystem {
       .where(
         and(
           eq(invitations.isRevoked, false),
-          gt(new Date(), invitations.expiresAt)
+          lt(invitations.expiresAt, new Date())
         )
       );
   }

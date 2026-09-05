@@ -21,7 +21,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
   const [startTime] = useState(Date.now());
 
   // Fetch repair procedures
-  const { data: repairData, isLoading } = useQuery({
+  const { data: repairData, isLoading } = useQuery<any>({
     queryKey: ["/api/repair", caseId],
     enabled: !!caseId,
   });
