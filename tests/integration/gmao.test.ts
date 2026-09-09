@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from '../helpers/setup';
 
 describe('GMAO Module Integration Tests', () => {
   let auth: AuthenticatedAgent;
@@ -86,7 +86,7 @@ describe('GMAO Module Integration Tests', () => {
 
   describe('Preventive Maintenance API', () => {
     it('should create preventive maintenance plan', async () => {
-      const response = await createAuthenticatedRequest('post', '/api/preventive-maintenance', auth)
+      const response = await createAuthenticatedRequest('post', '/api/preventive-maintenance-plans', auth)
         .send({
           planName: `Test Plan ${Date.now()}`,
           equipmentType: 'Grue portuaire',
@@ -102,7 +102,7 @@ describe('GMAO Module Integration Tests', () => {
     });
 
     it('should retrieve preventive plans', async () => {
-      const response = await createAuthenticatedRequest('get', '/api/preventive-maintenance', auth);
+      const response = await createAuthenticatedRequest('get', '/api/preventive-maintenance-plans', auth);
 
       expect([200, 401]).toContain(response.status);
     });

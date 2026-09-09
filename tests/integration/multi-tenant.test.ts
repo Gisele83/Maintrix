@@ -1,8 +1,9 @@
 import request from 'supertest';
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { getCsrfToken, authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
+import { getCsrfToken, authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from '../helpers/setup';
 
-const API_BASE = process.env.API_URL || 'http://localhost:5000';
+// API_BASE vient du helper : plus aucun repli codé en dur.
+import { API_BASE } from '../helpers/setup';
 
 describe('Multi-Tenant Module Integration Tests', () => {
   let superAdminAuth: AuthenticatedAgent;
@@ -65,30 +66,36 @@ describe('Multi-Tenant Module Integration Tests', () => {
           contactEmail: `test-${Date.now()}@maintrix.local`
         });
 
-      expect([200, 201, 400, 401]).toContain(response.status);
-      if (response.body.tenant) {
-        testTenantId = response.body.tenant.id;
-        expect(response.body.tenant).toHaveProperty('id');
-        expect(response.body.tenant).toHaveProperty('name');
-        expect(response.body.tenant.plan).toBe('pro');
-      }
+      // ⚠️ CONSTAT F05 — il n'existe aucune route `/api/tenants`.
+      // La gestion des tenants vit sous `/api/super-admin/tenants`, derrière
+      // un flux d'authentification super-admin distinct (jeton dédié), et non
+      // derrière une session d'administrateur de tenant comme le supposait ce
+      // test. Celui-ci ne « passait » que grâce au faux 200 + HTML renvoyé par
+      // les routes /api inconnues, corrigé en F05.
+      expect(response.status).toBe(404);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
     });
 
-    it('should retrieve all tenants', async () => {
-      if (!superAdminAuth) return;
+    // Spécification non réalisée sous ce chemin — conservée comme « à faire »
+    // plutôt que supprimée.
+    it.todo('CRUD tenants sous /api/tenants — à implémenter, ou tests à porter sur /api/super-admin/tenants');
 
+    it("la gestion des tenants n'est PAS accessible avec une simple session admin", async () => {
+      // Propriété de sécurité réelle et vérifiable : un administrateur de
+      // tenant ne doit pas pouvoir lister les tenants de la plateforme.
       const response = await superAdminAuth.agent
-        .get('/api/tenants')
+        .get('/api/super-admin/tenants')
         .set('Cookie', superAdminAuth.cookies.join('; '))
         .set('X-CSRF-Token', superAdminAuth.csrfToken);
 
-      expect([200, 401]).toContain(response.status);
-      if (response.status === 200) {
-        expect(Array.isArray(response.body)).toBe(true);
-      }
+      expect([401, 403]).toContain(response.status);
+      expect(JSON.stringify(response.body)).not.toMatch(/alpha\.test\.local|beta\.test\.local/);
     });
 
-    it('should update tenant settings', async () => {
+    // Dépend de /api/tenants/:id — route inexistante (voir constat ci-dessus).
+    // Se terminait par `return` et comptait comme RÉUSSI : un faux vert.
+    it.todo('PATCH /api/tenants/:id — réglages tenant, endpoint à implémenter');
+    it.skip('should update tenant settings', async () => {
       if (!superAdminAuth || !testTenantId) return;
 
       const response = await superAdminAuth.agent
@@ -139,7 +146,8 @@ describe('Multi-Tenant Module Integration Tests', () => {
   });
 
   describe('Tenant User Management', () => {
-    it('should create user for tenant', async () => {
+    it.todo("POST /api/tenants/users — création d'utilisateur de tenant, endpoint à implémenter");
+    it.skip('should create user for tenant', async () => {
       if (!superAdminAuth || !testTenantId) return;
 
       const response = await superAdminAuth.agent
@@ -160,7 +168,8 @@ describe('Multi-Tenant Module Integration Tests', () => {
   });
 
   describe('Tenant Feature Flags', () => {
-    it('should enable feature for tenant', async () => {
+    it.todo('POST /api/tenants/:id/features — activation de fonctionnalité, endpoint à implémenter');
+    it.skip('should enable feature for tenant', async () => {
       if (!superAdminAuth || !testTenantId) return;
 
       const response = await superAdminAuth.agent
@@ -175,7 +184,8 @@ describe('Multi-Tenant Module Integration Tests', () => {
       expect([200, 201, 404, 401]).toContain(response.status);
     });
 
-    it('should check tenant feature access', async () => {
+    it.todo('GET /api/tenants/:id/features/:feature — lecture de fonctionnalité, endpoint à implémenter');
+    it.skip('should check tenant feature access', async () => {
       if (!superAdminAuth || !testTenantId) return;
 
       const response = await superAdminAuth.agent

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from '../helpers/setup';
 
 describe('Diagnostic Module Integration Tests', () => {
   let auth: AuthenticatedAgent;
@@ -59,9 +59,28 @@ describe('Diagnostic Module Integration Tests', () => {
 
       expect([200, 400, 500]).toContain(response.status);
       if (response.status === 200) {
-        expect(response.body).toHaveProperty('diagnosis');
-        expect(response.body).toHaveProperty('neuralNetworkAnalysis');
-        expect(response.body).toHaveProperty('anomalyDetection');
+        // Contrat réel de l'endpoint, vérifié sur réponse live (F05).
+        // Les assertions d'origine attendaient `diagnosis`,
+        // `neuralNetworkAnalysis` et `anomalyDetection` À LA RACINE : ces trois
+        // champs n'ont jamais existé, ces tests n'ont donc jamais pu passer.
+        // L'API expose le diagnostic dans `suggestions[]` — la même forme que
+        // /api/diagnostic, dont le test passe — et les signaux ML dans
+        // `advancedMetrics`. On assertit désormais la substance équivalente,
+        // aux bons emplacements.
+        expect(response.body).toHaveProperty('advancedML', true);
+        expect(Array.isArray(response.body.suggestions)).toBe(true);
+        expect(response.body.suggestions.length).toBeGreaterThan(0);
+
+        const suggestion = response.body.suggestions[0];
+        expect(suggestion).toHaveProperty('diagnosis');
+        expect(typeof suggestion.diagnosis).toBe('string');
+        expect(suggestion).toHaveProperty('solution');
+
+        // Réseau de neurones + détection d'anomalie : présents et numériques.
+        expect(response.body.advancedMetrics).toBeDefined();
+        expect(typeof response.body.advancedMetrics.neural_network_confidence).toBe('number');
+        expect(typeof response.body.advancedMetrics.anomaly_score).toBe('number');
+        expect(suggestion).toHaveProperty('anomalyDetected');
       }
     });
   });
@@ -77,39 +96,50 @@ describe('Diagnostic Module Integration Tests', () => {
 
       expect([200, 400, 500]).toContain(response.status);
       if (response.status === 200) {
-        expect(response.body).toHaveProperty('diagnosis');
-        expect(response.body).toHaveProperty('ensembleVoting');
-        expect(response.body.ensembleVoting).toHaveProperty('consensus');
+        // Même correction que pour l'endpoint « advanced » : `diagnosis` et
+        // `ensembleVoting.consensus` à la racine n'ont jamais existé. Le
+        // consensus est exposé comme `ensembleMetrics.model_agreement`
+        // (nombre de modèles d'accord) sur `individual_models` au total.
+        expect(response.body).toHaveProperty('ensembleML', true);
+        expect(Array.isArray(response.body.suggestions)).toBe(true);
+        expect(response.body.suggestions.length).toBeGreaterThan(0);
+
+        const suggestion = response.body.suggestions[0];
+        expect(suggestion).toHaveProperty('diagnosis');
+        expect(typeof suggestion.diagnosis).toBe('string');
+
+        // Vote d'ensemble : l'accord ne peut pas dépasser le nombre de modèles.
+        const metrics = response.body.ensembleMetrics;
+        expect(metrics).toBeDefined();
+        expect(typeof metrics.individual_models).toBe('number');
+        expect(typeof metrics.model_agreement).toBe('number');
+        expect(metrics.model_agreement).toBeLessThanOrEqual(metrics.individual_models);
+        expect(suggestion).toHaveProperty('individualPredictions');
       }
     });
   });
 
   describe('Diagnostic Session Management', () => {
-    it('should save diagnostic session', async () => {
-      const response = await createAuthenticatedRequest('post', '/api/diagnostic-sessions', auth)
-        .send({
-          equipmentType: 'Compresseur',
-          symptoms: 'Bruit métallique',
-          diagnosis: 'Usure des roulements',
-          solution: 'Remplacement des roulements',
-          confidence: 85,
-          urgency: 'medium'
-        });
+    // ⚠️ CONSTAT F05 — `/api/diagnostic-sessions` N'EXISTE PAS.
+    //
+    // La table `diagnostic_sessions` est bien définie dans shared/schema.ts et
+    // lue en interne par server/company-data-access.ts, mais aucune route REST
+    // ne l'expose. Ces deux tests semblaient passer uniquement parce qu'une
+    // route /api inconnue renvoyait 200 + le HTML de la SPA : leur `expect`
+    // sur le statut était satisfait par ce faux 200.
+    //
+    // Ils ne sont donc PAS supprimés — ce sont des spécifications non
+    // réalisées, pas des régressions. Ils restent visibles comme « à faire »
+    // dans le récapitulatif (`ignorés`) jusqu'à ce que l'API existe.
+    it.todo('POST /api/diagnostic-sessions — endpoint à implémenter (table présente, route absente)');
+    it.todo('GET /api/diagnostic-sessions — endpoint à implémenter (table présente, route absente)');
 
-      expect([200, 201, 400]).toContain(response.status);
-      if (response.body.session) {
-        expect(response.body.session).toHaveProperty('id');
-        expect(response.body.session).toHaveProperty('equipmentType');
-      }
-    });
-
-    it('should retrieve diagnostic sessions', async () => {
+    // En attendant, on verrouille le comportement réel : la route absente doit
+    // répondre 404 en JSON, et surtout jamais 200 + HTML.
+    it('une route de session inexistante répond 404 JSON, jamais 200 + HTML', async () => {
       const response = await createAuthenticatedRequest('get', '/api/diagnostic-sessions', auth);
-
-      expect([200, 401]).toContain(response.status);
-      if (response.status === 200) {
-        expect(Array.isArray(response.body)).toBe(true);
-      }
+      expect(response.status).toBe(404);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
     });
   });
 

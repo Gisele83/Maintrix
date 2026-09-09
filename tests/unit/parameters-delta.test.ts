@@ -4,7 +4,7 @@ import {
   buildParametersDelta,
   verifyParametersDelta,
   signDelta,
-} from '../server/parameters-delta';
+} from '../../server/parameters-delta';
 
 const TEST_SECRET = 'test-secret-for-parameters-delta-unit-tests-only';
 
