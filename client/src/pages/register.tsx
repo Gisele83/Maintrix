@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { detailErreurApi, messageErreurApi } from "@/lib/api-error";
 import {
   Wrench,
   ArrowRight,
@@ -101,22 +102,79 @@ export default function RegisterPage() {
     }
   }, []);
 
+  /**
+   * Le serveur exige un `username` (3 à 50 caractères, unique), que cet
+   * assistant ne demande pas : il collecte une entreprise et une personne, pas
+   * un pseudonyme à inventer. On le dérive donc de la partie locale de l'e-mail.
+   *
+   * La colonne est `varchar(50)` : on tronque pour laisser la place au suffixe
+   * éventuel ajouté en cas de collision.
+   */
+  const nomUtilisateurDepuis = (email: string, suffixe = "") => {
+    const base = (email.split("@")[0] || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]/g, "")
+      .replace(/^[._-]+|[._-]+$/g, "")
+      .slice(0, 40 - suffixe.length);
+    // Une adresse ne laissant presque rien (« a@… », « 1@… ») donnerait un nom
+    // trop court pour le schéma : on complète alors plutôt que d'échouer.
+    return (base.length >= 3 ? base : `user${base}`) + suffixe;
+  };
+
   const registerMutation = useMutation({
     mutationFn: async (data: typeof formData & { plan: PlanId }) => {
-      const response = await apiRequest("/api/auth/register", { method: "POST", body: data });
-      return response;
+      // ⚠️ La route appelée ici était `/api/auth/register`, qui n'existe pas :
+      // `/api/auth` n'est monté nulle part. Toute inscription échouait donc en
+      // 404 « Route API inconnue », affiché tel quel à l'utilisateur.
+      //
+      // La charge utile était elle aussi non conforme : le serveur attend
+      // `username`, `firstName`, `lastName`, `email`, `password`. Corriger la
+      // seule URL n'aurait fait que remplacer le 404 par un 400 sur `username`.
+      //
+      // `companyName`, `confirmPassword` et `plan` ne figurent pas au schéma —
+      // zod les écarte. On ne les transmet donc pas, pour que le contrat de
+      // l'appel soit lisible tel quel.
+      const envoyer = (username: string) =>
+        apiRequest("/api/enterprise-auth/register", {
+          method: "POST",
+          body: {
+            username,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            password: data.password,
+          },
+        });
+
+      try {
+        return await envoyer(nomUtilisateurDepuis(data.email));
+      } catch (error) {
+        // Le nom dérivé peut être déjà pris (deux personnes « jean@ » sur des
+        // domaines différents). L'assistant n'ayant aucun champ où le corriger,
+        // l'utilisateur serait dans une impasse : on réessaie une fois avec un
+        // suffixe. Une seule reprise — au-delà, l'erreur doit remonter.
+        if (detailErreurApi(error).code !== "USERNAME_ALREADY_EXISTS") throw error;
+        const suffixe = Math.random().toString(36).slice(2, 6);
+        return await envoyer(nomUtilisateurDepuis(data.email, suffixe));
+      }
     },
     onSuccess: () => {
+      // Le compte est actif immédiatement : le serveur ne pose aucun jeton
+      // d'activation et n'envoie aucun message. Annoncer « vérifiez votre
+      // e-mail » laissait l'utilisateur attendre un courriel qui n'arrive
+      // jamais — d'autant que SendGrid n'est pas configuré.
       toast({
         title: "Compte créé avec succès !",
-        description: "Vérifiez votre email pour activer votre compte.",
+        description: "Vous pouvez vous connecter dès maintenant.",
       });
       navigate("/login");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      // Sans extraction, l'utilisateur lisait le corps JSON brut de la réponse,
+      // préfixé du code HTTP.
       toast({
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de l'inscription.",
+        description: messageErreurApi(error, "Une erreur est survenue lors de l'inscription."),
         variant: "destructive"
       });
     }

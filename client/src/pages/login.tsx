@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { messageErreurApi } from "@/lib/api-error";
 import { LogIn, UserPlus, Brain, Factory, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
@@ -132,7 +133,10 @@ export default function LoginPage() {
     onError: (error: any) => {
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Identifiants incorrects",
+        // Sans extraction, l'utilisateur lisait :
+        //   401: {"error":"INVALID_CREDENTIALS","message":"Invalid email or password"}
+        // — du JSON brut, et en anglais sur une interface française.
+        description: messageErreurApi(error, "Identifiants incorrects"),
         variant: "destructive",
       });
     },
@@ -158,7 +162,7 @@ export default function LoginPage() {
     onError: (error: any) => {
       toast({
         title: "Erreur d'inscription",
-        description: error.message || "Impossible de créer le compte",
+        description: messageErreurApi(error, "Impossible de créer le compte"),
         variant: "destructive",
       });
     },
