@@ -216,23 +216,59 @@ export function registerBudgetRoutes(app: Express) {
       const tenantId = requireTenant(req, res);
       if (!tenantId) return;
       const body = TransactionSchema.parse(req.body);
-      const db = getPool();
-      const { rows: bRows } = await db.query("SELECT * FROM budget_plans WHERE id=$1 AND tenant_id=$2", [req.params.id, tenantId]);
-      if (!bRows[0]) return res.status(404).json({ error: "Budget introuvable" });
-      const { rows } = await db.query(
-        `INSERT INTO budget_transactions (tenant_id,budget_id,budget_line_id,transaction_type,amount,description,reference,supplier_name,work_order_id,transaction_date,category,status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'posted') RETURNING *`,
-        [tenantId, req.params.id, body.budgetLineId||null, body.transactionType, body.amount, body.description, body.reference||null, body.supplierName||null, body.workOrderId||null, body.transactionDate, body.category||null]
-      );
-      // Update budget spent/committed
-      if (body.transactionType === "expense") {
-        await db.query(`UPDATE budget_plans SET total_spent=COALESCE(total_spent,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
-      } else if (body.transactionType === "commitment") {
-        await db.query(`UPDATE budget_plans SET total_committed=COALESCE(total_committed,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
-      } else if (body.transactionType === "refund") {
-        await db.query(`UPDATE budget_plans SET total_spent=GREATEST(0,COALESCE(total_spent,0)-$1), updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
+
+      // 🔒 F04 — TRANSACTION ATOMIQUE.
+      //
+      // Cette opération écrit à DEUX endroits : la ligne de mouvement dans
+      // `budget_transactions`, puis l'imputation sur les totaux de
+      // `budget_plans`. Sans transaction, un échec de la seconde étape laissait
+      // la dépense enregistrée SANS être imputée : le budget sous-estimait
+      // durablement les dépenses, sans erreur visible ni mécanisme de
+      // réconciliation. Défaut reproduit en F04
+      // (tests/integration/transaction-integrity.test.ts).
+      //
+      // Ce fichier utilise `pg.Pool` et non Drizzle : on réserve donc un client
+      // dédié et on pilote BEGIN/COMMIT/ROLLBACK à la main. Le client DOIT être
+      // rendu au pool dans tous les cas, d'où le `finally`.
+      const client = await getPool().connect();
+      try {
+        await client.query("BEGIN");
+
+        // `FOR UPDATE` verrouille la ligne de budget jusqu'au COMMIT : deux
+        // dépenses concurrentes sur le même budget s'appliquent l'une après
+        // l'autre au lieu de s'écraser (lecture-modification-écriture perdue).
+        const { rows: bRows } = await client.query(
+          "SELECT * FROM budget_plans WHERE id=$1 AND tenant_id=$2 FOR UPDATE",
+          [req.params.id, tenantId],
+        );
+        if (!bRows[0]) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({ error: "Budget introuvable" });
+        }
+
+        const { rows } = await client.query(
+          `INSERT INTO budget_transactions (tenant_id,budget_id,budget_line_id,transaction_type,amount,description,reference,supplier_name,work_order_id,transaction_date,category,status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'posted') RETURNING *`,
+          [tenantId, req.params.id, body.budgetLineId||null, body.transactionType, body.amount, body.description, body.reference||null, body.supplierName||null, body.workOrderId||null, body.transactionDate, body.category||null]
+        );
+
+        // Imputation sur les totaux du budget.
+        if (body.transactionType === "expense") {
+          await client.query(`UPDATE budget_plans SET total_spent=COALESCE(total_spent,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
+        } else if (body.transactionType === "commitment") {
+          await client.query(`UPDATE budget_plans SET total_committed=COALESCE(total_committed,0)+$1, updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
+        } else if (body.transactionType === "refund") {
+          await client.query(`UPDATE budget_plans SET total_spent=GREATEST(0,COALESCE(total_spent,0)-$1), updated_at=NOW() WHERE id=$2 AND tenant_id=$3`, [body.amount, req.params.id, tenantId]);
+        }
+
+        await client.query("COMMIT");
+        res.status(201).json(toTxShape(rows[0]));
+      } catch (txErr) {
+        await client.query("ROLLBACK").catch(() => { /* connexion déjà perdue */ });
+        throw txErr;
+      } finally {
+        client.release();
       }
-      res.status(201).json(toTxShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
       res.status(500).json({ error: e.message });

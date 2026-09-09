@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { AgentType } from '../cognitive-layers/layer-contracts.js';
 import { getCognitiveKernel } from '../cognitive-kernel/index.js';
 import { EquipmentAgent } from './equipment-agent.js';
+import { registerBackgroundTask } from "../background-tasks";
 
 export interface SiteState {
   siteId: string;
@@ -24,7 +25,7 @@ export interface CoordinationEntry {
 
 export class SiteAgent extends EventEmitter {
   private state: SiteState;
-  private coordinationInterval: NodeJS.Timeout | null = null;
+  private taskHandle: { stop: () => Promise<void> } | null = null;
 
   constructor(siteId: string, siteName: string, tenantId: string) {
     super();
@@ -44,7 +45,13 @@ export class SiteAgent extends EventEmitter {
     const kernel = getCognitiveKernel();
     kernel.registerAgent(AgentType.SITE, this.state.siteId);
 
-    this.coordinationInterval = setInterval(() => this.coordinationCycle(), 15000);
+    // Tâche B-2 — une instance par site enregistré.
+    this.taskHandle = registerBackgroundTask({
+      name: `agents:site-coordination:${this.state.siteId}`,
+      intervalMs: 15000,
+      criticality: 'B',
+      run: () => this.coordinationCycle(),
+    });
   }
 
   registerEquipment(equipmentId: number, equipmentType: string): EquipmentAgent {
@@ -187,9 +194,8 @@ export class SiteAgent extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    if (this.coordinationInterval) {
-      clearInterval(this.coordinationInterval);
-    }
+    await this.taskHandle?.stop();
+    this.taskHandle = null;
     for (const agent of this.state.equipmentAgents.values()) {
       await agent.shutdown();
     }

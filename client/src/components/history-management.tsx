@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, uploadFile } from "@/lib/queryClient";
 import {
   Card,
   CardContent,
@@ -83,16 +83,10 @@ export function HistoryManagement() {
     formData.append('type', importType);
 
     try {
-      const response = await fetch('/api/data-import-export/import', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de l\'importation');
-      }
-
-      const result = await response.json();
+      // F06 — `uploadFile` pose l'en-tête X-CSRF-Token et `credentials: include`.
+      // Le `fetch` brut d'origine ne faisait ni l'un ni l'autre : l'import
+      // échouait en 403 dès que la route a cessé d'être exemptée de CSRF.
+      const result = await uploadFile('/api/data-import-export/import', formData);
       
       setImportProgress({
         total: result.total || 0,

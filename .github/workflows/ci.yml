@@ -29,6 +29,49 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit --skipLibCheck
 
+  # ═══════════════════════════════════════════════════════════════════
+  # Aucun identifiant en clair ne doit entrer dans le dépôt — F11.
+  #
+  # Une chaîne de connexion PostgreSQL Neon a été committée dans `.env.test`
+  # (f70752a). Sa valeur était caviardée, donc inutilisable — mais rien dans la
+  # chaîne d'intégration ne l'avait empêchée d'entrer, et rien n'aurait empêché
+  # la suivante de l'être réellement.
+  #
+  # Ce contrôle ne remplace pas un scanner de secrets complet : il ferme le cas
+  # précis qui s'est produit, en échouant sur tout `utilisateur:motdepasse@hôte`
+  # en clair visant un hôte joignable depuis Internet.
+  # ═══════════════════════════════════════════════════════════════════
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Aucun identifiant en clair dans les fichiers suivis
+        shell: bash
+        run: |
+          set -uo pipefail
+          # `|| true` : grep sort en 1 quand il ne trouve rien, ce qui est le
+          # cas nominal. C'est le contenu de la variable qui décide, pas grep.
+          TROUVES=$(git grep -I -n -E 'postgres(ql)?://[A-Za-z0-9_.-]+:[^@[:space:]"'"'"']+@' -- \
+                      ':!docs/' ':!scripts/verify-neon-rotation.mjs' 2>/dev/null || true)
+
+          # On écarte les gabarits (${VAR}, $VAR), les valeurs caviardées, et
+          # les hôtes non joignables depuis Internet (localhost, services Docker).
+          EXPOSES=$(printf '%s\n' "$TROUVES" \
+            | grep -v '\${' | grep -v ':\$[A-Z_]' \
+            | grep -vE ':(\*{2,}|x{4,}|REDACTED)' \
+            | grep -vE '@(localhost|127\.0\.0\.1|db|postgres|database|host\.docker\.internal)[:/]' \
+            | grep -v '^$' || true)
+
+          if [ -n "$EXPOSES" ]; then
+            echo "::error::Identifiant en clair vers un hôte joignable depuis Internet"
+            printf '%s\n' "$EXPOSES" | cut -d: -f1,2
+            exit 1
+          fi
+          echo "✓ aucun identifiant en clair vers un hôte externe"
+
   build:
     name: Build Application
     runs-on: ubuntu-latest
@@ -56,11 +99,62 @@ jobs:
           path: dist/
           retention-days: 7
 
+  test:
+    name: Test Suite (barrière de déploiement)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `npm test` crée lui-même son PostgreSQL jetable via Docker, présent sur
+      # les runners ubuntu-latest. Aucun service GitHub à déclarer : la même
+      # commande tourne à l'identique en local et en CI.
+      - name: Run test suite
+        run: npm test
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-report.json
+          retention-days: 7
+
+  # Le secret AWS_ACCESS_KEY_ID ne peut pas être lu dans un `if:` de job. On le
+  # transforme donc en sortie booléenne d'un job préalable : sans identifiants
+  # AWS, la publication d'image est IGNORÉE au lieu d'échouer et de rendre toute
+  # la CI rouge en permanence.
+  check-aws-credentials:
+    name: AWS configuré ?
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Identifiants AWS absents — publication de l'image ignorée."
+          fi
+
   docker-build:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    needs: [test, check-aws-credentials]
+    if: github.ref == 'refs/heads/main' && needs.check-aws-credentials.outputs.configured == 'true'
     permissions:
       id-token: write
       contents: read

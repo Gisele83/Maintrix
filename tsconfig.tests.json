@@ -1,0 +1,19 @@
+{
+  // Vérification de types des TESTS — F05.
+  //
+  // tsconfig.json exclut explicitement `**/*.test.ts`, si bien que
+  // `npm run check` ne voyait aucun fichier de test : une erreur de syntaxe
+  // dans une suite n'apparaissait qu'à l'exécution de Jest, sous forme de
+  // « Test suite failed to run ». Ce fichier ferme ce trou.
+  //
+  //   npm run check:tests
+  "extends": "./tsconfig.json",
+  "include": ["tests/**/*.ts", "shared/**/*", "server/**/*", "client/src/**/*"],
+  "exclude": ["node_modules", "build", "dist"],
+  // On n'écrase PAS `types` : shared/schema.ts a besoin des types React hérités
+  // de tsconfig.json, et les suites importent explicitement depuis
+  // @jest/globals — aucun type global supplémentaire n'est requis.
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

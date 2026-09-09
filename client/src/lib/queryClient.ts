@@ -7,8 +7,11 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// 🔒 Read CSRF token from cookies
-function getCsrfToken(): string | null {
+// 🔒 Read CSRF token from cookies.
+// Exporté (F06) : certains appels utilisent `fetch` directement et doivent
+// pouvoir poser l'en-tête eux-mêmes. Depuis F06 les routes de paiement ne sont
+// plus exemptées de CSRF, un fetch brut sans en-tête reçoit donc un 403.
+export function getCsrfToken(): string | null {
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');

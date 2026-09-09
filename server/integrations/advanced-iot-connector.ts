@@ -6,6 +6,7 @@ import type {
   InsertAutomatedSymptomDetection,
   InsertSmartNotification 
 } from '@shared/schema';
+import { registerBackgroundTask } from "../background-tasks";
 
 interface SensorReading {
   deviceId: string;
@@ -168,9 +169,13 @@ export class AdvancedIoTConnector extends EventEmitter {
    */
   private startSensorDataCollection(): void {
     // Simulate real-time sensor data collection
-    setInterval(() => {
-      this.collectSensorData();
-    }, 5000); // Every 5 seconds
+    // Tâche C-1 — simulateur de capteurs, purement en mémoire.
+    registerBackgroundTask({
+      name: 'iot:sensor-collection',
+      intervalMs: 5000,
+      criticality: 'C',
+      run: () => this.collectSensorData(),
+    });
 
     console.log('📊 Started real-time sensor data collection');
   }
@@ -351,9 +356,13 @@ export class AdvancedIoTConnector extends EventEmitter {
    * Start automated symptom detection
    */
   private startAutomatedSymptomDetection(): void {
-    setInterval(() => {
-      this.analyzeForSymptoms();
-    }, 10000); // Every 10 seconds
+    // Tâche C-2 — détection de symptômes sur les données en mémoire.
+    registerBackgroundTask({
+      name: 'iot:symptom-detection',
+      intervalMs: 10000,
+      criticality: 'C',
+      run: () => this.analyzeForSymptoms(),
+    });
 
     console.log('🔍 Started automated symptom detection');
   }

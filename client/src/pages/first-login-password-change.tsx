@@ -108,10 +108,16 @@ export default function FirstLoginPasswordChange() {
         }
       });
 
-      // Vérifier explicitement le succès
-      if (result.success && result.sessionToken && result.user) {
-        // Stocker le nouveau token de session et les données utilisateur
-        localStorage.setItem('sessionToken', result.sessionToken);
+      // 🔑 F09 — Ne PLUS exiger `result.sessionToken` : le serveur ne le renvoie
+      // pas (session en cookie httpOnly). Cette condition était donc toujours
+      // fausse, la page basculait dans la branche d'erreur et NE REDIRIGEAIT
+      // JAMAIS — alors que le mot de passe avait bien été changé (HTTP 200,
+      // drapeaux levés en base). Le testeur restait bloqué sur cet écran, à la
+      // dernière étape de son accueil.
+      // Constaté en pilotant un vrai navigateur (phase F09).
+      if (result.success && result.user) {
+        // Marqueur explicite « session ouverte » — voir login.tsx.
+        localStorage.setItem('sessionToken', 'cookie');
         localStorage.setItem('user_data', JSON.stringify(result.user));
         
         // Nettoyer les données de première connexion

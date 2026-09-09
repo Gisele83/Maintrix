@@ -23,6 +23,9 @@ import { EnterpriseAuthMiddleware } from './enterprise-auth-middleware';
 import { securityHeaders } from './security-middleware';
 import { setupSwagger } from './swagger-config';
 import { licenseEnforcementMiddleware } from './license-enforcement-middleware';
+import { registerHealthRoutes } from './health-routes';
+import { installProcessSafetyNet } from './graceful-shutdown';
+import { pool } from './db';
 
 // ═══════════════════════════════════════════════════════════════════
 // 🔒 GÉNÉRATION AUTOMATIQUE DES SECRETS EN DÉVELOPPEMENT
@@ -152,19 +155,46 @@ app.use((req, res, next) => {
   const isUnsafeMethod = unsafeMethods.includes(req.method);
   const isApiRoute = req.path.startsWith('/api');
   
-  // Exempter les endpoints de login, register et paiements de la vérification CSRF
-  const exemptPaths = [
+  // ═══════════════════════════════════════════════════════════════════
+  // Exemptions CSRF — F06
+  // ═══════════════════════════════════════════════════════════════════
+  // Comparaison EXACTE, jamais par préfixe. L'ancienne liste utilisait
+  // `startsWith`, ce qui exemptait tout ce qui vivait sous un préfixe :
+  //   • `/api/super-admin`  → 11 routes d'écriture (création de tenants et
+  //     d'utilisateurs, réinitialisation de drapeaux de mot de passe…) sur le
+  //     compte le plus privilégié de la plateforme ;
+  //   • `/api/payments`     → 4 routes, dont UNE SEULE est un webhook ;
+  //   • `/api/paypal`       → 2 routes, et AUCUN webhook.
+  // Un préfixe exempte aussi, silencieusement, toute route future ajoutée
+  // dessous — c'est ce qui rend cette forme dangereuse au-delà des routes
+  // existantes.
+  //
+  // N'a droit à une exemption qu'un endpoint pour lequel exiger un jeton est
+  // IMPOSSIBLE, et non simplement gênant :
+  //   1. l'appelant n'a pas encore de session (connexion, inscription) ;
+  //   2. l'appelant est un tiers externe, et une autre preuve d'authenticité
+  //      le remplace.
+  //
+  // Retirés au passage : `/api/auth/login` et `/api/auth/register`, qui ne
+  // correspondent à aucune route existante ; `/api/data-import-export/import`
+  // et `/api/diagnostic-test`, initiés par un client qui dispose du cookie
+  // csrfToken et peut donc parfaitement l'envoyer.
+  const CSRF_EXEMPT_PATHS = new Set([
+    // 1 — pas encore de session au moment de l'appel
     '/api/enterprise-auth/login',
     '/api/enterprise-auth/register',
-    '/api/auth/login',
-    '/api/auth/register',
-    '/api/super-admin',
-    '/api/data-import-export/import',
-    '/api/payments',
-    '/api/paypal',
-    '/api/diagnostic-test',
-  ];
-  const isExemptPath = exemptPaths.some(path => req.path.startsWith(path));
+    '/api/super-admin/login',
+    // 2 — appelant externe, authenticité prouvée autrement : le handler
+    //     vérifie l'en-tête `stripe-signature` contre STRIPE_WEBHOOK_SECRET
+    //     et refuse la requête si elle est absente ou invalide.
+    '/api/payments/webhook',
+  ]);
+
+  // Normalisation de la barre oblique finale : `/api/payments/webhook/` doit
+  // être traité comme `/api/payments/webhook`, sans quoi la casse d'un simple
+  // slash ferait échouer un webhook légitime.
+  const normalizedPath = req.path.length > 1 ? req.path.replace(/\/+$/, '') : req.path;
+  const isExemptPath = CSRF_EXEMPT_PATHS.has(normalizedPath);
   
   if (isUnsafeMethod && isApiRoute && !isExemptPath) {
     const tokenFromHeader = req.headers['x-csrf-token'];
@@ -220,6 +250,22 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// 🩺 SONDE D'INFRASTRUCTURE — GET /api/health (server/health-routes.ts).
+//
+// Position volontaire dans la chaîne :
+//   • APRÈS cookieParser + CSRF — ces middlewares posent le cookie csrfToken sur
+//     toute requête /api. Trois helpers de tests (tests/setup.ts,
+//     tests/multi-tenant.test.ts) récupèrent ce cookie via /api/health ; monter
+//     la sonde avant eux le supprimerait silencieusement. La sonde étant un GET,
+//     la validation CSRF ne s'y applique pas.
+//   • AVANT la journalisation — une sonde toutes les 10 s par Docker, l'ALB et
+//     les scripts saturerait les logs applicatifs.
+//   • AVANT licenseEnforcement, authentification et résolution de tenant — ce
+//     sont précisément les couches dont la sonde doit rester indépendante :
+//     licence expirée ou tenant irrésolu ne doivent jamais rendre un conteneur
+//     sain « unhealthy » aux yeux de l'orchestrateur.
+registerHealthRoutes(app);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -313,8 +359,13 @@ app.use((req, res, next) => {
   // 📖 SWAGGER API DOCUMENTATION
   setupSwagger(app);
 
-  // 🔐 LICENSE ENFORCEMENT — bloque les API si licence expirée
-  app.use('/api', licenseEnforcementMiddleware as any);
+  // 🔐 LICENSE ENFORCEMENT — F11.
+  //
+  // Le montage global qui se trouvait ICI était inerte : il s'exécutait avant
+  // `registerRoutes`, donc avant que `req.user` n'existe, et laissait passer
+  // toutes les requêtes. Le contrôle est désormais enchaîné après
+  // `validateSession` dans server/enterprise-auth-middleware.ts, seul endroit
+  // où l'utilisateur est connu. Ne pas le remonter ici.
 
   const server = await registerRoutes(app);
 
@@ -332,6 +383,22 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
     throw err;
+  });
+
+  // 🚧 404 JSON pour les routes API inconnues — DOIT précéder Vite et
+  // serveStatic. Ces deux-là installent un catch-all `app.use("*")` qui renvoie
+  // index.html : sans ce garde, une requête authentifiée vers un chemin /api
+  // inexistant recevait **HTTP 200 + le HTML de la SPA**, avec
+  // Content-Type: text/html. Un client faisant `if (res.ok) res.json()`
+  // échouait sur une erreur de parsing incompréhensible, et tout endpoint
+  // supprimé ou mal orthographié devenait silencieux.
+  // Défaut constaté en phase F05 sur /api/tenants et /api/diagnostic-sessions,
+  // deux chemins référencés par des listes blanches mais jamais implémentés.
+  app.use('/api', (req: Request, res: Response) => {
+    res.status(404).json({
+      error: 'NOT_FOUND',
+      message: `Route API inconnue : ${req.method} ${req.originalUrl.split('?')[0]}`,
+    });
   });
 
   // importantly only setup vite in development and after
@@ -370,5 +437,12 @@ app.use((req, res, next) => {
         req.end();
       });
     }, 1000);
+
+    // 🛡️ F02 — arrêt propre + filet de sécurité. Installé une fois le serveur
+    // en écoute, pour que `server.close()` ait quelque chose à fermer.
+    installProcessSafetyNet({
+      server,
+      closeDatabase: () => pool.end(),
+    });
   });
 })();

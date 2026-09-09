@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ACCENT, type AccentColor } from "@/lib/accent-colors";
+import { BILLING_ENABLED } from "@/lib/feature-flags";
 import {
   Brain,
   Settings,
@@ -36,7 +37,7 @@ import {
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [counter, setCounter] = useState({ uptime: 0, cases: 0, nodes: 0, accuracy: 0 });
+  const [counter, setCounter] = useState({ uptime: 0, nodes: 0, accuracy: 0 });
   const [showSalesModal, setShowSalesModal] = useState(false);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function LandingPage() {
   useEffect(() => {
     const duration = 1800;
     const steps = 50;
-    const targets = { uptime: 99.9, cases: 120, nodes: 48, accuracy: 98 };
+    const targets = { uptime: 99.9, nodes: 48, accuracy: 98 };
     let step = 0;
     const timer = setInterval(() => {
       step++;
@@ -56,7 +57,6 @@ export default function LandingPage() {
       const ease = 1 - Math.pow(1 - progress, 3);
       setCounter({
         uptime: Math.round(targets.uptime * ease * 10) / 10,
-        cases: Math.round(targets.cases * ease),
         nodes: Math.round(targets.nodes * ease),
         accuracy: Math.round(targets.accuracy * ease),
       });
@@ -114,6 +114,25 @@ export default function LandingPage() {
       bg: "from-sky-500/10 to-sky-600/5",
       border: "border-sky-200/50",
     },
+  ];
+
+  /**
+   * Liens de navigation. « Tarifs » n'apparaît que si l'offre payante est
+   * activée : sans cette condition, le lien subsisterait et pointerait vers une
+   * ancre `#pricing` inexistante — un clic sans effet, que le visiteur
+   * interprète comme un défaut de l'application.
+   */
+  type Lien = [string, string];
+  const liensNav: Lien[] = [
+    ["#features", "Fonctionnalités"],
+    ["#how-it-works", "Comment ça marche"],
+    ...(BILLING_ENABLED ? [["#pricing", "Tarifs"] as Lien] : []),
+  ];
+  const liensProduit: Lien[] = [
+    ["#features", "Fonctionnalités"],
+    ...(BILLING_ENABLED ? [["#pricing", "Tarifs"] as Lien] : []),
+    ["/download", "Télécharger"],
+    ["/api-docs", "API Documentation"],
   ];
 
   const plans = [
@@ -203,7 +222,7 @@ export default function LandingPage() {
             </div>
 
             <div className="hidden md:flex items-center space-x-7">
-              {[["#features", "Fonctionnalités"], ["#how-it-works", "Comment ça marche"], ["#pricing", "Tarifs"]].map(([href, label]) => (
+              {liensNav.map(([href, label]) => (
                 <a key={href} href={href} className="text-slate-400 hover:text-white text-sm transition-colors">{label}</a>
               ))}
               <Link href="/download" className="text-slate-400 hover:text-white text-sm transition-colors flex items-center gap-1.5">
@@ -233,7 +252,7 @@ export default function LandingPage() {
 
         {mobileMenuOpen && (
           <div className="md:hidden bg-slate-900 border-t border-slate-800 px-4 py-4 space-y-3">
-            {[["#features", "Fonctionnalités"], ["#how-it-works", "Comment ça marche"], ["#pricing", "Tarifs"]].map(([href, label]) => (
+            {liensNav.map(([href, label]) => (
               <a key={href} href={href} className="block text-slate-300 py-2" onClick={() => setMobileMenuOpen(false)}>{label}</a>
             ))}
             <div className="pt-2 flex gap-3">
@@ -307,10 +326,15 @@ export default function LandingPage() {
 
       {/* ── Stats Bar ─────────────────────────────────────── */}
       <section className="py-12 border-y border-slate-800/60 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        {/*
+          La grille passe de 4 à 3 colonnes : « 120+ Cas industriels » a été
+          retiré. Sans cet ajustement, trois éléments dans une grille à quatre
+          colonnes laisseraient une cellule vide à droite, et un orphelin sur la
+          seconde ligne en affichage mobile à deux colonnes.
+        */}
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
             { val: `${counter.uptime}%`, label: "Disponibilité SLA", color: "text-blue-400" },
-            { val: `${counter.cases}+`, label: "Cas industriels", color: "text-emerald-400" },
             { val: `${counter.nodes}+`, label: "Nœuds Knowledge Graph", color: "text-violet-400" },
             { val: `${counter.accuracy}%`, label: "Précision diagnostic IA", color: "text-amber-400" },
           ].map(({ val, label, color }) => (
@@ -409,6 +433,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Pricing ───────────────────────────────────────── */}
+      {BILLING_ENABLED && (
       <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-900/40">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -475,38 +500,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ── Social proof ──────────────────────────────────── */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Ils nous font confiance</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              {
-                q: "Maintrix a réduit nos temps d'arrêt de 40% en 6 mois grâce au diagnostic prédictif et au Knowledge Graph.",
-                author: "Marie Dupont", role: "Directrice Maintenance", company: "Industrie Métallurgique SA",
-              },
-              {
-                q: "L'interface intuitive a facilité l'adoption par nos techniciens terrain. Le mode mobile hors-ligne est indispensable.",
-                author: "Jean-Pierre Martin", role: "Responsable GMAO", company: "Groupe Agroalimentaire",
-              },
-            ].map(({ q, author, role, company }, i) => (
-              <div key={i} className="bg-slate-900/60 border border-slate-800/60 rounded-2xl p-6 hover:border-slate-700 transition-colors">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => <Star key={j} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
-                </div>
-                <p className="text-slate-300 mb-5 leading-relaxed">"{q}"</p>
-                <div>
-                  <div className="font-semibold text-white text-sm">{author}</div>
-                  <div className="text-slate-500 text-xs">{role} · {company}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      )}
 
       {/* ── Final CTA ─────────────────────────────────────── */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -554,7 +548,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-3 text-sm">Produit</h4>
               <ul className="space-y-2">
-                {[["#features", "Fonctionnalités"], ["#pricing", "Tarifs"], ["/download", "Télécharger"], ["/api-docs", "API Documentation"]].map(([href, l]) => (
+                {liensProduit.map(([href, l]) => (
                   <li key={l}><a href={href} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">{l}</a></li>
                 ))}
               </ul>

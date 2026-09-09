@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from './setup';
+import { authenticateUser, createAuthenticatedRequest, type AuthenticatedAgent } from '../helpers/setup';
 
 describe('Inter-Module Communication Tests', () => {
   let auth: AuthenticatedAgent;
@@ -107,7 +107,7 @@ describe('Inter-Module Communication Tests', () => {
 
   describe('Preventive → Work Order Automation', () => {
     it('should generate work order from preventive plan', async () => {
-      const preventiveResponse = await createAuthenticatedRequest('post', '/api/preventive-maintenance', auth)
+      const preventiveResponse = await createAuthenticatedRequest('post', '/api/preventive-maintenance-plans', auth)
         .send({
           planName: `Auto Plan ${Date.now()}`,
           equipmentType: 'Compresseur',
@@ -121,7 +121,7 @@ describe('Inter-Module Communication Tests', () => {
         const planId = preventiveResponse.body.plan?.id;
 
         if (planId) {
-          const triggerResponse = await createAuthenticatedRequest('post', `/api/preventive-maintenance/${planId}/trigger`, auth);
+          const triggerResponse = await createAuthenticatedRequest('post', `/api/preventive-maintenance-plans/${planId}/trigger`, auth);
 
           expect([200, 201, 404]).toContain(triggerResponse.status);
           if (triggerResponse.body.workOrder) {
@@ -141,8 +141,12 @@ describe('Inter-Module Communication Tests', () => {
         .set('X-CSRF-Token', auth.csrfToken)
         .set('X-Tenant-Id', 'tenant-test-isolation');
 
-      const diagnosticCheck = await auth.agent
-        .get('/api/diagnostic-sessions')
+      // `/api/diagnostic-sessions` a été retiré de ce contrôle : la route
+      // n'existe pas (voir tests/integration/diagnostic.test.ts). L'inclure
+      // faisait porter le test sur un 404, pas sur l'isolation. Remplacé par
+      // un module réellement exposé et cloisonné par tenant.
+      const maintenancePlanCheck = await auth.agent
+        .get('/api/preventive-maintenance-plans')
         .set('Cookie', auth.cookies.join('; '))
         .set('X-CSRF-Token', auth.csrfToken)
         .set('X-Tenant-Id', 'tenant-test-isolation');
@@ -153,10 +157,24 @@ describe('Inter-Module Communication Tests', () => {
         .set('X-CSRF-Token', auth.csrfToken)
         .set('X-Tenant-Id', 'tenant-test-isolation');
 
-      [equipmentCheck, diagnosticCheck, workOrderCheck].forEach(response => {
+      [equipmentCheck, maintenancePlanCheck, workOrderCheck].forEach(response => {
         expect([200, 401, 403]).toContain(response.status);
         if (response.status === 200) {
           expect(Array.isArray(response.body)).toBe(true);
+
+          // Propriété de sécurité réellement vérifiée ici : le serveur déduit
+          // le tenant de la SESSION et ignore l'en-tête X-Tenant-Id fourni par
+          // le client. Toute ligne rendue appartient donc au tenant de la
+          // session, jamais au tenant revendiqué dans l'en-tête.
+          //
+          // (Attendre un tableau vide serait une erreur : cela supposerait que
+          // le serveur honore l'en-tête forgé — précisément la faille que ce
+          // test doit exclure.)
+          for (const row of response.body as Array<Record<string, unknown>>) {
+            if ('tenantId' in row) {
+              expect(row.tenantId).not.toBe('tenant-test-isolation');
+            }
+          }
         }
       });
     });

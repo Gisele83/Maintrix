@@ -16,6 +16,8 @@ import { sendTenantCredentials } from "./email-service";
 import { LicenseService } from "./license-service";
 import { MFAService } from "./mfa-system";
 import { z } from "zod";
+import { codePostgres } from "./db-errors";
+import { emettreJetonTemporaire, verifierJetonTemporaire, consommerJetonTemporaire } from "./temp-session-tokens";
 
 /**
  * 🔒 ROUTES D'AUTHENTIFICATION ENTERPRISE SÉCURISÉE
@@ -457,7 +459,7 @@ router.post('/login',
           email: user.email,
           passwordExpiresAt: user.passwordExpiresAt,
           isFirstLogin: true,
-          tempSessionToken: crypto.randomBytes(32).toString('hex') // Token temporaire pour changement de mot de passe
+          tempSessionToken: emettreJetonTemporaire(user.id)
         });
       }
 
@@ -470,7 +472,7 @@ router.post('/login',
           username: user.username,
           email: user.email,
           isExpired: true,
-          tempSessionToken: crypto.randomBytes(32).toString('hex')
+          tempSessionToken: emettreJetonTemporaire(user.id)
         });
       }
       
@@ -511,6 +513,14 @@ router.post('/login',
         user: {
           id: user.id,
           username: user.username,
+          // `firstName` et `lastName` étaient absents de cette réponse, alors
+          // que le client écrit déjà `firstName || username` pour accueillir
+          // l'utilisateur. La solution de repli s'appliquait donc TOUJOURS, et
+          // le message affichait un identifiant technique :
+          //   « Bienvenue camille.durand.f12 ! »
+          // La route d'inscription, elle, les renvoie déjà.
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
           role: user.role,
           tenantId: user.tenantId
@@ -520,7 +530,7 @@ router.post('/login',
       
     } catch (error: any) {
       console.error("Login error:", error?.message || error);
-      const isDbError = error?.message?.includes('endpoint') || error?.message?.includes('disabled') || error?.code === 'XX000' || error?.code === 'ECONNREFUSED';
+      const isDbError = error?.message?.includes('endpoint') || error?.message?.includes('disabled') || codePostgres(error) === 'XX000' || codePostgres(error) === 'ECONNREFUSED';
       if (isDbError) {
         res.status(503).json({
           error: "DATABASE_UNAVAILABLE",
@@ -646,6 +656,25 @@ router.post('/force-password-change',
         });
       }
       
+      // 🔑 F11 — Le jeton temporaire est désormais RÉELLEMENT vérifié.
+      //
+      // Il était auparavant produit, transporté, puis ignoré : seul zod
+      // contrôlait qu'il s'agissait d'une chaîne non vide. Il est maintenant
+      // lié à l'utilisateur, à usage unique et expirant (voir
+      // server/temp-session-tokens.ts). Un jeton présenté est brûlé, valide ou
+      // non : un rejeu ne peut donc pas aboutir.
+      //
+      // Cette vérification vient AVANT la lecture du mot de passe : un appelant
+      // sans jeton légitime ne doit pas pouvoir se servir de cette route comme
+      // d'un oracle pour tester des mots de passe, alors qu'elle n'est pas
+      // soumise au limiteur de connexion.
+      if (!verifierJetonTemporaire(validatedData.tempSessionToken, validatedData.userId)) {
+        return res.status(401).json({
+          error: "INVALID_TEMP_SESSION",
+          message: "Session de changement de mot de passe invalide ou expirée. Reconnectez-vous pour recommencer.",
+        });
+      }
+
       // Vérifier que l'utilisateur doit changer son mot de passe
       if (!user.mustChangePassword || !user.isDefaultCredentials) {
         return res.status(400).json({
@@ -689,6 +718,10 @@ router.post('/force-password-change',
         })
         .where(eq(userProfiles.id, user.id));
       
+      // Le mot de passe est changé : le jeton a rempli son office et ne doit
+      // plus pouvoir être rejoué.
+      consommerJetonTemporaire(validatedData.tempSessionToken);
+
       console.log(`✅ Utilisateur ${user.username} a changé son mot de passe par défaut avec succès`);
       
       // Créer une session normale maintenant que le mot de passe a été changé

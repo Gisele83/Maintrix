@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { messageErreurApi } from "@/lib/api-error";
 import { LogIn, UserPlus, Brain, Factory, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
@@ -103,8 +104,18 @@ export default function LoginPage() {
         return;
       }
       
-      // ✅ ENTERPRISE AUTH: Use sessionToken from enterprise auth response
-      localStorage.setItem("sessionToken", data.sessionToken);
+      // 🔑 F09 — La session vit dans un cookie httpOnly, PAS dans le corps de
+      // la réponse : /api/enterprise-auth/login ne renvoie aucun `sessionToken`
+      // (son message le dit : « Session stored in secure cookie »).
+      // `data.sessionToken` valait donc `undefined`, et
+      // `localStorage.setItem` le convertissait en CHAÎNE "undefined" — qui est
+      // truthy. App.tsx et useAuth.ts, qui testent `!!localStorage.sessionToken`,
+      // fonctionnaient par accident sur cette chaîne.
+      //
+      // On stocke désormais un marqueur EXPLICITE. Ce n'est pas un jeton : c'est
+      // uniquement l'indicateur « une session est ouverte », le secret restant
+      // dans le cookie httpOnly, hors de portée de JavaScript.
+      localStorage.setItem("sessionToken", "cookie");
       localStorage.setItem("user_data", JSON.stringify(data.user));
       
       // ✅ FIX: Invalider spécifiquement la query d'auth
@@ -122,7 +133,10 @@ export default function LoginPage() {
     onError: (error: any) => {
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Identifiants incorrects",
+        // Sans extraction, l'utilisateur lisait :
+        //   401: {"error":"INVALID_CREDENTIALS","message":"Invalid email or password"}
+        // — du JSON brut, et en anglais sur une interface française.
+        description: messageErreurApi(error, "Identifiants incorrects"),
         variant: "destructive",
       });
     },
@@ -148,7 +162,7 @@ export default function LoginPage() {
     onError: (error: any) => {
       toast({
         title: "Erreur d'inscription",
-        description: error.message || "Impossible de créer le compte",
+        description: messageErreurApi(error, "Impossible de créer le compte"),
         variant: "destructive",
       });
     },

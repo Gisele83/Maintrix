@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { AgentType, AgentStatus, AutonomyLevel, AnomalyDetection } from '../cognitive-layers/layer-contracts.js';
 import { getCognitiveKernel, CognitiveAgent } from '../cognitive-kernel/index.js';
 import { slidingWindowJSD, JSD_THRESHOLDS } from '../js-divergence.js';
+import { registerBackgroundTask } from "../background-tasks";
 
 export interface EquipmentState {
   equipmentId: number;
@@ -24,7 +25,7 @@ export interface LocalEquipmentModel {
 export class EquipmentAgent extends EventEmitter {
   private agentRegistration: CognitiveAgent | null = null;
   private state: EquipmentState;
-  private monitoringInterval: NodeJS.Timeout | null = null;
+  private taskHandle: { stop: () => Promise<void> } | null = null;
   private sensorHistory: Map<string, number[]> = new Map();
 
   constructor(equipmentId: number, equipmentType: string) {
@@ -51,7 +52,16 @@ export class EquipmentAgent extends EventEmitter {
 
     this.calibrateLocalModel();
 
-    this.monitoringInterval = setInterval(() => this.monitoringCycle(), 10000);
+    // Tâche B-3 — attention : une instance PAR ÉQUIPEMENT (jusqu'à 20 agents
+    // enregistrés au démarrage), donc jusqu'à 20 timers de 10 s simultanés.
+    // Le nom inclut l'identifiant pour que chaque agent soit supervisé et
+    // arrêtable individuellement.
+    this.taskHandle = registerBackgroundTask({
+      name: `agents:equipment-monitoring:${this.state.equipmentId}`,
+      intervalMs: 10000,
+      criticality: 'B',
+      run: () => this.monitoringCycle(),
+    });
   }
 
   private calibrateLocalModel(): void {
@@ -248,9 +258,8 @@ export class EquipmentAgent extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-    }
+    await this.taskHandle?.stop();
+    this.taskHandle = null;
     if (this.agentRegistration) {
       const kernel = getCognitiveKernel();
       kernel.unregisterAgent(this.agentRegistration.agentId);

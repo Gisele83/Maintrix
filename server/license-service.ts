@@ -150,6 +150,13 @@ export const SUBSCRIPTION_PLANS = [
   },
 ];
 
+/**
+ * Exécuteur de requêtes : soit la connexion normale, soit une transaction en
+ * cours. Une transaction Drizzle n'expose pas `$client` et n'est donc pas
+ * assignable à `typeof db` — d'où ce type dédié.
+ */
+type DbExecutor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export class LicenseService {
 
   // ── Initialize license types in DB ─────────────────────────────────────
@@ -438,19 +445,47 @@ export class LicenseService {
   }
 
   // ── Initialize custom tenant license ─────────────────────────────────
-  static async initializeTenantLicense(tenantId: string, maxUsers: number, initialUserCount = 1): Promise<void> {
+  /**
+   * @param tx  Exécuteur transactionnel optionnel (F04). Quand la licence est
+   *            initialisée dans le cadre d'une création de tenant, elle doit
+   *            partager la MÊME transaction : sinon un échec ultérieur annule
+   *            le tenant mais laisse la ligne d'historique de licence derrière.
+   */
+  static async initializeTenantLicense(tenantId: string, maxUsers: number, initialUserCount = 1, tx?: DbExecutor): Promise<void> {
+    const exec = tx ?? db;
     const licenseKey = this.generateLicenseKey(tenantId, maxUsers);
-    await db.update(tenants).set({
+    const now = new Date();
+
+    // 🎯 F08 — PÉRIODE D'ESSAI OUVERTE DÈS LA CRÉATION.
+    //
+    // Sans dates d'essai, un tenant neuf n'a ni abonnement (`subscriptionId`
+    // vide), ni essai, ni période de grâce : `getLicenseStatus()` le classe
+    // « expired » et `canOperate` vaut false. Le tenant naît donc sans droit
+    // d'opérer. Ce n'est aujourd'hui pas bloquant parce que le middleware de
+    // licence est inerte (il s'exécute avant l'authentification), mais rétablir
+    // cet ordre verrouillerait instantanément tous les tenants testeurs.
+    //
+    // `startTrial()` existe déjà mais n'était appelée que par la route
+    // manuelle /api/trial/start. On pose les mêmes champs ici, dans la MÊME
+    // transaction que la création du tenant — sans toucher à `plan`, choisi
+    // par le super-admin.
+    const trialEnd = new Date(now.getTime() + TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+    await exec.update(tenants).set({
       licenseType: "custom",
       licensedUsers: maxUsers,
       currentUsers: initialUserCount,
       maxUsers,
       licenseKey,
-      licenseGeneratedAt: new Date(),
-      licenseUpdatedAt: new Date(),
+      licenseGeneratedAt: now,
+      licenseUpdatedAt: now,
+      trialStartDate: now,
+      trialEndDate: trialEnd,
+      licenseStatus: "trial",
+      lastLicenseCheckAt: now,
     }).where(eq(tenants.id, tenantId));
 
-    await db.insert(licenseHistory).values({
+    await exec.insert(licenseHistory).values({
       tenantId,
       previousLicenseType: null,
       newLicenseType: "custom",

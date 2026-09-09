@@ -1,12 +1,22 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
-import { nanoid } from "nanoid";
 
-const viteLogger = createLogger();
+// ⚠️ `vite`, `../vite.config` (qui tire @vitejs/plugin-react) et `nanoid` ne
+// sont chargés QUE dans setupVite(), via import() dynamique.
+//
+// Ils étaient importés statiquement ici, et `createLogger()` était même appelé
+// au chargement du module. Or index.ts importe ce fichier inconditionnellement
+// (pour `log` et `serveStatic`), et `vite` / `@vitejs/plugin-react` sont des
+// devDependencies — absentes de l'image Docker (`npm ci --only=production`).
+// Le bundle de production échouait donc dès son chargement sur
+// « Cannot find package 'vite' », avant l'exécution de la moindre ligne.
+// (`nanoid` n'est déclaré ni en dependencies ni en devDependencies : il ne
+// résolvait que par transitivité.)
+//
+// setupVite() n'est appelée que si app.get("env") === "development" : en
+// production ces modules ne sont jamais atteints.
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -20,6 +30,19 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Chargement paresseux : voir la note en tête de fichier.
+  const { createServer: createViteServer, createLogger } = await import("vite");
+  const { nanoid } = await import("nanoid");
+  const viteLogger = createLogger();
+
+  // On laisse Vite charger vite.config.ts lui-même plutôt que de l'importer.
+  // Un `import("../vite.config")` est un chemin RELATIF : esbuild l'inline dans
+  // le bundle au lieu de le laisser dynamique, ce qui y réintroduit `vite` et
+  // `@vitejs/plugin-react` comme imports statiques — et casse à nouveau la
+  // production. Le résultat fonctionnel est identique : c'est le même fichier,
+  // simplement résolu par Vite au lieu du bundler.
+  const configFile = path.resolve(import.meta.dirname, "..", "vite.config.ts");
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -27,8 +50,7 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    configFile,
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {

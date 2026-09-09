@@ -48,6 +48,26 @@ export async function licenseEnforcementMiddleware(
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  // ═══════════════════════════════════════════════════════════════
+  // ⚠️ F11 — Ce middleware était INERTE, et silencieusement.
+  // ═══════════════════════════════════════════════════════════════
+  // Il était monté globalement par `app.use('/api', …)` dans server/index.ts,
+  // AVANT `registerRoutes`. Or l'authentification est posée route par route à
+  // l'intérieur de celles-ci : à son passage, `req.user` était donc toujours
+  // `undefined`, et la première condition (`if (!user) next()`) laissait tout
+  // passer. Vérifié expérimentalement : licence forcée à « expirée » en base,
+  // puis requête authentifiée → HTTP 200 au lieu de 402.
+  //
+  // Il est désormais enchaîné après `validateSession`
+  // (server/enterprise-auth-middleware.ts), seul endroit où `req.user` existe.
+  //
+  // L'interrupteur ci-dessous existe parce que ACTIVER l'application des
+  // licences est une décision commerciale, pas technique : un locataire sans
+  // abonnement ni essai valide se verrait refuser l'accès immédiatement. Le
+  // pilote destiné aux testeurs tourne donc avec le contrôle désactivé par
+  // défaut, sans que le code ait à mentir sur ce qu'il fait.
+  if (process.env.ENABLE_LICENSE_ENFORCEMENT !== "true") { next(); return; }
+
   const path = req.path;
 
   // Exempt certain routes

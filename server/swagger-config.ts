@@ -313,7 +313,30 @@ Tous les endpoints protégés nécessitent un cookie de session valide obtenu vi
   },
 };
 
+/**
+ * Documentation interactive de l'API.
+ *
+ * ⚠️ F11 — Elle était montée sans condition, y compris en production, et
+ * accessible sans authentification par le point d'entrée public : n'importe
+ * quel visiteur obtenait la carte complète des routes, des paramètres et des
+ * schémas de données. C'est un guide de reconnaissance offert.
+ *
+ * Elle reste précieuse pour des testeurs externes : on ne la supprime pas, on
+ * la rend explicite. Hors production elle est active par défaut ; en production
+ * elle exige `ENABLE_API_DOCS=true`, une décision consciente et réversible.
+ */
 export function setupSwagger(app: any) {
+  const enProduction = process.env.NODE_ENV === "production";
+  const autorisee = process.env.ENABLE_API_DOCS === "true";
+
+  if (enProduction && !autorisee) {
+    console.log(
+      "📕 Documentation API désactivée (production). " +
+      "Pour l'ouvrir aux testeurs : ENABLE_API_DOCS=true",
+    );
+    return;
+  }
+
   try {
     const swaggerOptions = {
       customCss: ".swagger-ui .topbar { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); }",

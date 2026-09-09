@@ -78,6 +78,69 @@
       "when": 1784671427523,
       "tag": "0010_platform_edition",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784671487523,
+      "tag": "0011_rca_fmea_tenant_scoping",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784671547523,
+      "tag": "0012_budget_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1784671607523,
+      "tag": "0013_oee_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1784671667523,
+      "tag": "0014_asset_lifecycle_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1784671727523,
+      "tag": "0015_habilitation_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784671787523,
+      "tag": "0016_calibration_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784671847523,
+      "tag": "0017_warranty_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784671907523,
+      "tag": "0018_maintenance_plans_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784671967523,
+      "tag": "0019_suppliers_extend_and_scope",
+      "breakpoints": true
     }
   ]
 }

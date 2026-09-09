@@ -1,353 +1,226 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+#
+# Déploiement de l'environnement de test sur une instance OVHcloud Public Cloud — F12.
+#
+#   sudo bash scripts/deploy-ovh.sh maintrix-test.techlearn-saem.com vous@exemple.fr
+#
+# ═══════════════════════════════════════════════════════════════════
+# CE QUE FAIT CE SCRIPT
+# ═══════════════════════════════════════════════════════════════════
+#   1. vérifie les prérequis (Docker, ports libres, DNS résolvant vers CETTE machine)
+#   2. obtient un certificat Let's Encrypt et le met en place
+#   3. provisionne l'environnement avec le bon domaine public
+#   4. installe le renouvellement automatique du certificat
+#   5. passe la porte d'ouverture
+#
+# Il est IDEMPOTENT : relançable sans rien casser. Un certificat encore valide
+# n'est pas redemandé — Let's Encrypt plafonne à 5 certificats par domaine et
+# par semaine, et griller ce quota bloquerait le déploiement pendant 7 jours.
+#
+# ═══════════════════════════════════════════════════════════════════
+# CE QU'IL NE FAIT PAS
+# ═══════════════════════════════════════════════════════════════════
+# Il ne crée pas l'instance et ne touche pas à votre zone DNS : ces deux étapes
+# passent par l'espace client OVHcloud. Voir docs/DEPLOY_OVH.md.
+set -euo pipefail
 
-echo "=========================================="
-echo "   Maintrix - Déploiement OVH VPS"
-echo "=========================================="
+DOMAINE="${1:-}"
+COURRIEL="${2:-}"
 
-# Couleurs pour les messages
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+rouge()  { printf '\033[31m%s\033[0m\n' "$*"; }
+vert()   { printf '\033[32m%s\033[0m\n' "$*"; }
+jaune()  { printf '\033[33m%s\033[0m\n' "$*"; }
+titre()  { printf '\n\033[1m▶ %s\033[0m\n' "$*"; }
+mourir() { rouge "⛔ $*"; exit 1; }
 
-print_success() { echo -e "${GREEN}✅ $1${NC}"; }
-print_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
-print_error() { echo -e "${RED}❌ $1${NC}"; }
-print_info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
+if [ -z "$DOMAINE" ] || [ -z "$COURRIEL" ]; then
+  cat <<'AIDE'
+Usage :
+  sudo bash scripts/deploy-ovh.sh <domaine> <courriel>
 
-# Vérification utilisateur
-if [ "$EUID" -eq 0 ]; then
-    print_warning "Ne pas exécuter en tant que root. Utilisez un utilisateur avec sudo."
-    exit 1
+  <domaine>   nom complet servant aux testeurs, ex. maintrix-test.techlearn-saem.com
+              Il doit DÉJÀ pointer (enregistrement A) vers l'IP de cette machine.
+  <courriel>  adresse de contact Let's Encrypt (avis d'expiration du certificat)
+AIDE
+  exit 2
 fi
 
-# Variables
-APP_DIR="/opt/maintrix"
-DOMAIN=""
-USE_LOCAL_DB="n"
+cd "$(dirname "$0")/.."
+RACINE="$(pwd)"
+COMPOSE=(docker compose --env-file .env.test-cloud -f docker-compose.test.yml -p maintrix-test)
 
-echo ""
-echo "📋 Configuration de l'installation OVH"
-echo "---------------------------------------"
+# ═══════════════════════════════════════════════════════════════════
+titre "1/5 — Prérequis"
 
-read -p "Nom de domaine (ex: maintrix.votre-domaine.com): " DOMAIN
+[ "$(id -u)" -eq 0 ] || mourir "à lancer avec sudo (certbot et les ports 80/443 l'exigent)"
 
-echo ""
-echo "Base de données PostgreSQL:"
-echo "1) PostgreSQL local (installé sur ce serveur)"
-echo "2) OVH Public Cloud Databases (externe)"
-read -p "Choix [1/2]: " DB_CHOICE
+command -v docker >/dev/null 2>&1 || mourir "Docker absent. Voir docs/DEPLOY_OVH.md, étape 2."
+docker compose version >/dev/null 2>&1 || mourir "Le plugin 'docker compose' (v2) est absent."
+docker info >/dev/null 2>&1 || mourir "Le démon Docker ne répond pas."
+vert "  ✓ Docker $(docker version -f '{{.Server.Version}}') opérationnel"
 
-if [ "$DB_CHOICE" = "1" ]; then
-    USE_LOCAL_DB="y"
-    DB_PASSWORD=$(openssl rand -base64 24)
-    print_info "PostgreSQL sera installé localement"
+# ── Le DNS pointe-t-il vers CETTE machine ? ─────────────────────────
+# Sans ce contrôle, certbot échoue avec un message obscur après avoir consommé
+# une tentative. On préfère un diagnostic clair, avant.
+IP_PUBLIQUE="$(curl -fsS --max-time 15 https://api.ipify.org || echo '')"
+
+# ⚠️ `getent hosts` renvoie l'IPv6 EN PREMIER quand le domaine a un AAAA. La
+# comparer à l'IPv4 rendue par api.ipify.org donne un faux négatif : un domaine
+# parfaitement configuré en double pile serait rejeté. Constaté sur
+# techlearn-saem.com, qui répond 2a06:98c1:3120::2 (Cloudflare).
+# On collecte donc TOUTES les adresses IPv4, et on cherche la nôtre parmi elles.
+IPS_V4="$(getent ahostsv4 "$DOMAINE" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' || echo '')"
+IPS_V4="$(echo "$IPS_V4" | xargs || echo '')"
+
+[ -n "$IP_PUBLIQUE" ] || jaune "  ⚠ IP publique de la machine indéterminable (pas de sortie Internet ?)"
+
+if [ -z "$IPS_V4" ]; then
+  mourir "$DOMAINE ne résout vers aucune adresse IPv4.
+   Créez un enregistrement A : $DOMAINE → ${IP_PUBLIQUE:-<IP de cette machine>}
+   dans la zone DNS de techlearn-saem.com (espace client OVHcloud),
+   puis attendez la propagation (quelques minutes à 24 h)."
+elif [ -n "$IP_PUBLIQUE" ] && ! echo " $IPS_V4 " | grep -q " $IP_PUBLIQUE "; then
+  mourir "$DOMAINE pointe vers : $IPS_V4
+   … mais cette machine est en $IP_PUBLIQUE.
+
+   Deux causes habituelles :
+     • l'enregistrement A n'a pas encore été créé ou propagé ;
+     • le domaine passe par un proxy (Cloudflare, etc.) qui masque l'origine.
+       Pour ce sous-domaine, utilisez un enregistrement DNS SEUL, sans proxy —
+       sinon Let's Encrypt valide le proxy et non cette machine."
 else
-    read -p "Host PostgreSQL OVH (ex: postgresql-xxx.database.cloud.ovh.net): " DB_HOST
-    read -p "Port PostgreSQL [5432]: " DB_PORT
-    DB_PORT=${DB_PORT:-5432}
-    read -p "Nom de la base de données [maintrix]: " DB_NAME
-    DB_NAME=${DB_NAME:-maintrix}
-    read -p "Utilisateur PostgreSQL: " DB_USER
-    read -p "Mot de passe PostgreSQL: " -s DB_PASSWORD
-    echo ""
+  vert "  ✓ $DOMAINE → $IPS_V4 (cette machine)"
 fi
 
-echo ""
-echo "🔐 Configuration des paiements:"
-read -p "Clé secrète Stripe (sk_live_...): " -s STRIPE_SECRET_KEY
-echo ""
-read -p "Clé publique Stripe (pk_live_...): " STRIPE_PUBLISHABLE_KEY
-read -p "Client ID PayPal: " PAYPAL_CLIENT_ID
-read -p "Client Secret PayPal: " -s PAYPAL_CLIENT_SECRET
-echo ""
+# ── Les ports 80 et 443 sont-ils libres ? ──────────────────────────
+for port in 80 443; do
+  if ss -ltn "( sport = :$port )" 2>/dev/null | grep -q LISTEN; then
+    # nginx de la stack Maintrix est acceptable : on l'arrêtera le temps voulu.
+    if docker ps --format '{{.Names}}\t{{.Ports}}' | grep -q "maintrix-test-nginx.*:$port->"; then
+      vert "  ✓ port $port occupé par maintrix-test-nginx (attendu)"
+    else
+      mourir "Le port $port est occupé par un autre service.
+   Identifiez-le : ss -ltnp '( sport = :$port )'
+   Un serveur web préinstallé (apache2, nginx système) doit être arrêté :
+   systemctl disable --now apache2 nginx 2>/dev/null || true"
+    fi
+  else
+    vert "  ✓ port $port libre"
+  fi
+done
 
-# Mise à jour système
-print_info "Mise à jour du système..."
-sudo apt update && sudo apt upgrade -y
+# ═══════════════════════════════════════════════════════════════════
+titre "2/5 — Certificat TLS"
 
-# Installation des dépendances de base
-print_info "Installation des dépendances..."
-sudo apt install -y \
-    git \
-    curl \
-    wget \
-    nginx \
-    certbot \
-    python3-certbot-nginx \
-    ufw \
-    fail2ban \
-    ca-certificates \
-    gnupg
+CERT_LE="/etc/letsencrypt/live/$DOMAINE/fullchain.pem"
+CLE_LE="/etc/letsencrypt/live/$DOMAINE/privkey.pem"
+mkdir -p "$RACINE/ssl" "$RACINE/certbot-webroot/.well-known/acme-challenge"
 
-# Configuration du pare-feu OVH
-print_info "Configuration du pare-feu..."
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow 'Nginx Full'
-sudo ufw --force enable
-print_success "Pare-feu configuré"
-
-# Installation PostgreSQL local si choisi
-if [ "$USE_LOCAL_DB" = "y" ]; then
-    print_info "Installation de PostgreSQL..."
-    sudo apt install -y postgresql postgresql-contrib
-    
-    # Configuration PostgreSQL
-    sudo -u postgres psql << EOF
-CREATE USER maintrix WITH PASSWORD '${DB_PASSWORD}';
-CREATE DATABASE maintrix OWNER maintrix;
-GRANT ALL PRIVILEGES ON DATABASE maintrix TO maintrix;
-EOF
-    
-    DB_HOST="localhost"
-    DB_PORT="5432"
-    DB_NAME="maintrix"
-    DB_USER="maintrix"
-    
-    print_success "PostgreSQL installé et configuré"
-fi
-
-# Installation Node.js 20
-print_info "Installation de Node.js 20..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-print_success "Node.js $(node -v) installé"
-
-# Installation PM2 pour la gestion des processus
-print_info "Installation de PM2..."
-sudo npm install -g pm2
-print_success "PM2 installé"
-
-# Création du répertoire application
-print_info "Configuration de l'application..."
-sudo mkdir -p $APP_DIR
-sudo chown $USER:$USER $APP_DIR
-
-# Clonage ou copie de l'application
-if [ -d ".git" ]; then
-    print_info "Copie des fichiers de l'application..."
-    cp -r . $APP_DIR/
-else
-    read -p "URL du dépôt Git: " GIT_REPO
-    git clone $GIT_REPO $APP_DIR
-fi
-
-cd $APP_DIR
-
-# Génération de secrets
-SESSION_SECRET=$(openssl rand -hex 32)
-JWT_SECRET=$(openssl rand -hex 32)
-
-# Construction de DATABASE_URL
-if [ "$USE_LOCAL_DB" = "y" ]; then
-    DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
-else
-    DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require"
-fi
-
-# Création du fichier .env
-print_info "Configuration des variables d'environnement..."
-cat > .env << EOF
-# Base de données PostgreSQL
-DATABASE_URL=${DATABASE_URL}
-
-# Session et JWT
-SESSION_SECRET=${SESSION_SECRET}
-JWT_SECRET=${JWT_SECRET}
-
-# Stripe (Production)
-STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
-
-# PayPal (Production)
-PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
-PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
-PAYPAL_MODE=live
-
-# Application
-NODE_ENV=production
-PORT=5000
-
-# Domaine
-DOMAIN=${DOMAIN}
-EOF
-
-print_success "Fichier .env créé"
-
-# Installation des dépendances Node.js
-print_info "Installation des dépendances npm..."
-npm ci --production=false
-
-# Build de l'application
-print_info "Build de l'application..."
-npm run build
-
-# Migration de la base de données
-print_info "Migration de la base de données..."
-npm run db:push
-
-print_success "Application buildée"
-
-# Configuration PM2
-print_info "Configuration de PM2..."
-cat > ecosystem.config.js << EOF
-module.exports = {
-  apps: [{
-    name: 'maintrix',
-    script: 'dist/index.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 5000
-    },
-    error_file: '/var/log/maintrix/error.log',
-    out_file: '/var/log/maintrix/out.log',
-    merge_logs: true,
-    max_memory_restart: '500M'
-  }]
-};
-EOF
-
-# Création du répertoire de logs
-sudo mkdir -p /var/log/maintrix
-sudo chown $USER:$USER /var/log/maintrix
-
-# Lancement avec PM2
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup | tail -1 | sudo bash
-
-print_success "Application lancée avec PM2"
-
-# Configuration Nginx
-print_info "Configuration de Nginx..."
-sudo tee /etc/nginx/sites-available/maintrix > /dev/null << EOF
-upstream maintrix_backend {
-    server 127.0.0.1:5000;
-    keepalive 64;
+besoin_certificat() {
+  [ -f "$CERT_LE" ] || return 0
+  # Renouveler en dessous de 30 jours restants ; sinon on ne touche à rien.
+  openssl x509 -in "$CERT_LE" -noout -checkend $((30 * 86400)) >/dev/null 2>&1 && return 1 || return 0
 }
 
-server {
-    listen 80;
-    server_name ${DOMAIN};
+if besoin_certificat; then
+  if [ -f "$CERT_LE" ]; then
+    jaune "  certificat existant proche de l'expiration — renouvellement"
+  else
+    echo "  aucun certificat pour $DOMAINE — première émission"
+  fi
 
-    # Sécurité
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-
-    location / {
-        proxy_pass http://maintrix_backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_read_timeout 86400;
-        proxy_buffering off;
-    }
-
-    # Fichiers statiques
-    location /assets {
-        alias ${APP_DIR}/dist/public/assets;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-
-    client_max_body_size 50M;
-
-    # Gzip
-    gzip on;
-    gzip_types text/plain application/json application/javascript text/css;
-}
-EOF
-
-sudo ln -sf /etc/nginx/sites-available/maintrix /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
-
-print_success "Nginx configuré"
-
-# Configuration SSL
-print_info "Configuration du certificat SSL..."
-sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN} || {
-    print_warning "Certbot a échoué. Assurez-vous que le DNS pointe vers ce serveur."
-    print_info "Réessayez avec: sudo certbot --nginx -d ${DOMAIN}"
-}
-
-# Configuration Fail2ban pour la sécurité
-print_info "Configuration de Fail2ban..."
-sudo tee /etc/fail2ban/jail.local > /dev/null << EOF
-[sshd]
-enabled = true
-port = ssh
-filter = sshd
-logpath = /var/log/auth.log
-maxretry = 3
-bantime = 3600
-
-[nginx-http-auth]
-enabled = true
-EOF
-
-sudo systemctl restart fail2ban
-print_success "Fail2ban configuré"
-
-# Script de sauvegarde
-print_info "Création du script de sauvegarde..."
-sudo tee /usr/local/bin/backup-maintrix.sh > /dev/null << EOF
-#!/bin/bash
-BACKUP_DIR="/var/backups/maintrix"
-DATE=\$(date +%Y%m%d_%H%M%S)
-mkdir -p \$BACKUP_DIR
-
-# Sauvegarde base de données
-pg_dump ${DATABASE_URL} | gzip > \$BACKUP_DIR/db_\$DATE.sql.gz
-
-# Garder les 7 dernières sauvegardes
-ls -t \$BACKUP_DIR/db_*.sql.gz | tail -n +8 | xargs -r rm
-
-echo "Sauvegarde terminée: \$BACKUP_DIR/db_\$DATE.sql.gz"
-EOF
-
-sudo chmod +x /usr/local/bin/backup-maintrix.sh
-
-# Cron pour sauvegarde quotidienne
-(crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/backup-maintrix.sh") | crontab -
-
-print_success "Sauvegardes automatiques configurées"
-
-echo ""
-echo "=========================================="
-echo "   Installation OVH terminée!"
-echo "=========================================="
-echo ""
-echo "🌐 Votre application: https://${DOMAIN}"
-echo ""
-echo "📋 Commandes utiles:"
-echo "   - Logs: pm2 logs maintrix"
-echo "   - Statut: pm2 status"
-echo "   - Redémarrer: pm2 restart maintrix"
-echo "   - Monitoring: pm2 monit"
-echo ""
-echo "🔐 Configuration webhooks:"
-echo "   - Stripe: https://${DOMAIN}/api/webhooks/stripe"
-echo "   - PayPal: https://${DOMAIN}/api/paypal/webhook"
-echo ""
-if [ "$USE_LOCAL_DB" = "y" ]; then
-    echo "🗄️ Base de données locale:"
-    echo "   - Mot de passe PostgreSQL: ${DB_PASSWORD}"
-    echo "   (Conservez ce mot de passe en lieu sûr!)"
-    echo ""
+  # nginx tourne-t-il déjà ? Le mode « webroot » passe par lui ; sinon on prend
+  # le mode « standalone », qui a besoin du port 80 pour lui seul.
+  if docker ps --format '{{.Names}}' | grep -qx maintrix-test-nginx; then
+    echo "  émission via nginx (webroot) — aucune coupure de service"
+    docker run --rm \
+      -v /etc/letsencrypt:/etc/letsencrypt \
+      -v "$RACINE/certbot-webroot:/var/www/certbot" \
+      certbot/certbot certonly --webroot -w /var/www/certbot \
+      -d "$DOMAINE" --email "$COURRIEL" \
+      --agree-tos --no-eff-email --non-interactive \
+      || mourir "Émission du certificat échouée.
+   Vérifiez que http://$DOMAINE/.well-known/acme-challenge/ est joignable
+   DEPUIS INTERNET (pare-feu OVH, groupe de sécurité, ufw)."
+  else
+    echo "  émission en mode autonome (nginx n'est pas démarré)"
+    docker run --rm -p 80:80 \
+      -v /etc/letsencrypt:/etc/letsencrypt \
+      certbot/certbot certonly --standalone \
+      -d "$DOMAINE" --email "$COURRIEL" \
+      --agree-tos --no-eff-email --non-interactive \
+      || mourir "Émission du certificat échouée.
+   Le port 80 doit être joignable depuis Internet."
+  fi
+  vert "  ✓ certificat obtenu"
+else
+  RESTE=$(( ( $(date -d "$(openssl x509 -in "$CERT_LE" -noout -enddate | cut -d= -f2)" +%s) - $(date +%s) ) / 86400 ))
+  vert "  ✓ certificat déjà valide ($RESTE jours restants) — non redemandé"
 fi
-echo "💾 Sauvegarde: /usr/local/bin/backup-maintrix.sh"
-echo ""
-print_success "Déploiement OVH terminé!"
+
+# nginx lit /etc/ssl/maintrix.crt et .key (montés depuis ./ssl). On COPIE plutôt
+# qu'on ne lie : /etc/letsencrypt/live/ ne contient que des liens symboliques
+# vers ../../archive/, qui pointeraient dans le vide à l'intérieur du conteneur.
+install -m 644 "$CERT_LE" "$RACINE/ssl/maintrix.crt"
+install -m 600 "$CLE_LE"  "$RACINE/ssl/maintrix.key"
+vert "  ✓ certificat installé dans ssl/ (émetteur : $(openssl x509 -in "$RACINE/ssl/maintrix.crt" -noout -issuer | sed 's/.*CN *= *//'))"
+
+# ═══════════════════════════════════════════════════════════════════
+titre "3/5 — Provisionnement de l'environnement"
+
+command -v node >/dev/null 2>&1 || mourir "Node.js absent. Voir docs/DEPLOY_OVH.md, étape 2."
+[ -d node_modules ] || { echo "  installation des dépendances…"; npm ci --silent; }
+
+node scripts/provision-test-env.mjs --public-url="https://$DOMAINE"
+
+# Le provisionnement écrit ALLOWED_ORIGINS ; l'application doit être relancée
+# pour la lire. Sans cela : 403 ORIGIN_NOT_ALLOWED à chaque connexion.
+"${COMPOSE[@]}" up -d app nginx
+vert "  ✓ application et nginx relancés avec le domaine public"
+
+# ═══════════════════════════════════════════════════════════════════
+titre "4/5 — Renouvellement automatique du certificat"
+
+# Un certificat Let's Encrypt vit 90 jours. Sans renouvellement, le site devient
+# inaccessible aux testeurs du jour au lendemain, sur une erreur de certificat
+# expiré — panne d'autant plus déroutante que rien d'autre n'aura changé.
+cat > /etc/cron.weekly/maintrix-renouveler-cert <<CRON
+#!/bin/sh
+# Renouvellement du certificat de $DOMAINE — installé par scripts/deploy-ovh.sh
+# Ne fait rien tant qu'il reste plus de 30 jours de validité.
+cd "$RACINE" || exit 0
+docker run --rm \\
+  -v /etc/letsencrypt:/etc/letsencrypt \\
+  -v "$RACINE/certbot-webroot:/var/www/certbot" \\
+  certbot/certbot renew --webroot -w /var/www/certbot --quiet || exit 1
+
+# Recopier puis recharger : nginx ne relit pas les certificats tout seul.
+install -m 644 "$CERT_LE" "$RACINE/ssl/maintrix.crt"
+install -m 600 "$CLE_LE"  "$RACINE/ssl/maintrix.key"
+docker exec maintrix-test-nginx nginx -s reload 2>/dev/null || true
+CRON
+chmod +x /etc/cron.weekly/maintrix-renouveler-cert
+vert "  ✓ /etc/cron.weekly/maintrix-renouveler-cert installé"
+echo "     (renouvelle sous 30 jours de validité, recopie le certificat, recharge nginx)"
+
+# ═══════════════════════════════════════════════════════════════════
+titre "5/5 — Porte d'ouverture"
+
+sleep 10
+if node scripts/verify-opening.mjs; then
+  echo
+  vert "═══════════════════════════════════════════════════════════"
+  vert "  ENVIRONNEMENT DE TEST OUVERT"
+  vert "═══════════════════════════════════════════════════════════"
+  echo
+  echo "  Adresse testeurs   https://$DOMAINE/"
+  echo "  Identifiants       .env.test-cloud (jamais versionné)"
+  echo "  Provisionner       docs/TESTER_ONBOARDING.md"
+  echo "  Fermer l'accès     docker stop maintrix-test-nginx"
+  echo
+else
+  echo
+  jaune "La porte d'ouverture a relevé des points bloquants — voir ci-dessus."
+  jaune "L'environnement tourne, mais ne l'annoncez pas encore aux testeurs."
+  exit 1
+fi
