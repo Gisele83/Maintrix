@@ -37,7 +37,7 @@ import {
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [counter, setCounter] = useState({ uptime: 0, cases: 0, nodes: 0, accuracy: 0 });
+  const [counter, setCounter] = useState({ uptime: 0, nodes: 0, accuracy: 0 });
   const [showSalesModal, setShowSalesModal] = useState(false);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function LandingPage() {
   useEffect(() => {
     const duration = 1800;
     const steps = 50;
-    const targets = { uptime: 99.9, cases: 120, nodes: 48, accuracy: 98 };
+    const targets = { uptime: 99.9, nodes: 48, accuracy: 98 };
     let step = 0;
     const timer = setInterval(() => {
       step++;
@@ -57,7 +57,6 @@ export default function LandingPage() {
       const ease = 1 - Math.pow(1 - progress, 3);
       setCounter({
         uptime: Math.round(targets.uptime * ease * 10) / 10,
-        cases: Math.round(targets.cases * ease),
         nodes: Math.round(targets.nodes * ease),
         accuracy: Math.round(targets.accuracy * ease),
       });
@@ -327,10 +326,15 @@ export default function LandingPage() {
 
       {/* ── Stats Bar ─────────────────────────────────────── */}
       <section className="py-12 border-y border-slate-800/60 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        {/*
+          La grille passe de 4 à 3 colonnes : « 120+ Cas industriels » a été
+          retiré. Sans cet ajustement, trois éléments dans une grille à quatre
+          colonnes laisseraient une cellule vide à droite, et un orphelin sur la
+          seconde ligne en affichage mobile à deux colonnes.
+        */}
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
             { val: `${counter.uptime}%`, label: "Disponibilité SLA", color: "text-blue-400" },
-            { val: `${counter.cases}+`, label: "Cas industriels", color: "text-emerald-400" },
             { val: `${counter.nodes}+`, label: "Nœuds Knowledge Graph", color: "text-violet-400" },
             { val: `${counter.accuracy}%`, label: "Précision diagnostic IA", color: "text-amber-400" },
           ].map(({ val, label, color }) => (
