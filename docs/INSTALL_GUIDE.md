@@ -46,10 +46,20 @@ curl http://localhost:5000/api/health
 ```
 
 ### Étape 6 — Accéder à l'application
-- Application : http://votre-serveur:5000
-- Documentation API : http://votre-serveur:5000/api-docs
-- Grafana : http://votre-serveur:3000 (admin / maintrix_admin)
-- Prometheus : http://votre-serveur:9090
+- Application : via nginx sur http://votre-serveur (80) ou https://votre-serveur (443)
+- Documentation API : http://votre-serveur/api-docs
+
+Les services d'administration ne sont plus publiés sur Internet. Ils écoutent
+uniquement sur la boucle locale du serveur ; y accéder via un tunnel SSH :
+
+```bash
+ssh -L 3000:127.0.0.1:3000 -L 5000:127.0.0.1:5000 utilisateur@votre-serveur
+```
+
+- Grafana : http://127.0.0.1:3000 — identifiant `admin`, mot de passe = valeur
+  de `GRAFANA_ADMIN_PASSWORD` dans votre fichier `.env.docker` (généré par
+  `scripts/generate-docker-env.sh`, jamais versionné).
+- Prometheus : non publié — `docker compose exec prometheus wget -qO- localhost:9090/-/healthy`
 
 ---
 
