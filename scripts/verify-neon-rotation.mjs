@@ -83,9 +83,28 @@ function chainesDansTousLesObjets() {
   const contenu = spawnSync('git', ['cat-file', '--batch'],
     { input: blobs.join('\n'), encoding: 'latin1', maxBuffer: 1024 * 1024 * 1024 });
 
-  const chaines = [...new Set(
+  const brutes = [...new Set(
     (contenu.stdout || '').match(/postgres(?:ql)?:\/\/neondb_owner:[^@\s"']+@[^\s"']+/g) || [],
   )];
+
+  // ⚠️ Les exemples de la documentation sont eux-mêmes des blobs Git une fois
+  // committés. `docs/SECRET_ROTATION.md` contient la ligne
+  // `ANCIENNE_CHAINE_NEON="postgresql://neondb_owner:…@…/neondb"`, que ce
+  // balayage remontait comme une SECONDE chaîne fuitée. La barrière signalait
+  // sa propre documentation.
+  //
+  // On écarte donc les gabarits : chevrons, référence de variable, points de
+  // suspension — et tout caractère NON ASCII.
+  //
+  // ⚠️ Ce dernier point est nécessaire, pas décoratif : les blobs sont lus en
+  // latin1 (pour ne pas corrompre d'éventuels binaires), si bien qu'une ellipse
+  // « … » arrive sous forme de trois octets mojibake et échappe à une
+  // comparaison portant sur le caractère lui-même. Un identifiant réel est
+  // toujours ASCII : filtrer sur ce critère attrape toutes les variantes
+  // d'encodage d'un gabarit.
+  const gabarit = /[<>]|\$\{|\.\.\.|[^\x20-\x7E]/;
+  const chaines = brutes.filter(c => !gabarit.test(c));
+
   return { blobs: blobs.length, chaines };
 }
 
@@ -196,8 +215,17 @@ section('T3 — Aucun identifiant réel dans l\'arbre de travail');
   // noms d'hôtes : `infrastructure/istio-mtls-config.yaml` liste `*.neon.tech`
   // dans une liste d'autorisation réseau, ce qui n'est pas un secret. Un
   // contrôle qui ne fait pas cette distinction crie au loup.
+  // ⚠️ `[:space:]` et NON `\s`. `git grep -E` emploie les expressions POSIX
+  // étendues, où `\s` dans une classe ne désigne pas un espace mais les
+  // caractères littéraux « \ » et « s ». Le motif excluait donc la lettre « s »
+  // des mots de passe : `postgresql://admin:VraiMotDePasse2026@…` n'était PAS
+  // détecté, la correspondance s'arrêtant au premier « s ».
+  //
+  // Autrement dit, la barrière laissait passer la majorité des vrais
+  // identifiants — et paraissait verte. Trouvé par contrôle négatif ; aucune
+  // lecture du code ne l'aurait révélé.
   const r = spawnSync('git', ['grep', '-I', '-n', '-E',
-    'postgres(ql)?://[A-Za-z0-9_.-]+:[^@\\s"\']+@'], { encoding: 'utf8' });
+    'postgres(ql)?://[A-Za-z0-9_.-]+:[^@[:space:]"\']+@'], { encoding: 'utf8' });
 
   const suspects = (r.stdout || '').split('\n').filter(Boolean)
     .filter(l => !/^(docs\/|scripts\/verify-neon-rotation)/.test(l))
@@ -214,7 +242,15 @@ section('T3 — Aucun identifiant réel dans l\'arbre de travail');
   // joignable par personne depuis Internet : c'est une mauvaise pratique, pas
   // une fuite. Les mélanger ferait passer une vraie fuite inaperçue au milieu
   // du bruit.
-  const interne = (l) => /@(localhost|127\.0\.0\.1|db|postgres|database|host\.docker\.internal)[:\/]/.test(l);
+  // Un hôte écrit sous forme de VARIABLE (`@${PG}:5432`) n'est pas une adresse :
+  // il est résolu à l'exécution, en pratique vers un nom de conteneur. Le
+  // classer « exposé » faisait rougir la barrière sur les harnais de test —
+  // scripts/verify-background-resilience.ts crée un conteneur jetable dont le
+  // mot de passe est arbitraire et l'hôte un nom Docker.
+  const interne = (l) =>
+    /@(localhost|127\.0\.0\.1|db|postgres|database|host\.docker\.internal)[:\/]/.test(l) ||
+    /@\$\{[A-Za-z_][A-Za-z0-9_]*\}/.test(l) ||
+    /@\$[A-Za-z_][A-Za-z0-9_]*/.test(l);
   const exposes = suspects.filter(l => !interne(l));
   const locaux = suspects.filter(interne);
 
