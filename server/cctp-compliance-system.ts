@@ -149,7 +149,16 @@ export class CCTPComplianceService {
   ): Promise<{ type: 'letter' | 'purchase_order'; documentHTML: string }> {
     
     const config = await this.getPurchaseOrderConfig(tenantId);
-    if (!config) {
+
+    // ⚠️ F11 — `tenants.purchase_order_config` vaut `{}` par défaut, et non
+    // NULL. Le simple test `!config` laissait donc passer une configuration
+    // vide, et la génération plantait plus loin sur
+    // `config.companyHeader.name` : le testeur recevait un 500 opaque là où le
+    // message explicite prévu juste en dessous existait déjà.
+    //
+    // On vérifie donc que la configuration est UTILISABLE, pas seulement
+    // présente. Tout locataire nouvellement créé passe par ce cas.
+    if (!config || !config.companyHeader?.name) {
       throw new Error("Configuration Bon de Commande manquante pour ce tenant");
     }
 
@@ -183,6 +192,18 @@ export class CCTPComplianceService {
   ): string {
     const title = type === 'purchase_order' ? 'BON DE COMMANDE' : 'LETTRE DE COMMANDE';
     const documentNumber = `${config.numberingPrefix}-${order.orderNumber}`;
+
+    // ⚠️ F11 — PostgreSQL renvoie les colonnes `numeric` sous forme de CHAÎNE,
+    // pas de nombre (node-postgres ne convertit pas, pour ne pas perdre en
+    // précision). `order.totalAmount?.toFixed(2)` levait donc
+    // « toFixed is not a function » sur CHAQUE bon de commande.
+    //
+    // Les lignes de calcul (`* 0.2`, `* 1.2`) fonctionnaient, elles, par
+    // coercition implicite — ce qui rendait le défaut d'autant plus discret.
+    // On normalise une fois, ici, plutôt qu'à chaque interpolation.
+    const montantHT = Number(order.totalAmount ?? 0) || 0;
+    const montantTVA = montantHT * 0.2;
+    const montantTTC = montantHT * 1.2;
 
     return `
     <!DOCTYPE html>
@@ -255,16 +276,16 @@ export class CCTPComplianceService {
                 <tr>
                     <td>${order.description || 'Articles de maintenance'}</td>
                     <td>1</td>
-                    <td>${order.totalAmount?.toFixed(2) || '0.00'} €</td>
-                    <td>${order.totalAmount?.toFixed(2) || '0.00'} €</td>
+                    <td>${montantHT.toFixed(2)} €</td>
+                    <td>${montantHT.toFixed(2)} €</td>
                 </tr>
             </tbody>
         </table>
 
         <div class="total-section">
-            <div class="total-line">Sous-total HT: ${order.totalAmount?.toFixed(2) || '0.00'} €</div>
-            <div class="total-line">TVA (20%): ${((order.totalAmount || 0) * 0.2).toFixed(2)} €</div>
-            <div class="total-final">TOTAL TTC: ${((order.totalAmount || 0) * 1.2).toFixed(2)} €</div>
+            <div class="total-line">Sous-total HT: ${montantHT.toFixed(2)} €</div>
+            <div class="total-line">TVA (20%): ${montantTVA.toFixed(2)} €</div>
+            <div class="total-final">TOTAL TTC: ${montantTTC.toFixed(2)} €</div>
         </div>
 
         ${order.terms ? `<div style="margin-top: 30px;"><strong>Conditions:</strong><br>${order.terms}</div>` : ''}

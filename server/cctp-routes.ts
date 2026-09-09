@@ -105,8 +105,17 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
         '--disable-gpu',
         '--disable-dev-tools',
         '--no-first-run',
-        '--no-zygote',
-        '--single-process',
+        // ⚠️ F11 — `--single-process` et `--no-zygote` ont été RETIRÉS.
+        //
+        // Une fois Chromium réellement présent dans l'image, le lancement
+        // échouait encore : « Protocol error (Target.setDiscoverTargets):
+        // Target closed ». Ces deux drapeaux, tolérés par les anciennes
+        // versions, font crasher Chromium moderne au démarrage — le processus
+        // meurt avant que Puppeteer n'ait pu s'y attacher.
+        //
+        // Mesuré dans le conteneur : avec eux, échec systématique ; sans eux,
+        // le PDF est produit. Ils n'apportaient qu'une économie de mémoire
+        // marginale, sans rapport avec la fonction rendue.
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding'
@@ -118,7 +127,12 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
     const page = await browser.newPage();
     
     // Set content and generate PDF
-    await page.setContent(result.documentHTML, { waitUntil: 'networkidle0' });
+    //
+    // `networkidle0` était passé ici, mais Puppeteer l'exclut désormais du type
+    // de `setContent` : ces états d'inactivité réseau n'ont de sens que pour une
+    // navigation, pas pour un contenu injecté en mémoire. `load` est l'attente
+    // pertinente pour un document HTML statique.
+    await page.setContent(result.documentHTML, { waitUntil: 'load' });
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -137,7 +151,19 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
     const documentType = result.type === 'purchase_order' ? 'bon_commande' : 'lettre_commande';
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${documentType}_${purchaseOrderId}.pdf"`);
-    res.send(pdfBuffer);
+
+    // ⚠️ F11 — `Buffer.from` est INDISPENSABLE ici.
+    //
+    // Depuis Puppeteer 23, `page.pdf()` renvoie un `Uint8Array` et non plus un
+    // `Buffer` Node. Express, qui ne reconnaît que le second comme binaire,
+    // sérialisait donc le PDF en JSON : le testeur recevait un HTTP 200, un
+    // en-tête `application/pdf`, un fichier de 537 Ko… et
+    // `{"0":37,"1":80,"2":68,…}` à l'intérieur — la représentation décimale de
+    // « %PDF- ». Un fichier .pdf que rien n'ouvre.
+    //
+    // Le statut et le type MIME étaient corrects : seul le contenu était faux.
+    // Aucun contrôle portant sur le code de retour n'aurait vu ce défaut.
+    res.send(Buffer.from(pdfBuffer));
   } catch (error) {
     console.error("Error generating purchase document:", error);
     res.status(500).json({ error: "Erreur lors de la génération du document" });
