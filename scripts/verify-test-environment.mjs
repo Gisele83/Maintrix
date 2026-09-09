@@ -41,6 +41,43 @@ function docker(a) {
   return { code: r.status ?? 1, out: `${r.stdout || ''}${r.stderr || ''}`.trim() };
 }
 
+/**
+ * ⚠️ Ne pas confondre « je ne peux pas mesurer » et « c'est cassé ».
+ *
+ * Lancé par un compte absent du groupe `docker`, ce script produisait VINGT
+ * échecs, tous porteurs du même message : `permission denied ... docker.sock`.
+ * Il annonçait alors « PostgreSQL publie un port », « fuite inter-tenant
+ * possible », « schéma incomplet : NaN tables » — trois affirmations fausses et
+ * alarmantes, sur un environnement parfaitement sain.
+ *
+ * Constaté en conditions réelles lors du déploiement du 2026-09-10. Une
+ * barrière qui accuse à tort est pire qu'une barrière absente : elle fait
+ * chercher des défauts inexistants, et finit par être ignorée.
+ *
+ * On vérifie donc l'accès AVANT toute mesure, et on s'arrête net s'il manque.
+ */
+function exigerAccesDocker() {
+  const r = docker(['ps', '--quiet']);
+  if (r.code === 0) return;
+
+  console.error('\n⛔ Docker est injoignable — aucune mesure n\'est possible.\n');
+  console.error(String(r.out).split('\n').slice(0, 3).map(l => `   ${l}`).join('\n'));
+
+  if (/permission denied/i.test(r.out)) {
+    console.error('\n   Votre compte n\'appartient pas au groupe `docker`. Deux issues :');
+    console.error('     • relancer avec sudo :  sudo node scripts/verify-test-environment.mjs');
+    console.error('     • ou, durablement :     sudo usermod -aG docker $USER');
+    console.error('       (puis se déconnecter et se reconnecter)');
+  } else {
+    console.error('\n   Vérifiez que le démon Docker est démarré.');
+  }
+  console.error('\n   Ce script ne rend AUCUN verdict : ne rien mesurer n\'est pas');
+  console.error('   la même chose que constater un défaut.\n');
+  process.exit(2);
+}
+
+exigerAccesDocker();
+
 const env = existsSync(ENV_FILE)
   ? Object.fromEntries(readFileSync(ENV_FILE, 'utf8').split(/\r?\n/)
       .filter(l => /^[A-Z_]+=/.test(l))
@@ -147,9 +184,18 @@ section('T4 — Aucune donnée de production');
   if (unexpected === '0') ok('aucun tenant hors jeu de test');
   else ko(`${unexpected} tenant(s) inattendu(s) — données non maîtrisées`, tenants);
 
-  const users = psql("SELECT COUNT(*) FROM user_profiles WHERE email NOT LIKE '%.local' AND email NOT LIKE '%test%'");
-  if (users === '0') ok('aucun compte utilisateur hors jeu de test');
-  else ko(`${users} compte(s) avec une adresse non-test — données réelles possibles`);
+  // On NOMME les comptes signalés. La version précédente ne renvoyait qu'un
+  // décompte, ce qui obligeait à écrire une requête SQL à la main pour savoir
+  // de qui il s'agissait — et donc pour pouvoir décider quoi que ce soit.
+  const reels = psql(
+    "SELECT COALESCE(string_agg(email || ' (id=' || id || ', ' || role || ')', ' | '), '') " +
+    "FROM user_profiles WHERE email NOT LIKE '%.local' AND email NOT LIKE '%test%'");
+
+  if (!reels) ok('aucun compte utilisateur hors jeu de test');
+  else ko(`${reels.split(' | ').length} compte(s) avec une adresse réelle — données non maîtrisées`,
+          reels.split(' | ').join('\n') +
+          '\n\nUn environnement de test ne devrait contenir que des adresses ' +
+          'jetables. Supprimez ces comptes, ou assumez-les explicitement.');
 }
 
 // ═══════════════════════════════════════════════════════════════════
