@@ -8,6 +8,7 @@ import { IoTConnector, IoTConfig } from './iot-connector';
 import { MaximoConnector, createMaximoConnector } from './maximo-connector';
 import { ScadaConnector, createScadaConnector } from './scada-connector';
 import { gmaoStorage } from '../gmao-storage';
+import { registerBackgroundTask } from "../background-tasks";
 
 export interface IntegrationConfig {
   sap?: SAPConfig;
@@ -87,63 +88,63 @@ export class IntegrationHub {
    * Start periodic synchronization with external systems
    */
   private startPeriodicSync(): void {
-    // SAP synchronization every 15 minutes
+    // Tâches B-6, B-7 et C-5. Les try/catch locaux sont supprimés : le
+    // superviseur les remplace et ajoute ce qui manquait — backoff, circuit
+    // ouvert et arrêt propre. Le compteur ad hoc `iotErrorCount` de la boucle
+    // IoT (qui s'arrêtait DÉFINITIVEMENT après 5 erreurs, sans jamais reprendre
+    // même une fois la base revenue) est remplacé par le circuit du superviseur,
+    // qui lui se referme tout seul au premier tick réussi.
+
+    // Synchronisation SAP toutes les 15 minutes (réseau sortant).
     if (this.sapConnector) {
-      setInterval(async () => {
-        try {
-          await this.syncWithSAP();
-        } catch (error) {
-          console.error('SAP sync error:', error);
-        }
-      }, 15 * 60 * 1000);
+      registerBackgroundTask({
+        name: 'integrations:sap-sync',
+        intervalMs: 15 * 60 * 1000,
+        criticality: 'B',
+        run: async () => {
+          const r = await this.syncWithSAP();
+          if (!r.success) throw new Error(r.message);
+        },
+      });
     }
 
-    // Maximo synchronization every 30 minutes
+    // Synchronisation Maximo toutes les 30 minutes (réseau sortant).
     if (this.maximoConnector) {
-      setInterval(async () => {
-        try {
-          await this.syncWithMaximo();
-        } catch (error) {
-          console.error('Maximo sync error:', error);
-        }
-      }, 30 * 60 * 1000);
+      registerBackgroundTask({
+        name: 'integrations:maximo-sync',
+        intervalMs: 30 * 60 * 1000,
+        criticality: 'B',
+        run: async () => {
+          const r = await this.syncWithMaximo();
+          if (!r.success) throw new Error(r.message);
+        },
+      });
     }
 
-    // IoT data collection every 30 seconds — only when equipment exists in DB
+    // Simulation IoT toutes les 30 secondes (lecture DB + écriture DB).
     if (this.iotConnector) {
-      let iotErrorCount = 0;
       let validEquipmentIds: number[] = [];
       let lastEquipmentCheck = 0;
-      setInterval(async () => {
-        if (iotErrorCount > 5) return;
-        try {
+
+      registerBackgroundTask({
+        name: 'integrations:iot-simulation',
+        intervalMs: 30 * 1000,
+        criticality: 'C',
+        run: async () => {
           const now = Date.now();
           if (now - lastEquipmentCheck > 60000 || validEquipmentIds.length === 0) {
-            try {
-              const { db } = await import('../db.js');
-              const { equipmentRegistry } = await import('@shared/schema.js');
-              const equipments = await db.select({ id: equipmentRegistry.id }).from(equipmentRegistry).limit(10);
-              validEquipmentIds = equipments.map(e => e.id);
-              lastEquipmentCheck = now;
-            } catch {
-              validEquipmentIds = [];
-            }
+            const { db } = await import('../db.js');
+            const { equipmentRegistry } = await import('@shared/schema.js');
+            const equipments = await db.select({ id: equipmentRegistry.id }).from(equipmentRegistry).limit(10);
+            validEquipmentIds = equipments.map(e => e.id);
+            lastEquipmentCheck = now;
           }
           if (validEquipmentIds.length === 0) return;
           for (const eqId of validEquipmentIds.slice(0, 5)) {
             await this.iotConnector!.simulateSensorData(eqId);
           }
-          iotErrorCount = 0;
-        } catch (error: any) {
-          iotErrorCount++;
-          if (iotErrorCount <= 2) {
-            console.error('IoT simulation error:', error?.message?.substring(0, 80));
-          }
-          if (iotErrorCount === 3) {
-            console.warn('⚠️ IoT simulation paused - database unavailable. Will retry silently.');
-          }
-        }
-      }, 30 * 1000);
+        },
+      });
     }
   }
 

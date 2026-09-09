@@ -6,6 +6,7 @@ import {
   RiskAssessment, LayerStatus, ModelVersion
 } from '../cognitive-layers/layer-contracts.js';
 import { checkInterlock, autoGeneratePermitRequest } from '../ptw-interlock.js';
+import { registerBackgroundTask } from "../background-tasks";
 
 export interface CognitiveAgent {
   agentId: string;
@@ -31,7 +32,7 @@ export class CognitiveKernel extends EventEmitter {
   private closedLoopState: Map<string, ClosedLoopPhase> = new Map();
   private systemAutonomyLevel: AutonomyLevel = AutonomyLevel.ASSISTED_DIAGNOSTIC;
   private isRunning: boolean = false;
-  private processInterval: NodeJS.Timeout | null = null;
+  private taskHandle: { stop: () => Promise<void> } | null = null;
 
   constructor() {
     super();
@@ -54,7 +55,14 @@ export class CognitiveKernel extends EventEmitter {
     }
 
     this.isRunning = true;
-    this.processInterval = setInterval(() => this.processingLoop(), 5000);
+    // Tâche A-1 — voir docs/BACKGROUND_TASKS.md. Supervisée : une erreur ici
+    // arrêtait tout le processus avant F02.
+    this.taskHandle = registerBackgroundTask({
+      name: 'cognitive-kernel:processing',
+      intervalMs: 5000,
+      criticality: 'A',
+      run: () => this.processingLoop(),
+    });
     console.log('✅ Cognitive Kernel initialized — Autonomy Level:', this.systemAutonomyLevel);
   }
 
@@ -833,9 +841,8 @@ export class CognitiveKernel extends EventEmitter {
 
   async shutdown(): Promise<void> {
     this.isRunning = false;
-    if (this.processInterval) {
-      clearInterval(this.processInterval);
-    }
+    await this.taskHandle?.stop();
+    this.taskHandle = null;
 
     for (const agent of this.agents.values()) {
       agent.status = AgentStatus.OFFLINE;

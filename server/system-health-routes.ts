@@ -9,6 +9,7 @@ import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit, requireRole } from "./security-middleware";
+import { getBackgroundTaskStatus } from "./background-tasks";
 import os from "os";
 import fs from "fs";
 import path from "path";
@@ -157,6 +158,10 @@ export function registerSystemHealthRoutes(app: Express) {
         system,
         codebase: code,
         modules,
+        // F02 — état des boucles de fond supervisées. Réservé aux admins :
+        // lastError peut contenir un détail d'infrastructure, il n'a rien à
+        // faire dans la sonde publique /api/health.
+        backgroundTasks: getBackgroundTaskStatus(),
       });
     } catch (e: any) {
       res.status(500).json({ overall: "error", error: e.message });

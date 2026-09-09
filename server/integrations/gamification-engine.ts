@@ -11,6 +11,7 @@ import type {
   UserSkillProgress,
   MaintenanceAchievement
 } from '@shared/schema';
+import { registerBackgroundTask } from "../background-tasks";
 
 interface SkillGainEvent {
   userId: number;
@@ -696,9 +697,13 @@ export class GamificationEngine extends EventEmitter {
    */
   private startChallengeManager(): void {
     // Check for expired challenges every minute
-    setInterval(() => {
-      this.checkExpiredChallenges();
-    }, 60 * 1000);
+    // Tâche C-3 — hygiène des défis expirés, état en mémoire.
+    registerBackgroundTask({
+      name: 'gamification:expire-challenges',
+      intervalMs: 60 * 1000,
+      criticality: 'C',
+      run: () => this.checkExpiredChallenges(),
+    });
     
     console.log('🎯 Started challenge manager');
   }

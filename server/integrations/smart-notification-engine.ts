@@ -6,6 +6,7 @@ import type {
   UserProfile,
   EquipmentRegistry
 } from '@shared/schema';
+import { registerBackgroundTask } from "../background-tasks";
 
 interface NotificationRule {
   id: string;
@@ -541,9 +542,14 @@ export class SmartNotificationEngine extends EventEmitter {
    */
   private startNotificationCleanup(): void {
     // Clean up every hour
-    setInterval(() => {
-      this.cleanupOldNotifications();
-    }, 60 * 60 * 1000);
+    // Tâche C-4 — la promesse de cleanupOldNotifications() était « flottante » :
+    // non attendue et non interceptée au point d'appel. Le superviseur l'attend.
+    registerBackgroundTask({
+      name: 'notifications:cleanup',
+      intervalMs: 60 * 60 * 1000,
+      criticality: 'C',
+      run: () => this.cleanupOldNotifications(),
+    });
     
     console.log('🧹 Started periodic notification cleanup');
   }

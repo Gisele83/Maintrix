@@ -8,6 +8,8 @@
  *   - REST bridge (generic HTTP adapter for SCADA REST gateways)
  */
 
+import { registerBackgroundTask } from "../background-tasks";
+
 export interface ScadaConfig {
   endpoint: string;       // OPC-UA: opc.tcp://host:4840  or REST: https://host/api
   mode: 'opcua' | 'rest';
@@ -39,7 +41,7 @@ export interface ScadaAlarm {
 export class ScadaConnector {
   private config: ScadaConfig;
   private isConnected: boolean = false;
-  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private taskHandle: { stop: () => Promise<void> } | null = null;
   private tagValues: Map<string, ScadaTagValue> = new Map();
 
   constructor(config: ScadaConfig) {
@@ -187,21 +189,24 @@ export class ScadaConnector {
    * Start polling for tag values
    */
   startPolling(nodeIds: string[]): void {
-    if (this.pollingInterval) return;
+    if (this.taskHandle) return;
     const interval = this.config.pollIntervalMs || 10000;
-    this.pollingInterval = setInterval(async () => {
-      try {
-        await this.readTagValues(nodeIds);
-      } catch (error: any) {
-        console.error('SCADA polling error:', error?.message);
-      }
-    }, interval);
+    // Tâche B-5 — lecture de tags sur automate/SCADA (réseau sortant).
+    // Le try/catch local est conservé mais devient redondant : le superviseur
+    // ajoute le backoff et le circuit ouvert, absents jusqu'ici — un automate
+    // injoignable était re-sondé toutes les 10 s indéfiniment.
+    this.taskHandle = registerBackgroundTask({
+      name: 'scada:tag-polling',
+      intervalMs: interval,
+      criticality: 'B',
+      run: () => this.readTagValues(nodeIds),
+    });
   }
 
   stopPolling(): void {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+    if (this.taskHandle) {
+      void this.taskHandle.stop();
+      this.taskHandle = null;
     }
   }
 

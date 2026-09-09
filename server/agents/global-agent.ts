@@ -3,6 +3,7 @@ import { AgentType } from '../cognitive-layers/layer-contracts.js';
 import { getCognitiveKernel } from '../cognitive-kernel/index.js';
 import { SiteAgent } from './site-agent.js';
 import { EquipmentAgent } from './equipment-agent.js';
+import { registerBackgroundTask } from "../background-tasks";
 
 export interface GlobalLearning {
   patternId: string;
@@ -20,13 +21,19 @@ export class GlobalAgent extends EventEmitter {
   private sites: Map<string, SiteAgent> = new Map();
   private globalPatterns: GlobalLearning[] = [];
   private crossSiteCorrelations: Map<string, any> = new Map();
-  private learningInterval: NodeJS.Timeout | null = null;
+  private taskHandle: { stop: () => Promise<void> } | null = null;
 
   async initialize(): Promise<void> {
     const kernel = getCognitiveKernel();
     kernel.registerAgent(AgentType.GLOBAL, 'global-learning');
 
-    this.learningInterval = setInterval(() => this.globalLearningCycle(), 30000);
+    // Tâche B-1 — apprentissage inter-sites, rattrapable au tick suivant.
+    this.taskHandle = registerBackgroundTask({
+      name: 'agents:global-learning',
+      intervalMs: 30000,
+      criticality: 'B',
+      run: () => this.globalLearningCycle(),
+    });
     console.log('🌐 Global Agent initialized — cross-site learning active');
   }
 
@@ -180,9 +187,8 @@ export class GlobalAgent extends EventEmitter {
   }
 
   async shutdown(): Promise<void> {
-    if (this.learningInterval) {
-      clearInterval(this.learningInterval);
-    }
+    await this.taskHandle?.stop();
+    this.taskHandle = null;
     for (const site of this.sites.values()) {
       await site.shutdown();
     }
