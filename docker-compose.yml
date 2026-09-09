@@ -14,13 +14,21 @@ services:
       target: production
     container_name: maintrix-app
     ports:
-      - "5000:5000"
+      # Boucle locale uniquement : l'acces externe passe par nginx (80/443).
+      # APP_HOST_PORT permet de cohabiter avec un autre service sur 5000
+      # (machine de dev, ou plusieurs environnements de test sur un meme hote).
+      - "127.0.0.1:${APP_HOST_PORT:-5000}:5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - DATABASE_URL=postgresql://maintrix_user:maintrix_secure_password@db:5432/maintrix_db
-      - SESSION_SECRET=maintrix_session_secret_very_long_and_secure_for_production
-      - REDIS_URL=redis://redis:6379
+      # Base de donnees : mot de passe unique partage avec le service `db` (aucune valeur en dur)
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-maintrix_user}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis - voir .env.docker.example}@db:5432/${POSTGRES_DB:-maintrix_db}
+      # Secrets critiques : server/index.ts refuse de demarrer en production s'ils manquent
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET requis - generer avec scripts/generate-docker-env.sh}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET requis - generer avec scripts/generate-docker-env.sh}
+      - KMS_MASTER_KEY=${KMS_MASTER_KEY:?KMS_MASTER_KEY requis - generer avec scripts/generate-docker-env.sh}
+      - MFA_ENCRYPTION_KEY=${MFA_ENCRYPTION_KEY:?MFA_ENCRYPTION_KEY requis - generer avec scripts/generate-docker-env.sh}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD requis - generer avec scripts/generate-docker-env.sh}@redis:6379
       - LOG_LEVEL=info
       - ALLOWED_ORIGINS=http://localhost:5000,http://127.0.0.1:5000
       # IA Diagnostic (Claude Anthropic)
@@ -45,7 +53,9 @@ services:
     networks:
       - maintrix-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      # --max-time borne curl sous le `timeout: 10s` : une sonde lente doit
+      # échouer nettement, jamais faire expirer le healthcheck lui-meme.
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 http://localhost:5000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -58,19 +68,22 @@ services:
     image: postgres:15-alpine
     container_name: maintrix-db
     environment:
-      - POSTGRES_DB=maintrix_db
-      - POSTGRES_USER=maintrix_user
-      - POSTGRES_PASSWORD=maintrix_secure_password
+      - POSTGRES_DB=${POSTGRES_DB:-maintrix_db}
+      - POSTGRES_USER=${POSTGRES_USER:-maintrix_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis - voir .env.docker.example}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Port NON publie : joignable uniquement depuis le reseau interne maintrix-network
+    expose:
+      - "5432"
     restart: unless-stopped
     networks:
       - maintrix-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maintrix_user -d maintrix_db"]
+      # $ = $ litteral : resolu par le shell DU CONTENEUR, donc suit
+      # POSTGRES_USER / POSTGRES_DB meme s'ils sont surcharges.
+      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,8 +101,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: maintrix-redis
-    ports:
-      - "6379:6379"
+    # Port NON publie : joignable uniquement depuis le reseau interne maintrix-network
+    expose:
+      - "6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD requis - generer avec scripts/generate-docker-env.sh}
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -97,11 +113,14 @@ services:
     networks:
       - maintrix-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # $$ = $ littéral : la variable est résolue par le shell DU CONTENEUR,
+      # elle n'apparaît donc pas dans la sortie de `docker compose config`.
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 3
-    command: redis-server /usr/local/etc/redis/redis.conf
+    # requirepass passe au lancement : le secret ne figure jamais dans redis/redis.conf (versionne)
+    command: ["sh", "-c", "exec redis-server /usr/local/etc/redis/redis.conf --requirepass \"$$REDIS_PASSWORD\""]
 
   # =================================
   # NGINX REVERSE PROXY
@@ -123,7 +142,10 @@ services:
     networks:
       - maintrix-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      # 127.0.0.1 et NON localhost : dans nginx:alpine, `localhost` résout en
+      # ::1 alors que nginx n'écoute qu'en IPv4 — la sonde échouait toujours et
+      # le conteneur restait unhealthy en permanence.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -134,8 +156,9 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: maintrix-prometheus
-    ports:
-      - "9090:9090"
+    # Port NON publie : consultable via tunnel SSH ou reverse-proxy authentifie
+    expose:
+      - "9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -157,9 +180,10 @@ services:
     image: grafana/grafana:latest
     container_name: maintrix-grafana
     ports:
-      - "3000:3000"
+      # Boucle locale uniquement : acces admin via tunnel SSH, jamais expose a Internet
+      - "127.0.0.1:3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=maintrix_admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD requis - generer avec scripts/generate-docker-env.sh}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
@@ -179,9 +203,9 @@ services:
     container_name: maintrix-backup
     environment:
       - POSTGRES_HOST=db
-      - POSTGRES_DB=maintrix_db
-      - POSTGRES_USER=maintrix_user
-      - POSTGRES_PASSWORD=maintrix_secure_password
+      - POSTGRES_DB=${POSTGRES_DB:-maintrix_db}
+      - POSTGRES_USER=${POSTGRES_USER:-maintrix_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requis - voir .env.docker.example}
     volumes:
       - backup_data:/backups
       - ./scripts/backup.sh:/backup.sh:ro

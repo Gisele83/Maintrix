@@ -17,3 +17,36 @@ vite.config.ts.*
 # Config/état locaux d'outillage — spécifiques à la machine de dev, pas au projet
 .claude/
 .local/
+
+# Environnement Docker local (secrets generes) — .env.docker.example reste tracke
+.env.docker
+.env.docker.*
+!.env.docker.example
+
+# Sauvegarde brute du cluster PostgreSQL : contient des donnees reelles et des
+# hash de mots de passe. Ne doit jamais etre versionnee (meme motif que .pgdata/).
+_pgdata_backup/
+
+# Montages liés de docker-compose (data/postgres, data/uploads, data/logs…).
+# Contient des données réelles et des hash de mots de passe : même motif que
+# .pgdata/ et _pgdata_backup/.
+data/
+
+# Rapport Jest produit par `npm test` — utile pour relire les échecs, pas à versionner.
+test-report.json
+
+# Environnement de test cloud (secrets generes, jamais versionnes)
+.env.test-cloud
+ssl/*.crt
+ssl/*.key
+
+# Rapport Playwright
+e2e-report.json
+playwright-report/
+test-results/
+
+# Jetons ephemeres du defi Let's Encrypt
+certbot-webroot/.well-known/
+
+# Documents de travail (audits, rapports)
+Audit_Technique_Maintrix.docx
