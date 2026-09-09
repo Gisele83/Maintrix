@@ -35,6 +35,33 @@ FROM base AS build
 # Installation de toutes les dépendances (dev + prod)
 RUN npm ci
 
+# ⚠️ Contournement du bug npm sur les dépendances optionnelles (npm/cli#4828).
+#
+# Rollup — utilisé par Vite — publie son moteur natif en paquets distincts, un
+# par plateforme. `@rollup/rollup-linux-x64-musl` est bien présent dans
+# package-lock.json, mais `npm ci` ne l'installe pas lorsque le verrou a été
+# régénéré sur une autre plateforme (ici Windows). La construction échoue alors
+# sur :
+#
+#   Error: Cannot find module @rollup/rollup-linux-x64-musl
+#
+# Le défaut est resté invisible tant que Docker réutilisait une couche `npm ci`
+# mise en cache avant la régénération du verrou : il n'est apparu qu'à la
+# première invalidation de ce cache.
+#
+# On n'installe le binaire que s'il manque réellement — aucun effet quand npm
+# s'est comporté correctement.
+#
+# ⚠️ Le `|| true` final est délibéré. Sans lui, ce rattrapage FAIT ÉCHOUER la
+# construction lorsque le binaire manque ET que le réseau est indisponible —
+# constaté ici même, la VM Docker ayant perdu sa sortie Internet. Or ce n'est
+# qu'un filet : si le binaire manque vraiment, `npm run build` échouera deux
+# lignes plus bas avec le message de rollup, explicite. Un filet ne doit pas
+# devenir une cause de panne supplémentaire.
+RUN node -e "require('@rollup/rollup-linux-x64-musl')" >/dev/null 2>&1 \
+    || npm install --no-save --no-audit --no-fund @rollup/rollup-linux-x64-musl \
+    || true
+
 # Copie du code source
 COPY . .
 
