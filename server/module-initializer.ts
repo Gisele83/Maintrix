@@ -309,23 +309,27 @@ export async function initializeModuleCatalog(): Promise<void> {
   try {
     console.log("🔧 Initializing ERP Module Catalog...");
 
-    // Vérifier si des modules existent déjà
-    const existingModules = await db.select().from(moduleCatalog);
-    
-    // Toujours mettre à jour le catalogue pour appliquer les modifications des modules
-    if (existingModules.length > 0) {
-      console.log(`🔄 Updating module catalog - forcing refresh to apply latest module configurations`);
-      
-      // Supprimer les anciens modules pour une mise à jour complète
-      await db.delete(moduleCatalog);
-      console.log("  ✓ Cleared existing modules");
-    }
+    // 🔒 F04 — TRANSACTION ATOMIQUE.
+    //
+    // Cette fonction VIDE le catalogue puis le réinsère, à CHAQUE démarrage du
+    // serveur. Sans transaction, une panne en cours de boucle laissait le
+    // catalogue vide ou partiel — et le contrôle d'accès aux modules de toute
+    // la plateforme repose dessus. Le rayon d'impact justifie largement la
+    // transaction, malgré le faible nombre d'écritures concernées.
+    await db.transaction(async (tx) => {
+      const existingModules = await tx.select().from(moduleCatalog);
 
-    // Insérer tous les modules par défaut
-    for (const module of defaultModules) {
-      await db.insert(moduleCatalog).values(module);
-      console.log(`  ✓ Module added: ${module.name} (${module.key})`);
-    }
+      if (existingModules.length > 0) {
+        console.log(`🔄 Updating module catalog - forcing refresh to apply latest module configurations`);
+        await tx.delete(moduleCatalog);
+        console.log("  ✓ Cleared existing modules");
+      }
+
+      for (const module of defaultModules) {
+        await tx.insert(moduleCatalog).values(module);
+      }
+      console.log(`  ✓ ${defaultModules.length} modules réinsérés`);
+    });
 
     console.log(`✅ Module catalog initialized with ${defaultModules.length} modules`);
   } catch (error) {

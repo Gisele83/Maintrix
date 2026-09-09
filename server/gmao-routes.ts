@@ -20,6 +20,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { createValidationDemo } from "./create-validation-demo";
+import { estViolationUnicite } from "./db-errors";
 
 // Helper: reject if no authenticated tenantId (never default to 'default-tenant' for mutations)
 function requireTenant(req: any, res: any): string | null {
@@ -204,7 +205,32 @@ export function registerGMAORoutes(app: Express) {
       if (error instanceof z.ZodError) {
         console.error("Validation errors:", error.issues);
       }
-      res.status(400).json({ 
+
+      // 🔑 F10 — Collision détectée par la BASE, pas par la vérification préalable.
+      //
+      // Le contrôle d'unicité ci-dessus lit puis écrit : entre les deux, une
+      // requête concurrente peut insérer le même identifiant. Les deux appels
+      // passent alors le contrôle, et c'est l'index unique
+      // `equipment_registry_equipment_id_unique` qui tranche — code PostgreSQL
+      // 23505.
+      //
+      // Sans ce traitement, deux testeurs créant le même équipement au même
+      // instant recevaient « Failed to create equipment », message qui
+      // n'indique ni la cause ni la conduite à tenir — alors que le même
+      // conflit, en séquentiel, produisait un message actionnable. On rend les
+      // deux chemins cohérents.
+      // ⚠️ Depuis drizzle-orm 0.44, l'erreur du pilote est encapsulée dans un
+      // `DrizzleQueryError` : le code SQLSTATE n'est plus sur `error.code` mais
+      // sur `.cause`. Lire `error.code` seul faisait silencieusement retomber ce
+      // conflit dans le message générique. Voir server/db-errors.ts.
+      if (estViolationUnicite(error)) {
+        return res.status(400).json({
+          message: "Cet ID d'équipement existe déjà. Veuillez en choisir un autre ou laissez le champ vide pour une génération automatique.",
+          field: "equipmentId"
+        });
+      }
+
+      res.status(400).json({
         message: "Failed to create equipment",
         error: error instanceof Error ? error.message : "Unknown error"
       });

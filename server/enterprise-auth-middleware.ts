@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "./db";
 import { userProfiles, userSessions, rateLimits, tenants } from "@shared/schema";
-import { eq, and, gt, lt } from "drizzle-orm";
+import { eq, and, gt, lt, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { PIIRedactionService, logWithRedaction } from './pii-redaction-system';
+import { licenseEnforcementMiddleware } from "./license-enforcement-middleware";
 
 // Extended Request interface for enterprise auth
 interface EnterpriseAuthRequest extends Request {
@@ -81,8 +82,17 @@ export class EnterpriseAuthMiddleware {
       });
     }
     
-    // Valider le token de session
-    return EnterpriseAuthMiddleware.validateSession(req, res, next);
+    // Valider le token de session, PUIS appliquer le contrôle de licence.
+    //
+    // ⚠️ F11 — Le contrôle de licence était monté globalement dans
+    // server/index.ts avant `registerRoutes`, donc avant que quoi que ce soit
+    // ne pose `req.user` : il laissait passer toutes les requêtes. C'est ici,
+    // juste après `validateSession`, que `req.user` existe pour la première
+    // fois — donc le seul endroit où ce contrôle peut réellement opérer.
+    return EnterpriseAuthMiddleware.validateSession(req, res, (err?: any) => {
+      if (err) return next(err);
+      return licenseEnforcementMiddleware(req as any, res, next);
+    });
   }
   
   /**
@@ -187,6 +197,34 @@ export class EnterpriseAuthMiddleware {
         
         const identifier = req.tenantId || req.ip || 'anonymous';
         const identifierType = req.tenantId ? 'tenant' : 'ip';
+
+        // 🔑 F10 — NE COMPTER QUE LES ÉCHECS.
+        //
+        // Ce middleware s'exécute AVANT le handler : il incrémentait donc le
+        // compteur à chaque requête, succès compris. Mesuré sur l'environnement
+        // de test : **six connexions RÉUSSIES** depuis la même adresse
+        // suffisaient à déclencher 30 minutes de blocage, sans le moindre échec.
+        //
+        // L'identifiant étant l'IP tant qu'aucun tenant n'est résolu (le cas
+        // avant authentification), tous les testeurs partageant une sortie
+        // réseau — NAT d'entreprise, VPN — partagent ce compteur : six d'entre
+        // eux se connectant normalement verrouillaient TOUT LE GROUPE.
+        //
+        // Un limiteur anti-force-brute doit compter les tentatives INFRUCTUEUSES.
+        // On annule donc l'incrément quand la réponse est un succès (2xx) : la
+        // protection contre le bourrinage reste entière — les échecs, eux,
+        // continuent de s'accumuler — mais l'usage normal ne pénalise plus
+        // personne.
+        const annulerSiSucces = (rateLimitRowId: string) => {
+          res.on('finish', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              void db.update(rateLimits)
+                .set({ requestCount: sql`GREATEST(0, ${rateLimits.requestCount} - 1)` })
+                .where(eq(rateLimits.id, rateLimitRowId))
+                .catch(() => { /* décompte au mieux : ne doit jamais casser la réponse */ });
+            }
+          });
+        };
         const windowStart = new Date(Date.now() - limits.windowMs);
         
         // Vérifier les limites existantes
@@ -244,17 +282,21 @@ export class EnterpriseAuthMiddleware {
               lastRequestAt: new Date()
             })
             .where(eq(rateLimits.id, existing.id));
+
+          annulerSiSucces(existing.id);
           
         } else {
           // Créer nouvelle entrée
-          await db.insert(rateLimits).values({
+          const [creee] = await db.insert(rateLimits).values({
             identifier,
             identifierType,
             endpoint,
             requestCount: 1,
             windowStart: new Date(),
             lastRequestAt: new Date()
-          });
+          }).returning({ id: rateLimits.id });
+
+          if (creee) annulerSiSucces(creee.id);
         }
         
         next();

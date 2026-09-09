@@ -13,6 +13,7 @@ import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
+import { estViolationUnicite } from "./db-errors";
 
 const getPool = (): Pool => sharedPool;
 const safeJson = (v: any, fb: any) => { if (!v) return fb; if (typeof v === "object") return v; try { return JSON.parse(v); } catch { return fb; } };
@@ -182,7 +183,7 @@ export function registerSupplierRoutes(app: Express) {
       res.status(201).json(toApiShape(rows[0]));
     } catch (e: any) {
       if (e.name === "ZodError") return res.status(400).json({ error: e.errors });
-      if (e.code === "23505") return res.status(409).json({ error: "Code fournisseur déjà utilisé" });
+      if (estViolationUnicite(e)) return res.status(409).json({ error: "Code fournisseur déjà utilisé" });
       res.status(500).json({ error: e.message });
     }
   });

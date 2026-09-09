@@ -105,23 +105,34 @@ export function registerInterventionExecutionRoutes(app: Express) {
         .where(and(eq(workOrders.id, body.workOrderId), eq(workOrders.tenantId, tenantId))).limit(1);
       if (!wo) return res.status(404).json({ error: "Ordre de travail introuvable" });
 
-      const [execution] = await db.insert(interventionExecutions).values({
-        workOrderId: body.workOrderId,
-        equipmentId: body.equipmentId,
-        tenantId,
-        currentStep: "reception",
-        overallStatus: "in_progress",
-      }).returning();
+      // 🔒 F04 — TRANSACTION ATOMIQUE.
+      //
+      // Une intervention n'a de sens qu'avec sa première étape : sans elle, le
+      // workflow n'a aucun point d'entrée et l'ordre de travail reste
+      // définitivement bloqué. Sans transaction, un échec sur l'insertion de
+      // l'étape laissait une `intervention_executions` orpheline — défaut
+      // reproduit en F04 (tests/integration/transaction-integrity.test.ts).
+      const { execution, firstStep } = await db.transaction(async (tx) => {
+        const [createdExecution] = await tx.insert(interventionExecutions).values({
+          workOrderId: body.workOrderId,
+          equipmentId: body.equipmentId,
+          tenantId,
+          currentStep: "reception",
+          overallStatus: "in_progress",
+        }).returning();
 
-      const [firstStep] = await db.insert(interventionSteps).values({
-        executionId: execution.id,
-        stepType: "reception",
-        sequenceOrder: 1,
-        status: "in_progress",
-        technicianId: req.user?.id ?? null,
-        startedAt: new Date(),
-        tenantId,
-      }).returning();
+        const [createdStep] = await tx.insert(interventionSteps).values({
+          executionId: createdExecution.id,
+          stepType: "reception",
+          sequenceOrder: 1,
+          status: "in_progress",
+          technicianId: req.user?.id ?? null,
+          startedAt: new Date(),
+          tenantId,
+        }).returning();
+
+        return { execution: createdExecution, firstStep: createdStep };
+      });
 
       res.status(201).json({ execution, currentStep: firstStep });
     } catch (e: any) {
@@ -230,47 +241,69 @@ export function registerInterventionExecutionRoutes(app: Express) {
       const startedAt = step.startedAt ? new Date(step.startedAt) : now;
       const durationMinutes = Math.max(0, Math.round((now.getTime() - startedAt.getTime()) / 60000));
 
-      const [updatedStep] = await db.update(interventionSteps).set({
-        status: isQcFailure ? "rejected" : "completed",
-        completedAt: now,
-        durationMinutes,
-        structuredData: body.structuredData ?? step.structuredData,
-        notes: body.notes ?? step.notes,
-        rejectionReason: isQcFailure ? (body.rejectionReason ?? "Contrôle qualité non conforme") : null,
-        updatedAt: now,
-      }).where(eq(interventionSteps.id, stepId)).returning();
+      // 🔒 F04 — TRANSACTION ATOMIQUE.
+      //
+      // Trois écritures liées : l'étape passe à « terminée » (ou « rejetée »),
+      // l'exécution avance vers l'étape suivante, et un contrôle qualité non
+      // conforme génère une non-conformité SMM. Sans transaction :
+      //   • échec après la 1ʳᵉ → l'étape est close mais l'exécution pointe
+      //     toujours l'étape précédente : le workflow se fige ;
+      //   • échec sur la 3ᵉ → l'étape est « rejetée » sans non-conformité
+      //     enregistrée : perte de traçabilité qualité.
+      //
+      // La synchronisation du graphe de connaissances est volontairement
+      // EXCLUE de la transaction et exécutée après le commit : c'est un effet
+      // de bord non transactionnel (autre magasin), et l'échouer ne doit pas
+      // annuler une intervention pourtant valide.
+      const { updatedStep, updatedExecution, nonConformity } = await db.transaction(async (tx) => {
+        const [stepRow] = await tx.update(interventionSteps).set({
+          status: isQcFailure ? "rejected" : "completed",
+          completedAt: now,
+          durationMinutes,
+          structuredData: body.structuredData ?? step.structuredData,
+          notes: body.notes ?? step.notes,
+          rejectionReason: isQcFailure ? (body.rejectionReason ?? "Contrôle qualité non conforme") : null,
+          updatedAt: now,
+        }).where(eq(interventionSteps.id, stepId)).returning();
 
-      const nextStep = computeNextStep(stepType, body.structuredData);
-      const executionUpdate: Partial<typeof interventionExecutions.$inferInsert> = {
-        currentStep: nextStep,
-        updatedAt: now,
-      };
-      if (nextStep === "terminee") {
-        executionUpdate.overallStatus = "completed";
-        executionUpdate.completedAt = now;
-      }
-      const [updatedExecution] = await db.update(interventionExecutions).set(executionUpdate)
-        .where(eq(interventionExecutions.id, executionId)).returning();
+        const nextStep = computeNextStep(stepType, body.structuredData);
+        const executionUpdate: Partial<typeof interventionExecutions.$inferInsert> = {
+          currentStep: nextStep,
+          updatedAt: now,
+        };
+        if (nextStep === "terminee") {
+          executionUpdate.overallStatus = "completed";
+          executionUpdate.completedAt = now;
+        }
+        const [executionRow] = await tx.update(interventionExecutions).set(executionUpdate)
+          .where(eq(interventionExecutions.id, executionId)).returning();
 
-      // La synchronisation KG n'a de sens que si l'étape est réellement complétée (pas rejetée)
+        // Un contrôle qualité non conforme est une non-conformité au sens SMM — capitalisation automatique
+        let ncRow = null;
+        if (isQcFailure) {
+          [ncRow] = await tx.insert(smmNonConformities).values({
+            tenantId,
+            ncNumber: generateNcNumber(),
+            title: `Contrôle qualité non conforme — OT #${execution.workOrderId}`,
+            description: stepRow.rejectionReason,
+            severity: "majeure",
+            source: "controle_qualite",
+            sourceInterventionStepId: stepId,
+            equipmentId: execution.equipmentId,
+            detectedBy: req.user?.id ?? null,
+          }).returning();
+        }
+
+        return { updatedStep: stepRow, updatedExecution: executionRow, nonConformity: ncRow };
+      });
+
+      // Effet de bord post-commit — voir la note ci-dessus.
       if (updatedStep.status === "completed") {
-        await syncStepToKnowledgeGraph(stepId);
-      }
-
-      // Un contrôle qualité non conforme est une non-conformité au sens SMM — capitalisation automatique
-      let nonConformity = null;
-      if (isQcFailure) {
-        [nonConformity] = await db.insert(smmNonConformities).values({
-          tenantId,
-          ncNumber: generateNcNumber(),
-          title: `Contrôle qualité non conforme — OT #${execution.workOrderId}`,
-          description: updatedStep.rejectionReason,
-          severity: "majeure",
-          source: "controle_qualite",
-          sourceInterventionStepId: stepId,
-          equipmentId: execution.equipmentId,
-          detectedBy: req.user?.id ?? null,
-        }).returning();
+        try {
+          await syncStepToKnowledgeGraph(stepId);
+        } catch (kgErr: any) {
+          console.error(`⚠️  Synchronisation KG échouée pour l'étape ${stepId} (intervention validée malgré tout) :`, kgErr?.message);
+        }
       }
 
       res.json({ step: updatedStep, execution: updatedExecution, nonConformity });

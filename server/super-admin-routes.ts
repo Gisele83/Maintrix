@@ -9,6 +9,7 @@ import { CredentialGenerator, createCredentialNotification, SuperAdminUserCreden
 import { MailService } from '@sendgrid/mail';
 import { storage } from "./storage";
 import { LicenseService } from './license-service';
+import { registerBackgroundTask } from "./background-tasks";
 
 const router = Router();
 
@@ -116,12 +117,19 @@ if (!SUPER_ADMIN_SECRET && process.env.NODE_ENV === 'production') {
 const activeSuperAdminTokens = new Map<string, { email: string; expiresAt: number }>();
 
 // Nettoyage périodique des tokens expirés
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, meta] of activeSuperAdminTokens.entries()) {
-    if (meta.expiresAt < now) activeSuperAdminTokens.delete(token);
-  }
-}, 60 * 60 * 1000); // toutes les heures
+// Tâche B-4 — purge des jetons super-admin expirés. Classée B et non C :
+// son arrêt prolongé laisserait des jetons révoqués s'accumuler en mémoire.
+registerBackgroundTask({
+  name: 'super-admin:token-cleanup',
+  intervalMs: 60 * 60 * 1000,
+  criticality: 'B',
+  run: () => {
+    const now = Date.now();
+    for (const [token, meta] of activeSuperAdminTokens.entries()) {
+      if (meta.expiresAt < now) activeSuperAdminTokens.delete(token);
+    }
+  },
+});
 
 // Middleware d'authentification super-admin — vérification contre la map de tokens
 const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
@@ -383,8 +391,19 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
       });
     }
 
+    // 🔒 F04 — TRANSACTION ATOMIQUE : tenant + administrateur + licence.
+    //
+    // Un tenant sans administrateur est INUTILISABLE et non rattrapable : plus
+    // personne ne peut s'y connecter, et une nouvelle tentative de création
+    // bute sur l'unicité du nom / du domaine désormais pris. Sans transaction,
+    // un échec sur l'insertion de l'utilisateur (collision de username, par
+    // exemple) laissait exactement cet état.
+    //
+    // L'envoi d'e-mail reste HORS transaction, après le commit : c'est un
+    // effet de bord externe, son échec ne doit pas annuler un tenant valide.
+    const { newTenant, adminUser, adminCredentials } = await db.transaction(async (tx) => {
     // Créer le nouveau tenant
-    const [newTenant] = await db.insert(tenants).values({
+    const [newTenant] = await tx.insert(tenants).values({
       name,
       domain,
       isActive: true,
@@ -415,7 +434,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     const hashedPassword = await CredentialGenerator.hashPassword(adminCredentials.password);
     
     // Créer le premier utilisateur admin avec identifiants par défaut
-    const [adminUser] = await db.insert(userProfiles).values({
+    const [adminUser] = await tx.insert(userProfiles).values({
       tenantId: newTenant.id,
       username: adminCredentials.username,
       email: adminCredentials.email,
@@ -435,14 +454,16 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     console.log(`👤 ADMIN CRÉÉ: ${adminUser.username} (${adminUser.id})`);
 
     // 📜 INITIALISER LA LICENCE DU TENANT (basée sur le nombre d'utilisateurs défini)
-    try {
-      const maxUsers = req.body.maxUsers || 1;
-      await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1); // maxUsers défini, 1 utilisateur initial (admin)
-      console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
-    } catch (licenseError) {
-      console.error('❌ Erreur initialisation licence:', licenseError);
-      // On continue même si l'initialisation de licence échoue
-    }
+    //
+    // Le try/catch qui absorbait l'erreur a été retiré : un tenant sans licence
+    // ne peut pas être exploité, il ne faut donc pas le créer « à moitié ».
+    // L'échec annule désormais toute la création.
+    const maxUsers = req.body.maxUsers || 1;
+    await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1, tx);
+    console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
+
+      return { newTenant, adminUser, adminCredentials };
+    });
 
     // 📧 Envoyer les identifiants par email
     try {
@@ -474,9 +495,28 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
           expiresAt: adminCredentials.expiresAt,
           loginUrl
         },
-        message: emailSent 
+        // 🔑 F08 — RESTITUTION DES IDENTIFIANTS QUAND L'E-MAIL N'EST PAS PARTI.
+        //
+        // `sendTenantCredentials()` renvoie `false` sans lever quand SendGrid
+        // n'est pas configuré. La branche `catch` en fin de handler, censée
+        // restituer les identifiants « en cas d'échec email », n'était donc
+        // JAMAIS atteinte : le compte était créé et son mot de passe temporaire
+        // perdu définitivement — personne ne pouvait s'y connecter.
+        //
+        // Le mot de passe n'est exposé que si l'e-mail n'est pas parti, et
+        // uniquement à un super-admin authentifié — le même compromis que celui
+        // déjà assumé par la branche `catch`.
+        ...(emailSent ? {} : {
+          temporaryCredentials: {
+            username: adminCredentials.username,
+            email: adminCredentials.email,
+            password: adminCredentials.password,
+            expiresAt: adminCredentials.expiresAt,
+          }
+        }),
+        message: emailSent
           ? `✅ Tenant créé et identifiants envoyés à ${adminEmail}`
-          : `⚠️ Tenant créé mais échec envoi email à ${adminEmail}`
+          : `⚠️ Tenant créé — e-mail non envoyé (SendGrid non configuré). Identifiants temporaires renvoyés dans cette réponse : transmettez-les au testeur par un canal sûr.`
       });
 
     } catch (emailError) {
