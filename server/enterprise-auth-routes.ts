@@ -513,6 +513,14 @@ router.post('/login',
         user: {
           id: user.id,
           username: user.username,
+          // `firstName` et `lastName` étaient absents de cette réponse, alors
+          // que le client écrit déjà `firstName || username` pour accueillir
+          // l'utilisateur. La solution de repli s'appliquait donc TOUJOURS, et
+          // le message affichait un identifiant technique :
+          //   « Bienvenue camille.durand.f12 ! »
+          // La route d'inscription, elle, les renvoie déjà.
+          firstName: user.firstName,
+          lastName: user.lastName,
           email: user.email,
           role: user.role,
           tenantId: user.tenantId
