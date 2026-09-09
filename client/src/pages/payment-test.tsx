@@ -6,6 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 import { CreditCard, CheckCircle, XCircle, Loader2, ArrowLeft } from "lucide-react";
 import { SiStripe, SiPaypal } from "react-icons/si";
 import { Link } from "wouter";
+import { getCsrfToken } from "@/lib/queryClient";
+
+// F06 — les routes de paiement ne sont plus exemptées de CSRF : tout POST doit
+// porter l'en-tête, y compris depuis un `fetch` brut.
+function csrfHeader(): Record<string, string> {
+  const token = getCsrfToken();
+  return token ? { "X-CSRF-Token": token } : {};
+}
 
 interface PaymentStatus {
   stripe: { configured: boolean; tested: boolean; error?: string };
@@ -58,7 +66,7 @@ export default function PaymentTest() {
     try {
       const response = await fetch("/api/payments/create-payment-intent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...csrfHeader() },
         credentials: "include",
         body: JSON.stringify({ amount: 100, planType: "test" })
       });
@@ -129,7 +137,7 @@ export default function PaymentTest() {
     try {
       const response = await fetch("/api/paypal/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...csrfHeader() },
         credentials: "include",
         body: JSON.stringify({ amount: 10, planType: "test", currency: "EUR" })
       });

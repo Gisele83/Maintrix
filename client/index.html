@@ -24,7 +24,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    <!-- F09 — Script de bannière Replit retiré.
+         Il était embarqué dans le build de PRODUCTION et tentait de charger
+         https://replit.com/public/js/replit-dev-banner.js dans le navigateur de
+         chaque testeur. La Content-Security-Policy le bloquait déjà
+         (`script-src 'self'`), mais chaque page produisait une requête échouée
+         et une erreur en console — bruit permanent pour les testeurs, et
+         dépendance à un tiers si la CSP venait à être assouplie.
+         Le commit 0ab95cf avait retiré les dépendances Replit ; celle-ci
+         subsistait dans le HTML. -->
   </body>
 </html>

@@ -103,8 +103,18 @@ export default function LoginPage() {
         return;
       }
       
-      // ✅ ENTERPRISE AUTH: Use sessionToken from enterprise auth response
-      localStorage.setItem("sessionToken", data.sessionToken);
+      // 🔑 F09 — La session vit dans un cookie httpOnly, PAS dans le corps de
+      // la réponse : /api/enterprise-auth/login ne renvoie aucun `sessionToken`
+      // (son message le dit : « Session stored in secure cookie »).
+      // `data.sessionToken` valait donc `undefined`, et
+      // `localStorage.setItem` le convertissait en CHAÎNE "undefined" — qui est
+      // truthy. App.tsx et useAuth.ts, qui testent `!!localStorage.sessionToken`,
+      // fonctionnaient par accident sur cette chaîne.
+      //
+      // On stocke désormais un marqueur EXPLICITE. Ce n'est pas un jeton : c'est
+      // uniquement l'indicateur « une session est ouverte », le secret restant
+      // dans le cookie httpOnly, hors de portée de JavaScript.
+      localStorage.setItem("sessionToken", "cookie");
       localStorage.setItem("user_data", JSON.stringify(data.user));
       
       // ✅ FIX: Invalider spécifiquement la query d'auth

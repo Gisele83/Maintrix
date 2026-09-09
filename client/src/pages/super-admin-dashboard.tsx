@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { 
   Shield, 
@@ -843,9 +843,14 @@ export default function SuperAdminDashboard() {
                         fetch('/api/super-admin/create-user', {
                           method: 'POST',
                           body: JSON.stringify(newUserData),
+                          // F06 — /api/super-admin n'est plus exempté de CSRF en bloc.
+                          // Ce `fetch` brut doit donc poser l'en-tête lui-même, et
+                          // envoyer le cookie qui le contient.
+                          credentials: 'include',
                           headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`
+                            'Authorization': `Bearer ${localStorage.getItem('superAdminToken')}`,
+                            ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken() as string } : {}),
                           }
                         }).then(async (res) => {
                           const result = await res.json();
