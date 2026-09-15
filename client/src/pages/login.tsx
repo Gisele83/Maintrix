@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +11,8 @@ import { Link, useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { messageErreurApi } from "@/lib/api-error";
-import { LogIn, UserPlus, Brain, Factory, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import { IS_TEST_ENVIRONMENT } from "@/lib/feature-flags";
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -177,64 +177,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        
-        {/* Left side - Branding */}
-        <div className="text-center lg:text-left space-y-8">
-          <div>
-            <h1 className="text-4xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent leading-tight mb-4">
-              Maintrix
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Plateforme de maintenance industrielle intelligente
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white/60 backdrop-blur-sm border border-blue-200 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <Factory className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-blue-900 mb-2">Module GMAO</h3>
-              <p className="text-sm text-gray-600">
-                Gestion complète de maintenance avec planification, interventions et suivi des techniciens
-              </p>
-            </div>
-
-            <div className="bg-white/60 backdrop-blur-sm border border-purple-200 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <h3 className="text-lg font-bold text-purple-900 mb-2">Diagnostic IA</h3>
-              <p className="text-sm text-gray-600">
-                Analyse intelligente des symptômes avec recommandations automatiques
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-paper text-ink font-sans grid lg:grid-cols-2">
+      {/* Colonne éditoriale — masquée sur mobile, où le formulaire prime. */}
+      <aside className="hidden lg:flex flex-col justify-between bg-ink text-paper p-12 xl:p-16">
+        <Link href="/" className="font-serif text-2xl font-medium tracking-tight">
+          Maintrix
+        </Link>
+        <div>
+          <p className="font-mono text-eyebrow uppercase text-signal-light">Maintenance industrielle</p>
+          <p className="font-serif text-headline font-medium mt-6 max-w-md">
+            Reprendre là où l'équipe s'est arrêtée.
+          </p>
+          <p className="text-paper/70 mt-5 max-w-sm leading-relaxed">
+            Ordres de travail en cours, équipements à surveiller, historique des interventions :
+            tout est au même endroit.
+          </p>
         </div>
+        {IS_TEST_ENVIRONMENT ? (
+          <p className="text-sm text-paper/60 border-t border-paper/15 pt-5">
+            Version de test — les données sont fictives et peuvent être réinitialisées.
+          </p>
+        ) : (
+          <span />
+        )}
+      </aside>
 
-        {/* Right side - Login/Register Form */}
-        <div className="w-full max-w-md mx-auto">
-          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                {isRegistering ? <UserPlus className="w-6 h-6" /> : <LogIn className="w-6 h-6" />}
-                {isRegistering ? "Créer un compte" : "Connexion"}
-              </CardTitle>
-              <CardDescription>
-                {isRegistering 
-                  ? "Rejoignez la plateforme Maintrix" 
-                  : ""
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
+      <main className="flex flex-col justify-center px-5 py-12 sm:px-12">
+        <div className="w-full max-w-sm mx-auto">
+          <Link href="/" className="lg:hidden font-serif text-2xl font-medium tracking-tight text-ink">
+            Maintrix
+          </Link>
+          <h1 className="font-serif text-headline font-medium text-ink mt-10 lg:mt-0">
+            {isRegistering ? "Créer un compte" : "Connexion"}
+          </h1>
+          <p className="text-ink-soft mt-2 mb-8">
+            {isRegistering
+              ? "Rejoignez l'espace de travail de votre équipe."
+              : "Accédez à votre espace de maintenance."}
+          </p>
+          {IS_TEST_ENVIRONMENT && (
+            <p className="lg:hidden -mt-4 mb-8 text-sm text-ink-mute border-t border-rule pt-3">
+              Version de test — données fictives.
+            </p>
+          )}
+          <div className="space-y-6">
               {!isRegistering ? (
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
@@ -276,9 +262,9 @@ export default function LoginPage() {
                                 data-testid="toggle-login-password-visibility"
                               >
                                 {showLoginPassword ? (
-                                  <EyeOff className="h-4 w-4 text-gray-400" />
+                                  <EyeOff className="h-4 w-4 text-ink-mute" />
                                 ) : (
-                                  <Eye className="h-4 w-4 text-gray-400" />
+                                  <Eye className="h-4 w-4 text-ink-mute" />
                                 )}
                               </Button>
                             </div>
@@ -290,7 +276,7 @@ export default function LoginPage() {
 
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      className="w-full h-11 rounded-none bg-ink text-paper hover:bg-signal"
                       disabled={loginMutation.isPending}
                     >
                       {loginMutation.isPending ? "Connexion..." : "Se connecter"}
@@ -299,7 +285,7 @@ export default function LoginPage() {
                     {/* Lien mot de passe oublié */}
                     <div className="text-center">
                       <Link href="/forgot-password">
-                        <Button variant="link" className="text-sm text-gray-600 hover:text-blue-600">
+                        <Button variant="link" className="text-sm text-ink-soft hover:text-ink">
                           Mot de passe oublié ?
                         </Button>
                       </Link>
@@ -414,7 +400,7 @@ export default function LoginPage() {
 
                     <Button 
                       type="submit" 
-                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      className="w-full h-11 rounded-none bg-ink text-paper hover:bg-signal"
                       disabled={registerMutation.isPending}
                     >
                       {registerMutation.isPending ? "Création..." : "Créer le compte"}
@@ -434,7 +420,7 @@ export default function LoginPage() {
                       loginForm.reset();
                     }
                   }}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-ink hover:bg-transparent hover:text-signal underline-offset-4 hover:underline"
                 >
                   {isRegistering 
                     ? "Déjà un compte ? Se connecter" 
@@ -443,10 +429,9 @@ export default function LoginPage() {
                 </Button>
                 
               </div>
-            </CardContent>
-          </Card>
+            </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
