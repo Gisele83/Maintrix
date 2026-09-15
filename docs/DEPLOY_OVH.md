@@ -121,7 +121,7 @@ clair qu'un échec de certificat obscur.
 
 ```bash
 git clone https://github.com/Gisele83/Maintrix.git
-cd Maintrix/Maintrix
+cd Maintrix
 sudo bash scripts/deploy-ovh.sh maintrix-test.techlearn-saem.com vous@techlearn-saem.com
 ```
 
@@ -198,7 +198,7 @@ node scripts/verify-opening.mjs        # avant chaque session
 Procédure sûre, à dérouler dans l'ordre :
 
 ```bash
-cd ~/Maintrix/Maintrix
+cd /opt/maintrix-git   # adaptez au chemin de VOTRE clone
 
 # 1. Ce qui n'est pas dans Git — secrets et certificats — est mis à l'abri.
 sudo cp -a .env.test-cloud ssl ~/sauvegarde-maintrix-$(date +%F)/ 2>/dev/null || \
