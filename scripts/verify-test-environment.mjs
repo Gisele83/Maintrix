@@ -175,27 +175,65 @@ section('T3 — Environnement séparé du développement');
 // ═══════════════════════════════════════════════════════════════════
 section('T4 — Aucune donnée de production');
 {
+  /**
+   * Données réelles ASSUMÉES — déclarées dans le fichier d'environnement du
+   * serveur, jamais dans le code :
+   *
+   *   CONFORMITE_TENANTS_ASSUMES=Techlearn SAEM
+   *   CONFORMITE_COMPTES_ASSUMES=contact@techlearn-saem.com
+   *
+   * Pourquoi pas dans le code : le dépôt est public, et une liste d'adresses
+   * personnelles n'a rien à y faire. Pourquoi pas en élargissant le critère :
+   * la barrière deviendrait aveugle à toute AUTRE donnée réelle.
+   *
+   * Constaté au déploiement de la refonte : le locataire « Techlearn SAEM » et
+   * son compte administrateur, créés volontairement, bloquaient le script de
+   * déploiement AVANT la porte d'ouverture — à chaque déploiement.
+   *
+   * Une exception couvre une valeur EXACTE : un nom de locataire, une adresse.
+   */
+  const liste = (cle) => String(process.env[cle] ?? env[cle] ?? '')
+    .split(',').map((v) => v.trim()).filter(Boolean);
+  const tenantsAssumes = liste('CONFORMITE_TENANTS_ASSUMES');
+  const comptesAssumes = liste('CONFORMITE_COMPTES_ASSUMES').map((e) => e.toLowerCase());
+  const lignes = (sortie) => sortie.split('\n').map((l) => l.trim()).filter(Boolean);
+
   const tenants = psql("SELECT COALESCE(string_agg(name, ' | '), '(aucun)') FROM tenants");
   info(`tenants : ${tenants}`);
 
-  // Les seuls tenants attendus sont ceux du seed de test.
-  const unexpected = psql(
-    "SELECT COUNT(*) FROM tenants WHERE name NOT LIKE '%test%' AND name NOT LIKE '%Test%' AND id <> 'default-tenant'");
-  if (unexpected === '0') ok('aucun tenant hors jeu de test');
-  else ko(`${unexpected} tenant(s) inattendu(s) — données non maîtrisées`, tenants);
+  // Les seuls tenants attendus sont ceux du seed de test, plus ceux assumés.
+  const horsJeu = lignes(psql(
+    "SELECT name FROM tenants WHERE name NOT LIKE '%test%' AND name NOT LIKE '%Test%' AND id <> 'default-tenant'"));
+  horsJeu.filter((n) => tenantsAssumes.includes(n)).forEach((n) => info(`locataire réel assumé : ${n}`));
+  const tenantsNonDeclares = horsJeu.filter((n) => !tenantsAssumes.includes(n));
+
+  if (tenantsNonDeclares.length === 0) ok('aucun tenant hors jeu de test non déclaré');
+  else ko(`${tenantsNonDeclares.length} tenant(s) inattendu(s) — données non maîtrisées`,
+          tenantsNonDeclares.join('\n') +
+          `\n\nS'il est voulu, déclarez-le dans ${ENV_FILE} :` +
+          `\n  CONFORMITE_TENANTS_ASSUMES=${[...tenantsAssumes, ...tenantsNonDeclares].join(',')}`);
 
   // On NOMME les comptes signalés. La version précédente ne renvoyait qu'un
   // décompte, ce qui obligeait à écrire une requête SQL à la main pour savoir
   // de qui il s'agissait — et donc pour pouvoir décider quoi que ce soit.
-  const reels = psql(
-    "SELECT COALESCE(string_agg(email || ' (id=' || id || ', ' || role || ')', ' | '), '') " +
-    "FROM user_profiles WHERE email NOT LIKE '%.local' AND email NOT LIKE '%test%'");
+  const comptes = lignes(psql(
+    "SELECT email || ' (id=' || id || ', ' || role || ')' " +
+    "FROM user_profiles WHERE email NOT LIKE '%.local' AND email NOT LIKE '%test%'"));
+  const adresse = (ligne) => ligne.split(' (id=')[0].toLowerCase();
+  comptes.filter((c) => comptesAssumes.includes(adresse(c))).forEach((c) => info(`compte réel assumé : ${c}`));
+  const comptesNonDeclares = comptes.filter((c) => !comptesAssumes.includes(adresse(c)));
 
-  if (!reels) ok('aucun compte utilisateur hors jeu de test');
-  else ko(`${reels.split(' | ').length} compte(s) avec une adresse réelle — données non maîtrisées`,
-          reels.split(' | ').join('\n') +
-          '\n\nUn environnement de test ne devrait contenir que des adresses ' +
-          'jetables. Supprimez ces comptes, ou assumez-les explicitement.');
+  if (comptesNonDeclares.length === 0) ok('aucun compte à adresse réelle non déclaré');
+  else ko(`${comptesNonDeclares.length} compte(s) avec une adresse réelle — données non maîtrisées`,
+          comptesNonDeclares.join('\n') +
+          `\n\nSupprimez-les, ou assumez-les dans ${ENV_FILE} :` +
+          `\n  CONFORMITE_COMPTES_ASSUMES=${[...comptesAssumes, ...comptesNonDeclares.map(adresse)].join(',')}`);
+
+  // Une exception qui ne correspond plus à rien n'est pas une erreur, mais elle
+  // doit se voir : elle couvrirait en silence une future donnée homonyme.
+  const presentes = new Set(comptes.map(adresse));
+  [...tenantsAssumes.filter((n) => !horsJeu.includes(n)), ...comptesAssumes.filter((e) => !presentes.has(e))]
+    .forEach((v) => info(`exception déclarée sans objet actuel : ${v}`));
 }
 
 // ═══════════════════════════════════════════════════════════════════
