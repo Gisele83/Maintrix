@@ -224,9 +224,8 @@ export default function RegisterPage() {
       {/* En-tête — même langage que la page d'accueil */}
       <header className="border-b border-rule">
         <div className="mx-auto max-w-6xl w-full px-5 sm:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-baseline gap-2.5">
-            <span className="font-serif text-2xl font-medium tracking-tight text-ink">Maintrix</span>
-            <span className="hidden sm:inline font-mono text-eyebrow uppercase text-ink-mute">GMAO</span>
+          <Link href="/" aria-label="Maintrix — accueil">
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-8 w-auto" />
           </Link>
           <Link href="/login" className="text-sm text-ink hover:text-signal transition-colors">
             Déjà un compte ? Se connecter

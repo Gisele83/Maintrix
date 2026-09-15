@@ -156,10 +156,31 @@ services:
       # intervalle et toute vérification immédiate le prend pour un échec.
       start_period: 15s
 
+# ═══════════════════════════════════════════════════════════════════
+# VOLUMES PERMANENTS — données des testeurs conservées jusqu'en production
+# ═══════════════════════════════════════════════════════════════════
+# `name` fige le nom réel du volume, indépendamment du nom de projet compose ou
+# du dossier d'où la commande est lancée. Ce sont les noms que ces volumes
+# portent DÉJÀ sur les environnements existants : les conserver évite toute
+# copie de données.
+#
+# `external: true` interdit à docker compose de les créer comme de les
+# supprimer — `docker compose down -v` les laisse intacts. Ils sont créés une
+# seule fois, par scripts/provision-test-env.mjs, qui refuse de recréer une base
+# vide si un conteneur de base existe déjà.
+#
+# Stockage des fichiers : l'application écrit ses téléversements sur disque
+# (multer), dans le volume des uploads. Il n'y a pas de MinIO dans ce projet.
 volumes:
   test_postgres:
+    name: maintrix-test_test_postgres
+    external: true
   test_uploads:
+    name: maintrix-test_test_uploads
+    external: true
   test_logs:
+    name: maintrix-test_test_logs
+    external: true
 
 networks:
   maintrix-test:

@@ -320,8 +320,10 @@ section('T7 — Le provisionnement d\'un testeur est possible');
   else ko(`réponse inattendue de /api/super-admin/login : ${login}`);
 
   const admins = psql("SELECT COUNT(*) FROM user_profiles WHERE role IN ('admin','owner')");
-  if (Number(admins) >= 1) ok(`${admins} compte(s) administrateur présent(s)`);
-  else ko('aucun compte administrateur');
+  // Informatif : les testeurs sont créés par le SUPER-ADMIN, pas par un
+  // administrateur de locataire. Depuis le retrait des comptes de
+  // démonstration, une installation neuve n'en a aucun, et c'est normal.
+  info(`${admins} compte(s) administrateur de locataire`);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -342,8 +344,9 @@ section('T8 — Un testeur peut RÉELLEMENT se connecter depuis son navigateur')
     ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
   ];
 
+  if (!env.SONDE_EMAIL || !env.SONDE_PASSWORD) ko('compte de sonde absent de ' + ENV_FILE);
   for (const origin of [...new Set(origins)]) {
-    const body = JSON.stringify({ email: 'admin@maintrix.local', password: 'Maintrix2024!' });
+    const body = JSON.stringify({ email: env.SONDE_EMAIL, password: env.SONDE_PASSWORD });
     const out = docker(['exec', APP, 'curl', '-s', '-o', '/dev/null', '-w', '%{http_code}',
       '-X', 'POST', 'http://localhost:5000/api/enterprise-auth/login',
       '-H', 'Content-Type: application/json',

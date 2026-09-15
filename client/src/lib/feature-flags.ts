@@ -55,7 +55,8 @@ export const BILLING_ENABLED = actif(import.meta.env.VITE_ENABLE_BILLING);
  * Même logique de défaut, appliquée à l'autre risque : tant que la production
  * n'est pas explicitement déclarée, on se considère en test. Oublier le drapeau
  * en production affiche un bandeau de trop — visible, corrigeable. L'oublier en
- * test laisserait croire que des données fictives sont réelles.
+ * test cacherait aux testeurs qu'ils utilisent une version non validée. (Leurs
+ * données, elles, sont conservées jusqu'en production : docs/DEPLOY_OVH.md.)
  *
  * Déclarer la production :
  *     VITE_ENVIRONMENT=production npm run build

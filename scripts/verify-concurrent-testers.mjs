@@ -47,6 +47,15 @@ const DB = 'maintrix-test-db';
 const PG_USER = env.POSTGRES_USER || 'maintrix_test';
 const PG_DB = env.POSTGRES_DB || 'maintrix_test';
 
+// Compte de sonde dédié aux contrôles (créé par provision-test-env.mjs). Les
+// comptes de démonstration, au mot de passe public, ont été retirés de
+// l'environnement partagé : leurs données iront en production.
+const SONDE = { email: env.SONDE_EMAIL, motDePasse: env.SONDE_PASSWORD };
+if (!SONDE.email || !SONDE.motDePasse) {
+  console.error(`⛔ Compte de sonde absent de ${ENV_FILE}. Relancez le provisionnement.`);
+  process.exit(2);
+}
+
 let pass = 0, fail = 0;
 const ok = (m) => { console.log(`  ✓ ${m}`); pass++; };
 const ko = (m, d) => { console.log(`  ✗ ${m}`); if (d) console.log(`      ${String(d).slice(0, 300)}`); fail++; };
@@ -87,10 +96,12 @@ info(`mode : NODE_ENV=${docker(['exec', 'maintrix-test-app', 'printenv', 'NODE_E
 section('T1 — Plusieurs testeurs se connectent en même temps');
 {
   purgerLimiteur();
+  // Trois sessions simultanées sur le compte de sonde : ce qui est éprouvé
+  // ici est la connexion concurrente, pas la diversité des comptes.
   const comptes = [
-    ['admin@maintrix.local', 'Maintrix2024!'],
-    ['tech@maintrix.local', 'Maintrix2024!'],
-    ['admin-beta@maintrix.local', 'Maintrix2024!'],
+    [SONDE.email, SONDE.motDePasse],
+    [SONDE.email, SONDE.motDePasse],
+    [SONDE.email, SONDE.motDePasse],
   ];
 
   const codes = await Promise.all(comptes.map(([e, p]) => connexion(e, p)));
@@ -111,7 +122,7 @@ section('T2 — Les échecs d\'UN testeur bloquent-ils les AUTRES ?');
   // Un testeur se trompe six fois de mot de passe.
   const echecs = [];
   for (let i = 0; i < 6; i++) {
-    echecs.push(await connexion('admin@maintrix.local', 'mauvais-mot-de-passe'));
+    echecs.push(await connexion(SONDE.email, 'mauvais-mot-de-passe'));
   }
   info(`six tentatives erronées → ${echecs.join(', ')}`);
 
@@ -126,7 +137,7 @@ section('T2 — Les échecs d\'UN testeur bloquent-ils les AUTRES ?');
   // L'effet collatéral sur des testeurs partageant une sortie réseau est un
   // compromis assumé, pas un défaut — et il ne se déclenche désormais que si
   // quelqu'un se trompe réellement cinq fois (voir T2b).
-  const autre = await connexion('tech@maintrix.local', 'Maintrix2024!');
+  const autre = await connexion(SONDE.email, SONDE.motDePasse);
   info(`un autre testeur, identifiants VALIDES depuis la même IP → HTTP ${autre}`);
 
   if (autre === 200) {
@@ -156,7 +167,7 @@ section('T2b — Les connexions RÉUSSIES ne consomment pas le quota');
 
   const codes = [];
   for (let i = 0; i < 8; i++) {
-    codes.push(await connexion('admin@maintrix.local', 'Maintrix2024!'));
+    codes.push(await connexion(SONDE.email, SONDE.motDePasse));
   }
   info(`huit connexions valides consécutives → ${codes.join(', ')}`);
 
@@ -171,7 +182,7 @@ section('T2b — Les connexions RÉUSSIES ne consomment pas le quota');
   purgerLimiteur();
   const echecs = [];
   for (let i = 0; i < 7; i++) {
-    echecs.push(await connexion('admin@maintrix.local', 'mauvais'));
+    echecs.push(await connexion(SONDE.email, 'mauvais'));
   }
   info(`sept tentatives erronées → ${echecs.join(', ')}`);
   if (echecs.includes(429)) ok('les échecs répétés restent bloqués — protection intacte');
@@ -191,7 +202,7 @@ section('T3 — Charge simultanée sur les routes applicatives');
   const res = await fetch(`${BASE}/api/enterprise-auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: BASE },
-    body: JSON.stringify({ email: 'admin@maintrix.local', password: 'Maintrix2024!' }),
+    body: JSON.stringify({ email: SONDE.email, password: SONDE.motDePasse }),
   });
   if (res.status !== 200) { ko(`connexion impossible (HTTP ${res.status}) — T3 non exécuté`); }
   else {

@@ -180,11 +180,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-paper text-ink font-sans grid lg:grid-cols-2">
       {/* Colonne éditoriale — masquée sur mobile, où le formulaire prime. */}
       <aside className="hidden lg:flex flex-col justify-between bg-ink text-paper p-12 xl:p-16">
-        <Link href="/" className="font-serif text-2xl font-medium tracking-tight">
-          Maintrix
+        <Link href="/" aria-label="Maintrix — accueil">
+          <img src="/logo-maintrix-clair.png" alt="Maintrix" width={640} height={213} className="h-9 w-auto" />
         </Link>
         <div>
-          <p className="font-mono text-eyebrow uppercase text-signal-light">Maintenance industrielle</p>
+          <p className="font-mono text-eyebrow uppercase text-signal-light">Supervision industrielle · GMAO · Prédictif</p>
           <p className="font-serif text-headline font-medium mt-6 max-w-md">
             Reprendre là où l'équipe s'est arrêtée.
           </p>
@@ -195,7 +195,7 @@ export default function LoginPage() {
         </div>
         {IS_TEST_ENVIRONMENT ? (
           <p className="text-sm text-paper/60 border-t border-paper/15 pt-5">
-            Version de test — les données sont fictives et peuvent être réinitialisées.
+            Version de test — les données saisies sont conservées lors du passage en production.
           </p>
         ) : (
           <span />
@@ -204,8 +204,8 @@ export default function LoginPage() {
 
       <main className="flex flex-col justify-center px-5 py-12 sm:px-12">
         <div className="w-full max-w-sm mx-auto">
-          <Link href="/" className="lg:hidden font-serif text-2xl font-medium tracking-tight text-ink">
-            Maintrix
+          <Link href="/" className="lg:hidden inline-block" aria-label="Maintrix — accueil">
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-8 w-auto" />
           </Link>
           <h1 className="font-serif text-headline font-medium text-ink mt-10 lg:mt-0">
             {isRegistering ? "Créer un compte" : "Connexion"}
@@ -213,11 +213,11 @@ export default function LoginPage() {
           <p className="text-ink-soft mt-2 mb-8">
             {isRegistering
               ? "Rejoignez l'espace de travail de votre équipe."
-              : "Accédez à votre espace de maintenance."}
+              : "Accédez à la supervision et à la maintenance de vos installations."}
           </p>
           {IS_TEST_ENVIRONMENT && (
             <p className="lg:hidden -mt-4 mb-8 text-sm text-ink-mute border-t border-rule pt-3">
-              Version de test — données fictives.
+              Version de test — vos données seront conservées en production.
             </p>
           )}
           <div className="space-y-6">
