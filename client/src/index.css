@@ -239,8 +239,12 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* « Inter » était déclarée mais jamais chargée : le navigateur retombait
+       sur la police système, différente d'un poste à l'autre. IBM Plex Sans est
+       désormais embarquée (voir main.tsx). Les réglages cv02…cv11 étaient
+       propres à Inter et sans effet sur Plex. */
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: normal;
     font-variation-settings: normal;
   }
 

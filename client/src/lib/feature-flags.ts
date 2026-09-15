@@ -47,3 +47,17 @@ const actif = (valeur: unknown): boolean => valeur === "true";
  * présentes, et c'est cette absence qui empêche réellement une transaction.
  */
 export const BILLING_ENABLED = actif(import.meta.env.VITE_ENABLE_BILLING);
+
+/**
+ * Environnement de test : bandeau « Version de test » et appel aux retours sur
+ * les pages publiques.
+ *
+ * Même logique de défaut, appliquée à l'autre risque : tant que la production
+ * n'est pas explicitement déclarée, on se considère en test. Oublier le drapeau
+ * en production affiche un bandeau de trop — visible, corrigeable. L'oublier en
+ * test laisserait croire que des données fictives sont réelles.
+ *
+ * Déclarer la production :
+ *     VITE_ENVIRONMENT=production npm run build
+ */
+export const IS_TEST_ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT !== "production";
