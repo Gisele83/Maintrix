@@ -88,6 +88,18 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     volumes:
       - test_uploads:/app/uploads
       - test_logs:/app/logs
@@ -117,6 +129,18 @@ services:
     expose:
       - "5432"
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     networks:
       - maintrix-test
     healthcheck:
@@ -146,6 +170,18 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     networks:
       - maintrix-test
     healthcheck:

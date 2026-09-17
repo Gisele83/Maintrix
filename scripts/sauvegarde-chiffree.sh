@@ -89,6 +89,16 @@ dechiffrer_a_vide() {
 REQUETE_LIGNES="SELECT table_name || ' ' || (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM public.%I', table_name), false, true, '')))[1]::text FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name"
 compter_lignes() { docker exec "$DB" psql -U "$PG_USER" -d "$PG_DB" -tAc "$REQUETE_LIGNES"; }
 
+# ── Espace disponible ──────────────────────────────────────────────
+# Une sauvegarde tronquée par un disque plein est pire qu'absente : elle
+# paraît exister. On vérifie avant, et on refuse clairement.
+mkdir -p "$DOSSIER"
+MARGE_MO="${MAINTRIX_MARGE_SAUVEGARDE_MO:-2048}"
+LIBRE_MO="$(df -BM --output=avail "$DOSSIER" 2>/dev/null | tail -1 | tr -dc '0-9')"
+LIBRE_MO="${LIBRE_MO:-0}"
+[ "$LIBRE_MO" -ge "$MARGE_MO" ] \
+  || mourir "espace insuffisant dans $DOSSIER : ${LIBRE_MO} Mo libres, ${MARGE_MO} Mo attendus"
+
 # ── Dossier daté ───────────────────────────────────────────────────
 HORODATAGE="$(date -u +%Y%m%dT%H%M%SZ)"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo inconnu)"

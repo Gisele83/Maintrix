@@ -100,6 +100,26 @@ docker compose version >/dev/null 2>&1 || mourir "Le plugin 'docker compose' (v2
 docker info >/dev/null 2>&1 || mourir "Le démon Docker ne répond pas."
 command -v node >/dev/null 2>&1 || mourir "Node.js absent. Voir docs/DEPLOY_OVH.md, étape 2."
 command -v gpg >/dev/null 2>&1 || mourir "GnuPG absent (sauvegardes chiffrées) : apt install -y gnupg"
+
+# ── Espace disque ─────────────────────────────────────────────────
+# Un déploiement écrit une sauvegarde, construit une image et restaure une
+# copie de la base : sans marge, il remplit le disque. Et un disque plein ne
+# dégrade pas le service, il ARRÊTE la machine : conteneurs muets, SSH qui
+# referme la connexion juste après sa bannière (constaté le 2026-09-17).
+# On refuse donc de commencer, plutôt que de finir sans issue.
+MARGE_DISQUE_GO="${MAINTRIX_MARGE_DISQUE_GO:-6}"
+LIBRE_GO="$(df -BG --output=avail /var/lib/docker 2>/dev/null | tail -1 | tr -dc '0-9')"
+LIBRE_GO="${LIBRE_GO:-0}"
+if [ "$LIBRE_GO" -lt "$MARGE_DISQUE_GO" ]; then
+  rouge "  espace libre : ${LIBRE_GO} Go — ${MARGE_DISQUE_GO} Go attendus"
+  jaune "  Libérez de la place SANS TOUCHER AUX VOLUMES (données des testeurs) :"
+  jaune "    docker builder prune -af        # cache de construction"
+  jaune "    docker image prune -af          # images inutilisées"
+  jaune "    journalctl --vacuum-size=100M   # journaux systemd"
+  jaune "  N'utilisez JAMAIS docker volume prune ni docker system prune --volumes."
+  mourir "espace disque insuffisant pour déployer sans risque"
+fi
+vert "  espace disque : ${LIBRE_GO} Go libres"
 vert "  ✓ Docker $(docker version -f '{{.Server.Version}}'), Node $(node --version), GnuPG"
 
 # Aucun code non commité : le premier déploiement était une copie de fichiers
