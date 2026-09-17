@@ -17,7 +17,7 @@
  *   5. schéma appliqué depuis shared/schema.ts — sur une base existante,
  *      seulement après restauration vérifiée (MAINTRIX_SCHEMA_VERIFIE)
  *   6. comptes de démonstration retirés
- *   7. compte de sonde des contrôles créé ou aligné
+ *   7. quotas d'utilisateurs relevés, compte de sonde créé ou aligné
  *   8. application et nginx démarrés, environnement vérifié
  *
  * ═══════════════════════════════════════════════════════════════════
@@ -479,6 +479,25 @@ END $$;`,
   // testeurs le peuvent. Ils utilisent un compte DÉDIÉ : technicien, dans un
   // locataire vide qui lui est propre, mot de passe tiré au hasard et gardé
   // dans le fichier de secrets du serveur. Il ne voit aucune donnée de testeur.
+  // ── 6b. Quotas d'utilisateurs des locataires existants ──────────
+  // Les locataires créés avant le 2026-09-17 portent un plafond posé à la
+  // main (souvent 1 ou 3, valeur par défaut de l'ancienne procédure). Leur
+  // propriétaire ne pouvait donc pas créer les comptes de son entreprise :
+  // « Nombre d'utilisateurs atteint pour votre licence ». La licence est
+  // désormais hors service d'un seul bloc, mais on relève aussi les plafonds
+  // en base : le jour où l'offre payante s'ouvrira, personne ne se retrouvera
+  // bloqué par une valeur héritée d'un essai. Aucune donnée n'est supprimée.
+  step("Quotas d'utilisateurs des locataires");
+  {
+    const SANS_LIMITE = 999999; // = UTILISATEURS_SANS_LIMITE (server/license-service.ts)
+    const maj = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', PGU, '-d', PGD, '-tAc',
+      `WITH maj AS (UPDATE tenants SET max_users = ${SANS_LIMITE}, licensed_users = GREATEST(COALESCE(licensed_users, 1), ${SANS_LIMITE}) WHERE COALESCE(max_users, 0) < ${SANS_LIMITE} RETURNING 1) SELECT COUNT(*) FROM maj`],
+      { encoding: 'utf8' });
+    if ((maj.status ?? 1) !== 0) die('Relèvement des quotas impossible', `${maj.stdout}${maj.stderr}`);
+    const n = Number((maj.stdout || '0').trim()) || 0;
+    ok(n > 0 ? `${n} locataire(s) sans limite d'utilisateurs désormais` : 'aucun quota à relever');
+  }
+
   step('Compte de sonde des contrôles automatiques');
   {
     const { appendFileSync, readFileSync: relire } = await import('node:fs');

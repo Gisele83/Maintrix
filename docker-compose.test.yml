@@ -58,6 +58,12 @@ services:
       - KMS_MASTER_KEY=${KMS_MASTER_KEY:?KMS_MASTER_KEY requis}
       - MFA_ENCRYPTION_KEY=${MFA_ENCRYPTION_KEY:?MFA_ENCRYPTION_KEY requis}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Application des licences — DÉSACTIVÉE tant que l'offre payante n'est
+      # pas ouverte. Activée, elle bloque les appels API des locataires sans
+      # abonnement valide ET oppose une limite d'utilisateurs : un locataire
+      # ne pourrait plus créer les comptes de ses collaborateurs au-delà de
+      # son quota. Rendue explicite ici pour que son état se lise.
+      - ENABLE_LICENSE_ENFORCEMENT=${ENABLE_LICENSE_ENFORCEMENT:-false}
       # Origines autorisées : le domaine par lequel les testeurs accèdent.
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost}
       - FRONTEND_URL=${FRONTEND_URL:-https://localhost}

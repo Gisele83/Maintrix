@@ -8,7 +8,7 @@ import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentia
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 import { MailService } from '@sendgrid/mail';
 import { storage } from "./storage";
-import { LicenseService } from './license-service';
+import { LicenseService, UTILISATEURS_SANS_LIMITE } from './license-service';
 import { registerBackgroundTask } from "./background-tasks";
 
 const router = Router();
@@ -458,7 +458,11 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     // Le try/catch qui absorbait l'erreur a été retiré : un tenant sans licence
     // ne peut pas être exploité, il ne faut donc pas le créer « à moitié ».
     // L'échec annule désormais toute la création.
-    const maxUsers = req.body.maxUsers || 1;
+    // ⚠️ Le défaut était 1. Le propriétaire du locataire comptant pour un,
+    // le quota était atteint DÈS LA CRÉATION : il ne pouvait créer aucun
+    // compte pour son entreprise. Sans valeur explicite, aucun plafond n'est
+    // posé ; le super-administrateur peut toujours en fixer un.
+    const maxUsers = req.body.maxUsers ?? UTILISATEURS_SANS_LIMITE;
     await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1, tx);
     console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
 

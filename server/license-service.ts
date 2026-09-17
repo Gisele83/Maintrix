@@ -6,6 +6,15 @@ import { eq, count } from "drizzle-orm";
 export const TRIAL_DURATION_DAYS = 30;
 export const DEFAULT_GRACE_PERIOD_DAYS = 7;
 
+/**
+ * Nombre d'utilisateurs valant « sans limite ».
+ *
+ * Un locataire d'entreprise doit pouvoir créer les comptes de ses
+ * collaborateurs sans contrainte : c'est le cas par défaut. Une limite
+ * réelle n'existe que si le super-administrateur en fixe une explicitement.
+ */
+export const UTILISATEURS_SANS_LIMITE = 999999;
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 export interface LicenseInfo {
   type: string;
@@ -413,7 +422,9 @@ export class LicenseService {
 
   // ── Generate license key (Format: SM + 13 digits) ─────────────────────
   static generateLicenseKey(tenantId: string, maxUsers: number): string {
-    const usersPadded = maxUsers.toString().padStart(4, "0");
+    // Le format de la clé réserve 4 chiffres au nombre d'utilisateurs :
+    // « sans limite » (999999) y entre comme 9999, sans allonger la clé.
+    const usersPadded = Math.min(maxUsers, 9999).toString().padStart(4, "0");
     const tenantHash = parseInt(tenantId.slice(-8), 16) % 1000000;
     const tenantPadded = tenantHash.toString().padStart(6, "0");
     const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
@@ -421,7 +432,25 @@ export class LicenseService {
   }
 
   // ── Enforce user limit ────────────────────────────────────────────────
+  /**
+   * L'application des licences est-elle activée ?
+   *
+   * MÊME interrupteur que license-enforcement-middleware.ts, pour que la
+   * licence soit active ou inactive D'UN SEUL BLOC. Avant cette mise au
+   * point, le blocage des appels API était désactivé par défaut mais la
+   * limite d'utilisateurs, elle, s'appliquait toujours : les testeurs
+   * recevaient « Nombre d'utilisateurs atteint pour votre licence » alors
+   * que la licence était censée être hors service.
+   */
+  static licenceAppliquee(): boolean {
+    return process.env.ENABLE_LICENSE_ENFORCEMENT === "true";
+  }
+
   static async enforceUserLimit(tenantId: string): Promise<void> {
+    // Licence hors service : aucune limite opposée. Le contrôle reste écrit,
+    // prêt à servir le jour où l'offre payante s'ouvre (voir docs/LICENCE.md).
+    if (!LicenseService.licenceAppliquee()) return;
+
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
     if (!tenant) { const e = new Error("Tenant introuvable"); (e as any).code = "TENANT_NOT_FOUND"; throw e; }
 

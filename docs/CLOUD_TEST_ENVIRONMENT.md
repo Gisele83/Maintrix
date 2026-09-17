@@ -243,8 +243,11 @@ testeurs. La corriger demanderait une migration vers un index composite
   deux mises à jour, planifiez `scripts/sauvegarde-chiffree.sh` (voir
   [DEPLOY_OVH.md](DEPLOY_OVH.md)).
 - **Aucune métrique Prometheus** — l'application n'expose pas `/api/metrics`.
-- **Le contrôle de licence est inerte** (constat F08) : aucun tenant ne sera
-  bloqué, même expiré. Voir [TESTER_ONBOARDING.md](TESTER_ONBOARDING.md).
+- **La licence est hors service**, d'un seul bloc : ni blocage des appels API,
+  ni limite d'utilisateurs (`ENABLE_LICENSE_ENFORCEMENT`, `false` par défaut).
+  Un locataire crée donc les comptes de son entreprise sans contrainte, et le
+  provisionnement relève les plafonds hérités. Voir
+  [TESTER_ONBOARDING.md](TESTER_ONBOARDING.md).
 - **Volumes locaux à l'hôte**, à noms permanents et déclarés `external` :
   aucune commande du projet ne les supprime. Ils ne survivent pas en revanche à
   la perte de l'instance — d'où la copie hors serveur des sauvegardes.

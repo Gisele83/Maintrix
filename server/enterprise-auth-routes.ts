@@ -71,6 +71,11 @@ router.post('/invitations/create',
 );
 
 // 📝 SCHÉMA D'INSCRIPTION PUBLIQUE
+// Locataire des inscriptions publiques. Nommé une seule fois : le contrôle de
+// licence et l'insertion visaient auparavant deux valeurs écrites à la main,
+// qui pouvaient diverger.
+const TENANT_INSCRIPTION_PUBLIQUE = "default-tenant";
+
 const registerSchema = z.object({
   username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
   firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
@@ -122,7 +127,7 @@ router.post('/register',
 
       // 📜 VÉRIFIER LA LIMITE D'UTILISATEURS DU TENANT
       try {
-        await LicenseService.enforceUserLimit('default-tenant');
+        await LicenseService.enforceUserLimit(TENANT_INSCRIPTION_PUBLIQUE);
       } catch (error: any) {
         if (error.code === "USER_LIMIT_REACHED") {
           return res.status(403).json({
@@ -148,7 +153,7 @@ router.post('/register',
           password: hashedPassword,
           role: validatedData.role,
           department: validatedData.department,
-          tenantId: 'default-tenant', // Assigner au tenant par défaut
+          tenantId: TENANT_INSCRIPTION_PUBLIQUE,
           isDefaultCredentials: false,
           mustChangePassword: false,
           isActive: true,
