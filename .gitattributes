@@ -1,0 +1,27 @@
+# Fins de ligne — imposées, pas devinées.
+#
+# Les scripts de ce dépôt sont exécutés sur un serveur Linux et dans des
+# conteneurs Alpine. Un fichier .sh enregistré depuis Windows arrive en CRLF,
+# et bash échoue sur la première ligne : « $'\r': command not found ».
+# Sans ce fichier, le résultat dépendait du poste ayant fait le commit.
+
+* text=auto
+
+# LF obligatoire, y compris dans la copie de travail sous Windows.
+*.sh       text eol=lf
+*.mjs      text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.conf     text eol=lf
+*.sql      text eol=lf
+Dockerfile text eol=lf
+
+# Binaires : jamais convertis.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary

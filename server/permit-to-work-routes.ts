@@ -13,6 +13,7 @@ import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
 import { journalizePTWMutation, PTW_ACTIONS } from "./crypto-journal";
+import { auMoins } from "@shared/roles";
 
 // ─── Journalisation helper ────────────────────────────────────────────────────
 // Extrait le contexte acteur depuis req.user et appelle le journal.
@@ -322,8 +323,11 @@ export function registerPermitToWorkRoutes(app: Express) {
       const userId = req.user?.id;
       const role = req.user?.role;
 
-      if (!['admin', 'manager', 'supervisor'].includes(role)) {
-        return res.status(403).json({ message: "Seul un superviseur ou administrateur peut approuver un permis" });
+      // ⚠️ La liste citait `manager` et `supervisor`, absents du référentiel :
+      // aucun compte réel ne pouvait satisfaire ce contrôle. On raisonne
+      // désormais par niveau — chef d'équipe ou au-dessus.
+      if (!auMoins(role, 'team_leader')) {
+        return res.status(403).json({ message: "Seul un chef d'équipe ou un responsable peut approuver un permis" });
       }
 
       const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
@@ -353,7 +357,7 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       const role = req.user?.role;
 
-      if (!['admin', 'manager', 'supervisor'].includes(role)) {
+      if (!auMoins(role, 'team_leader')) {
         return res.status(403).json({ message: "Seul un superviseur ou administrateur peut rejeter un permis" });
       }
 

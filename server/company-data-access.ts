@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { userProfiles, equipmentRegistry, diagnosticSessions, dataAccessPermissions } from "@shared/schema";
 import { eq, and, inArray, ne, sql } from "drizzle-orm";
+import { auMoins } from "@shared/roles";
 
 /**
  * Contrôleur d'accès aux données historiques de maintenance par tenant
@@ -66,7 +67,9 @@ export class CompanyDataAccessController {
         ))
         .limit(1);
 
-      return permissions.length > 0 || userCompany[0].role === 'admin' || userCompany[0].role === 'manager';
+      // `manager` est une valeur héritée : le référentiel la ramène à
+      // `maintenance_manager` (shared/roles.ts).
+      return permissions.length > 0 || auMoins(userCompany[0].role, 'maintenance_manager');
     } catch (error) {
       console.error('Erreur vérification accès:', error);
       return false;

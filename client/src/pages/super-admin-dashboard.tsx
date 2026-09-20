@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ROLES, ROLE_PAR_DEFAUT } from "@shared/roles";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -172,9 +174,18 @@ export default function SuperAdminDashboard() {
     enabled: false // Temporairement désactivé
   });
 
-  // 👤 Récupérer les utilisateurs avec identifiants par défaut
+  // 👤 Utilisateurs dont les identifiants sont encore ceux générés par défaut
   const { data: defaultCredentialUsers = { users: [], count: 0 }, isLoading: usersLoading } = useQuery<{users: any[], count: number}>({
     queryKey: ['/api/super-admin/users-with-default-credentials'],
+    enabled: !!superAdminUser
+  });
+
+  // 👥 TOUS les comptes. Le total était auparavant la somme de
+  // `tenant.currentUsers`, un compteur stocké que rien ne met à jour : les
+  // comptes créés hors de l'application (la sonde de déploiement) n'y
+  // apparaissaient pas. On lit maintenant le décompte réel des lignes.
+  const { data: tousUtilisateurs = { users: [], count: 0, actifs: 0 } } = useQuery<{users: any[], count: number, actifs: number}>({
+    queryKey: ['/api/super-admin/users'],
     enabled: !!superAdminUser
   });
 
@@ -351,14 +362,22 @@ export default function SuperAdminDashboard() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => {
-                    // Marquer la provenance super-admin pour permettre le retour
+                    // ⚠️ Ce bouton n'ouvre AUCUNE session de locataire : il pose
+                    // seulement un repère permettant de revenir ici, puis affiche
+                    // l'interface utilisateur, qui demandera une connexion normale.
+                    // Il ne fait donc pas de « prise de contrôle » de compte ; le
+                    // libellé le dit maintenant, au lieu de le laisser croire.
+                    // Une véritable fonction d'impersonation devrait être
+                    // authentifiée, tracée et limitée dans le temps : elle reste à
+                    // écrire.
                     localStorage.setItem('superAdminContext', 'true');
                     setLocation('/');
                   }}
+                  title="Ouvre l'interface utilisateur. La connexion à un compte de locataire reste nécessaire."
                   className="bg-green-600/20 border-green-400/30 text-green-300 hover:bg-green-600/30"
                 >
                   <Users className="w-4 h-4 mr-2" />
-                  Interface Utilisateur
+                  Aller à l'interface utilisateur
                 </Button>
                 <Button 
                   variant="outline" 
@@ -798,13 +817,25 @@ export default function SuperAdminDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="role" className="text-white">Rôle</Label>
-                        <Input
-                          id="role"
-                          placeholder="Rôle (ex: Technicien, Superviseur, Administrateur)"
-                          value={newUserData.role}
-                          onChange={(e) => setNewUserData({...newUserData, role: e.target.value})}
-                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
-                        />
+                        {/* ⚠️ C'était un champ libre : « Administrateur » y était
+                            accepté alors que le système attend `admin`, et le compte
+                            se retrouvait sans aucun droit. Seuls les rôles du
+                            référentiel partagé sont désormais proposés. */}
+                        <Select
+                          value={newUserData.role || ROLE_PAR_DEFAUT}
+                          onValueChange={(valeur) => setNewUserData({...newUserData, role: valeur})}
+                        >
+                          <SelectTrigger id="role" className="bg-white/10 border-gray-600 text-white">
+                            <SelectValue placeholder="Choisir un rôle" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLES.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.libelle}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -932,9 +963,11 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-blue-400">
-                    {tenants.reduce((total, tenant) => total + tenant.currentUsers, 0)}
+                    {tousUtilisateurs.count}
                   </div>
-                  <p className="text-gray-400">Tous les tenants</p>
+                  <p className="text-gray-400">
+                    Tous les tenants · {tousUtilisateurs.actifs} actif(s)
+                  </p>
                 </CardContent>
               </Card>
               

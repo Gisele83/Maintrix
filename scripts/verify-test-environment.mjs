@@ -167,9 +167,25 @@ section('T3 — Environnement séparé du développement');
   // Secrets propres à l'environnement.
   if (existsSync(ENV_FILE)) ok(`secrets dans ${ENV_FILE} (ignoré par git)`);
   else ko(`${ENV_FILE} absent`);
-  const ignored = spawnSync('git', ['check-ignore', '-q', ENV_FILE]).status === 0;
-  if (ignored) ok(`${ENV_FILE} est bien ignoré par git`);
-  else ko(`${ENV_FILE} n'est PAS ignoré par git — risque de fuite de secrets`);
+  // ⚠️ `git check-ignore` échoue AUSSI quand il n'y a pas de dépôt du tout :
+  // une livraison par `git archive` pose les fichiers sans .git, et le
+  // contrôle déclarait alors l'environnement NON CONFORME pour une raison
+  // fausse. On lit donc .gitignore directement dans ce cas.
+  const depotGit = spawnSync('git', ['rev-parse', '--is-inside-work-tree']).status === 0;
+  if (depotGit) {
+    const ignored = spawnSync('git', ['check-ignore', '-q', ENV_FILE]).status === 0;
+    if (ignored) ok(`${ENV_FILE} est bien ignoré par git`);
+    else ko(`${ENV_FILE} n'est PAS ignoré par git — risque de fuite de secrets`);
+  } else if (existsSync('.gitignore')) {
+    const regles = readFileSync('.gitignore', 'utf8').split(/\r?\n/).map((l) => l.trim());
+    if (regles.includes(ENV_FILE) || regles.includes(`/${ENV_FILE}`)) {
+      ok(`${ENV_FILE} figure dans .gitignore (aucun dépôt git ici — livraison par archive)`);
+    } else {
+      ko(`${ENV_FILE} n'est pas listé dans .gitignore — risque de fuite de secrets`);
+    }
+  } else {
+    info('ni dépôt git ni .gitignore : rien à vérifier ici (livraison par archive)');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

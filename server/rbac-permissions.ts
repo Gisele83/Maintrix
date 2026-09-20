@@ -3,14 +3,15 @@
  * Définition des permissions par rôle pour Maintrix
  */
 
-export type UserRole =
-  | "technician"          // Technicien de maintenance
-  | "team_leader"         // Chef d'équipe
-  | "planner"            // Planificateur
-  | "maintenance_manager" // Responsable de maintenance
-  | "procurement"        // Service achats/magasin
-  | "technical_director" // Directeur technique
-  | "admin";             // Administrateur système
+import { type RoleLocataire, NIVEAU_ROLE, normaliserRole } from "@shared/roles";
+
+/**
+ * Les rôles ne sont plus définis ici : shared/roles.ts en est la source
+ * unique, partagée avec l'interface. Cette liste-ci en omettait deux qui
+ * existent pourtant en base — `owner` et `viewer` — et `hasPermission()`
+ * levait une exception sur le rôle du propriétaire de chaque locataire.
+ */
+export type UserRole = RoleLocataire;
 
 export type Permission =
   // Interventions
@@ -227,48 +228,69 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "manage_settings",
     "view_audit_logs",
   ],
+
+  // PROPRIÉTAIRE du locataire — complété juste après la matrice, à partir
+  // des droits de l'administrateur, pour que les deux ne divergent jamais.
+  owner: [],
+
+  // LECTURE SEULE — consulte, ne modifie rien.
+  viewer: [
+    "view_all_work_orders",
+    "view_equipment",
+    "view_preventive_maintenance",
+    "view_inventory",
+    "view_purchase_orders",
+    "view_planning",
+    "view_history",
+    "view_diagnostic_history",
+    "view_all_reports",
+  ],
 };
+
+// `owner` est le compte principal du locataire, créé en même temps que lui.
+// Il était absent de cette matrice : `ROLE_PERMISSIONS['owner']` valait
+// `undefined`, et `hasPermission()` échouait sur `.includes` — une exception,
+// pas un refus propre. Ses droits sont ceux de l'administrateur.
+ROLE_PERMISSIONS.owner = [...ROLE_PERMISSIONS.admin];
 
 /**
  * Hiérarchie des rôles (du plus bas au plus élevé)
  */
-export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  technician: 1,
-  team_leader: 2,
-  planner: 3,
-  procurement: 3,
-  maintenance_manager: 4,
-  technical_director: 5,
-  admin: 6,
-};
+/** Reprise directe du référentiel partagé (shared/roles.ts). */
+export const ROLE_HIERARCHY: Record<UserRole, number> = NIVEAU_ROLE;
 
 /**
  * Vérifier si un rôle possède une permission
  */
-export function hasPermission(role: UserRole, permission: Permission): boolean {
-  const permissions = ROLE_PERMISSIONS[role];
-  return permissions.includes(permission);
+export function hasPermission(role: UserRole | string | null | undefined, permission: Permission): boolean {
+  // Un rôle inconnu ou mal orthographié doit produire un REFUS lisible, pas
+  // une exception au milieu d'une requête. `normaliserRole` rattrape au
+  // passage les anciennes valeurs (`manager`, `supervisor`, `maintainer`…).
+  const normalise = normaliserRole(role);
+  if (!normalise) return false;
+  return (ROLE_PERMISSIONS[normalise] ?? []).includes(permission);
 }
 
 /**
  * Vérifier si un rôle possède au moins une des permissions
  */
-export function hasAnyPermission(role: UserRole, permissions: Permission[]): boolean {
+export function hasAnyPermission(role: UserRole | string | null | undefined, permissions: Permission[]): boolean {
   return permissions.some(permission => hasPermission(role, permission));
 }
 
 /**
  * Vérifier si un rôle possède toutes les permissions
  */
-export function hasAllPermissions(role: UserRole, permissions: Permission[]): boolean {
+export function hasAllPermissions(role: UserRole | string | null | undefined, permissions: Permission[]): boolean {
   return permissions.every(permission => hasPermission(role, permission));
 }
 
 /**
  * Obtenir toutes les permissions d'un rôle
  */
-export function getPermissions(role: UserRole): Permission[] {
-  return ROLE_PERMISSIONS[role] || [];
+export function getPermissions(role: UserRole | string | null | undefined): Permission[] {
+  const normalise = normaliserRole(role);
+  return normalise ? ROLE_PERMISSIONS[normalise] ?? [] : [];
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
+import { normaliserRole } from "@shared/roles";
 
 // Simple validation routes for demonstration
 export function registerSimpleValidationRoutes(app: Express) {
@@ -60,14 +61,22 @@ export function registerSimpleValidationRoutes(app: Express) {
       const authUser = (req as any).user;
       let userLevel = 1;
       if (authUser?.role) {
+        // Niveaux exprimés avec les rôles du référentiel partagé. Les valeurs
+        // anciennes (`manager`, `supervisor`, `operator`) sont rattrapées par
+        // `normaliserRole`, au lieu de retomber silencieusement au niveau 1.
         const roleToLevel: Record<string, number> = {
-          'admin': 3,
-          'manager': 3,
-          'supervisor': 2,
-          'technician': 1,
-          'operator': 1,
+          owner: 3,
+          admin: 3,
+          technical_director: 3,
+          maintenance_manager: 3,
+          planner: 2,
+          procurement: 2,
+          team_leader: 2,
+          technician: 1,
+          viewer: 1,
         };
-        userLevel = roleToLevel[authUser.role] ?? 1;
+        const roleNormalise = normaliserRole(authUser.role);
+        userLevel = roleNormalise ? roleToLevel[roleNormalise] ?? 1 : 1;
       } else if (req.query.validationLevel) {
         userLevel = parseInt(req.query.validationLevel as string) || 1;
       }

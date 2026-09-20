@@ -132,7 +132,10 @@ function generateTenantInvitationEmail(tenantData: {
   domain?: string;
   tenantId: string;
 }): string {
-  const baseUrl = process.env.APP_URL ?? 'http://localhost:5000';
+  // Adresse publique réelle (voir urlConnexion dans super-admin-routes.ts).
+  // « localhost » dans un courriel ne mène nulle part pour son destinataire.
+  const baseUrl = (process.env.FRONTEND_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
+  if (!baseUrl) console.warn("⚠️ FRONTEND_URL absent : le courriel d'invitation ne portera pas de lien complet.");
   
   const loginUrl = tenantData.domain 
     ? `https://${tenantData.domain}` 

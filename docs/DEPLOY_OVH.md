@@ -322,3 +322,33 @@ le renouvellement échouait en silence, et le site devenait inaccessible
   quotidienne : `sudo ln -s /opt/maintrix-git/scripts/sauvegarde-chiffree.sh /etc/cron.daily/maintrix-sauvegarde`.
 - **Aucune supervision externe.** `/api/health` est public et sans donnée
   sensible : branchez-y un service de surveillance si les sessions s'étalent.
+
+---
+
+## Ce que promet la bannière « Version de test »
+
+Les pages publiques affichent : « les données saisies pendant les tests sont
+conservées lors du passage en production ». Cette phrase engage. Elle est tenue
+par la procédure décrite plus haut, à une condition près.
+
+**Ce qui la garantit :**
+
+- volumes à noms permanents, déclarés `external` — aucune commande du projet ne
+  les supprime, et `--reset` n'existe plus ;
+- sauvegarde chiffrée obligatoire avant chaque mise à jour ;
+- schéma éprouvé sur une copie restaurée : un changement qui supprimerait une
+  colonne ou des lignes interrompt le déploiement ;
+- comptes et données conservés d'une version à l'autre : la base de test EST
+  celle qui passera en production.
+
+**La condition :** la production doit rester **cette instance**, avec ces
+volumes. Si vous décidez un jour de produire sur une autre machine, les données
+ne suivent pas toutes seules — il faut y restaurer une sauvegarde :
+
+```bash
+sudo bash scripts/restauration-verifiee.sh /var/backups/maintrix/<horodatage>
+```
+
+Si cette condition ne peut pas être tenue, retirez la phrase des pages
+publiques plutôt que de la laisser promettre à votre place :
+`client/src/pages/landing.tsx` et `client/src/pages/login.tsx`.
