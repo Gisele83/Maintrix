@@ -235,8 +235,15 @@ interruption automatique.
 | Type | Nom | Valeur |
 |---|---|---|
 | secret | `OVH_SSH_CLE_PRIVEE` | clé privée d'une paire **dédiée** au déploiement |
-| secret | `OVH_SSH_HOTES_CONNUS` | `ssh-keyscan 57.130.11.84`, **vérifiée** contre l'empreinte affichée sur le serveur (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) |
-| variable | `OVH_HOTE` | `57.130.11.84` |
+| secret | `OVH_SSH_HOTES_CONNUS` | `ssh-keyscan 57.130.73.41`, **vérifiée** contre l'empreinte affichée sur le serveur (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) |
+| variable | `OVH_HOTE` | `57.130.73.41` |
+
+> ⚠️ **L’adresse IP change si l’instance est recréée** (ce fut le cas le 2026-09-20).
+> Dans ce cas, mettez à jour `OVH_HOTE`, l’enregistrement DNS chez Cloudflare, ET
+> `OVH_SSH_HOTES_CONNUS` : l’empreinte SSH de la nouvelle machine est différente,
+> et le déploiement automatique refusera de se connecter tant qu’elle n’est pas
+> actualisée. C est voulu : une empreinte qui change sans raison connue est
+> exactement ce qu’un contrôle d’hôte doit signaler.
 | variable | `OVH_UTILISATEUR` | `ubuntu` (défaut) |
 | variable | `OVH_DOSSIER` | `/opt/maintrix-git` (défaut) |
 | variable | `DEPLOIEMENT_DOMAINE` | `maintrix-test.techlearn-saem.com` |
