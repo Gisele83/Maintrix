@@ -1,22 +1,28 @@
-// Palette de couleurs d'accentuation partagée entre landing.tsx et modern-home.tsx.
+// Jetons d'accentuation partagés (modern-home.tsx, preventive-maintenance.tsx).
 //
-// Tailwind scanne le code source pour extraire les noms de classes complets — il n'exécute
-// jamais le JavaScript. Une classe construite par interpolation (`bg-${color}-500/15`) n'est
-// donc jamais détectée : le token brut vu par le scanner est `bg-${color}-500/15`, qui ne
-// correspond à aucun utilitaire connu, et aucune règle CSS n'est générée (fond transparent).
-// Ce fichier fige chaque combinaison possible sous forme de chaîne littérale complète pour que
-// le scanner JIT les trouve toutes.
+// ═══════════════════════════════════════════════════════════════════
+// UNE SEULE TEINTE, CELLE DU LOGO
+// ═══════════════════════════════════════════════════════════════════
+// Chaque module recevait ici sa propre couleur pastel — bleu, violet, émeraude,
+// ambre, rose, ciel — appliquée à une pastille d'icône arrondie. Six teintes
+// décoratives côte à côte sur un même écran : c'est la signature visuelle d'une
+// maquette générée, et cela ne renseigne sur rien (la couleur ne dit ni l'état,
+// ni la priorité, ni la nature du module).
 //
-// CHART_COLOR ci-dessous suit le même principe pour les couleurs de data-viz (barres de
-// progression, pastilles de statut) utilisées par preventive-maintenance.tsx — palette distincte
-// d'ACCENT car les teintes (green/purple/orange/yellow/red) ne correspondent pas au set
-// blue/violet/emerald/amber/rose/sky utilisé pour l'UI de marque.
+// Les six clés restent, pour ne pas toucher aux écrans qui les citent, mais
+// elles pointent toutes vers les mêmes jetons de la charte. Ajouter un module
+// ne demande donc plus de « choisir une couleur ».
+//
+// ⚠️ À CONSERVER : Tailwind analyse le code SOURCE et n'exécute jamais le
+// JavaScript. Une classe assemblée par interpolation (`bg-${couleur}-500`) n'est
+// jamais vue par l'analyseur, donc jamais générée, et le fond reste transparent.
+// D'où ces chaînes littérales complètes.
 export type AccentColor = "blue" | "violet" | "emerald" | "amber" | "rose" | "sky";
 
 interface AccentTokens {
-  /** Pastille icône large : fond teinté + bordure (ex. cartes fonctionnalités) */
+  /** Pastille icône large */
   iconTile: string;
-  /** Pastille icône réduite : fond teinté + bordure, plus discrète */
+  /** Pastille icône réduite */
   iconTileSm: string;
   /** Badge combiné fond + texte + bordure */
   badgeChip: string;
@@ -26,67 +32,32 @@ interface AccentTokens {
   icon600: string;
   /** Texte de repère (ex. numéro d'étape) */
   text500: string;
-  /** Bordure + fond au survol (bouton outline) */
+  /** Bordure + fond au survol */
   hoverTile: string;
 }
 
-export const ACCENT: Record<AccentColor, AccentTokens> = {
-  blue: {
-    iconTile: "bg-blue-500/15 border border-blue-500/25",
-    iconTileSm: "bg-blue-500/10 border border-blue-500/20",
-    badgeChip: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-    icon400: "text-blue-400",
-    icon600: "text-blue-600",
-    text500: "text-blue-500",
-    hoverTile: "hover:border-blue-200 hover:bg-blue-50/50",
-  },
-  violet: {
-    iconTile: "bg-violet-500/15 border border-violet-500/25",
-    iconTileSm: "bg-violet-500/10 border border-violet-500/20",
-    badgeChip: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
-    icon400: "text-violet-400",
-    icon600: "text-violet-600",
-    text500: "text-violet-500",
-    hoverTile: "hover:border-violet-200 hover:bg-violet-50/50",
-  },
-  emerald: {
-    iconTile: "bg-emerald-500/15 border border-emerald-500/25",
-    iconTileSm: "bg-emerald-500/10 border border-emerald-500/20",
-    badgeChip: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-    icon400: "text-emerald-400",
-    icon600: "text-emerald-600",
-    text500: "text-emerald-500",
-    hoverTile: "hover:border-emerald-200 hover:bg-emerald-50/50",
-  },
-  amber: {
-    iconTile: "bg-amber-500/15 border border-amber-500/25",
-    iconTileSm: "bg-amber-500/10 border border-amber-500/20",
-    badgeChip: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-    icon400: "text-amber-400",
-    icon600: "text-amber-600",
-    text500: "text-amber-500",
-    hoverTile: "hover:border-amber-200 hover:bg-amber-50/50",
-  },
-  rose: {
-    iconTile: "bg-rose-500/15 border border-rose-500/25",
-    iconTileSm: "bg-rose-500/10 border border-rose-500/20",
-    badgeChip: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
-    icon400: "text-rose-400",
-    icon600: "text-rose-600",
-    text500: "text-rose-500",
-    hoverTile: "hover:border-rose-200 hover:bg-rose-50/50",
-  },
-  sky: {
-    iconTile: "bg-sky-500/15 border border-sky-500/25",
-    iconTileSm: "bg-sky-500/10 border border-sky-500/20",
-    badgeChip: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
-    icon400: "text-sky-400",
-    icon600: "text-sky-600",
-    text500: "text-sky-500",
-    hoverTile: "hover:border-sky-200 hover:bg-sky-50/50",
-  },
+const JETONS: AccentTokens = {
+  iconTile: "bg-paper-deep border border-rule",
+  iconTileSm: "bg-paper-deep border border-rule",
+  badgeChip: "bg-paper-deep text-ink-soft border border-rule",
+  icon400: "text-signal-light",
+  icon600: "text-ink-mute",
+  text500: "text-signal",
+  hoverTile: "hover:border-ink hover:bg-paper",
 };
 
+export const ACCENT: Record<AccentColor, AccentTokens> = {
+  blue: JETONS,
+  violet: JETONS,
+  emerald: JETONS,
+  amber: JETONS,
+  rose: JETONS,
+  sky: JETONS,
+};
+
+// ── Couleurs de graphiques ────────────────────────────────────────
+// Celles-ci PORTENT UN SENS : elles distinguent des séries et des états dans
+// les barres de progression et les pastilles de statut. On n'y touche pas.
 export type ChartColor = "blue" | "green" | "purple" | "orange" | "yellow" | "red";
 
 interface ChartColorTokens {

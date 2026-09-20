@@ -490,22 +490,22 @@ export default function PreventiveMaintenance() {
   const avgCompletionRate = Math.round(allPlans.reduce((acc, p) => acc + p.completionRate, 0) / totalPlans);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-3xl blur-3xl"></div>
-          <Card className="relative backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-2xl rounded-3xl">
+          <div className="absolute inset-0 bg-paper-deep rounded-3xl blur-3xl"></div>
+          <Card className="relative bg-white dark:bg-slate-900/80 border-0 rounded-3xl">
             <CardHeader className="text-center py-12">
               <div className="flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur-lg opacity-50"></div>
-                  <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-2xl">
+                  <div className="absolute inset-0 bg-paper-deep rounded-2xl blur-lg opacity-50"></div>
+                  <div className="relative bg-paper-deep p-4 rounded-2xl">
                     <Calendar className="h-12 w-12 text-white" />
                   </div>
                 </div>
               </div>
-              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+              <CardTitle className="text-4xl font-bold text-ink mb-4">
                 Maintenance Préventive
               </CardTitle>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -517,7 +517,7 @@ export default function PreventiveMaintenance() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -531,7 +531,7 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -545,7 +545,7 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -559,7 +559,7 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -575,7 +575,7 @@ export default function PreventiveMaintenance() {
         </div>
 
         {/* Main Content */}
-        <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+        <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
           <CardHeader>
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
               <div>
@@ -588,7 +588,7 @@ export default function PreventiveMaintenance() {
               </div>
               
               <div className="flex flex-wrap gap-3">
-                <Button onClick={() => setShowAddModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                <Button onClick={() => setShowAddModal(true)} className="bg-paper-deep">
                   <Plus className="h-4 w-4 mr-2" />
                   Nouveau Plan
                 </Button>
@@ -641,7 +641,7 @@ export default function PreventiveMaintenance() {
                     const daysUntilNext = getDaysUntilNext(plan.nextExecution);
                     
                     return (
-                      <Card key={plan.id} className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 hover:shadow-lg transition-all duration-300">
+                      <Card key={plan.id} className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 transition-all duration-300">
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
@@ -761,7 +761,7 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Calendar Grid */}
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-7 gap-2">
                         {/* Days of week header */}
@@ -810,7 +810,7 @@ export default function PreventiveMaintenance() {
                   </Card>
 
                   {/* Legend */}
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardContent className="p-4">
                       <h4 className="font-medium text-gray-900 dark:text-white mb-3">Légende</h4>
                       <div className="flex flex-wrap gap-4">
@@ -866,7 +866,7 @@ export default function PreventiveMaintenance() {
                   {/* Charts Section */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Performance Trends */}
-                    <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                    <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                       <CardContent className="p-6">
                         <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                           Tendances de Performance
@@ -899,7 +899,7 @@ export default function PreventiveMaintenance() {
                     </Card>
 
                     {/* Equipment Health Distribution */}
-                    <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                    <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                       <CardContent className="p-6">
                         <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                           Distribution Santé Équipements
@@ -933,7 +933,7 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Maintenance Schedule Analysis */}
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardContent className="p-6">
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                         Analyse Planning Maintenance
@@ -986,7 +986,7 @@ export default function PreventiveMaintenance() {
         {/* Add Plan Modal Placeholder */}
         {showAddModal && (
           <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full mx-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Nouveau Plan de Maintenance
               </h3>
@@ -1086,7 +1086,7 @@ export default function PreventiveMaintenance() {
         {/* Edit Plan Modal */}
         {showEditModal && selectedPlan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full mx-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Modifier le Plan de Maintenance
               </h3>

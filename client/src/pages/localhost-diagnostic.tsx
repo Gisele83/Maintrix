@@ -91,13 +91,13 @@ export default function LocalhostDiagnostic() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* En-tête */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🔍 Diagnostic d'Accès Localhost
+          <h1 className="text-4xl font-bold text-ink">
+            Diagnostic d'Accès Localhost
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Diagnostic automatique pour résoudre les problèmes d'accès à Maintrix sur localhost:5050
@@ -241,7 +241,7 @@ export default function LocalhostDiagnostic() {
           <CardContent className="space-y-6">
             
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">🔥 Pare-feu Windows</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">Pare-feu Windows</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
                 <li>Ouvrez le Panneau de configuration → Système et sécurité</li>
                 <li>Cliquez sur "Pare-feu Windows Defender"</li>
@@ -251,7 +251,7 @@ export default function LocalhostDiagnostic() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">🛡️ Antivirus</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">Antivirus</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
                 <li>Ajoutez Maintrix aux exceptions</li>
                 <li>Autorisez les connexions sur le port 5050</li>
@@ -260,7 +260,7 @@ export default function LocalhostDiagnostic() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">🌐 Paramètres Navigateur</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">Paramètres Navigateur</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
                 <li>Videz le cache (Ctrl+F5)</li>
                 <li>Désactivez les extensions</li>
@@ -276,9 +276,9 @@ export default function LocalhostDiagnostic() {
           <Button 
             onClick={runDiagnostic}
             size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-paper-deep"
           >
-            🔄 Relancer le Diagnostic
+            Relancer le Diagnostic
           </Button>
         </div>
       </div>

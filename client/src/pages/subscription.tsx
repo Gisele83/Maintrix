@@ -183,11 +183,7 @@ function PlanCard({ plan, current, onSelect }: { plan: Plan; current: boolean; o
   const Icon = PLAN_ICONS[plan.id] || Zap;
 
   return (
-    <Card className={`relative flex flex-col transition-all duration-200 hover:shadow-lg ${
-      plan.highlighted
-        ? "border-2 border-blue-500 dark:border-blue-400 shadow-blue-100 dark:shadow-blue-900/30 shadow-md"
-        : "border hover:border-blue-300 dark:hover:border-blue-700"
-    } ${current ? "ring-2 ring-green-400 dark:ring-green-600" : ""}`}>
+    <Card className={`relative flex flex-col transition-all duration-200 ${ plan.highlighted ? "border-2 border-blue-500 dark:border-blue-400 shadow-blue-100 dark:shadow-blue-900/30 shadow-md" : "border hover:border-blue-300 dark:hover:border-blue-700" } ${current ? "ring-2 ring-green-400 dark:ring-green-600" : ""}`}>
       {plan.highlighted && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
           <Badge className="bg-blue-600 text-white shadow-sm px-3">
@@ -296,7 +292,7 @@ export default function SubscriptionPage() {
   const currentPlan = licenseStatus?.plan;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -306,7 +302,7 @@ export default function SubscriptionPage() {
             <Crown className="h-4 w-4" />
             Abonnements & Licences
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-violet-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-4xl font-bold text-ink mb-3">
             Gérez votre abonnement
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -435,8 +431,8 @@ export default function SubscriptionPage() {
 
             {/* Trial offer callout */}
             {licenseStatus && licenseStatus.status !== "active" && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl text-white flex items-center gap-4">
-                <div className="p-2.5 bg-white/20 rounded-lg flex-shrink-0">
+              <div className="mt-6 p-4 bg-ink rounded-xl text-white flex items-center gap-4">
+                <div className="p-2.5 bg-white rounded-lg flex-shrink-0">
                   <Gift className="h-6 w-6" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -447,7 +443,7 @@ export default function SubscriptionPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-white/50 bg-white/20 hover:bg-white/30 text-white hover:text-white flex-shrink-0"
+                    className="border-white/50 bg-white hover:bg-white text-white hover:text-white flex-shrink-0"
                     onClick={() => startTrialMutation.mutate()}
                     disabled={startTrialMutation.isPending}
                   >

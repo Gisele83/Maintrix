@@ -239,7 +239,7 @@ export default function VoiceDiagnosticAssistant() {
   return (
     <div className="space-y-6">
       {/* Voice Control Panel */}
-      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      <Card className="border-blue-200 bg-paper-deep">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <Brain className="h-6 w-6 text-blue-600" />

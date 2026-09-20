@@ -184,7 +184,7 @@ export function MaintenanceReports() {
       case "generated":
         return <Badge className="bg-blue-100 text-blue-800">Généré</Badge>;
       case "reviewed":
-        return <Badge className="bg-purple-100 text-purple-800">Révisé</Badge>;
+        return <Badge className="bg-paper-deep text-signal-deep">Révisé</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -404,7 +404,7 @@ export function MaintenanceReports() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold text-ink">
             Rapports de Maintenance
           </h2>
           <p className="text-muted-foreground">Génération et consultation des rapports d'intervention et mensuels</p>
@@ -414,7 +414,7 @@ export function MaintenanceReports() {
           <Button
             variant={activeTab === "intervention" ? "default" : "outline"}
             onClick={() => setActiveTab("intervention")}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="bg-paper-deep"
           >
             <FileText className="w-4 h-4 mr-2" />
             Rapports d'Intervention
@@ -422,7 +422,7 @@ export function MaintenanceReports() {
           <Button
             variant={activeTab === "monthly" ? "default" : "outline"}
             onClick={() => setActiveTab("monthly")}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-paper-deep"
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Rapports Mensuels
@@ -445,7 +445,7 @@ export function MaintenanceReports() {
             <CardContent>
               {loadingReports ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
                   <p className="mt-2 text-muted-foreground">Chargement des rapports...</p>
                 </div>
               ) : (maintenanceReports as MaintenanceReport[]).length === 0 ? (
@@ -459,7 +459,7 @@ export function MaintenanceReports() {
               ) : (
                 <div className="grid gap-4">
                   {(maintenanceReports as MaintenanceReport[]).map((report: MaintenanceReport) => (
-                    <Card key={report.id} className="border-l-4 border-l-purple-500">
+                    <Card key={report.id} className="border-l-4 border-l-signal">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-4">
                           <div>
@@ -603,7 +603,7 @@ export function MaintenanceReports() {
                 <Button 
                   onClick={generateMonthlyReport}
                   disabled={isGeneratingMonthly || !selectedDate}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-paper-deep"
                 >
                   {isGeneratingMonthly ? (
                     <>
@@ -695,8 +695,8 @@ export function MaintenanceReports() {
 
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-purple-100 rounded-lg">
-                                <DollarSign className="w-5 h-5 text-purple-600" />
+                              <div className="p-2 bg-paper-deep rounded-lg">
+                                <DollarSign className="w-5 h-5 text-signal-deep" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Coût Total</p>
@@ -862,8 +862,8 @@ export function MaintenanceReports() {
                 {renderKpiCard(
                   "Ratio Préventif", 
                   formatPercentage(selectedMonthlyReport.plannedMaintenanceRatio),
-                  <CheckCircle className="w-5 h-5 text-purple-600" />,
-                  "bg-purple-100"
+                  <CheckCircle className="w-5 h-5 text-signal-deep" />,
+                  "bg-paper-deep"
                 )}
               </div>
 
@@ -1003,10 +1003,10 @@ export function MaintenanceReports() {
                   </div>
                   
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-purple-100 rounded-full flex items-center justify-center mb-2">
-                      <Target className="w-8 h-8 text-purple-600" />
+                    <div className="w-16 h-16 mx-auto bg-paper-deep rounded-full flex items-center justify-center mb-2">
+                      <Target className="w-8 h-8 text-signal-deep" />
                     </div>
-                    <p className="text-2xl font-bold text-purple-600">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
+                    <p className="text-2xl font-bold text-signal-deep">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
                     <p className="text-sm text-muted-foreground">Efficacité</p>
                   </div>
                 </div>

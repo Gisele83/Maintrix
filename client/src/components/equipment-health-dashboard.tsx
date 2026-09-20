@@ -237,7 +237,7 @@ export function EquipmentHealthDashboard() {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredEquipment.map((eq) => (
-              <Card key={eq.id} className="hover:shadow-lg transition-shadow">
+              <Card key={eq.id} className="transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center space-x-2">

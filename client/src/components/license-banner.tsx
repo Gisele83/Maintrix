@@ -100,7 +100,7 @@ export function LicenseBanner() {
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-3 text-xs border-white/50 bg-white/20 hover:bg-white/30 text-white hover:text-white"
+            className="h-7 px-3 text-xs border-white/50 bg-white hover:bg-white text-white hover:text-white"
           >
             <Zap className="h-3 w-3 mr-1" />
             {config.cta}
@@ -109,7 +109,7 @@ export function LicenseBanner() {
         {!config.urgent && (
           <button
             onClick={() => setDismissed(true)}
-            className="p-1 rounded hover:bg-white/20 transition-colors"
+            className="p-1 rounded hover:bg-white transition-colors"
             aria-label="Fermer"
           >
             <X className="h-3.5 w-3.5" />

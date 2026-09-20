@@ -186,7 +186,7 @@ How can I assist you today?"
             {/* Tips */}
             <Card data-testid="tips-card">
               <CardHeader>
-                <CardTitle className="text-sm">💡 Tips for Better Results</CardTitle>
+                <CardTitle className="text-sm">Tips for Better Results</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-xs text-muted-foreground space-y-1">

@@ -67,7 +67,7 @@ export default function EmailDiagnostic() {
       setCurrentStep(1);
       toast({
         title: "Configuration SendGrid",
-        description: data.sendgridTest?.success ? "✅ Configuration valide" : "❌ Erreur de configuration",
+        description: data.sendgridTest?.success ? "Configuration valide" : "Erreur de configuration",
         variant: data.sendgridTest?.success ? "default" : "destructive"
       });
     }
@@ -81,7 +81,7 @@ export default function EmailDiagnostic() {
       setCurrentStep(2);
       toast({
         title: "Test d'envoi email",
-        description: data.result?.success ? "✅ Email envoyé" : "❌ Échec d'envoi",
+        description: data.result?.success ? "Email envoyé" : "Échec d'envoi",
         variant: data.result?.success ? "default" : "destructive"
       });
     }
@@ -124,7 +124,7 @@ export default function EmailDiagnostic() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -137,7 +137,7 @@ export default function EmailDiagnostic() {
             Retour au Dashboard
           </Button>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               Diagnostic Email Avancé
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
@@ -162,7 +162,7 @@ export default function EmailDiagnostic() {
               {/* Avertissement important */}
               <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>⚠️ Configuration requise</AlertTitle>
+                <AlertTitle>Configuration requise</AlertTitle>
                 <AlertDescription className="space-y-2">
                   <p><strong>Vous devez utiliser votre VRAIE adresse email</strong> que vous possédez réellement.</p>
                   <p>Les adresses fictives (platform@admin.com, admin@smartgmao.com) ne fonctionnent pas car SendGrid exige la vérification du propriétaire du domaine.</p>
@@ -174,7 +174,7 @@ export default function EmailDiagnostic() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="fromEmail" className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-purple-600" />
+                    <Mail className="h-4 w-4 text-signal-deep" />
                     Votre vraie adresse email expéditeur
                   </Label>
                   <Input
@@ -183,7 +183,7 @@ export default function EmailDiagnostic() {
                     placeholder="votre-nom@gmail.com"
                     value={emailTestData.fromEmail}
                     onChange={(e) => setEmailTestData(prev => ({ ...prev, fromEmail: e.target.value }))}
-                    className="border-purple-200 focus:border-purple-500"
+                    className="border-rule focus:border-rule"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Cette adresse doit être vérifiée dans votre console SendGrid
@@ -208,7 +208,7 @@ export default function EmailDiagnostic() {
               <Button 
                 onClick={runFullDiagnostic}
                 disabled={sendgridTestMutation.isPending || emailTestMutation.isPending}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="w-full bg-paper-deep"
               >
                 {sendgridTestMutation.isPending || emailTestMutation.isPending ? (
                   <>
@@ -239,7 +239,7 @@ export default function EmailDiagnostic() {
                 {diagnosticSteps.map((step, index) => {
                   const Icon = step.icon;
                   return (
-                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg border bg-white/50 dark:bg-gray-800/50">
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800/50">
                       <div className={`p-2 rounded-full ${
                         step.status === 'success' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' :
                         step.status === 'error' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' :
@@ -264,7 +264,7 @@ export default function EmailDiagnostic() {
           <Card className="glassmorphism">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-purple-500" />
+                <Info className="h-5 w-5 text-signal-deep" />
                 Résultats & Solutions
               </CardTitle>
             </CardHeader>
@@ -286,8 +286,8 @@ export default function EmailDiagnostic() {
                       <AlertTitle>Configuration SendGrid</AlertTitle>
                       <AlertDescription>
                         {sendgridTestMutation.data.sendgridTest?.success ? 
-                          "✅ Clé API valide et configuration correcte" :
-                          `❌ Problème de configuration: ${sendgridTestMutation.data.sendgridTest?.error}`
+                          "Clé API valide et configuration correcte" :
+                          `Problème de configuration: ${sendgridTestMutation.data.sendgridTest?.error}`
                         }
                       </AlertDescription>
                     </Alert>
@@ -303,8 +303,8 @@ export default function EmailDiagnostic() {
                       <AlertTitle>Test d'envoi email</AlertTitle>
                       <AlertDescription>
                         {emailTestMutation.data.result?.success ? 
-                          "✅ Email envoyé avec succès" :
-                          `❌ Échec d'envoi: ${emailTestMutation.data.result?.error || 'Erreur inconnue'}`
+                          "Email envoyé avec succès" :
+                          `Échec d'envoi: ${emailTestMutation.data.result?.error || 'Erreur inconnue'}`
                         }
                         {emailTestMutation.data.result?.details && (
                           <details className="mt-2">

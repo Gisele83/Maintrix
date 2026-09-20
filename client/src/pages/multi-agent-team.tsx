@@ -202,10 +202,10 @@ function TrainingGapsPanel() {
   });
 
   return (
-    <Card className="bg-purple-50 border-purple-100">
+    <Card className="bg-paper-deep border-rule">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
-          <GraduationCap className="w-4 h-4 text-purple-700" />
+          <GraduationCap className="w-4 h-4 text-signal-deep" />
           Training Agent — pont TechLearn
         </CardTitle>
         <CardDescription className="text-xs">
@@ -214,9 +214,9 @@ function TrainingGapsPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {(gaps ?? []).length === 0 && <p className="text-xs text-purple-700">Aucun écart de compétence détecté sur les OT ouverts.</p>}
+        {(gaps ?? []).length === 0 && <p className="text-xs text-signal-deep">Aucun écart de compétence détecté sur les OT ouverts.</p>}
         {(gaps ?? []).map((g) => (
-          <div key={g.workOrderId} className="flex items-center justify-between bg-white rounded-lg border border-purple-100 px-3 py-2">
+          <div key={g.workOrderId} className="flex items-center justify-between bg-white rounded-lg border border-rule px-3 py-2">
             <div className="text-xs">
               <span className="font-medium">{g.technicianName}</span> n'a jamais traité un équipement de type
               <span className="font-medium"> "{g.equipmentType}"</span> — OT {g.orderNumber} ({g.equipmentName})
@@ -238,10 +238,10 @@ function TrainingRequestsList() {
   if (!requests || requests.length === 0) return null;
 
   return (
-    <div className="pt-2 border-t border-purple-100 space-y-1">
-      <p className="text-xs font-medium text-purple-800">Demandes de formation</p>
+    <div className="pt-2 border-t border-rule space-y-1">
+      <p className="text-xs font-medium text-signal-deep">Demandes de formation</p>
       {requests.map((r) => (
-        <div key={r.id} className="flex items-center justify-between text-xs bg-white rounded-lg border border-purple-100 px-3 py-2">
+        <div key={r.id} className="flex items-center justify-between text-xs bg-white rounded-lg border border-rule px-3 py-2">
           <span>
             {[r.first_name, r.last_name].filter(Boolean).join(" ")} — {r.equipment_type} {r.order_number ? `(OT ${r.order_number})` : ""}
             {r.techlearn_tp_title && <span className="text-gray-500"> · TP : {r.techlearn_tp_title}</span>}

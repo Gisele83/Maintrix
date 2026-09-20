@@ -166,7 +166,7 @@ export default function SecureValidation() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-paper-deep">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Authentification requise</h2>
           <p className="text-gray-600 mb-4">Veuillez vous connecter pour accéder à cette page.</p>
@@ -177,7 +177,7 @@ export default function SecureValidation() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">

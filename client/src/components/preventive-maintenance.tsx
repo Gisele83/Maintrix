@@ -354,7 +354,7 @@ export function PreventiveMaintenance() {
           const isMaintenanceOverdue = isOverdue(nextMaintenanceDate);
           
           return (
-            <Card key={plan.id} className={`hover:shadow-lg transition-shadow ${isMaintenanceOverdue ? 'border-red-200' : ''}`}>
+            <Card key={plan.id} className={`transition-shadow ${isMaintenanceOverdue ? 'border-red-200' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">

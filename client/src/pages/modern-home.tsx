@@ -113,7 +113,7 @@ export default function ModernHome() {
       text: `${o.title || o.orderNumber || "Ordre de travail"} — ${WORK_ORDER_STATUS_LABEL[o.status] || o.status}`,
       time: timeAgo(o.updatedAt || o.createdAt),
       ts: new Date(o.updatedAt || o.createdAt || 0).getTime(),
-      dot: o.status === "completed" ? "bg-emerald-500" : o.status === "in_progress" ? "bg-violet-500" : "bg-slate-400",
+      dot: o.status === "completed" ? "bg-emerald-500" : o.status === "in_progress" ? "bg-signal-deep" : "bg-slate-400",
     })),
   ]
     .sort((a, b) => b.ts - a.ts)
@@ -122,14 +122,14 @@ export default function ModernHome() {
   const quickModules = [
     { href: "/gmao", icon: ClipboardList, label: "Ordres de travail", sub: `${openOrders} en cours`, color: "blue", bg: "from-blue-500/15 to-blue-600/5", border: "border-blue-500/25" },
     { href: "/equipment-management", icon: Settings, label: "Équipements", sub: `${totalEquipment} enregistrés`, color: "emerald", bg: "from-emerald-500/15 to-emerald-600/5", border: "border-emerald-500/25" },
-    { href: "/smart-diagnostic", icon: Brain, label: "Diagnostic IA", sub: "Lancer une analyse", color: "violet", bg: "from-violet-500/15 to-violet-600/5", border: "border-violet-500/25" },
+    { href: "/smart-diagnostic", icon: Brain, label: "Diagnostic IA", sub: "Lancer une analyse", color: "violet", bg: " ", border: "border-rule" },
     { href: "/oee", icon: Gauge, label: "OEE", sub: "Efficacité globale", color: "amber", bg: "from-amber-500/15 to-amber-600/5", border: "border-amber-500/25" },
     { href: "/rca", icon: GitBranch, label: "Analyse RCA", sub: "Causes racines", color: "rose", bg: "from-rose-500/15 to-rose-600/5", border: "border-rose-500/25" },
     { href: "/asset-lifecycle", icon: Layers, label: "Actifs", sub: "Cycle de vie", color: "sky", bg: "from-sky-500/15 to-sky-600/5", border: "border-sky-500/25" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 relative overflow-hidden">
+    <div className="min-h-screen bg-paper-deep relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
@@ -162,25 +162,25 @@ export default function ModernHome() {
         <div className="mb-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-slate-500 text-sm mb-1">{getGreeting()},</p>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-800">
-                {displayName} <span className="wave" role="img" aria-label="wave">👋</span>
+              <p className="font-mono text-eyebrow uppercase text-ink-mute mb-2">{getGreeting()},</p>
+              <h1 className="font-serif text-headline font-medium text-ink">
+                {displayName}
               </h1>
-              <p className="text-slate-500 mt-1 text-sm">
+              <p className="text-ink-soft mt-2 text-sm first-letter:uppercase">
                 {new Date().toLocaleDateString("fr-FR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
               </p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-2 rounded-full shadow-sm text-sm text-slate-600">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                Système actif
+              <div className="flex items-center gap-2 bg-white border border-rule px-3 py-2 text-sm text-ink-soft">
+                <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full" aria-hidden="true" />
+                Service en fonctionnement
               </div>
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-2 rounded-full shadow-sm text-sm text-slate-600">
-                <Activity className="w-4 h-4 text-blue-500" />
-                IoT temps réel
+              <div className="flex items-center gap-2 bg-white border border-rule px-3 py-2 text-sm text-ink-soft">
+                <Activity className="w-4 h-4 text-ink-mute" />
+                Mesures en continu
               </div>
               {activeAlerts > 0 && (
-                <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full shadow-sm text-sm border ${criticalAlerts > 0 ? "bg-rose-50 border-rose-200 text-rose-700" : "bg-amber-50 border-amber-200 text-amber-700"}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 text-sm border ${criticalAlerts > 0 ? "bg-rose-50 border-rose-300 text-rose-800" : "bg-amber-50 border-amber-300 text-amber-900"}`}>
                   <AlertTriangle className="w-4 h-4" />
                   {activeAlerts} alerte{activeAlerts > 1 ? "s" : ""}
                 </div>
@@ -192,16 +192,14 @@ export default function ModernHome() {
         {/* ── Quick Stats ─────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {quickStats.map((stat) => (
-            <Card key={stat.label} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <Card key={stat.label} className="border border-rule bg-white shadow-none">
               <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${stat.bg}`}>
-                    <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                  </div>
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm text-gray-600">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="font-mono text-eyebrow uppercase text-ink-mute">{stat.label}</p>
+                    <p className="font-serif text-title text-ink mt-1">{stat.value}</p>
                   </div>
+                  <stat.icon className="h-4 w-4 text-ink-mute shrink-0" />
                 </div>
               </CardContent>
             </Card>
@@ -211,9 +209,9 @@ export default function ModernHome() {
         {/* ── Quick Module Grid ───────────────────────────── */}
         <div className="mb-12 mt-10">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-bold text-slate-800">Accès rapide</h2>
+            <h2 className="font-serif text-title font-medium text-ink">Accès rapide</h2>
             <Link href="/gmao">
-              <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+              <button className="text-sm text-signal hover:text-signal-deep flex items-center gap-1">
                 Tout voir <ChevronRight className="w-4 h-4" />
               </button>
             </Link>
@@ -221,12 +219,10 @@ export default function ModernHome() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {quickModules.map(({ href, icon: Icon, label, sub, color, bg, border }) => (
               <Link key={href} href={href}>
-                <div className={`group bg-gradient-to-br ${bg} border ${border} rounded-2xl p-4 hover:scale-[1.04] transition-all duration-200 cursor-pointer h-full`}>
-                  <div className={`w-10 h-10 ${ACCENT[color as AccentColor].iconTile} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <Icon className={`w-5 h-5 ${ACCENT[color as AccentColor].icon600}`} />
-                  </div>
-                  <div className="text-sm font-semibold text-slate-800 leading-tight mb-0.5">{label}</div>
-                  <div className="text-xs text-slate-500">{sub}</div>
+                <div className="group bg-white border border-rule p-4 h-full transition-colors hover:bg-paper hover:border-ink cursor-pointer">
+                  <Icon className="w-5 h-5 text-ink-mute mb-3" />
+                  <div className="text-sm font-medium text-ink leading-tight mb-0.5">{label}</div>
+                  <div className="text-xs text-ink-soft">{sub}</div>
                 </div>
               </Link>
             ))}
@@ -237,8 +233,8 @@ export default function ModernHome() {
         <div className="mb-12">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Modules & Fonctionnalités</h2>
-              <p className="text-slate-500 text-sm">Toutes les capacités du système de supervision</p>
+              <h2 className="font-serif text-title font-medium text-ink">Modules</h2>
+              <p className="text-ink-soft text-sm mt-1">Tout ce que couvre la plateforme.</p>
             </div>
           </div>
           <FeatureCards />
@@ -246,9 +242,9 @@ export default function ModernHome() {
 
         {/* ── Live + Activity ─────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-          <Card className="border border-slate-200/60 shadow-sm bg-white">
+          <Card className="border border-rule bg-white shadow-none">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg text-slate-800">
+              <CardTitle className="flex items-center text-lg text-ink">
                 <TrendingUp className="h-5 w-5 mr-2.5 text-blue-600" />
                 Performance en Temps Réel
               </CardTitle>
@@ -265,7 +261,7 @@ export default function ModernHome() {
                       <div className="text-sm text-slate-700 font-medium">{label}</div>
                       <div className="text-xs text-slate-400">{sub}</div>
                     </div>
-                    <span className="text-2xl font-bold text-slate-800">{value}</span>
+                    <span className="text-2xl font-bold text-ink">{value}</span>
                   </div>
                 ))}
                 <Link href="/advanced-reporting">
@@ -279,10 +275,10 @@ export default function ModernHome() {
             </CardContent>
           </Card>
 
-          <Card className="border border-slate-200/60 shadow-sm bg-white">
+          <Card className="border border-rule bg-white shadow-none">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg text-slate-800">
-                <Activity className="h-5 w-5 mr-2.5 text-violet-600" />
+              <CardTitle className="flex items-center text-lg text-ink">
+                <Activity className="h-5 w-5 mr-2.5 text-signal-deep" />
                 Activité Récente
               </CardTitle>
             </CardHeader>
@@ -300,7 +296,7 @@ export default function ModernHome() {
                   ))
                 )}
                 <Link href="/iot-gamification">
-                  <Button className="w-full bg-violet-600 hover:bg-violet-700 rounded-xl mt-2">
+                  <Button className="w-full bg-signal-deep hover:bg-signal-deep rounded-xl mt-2">
                     <Activity className="h-4 w-4 mr-2" />
                     Monitoring IoT
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -313,7 +309,7 @@ export default function ModernHome() {
 
         {/* ── Bottom quick access ─────────────────────────── */}
         <div>
-          <h2 className="text-xl font-bold text-slate-800 mb-5">Outils & Ressources</h2>
+          <h2 className="text-xl font-bold text-ink mb-5">Outils & Ressources</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { href: "/profiles", icon: Users, label: "Utilisateurs", color: "blue" },

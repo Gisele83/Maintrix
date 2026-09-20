@@ -1,150 +1,111 @@
 import { Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Activity,
-  Settings,
-  Brain,
-  Zap,
-  BarChart3,
-  Users,
-  HelpCircle,
-  ArrowRight,
-  Sparkles,
-  Shield,
-  Database,
-  Cpu
-} from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Cpu, HelpCircle, Settings, Shield, Zap } from "lucide-react";
 
-const features = [
+/**
+ * Sommaire des modules de la plateforme.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI A CHANGÉ, ET POURQUOI
+ * ═══════════════════════════════════════════════════════════════════
+ * Chaque carte portait un dégradé de couleurs qui lui était propre
+ * (violet-rose, bleu-cyan, orange-rouge…), une pastille de catégorie et une
+ * ligne « Performance » affichant un chiffre : « 98% précision »,
+ * « 99% conformité », « 15+ métriques », « 120+ cas industriels ».
+ *
+ * Aucun de ces chiffres n'est mesuré. Ils décoraient. Devant un responsable
+ * maintenance, un chiffre invérifiable coûte plus cher qu'il ne rapporte : il
+ * suffit d'une question pour que tout le reste devienne suspect.
+ *
+ * Les cartes disent donc maintenant ce que chaque module FAIT, avec les mêmes
+ * filets et la même typographie que le reste de la plateforme.
+ */
+
+const MODULES = [
   {
-    title: "Supervision Adaptative",
-    description: "5 modules coopératifs avec modélisation causale dynamique et autonomie graduée",
-    icon: Brain,
+    titre: "Supervision et contrôle adaptatif",
+    description:
+      "Suivi des installations en temps réel, alertes contextualisées, et actions de pilotage dont vous réglez le degré d'autonomie.",
+    icone: Brain,
     href: "/cognitive-infrastructure",
-    gradient: "from-purple-500 to-pink-500",
-    badge: "Adaptatif",
-    features: ["Graphe causal 48+ noeuds", "Multi-Agent IA", "Autonomie graduée 0-5", "3 objectifs coopératifs"],
-    stats: "5 modules"
+    points: ["Connexion aux capteurs", "Graphe causal", "Autonomie réglable", "Verrouillage par permis"],
   },
   {
-    title: "Diagnostic Hybride",
-    description: "Moteur de diagnostic combinant règles expert, similarité historique et IA Claude",
-    icon: Cpu,
+    titre: "Diagnostic",
+    description:
+      "Causes probables classées, chacune rattachée à sa source : règle de maintenance, cas passé ou assistance IA.",
+    icone: Cpu,
     href: "/smart-diagnostic",
-    gradient: "from-violet-500 to-fuchsia-500",
-    badge: "IA + Expert",
-    features: ["120+ cas industriels", "Règles expert", "Similarité historique", "Structuration IA"],
-    stats: "98% précision"
+    points: ["Règles de maintenance", "Cas similaires", "Historique de la machine", "Aide à la formulation"],
   },
   {
-    title: "GMAO Intégrée",
-    description: "Backbone opérationnel : équipements, ordres de travail et maintenance préventive",
-    icon: Settings,
+    titre: "GMAO",
+    description:
+      "Équipements, ordres de travail, maintenance préventive et pièces détachées : le quotidien du service.",
+    icone: Settings,
     href: "/gmao",
-    gradient: "from-blue-500 to-cyan-500",
-    badge: "Enterprise",
-    features: ["Multi-tenant", "Workflow avancé", "Maintenance préventive", "Pièces détachées"],
-    stats: "99% conformité"
+    points: ["Parc et historique", "Ordres de travail", "Plans préventifs", "Pièces détachées"],
   },
   {
-    title: "Perception IoT",
-    description: "Capteurs intelligents et edge computing pour la perception autonome des machines",
-    icon: Zap,
-    href: "/iot-gamification",
-    gradient: "from-green-500 to-emerald-500",
-    badge: "Temps Réel",
-    features: ["Capteurs IoT", "Edge Intelligence", "Alertes prédictives", "Monitoring 24/7"],
-    stats: "24/7 actif"
+    titre: "Capteurs et maintenance prédictive",
+    description:
+      "État de santé par équipement, dérives détectées avant la panne, estimation de la durée de vie restante.",
+    icone: Zap,
+    href: "/predictive-insights",
+    points: ["Mesures en continu", "Détection d'anomalies", "Durée de vie résiduelle", "Jumeau numérique"],
   },
   {
-    title: "Analytics & Reporting",
-    description: "Tableaux de bord adaptatifs et analytics de performance industrielle",
-    icon: BarChart3,
+    titre: "Analyses et rapports",
+    description:
+      "Disponibilité, OEE, coûts et tendances, exportables pour vos comités et vos audits.",
+    icone: BarChart3,
     href: "/advanced-reporting",
-    gradient: "from-orange-500 to-red-500",
-    badge: "Analytics",
-    features: ["KPI temps réel", "Budget tracking", "Export PDF/Excel", "Tendances"],
-    stats: "15+ métriques"
+    points: ["Indicateurs de parc", "Suivi budgétaire", "Export PDF et Excel", "Tendances"],
   },
   {
-    title: "Administration & Sécurité",
-    description: "Gestion multi-tenant, contrôle d'accès RBAC et audit de sécurité",
-    icon: Shield,
-    href: "/admin-login",
-    gradient: "from-red-500 to-pink-500",
-    badge: "Sécurisé",
-    features: ["Gestion tenants", "RBAC 7 rôles", "Audit trail", "Contrôle accès"],
-    stats: "Multi-tenant"
+    titre: "Administration et sécurité",
+    description:
+      "Comptes, rôles et traçabilité : qui a fait quoi, quand, et avec quelles permissions.",
+    icone: Shield,
+    href: "/user-management",
+    points: ["Comptes et rôles", "Journal d'audit", "Contrôle d'accès", "Permis de travail"],
   },
   {
-    title: "Support & Formation",
-    description: "Documentation cognitive et assistant IA pour support technique",
-    icon: HelpCircle,
-    href: "/support-chatbot",
-    gradient: "from-teal-500 to-blue-500",
-    badge: "24/7",
-    features: ["Assistant IA", "Documentation", "Formation", "Import/Export"],
-    stats: "Support continu"
-  }
+    titre: "Documentation et formation",
+    description:
+      "Prise en main, procédures et assistance, accessibles depuis l'application.",
+    icone: HelpCircle,
+    href: "/documentation",
+    points: ["Guides d'utilisation", "Assistance", "Formation", "Import et export"],
+  },
 ];
 
 export default function FeatureCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
-      {features.map((feature) => {
-        const IconComponent = feature.icon;
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-rule border border-rule">
+      {MODULES.map((module) => {
+        const Icone = module.icone;
         return (
-          <div key={feature.title} className="group relative">
-            <div className="absolute inset-0 bg-white rounded-2xl -z-10 transition-all duration-300 group-hover:shadow-xl border border-slate-100 group-hover:border-blue-100" />
-            <div className="p-8">
-              <div className="flex items-start justify-between mb-6">
-                <div className={`p-4 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <IconComponent className="h-7 w-7 text-white" />
-                </div>
-                <Badge className={`bg-slate-50 text-slate-600 border-slate-200 font-semibold px-3 py-1 rounded-full group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors`}>
-                  {feature.badge}
-                </Badge>
-              </div>
+          <Link key={module.titre} href={module.href}>
+            <article className="group h-full bg-white p-6 flex flex-col transition-colors hover:bg-paper">
+              <Icone className="h-5 w-5 text-ink-mute" />
 
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                  {feature.description}
-                </p>
-              </div>
+              <h3 className="font-serif text-title font-medium text-ink mt-4">{module.titre}</h3>
+              <p className="text-sm text-ink-soft leading-relaxed mt-2">{module.description}</p>
 
-              <div className="space-y-3 mb-8">
-                {feature.features.map((feat, index) => (
-                  <div key={index} className="flex items-center space-x-3 text-sm font-medium text-slate-600">
-                    <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${feature.gradient} opacity-60`} />
-                    <span>{feat}</span>
-                  </div>
+              <ul className="mt-5 space-y-1.5 flex-1">
+                {module.points.map((point) => (
+                  <li key={point} className="text-sm text-ink-soft border-t border-rule pt-1.5">
+                    {point}
+                  </li>
                 ))}
-              </div>
+              </ul>
 
-              <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Performance</span>
-                  <span className={`text-sm font-bold bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}>
-                    {feature.stats}
-                  </span>
-                </div>
-                <Link href={feature.href}>
-                  <Button 
-                    variant="ghost"
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold group/btn"
-                  >
-                    Ouvrir
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+              <span className="mt-6 inline-flex items-center gap-1.5 text-sm text-signal group-hover:text-signal-deep transition-colors">
+                Ouvrir
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </article>
+          </Link>
         );
       })}
     </div>

@@ -195,21 +195,21 @@ export default function OeePage() {
   const avgOee = Number(stats?.avgOee || 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg">
+            <div className="p-2.5 rounded-xl bg-paper-deep">
               <Gauge className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               OEE — Efficacité Globale
             </h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Overall Equipment Effectiveness · Disponibilité × Performance × Qualité</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle saisie
         </Button>
       </div>
@@ -230,7 +230,7 @@ export default function OeePage() {
 
       {/* OEE Formula Banner */}
       <Card className="border-0 shadow-md mb-8 overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-4">
+        <div className="bg-paper-deep p-4">
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <div className="text-center">
               <p className="text-slate-400 text-xs mb-1">OEE</p>
@@ -242,8 +242,8 @@ export default function OeePage() {
             <div className="text-white text-2xl font-light">=</div>
             {[
               { label: "Disponibilité", value: stats?.avgAvailability, color: "from-blue-500 to-indigo-600" },
-              { label: "Performance", value: stats?.avgPerformance, color: "from-purple-500 to-violet-600" },
-              { label: "Qualité", value: stats?.avgQuality, color: "from-pink-500 to-rose-600" },
+              { label: "Performance", value: stats?.avgPerformance, color: " " },
+              { label: "Qualité", value: stats?.avgQuality, color: " to-rose-600" },
             ].map(({ label, value, color }, i) => (
               <div key={label} className="flex items-center gap-4">
                 {i > 0 && <span className="text-slate-400 text-2xl">×</span>}
@@ -267,7 +267,7 @@ export default function OeePage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -338,7 +338,7 @@ export default function OeePage() {
       </div>
 
       {/* Calculator */}
-      <Card className="border-0 shadow-md mb-8 bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+      <Card className="border-0 shadow-md mb-8 bg-ink text-white">
         <CardHeader>
           <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
             <Gauge className="h-4 w-4" /> Calculateur OEE en temps réel
@@ -434,7 +434,7 @@ export default function OeePage() {
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-2">
                           <span className="text-base font-bold" style={{ color: oeeColor(r.oee) }}>{pct(r.oee)}%</span>
-                          <Badge className={`text-xs text-white bg-gradient-to-r ${oeeBg(r.oee)}`}>
+                          <Badge className={`text-xs text-white bg-ink ${oeeBg(r.oee)}`}>
                             {oeeLabel(r.oee)}
                           </Badge>
                         </div>
@@ -537,7 +537,7 @@ export default function OeePage() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Enregistrer
                 </Button>

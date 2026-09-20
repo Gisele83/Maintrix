@@ -45,7 +45,7 @@ export default function SmartAlerts() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
@@ -83,11 +83,11 @@ export default function SmartAlerts() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -101,12 +101,12 @@ export default function SmartAlerts() {
             { icon: Bell, label: "Total alertes", value: summary.total, color: "from-slate-500 to-slate-600" },
             { icon: XCircle, label: "Critiques", value: summary.critical, color: "from-red-500 to-rose-600" },
             { icon: AlertTriangle, label: "Hautes", value: summary.high, color: "from-orange-500 to-amber-600" },
-            { icon: Brain, label: "Schémas IA", value: summary.patternDetected, color: "from-purple-500 to-violet-600" },
+            { icon: Brain, label: "Schémas IA", value: summary.patternDetected, color: " " },
             { icon: TrendingUp, label: "Prédictives", value: summary.predictive, color: "from-cyan-500 to-blue-600" }
           ].map((stat, i) => (
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-3 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shrink-0`}>
+                <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-4 h-4 text-white" />
                 </div>
                 <div>
@@ -188,7 +188,7 @@ export default function SmartAlerts() {
                 <Card key={alert.id} className={`bg-slate-900/60 border ${config.bg}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.gradient} flex items-center justify-center shrink-0 mt-0.5`}>
+                      <div className={`w-10 h-10 rounded-lg bg-paper-deep ${config.gradient} flex items-center justify-center shrink-0 mt-0.5`}>
                         <StatusIcon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -199,7 +199,7 @@ export default function SmartAlerts() {
                             {typeLabels[alert.type] || alert.type}
                           </Badge>
                           {alert.confidence && (
-                            <Badge variant="outline" className="text-[10px] text-purple-400 border-purple-500/30">
+                            <Badge variant="outline" className="text-[10px] text-signal-light border-rule/30">
                               <Brain className="w-2.5 h-2.5 mr-1" /> {Math.round(alert.confidence * 100)}% confiance
                             </Badge>
                           )}

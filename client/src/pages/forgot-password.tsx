@@ -43,7 +43,7 @@ export default function ForgotPassword() {
       setIsEmailSent(true);
       
       toast({
-        title: "✅ Demande envoyée",
+        title: "Demande envoyée",
         description: "Si cet email existe, un lien de réinitialisation a été envoyé",
       });
 
@@ -60,14 +60,14 @@ export default function ForgotPassword() {
 
   if (isEmailSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+            <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              📧 Email envoyé !
+            <CardTitle className="text-2xl font-bold text-ink">
+              Email envoyé !
             </CardTitle>
             <CardDescription>
               Vérifiez votre boîte de réception
@@ -83,7 +83,7 @@ export default function ForgotPassword() {
             </Alert>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-3">📋 Étapes suivantes :</h3>
+              <h3 className="font-semibold text-blue-900 mb-3">Étapes suivantes :</h3>
               <ol className="text-sm text-blue-800 space-y-2">
                 <li className="flex items-start space-x-2">
                   <span className="font-bold text-blue-600">1.</span>
@@ -142,14 +142,14 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
             <Shield className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🔐 Mot de passe oublié
+          <CardTitle className="text-2xl font-bold text-ink">
+            Mot de passe oublié
           </CardTitle>
           <CardDescription className="text-base">
             Saisissez votre email pour recevoir un lien de réinitialisation
@@ -188,7 +188,7 @@ export default function ForgotPassword() {
               />
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">🛡️ Sécurité et confidentialité</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Sécurité et confidentialité</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Nous ne révélons jamais si un email existe ou non</li>
                   <li>• Le lien de réinitialisation expire automatiquement</li>
@@ -199,7 +199,7 @@ export default function ForgotPassword() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 h-12"
+                className="w-full bg-ink text-white font-semibold py-3 h-12"
                 disabled={isLoading}
               >
                 {isLoading ? (

@@ -145,7 +145,7 @@ export default function ChangeCredentials() {
       });
 
       toast({
-        title: "✅ Identifiants mis à jour",
+        title: "Identifiants mis à jour",
         description: "Vos identifiants ont été changés avec succès. Vous pouvez maintenant utiliser la plateforme normalement.",
       });
 
@@ -167,7 +167,7 @@ export default function ChangeCredentials() {
 
   if (loadingUserInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -187,14 +187,14 @@ export default function ChangeCredentials() {
   const daysRemaining = expirationDate ? Math.ceil((expirationDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-xl">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
             <Shield className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🔐 Changement d'identifiants obligatoire
+          <CardTitle className="text-2xl font-bold text-ink">
+            Changement d'identifiants obligatoire
           </CardTitle>
           <CardDescription className="text-base">
             Pour votre sécurité, vous devez changer vos identifiants par défaut avant de continuer
@@ -224,12 +224,12 @@ export default function ChangeCredentials() {
 
           {/* Informations utilisateur actuelles */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">👤 Informations actuelles</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Informations actuelles</h3>
             <div className="space-y-1 text-sm text-blue-800">
               <p><strong>Email :</strong> {userInfo.email}</p>
               <p><strong>Nom d'utilisateur actuel :</strong> {userInfo.username}</p>
               {userInfo.canChangeUsername && (
-                <p className="text-green-700">✅ Vous pouvez modifier votre nom d'utilisateur</p>
+                <p className="text-green-700">Vous pouvez modifier votre nom d'utilisateur</p>
               )}
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function ChangeCredentials() {
 
               {/* Conseils de sécurité */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-900 mb-2">🛡️ Conseils de sécurité</h4>
+                <h4 className="font-semibold text-green-900 mb-2">Conseils de sécurité</h4>
                 <ul className="text-sm text-green-800 space-y-1">
                   <li>• Utilisez un mot de passe unique que vous n'utilisez nulle part ailleurs</li>
                   <li>• Combinez lettres majuscules, minuscules, chiffres et symboles</li>
@@ -378,7 +378,7 @@ export default function ChangeCredentials() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3"
+                className="w-full bg-ink text-white font-semibold py-3"
                 disabled={isLoading}
               >
                 {isLoading ? (

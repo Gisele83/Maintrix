@@ -235,7 +235,7 @@ export default function DataImportExport() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-950">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="text-center mb-8">
@@ -444,7 +444,7 @@ export default function DataImportExport() {
           <TabsContent value="export" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {DATA_TYPES.map((dataType) => (
-                <Card key={dataType.value} className="hover:shadow-lg transition-shadow">
+                <Card key={dataType.value} className="transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <dataType.icon className="w-5 h-5" />
@@ -506,7 +506,7 @@ export default function DataImportExport() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-medium capitalize">
-                              {item.type === 'import' ? '📥' : '📤'} {item.type}
+                              {item.type === 'import' ? '' : ''} {item.type}
                             </div>
                             <div className="text-sm text-gray-500">
                               {DATA_TYPES.find(t => t.value === item.dataType)?.label || item.dataType}
@@ -557,7 +557,7 @@ export default function DataImportExport() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium mb-3">📥 Import de Données</h4>
+                <h4 className="font-medium mb-3">Import de Données</h4>
                 <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                   <li>• Téléchargez d'abord un template pour voir le format requis</li>
                   <li>• Remplissez votre fichier en respectant les colonnes</li>
@@ -566,7 +566,7 @@ export default function DataImportExport() {
                 </ul>
               </div>
               <div>
-                <h4 className="font-medium mb-3">📤 Export de Données</h4>
+                <h4 className="font-medium mb-3">Export de Données</h4>
                 <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                   <li>• Sélectionnez le type de données à exporter</li>
                   <li>• Choisissez le format (CSV pour analyse, Excel pour présentation)</li>

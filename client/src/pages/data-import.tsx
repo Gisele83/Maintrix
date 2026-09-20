@@ -77,7 +77,7 @@ export default function DataImport() {
         setImportResult(transformedResult);
         
         toast({
-          title: "✅ Importation réussie",
+          title: "Importation réussie",
           description: `${transformedResult.data.equipment} équipements, ${transformedResult.data.workOrders} diagnostics, ${transformedResult.data.spareParts} procédures et ${transformedResult.data.maintenanceCases} cas croisés importés`,
         });
       } else {
@@ -88,7 +88,7 @@ export default function DataImport() {
       console.error("Import error:", error);
       setProgress(0);
       toast({
-        title: "❌ Erreur d'importation",
+        title: "Erreur d'importation",
         description: error.message || "Une erreur s'est produite lors de l'importation Excel",
         variant: "destructive",
       });
@@ -100,7 +100,7 @@ export default function DataImport() {
   const handleFileUpload = async () => {
     if (!selectedFile) {
       toast({
-        title: "❌ Fichier manquant",
+        title: "Fichier manquant",
         description: "Veuillez sélectionner un fichier Excel à importer",
         variant: "destructive",
       });
@@ -158,7 +158,7 @@ export default function DataImport() {
         setImportResult(transformedResult);
         
         toast({
-          title: "✅ Importation fichier réussie",
+          title: "Importation fichier réussie",
           description: `${transformedResult.data.equipment} équipements, ${transformedResult.data.workOrders} diagnostics, ${transformedResult.data.spareParts} procédures et ${transformedResult.data.maintenanceCases} cas importés depuis votre fichier`,
         });
 
@@ -175,7 +175,7 @@ export default function DataImport() {
       console.error("Upload error:", error);
       setProgress(0);
       toast({
-        title: "❌ Erreur d'importation fichier",
+        title: "Erreur d'importation fichier",
         description: error.message || "Une erreur s'est produite lors de l'importation de votre fichier Excel",
         variant: "destructive",
       });
@@ -193,12 +193,12 @@ export default function DataImport() {
           file.name.endsWith('.xls')) {
         setSelectedFile(file);
         toast({
-          title: "✅ Fichier sélectionné",
+          title: "Fichier sélectionné",
           description: `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
         });
       } else {
         toast({
-          title: "❌ Format invalide",
+          title: "Format invalide",
           description: "Veuillez sélectionner un fichier Excel (.xlsx ou .xls)",
           variant: "destructive",
         });
@@ -208,11 +208,11 @@ export default function DataImport() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl font-bold text-ink mb-4">
             Importation des Données Industrielles
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
@@ -228,7 +228,7 @@ export default function DataImport() {
                 variant={subscriptionStatus === 'premium' ? 'default' : 'outline'}
                 className="text-xs"
               >
-                {subscriptionStatus === 'premium' ? '👑 Premium' : '🔒 Gratuit'}
+                {subscriptionStatus === 'premium' ? 'Premium' : 'Gratuit'}
               </Button>
             </div>
           </div>
@@ -236,8 +236,8 @@ export default function DataImport() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Demo Data Import Section */}
-          <Card className="border-0 shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+          <Card className="border-0">
+            <CardHeader className="bg-ink text-white">
               <CardTitle className="flex items-center text-xl">
                 <FileSpreadsheet className="w-5 h-5 mr-3" />
                 Données Démo
@@ -287,8 +287,8 @@ export default function DataImport() {
           </Card>
 
           {/* User File Upload Section */}
-          <Card className="border-0 shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+          <Card className="border-0">
+            <CardHeader className="bg-ink text-white">
               <CardTitle className="flex items-center text-xl">
                 <CloudUpload className="w-5 h-5 mr-3" />
                 Vos Données
@@ -297,16 +297,16 @@ export default function DataImport() {
             <CardContent className="p-6">
               <div className="space-y-4">
                 {subscriptionStatus === 'premium' ? (
-                  <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
-                    <h3 className="font-semibold text-purple-900 mb-2 flex items-center">
-                      <Badge className="bg-purple-600 text-white mr-2">PREMIUM</Badge>
+                  <div className="bg-paper-deep p-4 rounded-lg border-l-4 border-rule">
+                    <h3 className="font-semibold text-signal-deep mb-2 flex items-center">
+                      <Badge className="bg-signal-deep text-white mr-2">PREMIUM</Badge>
                       Importez votre historique d'équipements
                     </h3>
-                    <p className="text-purple-700 text-sm mb-3">
+                    <p className="text-signal-deep text-sm mb-3">
                       En tant qu'abonné Premium, importez vos propres données de maintenance 
                       historiques pour enrichir le système de diagnostic IA avec votre expérience terrain.
                     </p>
-                    <div className="text-xs text-purple-600 space-y-1">
+                    <div className="text-xs text-signal-deep space-y-1">
                       <p>• Format supporté : Excel (.xlsx, .xls)</p>
                       <p>• Colonnes requises : Équipement, Symptômes, Diagnostic, Solutions</p>
                       <p>• Intégration automatique dans l'IA diagnostique</p>
@@ -341,7 +341,7 @@ export default function DataImport() {
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
+                    className="w-full border-rule text-signal-deep hover:bg-paper-deep"
                     disabled={subscriptionStatus !== 'premium' || isUploadingFile || isImporting}
                   >
                     <FileText className="w-4 h-4 mr-2" />
@@ -377,7 +377,7 @@ export default function DataImport() {
                   <Button 
                     onClick={handleFileUpload}
                     disabled={subscriptionStatus !== 'premium' || !selectedFile || isUploadingFile || isImporting}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-sm py-4"
+                    className="w-full bg-signal-deep hover:bg-signal-deep text-sm py-4"
                   >
                     {isUploadingFile ? (
                       <>
@@ -402,8 +402,8 @@ export default function DataImport() {
           </Card>
 
           {/* Results Section */}
-          <Card className="border-0 shadow-2xl">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
+          <Card className="border-0">
+            <CardHeader className="bg-ink text-white">
               <CardTitle className="flex items-center text-2xl">
                 <BarChart3 className="w-6 h-6 mr-3" />
                 Résultats d'Importation
@@ -427,10 +427,10 @@ export default function DataImport() {
                       <p className="text-sm text-blue-700">Équipements</p>
                     </div>
                     
-                    <div className="bg-purple-50 p-4 rounded-lg text-center">
-                      <Wrench className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-purple-900">{importResult.data.workOrders}</p>
-                      <p className="text-sm text-purple-700">Ordres de Travail</p>
+                    <div className="bg-paper-deep p-4 rounded-lg text-center">
+                      <Wrench className="w-8 h-8 text-signal-deep mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-signal-deep">{importResult.data.workOrders}</p>
+                      <p className="text-sm text-signal-deep">Ordres de Travail</p>
                     </div>
                     
                     <div className="bg-orange-50 p-4 rounded-lg text-center">
@@ -473,7 +473,7 @@ export default function DataImport() {
         </div>
 
         {/* Data Preview */}
-        <Card className="mt-8 border-0 shadow-2xl">
+        <Card className="mt-8 border-0">
           <CardHeader>
             <CardTitle className="flex items-center text-2xl">
               <TrendingUp className="w-6 h-6 mr-3" />
@@ -482,7 +482,7 @@ export default function DataImport() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
+              <div className="bg-paper-deep p-6 rounded-lg">
                 <Factory className="w-8 h-8 text-blue-600 mb-3" />
                 <h3 className="font-semibold text-blue-900 mb-2">Équipements Industriels</h3>
                 <ul className="text-sm text-blue-700 space-y-1">
@@ -493,10 +493,10 @@ export default function DataImport() {
                 </ul>
               </div>
               
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg">
-                <Wrench className="w-8 h-8 text-purple-600 mb-3" />
-                <h3 className="font-semibold text-purple-900 mb-2">Interventions Maintenance</h3>
-                <ul className="text-sm text-purple-700 space-y-1">
+              <div className="bg-paper-deep p-6 rounded-lg">
+                <Wrench className="w-8 h-8 text-signal-deep mb-3" />
+                <h3 className="font-semibold text-signal-deep mb-2">Interventions Maintenance</h3>
+                <ul className="text-sm text-signal-deep space-y-1">
                   <li>• Maintenance préventive</li>
                   <li>• Réparations urgentes</li>
                   <li>• Remplacements planifiés</li>
@@ -504,7 +504,7 @@ export default function DataImport() {
                 </ul>
               </div>
               
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
+              <div className="bg-paper-deep p-6 rounded-lg">
                 <Package className="w-8 h-8 text-green-600 mb-3" />
                 <h3 className="font-semibold text-green-900 mb-2">Pièces & Ressources</h3>
                 <ul className="text-sm text-green-700 space-y-1">

@@ -524,7 +524,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
                 {/* Symptômes prioritaires */}
                 <div className="mb-4">
                   <h4 className="font-medium text-sm text-red-700 mb-2 flex items-center">
-                    🚨 Symptômes critiques
+                    Symptômes critiques
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "high").map((symptom) => (
@@ -548,7 +548,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
                 {/* Symptômes moyens */}
                 <div className="mb-4">
                   <h4 className="font-medium text-sm text-orange-700 mb-2 flex items-center">
-                    ⚠️ Symptômes moyens
+                    Symptômes moyens
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "medium").map((symptom) => (
@@ -572,7 +572,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
                 {/* Symptômes mineurs */}
                 <div>
                   <h4 className="font-medium text-sm text-blue-700 mb-2 flex items-center">
-                    ℹ️ Symptômes mineurs
+                    ℹSymptômes mineurs
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "low").map((symptom) => (

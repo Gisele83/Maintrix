@@ -50,8 +50,8 @@ interface Stats {
 const METHODOLOGIES = [
   { value: "5_whys", label: "5 Pourquoi", icon: List, color: "from-blue-500 to-indigo-600", badge: "bg-blue-100 text-blue-700" },
   { value: "fishbone", label: "Ishikawa", icon: Fish, color: "from-orange-500 to-amber-600", badge: "bg-orange-100 text-orange-700" },
-  { value: "fmea", label: "FMEA/AMDEC", icon: GitBranch, color: "from-purple-500 to-violet-600", badge: "bg-purple-100 text-purple-700" },
-  { value: "fault_tree", label: "Arbre de défaillance", icon: Target, color: "from-rose-500 to-pink-600", badge: "bg-rose-100 text-rose-700" },
+  { value: "fmea", label: "FMEA/AMDEC", icon: GitBranch, color: " ", badge: "bg-paper-deep text-signal-deep" },
+  { value: "fault_tree", label: "Arbre de défaillance", icon: Target, color: "from-rose-500 ", badge: "bg-rose-100 text-rose-700" },
 ];
 const SEVERITIES = [
   { value: "low", label: "Faible", color: "bg-green-100 text-green-700" },
@@ -66,12 +66,12 @@ const STATUSES = [
   { value: "verified", label: "Vérifié", icon: CheckCircle2, color: "bg-slate-100 text-slate-700" },
 ];
 const FISHBONE_CATEGORIES = [
-  { key: "manpower", label: "Main-d'œuvre", emoji: "👷" },
-  { key: "machine", label: "Machine", emoji: "⚙️" },
-  { key: "material", label: "Matière", emoji: "📦" },
-  { key: "method", label: "Méthode", emoji: "📋" },
-  { key: "environment", label: "Milieu", emoji: "🌿" },
-  { key: "measurement", label: "Mesure", emoji: "📏" },
+  { key: "manpower", label: "Main-d'œuvre", emoji: "" },
+  { key: "machine", label: "Machine", emoji: "" },
+  { key: "material", label: "Matière", emoji: "" },
+  { key: "method", label: "Méthode", emoji: "" },
+  { key: "environment", label: "Milieu", emoji: "" },
+  { key: "measurement", label: "Mesure", emoji: "" },
 ];
 
 const getMethodology = (v: string) => METHODOLOGIES.find(m => m.value === v) || METHODOLOGIES[0];
@@ -172,21 +172,21 @@ export default function RcaPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/20 to-indigo-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-lg">
+            <div className="p-2.5 rounded-xl bg-paper-deep">
               <Fish className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               Analyse des Causes Racines
             </h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Root Cause Analysis — 5 Pourquoi · Ishikawa · FMEA</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle RCA
         </Button>
       </div>
@@ -201,7 +201,7 @@ export default function RcaPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -212,7 +212,7 @@ export default function RcaPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {METHODOLOGIES.map(({ value, label, icon: Icon, color }) => (
           <div key={value} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-gradient-to-br ${color}`}><Icon className="h-4 w-4 text-white" /></div>
+            <div className={`p-2 rounded-lg bg-paper-deep ${color}`}><Icon className="h-4 w-4 text-white" /></div>
             <div>
               <p className="text-lg font-bold text-slate-800">{stats?.byMethodology?.[value] ?? 0}</p>
               <p className="text-xs text-slate-500">{label}</p>
@@ -251,7 +251,7 @@ export default function RcaPage() {
           <Fish className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune analyse RCA</h3>
           <p className="text-slate-400 text-sm mb-6">Créez une première analyse de causes racines</p>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white gap-2">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
             <Plus className="h-4 w-4" /> Nouvelle RCA
           </Button>
         </div>
@@ -271,7 +271,7 @@ export default function RcaPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${methodConf.color} shadow-sm`}>
+                      <div className={`p-2.5 rounded-xl bg-paper-deep ${methodConf.color} shadow-sm`}>
                         <MethodIcon className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -283,18 +283,18 @@ export default function RcaPage() {
                         </div>
                         <h3 className="font-semibold text-slate-800 truncate">{rca.title}</h3>
                         <div className="flex items-center gap-4 mt-2 flex-wrap text-xs text-slate-500">
-                          {rca.equipmentName && <span>📍 {rca.equipmentName}</span>}
-                          {rca.failureDate && <span>📅 {new Date(rca.failureDate).toLocaleDateString("fr-FR")}</span>}
-                          {rca.estimatedLoss && <span className="text-red-600 font-medium">💸 {Number(rca.estimatedLoss).toLocaleString("fr-FR")} {rca.currency}</span>}
+                          {rca.equipmentName && <span>{rca.equipmentName}</span>}
+                          {rca.failureDate && <span>{new Date(rca.failureDate).toLocaleDateString("fr-FR")}</span>}
+                          {rca.estimatedLoss && <span className="text-red-600 font-medium">{Number(rca.estimatedLoss).toLocaleString("fr-FR")} {rca.currency}</span>}
                           {totalActions > 0 && (
                             <span className={completedActions === totalActions ? "text-green-600" : ""}>
-                              ✅ {completedActions}/{totalActions} actions
+                              {completedActions}/{totalActions} actions
                             </span>
                           )}
                         </div>
                         {rca.rootCause && (
-                          <p className="mt-2 text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded border-l-2 border-purple-300 truncate">
-                            <span className="font-medium text-purple-700">Cause racine:</span> {rca.rootCause}
+                          <p className="mt-2 text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded border-l-2 border-rule truncate">
+                            <span className="font-medium text-signal-deep">Cause racine:</span> {rca.rootCause}
                           </p>
                         )}
                       </div>
@@ -317,7 +317,7 @@ export default function RcaPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Fish className="h-5 w-5 text-purple-600" /> Nouvelle analyse RCA
+              <Fish className="h-5 w-5 text-signal-deep" /> Nouvelle analyse RCA
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -331,11 +331,11 @@ export default function RcaPage() {
                         onClick={() => field.onChange(value)}
                         className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left ${
                           field.value === value
-                            ? `border-purple-400 bg-purple-50 shadow`
+                            ? `border-rule bg-paper-deep shadow`
                             : "border-slate-200 bg-white hover:border-slate-300"
                         }`}
                       >
-                        <div className={`p-1.5 rounded-lg bg-gradient-to-br ${color}`}><Icon className="h-3.5 w-3.5 text-white" /></div>
+                        <div className={`p-1.5 rounded-lg bg-paper-deep ${color}`}><Icon className="h-3.5 w-3.5 text-white" /></div>
                         <span className="text-xs font-medium">{label}</span>
                       </button>
                     ))}
@@ -393,7 +393,7 @@ export default function RcaPage() {
               )} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Créer
                 </Button>
@@ -408,8 +408,8 @@ export default function RcaPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200">
-                <div className={`p-2.5 bg-gradient-to-br ${getMethodology(selected.methodology).color} rounded-xl shadow-sm`}>
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-rule">
+                <div className={`p-2.5 bg-paper-deep ${getMethodology(selected.methodology).color} rounded-xl shadow-sm`}>
                   {(() => { const I = getMethodology(selected.methodology).icon; return <I className="h-5 w-5 text-white" />; })()}
                 </div>
                 <div className="flex-1">
@@ -427,7 +427,7 @@ export default function RcaPage() {
             <div className="flex gap-2 flex-wrap">
               {STATUSES.map(s => (
                 <Button key={s.value} variant={selected.status === s.value ? "default" : "outline"} size="sm"
-                  className={selected.status === s.value ? "bg-purple-600" : ""}
+                  className={selected.status === s.value ? "bg-signal-deep" : ""}
                   onClick={() => updateMutation.mutate({ id: selected.id, data: { status: s.value } })}
                 >{s.label}</Button>
               ))}
@@ -460,9 +460,9 @@ export default function RcaPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
-                      <Target className="h-4 w-4 text-purple-600" /> Cause racine identifiée
+                      <Target className="h-4 w-4 text-signal-deep" /> Cause racine identifiée
                     </label>
-                    <Textarea className="mt-1 border-purple-200" rows={2} defaultValue={selected.rootCause || ""}
+                    <Textarea className="mt-1 border-rule" rows={2} defaultValue={selected.rootCause || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { rootCause: e.target.value } })} />
                   </div>
                 </div>
@@ -481,8 +481,8 @@ export default function RcaPage() {
               {/* ── Synthesis ── */}
               <TabsContent value="synthesis" className="space-y-4 mt-4">
                 {selected.rootCause && (
-                  <div className="p-4 rounded-xl bg-purple-50 border border-purple-200">
-                    <h4 className="font-semibold text-purple-800 mb-1 flex items-center gap-2"><Target className="h-4 w-4" />Cause racine</h4>
+                  <div className="p-4 rounded-xl bg-paper-deep border border-rule">
+                    <h4 className="font-semibold text-signal-deep mb-1 flex items-center gap-2"><Target className="h-4 w-4" />Cause racine</h4>
                     <p className="text-slate-700">{selected.rootCause}</p>
                   </div>
                 )}
@@ -543,19 +543,19 @@ function WhyChainEditor({ chain, onSave, isSaving }: { chain: WhyStep[]; onSave:
       {local.map((step, i) => (
         <div key={i} className="flex items-start gap-3">
           <div className="flex flex-col items-center">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow">{i + 1}</div>
-            {i < local.length - 1 && <div className="w-0.5 h-full bg-purple-200 mt-1 min-h-8" />}
+            <div className="w-8 h-8 rounded-full bg-ink flex items-center justify-center text-white text-sm font-bold shadow">{i + 1}</div>
+            {i < local.length - 1 && <div className="w-0.5 h-full bg-signal-deep mt-1 min-h-8" />}
           </div>
           <div className="flex-1 space-y-2">
             <Input value={step.why} onChange={e => update(i, "why", e.target.value)} className="text-sm font-medium" placeholder={`Pourquoi ${i + 1} ?`} />
             <Textarea value={step.answer} onChange={e => update(i, "answer", e.target.value)} rows={2}
-              className={`text-sm transition-colors ${step.answer ? "border-purple-200 bg-purple-50/30" : ""}`}
+              className={`text-sm transition-colors ${step.answer ? "border-rule bg-paper-deep/30" : ""}`}
               placeholder="Réponse / explication..." />
           </div>
           {i < local.length - 1 && <ArrowRight className="h-5 w-5 text-slate-400 mt-3 shrink-0" />}
         </div>
       ))}
-      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
+      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-signal-deep hover:bg-signal-deep text-white gap-2">
         {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Enregistrer la chaîne
       </Button>
     </div>
@@ -574,7 +574,7 @@ function FishboneEditor({ fishbone, onSave, isSaving }: { fishbone: Fishbone; on
 
   return (
     <div className="space-y-4">
-      <div className="text-center py-2 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg">
+      <div className="text-center py-2 bg-paper-deep border border-orange-200 rounded-lg">
         <p className="text-sm font-semibold text-orange-800">Diagramme d'Ishikawa — Causes par catégorie (6M)</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -669,7 +669,7 @@ function ActionPlanEditor({ plans, onSave, isSaving }: { plans: ActionPlan[]; on
         <Button onClick={add} variant="outline"><Plus className="h-4 w-4" /></Button>
       </div>
 
-      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-purple-600 hover:bg-purple-700 text-white gap-2">
+      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-signal-deep hover:bg-signal-deep text-white gap-2">
         {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Enregistrer les actions
       </Button>
     </div>

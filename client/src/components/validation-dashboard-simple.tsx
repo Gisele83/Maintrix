@@ -168,7 +168,7 @@ export default function ValidationDashboard({
   };
 
   const getDocumentTypeIcon = (documentType?: string) => {
-    return documentType === "command_letter" ? "📄" : "🧾";
+    return documentType === "command_letter" ? "" : "";
   };
 
   return (
@@ -314,7 +314,7 @@ export default function ValidationDashboard({
                 </Card>
               ) : (
                 pendingPurchaseOrders.map((purchaseOrder) => (
-                  <Card key={purchaseOrder.id} className="border-l-4 border-l-purple-500">
+                  <Card key={purchaseOrder.id} className="border-l-4 border-l-signal">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

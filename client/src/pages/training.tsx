@@ -310,7 +310,7 @@ export default function Training() {
   // Si un module est sélectionné, afficher le ModuleViewer
   if (selectedModule) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
         <ModernNavigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
@@ -334,11 +334,11 @@ export default function Training() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
       <ModernNavigation />
       
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">
+      <div className="bg-paper-deep from-primary/5 via-primary/10 to-primary/5 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center space-y-4">
             <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
@@ -357,7 +357,7 @@ export default function Training() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Progress Dashboard */}
-        <Card className="border-0 shadow-xl bg-gradient-to-r from-primary/5 to-primary/10">
+        <Card className="border-0 bg-paper-deep from-primary/5 to-primary/10">
           <CardContent className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="text-center">
@@ -418,9 +418,7 @@ export default function Training() {
               return (
                 <Card 
                   key={path.id} 
-                  className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${
-                    selectedPath === path.id ? 'ring-2 ring-primary' : ''
-                  }`}
+                  className={`border-0 transition-all duration-300 cursor-pointer ${ selectedPath === path.id ? 'ring-2 ring-primary' : '' }`}
                   onClick={() => setSelectedPath(selectedPath === path.id ? null : path.id)}
                 >
                   <CardHeader>
@@ -457,7 +455,7 @@ export default function Training() {
 
           {/* Selected Path Details */}
           {selectedPath && (
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+            <Card className="border-0 bg-paper-deep">
               <CardHeader>
                 <CardTitle className="text-blue-800 dark:text-blue-200">
                   Modules du {learningPaths.find(p => p.id === selectedPath)?.title}
@@ -506,7 +504,7 @@ export default function Training() {
             {trainingModules.map((module) => {
               const IconComponent = module.icon;
               return (
-                <Card key={module.id} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Card key={module.id} className="border-0 transition-all duration-300">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
@@ -602,7 +600,7 @@ export default function Training() {
         </div>
 
         {/* Certification Section */}
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900">
+        <Card className="border-0 bg-paper-deep">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200">
               <Award className="w-6 h-6" />

@@ -364,7 +364,7 @@ export default function ERPConfiguration() {
 
   if (loadingModules || loadingTemplates) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
@@ -378,14 +378,14 @@ export default function ERPConfiguration() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
               <Settings className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -395,7 +395,7 @@ export default function ERPConfiguration() {
           </div>
 
           {/* Status Bar */}
-          <div className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
             <div className="flex items-center gap-6">
               <div className="text-sm">
                 <span className="text-gray-500">Modules activés:</span>
@@ -464,11 +464,7 @@ export default function ERPConfiguration() {
                     return (
                       <Card 
                         key={template.id}
-                        className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-                          isSelected 
-                            ? 'ring-2 ring-blue-500 bg-blue-50' 
-                            : 'hover:shadow-md'
-                        }`}
+                        className={`cursor-pointer transition-all duration-200 ${ isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md' }`}
                         onClick={() => setSelectedSector(template.key)}
                       >
                         <CardContent className="p-4">
@@ -572,7 +568,7 @@ export default function ERPConfiguration() {
                         const isEnabled = moduleConfig[module.key] || false;
                         
                         return (
-                          <Card key={module.id} className="bg-gradient-to-br from-green-50 to-blue-50">
+                          <Card key={module.id} className="bg-paper-deep">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-3 flex-1">
@@ -629,7 +625,7 @@ export default function ERPConfiguration() {
                         const isEnabled = moduleConfig[module.key] || false;
                         
                         return (
-                          <Card key={module.id} className={isEnabled ? "bg-gradient-to-br from-blue-50 to-purple-50" : ""}>
+                          <Card key={module.id} className={isEnabled ? "bg-paper-deep" : ""}>
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-3 flex-1">

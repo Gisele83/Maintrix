@@ -47,7 +47,7 @@ export function LessonViewer({
 
     if (newCompleted.size === lesson.content.steps.length) {
       toast({
-        title: "✅ Leçon terminée!",
+        title: "Leçon terminée!",
         description: "Vous pouvez maintenant passer aux exercices ou à la leçon suivante.",
       });
     }
@@ -79,7 +79,7 @@ export function LessonViewer({
     const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
     toast({
-      title: score >= 70 ? "🎉 Quiz réussi!" : "📚 Continuez vos efforts",
+      title: score >= 70 ? "Quiz réussi!" : "Continuez vos efforts",
       description: `Score: ${score.toFixed(0)}% (${correctAnswers}/${totalQuestions})`,
       variant: score >= 70 ? "default" : "destructive"
     });
@@ -93,7 +93,7 @@ export function LessonViewer({
   if (!lesson || !lesson.content || !lesson.content.steps || lesson.content.steps.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardContent className="pt-6 text-center">
             <p className="text-gray-600">Aucune leçon disponible.</p>
           </CardContent>
@@ -108,7 +108,7 @@ export function LessonViewer({
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
+      <Card className="border-0 bg-paper-deep">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -132,7 +132,7 @@ export function LessonViewer({
       </Card>
 
       {/* Progress */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Progression</span>
@@ -147,7 +147,7 @@ export function LessonViewer({
 
       {/* Step Content */}
       {!showExercises && currentStepData && currentStep < lesson.content.steps.length && (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>{currentStepData.title}</span>
@@ -181,13 +181,13 @@ export function LessonViewer({
 
             {/* Interactive Element */}
             {currentStepData.interactive && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-6 rounded-xl border border-green-200 dark:border-green-800">
+              <div className="bg-paper-deep p-6 rounded-xl border border-green-200 dark:border-green-800">
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full mb-3">
                     <Code className="w-8 h-8" />
                   </div>
                   <div className="font-bold text-green-800 dark:text-green-200 text-lg mb-2">
-                    💡 Exercice Pratique
+                    Exercice Pratique
                   </div>
                   <p className="text-green-700 dark:text-green-300">
                     Cette section comprend des exercices pratiques pour appliquer les concepts appris.
@@ -235,7 +235,7 @@ export function LessonViewer({
 
       {/* Exercises Section */}
       {showExercises && lesson.content.exercises && (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Award className="w-6 h-6 mr-2 text-yellow-600" />

@@ -44,7 +44,7 @@ export default function EquipmentQR() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
@@ -100,12 +100,12 @@ export default function EquipmentQR() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
               <QrCode className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -142,7 +142,7 @@ export default function EquipmentQR() {
         <Card className="bg-slate-900/60 border-white/10">
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-sm flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-violet-400" />
+              <Smartphone className="w-4 h-4 text-signal-light" />
               Comment utiliser les QR codes
             </CardTitle>
           </CardHeader>
@@ -154,7 +154,7 @@ export default function EquipmentQR() {
                 { step: "3", title: "Accédez", desc: "Accédez instantanément à la fiche complète de l'équipement", icon: Eye }
               ].map((s, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center text-sm font-bold shrink-0">{s.step}</div>
+                  <div className="w-8 h-8 rounded-full bg-signal-deep/20 text-signal-light flex items-center justify-center text-sm font-bold shrink-0">{s.step}</div>
                   <div>
                     <p className="text-sm font-medium text-white">{s.title}</p>
                     <p className="text-xs text-slate-400">{s.desc}</p>
@@ -263,7 +263,7 @@ export default function EquipmentQR() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600" onClick={() => {
+                  <Button className="flex-1 bg-paper-deep" onClick={() => {
                     const svg = document.querySelector(`#qr-detail-${selectedEquipment.equipment.id}`)?.closest('svg');
                     if (svg) {
                       const svgData = new XMLSerializer().serializeToString(svg);

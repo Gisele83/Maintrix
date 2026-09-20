@@ -251,7 +251,7 @@ export function ModernNavigation() {
             {/* Bascule thème clair/sombre */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white/10"
+              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white"
               title={theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre"}
               aria-label={theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre"}
             >
@@ -260,7 +260,7 @@ export function ModernNavigation() {
 
             {/* Notification Bell */}
             <Link href="/mobile-notifications">
-              <button className="relative p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white/10" title="Notifications" aria-label="Notifications">
+              <button className="relative p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white" title="Notifications" aria-label="Notifications">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-signal-deep text-white font-mono text-[10px] leading-4 text-center">
@@ -279,7 +279,7 @@ export function ModernNavigation() {
             {showReturnToAdmin && (
               <button
                 onClick={handleReturnToAdmin}
-                className="p-2 text-signal-deep hover:bg-paper-deep transition-colors dark:text-signal-light dark:hover:bg-white/10"
+                className="p-2 text-signal-deep hover:bg-paper-deep transition-colors dark:text-signal-light dark:hover:bg-white"
                 title="Retourner à l'interface super-admin"
                 aria-label="Retourner à l'interface super-admin"
               >
@@ -291,7 +291,7 @@ export function ModernNavigation() {
             {!showReturnToAdmin && (
               <Link href="/admin-login">
                 <button
-                  className="p-2 text-ink-mute hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/60 dark:hover:text-paper dark:hover:bg-white/10"
+                  className="p-2 text-ink-mute hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/60 dark:hover:text-paper dark:hover:bg-white"
                   title="Accès administration plateforme"
                   aria-label="Accès administration plateforme"
                 >
@@ -302,7 +302,7 @@ export function ModernNavigation() {
 
             <button
               onClick={handleLogout}
-              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white/10"
+              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white"
               title="Déconnexion"
               aria-label="Déconnexion"
             >

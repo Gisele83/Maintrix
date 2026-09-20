@@ -91,7 +91,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
 
         <div className="space-y-6">
           {/* Diagnostic Summary */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+          <div className="bg-paper-deep p-4 rounded-lg border border-blue-200">
             <h3 className="font-semibold text-blue-900 mb-2">Diagnostic fourni:</h3>
             <p className="text-sm text-blue-800 mb-2">{diagnosis}</p>
             <p className="text-sm text-blue-700">{solution}</p>
@@ -225,7 +225,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
           <Button
             onClick={handleSubmit}
             disabled={feedbackMutation.isPending || rating === 0}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            className="bg-paper-deep"
           >
             {feedbackMutation.isPending ? (
               <>

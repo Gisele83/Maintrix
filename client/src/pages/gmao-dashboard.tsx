@@ -150,7 +150,7 @@ export default function GMAODashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
         <ModernNavigation />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -160,11 +160,11 @@ export default function GMAODashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
       <ModernNavigation />
 
       {/* Navigation Tabs */}
-      <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
+      <nav className="bg-card/80 border-b sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
@@ -259,7 +259,7 @@ export default function GMAODashboard() {
         {!showAdminModal && activeTab === "overview" && (
           <div className="space-y-6">
             {/* Welcome Header */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl p-6 border border-primary/20">
+            <div className="bg-paper-deep from-primary/10 via-primary/5 rounded-xl p-6 border border-primary/20">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">Tableau de Bord GMAO</h1>
@@ -282,12 +282,12 @@ export default function GMAODashboard() {
 
             {/* KPI Cards - Improved Design */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+              <Card className="relative overflow-hidden border-0 bg-ink text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-blue-100">Équipements</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
+                    <div className="p-2 bg-white rounded-lg">
                       <Factory className="h-5 w-5" />
                     </div>
                   </div>
@@ -301,12 +301,12 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+              <Card className="relative overflow-hidden border-0 bg-ink text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-amber-100">OT en Cours</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
+                    <div className="p-2 bg-white rounded-lg">
                       <Wrench className="h-5 w-5" />
                     </div>
                   </div>
@@ -320,12 +320,12 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-500 to-red-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+              <Card className="relative overflow-hidden border-0 bg-ink text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-rose-100">Alertes</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
+                    <div className="p-2 bg-white rounded-lg">
                       <AlertTriangle className="h-5 w-5" />
                     </div>
                   </div>
@@ -339,19 +339,19 @@ export default function GMAODashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
+              <Card className="relative overflow-hidden border-0 bg-ink text-white">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-violet-100">Stock Critique</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
+                    <CardTitle className="text-sm font-medium text-paper-deep">Stock Critique</CardTitle>
+                    <div className="p-2 bg-white rounded-lg">
                       <Package className="h-5 w-5" />
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold">{dashboardData?.lowStockPartsCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-violet-100">
+                  <div className="flex items-center mt-2 text-sm text-paper-deep">
                     <ShoppingCart className="w-4 h-4 mr-1" />
                     <span>À réapprovisionner</span>
                   </div>
@@ -363,31 +363,31 @@ export default function GMAODashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
                 { icon: Heart, label: "Santé Machines", href: "/machine-health", color: "from-green-500 to-emerald-600" },
-                { icon: Brain, label: "Alertes IA", href: "/smart-alerts", color: "from-purple-500 to-violet-600" },
+                { icon: Brain, label: "Alertes IA", href: "/smart-alerts", color: " " },
                 { icon: Timer, label: "SLA", href: "/sla-management", color: "from-amber-500 to-orange-600" },
                 { icon: Radio, label: "Capteurs IoT", href: "/sensor-hub", color: "from-cyan-500 to-blue-600" },
-                { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: "from-violet-500 to-purple-600" },
+                { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: " " },
                 { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" },
-                { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: "from-fuchsia-500 to-pink-600" },
+                { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: " " },
                 { icon: Zap, label: "Intégrations", href: "/advanced-integrations", color: "from-yellow-500 to-orange-500" },
                 { icon: Bell, label: "Communications", href: "/communication-integrations", color: "from-indigo-500 to-blue-600" },
                 { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" },
-                { icon: Fish, label: "Causes Racines", href: "/rca", color: "from-purple-600 to-indigo-600" },
+                { icon: Fish, label: "Causes Racines", href: "/rca", color: " to-indigo-600" },
                 { icon: Gauge, label: "OEE", href: "/oee", color: "from-emerald-500 to-teal-600" },
                 { icon: AlertTriangle, label: "FMEA / AMDEC", href: "/fmea", color: "from-orange-500 to-amber-600" },
                 { icon: Package, label: "Cycle de vie actifs", href: "/asset-lifecycle", color: "from-blue-600 to-cyan-600" },
                 { icon: FlaskConical, label: "Calibrations", href: "/calibration", color: "from-teal-500 to-cyan-600" },
-                { icon: UserCheck, label: "Habilitations", href: "/habilitation", color: "from-indigo-600 to-purple-600" },
+                { icon: UserCheck, label: "Habilitations", href: "/habilitation", color: "from-indigo-600 " },
                 { icon: DollarSign, label: "Gestion Budget", href: "/budget", color: "from-emerald-500 to-green-600" },
-                { icon: Building2, label: "Portail Fournisseurs", href: "/supplier-portal", color: "from-purple-600 to-indigo-600" },
+                { icon: Building2, label: "Portail Fournisseurs", href: "/supplier-portal", color: " to-indigo-600" },
                 { icon: ShieldCheck, label: "Garanties", href: "/warranty", color: "from-green-600 to-teal-600" },
                 { icon: CalendarCheck, label: "Plan Maintenance", href: "/maintenance-plan", color: "from-cyan-600 to-blue-600" },
                 { icon: Download, label: "Télécharger", href: "/download", color: "from-slate-600 to-slate-800" }
               ].map((item) => (
                 <Link key={item.href} href={item.href}>
-                  <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">
+                  <Card className="cursor-pointer transition-colors hover:bg-paper border border-rule">
                     <CardContent className="p-3 flex flex-col items-center text-center">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-2`}>
+                      <div className={`w-10 h-10 rounded-lg bg-paper-deep ${item.color} flex items-center justify-center mb-2`}>
                         <item.icon className="w-5 h-5 text-white" />
                       </div>
                       <span className="text-xs font-medium">{item.label}</span>
@@ -517,7 +517,7 @@ export default function GMAODashboard() {
             {/* Quick Access Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => setActiveTab("equipment")}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -530,7 +530,7 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => { setShowAdminModal(true); setActiveAdminTab("maintenance"); }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -543,12 +543,12 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => setActiveTab("inventory")}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
-                    <Package className="w-6 h-6 text-purple-600" />
+                  <div className="p-3 rounded-full bg-paper-deep dark:bg-signal-deep/30 mb-3 group-hover:bg-signal-deep dark:group-hover:bg-signal-deep/50 transition-colors">
+                    <Package className="w-6 h-6 text-signal-deep" />
                   </div>
                   <h3 className="font-semibold text-sm">Inventaire</h3>
                   <p className="text-xs text-muted-foreground mt-1">Stock et pièces</p>
@@ -556,7 +556,7 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => { setShowAdminModal(true); setActiveAdminTab("health-dashboard"); }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -928,7 +928,7 @@ export default function GMAODashboard() {
               <Card>
                 <CardContent className="p-6">
                   <div className="text-center py-8">
-                    <PieChart className="w-12 h-12 mx-auto text-purple-600 mb-4" />
+                    <PieChart className="w-12 h-12 mx-auto text-signal-deep mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Tableaux de Bord</h3>
                     <p className="text-muted-foreground mb-4">
                       Visualisations interactives et métriques temps réel
@@ -1090,7 +1090,7 @@ export default function GMAODashboard() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Prédictions IA</h3>
-                  <Brain className="w-5 h-5 text-purple-600" />
+                  <Brain className="w-5 h-5 text-signal-deep" />
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">
@@ -1132,8 +1132,8 @@ export default function GMAODashboard() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                    <Brain className="w-5 h-5 text-purple-600" />
+                  <div className="flex items-center gap-3 p-3 bg-paper-deep rounded-lg">
+                    <Brain className="w-5 h-5 text-signal-deep" />
                     <div>
                       <p className="font-medium">IA Performance</p>
                       <p className="text-sm text-muted-foreground">Modèles prédictifs améliorés de 15%</p>
@@ -1193,9 +1193,9 @@ export default function GMAODashboard() {
                   <p className="text-xs text-blue-600">+18h vs secteur</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-purple-600">4.2h</p>
+                  <p className="text-2xl font-bold text-signal-deep">4.2h</p>
                   <p className="text-sm text-muted-foreground">Votre MTTR</p>
-                  <p className="text-xs text-purple-600">-1.3h vs secteur</p>
+                  <p className="text-xs text-signal-deep">-1.3h vs secteur</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-yellow-600">€127</p>

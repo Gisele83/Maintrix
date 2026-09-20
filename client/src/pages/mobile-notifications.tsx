@@ -71,7 +71,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg:
   critical_alert:    { label: "Alerte critique",      icon: AlertTriangle,  color: "text-rose-600",    bg: "bg-rose-50 border-rose-200" },
   task_assigned:     { label: "Tâche affectée",        icon: ClipboardList,  color: "text-blue-600",    bg: "bg-blue-50 border-blue-200" },
   maintenance_due:   { label: "Maintenance planifiée", icon: Calendar,       color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
-  work_order_update: { label: "Mise à jour OT",        icon: Wrench,         color: "text-violet-600",  bg: "bg-violet-50 border-violet-200" },
+  work_order_update: { label: "Mise à jour OT",        icon: Wrench,         color: "text-signal-deep",  bg: "bg-paper-deep border-rule" },
   system:            { label: "Système",               icon: Info,           color: "text-slate-500",   bg: "bg-slate-50 border-slate-200" },
 };
 
@@ -107,9 +107,9 @@ function PushSettingsPanel() {
     mutationFn: () => apiRequest("/api/push/test", { method: "POST", body: {} }),
     onSuccess: (data: any) => {
       if (data.pushSent) {
-        toast({ title: "✅ Notification envoyée", description: "Vérifiez vos notifications système." });
+        toast({ title: "Notification envoyée", description: "Vérifiez vos notifications système." });
       } else {
-        toast({ title: "📬 Enregistrée", description: "Notification créée mais push non confirmé (vérifiez les permissions)." });
+        toast({ title: "Enregistrée", description: "Notification créée mais push non confirmé (vérifiez les permissions)." });
       }
       qc.invalidateQueries({ queryKey: ["/api/mobile/notifications"] });
     },
@@ -120,14 +120,14 @@ function PushSettingsPanel() {
     if (checked) {
       const ok = await push.subscribe();
       if (ok) {
-        toast({ title: "🔔 Notifications activées", description: "Vous recevrez les alertes sur cet appareil." });
+        toast({ title: "Notifications activées", description: "Vous recevrez les alertes sur cet appareil." });
         refetchDevices();
       } else {
         toast({ title: "Impossible d'activer", description: push.error || "Vérifiez les permissions du navigateur.", variant: "destructive" });
       }
     } else {
       await push.unsubscribe();
-      toast({ title: "🔕 Notifications désactivées", description: "Cet appareil ne recevra plus d'alertes push." });
+      toast({ title: "Notifications désactivées", description: "Cet appareil ne recevra plus d'alertes push." });
       refetchDevices();
     }
   };
@@ -191,7 +191,7 @@ function PushSettingsPanel() {
             { icon: AlertTriangle, color: "text-rose-500", label: "Alertes critiques", desc: "Pannes, seuils dépassés, urgences" },
             { icon: ClipboardList, color: "text-blue-500", label: "Affectation de tâches", desc: "Nouvel OT assigné à votre compte" },
             { icon: Calendar, color: "text-amber-500", label: "Maintenance imminente", desc: "Rappels de planification préventive" },
-            { icon: Wrench, color: "text-violet-500", label: "Mises à jour d'OT", desc: "Changements de statut et validations" },
+            { icon: Wrench, color: "text-signal-deep", label: "Mises à jour d'OT", desc: "Changements de statut et validations" },
           ].map(({ icon: Icon, color, label, desc }) => (
             <div key={label} className="flex items-start gap-3">
               <Icon className={`w-4 h-4 ${color} flex-shrink-0 mt-0.5`} />
@@ -282,7 +282,7 @@ function NotifItem({
             <div className="flex gap-1.5">
               {notif.actionUrl && (
                 <Link href={notif.actionUrl}>
-                  <Button size="sm" variant="ghost" className={`h-6 text-[11px] px-2 ${cfg.color} hover:bg-white/60`}>
+                  <Button size="sm" variant="ghost" className={`h-6 text-[11px] px-2 ${cfg.color} hover:bg-white`}>
                     Voir <ArrowRight className="w-3 h-3 ml-1" />
                   </Button>
                 </Link>
@@ -381,7 +381,7 @@ export default function MobileNotificationsPage() {
     );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
@@ -389,7 +389,7 @@ export default function MobileNotificationsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center shadow-blue-500/20">
                 <Bell className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -437,7 +437,7 @@ export default function MobileNotificationsPage() {
           {[
             { label: "Non lues", val: unreadCount, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
             { label: "Critiques", val: critical.length, color: "text-rose-600", bg: "bg-rose-50 border-rose-100" },
-            { label: "Tâches",    val: tasks.length,    color: "text-violet-600", bg: "bg-violet-50 border-violet-100" },
+            { label: "Tâches",    val: tasks.length,    color: "text-signal-deep", bg: "bg-paper-deep border-paper-deep" },
             { label: "Total",     val: notifications.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-100" },
           ].map(({ label, val, color, bg }) => (
             <div key={label} className={`${bg} border rounded-2xl p-4 text-center`}>
@@ -449,7 +449,7 @@ export default function MobileNotificationsPage() {
 
         {/* ── Push subscription prompt ─────────────────────────────── */}
         {push.isSupported && !push.isSubscribed && push.permission !== "denied" && (
-          <div className="mb-6 bg-gradient-to-r from-blue-50 to-violet-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-4">
+          <div className="mb-6 bg-paper-deep border border-blue-200 rounded-2xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Smartphone className="w-5 h-5 text-blue-600" />
             </div>
@@ -486,17 +486,17 @@ export default function MobileNotificationsPage() {
                   </TabsTrigger>
                   {critical.length > 0 && (
                     <TabsTrigger value="critical" className="flex-1 rounded-lg text-xs text-rose-600">
-                      🚨 Critiques ({critical.length})
+                      Critiques ({critical.length})
                     </TabsTrigger>
                   )}
                   {tasks.length > 0 && (
                     <TabsTrigger value="tasks" className="flex-1 rounded-lg text-xs">
-                      📋 Tâches ({tasks.length})
+                      Tâches ({tasks.length})
                     </TabsTrigger>
                   )}
                   {maintenance.length > 0 && (
                     <TabsTrigger value="maintenance" className="flex-1 rounded-lg text-xs">
-                      📅 Maintenance ({maintenance.length})
+                      Maintenance ({maintenance.length})
                     </TabsTrigger>
                   )}
                 </TabsList>
@@ -526,7 +526,7 @@ export default function MobileNotificationsPage() {
                 { href: "/work-orders", icon: ClipboardList, label: "Mes ordres de travail", color: "text-blue-600" },
                 { href: "/mobile-notifications", icon: AlertTriangle, label: "Alertes actives", color: "text-rose-600" },
                 { href: "/maintenance-recommendations", icon: Calendar, label: "Recommandations", color: "text-amber-600" },
-                { href: "/gmao", icon: Wrench, label: "GMAO", color: "text-violet-600" },
+                { href: "/gmao", icon: Wrench, label: "GMAO", color: "text-signal-deep" },
               ].map(({ href, icon: Icon, label, color }) => (
                 <Link key={href} href={href}>
                   <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white transition-colors cursor-pointer">

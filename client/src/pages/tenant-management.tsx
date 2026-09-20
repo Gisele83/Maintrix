@@ -139,7 +139,7 @@ const TenantManagement: React.FC = () => {
     switch (plan) {
       case 'free': return 'bg-gray-100 text-gray-800';
       case 'pro': return 'bg-blue-100 text-blue-800';
-      case 'business': return 'bg-purple-100 text-purple-800';
+      case 'business': return 'bg-paper-deep text-signal-deep';
       case 'enterprise': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -194,8 +194,8 @@ const TenantManagement: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Brain className="w-6 h-6 text-purple-600" />
+              <div className="p-3 bg-paper-deep rounded-lg">
+                <Brain className="w-6 h-6 text-signal-deep" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">IA Collaborative</p>
@@ -345,8 +345,8 @@ const TenantManagement: React.FC = () => {
                         <div className="text-2xl font-bold text-green-600">2.3k</div>
                         <div className="text-sm text-gray-600">Interventions totales</div>
                       </div>
-                      <div className="text-center p-4 bg-purple-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">94%</div>
+                      <div className="text-center p-4 bg-paper-deep rounded-lg">
+                        <div className="text-2xl font-bold text-signal-deep">94%</div>
                         <div className="text-sm text-gray-600">Taux de résolution</div>
                       </div>
                     </div>
@@ -454,8 +454,8 @@ const TenantManagement: React.FC = () => {
                           </div>
                           <div className="text-sm text-gray-600">Taux d'acceptation</div>
                         </div>
-                        <div className="p-4 bg-purple-50 rounded-lg">
-                          <div className="text-2xl font-bold text-purple-600">
+                        <div className="p-4 bg-paper-deep rounded-lg">
+                          <div className="text-2xl font-bold text-signal-deep">
                             {Math.round(federatedAnalytics.globalImpactScore || 0)}
                           </div>
                           <div className="text-sm text-gray-600">Score d'impact global</div>
@@ -477,7 +477,7 @@ const TenantManagement: React.FC = () => {
                             {federatedAnalytics?.contributionRank || 'Nouveau Contributeur'}
                           </p>
                         </div>
-                        <Badge className="bg-purple-100 text-purple-800">
+                        <Badge className="bg-paper-deep text-signal-deep">
                           {federatedAnalytics?.contributionRank || 'Nouveau'}
                         </Badge>
                       </div>
@@ -558,7 +558,7 @@ const TenantManagement: React.FC = () => {
                     </div>
 
                     {/* Email Invitation Section */}
-                    <div className="p-4 border rounded-lg bg-purple-50 border-purple-200 space-y-3">
+                    <div className="p-4 border rounded-lg bg-paper-deep border-rule space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <Label className="font-semibold flex items-center gap-2">
@@ -593,8 +593,8 @@ const TenantManagement: React.FC = () => {
                         </Button>
                       </div>
                       {selectedTenant.contactEmail && (
-                        <div className="text-xs text-purple-700 bg-purple-100 p-2 rounded">
-                          📧 Email sera envoyé à: <strong>{selectedTenant.contactEmail}</strong>
+                        <div className="text-xs text-signal-deep bg-paper-deep p-2 rounded">
+                          Email sera envoyé à: <strong>{selectedTenant.contactEmail}</strong>
                         </div>
                       )}
                     </div>

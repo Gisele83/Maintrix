@@ -40,7 +40,7 @@ export default function MachineHealth() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
@@ -66,11 +66,11 @@ export default function MachineHealth() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
             <Heart className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function MachineHealth() {
           ].map((stat, i) => (
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shrink-0`}>
+                <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -215,7 +215,7 @@ export default function MachineHealth() {
                     {selectedEquipment?.id === eq.id && eq.recommendations.length > 0 && (
                       <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
                         <p className="text-xs font-medium text-slate-300 flex items-center gap-1">
-                          <Brain className="w-3 h-3 text-purple-400" /> Recommandations IA
+                          <Brain className="w-3 h-3 text-signal-light" /> Recommandations IA
                         </p>
                         {eq.recommendations.map((rec: any, i: number) => (
                           <div key={i} className="flex items-start gap-2 p-2 bg-slate-800/50 rounded-lg">
@@ -238,7 +238,7 @@ export default function MachineHealth() {
             <Card className="bg-slate-900/60 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-purple-400" />
+                  <Brain className="w-5 h-5 text-signal-light" />
                   Recommandations d'Actions IA
                 </CardTitle>
                 <CardDescription className="text-slate-400">

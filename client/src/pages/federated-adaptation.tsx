@@ -132,7 +132,7 @@ function maturityColor(m: number): string {
 }
 
 function spiLabel(spi: number): { label: string; color: string } {
-  if (spi > 0.5) return { label: "Fortement spécialisé", color: "text-purple-400" };
+  if (spi > 0.5) return { label: "Fortement spécialisé", color: "text-signal-light" };
   if (spi > 0.2) return { label: "Spécialisation émergente", color: "text-amber-400" };
   return { label: "Proche du consensus", color: "text-blue-400" };
 }
@@ -284,7 +284,7 @@ function SiteCard({
   );
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
       {/* Header */}
       <div className="p-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -297,7 +297,7 @@ function SiteCard({
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="text-xs text-white/50">{profile.daysActive}j actif</span>
             {profile.specializations.slice(0, 2).map(s => (
-              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 bg-purple-500/20 text-purple-300 border-purple-500/30">
+              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 bg-signal-deep/20 text-signal-light border-rule/30">
                 {s.replace(/_w$|_p$/, "")}
               </Badge>
             ))}
@@ -319,9 +319,9 @@ function SiteCard({
             <span className="text-white/50">Maturité M(s)</span>
             <span className="text-white font-mono font-medium">{(profile.maturityScore * 100).toFixed(0)}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${maturityColor(profile.maturityScore)} transition-all`}
+              className={`h-full rounded-full bg-paper-deep ${maturityColor(profile.maturityScore)} transition-all`}
               style={{ width: `${profile.maturityScore * 100}%` }}
             />
           </div>
@@ -335,9 +335,9 @@ function SiteCard({
               {profile.mixingCoefficient.toFixed(3)}
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all"
+              className="h-full rounded-full bg-paper-deep transition-all"
               style={{ width: `${profile.mixingCoefficient * 100}%` }}
             />
           </div>
@@ -349,9 +349,9 @@ function SiteCard({
             <span className="text-white/50">Contribution</span>
             <span className="text-white font-mono text-xs">{(aggregationWeight * 100).toFixed(1)}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all"
+              className="h-full rounded-full bg-paper-deep transition-all"
               style={{ width: `${Math.min(100, aggregationWeight * 100 * 5)}%` }}
             />
           </div>
@@ -370,7 +370,7 @@ function SiteCard({
           <div>
             <div className="text-xs text-white/50 mb-2">
               Modèle · <span className="text-blue-400">■ global</span> &nbsp;
-              <span className="text-purple-400">■ local</span> &nbsp;
+              <span className="text-signal-light">■ local</span> &nbsp;
               <span className="text-green-400">▪ personnalisé θ̂(s)</span>
             </div>
             <RadarChart
@@ -389,7 +389,7 @@ function SiteCard({
             </div>
             <div className="rounded-lg bg-white/5 p-2.5 space-y-0.5">
               <div className="text-white/40">Modèle local (λ)</div>
-              <div className="text-purple-300 font-mono font-bold">
+              <div className="text-signal-light font-mono font-bold">
                 {(profile.mixingCoefficient * 100).toFixed(1)}%
               </div>
             </div>
@@ -433,13 +433,13 @@ export default function FederatedAdaptationPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-4 md:p-8">
+      <div className="min-h-screen bg-paper-deep p-4 md:p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <div className="w-10 h-10 rounded-xl bg-paper-deep flex items-center justify-center shadow-indigo-500/30">
                   <Brain className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -455,7 +455,7 @@ export default function FederatedAdaptationPage() {
                 <Badge variant="outline" className="text-xs border-indigo-500/40 text-indigo-300 bg-indigo-500/10">
                   pFed · Couplage Élastique
                 </Badge>
-                <Badge variant="outline" className="text-xs border-purple-500/40 text-purple-300 bg-purple-500/10">
+                <Badge variant="outline" className="text-xs border-rule/40 text-signal-light bg-signal-deep/10">
                   Mélange adaptatif global/local
                 </Badge>
                 <Badge variant="outline" className="text-xs border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
@@ -466,7 +466,7 @@ export default function FederatedAdaptationPage() {
             <Button
               onClick={() => aggregateMutation.mutate()}
               disabled={aggregateMutation.isPending}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border-0 shadow-lg shadow-indigo-500/20"
+              className="bg-ink text-white border-0 shadow-indigo-500/20"
             >
               {aggregateMutation.isPending ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -507,7 +507,7 @@ export default function FederatedAdaptationPage() {
                 label: "SPI moyen",
                 value: stats.fleetSPIAvg.toFixed(3),
                 icon: BarChart3,
-                color: "from-purple-500 to-purple-600",
+                color: " ",
                 suffix: "",
               },
               {
@@ -521,13 +521,13 @@ export default function FederatedAdaptationPage() {
                 label: "Spécialisés",
                 value: stats.nSitesSpecialized,
                 icon: Cpu,
-                color: "from-violet-500 to-violet-600",
+                color: " ",
                 suffix: "",
               },
             ].map(({ label, value, icon: Icon, color, suffix }) => (
-              <Card key={label} className="border-white/10 bg-white/5 backdrop-blur-sm">
+              <Card key={label} className="border-white/10 bg-white/5">
                 <CardContent className="p-4">
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center mb-2 shadow-md`}>
+                  <div className={`w-8 h-8 rounded-lg bg-paper-deep ${color} flex items-center justify-center mb-2 shadow-md`}>
                     <Icon className="w-4 h-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-white font-mono">
@@ -543,10 +543,10 @@ export default function FederatedAdaptationPage() {
         {/* Main tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/5 border border-white/10 mb-6">
-            <TabsTrigger value="sites" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60">
+            <TabsTrigger value="sites" className="data-[state=active]:bg-white data-[state=active]:text-white text-white/60">
               <Network className="w-4 h-4 mr-2" />Profils des sites
             </TabsTrigger>
-            <TabsTrigger value="specialization" className="data-[state=active]:bg-white/10 data-[state=active]:text-white text-white/60">
+            <TabsTrigger value="specialization" className="data-[state=active]:bg-white data-[state=active]:text-white text-white/60">
               <BarChart3 className="w-4 h-4 mr-2" />Rapport SPI
             </TabsTrigger>
           </TabsList>
@@ -613,7 +613,7 @@ export default function FederatedAdaptationPage() {
                     {[
                       { label: "Génériques", count: specData.summary.nGeneric, color: "bg-slate-500/20 text-slate-300 border-slate-500/30" },
                       { label: "Émergents", count: specData.summary.nEmerging, color: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-                      { label: "Spécialisés", count: specData.summary.nSpecialized, color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
+                      { label: "Spécialisés", count: specData.summary.nSpecialized, color: "bg-signal-deep/20 text-signal-light border-rule/30" },
                       { label: "Artefacts", count: specData.summary.nArtefact, color: "bg-red-500/20 text-red-300 border-red-500/30" },
                     ].map(({ label, count, color }) => (
                       <div key={label} className={`rounded-full border px-3 py-1 text-xs font-medium ${color}`}>
@@ -627,7 +627,7 @@ export default function FederatedAdaptationPage() {
                 )}
 
                 {/* SPI table */}
-                <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
+                <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -671,7 +671,7 @@ export default function FederatedAdaptationPage() {
                                 <span className="text-white/40 text-xs">/12</span>
                               </td>
                               <td className="p-3">
-                                <Badge variant="secondary" className="text-xs bg-purple-500/20 text-purple-300 border-purple-500/30 font-mono">
+                                <Badge variant="secondary" className="text-xs bg-signal-deep/20 text-signal-light border-rule/30 font-mono">
                                   {row.dominantSpecialization.replace(/_w$|_p$/, "") || "—"}
                                 </Badge>
                               </td>
