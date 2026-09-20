@@ -79,6 +79,76 @@ export class GMAOStorage {
   }
 
   // Efficient COUNT-based KPI aggregation — avoids fetching full rows
+  /**
+   * Contexte des indicateurs — ce qu'un chiffre seul ne dit pas.
+   *
+   * « 24 équipements » ne renseigne sur rien. « 24 équipements, 3 indisponibles,
+   * +2 ce mois » se lit d'un coup d'œil et oriente la journée. Ces comptes sont
+   * calculés en base, jamais estimés côté interface.
+   *
+   * Tout est borné au locataire, et chaque requête est un COUNT indexé : pas de
+   * lecture de table complète.
+   */
+  async getDashboardContexte(tenantId: string): Promise<{
+    equipementsIndisponibles: number;
+    equipementsAjoutesCeMois: number;
+    otEnRetard: number;
+    otUrgents: number;
+    alertesDernieres24h: number;
+    piecesEnRupture: number;
+    preventifEnRetard: number;
+    preventifSous7Jours: number;
+  }> {
+    const maintenant = new Date();
+    const debutDuMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
+    const ilYA24h = new Date(maintenant.getTime() - 24 * 60 * 60 * 1000);
+    const dans7Jours = new Date(maintenant.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const ouverts = or(eq(workOrders.status, 'pending'), eq(workOrders.status, 'in_progress'));
+
+    const [
+      [indispo], [ajoutes], [enRetard], [urgents], [alertes24h], [rupture], [prevRetard], [prev7j]
+    ] = await Promise.all([
+      // Hors service ou immobilisé pour maintenance — pas les réformés.
+      db.select({ total: count() }).from(equipmentRegistry)
+        .where(and(
+          eq(equipmentRegistry.tenantId, tenantId),
+          or(eq(equipmentRegistry.operationalState, 'offline'), eq(equipmentRegistry.operationalState, 'maintenance')),
+        )),
+      db.select({ total: count() }).from(equipmentRegistry)
+        .where(and(eq(equipmentRegistry.tenantId, tenantId), gte(equipmentRegistry.createdAt, debutDuMois))),
+      // En retard : la fin prévue est passée et l'intervention n'est pas close.
+      db.select({ total: count() }).from(workOrders)
+        .where(and(eq(workOrders.tenantId, tenantId), ouverts, lte(workOrders.scheduledEnd, maintenant))),
+      db.select({ total: count() }).from(workOrders)
+        .where(and(eq(workOrders.tenantId, tenantId), ouverts, eq(workOrders.priority, 'urgent'))),
+      db.select({ total: count() }).from(alertsNotifications)
+        .where(and(eq(alertsNotifications.tenantId, tenantId), eq(alertsNotifications.status, 'active'), gte(alertsNotifications.createdAt, ilYA24h))),
+      // Rupture franche : plus rien en stock, à distinguer du seuil d'alerte.
+      db.select({ total: count() }).from(spareParts)
+        .where(and(eq(spareParts.tenantId, tenantId), lte(spareParts.currentStock, 0))),
+      db.select({ total: count() }).from(preventiveMaintenancePlans)
+        .where(and(eq(preventiveMaintenancePlans.tenantId, tenantId), eq(preventiveMaintenancePlans.isActive, true), lte(preventiveMaintenancePlans.nextDue, maintenant))),
+      db.select({ total: count() }).from(preventiveMaintenancePlans)
+        .where(and(
+          eq(preventiveMaintenancePlans.tenantId, tenantId),
+          eq(preventiveMaintenancePlans.isActive, true),
+          gte(preventiveMaintenancePlans.nextDue, maintenant),
+          lte(preventiveMaintenancePlans.nextDue, dans7Jours),
+        )),
+    ]);
+
+    return {
+      equipementsIndisponibles: indispo?.total ?? 0,
+      equipementsAjoutesCeMois: ajoutes?.total ?? 0,
+      otEnRetard: enRetard?.total ?? 0,
+      otUrgents: urgents?.total ?? 0,
+      alertesDernieres24h: alertes24h?.total ?? 0,
+      piecesEnRupture: rupture?.total ?? 0,
+      preventifEnRetard: prevRetard?.total ?? 0,
+      preventifSous7Jours: prev7j?.total ?? 0,
+    };
+  }
+
   async getDashboardKPIs(tenantId: string): Promise<{
     equipmentCount: number;
     activeWorkOrdersCount: number;

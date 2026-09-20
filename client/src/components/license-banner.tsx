@@ -14,6 +14,8 @@ interface LicenseStatus {
   canOperate: boolean;
   warningMessage: string | null;
   plan: string;
+  /** L'application des licences est-elle armée côté serveur ? */
+  enforcement?: boolean;
 }
 
 export function LicenseBanner() {
@@ -32,6 +34,16 @@ export function LicenseBanner() {
   });
 
   if (!licenseData || dismissed) return null;
+
+  // ⚠️ Rien n'est appliqué : aucune alerte à afficher.
+  //
+  // Pendant la phase de test, `ENABLE_LICENSE_ENFORCEMENT` vaut false : ni
+  // blocage d'appel, ni limite d'utilisateurs. La bannière annonçait pourtant
+  // « 7 jours restants avant interruption du service » — une menace sans
+  // objet, affichée en orange sur toute la largeur, qui devenait l'élément le
+  // plus voyant de l'application. On se tait tant que la licence ne peut rien
+  // interrompre.
+  if (licenseData.enforcement === false) return null;
 
   const { status, isTrialActive, trialDaysRemaining, isGracePeriodActive, gracePeriodDaysRemaining } = licenseData;
 
@@ -55,8 +67,10 @@ export function LicenseBanner() {
     }
     if (isGracePeriodActive) {
       return {
-        bg: "bg-orange-500 dark:bg-orange-700",
-        text: "text-white",
+        // L'orange est conservé — c'est bien une urgence — mais en filet plutôt
+        // qu'en aplat pleine largeur, pour ne pas dominer toute la page.
+        bg: "bg-orange-50 border-b-2 border-orange-500 dark:bg-orange-950",
+        text: "text-orange-900 dark:text-orange-100",
         icon: <AlertTriangle className="h-4 w-4 flex-shrink-0" />,
         message: `Période de grâce — ${gracePeriodDaysRemaining} jour(s) restant(s) avant interruption du service.`,
         cta: "Renouveler",
@@ -75,8 +89,9 @@ export function LicenseBanner() {
     }
     if (isTrialActive && trialDaysRemaining <= 7) {
       return {
-        bg: "bg-amber-500 dark:bg-amber-700",
-        text: "text-white",
+        // Information, pas alarme : filet ambre sur fond clair.
+        bg: "bg-amber-50 border-b border-amber-300 dark:bg-amber-950",
+        text: "text-amber-900 dark:text-amber-100",
         icon: <Clock className="h-4 w-4 flex-shrink-0" />,
         message: `Période d'essai — ${trialDaysRemaining} jour(s) restant(s) sur 30.`,
         cta: "Voir les plans",
@@ -90,7 +105,7 @@ export function LicenseBanner() {
   if (!config) return null;
 
   return (
-    <div className={`${config.bg} ${config.text} px-4 py-2.5 flex items-center justify-between gap-4 text-sm font-medium`}>
+    <div className={`${config.bg} ${config.text} px-4 py-1.5 flex items-center justify-between gap-4 text-sm`}>
       <div className="flex items-center gap-2 min-w-0">
         {config.icon}
         <span className="truncate">{config.message}</span>
@@ -100,7 +115,7 @@ export function LicenseBanner() {
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-3 text-xs border-white/60 bg-transparent hover:bg-white/15 text-white hover:text-white"
+            className="h-7 px-3 text-xs border-current/40 bg-transparent hover:bg-black/5"
           >
             <Zap className="h-3 w-3 mr-1" />
             {config.cta}
@@ -109,7 +124,7 @@ export function LicenseBanner() {
         {!config.urgent && (
           <button
             onClick={() => setDismissed(true)}
-            className="p-1 hover:bg-white/15 transition-colors"
+            className="p-1 hover:bg-black/5 transition-colors"
             aria-label="Fermer"
           >
             <X className="h-3.5 w-3.5" />

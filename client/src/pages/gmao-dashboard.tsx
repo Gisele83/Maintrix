@@ -60,7 +60,24 @@ interface RecentAlert {
   createdAt?: string;
 }
 
+/**
+ * Contexte des indicateurs, calculé en base (gmaoStorage.getDashboardContexte).
+ * Un grand nombre seul ne renseigne sur rien : c'est la deuxième ligne qui
+ * oriente la journée d'un responsable maintenance.
+ */
+interface ContexteGMAO {
+  equipementsIndisponibles: number;
+  equipementsAjoutesCeMois: number;
+  otEnRetard: number;
+  otUrgents: number;
+  alertesDernieres24h: number;
+  piecesEnRupture: number;
+  preventifEnRetard: number;
+  preventifSous7Jours: number;
+}
+
 interface GMAODashboardData {
+  contexte?: ContexteGMAO;
   equipmentCount: number;
   activeWorkOrdersCount: number;
   pendingWorkOrdersCount: number;
@@ -267,7 +284,7 @@ export default function GMAODashboard() {
             <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-rule">
               <div>
                 <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
-                <h1 className="font-serif text-headline font-medium text-ink mt-1.5">Vue d'ensemble</h1>
+                <h1 className="font-serif text-page font-medium text-ink mt-1.5">Vue d'ensemble</h1>
                 <p className="text-sm text-ink-soft mt-1 first-letter:uppercase">
                   {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
@@ -299,55 +316,148 @@ export default function GMAODashboard() {
                 sombres identiques, ornés d'un disque blanc décoratif : la
                 couleur ne disait rien, et rien ne distinguait « 0 alerte »
                 de « 12 alertes ». */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
-              {[
+            {(() => {
+              const c = dashboardData?.contexte;
+              /** Assemble les précisions non nulles ; à défaut, une phrase neutre. */
+              const detail = (parts: Array<[number, string]>, aDefaut: string) => {
+                const dits = parts.filter(([n]) => n > 0).map(([n, libelle]) => `${n} ${libelle}`);
+                return dits.length ? dits.join(' · ') : aDefaut;
+              };
+              const indicateurs = [
                 {
                   cle: 'equipements',
                   libelle: 'Équipements',
                   valeur: dashboardData?.equipmentCount || 0,
-                  detail: 'suivis dans le parc',
+                  detail: detail(
+                    [
+                      [c?.equipementsIndisponibles || 0, 'indisponible(s)'],
+                      [c?.equipementsAjoutesCeMois || 0, 'ajouté(s) ce mois'],
+                    ],
+                    (dashboardData?.equipmentCount || 0) > 0 ? 'tous en service' : 'parc à déclarer',
+                  ),
                   icone: Factory,
-                  alerte: false,
+                  alerte: (c?.equipementsIndisponibles || 0) > 0,
                 },
                 {
                   cle: 'ot',
                   libelle: 'Ordres de travail',
                   valeur: dashboardData?.activeWorkOrdersCount || 0,
-                  detail: `${dashboardData?.pendingWorkOrdersCount || 0} en attente d'affectation`,
+                  detail: detail(
+                    [
+                      [c?.otUrgents || 0, 'urgent(s)'],
+                      [c?.otEnRetard || 0, 'en retard'],
+                      [dashboardData?.pendingWorkOrdersCount || 0, 'en attente'],
+                    ],
+                    'rien en cours',
+                  ),
                   icone: Wrench,
-                  alerte: (dashboardData?.pendingWorkOrdersCount || 0) > 0,
+                  alerte: (c?.otEnRetard || 0) > 0 || (c?.otUrgents || 0) > 0,
                 },
                 {
                   cle: 'alertes',
                   libelle: 'Alertes critiques',
                   valeur: dashboardData?.criticalAlertsCount || 0,
-                  detail: (dashboardData?.criticalAlertsCount || 0) > 0 ? 'à traiter sans délai' : 'aucune en cours',
+                  detail: detail(
+                    [[c?.alertesDernieres24h || 0, 'depuis 24 h']],
+                    (dashboardData?.criticalAlertsCount || 0) > 0 ? 'à traiter sans délai' : 'aucune en cours',
+                  ),
                   icone: AlertTriangle,
                   alerte: (dashboardData?.criticalAlertsCount || 0) > 0,
                 },
                 {
                   cle: 'stock',
-                  libelle: 'Stock critique',
+                  libelle: 'Stock sous seuil',
                   valeur: dashboardData?.lowStockPartsCount || 0,
-                  detail: (dashboardData?.lowStockPartsCount || 0) > 0 ? 'références à réapprovisionner' : 'aucun seuil franchi',
+                  detail: detail(
+                    [[c?.piecesEnRupture || 0, 'en rupture']],
+                    (dashboardData?.lowStockPartsCount || 0) > 0 ? 'à réapprovisionner' : 'aucun seuil franchi',
+                  ),
                   icone: Package,
-                  alerte: (dashboardData?.lowStockPartsCount || 0) > 0,
+                  alerte: (c?.piecesEnRupture || 0) > 0,
                 },
-              ].map((kpi) => (
-                <div key={kpi.cle} className="bg-white p-5 relative">
-                  <span
-                    className={`absolute left-0 top-0 bottom-0 w-0.5 ${kpi.alerte ? 'bg-amber-500' : 'bg-transparent'}`}
-                    aria-hidden="true"
-                  />
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-mono text-eyebrow uppercase text-ink-mute">{kpi.libelle}</p>
-                    <kpi.icone className="w-4 h-4 text-ink-mute shrink-0" />
-                  </div>
-                  <p className="font-serif text-4xl text-ink mt-3 leading-none">{kpi.valeur}</p>
-                  <p className="text-sm text-ink-soft mt-2">{kpi.detail}</p>
+              ];
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
+                  {indicateurs.map((kpi) => (
+                    <div key={kpi.cle} className="bg-white p-5 relative">
+                      <span
+                        className={`absolute left-0 top-0 bottom-0 w-0.5 ${kpi.alerte ? 'bg-amber-500' : 'bg-transparent'}`}
+                        aria-hidden="true"
+                      />
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-mono text-eyebrow uppercase text-ink-mute">{kpi.libelle}</p>
+                        <kpi.icone className="w-4 h-4 text-ink-mute shrink-0" />
+                      </div>
+                      <p className="font-serif text-4xl text-ink mt-3 leading-none">{kpi.valeur}</p>
+                      <p className="text-sm text-ink-soft mt-2">{kpi.detail}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════════════
+                À TRAITER
+                ══════════════════════════════════════════════════════════
+                Prend la place du bloc « Commencer » dès que le parc existe.
+                N'affiche que ce qui appelle une décision aujourd'hui, du plus
+                urgent au moins pressant, et disparaît quand il n'y a rien —
+                un écran qui dit « rien à signaler » vaut mieux qu'une liste
+                remplie pour ne pas paraître vide. */}
+            {(dashboardData?.equipmentCount || 0) > 0 && (() => {
+              const c = dashboardData?.contexte;
+              const points = [
+                { n: c?.otUrgents || 0, libelle: 'ordre(s) de travail urgent(s)', href: '/work-orders', grave: true },
+                { n: dashboardData?.criticalAlertsCount || 0, libelle: 'alerte(s) critique(s)', href: '/smart-alerts', grave: true },
+                { n: c?.otEnRetard || 0, libelle: 'intervention(s) en retard', href: '/work-orders', grave: true },
+                { n: c?.preventifEnRetard || 0, libelle: 'préventif(s) en retard', href: '/maintenance-plan', grave: true },
+                { n: c?.equipementsIndisponibles || 0, libelle: 'équipement(s) indisponible(s)', href: '/equipment-management', grave: false },
+                { n: c?.piecesEnRupture || 0, libelle: 'référence(s) en rupture', href: '/inventaire', grave: false },
+                { n: c?.preventifSous7Jours || 0, libelle: 'préventif(s) sous 7 jours', href: '/maintenance-plan', grave: false },
+              ].filter((point) => point.n > 0);
+
+              return (
+                <div className="border border-rule bg-white">
+                  <div className="flex items-baseline justify-between px-5 py-4 border-b border-rule">
+                    <h2 className="font-serif text-title font-medium text-ink">À traiter</h2>
+                    <span className="font-mono text-eyebrow uppercase text-ink-mute">
+                      {points.length > 0 ? `${points.length} point(s)` : 'rien à signaler'}
+                    </span>
+                  </div>
+
+                  {points.length === 0 ? (
+                    <p className="px-5 py-6 text-sm text-ink-soft">
+                      Aucune urgence, aucun retard, aucun seuil franchi. Le parc tourne.
+                    </p>
+                  ) : (
+                    <ul>
+                      {points.map((point) => (
+                        <li key={point.libelle} className="border-b border-rule last:border-b-0">
+                          <Link href={point.href}>
+                            <span className="flex items-baseline gap-4 px-5 py-3 cursor-pointer transition-colors hover:bg-paper group">
+                              <span
+                                className={`font-serif text-2xl leading-none w-10 shrink-0 ${point.grave ? 'text-ink' : 'text-ink-soft'}`}
+                              >
+                                {point.n}
+                              </span>
+                              <span className="text-sm text-ink group-hover:text-signal transition-colors">
+                                {point.libelle}
+                              </span>
+                              {point.grave && (
+                                <span className="ml-auto font-mono text-eyebrow uppercase text-amber-700 shrink-0">
+                                  priorité
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Parc vide : on dit quoi faire, au lieu d'afficher quatre zéros
                 sans suite. C'est le premier écran que voit un testeur. */}

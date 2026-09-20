@@ -22,6 +22,10 @@ export default {
       fontSize: {
         display: ["clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem)", { lineHeight: "1.04", letterSpacing: "-0.022em" }],
         headline: ["clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem)", { lineHeight: "1.12", letterSpacing: "-0.015em" }],
+        // Titre d'écran applicatif : ~12 % sous `headline`, qui est calibré
+        // pour l'accueil public. Dans un outil dense, un titre trop grand
+        // repousse le contenu utile sous la ligne de flottaison.
+        page: ["clamp(1.5rem, 1.2rem + 1.2vw, 2.1875rem)", { lineHeight: "1.15", letterSpacing: "-0.012em" }],
         title: ["1.25rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
         lede: ["1.1875rem", { lineHeight: "1.6" }],
         eyebrow: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],

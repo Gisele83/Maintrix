@@ -1085,8 +1085,9 @@ export function registerGMAORoutes(app: Express) {
       const userRole = (req as any).user?.role || 'technician';
 
       // Run KPI counts and recent rows in parallel — no full-table scans
-      const [kpis, activeWorkOrders, pendingWorkOrders, recentAlerts, equipmentList] = await Promise.all([
+      const [kpis, contexte, activeWorkOrders, pendingWorkOrders, recentAlerts, equipmentList] = await Promise.all([
         gmaoStorage.getDashboardKPIs(tenantId),
+        gmaoStorage.getDashboardContexte(tenantId),
         gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId).then(r => r.slice(0, 3)),
         gmaoStorage.getWorkOrdersByStatus('pending', tenantId).then(r => r.slice(0, 3)),
         gmaoStorage.getAlertsNotifications('active', tenantId).then(r => r.slice(0, 5)),
@@ -1099,6 +1100,9 @@ export function registerGMAORoutes(app: Express) {
         pendingWorkOrdersCount: kpis.pendingWorkOrdersCount,
         criticalAlertsCount: kpis.criticalAlertsCount,
         lowStockPartsCount: kpis.lowStockPartsCount,
+        // Ce qui donne du sens aux chiffres : indisponibilites, retards, echeances.
+        // Voir gmaoStorage.getDashboardContexte.
+        contexte,
         recentWorkOrders: [...activeWorkOrders, ...pendingWorkOrders].slice(0, 5),
         recentAlerts,
         equipmentByType: equipmentList.reduce((acc: Record<string, number>, eq) => {

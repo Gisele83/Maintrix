@@ -46,6 +46,15 @@ export interface LicenseStatus {
   licensedUsers: number;
   canOperate: boolean;             // true when trial/active/grace
   warningMessage: string | null;   // shown to user when near expiry
+  /**
+   * L'application des licences est-elle réellement armée ?
+   *
+   * Sans cette information, l'interface annonçait « interruption du service
+   * dans 7 jours » alors que rien ne peut interrompre quoi que ce soit :
+   * le contrôle est désactivé. Une alarme qui ne correspond à aucun risque
+   * finit par faire ignorer toutes les autres.
+   */
+  enforcement: boolean;
 }
 
 // ─── License Tiers ─────────────────────────────────────────────────────────
@@ -280,6 +289,7 @@ export class LicenseService {
       licensedUsers: t.licensedUsers || 1,
       canOperate,
       warningMessage,
+      enforcement: this.licenceAppliquee(),
     };
   }
 
