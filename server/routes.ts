@@ -764,8 +764,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
       const status = await LicenseService.getLicenseStatus(tenantId);
       if (!status) return res.status(404).json({ message: "Tenant non trouvé" });
-      // Update last check timestamp (resets grace period window)
-      await LicenseService.recordLicenseCheck(tenantId);
+      // On n'ouvre une période de grâce QUE si la licence est réellement
+      // expirée. Auparavant, le seul fait de consulter son statut en ouvrait
+      // une, et la bannière annonçait une coupure qui ne venait jamais.
+      await LicenseService.recordLicenseCheck(tenantId, status.status === 'expired');
       res.json(status);
     } catch (error: any) {
       console.error("Error getting license status:", error);
@@ -857,7 +859,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = await LicenseService.getLicenseStatus(tenantId);
       if (!status) return res.status(404).json({ valid: false, message: "Tenant non trouvé" });
 
-      await LicenseService.recordLicenseCheck(tenantId);
+      // On n'ouvre une période de grâce QUE si la licence est réellement
+      // expirée. Auparavant, le seul fait de consulter son statut en ouvrait
+      // une, et la bannière annonçait une coupure qui ne venait jamais.
+      await LicenseService.recordLicenseCheck(tenantId, status.status === 'expired');
       res.json({
         valid: status.canOperate,
         status: status.status,

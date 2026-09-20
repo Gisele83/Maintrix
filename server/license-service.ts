@@ -239,7 +239,15 @@ export class LicenseService {
     // Grace period check
     const gracePeriodEnd = t.gracePeriodEnd ? new Date(t.gracePeriodEnd) : null;
     const graceMsLeft = gracePeriodEnd ? gracePeriodEnd.getTime() - now.getTime() : 0;
-    const isGracePeriodActive = !!gracePeriodEnd && graceMsLeft > 0;
+    // ⚠️ Une période de grâce suit une EXPIRATION. Tant qu'un essai court ou
+    // qu'un abonnement est actif, il n'y a rien à « gracier ».
+    //
+    // Sans cette subordination, un locataire en essai affichait « Période de
+    // grâce — 7 jours avant interruption » : le statut calculé disait
+    // « trial », mais la bannière lisait `isGracePeriodActive` et annonçait
+    // une coupure imminente. Constaté en ligne le 2026-09-20.
+    const isGracePeriodActive =
+      !hasActiveSubscription && !isTrialActive && !!gracePeriodEnd && graceMsLeft > 0;
     const gracePeriodDaysRemaining = isGracePeriodActive ? Math.ceil(graceMsLeft / (24 * 60 * 60 * 1000)) : 0;
 
     // Determine effective status
@@ -294,16 +302,37 @@ export class LicenseService {
   }
 
   // ── Record an online license check (resets grace period countdown) ─────
-  static async recordLicenseCheck(tenantId: string): Promise<void> {
+  /**
+   * Enregistre qu'un contrôle de licence a eu lieu.
+   *
+   * ═══════════════════════════════════════════════════════════════
+   * LA BOUCLE QUI FABRIQUAIT SA PROPRE ALERTE
+   * ═══════════════════════════════════════════════════════════════
+   * Cette méthode repoussait `gracePeriodEnd` à « maintenant + 7 jours » à
+   * CHAQUE appel. Or `/api/license/status` l'appelle à chaque lecture, et
+   * la bannière interroge cette route toutes les cinq minutes. Résultat :
+   *
+   *   la bannière lit le statut → la lecture ouvre une période de grâce de
+   *   7 jours → la bannière annonce « 7 jours avant interruption » → elle
+   *   relit cinq minutes plus tard → le compteur est remis à 7 jours…
+   *
+   * Le compteur ne descendait jamais, et remettre `grace_period_end` à NULL
+   * en base ne tenait pas cinq minutes. L'alerte était entièrement produite
+   * par le fait de la regarder.
+   *
+   * Consulter son statut n'ouvre donc plus rien : seule une expiration
+   * réelle ouvre une période de grâce, via `ouvrirPeriodeDeGrace`.
+   */
+  static async recordLicenseCheck(tenantId: string, ouvrirPeriodeDeGrace = false): Promise<void> {
     const now = new Date();
-    const gracePeriodDays = DEFAULT_GRACE_PERIOD_DAYS;
-    const gracePeriodEnd = new Date(now.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
-
-    await db.update(tenants).set({
+    const maj: Record<string, unknown> = {
       lastLicenseCheckAt: now,
-      gracePeriodEnd,
-      gracePeriodDays,
-    }).where(eq(tenants.id, tenantId));
+      gracePeriodDays: DEFAULT_GRACE_PERIOD_DAYS,
+    };
+    if (ouvrirPeriodeDeGrace) {
+      maj.gracePeriodEnd = new Date(now.getTime() + DEFAULT_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+    }
+    await db.update(tenants).set(maj).where(eq(tenants.id, tenantId));
   }
 
   // ── Activate a subscription (after payment) ────────────────────────────
