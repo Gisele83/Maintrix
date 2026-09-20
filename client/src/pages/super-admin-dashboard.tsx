@@ -133,13 +133,13 @@ export default function SuperAdminDashboard() {
       await navigator.clipboard.writeText(text);
       setCopiedField(fieldName);
       toast({
-        title: "✅ Copié !",
+        title: "Copié !",
         description: `${fieldName} copié dans le presse-papiers`,
       });
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
       toast({
-        title: "❌ Erreur",
+        title: "Erreur",
         description: "Impossible de copier dans le presse-papiers",
         variant: "destructive"
       });
@@ -207,14 +207,14 @@ export default function SuperAdminDashboard() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
       toast({
-        title: "Tenant créé",
-        description: data.message || `Le tenant "${data.tenant.name}" a été créé avec succès`,
+        title: "Organisation créée",
+        description: data.message || `L'organisation « ${data.tenant.name} » a été créée.`,
       });
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de créer le tenant",
+        description: error.message || "Impossible de créer l'organisation",
         variant: "destructive",
       });
     }
@@ -250,14 +250,14 @@ export default function SuperAdminDashboard() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/super-admin/tenants'] });
       toast({
-        title: "Tenant supprimé",
+        title: "Organisation supprimée",
         description: data.message,
       });
     },
     onError: (error) => {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de supprimer le tenant",
+        description: error.message || "Impossible de supprimer l'organisation",
         variant: "destructive",
       });
     }
@@ -294,7 +294,7 @@ export default function SuperAdminDashboard() {
     onSuccess: (data: any) => {
       setEmailTestResult(data);
       toast({
-        title: data.success ? "Configuration SendGrid OK ✅" : "Problème SendGrid ❌",
+        title: data.success ? "Configuration SendGrid OK " : "Problème SendGrid ",
         description: data.sendgridTest?.error || "Test de configuration réussi",
         variant: data.success ? "default" : "destructive"
       });
@@ -318,7 +318,7 @@ export default function SuperAdminDashboard() {
     onSuccess: (data: any) => {
       setEmailTestResult(data);
       toast({
-        title: data.success ? "Email envoyé ✅" : "Erreur envoi email ❌",
+        title: data.success ? "Email envoyé " : "Erreur envoi email ",
         description: data.result?.error || "Test d'envoi réussi",
         variant: data.success ? "default" : "destructive"
       });
@@ -337,93 +337,89 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
+    <div className="min-h-screen bg-paper text-ink font-sans">
+      {/* Bandeau d'administration. Le fond encre distingue la console de
+          plateforme de l'application des locataires, sans recourir au dégradé
+          violet et au verre dépoli de la version précédente. */}
+      <header className="bg-ink text-paper">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Administration Plateforme</h1>
-                <p className="text-sm text-gray-400">Gestion multi-tenant SaaS</p>
+          <div className="flex flex-wrap justify-between items-center gap-4 py-4">
+            <div className="flex items-center gap-4">
+              <img
+                src="/logo-maintrix-clair.png"
+                alt="Maintrix"
+                width={640}
+                height={213}
+                className="h-7 w-auto"
+              />
+              <div className="pl-4 border-l border-rule">
+                <p className="font-mono text-eyebrow uppercase tracking-wider text-signal-light">
+                  Console de plateforme
+                </p>
+                <h1 className="font-serif text-xl font-medium">Administration</h1>
               </div>
             </div>
-            
-            <div className="flex items-center gap-4">
+
+            <div className="flex flex-wrap items-center gap-6">
               <div className="text-right">
-                <div className="text-sm font-medium text-white">{superAdminUser.email}</div>
-                <div className="text-xs text-gray-400">Super Administrateur</div>
+                <div className="text-sm">{superAdminUser.email}</div>
+                <div className="font-mono text-eyebrow uppercase text-paper/60">Super-administrateur</div>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <div className="flex flex-wrap gap-2">
+                <button
                   onClick={() => {
                     // ⚠️ Ce bouton n'ouvre AUCUNE session de locataire : il pose
                     // seulement un repère permettant de revenir ici, puis affiche
                     // l'interface utilisateur, qui demandera une connexion normale.
-                    // Il ne fait donc pas de « prise de contrôle » de compte ; le
-                    // libellé le dit maintenant, au lieu de le laisser croire.
-                    // Une véritable fonction d'impersonation devrait être
-                    // authentifiée, tracée et limitée dans le temps : elle reste à
-                    // écrire.
                     localStorage.setItem('superAdminContext', 'true');
                     setLocation('/');
                   }}
                   title="Ouvre l'interface utilisateur. La connexion à un compte de locataire reste nécessaire."
-                  className="bg-green-600/20 border-green-400/30 text-green-300 hover:bg-green-600/30"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
-                  <Users className="w-4 h-4 mr-2" />
-                  Aller à l'interface utilisateur
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                  <Users className="w-4 h-4" />
+                  Interface utilisateur
+                </button>
+                <button
                   onClick={() => setLocation('/email-diagnostic')}
-                  className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Diagnostic Email
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                  <Mail className="w-4 h-4" />
+                  Courriels
+                </button>
+                <button
                   onClick={logout}
-                  className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4" />
                   Déconnexion
-                </Button>
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
+      </header>
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="tenants" className="space-y-6">
-          <TabsList className="bg-black/20 backdrop-blur-xl border-white/10">
-            <TabsTrigger value="tenants" className="data-[state=active]:bg-purple-600">
+          <TabsList className="w-full justify-start h-auto p-0 bg-transparent border-b border-rule rounded-none gap-1">
+            <TabsTrigger value="tenants" className="h-11 px-4 rounded-none border-b-2 border-transparent bg-transparent text-ink-soft data-[state=active]:border-signal data-[state=active]:text-ink data-[state=active]:font-medium data-[state=active]:shadow-none">
               <Building2 className="w-4 h-4 mr-2" />
-              Tenants
+              Organisations
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="users" className="h-11 px-4 rounded-none border-b-2 border-transparent bg-transparent text-ink-soft data-[state=active]:border-signal data-[state=active]:text-ink data-[state=active]:font-medium data-[state=active]:shadow-none">
               <Users className="w-4 h-4 mr-2" />
               Utilisateurs
             </TabsTrigger>
-            <TabsTrigger value="federated" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="federated" className="h-11 px-4 rounded-none border-b-2 border-transparent bg-transparent text-ink-soft data-[state=active]:border-signal data-[state=active]:text-ink data-[state=active]:font-medium data-[state=active]:shadow-none">
               <Brain className="w-4 h-4 mr-2" />
-              IA Fédérée
+              Apprentissage par site
             </TabsTrigger>
-            <TabsTrigger value="security" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="security" className="h-11 px-4 rounded-none border-b-2 border-transparent bg-transparent text-ink-soft data-[state=active]:border-signal data-[state=active]:text-ink data-[state=active]:font-medium data-[state=active]:shadow-none">
               <Lock className="w-4 h-4 mr-2" />
               Sécurité
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="notifications" className="h-11 px-4 rounded-none border-b-2 border-transparent bg-transparent text-ink-soft data-[state=active]:border-signal data-[state=active]:text-ink data-[state=active]:font-medium data-[state=active]:shadow-none">
               <Mail className="w-4 h-4 mr-2" />
               Notifications
             </TabsTrigger>
@@ -432,44 +428,44 @@ export default function SuperAdminDashboard() {
           {/* Gestion des Tenants */}
           <TabsContent value="tenants" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Gestion des Tenants</h2>
+              <h2 className="font-serif text-headline font-medium">Organisations</h2>
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                  <Button className="bg-ink text-paper hover:bg-signal">
                     <Plus className="w-4 h-4 mr-2" />
-                    Nouveau Tenant
+                    Nouvelle organisation
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-gray-900/95 backdrop-blur-xl border-gray-600">
+                <DialogContent className="sm:max-w-md bg-gray-900/95 border-gray-600">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Créer un nouveau tenant</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Créer un nouveau tenant avec invitation automatique par email
+                    <DialogTitle className="text-ink">Créer une organisation</DialogTitle>
+                    <DialogDescription className="text-ink-mute">
+                      Crée l'organisation, son compte propriétaire, et lui envoie ses identifiants par courriel.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name" className="text-white">Nom du tenant *</Label>
+                      <Label htmlFor="name" className="text-ink">Nom de l'organisation *</Label>
                       <Input
                         id="name"
                         placeholder="Nom de l'entreprise"
                         value={newTenantData.name}
                         onChange={(e) => setNewTenantData({...newTenantData, name: e.target.value})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="domain" className="text-white">Domaine</Label>
+                      <Label htmlFor="domain" className="text-ink">Domaine</Label>
                       <Input
                         id="domain"
                         placeholder="exemple: entreprise.example.com"
                         value={newTenantData.domain}
                         onChange={(e) => setNewTenantData({...newTenantData, domain: e.target.value})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="adminEmail" className="text-white flex items-center">
+                      <Label htmlFor="adminEmail" className="text-ink flex items-center">
                         <Mail className="w-4 h-4 mr-2" />
                         Email administrateur (pour invitation)
                       </Label>
@@ -479,14 +475,14 @@ export default function SuperAdminDashboard() {
                         placeholder="admin@entreprise.com"
                         value={newTenantData.adminEmail}
                         onChange={(e) => setNewTenantData({...newTenantData, adminEmail: e.target.value})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-ink-mute mt-1">
                         Un email d'invitation avec lien de connexion sera envoyé automatiquement
                       </p>
                     </div>
                     <div>
-                      <Label htmlFor="maxUsers" className="text-white flex items-center">
+                      <Label htmlFor="maxUsers" className="text-ink flex items-center">
                         <Users className="w-4 h-4 mr-2" />
                         Nombre d'utilisateurs autorisés
                       </Label>
@@ -498,9 +494,9 @@ export default function SuperAdminDashboard() {
                         placeholder="1"
                         value={newTenantData.maxUsers}
                         onChange={(e) => setNewTenantData({...newTenantData, maxUsers: parseInt(e.target.value) || 1})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-ink-mute mt-1">
                         Définit le nombre maximum d'utilisateurs pour ce tenant (génère automatiquement la licence)
                       </p>
                     </div>
@@ -512,7 +508,7 @@ export default function SuperAdminDashboard() {
                         setIsCreateDialogOpen(false);
                         setNewTenantData({ name: '', domain: '', adminEmail: '', maxUsers: 1 });
                       }}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                      className="border-gray-600 text-ink-soft hover:bg-gray-800"
                     >
                       Annuler
                     </Button>
@@ -521,7 +517,7 @@ export default function SuperAdminDashboard() {
                         if (!newTenantData.name) {
                           toast({
                             title: "Erreur",
-                            description: "Le nom du tenant est requis",
+                            description: "Le nom de l'organisation est requis",
                             variant: "destructive",
                           });
                           return;
@@ -540,7 +536,7 @@ export default function SuperAdminDashboard() {
                         setNewTenantData({ name: '', domain: '', adminEmail: '', maxUsers: 1 });
                       }}
                       disabled={createTenantMutation.isPending}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      className="bg-ink text-paper hover:bg-signal"
                     >
                       {createTenantMutation.isPending ? 'Création...' : 'Créer et Inviter'}
                     </Button>
@@ -551,64 +547,64 @@ export default function SuperAdminDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tenantsLoading ? (
-                <div className="text-white">Chargement...</div>
+                <div className="text-ink">Chargement...</div>
               ) : (
                 tenants.map((tenant: SuperAdminTenant) => (
-                  <Card key={tenant.id} className="bg-white/5 backdrop-blur-xl border-white/10">
+                  <Card key={tenant.id} className="bg-white border border-rule">
                     <CardHeader>
                       <div className="flex justify-between items-start">
-                        <CardTitle className="text-white">{tenant.name}</CardTitle>
+                        <CardTitle className="text-ink">{tenant.name}</CardTitle>
                         <Badge variant={tenant.isActive ? 'default' : 'secondary'}>
                           {tenant.isActive ? 'Actif' : 'Inactif'}
                         </Badge>
                       </div>
-                      <CardDescription className="text-gray-400">
+                      <CardDescription className="text-ink-mute">
                         {tenant.domain || tenant.plan || 'Aucun domaine'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Utilisateurs:</span>
                           <span>{tenant.currentUsers || tenant.userCount || 0}/{tenant.maxUsers}</span>
                         </div>
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Créé:</span>
                           <span>{new Date(tenant.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Plan:</span>
                           <span className="capitalize">{tenant.plan}</span>
                         </div>
                         
-                        {/* 📜 INFORMATIONS DE LICENCE */}
-                        <div className="flex justify-between text-gray-300">
+                        {/* INFORMATIONS DE LICENCE */}
+                        <div className="flex justify-between text-ink-soft">
                           <span>Type Licence:</span>
-                          <span className="text-purple-300">{tenant.licenseType || 'N/A'}</span>
+                          <span className="text-signal">{tenant.licenseType || 'N/A'}</span>
                         </div>
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Utilisateurs Licenciés:</span>
-                          <span className="text-blue-300">{tenant.licensedUsers || 'Illimité'}</span>
+                          <span className="text-signal">{tenant.licensedUsers || 'Illimité'}</span>
                         </div>
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Clé Licence:</span>
-                          <span className="text-gray-400 font-mono text-xs">
+                          <span className="text-ink-mute font-mono text-xs">
                             {tenant.licenseKey ? '••••••••••••••••' : 'N/A'}
                           </span>
                         </div>
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>MàJ Licence:</span>
                           <span>{tenant.licenseUpdatedAt ? new Date(tenant.licenseUpdatedAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
                         
-                        <div className="flex justify-between text-gray-300">
+                        <div className="flex justify-between text-ink-soft">
                           <span>Dernière activité:</span>
                           <span>{new Date(tenant.lastActivity).toLocaleDateString()}</span>
                         </div>
                       </div>
                       
                       {/* Actions Admin */}
-                      <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                      <div className="flex gap-2 mt-4 pt-4 border-t border-rule">
                         <Button
                           size="sm"
                           variant={tenant.isActive ? "destructive" : "default"}
@@ -616,7 +612,7 @@ export default function SuperAdminDashboard() {
                             const action = tenant.isActive ? "désactiver" : "réactiver";
                             const reason = tenant.isActive ? prompt("Raison de la désactivation (optionnel):") : undefined;
                             
-                            if (confirm(`Voulez-vous vraiment ${action} le tenant "${tenant.name}" ?`)) {
+                            if (confirm(`Voulez-vous vraiment ${action} l'organisation « ${tenant.name} » ?`)) {
                               updateTenantStatusMutation.mutate({
                                 tenantId: tenant.id,
                                 isActive: !tenant.isActive,
@@ -638,7 +634,7 @@ export default function SuperAdminDashboard() {
                             setNewUserLimit(tenant.maxUsers || tenant.licensedUsers || 1);
                             setIsEditLimitDialogOpen(true);
                           }}
-                          className="px-3 border-purple-500 text-purple-300 hover:bg-purple-500/10"
+                          className="px-3 border-rule text-signal hover:bg-paper-deep"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -647,7 +643,7 @@ export default function SuperAdminDashboard() {
                           size="sm"
                           variant="destructive"
                           onClick={() => {
-                            if (confirm(`⚠️ ATTENTION: Supprimer définitivement le tenant "${tenant.name}" ?\n\nCette action est IRRÉVERSIBLE et supprimera toutes les données associées.`)) {
+                            if (confirm(`Supprimer définitivement l'organisation « ${tenant.name} » ?\n\nCette action est IRRÉVERSIBLE : toutes ses données seront perdues.`)) {
                               deleteTenantMutation.mutate(tenant.id);
                             }
                           }}
@@ -663,18 +659,18 @@ export default function SuperAdminDashboard() {
               )}
             </div>
             
-            {/* 📜 MODAL DE MODIFICATION DE LA LIMITE D'UTILISATEURS */}
+            {/* MODAL DE MODIFICATION DE LA LIMITE D'UTILISATEURS */}
             <Dialog open={isEditLimitDialogOpen} onOpenChange={setIsEditLimitDialogOpen}>
-              <DialogContent className="sm:max-w-md bg-gray-900/95 backdrop-blur-xl border-gray-600">
+              <DialogContent className="sm:max-w-md bg-gray-900/95 border-gray-600">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Modifier la limite d'utilisateurs</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Modifier le nombre maximum d'utilisateurs pour le tenant "{selectedTenant?.name}"
+                  <DialogTitle className="text-ink">Modifier la limite d'utilisateurs</DialogTitle>
+                  <DialogDescription className="text-ink-mute">
+                    Modifier le nombre maximum d'utilisateurs de « {selectedTenant?.name} »
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="userLimit" className="text-white flex items-center">
+                    <Label htmlFor="userLimit" className="text-ink flex items-center">
                       <Users className="w-4 h-4 mr-2" />
                       Nombre maximum d'utilisateurs
                     </Label>
@@ -685,9 +681,9 @@ export default function SuperAdminDashboard() {
                       max="1000"
                       value={newUserLimit}
                       onChange={(e) => setNewUserLimit(parseInt(e.target.value) || 1)}
-                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      className="bg-white border-rule text-ink placeholder:text-ink-mute"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Actuel: {selectedTenant?.currentUsers || 0} utilisateurs
                     </p>
                   </div>
@@ -699,7 +695,7 @@ export default function SuperAdminDashboard() {
                       setIsEditLimitDialogOpen(false);
                       setSelectedTenant(null);
                     }}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    className="border-gray-600 text-ink-soft hover:bg-gray-800"
                   >
                     Annuler
                   </Button>
@@ -720,7 +716,7 @@ export default function SuperAdminDashboard() {
                         });
                       }
                     }}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    className="bg-ink text-paper hover:bg-signal"
                   >
                     Modifier
                   </Button>
@@ -729,73 +725,73 @@ export default function SuperAdminDashboard() {
             </Dialog>
           </TabsContent>
 
-          {/* 👤 Gestion des Utilisateurs avec Identifiants par Défaut */}
+          {/* Gestion des Utilisateurs avec Identifiants par Défaut */}
           <TabsContent value="users" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-white">Gestion des Utilisateurs</h2>
+              <h2 className="text-2xl font-bold text-ink">Gestion des Utilisateurs</h2>
               <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700">
+                  <Button className="bg-ink text-paper hover:bg-signal">
                     <Plus className="w-4 h-4 mr-2" />
                     Créer Utilisateur
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-lg bg-gray-900/95 backdrop-blur-xl border-gray-600">
+                <DialogContent className="sm:max-w-lg bg-gray-900/95 border-gray-600">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Créer un nouvel utilisateur</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      🔐 Seul le super-administrateur peut créer des comptes avec identifiants par défaut
+                    <DialogTitle className="text-ink">Créer un nouvel utilisateur</DialogTitle>
+                    <DialogDescription className="text-ink-mute">
+                      Seul le super-administrateur peut créer des comptes avec identifiants par défaut
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="firstName" className="text-white">Prénom *</Label>
+                        <Label htmlFor="firstName" className="text-ink">Prénom *</Label>
                         <Input
                           id="firstName"
                           placeholder="Jean"
                           value={newUserData.firstName}
                           onChange={(e) => setNewUserData({...newUserData, firstName: e.target.value})}
-                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                          className="bg-white border-rule text-ink placeholder:text-ink-mute"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="lastName" className="text-white">Nom *</Label>
+                        <Label htmlFor="lastName" className="text-ink">Nom *</Label>
                         <Input
                           id="lastName"
                           placeholder="Dupont"
                           value={newUserData.lastName}
                           onChange={(e) => setNewUserData({...newUserData, lastName: e.target.value})}
-                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                          className="bg-white border-rule text-ink placeholder:text-ink-mute"
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <Label htmlFor="email" className="text-white">Email *</Label>
+                      <Label htmlFor="email" className="text-ink">Email *</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="jean.dupont@entreprise.com"
                         value={newUserData.email}
                         onChange={(e) => setNewUserData({...newUserData, email: e.target.value})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="tenantId" className="text-white">Organisation *</Label>
+                      <Label htmlFor="tenantId" className="text-ink">Organisation *</Label>
                       <Input
                         id="tenantId"
                         placeholder="Nom de l'organisation (ex: Entreprise ABC)"
                         value={newUserData.tenantId}
                         onChange={(e) => setNewUserData({...newUserData, tenantId: e.target.value})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="maxUsers" className="text-white flex items-center">
+                      <Label htmlFor="maxUsers" className="text-ink flex items-center">
                         <Users className="w-4 h-4 mr-2" />
                         Nombre maximum d'utilisateurs *
                       </Label>
@@ -807,17 +803,17 @@ export default function SuperAdminDashboard() {
                         placeholder="Ex: 5"
                         value={newUserData.maxUsers || ''}
                         onChange={(e) => setNewUserData({...newUserData, maxUsers: parseInt(e.target.value) || 1})}
-                        className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-white border-rule text-ink placeholder:text-ink-mute"
                       />
-                      <p className="text-xs text-gray-400 mt-1">
-                        ⚡ Une licence personnalisée "SM" + 13 chiffres sera générée automatiquement
+                      <p className="text-xs text-ink-mute mt-1">
+                        Une licence personnalisée "SM" + 13 chiffres sera générée automatiquement
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="role" className="text-white">Rôle</Label>
-                        {/* ⚠️ C'était un champ libre : « Administrateur » y était
+                        <Label htmlFor="role" className="text-ink">Rôle</Label>
+                        {/* C'était un champ libre : « Administrateur » y était
                             accepté alors que le système attend `admin`, et le compte
                             se retrouvait sans aucun droit. Seuls les rôles du
                             référentiel partagé sont désormais proposés. */}
@@ -825,7 +821,7 @@ export default function SuperAdminDashboard() {
                           value={newUserData.role || ROLE_PAR_DEFAUT}
                           onValueChange={(valeur) => setNewUserData({...newUserData, role: valeur})}
                         >
-                          <SelectTrigger id="role" className="bg-white/10 border-gray-600 text-white">
+                          <SelectTrigger id="role" className="bg-white border-rule text-ink">
                             <SelectValue placeholder="Choisir un rôle" />
                           </SelectTrigger>
                           <SelectContent>
@@ -839,13 +835,13 @@ export default function SuperAdminDashboard() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="department" className="text-white">Département</Label>
+                        <Label htmlFor="department" className="text-ink">Département</Label>
                         <Input
                           id="department"
                           placeholder="Maintenance"
                           value={newUserData.department}
                           onChange={(e) => setNewUserData({...newUserData, department: e.target.value})}
-                          className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                          className="bg-white border-rule text-ink placeholder:text-ink-mute"
                         />
                       </div>
                     </div>
@@ -855,7 +851,7 @@ export default function SuperAdminDashboard() {
                     <Button
                       variant="outline"
                       onClick={() => setIsCreateUserDialogOpen(false)}
-                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                      className="border border-rule text-ink hover:bg-paper-deep"
                     >
                       Annuler
                     </Button>
@@ -896,9 +892,9 @@ export default function SuperAdminDashboard() {
                           // 📋 Stocker les identifiants pour affichage et copie
                           setCreatedUserCredentials(result);
                           
-                          const emailStatus = result.message?.includes('Email non envoyé') ? ' ⚠️ Email non envoyé' : ' ✅ Email envoyé';
+                          const emailStatus = result.message?.includes('Email non envoyé') ? ' Email non envoyé' : ' Email envoyé';
                           toast({
-                            title: "✅ Utilisateur créé",
+                            title: "Utilisateur créé",
                             description: `Identifiants générés pour ${newUserData.firstName} ${newUserData.lastName}${emailStatus}`,
                           });
                           
@@ -922,15 +918,15 @@ export default function SuperAdminDashboard() {
                           setCreatedUserCredentials(null);
                           
                           toast({
-                            title: "❌ Erreur de création",
+                            title: "Erreur de création",
                             description: error.message || "Impossible de créer l'utilisateur",
                             variant: "destructive"
                           });
                         });
                       }}
-                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                      className="bg-ink text-paper hover:bg-signal"
                     >
-                      🔐 Créer avec identifiants par défaut
+                      Créer avec identifiants par défaut
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -939,60 +935,60 @@ export default function SuperAdminDashboard() {
 
             {/* Statistiques Utilisateurs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <Users className="w-5 h-5" />
                     Identifiants par défaut
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-orange-400">
+                  <div className="text-3xl font-bold text-signal-deep">
                     {defaultCredentialUsers?.users?.length || 0}
                   </div>
-                  <p className="text-gray-400">Utilisateurs à modifier</p>
+                  <p className="text-ink-mute">Utilisateurs à modifier</p>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <Activity className="w-5 h-5" />
                     Total Utilisateurs  
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-blue-400">
+                  <div className="text-3xl font-bold text-signal">
                     {tousUtilisateurs.count}
                   </div>
-                  <p className="text-gray-400">
+                  <p className="text-ink-mute">
                     Tous les tenants · {tousUtilisateurs.actifs} actif(s)
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <Lock className="w-5 h-5" />
                     Sécurité
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-400">
+                  <div className="text-3xl font-bold text-ink">
                     {((tenants.reduce((total, tenant) => total + tenant.currentUsers, 0) - (defaultCredentialUsers?.users?.length || 0)) / Math.max(tenants.reduce((total, tenant) => total + tenant.currentUsers, 0), 1) * 100).toFixed(0)}%
                   </div>
-                  <p className="text-gray-400">Comptes sécurisés</p>
+                  <p className="text-ink-mute">Comptes sécurisés</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* 📋 Section d'affichage des identifiants générés (pour copie manuelle) */}
+            {/* Section d'affichage des identifiants générés (pour copie manuelle) */}
             {createdUserCredentials && (
-              <Card className="bg-gradient-to-r from-green-800/30 to-blue-800/30 backdrop-blur-xl border-green-400/50 shadow-xl">
+              <Card className="bg-white border border-rule shadow-none">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    🔐 Identifiants générés - Mode Manuel
+                  <CardTitle className="text-ink flex items-center gap-2">
+                    Identifiants générés - Mode Manuel
                   </CardTitle>
                   <CardDescription className="text-green-200">
                     Copiez ces identifiants pour les transmettre à l'utilisateur {createdUserCredentials.message?.includes('Email non envoyé') ? '(Email non envoyé - transmission manuelle requise)' : '(Email envoyé automatiquement)'}
@@ -1008,13 +1004,13 @@ export default function SuperAdminDashboard() {
                           <Input 
                             value={createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                            className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || '', 'Nom d\'utilisateur')}
-                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
                           >
                             {copiedField === 'Nom d\'utilisateur' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1028,13 +1024,13 @@ export default function SuperAdminDashboard() {
                           <Input 
                             value={createdUserCredentials.temporaryCredentials?.password || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-white font-mono placeholder-gray-400"
+                            className="bg-gray-800 border-gray-600 text-ink font-mono placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.password || '', 'Mot de passe')}
-                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
                           >
                             {copiedField === 'Mot de passe' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1043,20 +1039,20 @@ export default function SuperAdminDashboard() {
                     </div>
                     
                     {/* Informations utilisateur */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-white/10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-rule">
                       <div className="space-y-2">
                         <Label className="text-green-200 text-sm font-medium">Email utilisateur</Label>
                         <div className="flex items-center gap-2">
                           <Input 
                             value={createdUserCredentials.user?.email || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                            className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.user?.email || '', 'Email')}
-                            className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
                           >
                             {copiedField === 'Email' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1076,13 +1072,13 @@ export default function SuperAdminDashboard() {
                             }) : 'N/A'
                           } 
                           readOnly 
-                          className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                          className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
                         />
                       </div>
                     </div>
                     
                     {/* Bouton copie tout */}
-                    <div className="pt-3 border-t border-white/10">
+                    <div className="pt-3 border-t border-rule">
                       <Button
                         onClick={() => {
                           const credentials = `Maintrix - Identifiants utilisateur
@@ -1108,34 +1104,34 @@ IMPORTANT:
 Maintrix - Maintenance intelligente et prédictive`;
                           copyToClipboard(credentials, 'Toutes les informations');
                         }}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="w-full bg-ink text-paper hover:bg-signal"
                       >
-                        📋 Copier toutes les informations
+                        Copier toutes les informations
                       </Button>
                     </div>
                     
-                    {/* 📜 INFORMATIONS DE LICENCE GÉNÉRÉE */}
+                    {/* INFORMATIONS DE LICENCE GÉNÉRÉE */}
                     {createdUserCredentials.tenant && (
-                      <div className="bg-purple-900/20 rounded-lg p-4 mt-4 border border-purple-500/30">
+                      <div className="bg-paper p-4 mt-4 border border-rule">
                         <div className="flex items-center gap-2 mb-3">
-                          <Shield className="w-5 h-5 text-purple-400" />
-                          <Label className="text-purple-200 font-medium">Licence personnalisée générée</Label>
+                          <Shield className="w-5 h-5 text-signal" />
+                          <Label className="text-ink font-medium">Licence personnalisée générée</Label>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Clé de licence */}
                           <div className="space-y-2">
-                            <Label className="text-purple-200 text-sm">Clé de licence</Label>
+                            <Label className="text-ink-soft text-sm">Clé de licence</Label>
                             <div className="flex items-center gap-2">
                               <Input 
                                 value={createdUserCredentials.tenant?.licenseKey || 'N/A'} 
                                 readOnly 
-                                className="bg-purple-800/20 border-purple-600 text-white font-mono text-sm"
+                                className="bg-white border-rule text-ink font-mono text-sm"
                               />
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => copyToClipboard(createdUserCredentials.tenant?.licenseKey || '', 'Clé de licence')}
-                                className="bg-purple-700 border-purple-500 text-white hover:bg-purple-600"
+                                className="border-rule text-ink hover:bg-paper-deep"
                               >
                                 {copiedField === 'Clé de licence' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                               </Button>
@@ -1144,42 +1140,42 @@ Maintrix - Maintenance intelligente et prédictive`;
                           
                           {/* Limite d'utilisateurs */}
                           <div className="space-y-2">
-                            <Label className="text-purple-200 text-sm">Limite d'utilisateurs</Label>
+                            <Label className="text-ink-soft text-sm">Limite d'utilisateurs</Label>
                             <div className="flex items-center gap-2">
                               <Input 
                                 value={`${createdUserCredentials.tenant?.currentUsers || 1}/${createdUserCredentials.tenant?.maxUsers || 1} utilisateurs`} 
                                 readOnly 
-                                className="bg-purple-800/20 border-purple-600 text-white"
+                                className="bg-white border-rule text-ink"
                               />
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => copyToClipboard(`${createdUserCredentials.tenant?.maxUsers || 1}`, 'Limite utilisateurs')}
-                                className="bg-purple-700 border-purple-500 text-white hover:bg-purple-600"
+                                className="border-rule text-ink hover:bg-paper-deep"
                               >
                                 {copiedField === 'Limite utilisateurs' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                               </Button>
                             </div>
                           </div>
                         </div>
-                        <p className="text-purple-300 text-xs mt-2">
-                          ⚡ Licence au format "SM" + 13 chiffres - Type: {createdUserCredentials.tenant?.licenseType || 'custom'}
+                        <p className="text-signal text-xs mt-2">
+                          Licence au format "SM" + 13 chiffres - Type: {createdUserCredentials.tenant?.licenseType || 'custom'}
                         </p>
                       </div>
                     )}
                     
                     {/* État email */}
-                    <div className="bg-white/5 rounded-lg p-3 mt-3">
+                    <div className="bg-white rounded-lg p-3 mt-3">
                       <div className="flex items-center gap-2 text-sm">
                         {createdUserCredentials.message?.includes('Email non envoyé') ? (
                           <>
                             <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                            <span className="text-orange-300">📧 Email non envoyé - Transmission manuelle requise</span>
+                            <span className="text-orange-300">Email non envoyé - Transmission manuelle requise</span>
                           </>
                         ) : (
                           <>
                             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-green-300">✅ Email envoyé automatiquement</span>
+                            <span className="text-ink">Email envoyé automatiquement</span>
                           </>
                         )}
                       </div>
@@ -1191,7 +1187,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                       variant="outline"
                       size="sm"
                       onClick={() => setCreatedUserCredentials(null)}
-                      className="bg-gray-700 border-gray-500 text-white hover:bg-gray-600"
+                      className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
                     >
                       Fermer
                     </Button>
@@ -1201,36 +1197,36 @@ Maintrix - Maintenance intelligente et prédictive`;
             )}
 
             {/* Liste des utilisateurs avec identifiants par défaut */}
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <Card className="bg-white border border-rule">
               <CardHeader>
-                <CardTitle className="text-white">🔐 Utilisateurs avec identifiants par défaut</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardTitle className="text-ink">Utilisateurs avec identifiants par défaut</CardTitle>
+                <CardDescription className="text-ink-mute">
                   Ces utilisateurs doivent changer leur mot de passe à la première connexion
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
-                  <div className="text-center text-gray-400 py-8">Chargement des utilisateurs...</div>
+                  <div className="text-center text-ink-mute py-8">Chargement des utilisateurs...</div>
                 ) : defaultCredentialUsers?.users?.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">
-                    ✅ Aucun utilisateur avec identifiants par défaut
+                  <div className="text-center text-ink-mute py-8">
+                    Aucun utilisateur avec identifiants par défaut
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {defaultCredentialUsers?.users?.map((user: any) => (
-                      <div key={user.id} className="flex justify-between items-center p-4 bg-white/5 rounded-lg border border-orange-500/30">
+                      <div key={user.id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-orange-500/30">
                         <div className="flex items-center space-x-4">
                           <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-white" />
+                            <Users className="w-5 h-5 text-ink" />
                           </div>
                           <div>
-                            <div className="text-white font-medium">
+                            <div className="text-ink font-medium">
                               {user.firstName} {user.lastName}
                             </div>
-                            <div className="text-gray-400 text-sm">
+                            <div className="text-ink-mute text-sm">
                               {user.email} • {user.username} • {user.role}
                             </div>
-                            <div className="text-gray-500 text-xs">
+                            <div className="text-ink-mute text-xs">
                               Tenant: {user.tenantId} • Créé: {user.defaultCredentialsGeneratedAt ? new Date(user.defaultCredentialsGeneratedAt).toLocaleDateString() : 'N/A'}
                             </div>
                           </div>
@@ -1239,8 +1235,8 @@ Maintrix - Maintenance intelligente et prédictive`;
                         <div className="flex items-center space-x-2">
                           <div className="flex flex-col space-y-2">
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-orange-400 border-orange-400">
-                                🔐 Défaut
+                              <Badge variant="outline" className="text-signal-deep border-orange-400">
+                                Défaut
                               </Badge>
                               
                               {user.passwordExpiresAt && new Date(user.passwordExpiresAt) < new Date() ? (
@@ -1254,11 +1250,11 @@ Maintrix - Maintenance intelligente et prédictive`;
                               ) : null}
                               
                               {user.lastLogin ? (
-                                <Badge variant="secondary" className="text-green-400 border-green-400">
+                                <Badge variant="secondary" className="text-ink border-green-400">
                                   Connecté: {new Date(user.lastLogin).toLocaleDateString()}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-gray-400 border-gray-400">
+                                <Badge variant="outline" className="text-ink-mute border-gray-400">
                                   Jamais connecté
                                 </Badge>
                               )}
@@ -1276,7 +1272,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                                     description: "Fonctionnalité d'édition en cours de développement",
                                   });
                                 }}
-                                className="bg-blue-600/20 border-blue-400 text-blue-300 hover:bg-blue-600/40"
+                                className="bg-blue-600/20 border-blue-400 text-signal hover:bg-blue-600/40"
                               >
                                 <Edit className="w-3 h-3 mr-1" />
                                 Éditer
@@ -1296,20 +1292,20 @@ Maintrix - Maintenance intelligente et prédictive`;
                                     }).then(res => res.json()).then((result) => {
                                       if (result.success) {
                                         toast({
-                                          title: "✅ Utilisateur supprimé",
+                                          title: "Utilisateur supprimé",
                                           description: `${user.firstName} ${user.lastName} a été supprimé avec succès`,
                                         });
                                         queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
                                       } else {
                                         toast({
-                                          title: "❌ Erreur",
+                                          title: "Erreur",
                                           description: result.message || "Impossible de supprimer l'utilisateur",
                                           variant: "destructive"
                                         });
                                       }
                                     }).catch((error) => {
                                       toast({
-                                        title: "❌ Erreur",
+                                        title: "Erreur",
                                         description: "Erreur lors de la suppression",
                                         variant: "destructive"
                                       });
@@ -1334,70 +1330,70 @@ Maintrix - Maintenance intelligente et prédictive`;
 
           {/* IA Fédérée */}
           <TabsContent value="federated" className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Intelligence Artificielle Fédérée</h2>
+            <h2 className="text-2xl font-bold text-ink">Intelligence Artificielle Fédérée</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <Activity className="w-5 h-5" />
                     Contributions Totales
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-purple-400">
+                  <div className="text-3xl font-bold text-signal">
                     {federatedStats.length}
                   </div>
-                  <p className="text-gray-400">Points de données</p>
+                  <p className="text-ink-mute">Points de données</p>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <TrendingUp className="w-5 h-5" />
                     Amélioration Moyenne
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-green-400">
+                  <div className="text-3xl font-bold text-ink">
                     {((federatedStats.reduce((sum: number, stat: FederatedStats) => sum + (stat.solutionEffectiveness || 0), 0) / Math.max(federatedStats.length, 1)) * 100).toFixed(1)}%
                   </div>
-                  <p className="text-gray-400">Précision IA</p>
+                  <p className="text-ink-mute">Précision IA</p>
                 </CardContent>
               </Card>
               
-              <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+              <Card className="bg-white border border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-ink flex items-center gap-2">
                     <Brain className="w-5 h-5" />
                     Tenants Actifs
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-blue-400">
+                  <div className="text-3xl font-bold text-signal">
                     {new Set(federatedStats.map((stat: FederatedStats) => stat.tenantId)).size}
                   </div>
-                  <p className="text-gray-400">Contributeurs</p>
+                  <p className="text-ink-mute">Contributeurs</p>
                 </CardContent>
               </Card>
             </div>
 
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <Card className="bg-white border border-rule">
               <CardHeader>
-                <CardTitle className="text-white">Détail des Contributions</CardTitle>
+                <CardTitle className="text-ink">Détail des Contributions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {federatedStats.map((stat: FederatedStats) => (
-                    <div key={stat.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div key={stat.id} className="flex justify-between items-center p-3 bg-white rounded-lg">
                       <div>
-                        <div className="text-white font-medium">{stat.tenantId || 'N/A'}</div>
-                        <div className="text-gray-400 text-sm">{stat.equipmentCategory}</div>
+                        <div className="text-ink font-medium">{stat.tenantId || 'N/A'}</div>
+                        <div className="text-ink-mute text-sm">{stat.equipmentCategory}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-white">{(stat.solutionEffectiveness || 0).toFixed(2)}</div>
-                        <div className="text-gray-400 text-sm">Efficacité</div>
+                        <div className="text-ink">{(stat.solutionEffectiveness || 0).toFixed(2)}</div>
+                        <div className="text-ink-mute text-sm">Efficacité</div>
                       </div>
                     </div>
                   ))}
@@ -1408,10 +1404,10 @@ Maintrix - Maintenance intelligente et prédictive`;
 
           {/* Sécurité */}
           <TabsContent value="security" className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Sécurité Plateforme</h2>
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <h2 className="text-2xl font-bold text-ink">Sécurité Plateforme</h2>
+            <Card className="bg-white border border-rule">
               <CardContent className="p-6">
-                <div className="text-center text-gray-400">
+                <div className="text-center text-ink-mute">
                   <Lock className="w-12 h-12 mx-auto mb-4" />
                   <p>Fonctionnalités de sécurité en développement</p>
                 </div>
@@ -1421,16 +1417,16 @@ Maintrix - Maintenance intelligente et prédictive`;
 
           {/* Diagnostic Email */}
           <TabsContent value="notifications" className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Diagnostic Email SendGrid</h2>
+            <h2 className="text-2xl font-bold text-ink">Diagnostic Email SendGrid</h2>
             
             {/* Section test configuration */}
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <Card className="bg-white border border-rule">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-ink flex items-center gap-2">
                   <Mail className="w-5 h-5" />
                   Test Configuration SendGrid
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-ink-mute">
                   Vérifier la configuration de la clé API SendGrid
                 </CardDescription>
               </CardHeader>
@@ -1438,22 +1434,22 @@ Maintrix - Maintenance intelligente et prédictive`;
                 <Button 
                   onClick={() => testSendGridMutation.mutate()}
                   disabled={testSendGridMutation.isPending}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="bg-ink text-paper hover:bg-signal"
                 >
-                  {testSendGridMutation.isPending ? 'Test en cours...' : '🧪 Tester Configuration'}
+                  {testSendGridMutation.isPending ? 'Test en cours...' : 'Tester Configuration'}
                 </Button>
                 
                 {emailTestResult?.sendgridTest && (
                   <div className={`p-4 rounded-lg ${emailTestResult.sendgridTest.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
-                    <div className="text-sm text-white">
-                      <strong>Status:</strong> {emailTestResult.sendgridTest.success ? '✅ OK' : '❌ Erreur'}
+                    <div className="text-sm text-ink">
+                      <strong>Status:</strong> {emailTestResult.sendgridTest.success ? 'OK' : 'Erreur'}
                     </div>
                     {emailTestResult.sendgridTest.error && (
                       <div className="text-sm text-red-300 mt-1">
                         <strong>Erreur:</strong> {emailTestResult.sendgridTest.error}
                       </div>
                     )}
-                    <div className="text-xs text-gray-400 mt-2">
+                    <div className="text-xs text-ink-mute mt-2">
                       {emailTestResult.timestamp}
                     </div>
                   </div>
@@ -1462,41 +1458,41 @@ Maintrix - Maintenance intelligente et prédictive`;
             </Card>
 
             {/* Section test envoi email */}
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <Card className="bg-white border border-rule">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-ink flex items-center gap-2">
                   <Mail className="w-5 h-5" />
                   Test Envoi Email
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-ink-mute">
                   Tester l'envoi d'un email avec SendGrid
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="fromEmail" className="text-white">Email expéditeur</Label>
+                    <Label htmlFor="fromEmail" className="text-ink">Email expéditeur</Label>
                     <Input
                       id="fromEmail"
                       type="email"
                       placeholder="test@example.com"
                       value={emailTestData.fromEmail}
                       onChange={(e) => setEmailTestData({...emailTestData, fromEmail: e.target.value})}
-                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      className="bg-white border-rule text-ink placeholder:text-ink-mute"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Cette adresse doit être vérifiée dans SendGrid
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="toEmail" className="text-white">Email destinataire</Label>
+                    <Label htmlFor="toEmail" className="text-ink">Email destinataire</Label>
                     <Input
                       id="toEmail"
                       type="email"
                       placeholder="admin@example.com"
                       value={emailTestData.toEmail}
                       onChange={(e) => setEmailTestData({...emailTestData, toEmail: e.target.value})}
-                      className="bg-white/10 border-gray-600 text-white placeholder-gray-400"
+                      className="bg-white border-rule text-ink placeholder:text-ink-mute"
                     />
                   </div>
                 </div>
@@ -1514,15 +1510,15 @@ Maintrix - Maintenance intelligente et prédictive`;
                     testEmailSendMutation.mutate(emailTestData);
                   }}
                   disabled={testEmailSendMutation.isPending}
-                  className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                  className="bg-ink text-paper hover:bg-signal"
                 >
-                  {testEmailSendMutation.isPending ? 'Envoi en cours...' : '📧 Envoyer Email Test'}
+                  {testEmailSendMutation.isPending ? 'Envoi en cours...' : 'Envoyer Email Test'}
                 </Button>
                 
                 {emailTestResult?.result && (
                   <div className={`p-4 rounded-lg ${emailTestResult.result.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
-                    <div className="text-sm text-white">
-                      <strong>Status:</strong> {emailTestResult.result.success ? '✅ Envoyé' : '❌ Échec'}
+                    <div className="text-sm text-ink">
+                      <strong>Status:</strong> {emailTestResult.result.success ? 'Envoyé' : 'Échec'}
                     </div>
                     {emailTestResult.result.error && (
                       <div className="text-sm text-red-300 mt-1">
@@ -1530,14 +1526,14 @@ Maintrix - Maintenance intelligente et prédictive`;
                       </div>
                     )}
                     {emailTestResult.result.details && (
-                      <details className="text-xs text-gray-300 mt-2">
+                      <details className="text-xs text-ink-soft mt-2">
                         <summary className="cursor-pointer">Détails techniques</summary>
-                        <pre className="mt-1 p-2 bg-black/20 rounded text-xs overflow-auto">
+                        <pre className="mt-1 p-2 bg-white rounded text-xs overflow-auto">
                           {JSON.stringify(emailTestResult.result.details, null, 2)}
                         </pre>
                       </details>
                     )}
-                    <div className="text-xs text-gray-400 mt-2">
+                    <div className="text-xs text-ink-mute mt-2">
                       {emailTestResult.timestamp}
                     </div>
                   </div>
@@ -1546,21 +1542,21 @@ Maintrix - Maintenance intelligente et prédictive`;
             </Card>
 
             {/* Guide de résolution */}
-            <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <Card className="bg-white border border-rule">
               <CardHeader>
-                <CardTitle className="text-white">🔧 Guide de Résolution</CardTitle>
+                <CardTitle className="text-ink">Guide de Résolution</CardTitle>
               </CardHeader>
-              <CardContent className="text-gray-300 space-y-3">
+              <CardContent className="text-ink-soft space-y-3">
                 <div>
-                  <strong className="text-white">1. Clé API SendGrid:</strong>
+                  <strong className="text-ink">1. Clé API SendGrid:</strong>
                   <p className="text-sm">La clé doit commencer par "SG." et avoir les permissions d'envoi d'email</p>
                 </div>
                 <div>
-                  <strong className="text-white">2. Adresse expéditeur:</strong>
+                  <strong className="text-ink">2. Adresse expéditeur:</strong>
                   <p className="text-sm">L'email expéditeur doit être vérifié dans SendGrid (Single Sender Verification ou Domain Authentication)</p>
                 </div>
                 <div>
-                  <strong className="text-white">3. Erreurs communes:</strong>
+                  <strong className="text-ink">3. Erreurs communes:</strong>
                   <ul className="text-sm list-disc list-inside pl-4 space-y-1">
                     <li>"API key does not start with 'SG.'" - Clé API invalide</li>
                     <li>"From email address is not verified" - Email expéditeur non vérifié</li>
