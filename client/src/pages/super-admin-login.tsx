@@ -66,7 +66,7 @@ export default function SuperAdminLogin() {
       <Card className="w-full max-w-md relative bg-white/5 border-white/10">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-white" />
+            <Shield className="w-8 h-8 text-ink" />
           </div>
           <CardTitle className="text-2xl font-bold text-ink">
             Administration Plateforme

@@ -71,7 +71,7 @@ export default function MachineHealth() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-            <Heart className="w-6 h-6 text-white" />
+            <Heart className="w-6 h-6 text-ink" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Scoring Santé Machines</h1>
@@ -107,7 +107,7 @@ export default function MachineHealth() {
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon className="w-5 h-5 text-white" />
+                  <stat.icon className="w-5 h-5 text-ink" />
                 </div>
                 <div>
                   <p className="text-xl font-bold text-white">{stat.value}</p>

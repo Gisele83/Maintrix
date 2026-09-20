@@ -13,9 +13,11 @@
   --popover-foreground: hsl(215, 25%, 15%);
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(215, 25%, 15%);
-  --border: hsl(215, 10%, 88%);
+  --border: hsl(210, 26%, 86%);
   --input: hsl(215, 10%, 88%);
-  --primary: hsl(214, 78%, 51%);
+  /* Encre du logo (#011535) : les boutons par défaut et les onglets actifs
+     suivent la charte au lieu du bleu générique de la bibliotheque. */
+  --primary: hsl(217, 96%, 11%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(210, 15%, 95%);
   --secondary-foreground: hsl(215, 25%, 15%);
@@ -23,7 +25,7 @@
   --accent-foreground: hsl(215, 25%, 15%);
   --destructive: hsl(4, 79%, 55%);
   --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(214, 78%, 51%);
+  --ring: hsl(197, 100%, 33%);
   --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
   
   /* Modern professional color scheme */
@@ -57,7 +59,7 @@
   --card-foreground: hsl(0, 0%, 98%);
   --border: hsl(215, 20%, 20%);
   --input: hsl(215, 20%, 20%);
-  --primary: hsl(214, 78%, 58%);
+  --primary: hsl(194, 100%, 47%);
   --primary-foreground: hsl(0, 0%, 100%);
   --secondary: hsl(215, 25%, 15%);
   --secondary-foreground: hsl(0, 0%, 98%);
@@ -65,7 +67,7 @@
   --accent-foreground: hsl(0, 0%, 98%);
   --destructive: hsl(4, 79%, 65%);
   --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(214, 78%, 58%);
+  --ring: hsl(194, 100%, 47%);
   --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
   
   /* Dark mode color adjustments */

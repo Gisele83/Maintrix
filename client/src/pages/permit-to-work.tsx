@@ -253,7 +253,7 @@ export default function PermitToWork() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2.5 rounded-xl bg-paper-deep">
-              <Lock className="h-6 w-6 text-white" />
+              <Lock className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
               Permis de Travail
@@ -280,7 +280,7 @@ export default function PermitToWork() {
           <Card key={label} className="border-0 shadow-md overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}>
-                <Icon className="h-5 w-5 text-white" />
+                <Icon className="h-5 w-5 text-ink" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-800">{value}</p>

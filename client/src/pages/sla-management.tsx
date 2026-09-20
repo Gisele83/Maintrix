@@ -74,7 +74,7 @@ export default function SLAManagement() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-            <Timer className="w-6 h-6 text-white" />
+            <Timer className="w-6 h-6 text-ink" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">SLA Automatisés</h1>
@@ -93,7 +93,7 @@ export default function SLAManagement() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="w-5 h-5 text-white" />
+                    <stat.icon className="w-5 h-5 text-ink" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white">{stat.value}</p>

@@ -508,7 +508,7 @@ export default function SuperAdminDashboard() {
                         setIsCreateDialogOpen(false);
                         setNewTenantData({ name: '', domain: '', adminEmail: '', maxUsers: 1 });
                       }}
-                      className="border-gray-600 text-ink-soft hover:bg-gray-800"
+                      className="border-rule text-ink-soft hover:bg-paper-deep"
                     >
                       Annuler
                     </Button>
@@ -695,7 +695,7 @@ export default function SuperAdminDashboard() {
                       setIsEditLimitDialogOpen(false);
                       setSelectedTenant(null);
                     }}
-                    className="border-gray-600 text-ink-soft hover:bg-gray-800"
+                    className="border-rule text-ink-soft hover:bg-paper-deep"
                   >
                     Annuler
                   </Button>
@@ -1004,13 +1004,13 @@ export default function SuperAdminDashboard() {
                           <Input 
                             value={createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
+                            className="bg-white border-rule text-ink placeholder:text-ink-mute"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.username || createdUserCredentials.user?.username || '', 'Nom d\'utilisateur')}
-                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
+                            className="border-rule text-ink hover:bg-paper-deep"
                           >
                             {copiedField === 'Nom d\'utilisateur' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1024,13 +1024,13 @@ export default function SuperAdminDashboard() {
                           <Input 
                             value={createdUserCredentials.temporaryCredentials?.password || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-ink font-mono placeholder-gray-400"
+                            className="bg-white border-rule text-ink font-mono placeholder:text-ink-mute"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.temporaryCredentials?.password || '', 'Mot de passe')}
-                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
+                            className="border-rule text-ink hover:bg-paper-deep"
                           >
                             {copiedField === 'Mot de passe' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1046,13 +1046,13 @@ export default function SuperAdminDashboard() {
                           <Input 
                             value={createdUserCredentials.user?.email || 'N/A'} 
                             readOnly 
-                            className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
+                            className="bg-white border-rule text-ink placeholder:text-ink-mute"
                           />
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => copyToClipboard(createdUserCredentials.user?.email || '', 'Email')}
-                            className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
+                            className="border-rule text-ink hover:bg-paper-deep"
                           >
                             {copiedField === 'Email' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           </Button>
@@ -1072,7 +1072,7 @@ export default function SuperAdminDashboard() {
                             }) : 'N/A'
                           } 
                           readOnly 
-                          className="bg-gray-800 border-gray-600 text-ink placeholder-gray-400"
+                          className="bg-white border-rule text-ink placeholder:text-ink-mute"
                         />
                       </div>
                     </div>
@@ -1187,7 +1187,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                       variant="outline"
                       size="sm"
                       onClick={() => setCreatedUserCredentials(null)}
-                      className="bg-gray-700 border-gray-500 text-ink hover:bg-gray-600"
+                      className="border-rule text-ink hover:bg-paper-deep"
                     >
                       Fermer
                     </Button>

@@ -156,7 +156,7 @@ export default function FirstLoginPasswordChange() {
       <Card className="w-full max-w-md bg-white/5 border-white/10">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-white" />
+            <Shield className="w-8 h-8 text-ink" />
           </div>
           <CardTitle className="text-2xl font-bold text-white">
             Première connexion
@@ -191,7 +191,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.current ? "text" : "password"}
                   value={formData.currentPassword}
                   onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
-                  className="bg-white border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Mot de passe reçu du super-admin"
                   required
                 />
@@ -218,7 +218,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.new ? "text" : "password"}
                   value={formData.newPassword}
                   onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                  className="bg-white border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Choisissez un mot de passe sécurisé"
                   required
                 />
@@ -266,7 +266,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.confirm ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  className="bg-white border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Tapez à nouveau votre mot de passe"
                   required
                 />

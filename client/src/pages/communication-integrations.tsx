@@ -358,7 +358,7 @@ export default function CommunicationIntegrations() {
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-xl bg-paper-deep ${platform.color} text-white text-lg`}>
+                            <div className={`p-2.5 rounded-xl bg-paper-deep ${platform.color} text-ink text-lg`}>
                               {platform.icon}
                             </div>
                             <div>
@@ -453,7 +453,7 @@ export default function CommunicationIntegrations() {
                   <Card key={platform.value} className="border-0 shadow-md transition-all">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
-                        <div className={`p-3 rounded-xl bg-paper-deep ${platform.color} text-white text-2xl`}>
+                        <div className={`p-3 rounded-xl bg-paper-deep ${platform.color} text-ink text-2xl`}>
                           {platform.icon}
                         </div>
                         <div>

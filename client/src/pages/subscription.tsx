@@ -443,7 +443,7 @@ export default function SubscriptionPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-white/50 bg-white hover:bg-white text-white hover:text-white flex-shrink-0"
+                    className="border-white/60 bg-transparent hover:bg-white/15 text-white hover:text-white flex-shrink-0"
                     onClick={() => startTrialMutation.mutate()}
                     disabled={startTrialMutation.isPending}
                   >

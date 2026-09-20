@@ -371,7 +371,7 @@ export default function MaintenanceRecommendations() {
         <ModernNavigation />
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
           <div className="w-16 h-16 bg-paper-deep rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse shadow-blue-500/25">
-            <Brain className="w-8 h-8 text-white" />
+            <Brain className="w-8 h-8 text-ink" />
           </div>
           <h2 className="text-xl font-semibold text-slate-700 mb-2">Analyse en cours…</h2>
           <p className="text-slate-500 text-sm">Analyse de l'historique des équipements, OT et plans de maintenance</p>
@@ -393,7 +393,7 @@ export default function MaintenanceRecommendations() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center shadow-blue-500/20">
-                <Sparkles className="w-5 h-5 text-white" />
+                <Sparkles className="w-5 h-5 text-ink" />
               </div>
               <h1 className="text-2xl font-bold text-slate-800">Recommandations de maintenance</h1>
             </div>

@@ -127,7 +127,7 @@ export default function SupplierPortalPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep"><Building2 className="h-6 w-6 text-white" /></div>
+            <div className="p-2.5 rounded-xl bg-paper-deep"><Building2 className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Portail Fournisseurs</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Gestion des fournisseurs, sous-traitants et prestataires</p>
@@ -144,7 +144,7 @@ export default function SupplierPortalPage() {
           { label: "Contrats expirant", value: contractsExpiring, icon: AlertTriangle, color: "from-orange-400 to-amber-500" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
             <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
           </CardContent></Card>
         ))}

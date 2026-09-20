@@ -250,7 +250,7 @@ export default function AssetLifecyclePage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2.5 rounded-xl bg-paper-deep">
-              <Package className="h-6 w-6 text-white" />
+              <Package className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
               Cycle de Vie des Actifs
@@ -273,7 +273,7 @@ export default function AssetLifecyclePage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-xl font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -351,7 +351,7 @@ export default function AssetLifecyclePage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
                       <div className={`p-2.5 rounded-xl shadow-sm bg-paper-deep`}>
-                        <StageIcon className="h-5 w-5 text-white" />
+                        <StageIcon className="h-5 w-5 text-ink" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">

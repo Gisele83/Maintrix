@@ -214,7 +214,7 @@ export default function EquipmentManagement() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-paper-deep rounded-2xl blur-lg opacity-50"></div>
                   <div className="relative bg-paper-deep p-4 rounded-2xl">
-                    <Settings className="h-12 w-12 text-white" />
+                    <Settings className="h-12 w-12 text-ink" />
                   </div>
                 </div>
               </div>

@@ -440,7 +440,7 @@ export default function FederatedAdaptationPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-xl bg-paper-deep flex items-center justify-center shadow-indigo-500/30">
-                  <Brain className="w-5 h-5 text-white" />
+                  <Brain className="w-5 h-5 text-ink" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white tracking-tight">
@@ -528,7 +528,7 @@ export default function FederatedAdaptationPage() {
               <Card key={label} className="border-white/10 bg-white/5">
                 <CardContent className="p-4">
                   <div className={`w-8 h-8 rounded-lg bg-paper-deep ${color} flex items-center justify-center mb-2 shadow-md`}>
-                    <Icon className="w-4 h-4 text-white" />
+                    <Icon className="w-4 h-4 text-ink" />
                   </div>
                   <div className="text-2xl font-bold text-white font-mono">
                     {value}{suffix}
@@ -543,10 +543,10 @@ export default function FederatedAdaptationPage() {
         {/* Main tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/5 border border-white/10 mb-6">
-            <TabsTrigger value="sites" className="data-[state=active]:bg-white data-[state=active]:text-white text-white/60">
+            <TabsTrigger value="sites" className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-white/60">
               <Network className="w-4 h-4 mr-2" />Profils des sites
             </TabsTrigger>
-            <TabsTrigger value="specialization" className="data-[state=active]:bg-white data-[state=active]:text-white text-white/60">
+            <TabsTrigger value="specialization" className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-white/60">
               <BarChart3 className="w-4 h-4 mr-2" />Rapport SPI
             </TabsTrigger>
           </TabsList>

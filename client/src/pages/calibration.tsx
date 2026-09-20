@@ -170,7 +170,7 @@ export default function CalibrationPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <div className="p-2.5 rounded-xl bg-paper-deep">
-              <FlaskConical className="h-6 w-6 text-white" />
+              <FlaskConical className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">Gestion des Calibrations</h1>
           </div>
@@ -191,7 +191,7 @@ export default function CalibrationPage() {
         ].map(({ label, value, color, icon: Icon }) => (
           <Card key={label} className="border-0 shadow-md cursor-pointer transition-all">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>

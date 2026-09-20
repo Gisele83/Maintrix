@@ -188,7 +188,7 @@ export default function ResetPassword() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
-              <AlertTriangle className="h-8 w-8 text-white" />
+              <AlertTriangle className="h-8 w-8 text-ink" />
             </div>
             <CardTitle className="text-2xl font-bold text-red-600">
               Lien invalide ou expiré
@@ -233,7 +233,7 @@ export default function ResetPassword() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-white" />
+              <CheckCircle className="h-8 w-8 text-ink" />
             </div>
             <CardTitle className="text-2xl font-bold text-ink">
               Mot de passe réinitialisé !
@@ -282,7 +282,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-2xl">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
-            <Shield className="h-8 w-8 text-white" />
+            <Shield className="h-8 w-8 text-ink" />
           </div>
           <CardTitle className="text-2xl font-bold text-ink">
             Réinitialiser votre mot de passe

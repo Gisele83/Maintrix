@@ -150,21 +150,21 @@ export default function GMAODashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
+      <div className="min-h-screen bg-paper">
         <ModernNavigation />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-rule border-t-signal"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
+    <div className="min-h-screen bg-paper">
       <ModernNavigation />
 
       {/* Navigation Tabs */}
-      <nav className="bg-card/80 border-b sticky top-16 z-40">
+      <nav className="bg-white border-b border-rule sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
@@ -258,152 +258,201 @@ export default function GMAODashboard() {
         {/* Vue d'ensemble uniquement */}
         {!showAdminModal && activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Welcome Header */}
-            <div className="bg-paper-deep from-primary/10 via-primary/5 rounded-xl p-6 border border-primary/20">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Tableau de Bord GMAO</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Vue d'ensemble de votre système de maintenance - {new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setActiveTab("work-orders")}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvel OT
-                  </Button>
-                  <Button size="sm" onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}>
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Rapports
-                  </Button>
-                </div>
+            {/* ══════════════════════════════════════════════════════════
+                EN-TÊTE
+                ══════════════════════════════════════════════════════════
+                Un titre, une date, deux actions. La version précédente
+                enfermait cela dans un grand cadre teinté qui n'apportait
+                rien et repoussait les chiffres sous la ligne de flottaison. */}
+            <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-rule">
+              <div>
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
+                <h1 className="font-serif text-headline font-medium text-ink mt-1.5">Vue d'ensemble</h1>
+                <p className="text-sm text-ink-soft mt-1 first-letter:uppercase">
+                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}
+                  className="inline-flex items-center gap-2 h-10 px-4 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Rapports
+                </button>
+                <button
+                  onClick={() => setActiveTab("work-orders")}
+                  className="inline-flex items-center gap-2 h-10 px-4 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nouvel ordre de travail
+                </button>
               </div>
             </div>
 
-            {/* KPI Cards - Improved Design */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="relative overflow-hidden border-0 bg-ink text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-blue-100">Équipements</CardTitle>
-                    <div className="p-2 bg-white rounded-lg">
-                      <Factory className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.equipmentCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-blue-100">
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    <span>Actifs et surveillés</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-0 bg-ink text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-amber-100">OT en Cours</CardTitle>
-                    <div className="p-2 bg-white rounded-lg">
-                      <Wrench className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.activeWorkOrdersCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-amber-100">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{dashboardData?.pendingWorkOrdersCount || 0} en attente</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-0 bg-ink text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-rose-100">Alertes</CardTitle>
-                    <div className="p-2 bg-white rounded-lg">
-                      <AlertTriangle className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.criticalAlertsCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-rose-100">
-                    <Bell className="w-4 h-4 mr-1" />
-                    <span>Nécessitent attention</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-0 bg-ink text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-paper-deep">Stock Critique</CardTitle>
-                    <div className="p-2 bg-white rounded-lg">
-                      <Package className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.lowStockPartsCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-paper-deep">
-                    <ShoppingCart className="w-4 h-4 mr-1" />
-                    <span>À réapprovisionner</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Access - New Features */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* ══════════════════════════════════════════════════════════
+                INDICATEURS
+                ══════════════════════════════════════════════════════════
+                Cartes claires à filet, chiffre en romain, et un liseré
+                gauche qui ne s'allume QUE lorsqu'il y a quelque chose à
+                faire. Les quatre cartes étaient auparavant des aplats
+                sombres identiques, ornés d'un disque blanc décoratif : la
+                couleur ne disait rien, et rien ne distinguait « 0 alerte »
+                de « 12 alertes ». */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
               {[
-                { icon: Heart, label: "Santé Machines", href: "/machine-health", color: "from-green-500 to-emerald-600" },
-                { icon: Brain, label: "Alertes IA", href: "/smart-alerts", color: " " },
-                { icon: Timer, label: "SLA", href: "/sla-management", color: "from-amber-500 to-orange-600" },
-                { icon: Radio, label: "Capteurs IoT", href: "/sensor-hub", color: "from-cyan-500 to-blue-600" },
-                { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: " " },
-                { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" },
-                { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: " " },
-                { icon: Zap, label: "Intégrations", href: "/advanced-integrations", color: "from-yellow-500 to-orange-500" },
-                { icon: Bell, label: "Communications", href: "/communication-integrations", color: "from-indigo-500 to-blue-600" },
-                { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" },
-                { icon: Fish, label: "Causes Racines", href: "/rca", color: " to-indigo-600" },
-                { icon: Gauge, label: "OEE", href: "/oee", color: "from-emerald-500 to-teal-600" },
-                { icon: AlertTriangle, label: "FMEA / AMDEC", href: "/fmea", color: "from-orange-500 to-amber-600" },
-                { icon: Package, label: "Cycle de vie actifs", href: "/asset-lifecycle", color: "from-blue-600 to-cyan-600" },
-                { icon: FlaskConical, label: "Calibrations", href: "/calibration", color: "from-teal-500 to-cyan-600" },
-                { icon: UserCheck, label: "Habilitations", href: "/habilitation", color: "from-indigo-600 " },
-                { icon: DollarSign, label: "Gestion Budget", href: "/budget", color: "from-emerald-500 to-green-600" },
-                { icon: Building2, label: "Portail Fournisseurs", href: "/supplier-portal", color: " to-indigo-600" },
-                { icon: ShieldCheck, label: "Garanties", href: "/warranty", color: "from-green-600 to-teal-600" },
-                { icon: CalendarCheck, label: "Plan Maintenance", href: "/maintenance-plan", color: "from-cyan-600 to-blue-600" },
-                { icon: Download, label: "Télécharger", href: "/download", color: "from-slate-600 to-slate-800" }
-              ].map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Card className="cursor-pointer transition-colors hover:bg-paper border border-rule">
-                    <CardContent className="p-3 flex flex-col items-center text-center">
-                      <div className={`w-10 h-10 rounded-lg bg-paper-deep ${item.color} flex items-center justify-center mb-2`}>
-                        <item.icon className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-xs font-medium">{item.label}</span>
-                    </CardContent>
-                  </Card>
-                </Link>
+                {
+                  cle: 'equipements',
+                  libelle: 'Équipements',
+                  valeur: dashboardData?.equipmentCount || 0,
+                  detail: 'suivis dans le parc',
+                  icone: Factory,
+                  alerte: false,
+                },
+                {
+                  cle: 'ot',
+                  libelle: 'Ordres de travail',
+                  valeur: dashboardData?.activeWorkOrdersCount || 0,
+                  detail: `${dashboardData?.pendingWorkOrdersCount || 0} en attente d'affectation`,
+                  icone: Wrench,
+                  alerte: (dashboardData?.pendingWorkOrdersCount || 0) > 0,
+                },
+                {
+                  cle: 'alertes',
+                  libelle: 'Alertes critiques',
+                  valeur: dashboardData?.criticalAlertsCount || 0,
+                  detail: (dashboardData?.criticalAlertsCount || 0) > 0 ? 'à traiter sans délai' : 'aucune en cours',
+                  icone: AlertTriangle,
+                  alerte: (dashboardData?.criticalAlertsCount || 0) > 0,
+                },
+                {
+                  cle: 'stock',
+                  libelle: 'Stock critique',
+                  valeur: dashboardData?.lowStockPartsCount || 0,
+                  detail: (dashboardData?.lowStockPartsCount || 0) > 0 ? 'références à réapprovisionner' : 'aucun seuil franchi',
+                  icone: Package,
+                  alerte: (dashboardData?.lowStockPartsCount || 0) > 0,
+                },
+              ].map((kpi) => (
+                <div key={kpi.cle} className="bg-white p-5 relative">
+                  <span
+                    className={`absolute left-0 top-0 bottom-0 w-0.5 ${kpi.alerte ? 'bg-amber-500' : 'bg-transparent'}`}
+                    aria-hidden="true"
+                  />
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-mono text-eyebrow uppercase text-ink-mute">{kpi.libelle}</p>
+                    <kpi.icone className="w-4 h-4 text-ink-mute shrink-0" />
+                  </div>
+                  <p className="font-serif text-4xl text-ink mt-3 leading-none">{kpi.valeur}</p>
+                  <p className="text-sm text-ink-soft mt-2">{kpi.detail}</p>
+                </div>
               ))}
             </div>
+
+            {/* Parc vide : on dit quoi faire, au lieu d'afficher quatre zéros
+                sans suite. C'est le premier écran que voit un testeur. */}
+            {(dashboardData?.equipmentCount || 0) === 0 && (
+              <div className="border border-rule bg-white p-6">
+                <h2 className="font-serif text-title font-medium text-ink">Commencer</h2>
+                <p className="text-sm text-ink-soft mt-2 max-w-2xl">
+                  Votre parc est encore vide. Trois étapes suffisent pour que ce tableau de bord
+                  reflète votre atelier.
+                </p>
+                <ol className="mt-5 grid gap-px bg-rule border border-rule sm:grid-cols-3">
+                  {[
+                    { n: '01', titre: 'Déclarer un équipement', texte: 'Nom, emplacement, criticité.', href: '/equipment-management' },
+                    { n: '02', titre: 'Créer un ordre de travail', texte: 'Une demande, une priorité, un responsable.', href: '/work-orders' },
+                    { n: '03', titre: 'Poser un plan préventif', texte: 'Une échéance calendaire ou au compteur.', href: '/maintenance-plan' },
+                  ].map((etape) => (
+                    <li key={etape.n} className="bg-white p-4">
+                      <Link href={etape.href}>
+                        <span className="block cursor-pointer group">
+                          <span className="font-mono text-sm text-signal">{etape.n}</span>
+                          <span className="block font-medium text-ink mt-1 group-hover:text-signal transition-colors">
+                            {etape.titre}
+                          </span>
+                          <span className="block text-sm text-ink-soft mt-1">{etape.texte}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════
+                MODULES
+                ══════════════════════════════════════════════════════════
+                Ils étaient présentés en une grille unique de seize tuiles
+                équivalentes, chacune avec une pastille d'icône en dégradé.
+                Une fois les dégradés retirés, il restait seize cases pâles
+                indiscernables. On les regroupe donc par usage : on cherche
+                d'abord un domaine, ensuite un écran. */}
+            {[
+              {
+                groupe: 'Exploitation',
+                items: [
+                  { icon: Heart, label: 'Santé des machines', href: '/machine-health' },
+                  { icon: Radio, label: 'Capteurs', href: '/sensor-hub' },
+                  { icon: Bell, label: 'Alertes', href: '/smart-alerts' },
+                  { icon: Timer, label: 'Engagements de service', href: '/sla-management' },
+                  { icon: QrCode, label: 'Codes QR', href: '/equipment-qr' },
+                  { icon: CalendarCheck, label: 'Plan de maintenance', href: '/maintenance-plan' },
+                ],
+              },
+              {
+                groupe: 'Analyse',
+                items: [
+                  { icon: Gauge, label: 'OEE', href: '/oee' },
+                  { icon: Fish, label: 'Causes racines', href: '/rca' },
+                  { icon: AlertTriangle, label: 'AMDEC', href: '/fmea' },
+                  { icon: Package, label: 'Cycle de vie des actifs', href: '/asset-lifecycle' },
+                  { icon: DollarSign, label: 'Budget', href: '/budget' },
+                  { icon: Brain, label: 'Supervision adaptative', href: '/cognitive-infrastructure' },
+                ],
+              },
+              {
+                groupe: 'Conformité et partenaires',
+                items: [
+                  { icon: Shield, label: 'Permis de travail', href: '/permit-to-work' },
+                  { icon: FlaskConical, label: 'Étalonnages', href: '/calibration' },
+                  { icon: UserCheck, label: 'Habilitations', href: '/habilitation' },
+                  { icon: ShieldCheck, label: 'Garanties', href: '/warranty' },
+                  { icon: Building2, label: 'Fournisseurs', href: '/supplier-portal' },
+                  { icon: ExternalLink, label: 'Portail client', href: '/client-portal' },
+                ],
+              },
+              {
+                groupe: 'Données et échanges',
+                items: [
+                  { icon: Zap, label: 'Intégrations', href: '/advanced-integrations' },
+                  { icon: Bell, label: 'Communications', href: '/communication-integrations' },
+                  { icon: Download, label: 'Application à installer', href: '/download' },
+                ],
+              },
+            ].map((section) => (
+              <div key={section.groupe}>
+                <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">{section.groupe}</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-rule border border-rule">
+                  {section.items.map((item) => (
+                    <Link key={item.href} href={item.href}>
+                      <div className="group bg-white h-full p-4 cursor-pointer transition-colors hover:bg-paper">
+                        <item.icon className="w-5 h-5 text-ink-mute group-hover:text-signal transition-colors" />
+                        <span className="block text-sm text-ink mt-3 leading-snug">{item.label}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Work Orders Status - Enhanced */}
-              <Card className="lg:col-span-1 shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="lg:col-span-1 border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-primary" />
                       Répartition des OT
                     </CardTitle>
@@ -441,10 +490,10 @@ export default function GMAODashboard() {
               </Card>
 
               {/* Recent Work Orders - Enhanced */}
-              <Card className="lg:col-span-2 shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="lg:col-span-2 border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <Wrench className="w-5 h-5 text-primary" />
                       Ordres de Travail Récents
                     </CardTitle>
@@ -459,8 +508,8 @@ export default function GMAODashboard() {
                     {dashboardData?.recentWorkOrders?.slice(0, 5).map((order, index) => (
                       <div 
                         key={order.id} 
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md hover:border-primary/30 ${
-                          index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'
+                        className={`flex items-center justify-between p-4 border transition-colors hover:bg-paper ${
+                          index === 0 ? 'bg-paper border-rule' : 'bg-white border-rule'
                         }`}
                       >
                         <div className="flex items-center gap-4">
@@ -572,10 +621,10 @@ export default function GMAODashboard() {
             {/* Charts and Statistics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Work Orders Trend Chart */}
-              <Card className="shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-primary" />
                       Évolution des OT (6 derniers mois)
                     </CardTitle>
@@ -622,10 +671,10 @@ export default function GMAODashboard() {
               </Card>
 
               {/* Equipment by Type Pie Chart */}
-              <Card className="shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-primary" />
                       Répartition par Type d'Équipement
                     </CardTitle>
@@ -678,7 +727,7 @@ export default function GMAODashboard() {
 
             {/* Performance Indicators */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="shadow-md border-l-4 border-l-emerald-500">
+              <Card className="border border-rule border-l-4 border-l-emerald-600 shadow-none">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
@@ -737,10 +786,10 @@ export default function GMAODashboard() {
             </div>
 
             {/* Monthly Statistics Bar Chart */}
-            <Card className="shadow-md">
-              <CardHeader className="border-b bg-muted/30">
+            <Card className="border border-rule shadow-none">
+              <CardHeader className="border-b border-rule bg-paper">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-primary" />
                     Statistiques Mensuelles des Interventions
                   </CardTitle>

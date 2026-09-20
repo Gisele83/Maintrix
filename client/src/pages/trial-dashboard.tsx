@@ -400,7 +400,7 @@ export default function TrialDashboard() {
                   <Link href="/subscription">
                     <Button
                       variant="outline"
-                      className="w-full border-white/50 bg-white hover:bg-white text-white hover:text-white"
+                      className="w-full border-white/50 bg-white hover:bg-white text-ink hover:text-ink"
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       Voir les offres

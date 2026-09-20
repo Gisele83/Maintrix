@@ -46,7 +46,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module GMAO</CardTitle>
-                    <Badge variant="secondary" className="bg-white text-white border-white/30">
+                    <Badge variant="secondary" className="bg-white/15 text-white border-white/30">
                       Planification & Interventions
                     </Badge>
                   </div>
@@ -122,7 +122,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module Diagnostic IA</CardTitle>
-                    <Badge variant="secondary" className="bg-white text-white border-white/30">
+                    <Badge variant="secondary" className="bg-white/15 text-white border-white/30">
                       Intelligence Artificielle
                     </Badge>
                   </div>

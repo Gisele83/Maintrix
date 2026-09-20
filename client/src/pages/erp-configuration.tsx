@@ -386,7 +386,7 @@ export default function ERPConfiguration() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-              <Settings className="w-6 h-6 text-white" />
+              <Settings className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Configuration ERP</h1>

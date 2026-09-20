@@ -412,7 +412,7 @@ export default function AdvancedIntegrationsPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-paper-deep rounded-xl">
-              <Settings className="h-8 w-8 text-white" />
+              <Settings className="h-8 w-8 text-ink" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">

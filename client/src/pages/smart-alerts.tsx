@@ -88,7 +88,7 @@ export default function SmartAlerts() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-            <Brain className="w-6 h-6 text-white" />
+            <Brain className="w-6 h-6 text-ink" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Alertes Intelligentes</h1>
@@ -107,7 +107,7 @@ export default function SmartAlerts() {
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon className="w-4 h-4 text-white" />
+                  <stat.icon className="w-4 h-4 text-ink" />
                 </div>
                 <div>
                   <p className="text-lg font-bold text-white">{stat.value}</p>
@@ -189,7 +189,7 @@ export default function SmartAlerts() {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className={`w-10 h-10 rounded-lg bg-paper-deep ${config.gradient} flex items-center justify-center shrink-0 mt-0.5`}>
-                        <StatusIcon className="w-5 h-5 text-white" />
+                        <StatusIcon className="w-5 h-5 text-ink" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">

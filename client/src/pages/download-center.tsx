@@ -268,7 +268,7 @@ export default function DownloadCenterPage() {
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl bg-paper-deep ${platform.bg}`}>
-                    <PlatformIcon className="h-7 w-7 text-white" />
+                    <PlatformIcon className="h-7 w-7 text-ink" />
                   </div>
                   <div>
                     <CardTitle className="text-white text-xl">{platform.name}</CardTitle>
@@ -296,7 +296,7 @@ export default function DownloadCenterPage() {
                 <ol className="space-y-3">
                   {platform.installSteps.map((step, i) => (
                     <li key={i} className="flex gap-3 items-start">
-                      <span className={`shrink-0 w-6 h-6 rounded-full bg-paper-deep ${platform.bg} text-white text-xs flex items-center justify-center font-bold`}>{i + 1}</span>
+                      <span className={`shrink-0 w-6 h-6 rounded-full bg-paper-deep ${platform.bg} text-ink text-xs flex items-center justify-center font-bold`}>{i + 1}</span>
                       <p className="text-slate-300 text-sm pt-0.5">{step}</p>
                     </li>
                   ))}

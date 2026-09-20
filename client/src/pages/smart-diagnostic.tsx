@@ -594,7 +594,7 @@ export default function SmartDiagnostic() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-paper-deep rounded-xl blur-lg opacity-50"></div>
                   <div className="relative bg-paper-deep p-3 rounded-xl">
-                    <Brain className="h-8 w-8 text-white" />
+                    <Brain className="h-8 w-8 text-ink" />
                   </div>
                 </div>
                 <div>
@@ -822,7 +822,7 @@ export default function SmartDiagnostic() {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
                                     <div className="bg-white p-2 rounded-xl">
-                                      <Brain className="h-6 w-6 text-white" />
+                                      <Brain className="h-6 w-6 text-ink" />
                                     </div>
                                     <div>
                                       <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -851,7 +851,7 @@ export default function SmartDiagnostic() {
                                   <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                     <div className="relative">
                                       <div className="w-16 h-16 rounded-full bg-paper-deep animate-pulse" />
-                                      <Loader2 className="h-8 w-8 text-white animate-spin absolute top-4 left-4" />
+                                      <Loader2 className="h-8 w-8 text-ink animate-spin absolute top-4 left-4" />
                                     </div>
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-900">Claude analyse la situation...</p>

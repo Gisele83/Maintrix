@@ -102,7 +102,7 @@ export default function SensorHub() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-              <Radio className="w-6 h-6 text-white" />
+              <Radio className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Hub Capteurs IoT</h1>
@@ -125,7 +125,7 @@ export default function SensorHub() {
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon className="w-4 h-4 text-white" />
+                  <stat.icon className="w-4 h-4 text-ink" />
                 </div>
                 <div>
                   <p className="text-lg font-bold text-white">{stat.value}</p>
@@ -170,7 +170,7 @@ export default function SensorHub() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-lg bg-paper-deep ${colorGradient} flex items-center justify-center`}>
-                            <SensorIcon className="w-4 h-4 text-white" />
+                            <SensorIcon className="w-4 h-4 text-ink" />
                           </div>
                           <div>
                             <p className="text-xs font-medium text-white">{sensorLabels[sensor.sensorType]}</p>
@@ -281,7 +281,7 @@ export default function SensorHub() {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg bg-paper-deep ${gradient} flex items-center justify-center`}>
-                          <SensorIcon className="w-5 h-5 text-white" />
+                          <SensorIcon className="w-5 h-5 text-ink" />
                         </div>
                         <div>
                           <p className="text-white font-medium">{stat.label}</p>

@@ -106,7 +106,7 @@ export default function EquipmentQR() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
-              <QrCode className="w-6 h-6 text-white" />
+              <QrCode className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">QR Code Équipements</h1>
