@@ -4,6 +4,18 @@ import { CredentialNotification } from './credential-generator';
 // SendGrid optionnel pour déploiement local
 const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY;
 
+/**
+ * L'envoi de courriel est-il configuré sur cet environnement ?
+ *
+ * Exporté pour que les pages qui PROMETTENT un courriel puissent dire la
+ * vérité. Sans cette information, « mot de passe oublié » répondait « un
+ * lien a été envoyé » alors que rien ne partait, et l'utilisateur attendait
+ * un message qui ne viendrait jamais.
+ */
+export function envoiCourrielConfigure(): boolean {
+  return SENDGRID_ENABLED;
+}
+
 let mailService: MailService | null = null;
 
 if (SENDGRID_ENABLED) {

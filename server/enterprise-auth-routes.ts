@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { CredentialGenerator, createCredentialNotification } from "./credential-generator";
-import { sendTenantCredentials } from "./email-service";
+import { sendTenantCredentials, envoiCourrielConfigure } from "./email-service";
 import { LicenseService } from "./license-service";
 import { MFAService } from "./mfa-system";
 import { z } from "zod";
@@ -1339,6 +1339,23 @@ router.post('/forgot-password',
         console.log(`✅ Email de réinitialisation envoyé à ${user.email}`);
       } else {
         console.error(`❌ Échec envoi email de réinitialisation à ${user.email}`);
+      }
+
+      // ⚠️ Ne jamais annoncer un courriel qui ne peut pas partir.
+      //
+      // Sans SENDGRID_API_KEY, le jeton était bien créé et la réponse affirmait
+      // qu'un lien avait été envoyé. Personne ne recevait rien, et un compte
+      // sans autre accès devenait irrécupérable depuis le navigateur — constaté
+      // le 2026-09-22 sur le compte d'exploitation.
+      //
+      // Le message reste identique que l'adresse existe ou non : c'est ce qui
+      // empêche d'énumérer les comptes. Seule change la promesse d'envoi.
+      if (!envoiCourrielConfigure()) {
+        return res.json({
+          success: false,
+          envoiCourrielIndisponible: true,
+          message: "L'envoi de courriels n'est pas configuré sur cet environnement : aucun lien ne peut vous être adressé. Demandez à l'administrateur de réinitialiser votre accès.",
+        });
       }
 
       res.json({
