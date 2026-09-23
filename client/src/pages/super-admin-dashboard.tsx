@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ROLES, ROLE_PAR_DEFAUT } from "@shared/roles";
+import { ROLES, ROLE_PAR_DEFAUT, libelleRole } from "@shared/roles";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -187,6 +187,28 @@ export default function SuperAdminDashboard() {
   const { data: tousUtilisateurs = { users: [], count: 0, actifs: 0 } } = useQuery<{users: any[], count: number, actifs: number}>({
     queryKey: ['/api/super-admin/users'],
     enabled: !!superAdminUser
+  });
+
+  // Accès rétabli par le super-administrateur : le mot de passe généré n'est
+  // affiché qu'une fois, ici, et n'est écrit dans aucun journal.
+  const [accesRetabli, setAccesRetabli] = useState<{ email: string; motDePasse: string } | null>(null);
+
+  const reinitialisation = useMutation({
+    mutationFn: async (id: number) =>
+      await apiRequest(`/api/super-admin/users/${id}/reinitialiser-mot-de-passe`, { method: "POST" }),
+    onSuccess: (data: any) => {
+      setAccesRetabli({ email: data.compte?.email || '', motDePasse: data.motDePasse });
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/users-with-default-credentials'] });
+      toast({ title: "Accès rétabli", description: "Transmettez le mot de passe affiché à la personne concernée." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Réinitialisation impossible",
+        description: error?.message || "Le serveur a refusé la demande",
+        variant: "destructive",
+      });
+    },
   });
 
   const logout = () => {
@@ -1195,6 +1217,78 @@ Maintrix - Maintenance intelligente et prédictive`;
                 </CardContent>
               </Card>
             )}
+
+            {/* ══════════════════════════════════════════════════════════
+                TOUS LES COMPTES
+                ══════════════════════════════════════════════════════════
+                Seuls les comptes « identifiants par défaut » étaient listés —
+                c'est-à-dire ceux qui n'ont jamais servi. Un compte en service
+                dont la personne a perdu le mot de passe n'apparaissait nulle
+                part, et aucun bouton ne permettait de lui rendre l'accès :
+                il fallait ouvrir une session SSH sur le serveur.
+                Aucun courriel ne partant tant que l'envoi n'est pas configuré,
+                c'était la seule issue. */}
+            <Card className="bg-white border border-rule">
+              <CardHeader>
+                <CardTitle className="text-ink">Tous les comptes</CardTitle>
+                <CardDescription className="text-ink-mute">
+                  {tousUtilisateurs.count} compte(s) · {tousUtilisateurs.actifs} actif(s).
+                  Réinitialiser affiche un nouveau mot de passe, à transmettre à la personne.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {tousUtilisateurs.users.length === 0 ? (
+                  <div className="text-center text-ink-mute py-8">Aucun compte enregistré</div>
+                ) : (
+                  <div className="border-t border-rule">
+                    {tousUtilisateurs.users.map((compte: any) => (
+                      <div key={compte.id} className="flex flex-wrap items-center justify-between gap-3 py-3 border-b border-rule">
+                        <div className="min-w-0">
+                          <div className="text-ink">
+                            {compte.firstName} {compte.lastName}
+                            {!compte.isActive && (
+                              <span className="ml-2 font-mono text-eyebrow uppercase text-ink-mute">désactivé</span>
+                            )}
+                          </div>
+                          <div className="text-sm text-ink-soft truncate">
+                            {compte.email} · {libelleRole(compte.role)} · {compte.tenantId}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-rule text-ink hover:bg-paper-deep"
+                          disabled={reinitialisation.isPending}
+                          onClick={() => reinitialisation.mutate(compte.id)}
+                        >
+                          Réinitialiser le mot de passe
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {accesRetabli && (
+                  <div className="mt-6 border border-rule bg-paper p-4">
+                    <p className="font-mono text-eyebrow uppercase text-ink-mute">Nouvel accès</p>
+                    <p className="text-sm text-ink-soft mt-2">
+                      Transmettez ces identifiants à {accesRetabli.email}. Ce mot de passe ne sera plus affiché.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Input readOnly value={accesRetabli.motDePasse} className="bg-white border-rule text-ink font-mono" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-rule text-ink hover:bg-paper-deep"
+                        onClick={() => copyToClipboard(accesRetabli.motDePasse, 'Mot de passe')}
+                      >
+                        {copiedField === 'Mot de passe' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Liste des utilisateurs avec identifiants par défaut */}
             <Card className="bg-white border border-rule">

@@ -979,6 +979,72 @@ router.get('/users', authenticateSuperAdmin, async (_req, res) => {
     });
   }
 });
+/**
+ * Redonner l'accès à un compte, depuis la console.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CETTE ROUTE EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Aucun courriel ne part tant que SENDGRID_API_KEY n'est pas configuré : la
+ * page « mot de passe oublié » ne mène donc nulle part. Sans cette route, un
+ * administrateur n'avait AUCUN moyen de rendre l'accès à quelqu'un depuis
+ * l'application — il fallait ouvrir une session SSH sur le serveur et parler à
+ * la base. Un testeur bloqué le restait jusqu'à ce que quelqu'un le fasse.
+ *
+ * Le mot de passe généré n'est renvoyé QU'ICI, une seule fois, dans la réponse
+ * à l'administrateur authentifié. Il n'est jamais journalisé.
+ *
+ * Les quatre causes de refus sont levées ensemble — mot de passe, compte
+ * désactivé, verrouillage après échecs, mot de passe temporaire expiré — parce
+ * qu'elles produisent toutes le même symptôme et se confondent.
+ */
+router.post('/users/:id/reinitialiser-mot-de-passe', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "ID_INVALIDE", message: "Identifiant de compte invalide" });
+    }
+
+    const [utilisateur] = await db.select().from(userProfiles).where(eq(userProfiles.id, id)).limit(1);
+    if (!utilisateur) {
+      return res.status(404).json({ error: "COMPTE_INTROUVABLE", message: "Aucun compte avec cet identifiant" });
+    }
+
+    const motDePasse = crypto.randomBytes(15).toString('base64url');
+    const empreinte = await bcrypt.hash(motDePasse, 10);
+
+    await db.update(userProfiles).set({
+      password: empreinte,
+      isActive: true,
+      mustChangePassword: false,
+      isDefaultCredentials: false,
+      passwordExpiresAt: null,
+      failedLoginAttempts: 0,
+      accountLockedUntil: null,
+      passwordResetToken: null,
+      passwordResetTokenExpiresAt: null,
+      lastPasswordChange: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(userProfiles.id, id));
+
+    // Trace d'audit SANS le mot de passe.
+    console.log(`🔑 Super-admin : accès rétabli pour ${utilisateur.email} (id=${id})`);
+
+    res.json({
+      success: true,
+      message: "Accès rétabli. Transmettez ces identifiants à la personne concernée.",
+      compte: { id, email: utilisateur.email, username: utilisateur.username },
+      motDePasse,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation d'un accès :", error);
+    res.status(500).json({
+      error: "REINITIALISATION_ECHOUEE",
+      message: "Impossible de réinitialiser cet accès",
+    });
+  }
+});
+
 router.get('/users-with-default-credentials', authenticateSuperAdmin, async (req, res) => {
   try {
     const usersWithDefaults = await db
