@@ -189,3 +189,28 @@ ne voit aucune donnée d'un autre tenant.
   Elle est désactivée avec le reste de la licence ; seule sa neutralisation
   est couverte par un test unitaire.
 - **Aucune procédure de suppression** d'un compte testeur en fin de pilote.
+
+## ⚠️ Deux espaces de connexion — ne pas les confondre
+
+| Vous êtes | Adresse | Ce que vous administrez |
+|---|---|---|
+| Super-administrateur de la plateforme | `/admin-login` | les organisations et leurs comptes |
+| Utilisateur d'une organisation | `/login` | la GMAO de votre entreprise |
+
+**Le super-administrateur n'a pas de compte utilisateur.** Son identité vient des
+variables d'environnement du serveur (`SUPER_ADMIN_EMAIL`,
+`SUPER_ADMIN_PASSWORD_HASH`), et non de la table `user_profiles`. Saisir ses
+identifiants sur `/login` renvoie donc « Identifiants incorrects » — message
+exact du point de vue du code, parfaitement trompeur pour la personne, qui sait
+que son mot de passe est bon. Constaté le 2026-09-23 : plusieurs heures perdues
+à chercher une panne inexistante.
+
+Pour disposer d'un accès à l'espace utilisateur, le super-administrateur doit
+**se créer un compte comme les autres** : console d'administration →
+*Organisations* → créer une organisation, ou *Utilisateurs* → créer un compte
+dans une organisation existante. Les identifiants s'affichent alors à l'écran,
+avec boutons de copie — c'est indispensable ici, puisque aucun courriel ne part
+tant que `SENDGRID_API_KEY` n'est pas configuré.
+
+La page `/login` porte désormais un lien discret vers la console
+d'administration, pour que l'ambiguïté se lève d'elle-même.

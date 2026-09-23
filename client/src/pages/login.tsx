@@ -290,6 +290,27 @@ export default function LoginPage() {
                         </Button>
                       </Link>
                     </div>
+
+                    {/* ⚠️ Deux espaces de connexion coexistent, et rien ne le
+                        disait ici.
+
+                        Le super-administrateur de la plateforme n'a PAS de
+                        compte dans la table des utilisateurs : son identité
+                        vient des variables d'environnement du serveur. Saisir
+                        ses identifiants sur CE formulaire produit donc
+                        « Identifiants incorrects » — un message exact du point
+                        de vue du code, et parfaitement trompeur pour la
+                        personne, qui sait que son mot de passe est bon.
+                        Constaté le 2026-09-23, après plusieurs heures perdues.
+
+                        Ce lien discret suffit à lever l'ambiguïté, sans révéler
+                        quelle adresse est celle d'un administrateur. */}
+                    <p className="text-center text-sm text-ink-mute pt-2 border-t border-rule">
+                      Vous administrez la plateforme ?{" "}
+                      <Link href="/admin-login" className="text-signal hover:text-signal-deep underline-offset-4 hover:underline">
+                        Console d'administration
+                      </Link>
+                    </p>
                   </form>
                 </Form>
               ) : (
