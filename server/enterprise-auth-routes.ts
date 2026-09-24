@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { CredentialGenerator, createCredentialNotification } from "./credential-generator";
-import { sendTenantCredentials, envoiCourrielConfigure } from "./email-service";
+import { sendTenantCredentials, envoiCourrielConfigure, expediteurCourriel } from "./email-service";
 import { LicenseService } from "./license-service";
 import { MFAService } from "./mfa-system";
 import { z } from "zod";
@@ -1561,7 +1561,7 @@ async function sendPasswordResetEmail(notification: {
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@maintrix-t.com',
+      from: expediteurCourriel(),
       subject: `🔄 Réinitialisation de mot de passe - Maintrix`,
       html: emailContent
     });

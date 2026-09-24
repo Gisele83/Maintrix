@@ -12,8 +12,35 @@ const SENDGRID_ENABLED = !!process.env.SENDGRID_API_KEY;
  * lien a été envoyé » alors que rien ne partait, et l'utilisateur attendait
  * un message qui ne viendrait jamais.
  */
+/**
+ * L'adresse d'expéditeur, telle que déclarée dans l'environnement.
+ *
+ * ═══════════════════════════════════════════════════════════════
+ * POURQUOI ELLE N'EST PLUS ÉCRITE DANS LE CODE
+ * ═══════════════════════════════════════════════════════════════
+ * Six endroits portaient une adresse en dur — « noreply@maintrix-t.com »,
+ * « noreply@smartgmao.com » — dont aucune ne correspondait au domaine
+ * réellement exploité. SendGrid REFUSE tout message dont l'expéditeur n'est
+ * pas une identité vérifiée : la clé aurait été correcte, la configuration
+ * complète, et pas un seul courriel ne serait parti. Les échecs étant
+ * seulement journalisés, personne ne l'aurait vu.
+ *
+ * `SENDGRID_FROM_EMAIL` était déjà transmise par docker-compose.test.yml,
+ * et lue nulle part.
+ */
+export function expediteurCourriel(): string {
+  return (process.env.SENDGRID_FROM_EMAIL || '').trim();
+}
+
+/**
+ * L'envoi est-il RÉELLEMENT possible ?
+ *
+ * Une clé sans adresse d'expéditeur vérifiée ne sert à rien : les deux sont
+ * nécessaires, et une configuration à moitié faite est pire que pas de
+ * configuration du tout — elle laisse croire que les courriels partent.
+ */
 export function envoiCourrielConfigure(): boolean {
-  return SENDGRID_ENABLED;
+  return SENDGRID_ENABLED && expediteurCourriel() !== '';
 }
 
 let mailService: MailService | null = null;
@@ -110,7 +137,7 @@ export async function sendTenantInvitation(data: TenantInvitationData): Promise<
 
     await mailService.send({
       to: data.adminEmail,
-      from: 'noreply@maintrix-t.com', // Remplacez par votre adresse expéditeur vérifiée
+      from: expediteurCourriel(),
       subject: `🚀 Bienvenue sur Maintrix - Tenant "${data.tenantName}" créé`,
       html: emailContent,
       text: `
@@ -225,7 +252,7 @@ export async function sendTenantStatusNotification(
 
     await mailService.send({
       to: adminEmail,
-      from: 'noreply@maintrix-t.com',
+      from: expediteurCourriel(),
       subject: status.subject,
       html: emailContent
     });
@@ -335,7 +362,7 @@ export async function sendTenantCredentials(notification: CredentialNotification
 
     await mailService.send({
       to: notification.recipientEmail,
-      from: 'noreply@maintrix-t.com',
+      from: expediteurCourriel(),
       subject: `🔐 Vos identifiants Maintrix - ${notification.tenantName}`,
       html: emailContent
     });

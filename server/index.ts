@@ -111,6 +111,17 @@ function validateProductionEnvironment(): void {
       console.warn(`⚠️  ${key} non défini — fonctionnalité dégradée`);
     }
   });
+
+  // ⚠️ Une clé SendGrid sans adresse d'expéditeur vérifiée ne produit AUCUN
+  // envoi : le service refuse les messages dont l'expéditeur lui est inconnu.
+  // Une configuration à moitié faite laisse croire que les courriels partent,
+  // alors qu'ils sont tous rejetés — on le dit donc au démarrage.
+  if (process.env.SENDGRID_API_KEY && !process.env.SENDGRID_FROM_EMAIL) {
+    console.warn(
+      '⚠️  SENDGRID_API_KEY est défini mais SENDGRID_FROM_EMAIL manque : aucun courriel ne partira. '
+      + 'Renseignez l\'adresse d\'expéditeur VÉRIFIÉE chez SendGrid.',
+    );
+  }
 }
 
 validateProductionEnvironment();

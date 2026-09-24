@@ -359,3 +359,46 @@ sudo bash scripts/restauration-verifiee.sh /var/backups/maintrix/<horodatage>
 Si cette condition ne peut pas être tenue, retirez la phrase des pages
 publiques plutôt que de la laisser promettre à votre place :
 `client/src/pages/landing.tsx` et `client/src/pages/login.tsx`.
+
+---
+
+## Activer l'envoi de courriels
+
+Sans envoi, aucun testeur ne reçoit ses identifiants ni son lien de
+réinitialisation : l'administrateur doit tout transmettre à la main. Deux
+variables, à ajouter dans `.env.test-cloud` **sur le serveur** :
+
+```bash
+sudo tee -a /opt/maintrix-git/.env.test-cloud >/dev/null <<'VARS'
+SENDGRID_API_KEY=VOTRE_CLE_SENDGRID
+SENDGRID_FROM_EMAIL=noreply@techlearn-saem.com
+VARS
+```
+
+Puis redémarrer l'application pour qu'elle les lise :
+
+```bash
+cd /opt/maintrix-git && sudo docker compose --env-file .env.test-cloud -f docker-compose.test.yml -p maintrix-test up -d app
+```
+
+> ⚠️ **Les deux variables sont nécessaires.** SendGrid refuse tout message dont
+> l'expéditeur n'est pas une identité **vérifiée** chez lui. Une clé sans adresse
+> vérifiée ne fait rien partir, et l'échec n'apparaît que dans les journaux du
+> serveur. L'application le signale désormais au démarrage.
+>
+> L'adresse doit être **exactement** celle vérifiée dans SendGrid
+> (*Settings → Sender Authentication*). Six adresses étaient autrefois écrites
+> dans le code — `noreply@maintrix-t.com`, `noreply@smartgmao.com` — dont aucune
+> ne correspondait au domaine exploité : elles ont été supprimées, et un test
+> unitaire échoue si l'une réapparaît.
+
+Vérifier que l'envoi fonctionne réellement, après redémarrage :
+
+```bash
+sudo docker logs --tail 30 maintrix-test-app | grep -iE "sendgrid|email"
+```
+
+Attendu : `✅ SendGrid email service enabled`, et aucun avertissement sur
+`SENDGRID_FROM_EMAIL`. Créez ensuite un compte de test depuis la console
+d'administration : le courriel doit arriver, et la console indiquera « Email
+envoyé » plutôt que « transmission manuelle requise ».

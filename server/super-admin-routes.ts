@@ -110,7 +110,7 @@ async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise
   `;
 
   // Utiliser une adresse vérifiée chez SendGrid
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@smartgmao.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || '';
   
   await mailService.send({
     to: data.toEmail,
