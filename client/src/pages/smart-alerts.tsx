@@ -159,7 +159,7 @@ export default function SmartAlerts() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input placeholder="Rechercher une alerte..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-slate-900/50 border-white/10 text-white" />
+              className="pl-9" />
           </div>
           <div className="flex gap-1">
             {["all", "critical", "high", "warning", "info"].map(sev => (

@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { auMoins } from "@shared/roles";
 import { MFASetup } from "@/components/MFASetup";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +37,7 @@ export default function SecurityMFAPage() {
   }, []);
 
   // Vérifier si l'utilisateur actuel est admin
-  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+  const isAdmin = auMoins(user?.role, 'admin');
   const mfaComplianceRate = Math.round((stats.mfaEnabledUsers / stats.totalUsers) * 100);
 
   return (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { auMoins, libelleRole } from "@shared/roles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -438,8 +439,7 @@ export default function UserProfiles() {
                 
                 <div className="flex space-x-2">
                   <Badge className={getRoleBadgeColor(profile.role)}>
-                    {profile.role === "admin" ? "Administrateur" : 
-                     profile.role === "supervisor" ? "Superviseur" : "Technicien"}
+                    {libelleRole(profile.role)}
                   </Badge>
                   <Badge className={getExperienceBadgeColor(profile.experienceLevel)}>
                     {profile.experienceLevel === "expert" ? "Expert" :

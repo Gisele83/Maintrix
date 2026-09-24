@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { auMoins, libelleRole } from "@shared/roles";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -97,7 +98,7 @@ export default function UserManagement() {
   });
 
   // Vérifier si l'utilisateur actuel peut gérer les utilisateurs
-  const canManageUsers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const canManageUsers = auMoins(currentUser?.role, 'admin');
 
   // Charger la liste des utilisateurs
   const fetchUsers = async () => {
@@ -446,8 +447,8 @@ export default function UserManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                      <Badge variant={auMoins(user.role, 'admin') ? 'default' : 'secondary'}>
+                        {libelleRole(user.role)}
                       </Badge>
                     </TableCell>
                     <TableCell>

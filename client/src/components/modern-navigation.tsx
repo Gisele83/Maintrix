@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { auMoins } from "@shared/roles";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -140,7 +141,7 @@ export function ModernNavigation() {
       items: [
         { name: "Journal Cryptographique", href: "/crypto-journal", icon: Shield },
         ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
-        ...(user && user.role === "admin" ? [{ name: "Santé système", href: "/system-health", icon: Activity }] : []),
+        ...(auMoins(user?.role, "admin") ? [{ name: "Santé système", href: "/system-health", icon: Activity }] : []),
       ],
     },
     {

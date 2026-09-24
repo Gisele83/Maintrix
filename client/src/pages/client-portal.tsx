@@ -236,7 +236,7 @@ function PortalAdmin() {
                   <Input
                     readOnly
                     value={`${window.location.origin}/client-portal/${generatedToken}`}
-                    className="bg-slate-900/50 border-white/20 text-white text-sm"
+                    className="text-sm"
                   />
                   <Button variant="outline" size="icon" onClick={copyLink} className="border-white/20 shrink-0">
                     <Copy className="w-4 h-4" />

@@ -59,20 +59,36 @@ export default function SuperAdminLogin() {
     }
   };
 
+  /**
+   * ⚠️ Cet écran était sombre à l'origine. L'harmonisation a éclairci le fond
+   * sans toucher aux champs, restés en texte blanc : on saisissait donc du blanc
+   * sur du blanc, illisible. Signalé le 2026-09-24.
+   *
+   * Il redevient franchement sombre — la console de plateforme porte déjà un
+   * bandeau encre — ce qui la distingue d'un coup d'œil de l'espace client, et
+   * rend les champs lisibles par contraste réel.
+   */
   return (
-    <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+    <div className="min-h-screen bg-ink text-paper flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KPGcgZmlsbD0iI2ZmZmZmZiIgZmlsbC1vcGFjaXR5PSIwLjAyIj4KPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPgo8L2c+CjwvZz4KPC9zdmc+')] opacity-20"></div>
       
-      <Card className="w-full max-w-md relative bg-white/5 border-white/10">
+      <Card className="w-full max-w-md relative bg-white/5 border-white/15 shadow-none">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-ink" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-ink">
-            Administration Plateforme
+          <img
+            src="/logo-maintrix-clair.png"
+            alt="Maintrix"
+            width={640}
+            height={213}
+            className="h-8 w-auto mx-auto mb-6"
+          />
+          <p className="font-mono text-eyebrow uppercase tracking-wider text-signal-light">
+            Console de plateforme
+          </p>
+          <CardTitle className="font-serif text-2xl font-medium text-paper mt-2">
+            Administration
           </CardTitle>
-          <CardDescription className="text-gray-300">
-            Interface super-admin pour la gestion multi-tenant
+          <CardDescription className="text-paper/60">
+            Réservée à la gestion des organisations et de leurs comptes.
           </CardDescription>
         </CardHeader>
         
@@ -84,12 +100,12 @@ export default function SuperAdminLogin() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-200">Email Super-Admin</FormLabel>
+                    <FormLabel className="text-paper/80">Email Super-Admin</FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="admin@platform.com"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        className="bg-white/10 border-white/40 text-paper placeholder:text-paper/55 focus-visible:ring-signal-light"
                         {...field}
                       />
                     </FormControl>
@@ -103,12 +119,12 @@ export default function SuperAdminLogin() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-200">Mot de passe</FormLabel>
+                    <FormLabel className="text-paper/80">Mot de passe</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
                         placeholder="••••••••"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        className="bg-white/10 border-white/40 text-paper placeholder:text-paper/55 focus-visible:ring-signal-light"
                         {...field}
                       />
                     </FormControl>
@@ -122,12 +138,12 @@ export default function SuperAdminLogin() {
                 name="secretKey"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-200">Clé secrète plateforme</FormLabel>
+                    <FormLabel className="text-paper/80">Clé secrète plateforme</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
                         placeholder="Clé secrète d'administration"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        className="bg-white/10 border-white/40 text-paper placeholder:text-paper/55 focus-visible:ring-signal-light"
                         {...field}
                       />
                     </FormControl>
@@ -138,7 +154,7 @@ export default function SuperAdminLogin() {
               
               <Button 
                 type="submit" 
-                className="w-full bg-ink text-white font-semibold py-2.5"
+                className="w-full bg-signal text-white font-medium py-2.5 hover:bg-signal-light hover:text-ink"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -156,8 +172,8 @@ export default function SuperAdminLogin() {
             </form>
           </Form>
           
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <div className="flex items-center gap-4 text-sm text-gray-400">
+          <div className="mt-6 pt-6 border-t border-white/15">
+            <div className="flex items-center gap-4 text-sm text-paper/60">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
                 <span>Multi-tenant</span>
@@ -171,10 +187,10 @@ export default function SuperAdminLogin() {
         </CardContent>
       </Card>
       
-      <div className="absolute bottom-4 left-4 text-sm text-gray-400">
+      <div className="absolute bottom-4 left-4 text-sm text-paper/60">
         <button 
           onClick={() => setLocation('/')}
-          className="hover:text-white transition-colors underline"
+          className="hover:text-paper transition-colors underline underline-offset-4"
         >
           ← Retour à l'interface client
         </button>
