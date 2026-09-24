@@ -313,6 +313,46 @@ le renouvellement échouait en silence, et le site devenait inaccessible
 | Émission du certificat échouée | port 80 fermé côté pare-feu OVH **ou** `ufw` |
 | Construction tuée sans message | mémoire insuffisante — ajoutez du swap (étape 1) |
 | `403 ORIGIN_NOT_ALLOWED` à la connexion | l'application n'a pas été relancée après changement du domaine : `docker compose … up -d app` |
+| `INVALID_SUPER_ADMIN_CREDENTIALS` | l'adresse saisie n'est pas `SUPER_ADMIN_EMAIL`, **ou** le mot de passe ne correspond pas — voir ci-dessous |
+| `SUPER_ADMIN_HASH_MALFORME` | le hash est arrivé cassé dans le conteneur — voir ci-dessous |
+| `INVALID_SECRET_KEY` | seule la clé secrète plateforme est en cause ; l'adresse et le mot de passe n'ont pas encore été examinés |
+
+### Accès à la console super-admin
+
+Le super-administrateur **n'a pas de compte en base** : son identité vient de
+trois variables d'environnement. D'où trois façons de rester dehors, longtemps
+confondues parce qu'elles renvoyaient le même message.
+
+Le piège principal : **un hash bcrypt commence par `$2b$10$`, et Docker Compose
+interprète « $ » comme une référence de variable.** Sans doublement des « $ »
+dans le fichier d'environnement, le hash arrive tronqué au conteneur. Le mot de
+passe est alors bon, mais aucune connexion n'est possible — et on cherche du
+mauvais côté.
+
+Un outil lit ce que le conteneur voit réellement, et non ce que le fichier
+prétend :
+
+```bash
+sudo node scripts/reparer-super-admin.mjs
+```
+
+Il affiche l'adresse attendue et la forme du hash, sans divulguer de secret.
+Pour régénérer le mot de passe (échappement correct garanti, copie de sécurité
+du fichier, mot de passe affiché une seule fois) :
+
+```bash
+sudo node scripts/reparer-super-admin.mjs --reparer
+```
+
+Pour adopter au passage une autre adresse de connexion :
+
+```bash
+sudo node scripts/reparer-super-admin.mjs --reparer --courriel contact@exemple.fr
+```
+
+⚠️ Docker fige les variables à la **création** du conteneur : après toute
+modification du fichier, `up -d --force-recreate app` — un `restart` ne relit
+rien. Le script rappelle la commande exacte.
 
 ---
 

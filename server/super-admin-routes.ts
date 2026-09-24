@@ -211,6 +211,14 @@ const createUserByAdminSchema = z.object({
   maxUsers: z.number().int().min(1).max(1000).optional(),
 });
 
+/** Un hash bcrypt : `$2a$`, `$2b$` ou `$2y$`, un coût, puis 53 caractères. */
+const HASH_BCRYPT = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+/** Casse et espaces n'ont pas de sens dans une adresse de connexion. */
+function normaliserCourriel(valeur: unknown): string {
+  return typeof valeur === 'string' ? valeur.trim().toLowerCase() : '';
+}
+
 // 🔐 Connexion super-admin — credentials depuis variables d'environnement
 router.post('/login', async (req, res) => {
   try {
@@ -248,7 +256,30 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (email !== superAdminEmail) {
+    // ⚠️ Un hash bcrypt fait 60 caractères et commence par $2a$, $2b$ ou $2y$.
+    // Docker Compose interprète « $ » comme une référence de variable dans un
+    // fichier d'environnement : un hash non échappé arrive tronqué au
+    // conteneur. `bcrypt.compare` renvoie alors false, et le serveur
+    // répondait « identifiants incorrects » — indiscernable d'un mot de passe
+    // erroné. L'exploitant cherchait donc du mauvais côté pendant des heures.
+    // On nomme désormais la panne pour ce qu'elle est.
+    if (!HASH_BCRYPT.test(superAdminPasswordHash)) {
+      console.error(
+        '[super-admin] SUPER_ADMIN_PASSWORD_HASH malformé : ' +
+        `${superAdminPasswordHash.length} caractères, commence par « ${superAdminPasswordHash.slice(0, 4)} ». ` +
+        'Un hash bcrypt fait 60 caractères et commence par $2b$. ' +
+        'Dans un fichier lu par Docker Compose, chaque $ doit être doublé ($$).'
+      );
+      return res.status(503).json({
+        error: "SUPER_ADMIN_HASH_MALFORME",
+        message: "Le mot de passe super-admin est mal configuré sur ce serveur : le hash enregistré n'est pas un hash bcrypt valide. Consultez les journaux du serveur."
+      });
+    }
+
+    // Une adresse se compare sans tenir compte de la casse ni des espaces :
+    // « Contact@… » saisi dans un champ qui met parfois la première lettre en
+    // majuscule échouait ici, avec le même message qu'un mot de passe faux.
+    if (normaliserCourriel(email) !== normaliserCourriel(superAdminEmail)) {
       return res.status(401).json({
         error: "INVALID_SUPER_ADMIN_CREDENTIALS",
         message: "Identifiants super-admin incorrects"
