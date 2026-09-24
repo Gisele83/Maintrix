@@ -202,19 +202,48 @@ copyFileSync(ENV_FILE, sauvegarde);
 gris(`copie de sécurité : ${sauvegarde}`);
 
 let contenu = readFileSync(ENV_FILE, 'utf8');
+// ⚠️ La fonction de remplacement n'est PAS une élégance : passée en chaîne,
+// `String.replace` interprète « $$ » comme un « $ » littéral et DÉFAIT
+// l'échappement qu'on vient tout juste de poser. Le hash part alors nu dans le
+// fichier, Compose en mange un morceau, et le super-admin se retrouve dehors —
+// c'est exactement ce qui est arrivé le 2026-09-24.
 const poser = (cle, valeur) => {
   const motif = new RegExp(`^${cle}=.*$`, 'm');
   contenu = motif.test(contenu)
-    ? contenu.replace(motif, `${cle}=${valeur}`)
+    ? contenu.replace(motif, () => `${cle}=${valeur}`)
     : `${contenu.replace(/\n?$/, '\n')}${cle}=${valeur}\n`;
 };
 
 poser('SUPER_ADMIN_EMAIL', courriel);
 poser('SUPER_ADMIN_PASSWORD_HASH', echappe);
 poser('SUPER_ADMIN_PASSWORD', motDePasse);
+
+// ── Relire, et simuler ce que Compose fera de cette ligne ───────────
+// Écrire ne prouve rien : c'est la valeur APRÈS interpolation qui parviendra
+// au conteneur. On la reconstitue ici, et on refuse de livrer un fichier qui
+// ne redonnera pas un hash vérifiable. Sans ce contrôle, l'erreur ne se voit
+// qu'après la recréation du conteneur — c'est-à-dire une fois dehors.
+{
+  const ligne = contenu.match(/^SUPER_ADMIN_PASSWORD_HASH=(.*)$/m);
+  if (!ligne) mourir("la ligne du hash n'a pas été écrite — rien n'a été appliqué.");
+
+  // Compose ramène chaque « $$ » à un « $ ».
+  const vuParCompose = ligne[1].split('$$').join('$');
+
+  if (!HASH_BCRYPT.test(vuParCompose) || !bcrypt.compareSync(motDePasse, vuParCompose)) {
+    mourir(
+      'le hash écrit ne survivrait pas à Docker Compose — fichier NON modifié.',
+      `Écrit   : ${ligne[1].length} caractères\n` +
+      `Compose : ${vuParCompose.length} caractères, commence par « ${vuParCompose.slice(0, 4)} »\n` +
+      `Attendu : 60 caractères, préfixe $2b$.\n` +
+      `Le fichier d'origine est intact : ${sauvegarde}`);
+  }
+}
+
 writeFileSync(ENV_FILE, contenu, { mode: 0o600 });
 
 vert(`${ENV_FILE} mis à jour (permissions 600).`);
+gris('Hash vérifié après simulation de l\'interpolation Docker Compose.');
 
 console.log('\n───────────────────────────────────────────────────────────');
 console.log(`  Adresse       : ${courriel}`);
