@@ -47,6 +47,8 @@ process.chdir(ROOT);
 
 const ENV_FILE = process.env.MAINTRIX_TEST_ENV_FILE || '.env.test-cloud';
 const APP = process.env.MAINTRIX_CONTENEUR_APP || 'maintrix-test-app';
+/** Le même nom de projet que `deploy-ovh.sh` — voir la note en fin de script. */
+const PROJET = process.env.MAINTRIX_PROJET_COMPOSE || 'maintrix-test';
 
 const rouge = (m) => console.error(`\x1b[31m${m}\x1b[0m`);
 const jaune = (m) => console.log(`\x1b[33m${m}\x1b[0m`);
@@ -223,6 +225,9 @@ gris('La clé secrète plateforme est inchangée — continuez à utiliser la v�
 
 console.log('\n⚠️  Docker fige les variables à la création du conteneur.');
 console.log('   Un « restart » ne relit RIEN. Recréez le conteneur :\n');
-console.log(`     sudo docker compose -f docker-compose.test.yml --env-file ${ENV_FILE} up -d --force-recreate app\n`);
+// ⚠️ `-p maintrix-test` n'est pas décoratif : sans lui, Compose déduit le nom
+// du projet du dossier courant et monte un SECOND jeu de conteneurs à côté des
+// vôtres, au lieu de les remplacer. C'est le nom qu'emploie deploy-ovh.sh.
+console.log(`     sudo docker compose --env-file ${ENV_FILE} -f docker-compose.test.yml -p ${PROJET} up -d --force-recreate app\n`);
 console.log('   Puis relancez ce script sans --reparer pour confirmer que le');
 console.log('   conteneur voit bien un hash valide.\n');
