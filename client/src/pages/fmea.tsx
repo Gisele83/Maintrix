@@ -246,19 +246,19 @@ export default function FmeaPage() {
   const statusConf = (v: string) => STATUSES.find(s => s.value === v) || STATUSES[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/20 to-amber-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-lg">
-              <AlertTriangle className="h-6 w-6 text-white" />
+            <div className="p-2.5 rounded-xl bg-paper-deep">
+              <AlertTriangle className="h-6 w-6 text-ink" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">FMEA / AMDEC</h1>
+            <h1 className="text-3xl font-bold text-ink">FMEA / AMDEC</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Failure Mode & Effects Analysis — RPN = Sévérité × Occurrence × Détection</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle FMEA
         </Button>
       </div>
@@ -273,7 +273,7 @@ export default function FmeaPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -314,7 +314,7 @@ export default function FmeaPage() {
         <div className="text-center py-16">
           <AlertTriangle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune analyse FMEA</h3>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-orange-500 to-amber-600 text-white gap-2 mt-4">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Créer la première FMEA
           </Button>
         </div>
@@ -334,14 +334,14 @@ export default function FmeaPage() {
                         <span className="text-xs font-mono text-slate-500">{f.fmeaNumber}</span>
                         <Badge className={sc.color + " text-xs"}>{sc.label}</Badge>
                         <Badge variant="outline" className="text-xs">Rev. {f.revision}</Badge>
-                        {f.equipmentName && <Badge variant="outline" className="text-xs">📍 {f.equipmentName}</Badge>}
+                        {f.equipmentName && <Badge variant="outline" className="text-xs">{f.equipmentName}</Badge>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{f.title}</h3>
                       {f.scope && <p className="text-xs text-slate-500 mt-1 line-clamp-1">{f.scope}</p>}
                       <div className="flex items-center gap-4 mt-2 flex-wrap">
                         <span className="text-xs text-slate-500">{f.entries?.length || 0} modes de défaillance</span>
-                        {critical > 0 && <Badge className="bg-red-100 text-red-700 text-xs">⚠️ {critical} critique{critical > 1 ? "s" : ""}</Badge>}
-                        {high > 0 && <Badge className="bg-orange-100 text-orange-700 text-xs">🔶 {high} élevé{high > 1 ? "s" : ""}</Badge>}
+                        {critical > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{critical} critique{critical > 1 ? "s" : ""}</Badge>}
+                        {high > 0 && <Badge className="bg-orange-100 text-orange-700 text-xs">{high} élevé{high > 1 ? "s" : ""}</Badge>}
                         {maxRpn > 0 && <span className="text-xs font-medium" style={{ color: rpnColor(maxRpn) }}>RPN max: {maxRpn}</span>}
                       </div>
                     </div>
@@ -380,7 +380,7 @@ export default function FmeaPage() {
               )} />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-orange-500 to-amber-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer
                 </Button>
               </DialogFooter>
@@ -394,7 +394,7 @@ export default function FmeaPage() {
         <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setEditingEntry(null); setEditingIdx(null); }}>
           <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-orange-200">
                 <AlertTriangle className="h-6 w-6 text-orange-600" />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>

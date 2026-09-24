@@ -4,12 +4,14 @@ import { db } from "./db";
 import { equipmentRegistry } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { tenantRequis } from "./tenant-requis";
 
 export function registerProspectiveSimulationRoutes(app: Express) {
   // Run prospective simulation for one equipment
   app.get("/api/prospective/simulate/:id", async (req: Request, res: Response) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ error: "ID invalide" });
 
@@ -25,7 +27,8 @@ export function registerProspectiveSimulationRoutes(app: Express) {
   // Fleet-level: run simulation on all equipment and return ranked summary
   app.get("/api/prospective/fleet-summary", async (req: Request, res: Response) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const deferDays = parseInt(req.query.deferDays as string) || 14;
 
       const equipments = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, criticalityLevel: equipmentRegistry.criticalityLevel })
@@ -68,7 +71,8 @@ export function registerProspectiveSimulationRoutes(app: Express) {
   // Equipment list for selection
   app.get("/api/prospective/equipment-list", async (req: Request, res: Response) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const list = await db.select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType, criticalityLevel: equipmentRegistry.criticalityLevel, status: equipmentRegistry.operationalState })
         .from(equipmentRegistry)
         .where(eq(equipmentRegistry.tenantId, tenantId))

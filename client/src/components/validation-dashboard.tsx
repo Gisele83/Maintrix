@@ -207,7 +207,7 @@ export default function ValidationDashboard({
     const colors = {
       pending: "bg-orange-100 text-orange-800 border-orange-200",
       level1_validated: "bg-blue-100 text-blue-800 border-blue-200",
-      level2_validated: "bg-purple-100 text-purple-800 border-purple-200",
+      level2_validated: "bg-paper-deep text-signal-deep border-rule",
       fully_validated: "bg-green-100 text-green-800 border-green-200",
       rejected: "bg-red-100 text-red-800 border-red-200"
     };
@@ -446,7 +446,7 @@ export default function ValidationDashboard({
                 </Card>
               ) : (
                 pendingPurchaseOrders.map((purchaseOrder) => (
-                  <Card key={purchaseOrder.id} className="border-l-4 border-l-purple-500">
+                  <Card key={purchaseOrder.id} className="border-l-4 border-l-signal">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">{purchaseOrder.orderNumber}</CardTitle>
@@ -517,7 +517,7 @@ export default function ValidationDashboard({
                             size="sm"
                             variant="default"
                             onClick={() => handlePrintPurchaseOrder(purchaseOrder.id)}
-                            className="bg-purple-600 hover:bg-purple-700 flex items-center gap-1"
+                            className="bg-signal-deep hover:bg-signal-deep flex items-center gap-1"
                           >
                             <FileText className="h-4 w-4" />
                             Marquer comme imprimé

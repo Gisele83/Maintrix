@@ -3,19 +3,22 @@
  * Provisionnement de l'environnement de TEST pour testeurs externes — F08.
  *
  *   node scripts/provision-test-env.mjs            # monte l'environnement
- *   node scripts/provision-test-env.mjs --down     # le détruit
- *   node scripts/provision-test-env.mjs --reset    # détruit puis remonte à neuf
+ *   node scripts/provision-test-env.mjs --down     # l'arrête (volumes et données CONSERVÉS)
+ *
+ * ⚠️ Aucune option ne supprime de volume. Les données des testeurs doivent
+ * survivre jusqu'en production : voir scripts/deploy-ovh.sh.
  *
  * Une seule commande, de zéro à un environnement vérifié :
  *
  *   1. fichier de secrets généré s'il manque (jamais versionné)
  *   2. certificat TLS auto-signé généré si `ssl/` est vide
- *   3. image applicative construite
- *   4. stack démarrée (app + db + nginx)
- *   5. schéma appliqué depuis shared/schema.ts
- *   6. données de test déterministes chargées
- *   7. environnement vérifié
- *   8. informations d'accès affichées
+ *   3. volumes permanents créés s'ils n'existent pas (jamais recréés)
+ *   4. image construite, base démarrée
+ *   5. schéma appliqué depuis shared/schema.ts — sur une base existante,
+ *      seulement après restauration vérifiée (MAINTRIX_SCHEMA_VERIFIE)
+ *   6. comptes de démonstration retirés
+ *   7. quotas d'utilisateurs relevés, compte de sonde créé ou aligné
+ *   8. application et nginx démarrés, environnement vérifié
  *
  * ═══════════════════════════════════════════════════════════════════
  * POURQUOI `push` ET NON `migrate`
@@ -92,16 +95,22 @@ function sh(cmd, cmdArgs, opts = {}) {
 function docker(a, opts) { return sh('docker', a, opts); }
 
 // ═══════════════════════════════════════════════════════════════════
-if (wantDown || wantReset) {
-  step('Destruction de l\'environnement de test');
-  const r = docker([...COMPOSE, 'down', '-v', '--remove-orphans']);
+if (wantReset) {
+  // L'ancienne option détruisait conteneurs ET volumes (`down -v`). Les données
+  // des testeurs devant être conservées jusqu'en production, elle n'existe plus.
+  console.error('\n⛔ --reset est supprimé : il effaçait les volumes, donc les données des testeurs.');
+  console.error('   Repartir de zéro reste possible, mais seulement à la main et en connaissance de cause :');
+  console.error('   sauvegarde (scripts/sauvegarde-chiffree.sh), puis suppression explicite des volumes.');
+  process.exit(2);
+}
+if (wantDown) {
+  step('Arrêt de l\'environnement de test');
+  // Jamais `-v` : les volumes sont conservés. Ils sont de toute façon déclarés
+  // `external`, que docker compose ne supprime pas.
+  const r = docker([...COMPOSE, 'down', '--remove-orphans']);
   console.log(r.out.split('\n').slice(-8).join('\n'));
-  ok('conteneurs, réseau et volumes supprimés');
-  if (wantDown) {
-    console.log('\nLe fichier de secrets est conservé. Pour repartir de zéro :');
-    console.log(`   rm ${ENV_FILE} && node scripts/provision-test-env.mjs\n`);
-    process.exit(0);
-  }
+  ok('conteneurs et réseau arrêtés — volumes et données conservés');
+  process.exit(0);
 }
 
 // ── 0. Prérequis ────────────────────────────────────────────────────
@@ -303,32 +312,51 @@ step('Certificat TLS');
   }
 }
 
-// ── 3. Démarrage ────────────────────────────────────────────────────
-step('Construction et démarrage de la stack (peut prendre plusieurs minutes)');
+// ── 3. Volumes permanents ───────────────────────────────────────────
+step('Volumes permanents');
 {
-  const up = docker([...COMPOSE, 'up', '-d', '--build']);
-  if (up.code !== 0) die('docker compose up a échoué', up.out);
-  ok('app + db + nginx démarrés');
+  // Noms figés dans docker-compose.test.yml (`external: true`). Docker compose
+  // ne les crée ni ne les supprime : c'est fait ici, une seule fois.
+  const VOLUMES = ['maintrix-test_test_postgres', 'maintrix-test_test_uploads', 'maintrix-test_test_logs'];
+  const baseExistante = docker(['inspect', DB]).code === 0;
+  for (const v of VOLUMES) {
+    if (docker(['volume', 'inspect', v]).code === 0) { ok(`${v} présent`); continue; }
+    if (v.endsWith('_postgres') && baseExistante) {
+      // Créer ici un volume vide masquerait la base réelle derrière une base
+      // neuve : les testeurs se retrouveraient devant une application vide.
+      die(`Le volume ${v} est introuvable alors qu'une base ${DB} existe déjà.`,
+        'Refus de créer une base vide à sa place.\n' +
+        `Volume réellement utilisé : docker inspect ${DB} --format '{{range .Mounts}}{{.Name}} {{end}}'`);
+    }
+    const c = docker(['volume', 'create', '--label', 'maintrix.permanent=oui', v]);
+    if (c.code !== 0) die(`Création du volume ${v} impossible`, c.out);
+    ok(`${v} créé (première installation)`);
+  }
 }
 
-step('Attente de la disponibilité');
+// ── 4. Image et base ────────────────────────────────────────────────
+step('Construction de l\'image applicative (peut prendre plusieurs minutes)');
 {
-  let healthy = false;
-  for (let i = 0; i < 150; i++) {
-    const h = docker(['inspect', '-f', '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}', APP]).out;
-    const state = docker(['inspect', '-f', '{{.State.Status}}', APP]).out;
-    if (/^restarting|^exited/.test(state)) {
-      die('Le conteneur applicatif ne démarre pas', docker(['logs', '--tail', '30', APP]).out);
-    }
-    if (h === 'healthy') { healthy = true; break; }
+  const b = docker([...COMPOSE, 'build', 'app']);
+  if (b.code !== 0) die('Construction de l\'image échouée', b.out.split('\n').slice(-25).join('\n'));
+  ok('image construite');
+}
+
+step('Démarrage de la base');
+{
+  const u = docker([...COMPOSE, 'up', '-d', 'db']);
+  if (u.code !== 0) die('Démarrage de la base échoué', u.out);
+  let saine = false;
+  for (let i = 0; i < 60; i++) {
+    if (docker(['inspect', '-f', '{{.State.Health.Status}}', DB]).out === 'healthy') { saine = true; break; }
     await sleep(2000);
   }
-  if (!healthy) die('L\'application n\'est jamais devenue saine', docker(['logs', '--tail', '30', APP]).out);
-  ok('application saine (healthcheck Docker)');
+  if (!saine) die('La base ne devient pas saine', docker(['logs', '--tail', '30', DB]).out);
+  ok('base saine');
 }
 
-// ── 4. Schéma ───────────────────────────────────────────────────────
-step('Application du schéma (drizzle-kit push depuis shared/schema.ts)');
+// ── 5. Schéma ───────────────────────────────────────────────────────
+step('Application du schéma (drizzle-kit depuis shared/schema.ts)');
 {
   const { readFileSync } = await import('node:fs');
   const env = Object.fromEntries(
@@ -336,16 +364,39 @@ step('Application du schéma (drizzle-kit push depuis shared/schema.ts)');
       .filter(l => /^[A-Z_]+=/.test(l))
       .map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
   );
-  // Le schéma est poussé DEPUIS L'HÔTE vers la base du conteneur. On publie
-  // temporairement le port de la base ? Non : on passe par `docker exec` sur un
-  // conteneur éphémère du même réseau serait plus lourd. Ici la base n'étant pas
-  // publiée, on utilise le réseau du projet.
+  const PGU = env.POSTGRES_USER || 'maintrix_test';
+  const PGD = env.POSTGRES_DB || 'maintrix_test';
+
+  // ⚠️ GARDE-FOU DES DONNÉES. `drizzle-kit push --force` accepte sans
+  // confirmation la suppression de colonnes et de tables. Mesuré : une colonne
+  // retirée du schéma disparaît avec ses données. Sur une base qui contient
+  // déjà des tables, le schéma n'est donc appliqué que si une restauration
+  // vérifiée l'a appliqué AVANT sur une copie, pour ce même commit, sans rien
+  // perdre (scripts/restauration-verifiee.sh, appelé par deploy-ovh.sh).
+  const tablesAvant = Number(docker(['exec', DB, 'psql', '-U', PGU, '-d', PGD, '-tAc',
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public'"]).out) || 0;
+
+  if (tablesAvant > 0) {
+    const attestation = process.env.MAINTRIX_SCHEMA_VERIFIE;
+    const commit = sh('git', ['rev-parse', '--short', 'HEAD']).out;
+    if (!attestation || !existsSync(attestation)) {
+      die(`Base existante (${tablesAvant} tables) : mise à jour du schéma REFUSÉE sans restauration vérifiée.`,
+        'Passez par la procédure complète :\n  sudo bash scripts/deploy-ovh.sh <domaine> <courriel>\n' +
+        '(sauvegarde chiffrée, puis schéma éprouvé sur une copie restaurée dans une base isolée).');
+    }
+    const contenu = readFileSync(attestation, 'utf8');
+    if (!contenu.includes(`commit=${commit}`)) {
+      die('La restauration vérifiée porte sur un autre commit que celui en cours de déploiement.', contenu);
+    }
+    ok(`restauration vérifiée pour le commit ${commit} — schéma déjà éprouvé sur une copie, sans perte`);
+  } else {
+    ok('base vide — première installation');
+  }
+
   const netInspect = docker(['network', 'ls', '--filter', 'name=maintrix-test', '--format', '{{.Name}}']).out.split('\n')[0];
   const drizzle = join('node_modules', '.bin', process.platform === 'win32' ? 'drizzle-kit.cmd' : 'drizzle-kit');
 
-  // Publication temporaire du port de la base sur la boucle locale, le temps du
-  // push. Le port est choisi À L'EXÉCUTION : un port figé entre en conflit dès
-  // qu'un autre projet occupe la même valeur sur la machine.
+  // Accès temporaire à la base, sur la boucle locale, le temps du push.
   const net2 = await import('node:net');
   const dockerBusy = new Set(
     (sh('docker', ['ps', '--format', '{{.Ports}}']).out.match(/:(\d+)->/g) || [])
@@ -358,57 +409,182 @@ step('Application du schéma (drizzle-kit push depuis shared/schema.ts)');
       srv.close(() => resolve(dockerBusy.has(String(p)) ? p + 1 : p));
     });
   });
-  // Un `--rm` ne se déclenche pas si la création échoue au réseau : un proxy
-  // résiduel d'une exécution précédente bloquerait le nom. On nettoie d'abord.
   docker(['rm', '-f', 'maintrix-test-dbproxy']);
-
   const proxy = docker(['run', '-d', '--rm', '--name', 'maintrix-test-dbproxy',
     '--network', netInspect || 'maintrix-test_maintrix-test',
     '-p', `127.0.0.1:${tmpPort}:${tmpPort}`,
-    'alpine/socat', `TCP-LISTEN:${tmpPort},fork,reuseaddr`, `TCP:db:5432`]);
+    'alpine/socat', `TCP-LISTEN:${tmpPort},fork,reuseaddr`, 'TCP:db:5432']);
   if (proxy.code !== 0) die('Impossible d\'ouvrir un accès temporaire à la base', proxy.out);
   await sleep(2000);
 
   try {
-    const url = `postgresql://${env.POSTGRES_USER || 'maintrix_test'}:${env.POSTGRES_PASSWORD}@127.0.0.1:${tmpPort}/${env.POSTGRES_DB || 'maintrix_test'}`;
+    const url = `postgresql://${PGU}:${env.POSTGRES_PASSWORD}@127.0.0.1:${tmpPort}/${PGD}`;
     const r = spawnSync(drizzle, ['push', '--force'], {
       encoding: 'utf8', shell: process.platform === 'win32',
       env: { ...process.env, DATABASE_URL: url, NODE_ENV: 'production' },
     });
-    if ((r.status ?? 1) !== 0) die('drizzle-kit push a échoué', `${r.stdout || ''}${r.stderr || ''}`);
-
-    const tables = docker(['exec', DB, 'psql', '-U', env.POSTGRES_USER || 'maintrix_test',
-      '-d', env.POSTGRES_DB || 'maintrix_test', '-tAc',
-      "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public'"]).out;
-    ok(`schéma appliqué — ${tables} tables`);
-
-    // ── 5. Données de test ──────────────────────────────────────────
-    step('Chargement des données de test déterministes');
-    const tsx = join('node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx');
-    const seed = spawnSync(tsx, ['tests/seed.ts'], {
-      encoding: 'utf8', shell: process.platform === 'win32',
-      env: { ...process.env, DATABASE_URL: url, NODE_ENV: 'test' },
-    });
-    const seedOut = `${seed.stdout || ''}${seed.stderr || ''}`;
-    if ((seed.status ?? 1) !== 0) die('Chargement des données de test échoué', seedOut);
-    seedOut.split('\n').filter(Boolean).forEach(l => console.log(`   ${l.trim()}`));
+    const sortie = `${r.stdout || ''}${r.stderr || ''}`;
+    // drizzle-kit peut échouer en renvoyant 0 (mesuré) : on lit aussi sa sortie.
+    if ((r.status ?? 1) !== 0 || /^Error:|Interactive prompts require a TTY|\[✗\]/m.test(sortie)) {
+      die('drizzle-kit push a échoué', sortie);
+    }
   } finally {
     docker(['rm', '-f', 'maintrix-test-dbproxy']);
   }
+
+  const tables = docker(['exec', DB, 'psql', '-U', PGU, '-d', PGD, '-tAc',
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public'"]).out;
+  ok(`schéma à jour — ${tables} tables`);
+
+  // ── 6. Comptes de démonstration retirés ─────────────────────────
+  // Leur mot de passe commun figure dans la documentation d'un dépôt public.
+  // Dans une base dont les données iront en production, ce sont des portes
+  // ouvertes. Ils restent disponibles pour les tests automatisés, qui tournent
+  // sur une base jetable (tests/seed.ts). Si un compte est référencé par des
+  // données, il est désactivé et anonymisé plutôt que supprimé : on ne casse
+  // pas les enregistrements qui le citent.
+  step('Retrait des comptes de démonstration');
+  {
+    const retrait = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', PGU, '-d', PGD], {
+      encoding: 'utf8',
+      input: `
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT id, email FROM user_profiles
+           WHERE email IN ('admin@maintrix.local', 'tech@maintrix.local', 'admin-beta@maintrix.local') LOOP
+    BEGIN
+      DELETE FROM user_sessions WHERE user_id = r.id;
+      DELETE FROM user_profiles WHERE id = r.id;
+      RAISE NOTICE 'supprime : %', r.email;
+    EXCEPTION WHEN foreign_key_violation THEN
+      DELETE FROM user_sessions WHERE user_id = r.id;
+      UPDATE user_profiles
+         SET is_active = false, password = '!compte-retire',
+             email = 'retire-' || r.id || '@demo.test.local', username = 'retire-' || r.id
+       WHERE id = r.id;
+      RAISE NOTICE 'desactive et anonymise (reference par des donnees) : %', r.email;
+    END;
+  END LOOP;
+END $$;`,
+    });
+    if ((retrait.status ?? 1) !== 0) die('Retrait des comptes de démonstration échoué', `${retrait.stdout}${retrait.stderr}`);
+    const notes = (retrait.stderr || '').split('\n').filter(l => /NOTICE/.test(l)).map(l => l.replace(/^.*NOTICE:\s*/, ''));
+    if (notes.length) notes.forEach(n => ok(n));
+    else ok('aucun compte de démonstration présent');
+  }
+
+  // ── 7. Compte de sonde ─────────────────────────────────────────
+  // Les contrôles automatiques doivent se connecter pour vérifier que les
+  // testeurs le peuvent. Ils utilisent un compte DÉDIÉ : technicien, dans un
+  // locataire vide qui lui est propre, mot de passe tiré au hasard et gardé
+  // dans le fichier de secrets du serveur. Il ne voit aucune donnée de testeur.
+  // ── 6b. Quotas d'utilisateurs des locataires existants ──────────
+  // Les locataires créés avant le 2026-09-17 portent un plafond posé à la
+  // main (souvent 1 ou 3, valeur par défaut de l'ancienne procédure). Leur
+  // propriétaire ne pouvait donc pas créer les comptes de son entreprise :
+  // « Nombre d'utilisateurs atteint pour votre licence ». La licence est
+  // désormais hors service d'un seul bloc, mais on relève aussi les plafonds
+  // en base : le jour où l'offre payante s'ouvrira, personne ne se retrouvera
+  // bloqué par une valeur héritée d'un essai. Aucune donnée n'est supprimée.
+  // ── 6a. Locataire d'accueil des inscriptions publiques ──────────
+  // ⚠️ La page d'inscription rattache tout nouveau compte au locataire
+  // `default-tenant`. Il venait autrefois du jeu de démonstration, retiré
+  // depuis : sur une base neuve, il n'existait donc plus, et TOUTE inscription
+  // échouait sur la contrainte de clé étrangère — pour tout le monde, avec un
+  // simple « Erreur lors de la création du compte ». Constaté en ligne le
+  // 2026-09-23, après recréation de l'instance.
+  //
+  // Il est donc créé ici, sans données, et sans plafond d'utilisateurs.
+  step("Locataire d'accueil des inscriptions");
+  {
+    const accueil = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', PGU, '-d', PGD], {
+      encoding: 'utf8',
+      input: `
+INSERT INTO tenants (id, name, domain, plan, is_active, max_users, contact_email,
+                     trial_start_date, trial_end_date, license_status)
+SELECT 'default-tenant', 'Inscriptions publiques (tests)', 'inscriptions.test.local', 'free', true, 999999,
+       'inscriptions@test.local', NOW(), NOW() + INTERVAL '3650 days', 'trial'
+WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE id = 'default-tenant');`,
+    });
+    if ((accueil.status ?? 1) !== 0) die("Création du locataire d'accueil impossible", `${accueil.stdout}${accueil.stderr}`);
+
+    const present = docker(['exec', DB, 'psql', '-U', PGU, '-d', PGD, '-tAc',
+      "SELECT COUNT(*) FROM tenants WHERE id = 'default-tenant'"]).out;
+    if (present !== '1') die("Le locataire d'accueil « default-tenant » est absent — les inscriptions échoueraient.");
+    ok("locataire d'accueil des inscriptions présent");
+  }
+
+  step("Quotas d'utilisateurs des locataires");
+  {
+    const SANS_LIMITE = 999999; // = UTILISATEURS_SANS_LIMITE (server/license-service.ts)
+    const maj = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', PGU, '-d', PGD, '-tAc',
+      `WITH maj AS (UPDATE tenants SET max_users = ${SANS_LIMITE}, licensed_users = GREATEST(COALESCE(licensed_users, 1), ${SANS_LIMITE}) WHERE COALESCE(max_users, 0) < ${SANS_LIMITE} RETURNING 1) SELECT COUNT(*) FROM maj`],
+      { encoding: 'utf8' });
+    if ((maj.status ?? 1) !== 0) die('Relèvement des quotas impossible', `${maj.stdout}${maj.stderr}`);
+    const n = Number((maj.stdout || '0').trim()) || 0;
+    ok(n > 0 ? `${n} locataire(s) sans limite d'utilisateurs désormais` : 'aucun quota à relever');
+  }
+
+  step('Compte de sonde des contrôles automatiques');
+  {
+    const { appendFileSync, readFileSync: relire } = await import('node:fs');
+    if (!/^SONDE_PASSWORD=/m.test(relire(ENV_FILE, 'utf8'))) {
+      const crypto = await import('node:crypto');
+      appendFileSync(ENV_FILE,
+        '\n# Compte de sonde des contrôles de déploiement (jamais un compte de testeur)\n' +
+        'SONDE_EMAIL=sonde-deploiement@maintrix.local\n' +
+        `SONDE_PASSWORD=${crypto.randomBytes(24).toString('base64url')}\n`);
+      ok(`identifiants de sonde générés dans ${ENV_FILE}`);
+    }
+    const envSonde = Object.fromEntries(relire(ENV_FILE, 'utf8').split(/\r?\n/)
+      .filter(l => /^SONDE_/.test(l)).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+
+    const { createRequire } = await import('node:module');
+    const bcrypt = createRequire(import.meta.url)('bcrypt');
+    const hash = bcrypt.hashSync(envSonde.SONDE_PASSWORD, 10);
+
+    const sonde = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1',
+      '-v', `hash=${hash}`, '-v', `email=${envSonde.SONDE_EMAIL}`, '-U', PGU, '-d', PGD], {
+      encoding: 'utf8',
+      input: `
+INSERT INTO tenants (id, name, domain, plan, is_active, max_users, contact_email, trial_start_date, trial_end_date, license_status)
+SELECT 'sonde-deploiement', 'Sonde de déploiement (tests)', 'sonde.test.local', 'free', true, 1,
+       'sonde@sonde.test.local', NOW(), NOW() + INTERVAL '3650 days', 'trial'
+WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE id = 'sonde-deploiement');
+
+UPDATE user_profiles
+   SET password = :'hash', is_active = true, must_change_password = false, is_default_credentials = false,
+       mfa_enabled = false, failed_login_attempts = 0, account_locked_until = NULL, password_expires_at = NULL,
+       tenant_id = 'sonde-deploiement', role = 'technician'
+ WHERE email = :'email';
+
+INSERT INTO user_profiles (tenant_id, username, email, password, first_name, last_name, role,
+                           is_active, must_change_password, is_default_credentials, mfa_enabled)
+SELECT 'sonde-deploiement', 'sonde-deploiement', :'email', :'hash', 'Sonde', 'Déploiement', 'technician',
+       true, false, false, false
+WHERE NOT EXISTS (SELECT 1 FROM user_profiles WHERE email = :'email');`,
+    });
+    if ((sonde.status ?? 1) !== 0) die('Création du compte de sonde échouée', `${sonde.stdout}${sonde.stderr}`);
+    ok(`compte de sonde prêt : ${envSonde.SONDE_EMAIL} (technicien, locataire isolé)`);
+  }
 }
 
-// Le serveur a démarré AVANT l'existence du schéma : on le redémarre pour que
-// ses initialisations (catalogue de modules, licences, agents) s'exécutent sur
-// une base complète.
-step('Redémarrage applicatif sur le schéma complet');
+// ── 8. Application et nginx ─────────────────────────────────────────
+// Démarrés APRÈS le schéma : la nouvelle version ne tourne jamais sur l'ancien.
+step('Démarrage de l\'application et de nginx');
 {
-  docker([...COMPOSE, 'restart', 'app']);
+  const up = docker([...COMPOSE, 'up', '-d', '--no-build', 'app', 'nginx']);
+  if (up.code !== 0) die('docker compose up a échoué', up.out);
   let healthy = false;
-  for (let i = 0; i < 120; i++) {
-    if (docker(['inspect', '-f', '{{.State.Health.Status}}', APP]).out === 'healthy') { healthy = true; break; }
+  for (let i = 0; i < 150; i++) {
+    const h = docker(['inspect', '-f', '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}', APP]).out;
+    const state = docker(['inspect', '-f', '{{.State.Status}}', APP]).out;
+    if (/^restarting|^exited/.test(state)) die('Le conteneur applicatif ne démarre pas', docker(['logs', '--tail', '30', APP]).out);
+    if (h === 'healthy') { healthy = true; break; }
     await sleep(2000);
   }
-  if (!healthy) die('L\'application n\'est pas revenue saine après redémarrage', docker(['logs', '--tail', '30', APP]).out);
+  if (!healthy) die('L\'application n\'est jamais devenue saine', docker(['logs', '--tail', '30', APP]).out);
   ok('application saine');
 }
 
@@ -440,5 +616,5 @@ console.log(`
 
   Provisionner un testeur :  docs/TESTER_ONBOARDING.md
   Journaux         docker compose -f docker-compose.test.yml -p maintrix-test logs -f app
-  Détruire         node scripts/provision-test-env.mjs --down
+  Arrêter          node scripts/provision-test-env.mjs --down   (données conservées)
 `);

@@ -2,6 +2,7 @@ import express from "express";
 import { z } from "zod";
 import { gmaoStorage } from "./gmao-storage";
 import { type ValidationLog, type WorkOrder, type PurchaseOrder, type UserProfile } from "@shared/schema";
+import { tenantRequis } from "./tenant-requis";
 
 const router = express.Router();
 
@@ -204,7 +205,8 @@ router.put("/users/:userId/permissions", async (req, res) => {
 router.get("/work-orders/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const tenantId = (req as any).tenantId || 'default-tenant';
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
     const status = await gmaoStorage.getWorkOrderValidationStatus(Number(id), tenantId);
     res.json(status);
   } catch (error) {

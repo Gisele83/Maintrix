@@ -330,6 +330,12 @@ seul endroit où l'utilisateur est connu, et gouverné par
 `ENABLE_LICENSE_ENFORCEMENT` — **désactivé par défaut**, car bloquer un
 locataire est une décision commerciale, pas technique.
 
+Le même interrupteur gouverne la limite d'utilisateurs
+(`LicenseService.enforceUserLimit`). Ce ne fut pas toujours le cas : la
+limite s'appliquait alors que le blocage des appels était éteint, et des
+testeurs se sont vu refuser la création de comptes le 2026-09-17. La licence
+est désormais active ou inactive d'un seul bloc.
+
 Six tests, dont une barrière **structurelle** qui échoue si quelqu'un remonte
 le middleware globalement : c'est le placement, et non la logique, qui était
 en cause, et un test isolant le middleware ne l'aurait jamais vu.

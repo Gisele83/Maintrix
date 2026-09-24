@@ -1,5 +1,5 @@
 import React, { lazy } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route , Redirect} from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,7 +9,6 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Dashboard from "@/pages/dashboard";
 import ModernHome from "@/pages/modern-home";
 import LandingPage from "@/pages/landing";
-import RegisterPage from "@/pages/register";
 import SmartDiagnostic from "@/pages/smart-diagnostic";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
@@ -99,10 +98,10 @@ function ProtectedRoute({ component: Component, ...props }: any) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Chargement...</h2>
+          <div className="w-16 h-16 border-2 border-rule border-t-signal rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="font-serif text-xl font-medium text-ink">Chargement...</h2>
           <p className="text-gray-500">Vérification de votre authentification</p>
         </div>
       </div>
@@ -130,10 +129,10 @@ function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700">Chargement...</h2>
+          <div className="w-16 h-16 border-2 border-rule border-t-signal rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="font-serif text-xl font-medium text-ink">Chargement...</h2>
         </div>
       </div>
     );
@@ -153,7 +152,10 @@ function Router() {
     <Switch>
       {/* Public routes - Landing and Registration */}
       <Route path="/welcome" component={LandingPage} />
-      <Route path="/register" component={RegisterPage} />
+      {/* L'inscription en libre service est fermée : elle plaçait tous les
+          nouveaux venus dans le même espace de travail. On redirige les anciens
+          liens et signets vers la connexion, qui explique comment obtenir un accès. */}
+      <Route path="/register">{() => <Redirect to="/login" />}</Route>
       <Route path="/login" component={LoginPage} />
       <Route path="/first-login-password-change" component={FirstLoginPasswordChange} />
       <Route path="/change-credentials">

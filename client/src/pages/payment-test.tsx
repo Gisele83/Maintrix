@@ -175,7 +175,7 @@ export default function PaymentTest() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-violet-50 p-8">
+    <div className="min-h-screen bg-paper-deep p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <Link href="/">
@@ -192,10 +192,10 @@ export default function PaymentTest() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="border-2 border-violet-200 bg-white/80 backdrop-blur">
+          <Card className="border-2 border-rule bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <SiStripe className="w-8 h-8 text-violet-600" />
+                <SiStripe className="w-8 h-8 text-signal-deep" />
                 Stripe
               </CardTitle>
               <CardDescription>Paiements par carte bancaire</CardDescription>
@@ -242,7 +242,7 @@ export default function PaymentTest() {
                 <Button 
                   onClick={testStripePayment} 
                   disabled={loading !== null}
-                  className="flex-1 bg-violet-600 hover:bg-violet-700"
+                  className="flex-1 bg-signal-deep hover:bg-signal-deep"
                 >
                   {loading === "stripe-payment" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Tester Paiement
@@ -251,7 +251,7 @@ export default function PaymentTest() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-blue-200 bg-white/80 backdrop-blur">
+          <Card className="border-2 border-blue-200 bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
                 <SiPaypal className="w-8 h-8 text-blue-600" />
@@ -311,22 +311,22 @@ export default function PaymentTest() {
           </Card>
         </div>
 
-        <Card className="mt-6 bg-white/80 backdrop-blur" data-testid="payment-summary">
+        <Card className="mt-6 bg-white" data-testid="payment-summary">
           <CardHeader>
             <CardTitle>Résumé des Tests</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-4 bg-violet-50 rounded-lg">
-                <SiStripe className="w-6 h-6 text-violet-600" />
+              <div className="flex items-center gap-3 p-4 bg-paper-deep rounded-lg">
+                <SiStripe className="w-6 h-6 text-signal-deep" />
                 <div>
                   <p className="font-medium">Stripe</p>
                   <p className="text-sm text-gray-600">
                     {status.stripe.configured && status.stripe.tested 
-                      ? "✅ Entièrement fonctionnel" 
+                      ? "Entièrement fonctionnel"
                       : status.stripe.configured 
-                        ? "⚠️ Config OK, paiement non testé"
-                        : "❌ Non configuré"}
+                        ? "Config OK, paiement non testé"
+                        : "Non configuré"}
                   </p>
                 </div>
               </div>
@@ -336,10 +336,10 @@ export default function PaymentTest() {
                   <p className="font-medium">PayPal</p>
                   <p className="text-sm text-gray-600">
                     {status.paypal.configured && status.paypal.tested 
-                      ? "✅ Entièrement fonctionnel" 
+                      ? "Entièrement fonctionnel"
                       : status.paypal.configured 
-                        ? "⚠️ Config OK, commande non testée"
-                        : "❌ Non configuré"}
+                        ? "Config OK, commande non testée"
+                        : "Non configuré"}
                   </p>
                 </div>
               </div>

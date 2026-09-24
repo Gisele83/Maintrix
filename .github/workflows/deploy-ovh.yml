@@ -1,0 +1,113 @@
+name: Déploiement OVH — procédure sécurisée
+
+# Déploie sur l'instance OVHcloud UNIQUEMENT un commit de main validé par la CI,
+# et UNIQUEMENT via scripts/deploy-ovh.sh :
+#   sauvegarde chiffrée → restauration vérifiée dans une base isolée →
+#   mise à jour → porte d'ouverture, avec interruption automatique et retour à
+#   l'image précédente au premier échec.
+#
+# Aucune commande de déploiement n'est écrite ici : la CI passe par exactement
+# la même procédure que l'exploitant, sans raccourci.
+#
+# CONFIGURATION (Settings → Secrets and variables → Actions)
+#   secrets  OVH_SSH_CLE_PRIVEE     clé privée SSH dédiée au déploiement
+#            OVH_SSH_HOTES_CONNUS   sortie de `ssh-keyscan <ip>` vérifiée à la main
+#   vars     OVH_HOTE               IP ou nom du serveur
+#            OVH_UTILISATEUR        défaut : ubuntu
+#            OVH_DOSSIER            défaut : /opt/maintrix-git
+#            DEPLOIEMENT_DOMAINE    ex. maintrix-test.techlearn-saem.com
+#            DEPLOIEMENT_COURRIEL   ex. contact@techlearn-saem.com
+#
+# Recommandé : protéger l'environnement GitHub « test-en-ligne » par une
+# validation manuelle (Settings → Environments → Required reviewers).
+
+on:
+  workflow_run:
+    workflows: ["CI - Build & Test"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# Jamais deux déploiements en parallèle, et un déploiement lancé va à son terme :
+# l'interrompre au milieu laisserait une mise à jour à moitié faite.
+concurrency:
+  group: deploiement-ovh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  configuration:
+    name: Déploiement configuré ?
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    outputs:
+      pret: ${{ steps.verif.outputs.pret }}
+    steps:
+      - id: verif
+        env:
+          CLE: ${{ secrets.OVH_SSH_CLE_PRIVEE }}
+          HOTES: ${{ secrets.OVH_SSH_HOTES_CONNUS }}
+          HOTE: ${{ vars.OVH_HOTE }}
+          DOMAINE: ${{ vars.DEPLOIEMENT_DOMAINE }}
+          COURRIEL: ${{ vars.DEPLOIEMENT_COURRIEL }}
+        run: |
+          manque=""
+          [ -n "$CLE" ]      || manque="$manque OVH_SSH_CLE_PRIVEE"
+          [ -n "$HOTES" ]    || manque="$manque OVH_SSH_HOTES_CONNUS"
+          [ -n "$HOTE" ]     || manque="$manque OVH_HOTE"
+          [ -n "$DOMAINE" ]  || manque="$manque DEPLOIEMENT_DOMAINE"
+          [ -n "$COURRIEL" ] || manque="$manque DEPLOIEMENT_COURRIEL"
+          if [ -n "$manque" ]; then
+            echo "pret=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Déploiement automatique NON configuré — manque :$manque"
+          else
+            echo "pret=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deployer:
+    name: Déployer le commit validé
+    needs: configuration
+    if: needs.configuration.outputs.pret == 'true'
+    runs-on: ubuntu-latest
+    environment: test-en-ligne
+    timeout-minutes: 60
+    env:
+      COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Récupérer le commit validé
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Déployer via la procédure sécurisée
+        env:
+          CLE: ${{ secrets.OVH_SSH_CLE_PRIVEE }}
+          HOTES: ${{ secrets.OVH_SSH_HOTES_CONNUS }}
+          HOTE: ${{ vars.OVH_HOTE }}
+          UTILISATEUR: ${{ vars.OVH_UTILISATEUR || 'ubuntu' }}
+          DOSSIER: ${{ vars.OVH_DOSSIER || '/opt/maintrix-git' }}
+          DOMAINE: ${{ vars.DEPLOIEMENT_DOMAINE }}
+          COURRIEL: ${{ vars.DEPLOIEMENT_COURRIEL }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CLE" > ~/.ssh/deploiement
+          chmod 600 ~/.ssh/deploiement
+          # Empreinte du serveur fournie par un secret vérifié à la main : pas
+          # de `ssh-keyscan` à la volée, qui ferait confiance au premier venu.
+          printf '%s\n' "$HOTES" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploiement \
+              -o StrictHostKeyChecking=yes -o BatchMode=yes -o ServerAliveInterval=30 \
+              "$UTILISATEUR@$HOTE" \
+              "COMMIT='$COMMIT' DOMAINE='$DOMAINE' COURRIEL='$COURRIEL' DOSSIER='$DOSSIER' bash -s" \
+              < scripts/deploiement-distant.sh
+
+      - name: Effacer la clé du runner
+        if: always()
+        run: rm -f ~/.ssh/deploiement

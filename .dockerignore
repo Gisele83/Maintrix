@@ -1,0 +1,32 @@
+# Contexte de construction Docker.
+#
+# ⚠️ node_modules DOIT être exclu. Sans ce fichier, `COPY . .` (Dockerfile,
+# étape build) recopiait les dépendances de l'HÔTE par-dessus celles installées
+# dans l'image : sous Windows, ou sous Linux glibc, le moteur natif de rollup
+# pour Alpine (@rollup/rollup-linux-x64-musl) était écrasé et `npm run build`
+# échouait. Constaté le 2026-09-15 ; deploy-ovh.sh exécute `npm ci` sur l'hôte
+# (drizzle-kit), le serveur aurait donc été touché au déploiement suivant.
+node_modules
+**/node_modules
+dist
+
+# Secrets, certificats, sauvegardes : rien de tout cela n'a à entrer dans une
+# image, même intermédiaire.
+.env
+.env.*
+!.env.example
+!.env.docker.example
+ssl
+certbot-webroot
+*.gpg
+*.dump
+
+# Données et bruit local
+uploads
+logs
+*.log
+.git
+.github
+coverage
+playwright-report
+test-results

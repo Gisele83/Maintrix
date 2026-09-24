@@ -304,7 +304,7 @@ export function CaseReporting() {
                 <div className="mt-2 space-y-1">
                   {selectedFiles.map((file, index) => (
                     <p key={index} className="text-sm text-carbon-gray-70">
-                      📎 {file.name} ({Math.round(file.size / 1024)} KB)
+                      {file.name} ({Math.round(file.size / 1024)} KB)
                     </p>
                   ))}
                 </div>

@@ -47,7 +47,7 @@ const ACTION_COLOR: Record<string, string> = {
   overhaul: "bg-red-500/20 text-red-300",
 };
 const ACTION_ICON: Record<string, string> = {
-  none: "—", inspection: "🔍", preventive: "🔧", corrective: "⚙️", overhaul: "🏭",
+  none: "—", inspection: "", preventive: "", corrective: "", overhaul: "",
 };
 const SCORE_COLOR = (s: number) =>
   s >= 75 ? "text-emerald-400" : s >= 55 ? "text-yellow-400" : s >= 35 ? "text-orange-400" : "text-red-400";
@@ -193,16 +193,16 @@ export default function MultiAssetOptimizerPage() {
   const activeResult = fleetData?.[activeTab === "pareto" ? "optimal" : activeTab];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-500/10 via-slate-800/40 to-indigo-500/10 p-6">
+        <div className="rounded-2xl border border-rule/30 bg-paper-deep p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center">
-                <Target className="w-6 h-6 text-violet-400" />
+              <div className="w-12 h-12 rounded-xl bg-signal-deep/20 border border-rule/40 flex items-center justify-center">
+                <Target className="w-6 h-6 text-signal-light" />
               </div>
               <div>
                 <h1 className="text-2xl font-black text-white">Optimiseur Multi-Actifs</h1>
@@ -214,7 +214,7 @@ export default function MultiAssetOptimizerPage() {
             <Button
               onClick={() => refetch()}
               disabled={isLoading}
-              className="bg-violet-600/80 hover:bg-violet-600 text-white gap-2"
+              className="bg-signal-deep/80 hover:bg-signal-deep text-white gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               Recalculer
@@ -308,7 +308,7 @@ export default function MultiAssetOptimizerPage() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   activeTab === id
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/20"
+                    ? "bg-signal-deep text-white"
                     : "bg-slate-800/60 text-slate-400 hover:text-white border border-slate-700/50"
                 }`}
               >
@@ -319,7 +319,7 @@ export default function MultiAssetOptimizerPage() {
 
           {isLoading ? (
             <div className="flex items-center justify-center h-40 rounded-xl border border-slate-700 bg-slate-800/30">
-              <RefreshCw className="w-6 h-6 text-violet-400 animate-spin" />
+              <RefreshCw className="w-6 h-6 text-signal-light animate-spin" />
               <span className="ml-3 text-slate-400">Optimisation en cours…</span>
             </div>
           ) : !fleetData ? (
@@ -328,7 +328,7 @@ export default function MultiAssetOptimizerPage() {
             </div>
           ) : activeTab === "pareto" ? (
             /* ── Pareto tab ──────────────────────────────────────────────── */
-            <div className="rounded-2xl border border-violet-500/20 bg-slate-800/30 p-6 space-y-6">
+            <div className="rounded-2xl border border-rule/20 bg-slate-800/30 p-6 space-y-6">
               <div>
                 <h3 className="text-sm font-semibold text-slate-300 mb-1">Front de Pareto — Efficacité marginale des investissements</h3>
                 <p className="text-xs text-slate-500">
@@ -364,7 +364,7 @@ export default function MultiAssetOptimizerPage() {
 
               {/* Comparison summary */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-700/40 pt-4">
-                <SummaryBar result={fleetData.optimal} label="DP-MCKP (Optimal)" color="border-violet-500/30 bg-violet-500/5" />
+                <SummaryBar result={fleetData.optimal} label="DP-MCKP (Optimal)" color="border-rule bg-signal-deep" />
                 <SummaryBar result={fleetData.greedy} label="Greedy ROI" color="border-amber-500/30 bg-amber-500/5" />
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function MultiAssetOptimizerPage() {
               <SummaryBar
                 result={activeResult}
                 label={activeTab === "optimal" ? "DP-MCKP — Solution optimale exacte" : "Greedy ROI — Heuristique rapide"}
-                color={activeTab === "optimal" ? "border-violet-500/30 bg-violet-500/5" : "border-amber-500/30 bg-amber-500/5"}
+                color={activeTab === "optimal" ? "border-rule bg-signal-deep" : "border-amber-500/30 bg-amber-500/5"}
               />
 
               {/* Explanation */}

@@ -245,7 +245,7 @@ export default function SupportChatbot() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -256,7 +256,7 @@ export default function SupportChatbot() {
               <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-ink">
                 Assistant Technique
               </h1>
               <p className="text-muted-foreground">

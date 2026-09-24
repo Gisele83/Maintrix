@@ -102,8 +102,8 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             {isRecommended && (
-              <span className="text-[10px] bg-violet-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                ✓ Recommandé
+              <span className="text-[10px] bg-signal-deep text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                Recommandé
               </span>
             )}
           </div>
@@ -217,7 +217,7 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
 
 // ─── Comparison matrix ────────────────────────────────────────────────────────
 function ComparisonTable({ data }: { data: SimResult }) {
-  const medals = ["🥇", "🥈", "🥉"];
+  const medals = ["", "", ""];
   const scenarioLabel: Record<ScenarioType, string> = {
     IMMEDIATE: "Immédiat", DEFERRED: "Différé", NO_INTERVENTION: "Non-intervention",
   };
@@ -231,7 +231,7 @@ function ComparisonTable({ data }: { data: SimResult }) {
     <div className="rounded-2xl border border-slate-700 bg-slate-800/30 overflow-hidden">
       <div className="p-4 border-b border-slate-700/50">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-violet-400" />
+          <BarChart3 className="w-4 h-4 text-signal-light" />
           <span className="text-sm font-bold text-white">Matrice de comparaison</span>
         </div>
       </div>
@@ -319,7 +319,7 @@ export default function ProspectiveSimulationPage() {
   const UrgIcon = urgCfg?.icon ?? Activity;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12">
 

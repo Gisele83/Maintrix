@@ -49,7 +49,7 @@ export default function FirstLoginPasswordChange() {
   }, [setLocation]);
   
   if (!firstLoginData) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">Chargement...</div>;
+    return <div className="min-h-screen bg-paper-deep flex items-center justify-center">Chargement...</div>;
   }
 
   // Validation du mot de passe
@@ -124,7 +124,7 @@ export default function FirstLoginPasswordChange() {
         localStorage.removeItem('firstLoginData');
 
         toast({
-          title: "✅ Mot de passe changé",
+          title: "Mot de passe changé",
           description: "Bienvenue sur Maintrix ! Votre compte est maintenant sécurisé.",
         });
 
@@ -152,14 +152,14 @@ export default function FirstLoginPasswordChange() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/5 backdrop-blur-xl border-white/10">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white/5 border-white/10">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-600 to-red-600 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-ink" />
           </div>
           <CardTitle className="text-2xl font-bold text-white">
-            🔐 Première connexion
+            Première connexion
           </CardTitle>
           <CardDescription className="text-gray-400">
             Vous devez changer votre mot de passe par défaut pour accéder à la plateforme
@@ -191,7 +191,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.current ? "text" : "password"}
                   value={formData.currentPassword}
                   onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
-                  className="bg-white/10 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Mot de passe reçu du super-admin"
                   required
                 />
@@ -218,7 +218,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.new ? "text" : "password"}
                   value={formData.newPassword}
                   onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                  className="bg-white/10 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Choisissez un mot de passe sécurisé"
                   required
                 />
@@ -266,7 +266,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.confirm ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  className="bg-white/10 border-gray-600 text-white placeholder-gray-400 pr-10"
+                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
                   placeholder="Tapez à nouveau votre mot de passe"
                   required
                 />
@@ -290,9 +290,9 @@ export default function FirstLoginPasswordChange() {
             <Button
               type="submit"
               disabled={isLoading || !isPasswordValid || !passwordsMatch}
-              className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50"
+              className="w-full bg-paper-deep disabled:opacity-50"
             >
-              {isLoading ? "Changement en cours..." : "🔐 Changer mon mot de passe"}
+              {isLoading ? "Changement en cours..." : "Changer mon mot de passe"}
             </Button>
           </form>
 

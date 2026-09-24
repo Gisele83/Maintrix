@@ -7,6 +7,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
 import { 
   erpSystems, 
   scadaConnections, 
@@ -41,7 +42,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Get all ERP systems for tenant
   app.get("/api/erp-systems", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       const systems = await db
         .select()
@@ -59,7 +61,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Create new ERP system connection
   app.post("/api/erp-systems", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const validatedData = insertERPSystemSchema.parse({
         ...req.body,
         tenantId
@@ -145,7 +148,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Get all SCADA connections
   app.get("/api/scada-connections", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       const connections = await db
         .select()
@@ -163,7 +167,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Create new SCADA connection
   app.post("/api/scada-connections", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const validatedData = insertSCADAConnectionSchema.parse({
         ...req.body,
         tenantId
@@ -209,7 +214,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Get all AI models
   app.get("/api/ai-models", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       const models = await db
         .select()
@@ -227,7 +233,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Create new AI model
   app.post("/api/ai-models", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const validatedData = insertAIModelSchema.parse({
         ...req.body,
         tenantId
@@ -356,7 +363,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Get all Power BI workspaces
   app.get("/api/power-bi/workspaces", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       const workspaces = await db
         .select()
@@ -374,7 +382,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Create Power BI workspace connection
   app.post("/api/power-bi/workspaces", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const validatedData = insertPowerBiWorkspaceSchema.parse({
         ...req.body,
         tenantId
@@ -490,7 +499,8 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Get integration logs
   app.get("/api/integration-logs", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { limit = 50, sourceSystem, entityType, status } = req.query;
       
       let whereConditions = [eq(dataIntegrationLogs.tenantId, tenantId)];

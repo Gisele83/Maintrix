@@ -49,9 +49,9 @@ const MODULE_CONFIG = [
     id: "c",
     title: "Modelisation causale dynamique",
     icon: GitBranch,
-    color: "bg-violet-500",
-    bgColor: "bg-violet-50 border-violet-200",
-    textColor: "text-violet-700",
+    color: "bg-signal-deep",
+    bgColor: "bg-paper-deep border-rule",
+    textColor: "text-signal-deep",
     description: "Graphe de connaissances industriel avec 5 types de noeuds, 7 types de relations ponderees, raisonnement par parcours de graphe et prediction de cascades",
     metrics: ["Noeuds", "Relations", "Confiance moyenne"]
   },
@@ -89,8 +89,8 @@ const COOPERATIVE_OBJECTIVES = [
     icon: Workflow,
     title: "Reduire les defaillances en cascade",
     description: "Raisonnement causal predictif identifiant les effets en cascade avec probabilite cumulative, permettant des interventions preventives ciblees",
-    color: "text-violet-600",
-    bgColor: "bg-violet-50 border-violet-200"
+    color: "text-signal-deep",
+    bgColor: "bg-paper-deep border-rule"
   },
   {
     icon: Activity,
@@ -159,7 +159,7 @@ export default function CognitiveInfrastructure() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Brain className="w-16 h-16 text-violet-500 animate-pulse mx-auto mb-4" />
+          <Brain className="w-16 h-16 text-signal-deep animate-pulse mx-auto mb-4" />
           <h2 className="text-xl font-semibold">Chargement du systeme de supervision...</h2>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function CognitiveInfrastructure() {
   const kgStats = knowledgeGraph?.stats;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -183,7 +183,7 @@ export default function CognitiveInfrastructure() {
             <Badge className={`${kernelStatus?.isRunning ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-100 text-red-700 border border-red-200'} text-sm px-3 py-1`}>
               {kernelStatus?.isRunning ? "SYSTEME ACTIF" : "SYSTEME INACTIF"}
             </Badge>
-            <Badge className="bg-violet-100 text-violet-700 border border-violet-200 text-sm px-3 py-1">
+            <Badge className="bg-paper-deep text-signal-deep border border-rule text-sm px-3 py-1">
               <Gauge className="w-4 h-4 mr-1 inline" />
               Autonomie: {AUTONOMY_LABELS[kernelStatus?.autonomyLevel || 0]?.name}
             </Badge>
@@ -193,7 +193,7 @@ export default function CognitiveInfrastructure() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <MetricCard icon={<Radio className="w-5 h-5 text-blue-600" />} label="Capteurs actifs" value={kernelStatus?.agents?.active || 0} />
           <MetricCard icon={<Network className="w-5 h-5 text-sky-600" />} label="Noeuds causaux" value={kernelStatus?.knowledgeGraph?.nodes || 0} />
-          <MetricCard icon={<GitBranch className="w-5 h-5 text-violet-600" />} label="Relations causales" value={kernelStatus?.knowledgeGraph?.edges || 0} />
+          <MetricCard icon={<GitBranch className="w-5 h-5 text-signal-deep" />} label="Relations causales" value={kernelStatus?.knowledgeGraph?.edges || 0} />
           <MetricCard icon={<Shield className="w-5 h-5 text-emerald-600" />} label="Politiques" value={kernelStatus?.policyCount || 0} />
           <MetricCard icon={<Activity className="w-5 h-5 text-amber-600" />} label="Decisions auditees" value={kernelStatus?.decisionAuditCount || 0} />
           <MetricCard icon={<RefreshCw className="w-5 h-5 text-rose-600" />} label="Adaptations" value={kernelStatus?.modelCount || 0} />
@@ -201,18 +201,18 @@ export default function CognitiveInfrastructure() {
 
         <Tabs defaultValue="modules" className="space-y-4">
           <TabsList className="bg-white border border-slate-200 shadow-sm">
-            <TabsTrigger value="modules" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">5 Modules</TabsTrigger>
-            <TabsTrigger value="objectives" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">3 Objectifs</TabsTrigger>
-            <TabsTrigger value="agents" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">Agents</TabsTrigger>
-            <TabsTrigger value="autonomy" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">Autonomie</TabsTrigger>
-            <TabsTrigger value="knowledge" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">Modele Causal</TabsTrigger>
-            <TabsTrigger value="reasoning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">Raisonnement</TabsTrigger>
-            <TabsTrigger value="governance" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">Gouvernance</TabsTrigger>
+            <TabsTrigger value="modules" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">5 Modules</TabsTrigger>
+            <TabsTrigger value="objectives" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">3 Objectifs</TabsTrigger>
+            <TabsTrigger value="agents" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">Agents</TabsTrigger>
+            <TabsTrigger value="autonomy" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">Autonomie</TabsTrigger>
+            <TabsTrigger value="knowledge" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">Modele Causal</TabsTrigger>
+            <TabsTrigger value="reasoning" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">Raisonnement</TabsTrigger>
+            <TabsTrigger value="governance" className="data-[state=active]:bg-signal-deep data-[state=active]:text-white">Gouvernance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="modules" className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-violet-600" /> Architecture a 5 modules cooperatifs
+              <Cpu className="w-5 h-5 text-signal-deep" /> Architecture a 5 modules cooperatifs
             </h2>
             <p className="text-sm text-slate-500">Chaque module du systeme de supervision et controle adaptatif est operationnel et interconnecte.</p>
 
@@ -234,7 +234,7 @@ export default function CognitiveInfrastructure() {
                         <p className="text-sm text-slate-600 mt-0.5">{mod.description}</p>
                         <div className="flex gap-2 mt-2 flex-wrap">
                           {mod.metrics.map((m, i) => (
-                            <Badge key={i} className="bg-white/80 text-slate-600 border border-slate-200 text-xs">{m}</Badge>
+                            <Badge key={i} className="bg-white text-slate-600 border border-slate-200 text-xs">{m}</Badge>
                           ))}
                         </div>
                       </div>
@@ -254,10 +254,10 @@ export default function CognitiveInfrastructure() {
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   {['Detection', 'Diagnostic', 'Decision', 'Action', 'Retroaction', 'Apprentissage'].map((phase, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="px-3 py-2 rounded-lg bg-violet-50 border border-violet-200 text-sm font-medium text-violet-700">
+                      <div className="px-3 py-2 rounded-lg bg-paper-deep border border-rule text-sm font-medium text-signal-deep">
                         {phase}
                       </div>
-                      {i < 5 && <ChevronRight className="w-4 h-4 text-violet-400" />}
+                      {i < 5 && <ChevronRight className="w-4 h-4 text-signal-light" />}
                     </div>
                   ))}
                 </div>
@@ -317,13 +317,13 @@ export default function CognitiveInfrastructure() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-violet-50 border border-violet-200 shadow-sm">
+              <Card className="bg-paper-deep border border-rule shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Globe className="w-4 h-4 text-violet-600" /> Agent Global</CardTitle>
+                  <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Globe className="w-4 h-4 text-signal-deep" /> Agent Global</CardTitle>
                   <CardDescription className="text-slate-500">Apprentissage federe inter-sites</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-violet-600">{kernelStatus?.agents?.byType?.global || 0}</div>
+                  <div className="text-3xl font-bold text-signal-deep">{kernelStatus?.agents?.byType?.global || 0}</div>
                   <p className="text-sm text-slate-500 mt-1">Diffusion patterns globaux</p>
                 </CardContent>
               </Card>
@@ -341,7 +341,7 @@ export default function CognitiveInfrastructure() {
                         <div className="flex items-center gap-2">
                           {agent.agentType === 'equipment' ? <Cpu className="w-4 h-4 text-blue-600" /> :
                            agent.agentType === 'site' ? <Network className="w-4 h-4 text-sky-600" /> :
-                           <Globe className="w-4 h-4 text-violet-600" />}
+                           <Globe className="w-4 h-4 text-signal-deep" />}
                           <span className="text-sm font-mono text-slate-700">{agent.agentId}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -380,7 +380,7 @@ export default function CognitiveInfrastructure() {
                 const config = AUTONOMY_LABELS[level.level];
                 const isCurrent = level.level === kernelStatus?.autonomyLevel;
                 return (
-                  <Card key={level.level} className={`border transition-all shadow-sm ${isCurrent ? 'bg-violet-50 border-violet-300 ring-2 ring-violet-200' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
+                  <Card key={level.level} className={`border transition-all shadow-sm ${isCurrent ? 'bg-paper-deep border-rule ring-2 ring-signal' : 'bg-white border-slate-200 hover:border-slate-300'}`}>
                     <CardContent className="flex items-center gap-4 py-4">
                       <div className={`w-10 h-10 rounded-full ${config?.color || 'bg-gray-500'} flex items-center justify-center text-lg font-bold text-white`}>
                         {level.level}
@@ -390,7 +390,7 @@ export default function CognitiveInfrastructure() {
                         <div className="text-sm text-slate-500">{level.description}</div>
                       </div>
                       {isCurrent ? (
-                        <Badge className="bg-violet-600 text-white">ACTUEL</Badge>
+                        <Badge className="bg-signal-deep text-white">ACTUEL</Badge>
                       ) : (
                         <Button
                           size="sm"
@@ -444,7 +444,7 @@ export default function CognitiveInfrastructure() {
                         {Object.entries(kgStats.nodesByType || {}).map(([type, count]: [string, any]) => (
                           <div key={type} className="flex justify-between items-center p-2 bg-slate-50 rounded border border-slate-100">
                             <span className="text-sm text-slate-700 capitalize">{type}</span>
-                            <Badge className="bg-violet-100 text-violet-700 border border-violet-200">{count}</Badge>
+                            <Badge className="bg-paper-deep text-signal-deep border border-rule">{count}</Badge>
                           </div>
                         ))}
                       </div>
@@ -473,7 +473,7 @@ export default function CognitiveInfrastructure() {
                       {kgStats.mostConnectedNodes?.slice(0, 8).map((node: any, idx: number) => (
                         <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 rounded border border-slate-100">
                           <span className="text-sm text-slate-700">{node.label}</span>
-                          <span className="text-sm text-violet-600 font-mono">{node.connections} connexions</span>
+                          <span className="text-sm text-signal-deep font-mono">{node.connections} connexions</span>
                         </div>
                       ))}
                     </div>
@@ -484,7 +484,7 @@ export default function CognitiveInfrastructure() {
           </TabsContent>
 
           <TabsContent value="reasoning" className="space-y-4">
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Brain className="w-5 h-5 text-violet-600" /> Raisonnement causal & Simulation</h2>
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Brain className="w-5 h-5 text-signal-deep" /> Raisonnement causal & Simulation</h2>
             <p className="text-sm text-slate-500">Interrogez le module de modelisation causale (c) avec des symptomes ou simulez des conditions hypothetiques.</p>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -503,7 +503,7 @@ export default function CognitiveInfrastructure() {
                   <Button
                     onClick={() => reasoningMutation.mutate()}
                     disabled={reasoningMutation.isPending}
-                    className="bg-violet-600 hover:bg-violet-700 w-full text-white"
+                    className="bg-signal-deep hover:bg-signal-deep w-full text-white"
                   >
                     {reasoningMutation.isPending ? "Analyse causale..." : "Lancer le raisonnement causal"}
                   </Button>
@@ -511,7 +511,7 @@ export default function CognitiveInfrastructure() {
                   {reasoningMutation.data && (
                     <div className="mt-4 space-y-3">
                       {(reasoningMutation.data as any).diagnosis?.map((d: any, i: number) => (
-                        <div key={i} className="p-3 bg-slate-50 rounded border-l-4 border-violet-500">
+                        <div key={i} className="p-3 bg-slate-50 rounded border-l-4 border-rule">
                           <div className="flex justify-between">
                             <span className="font-semibold text-slate-800">{d.cause}</span>
                             <Badge className={d.confidence > 0.7 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}>{(d.confidence * 100).toFixed(0)}%</Badge>

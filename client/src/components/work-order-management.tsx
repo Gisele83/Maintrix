@@ -345,7 +345,7 @@ export function WorkOrderManagement() {
       {/* Work Orders Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredWorkOrders.map((wo) => (
-          <Card key={wo.id} className="hover:shadow-lg transition-shadow">
+          <Card key={wo.id} className="transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2">

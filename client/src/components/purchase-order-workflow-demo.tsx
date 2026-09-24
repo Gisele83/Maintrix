@@ -31,7 +31,7 @@ const WORKFLOW_STEPS = [
     title: "Validation Niveau 2",
     description: "Validation finale et vérification des documents justificatifs",
     icon: Crown,
-    color: "bg-purple-500",
+    color: "bg-signal-deep",
     status: "waiting"
   },
   {

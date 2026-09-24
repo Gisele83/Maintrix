@@ -188,19 +188,19 @@ export default function HabilitationPage() {
   const habTypes = [...new Set(habs.map(h => h.habilitationType))].sort();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg">
-              <UserCheck className="h-6 w-6 text-white" />
+            <div className="p-2.5 rounded-xl bg-paper-deep">
+              <UserCheck className="h-6 w-6 text-ink" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Habilitations Techniciens</h1>
+            <h1 className="text-3xl font-bold text-ink">Habilitations Techniciens</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Certifications, qualifications et compétences réglementaires</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle habilitation
         </Button>
       </div>
@@ -208,14 +208,14 @@ export default function HabilitationPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Habilitations", value: stats?.total ?? 0, icon: Award, color: "from-indigo-500 to-purple-600" },
+          { label: "Habilitations", value: stats?.total ?? 0, icon: Award, color: "from-indigo-500 " },
           { label: "Techniciens", value: stats?.totalTechnicians ?? 0, icon: UserCheck, color: "from-blue-500 to-indigo-600" },
           { label: "Expirent ≤ 30j", value: stats?.expiring30d ?? 0, icon: Clock, color: "from-yellow-500 to-orange-500" },
           { label: "Expirées", value: stats?.expiredCount ?? 0, icon: XCircle, color: "from-red-500 to-rose-600" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -274,7 +274,7 @@ export default function HabilitationPage() {
         <div className="text-center py-16">
           <UserCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune habilitation enregistrée</h3>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white gap-2 mt-4">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Créer la première habilitation
           </Button>
         </div>
@@ -291,7 +291,7 @@ export default function HabilitationPage() {
                   <h3 className="font-semibold text-slate-800">{tech}</h3>
                   {techHabs[0]?.department && <Badge variant="outline" className="text-xs">{techHabs[0].department}</Badge>}
                   <span className="text-xs text-slate-500 ml-auto">{techHabs.length} habilitation{techHabs.length > 1 ? "s" : ""}</span>
-                  {expired > 0 && <Badge className="bg-red-100 text-red-700 text-xs">⚠️ {expired} expirée{expired > 1 ? "s" : ""}</Badge>}
+                  {expired > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{expired} expirée{expired > 1 ? "s" : ""}</Badge>}
                   {expiring > 0 && <Badge className="bg-yellow-100 text-yellow-700 text-xs">⏰ {expiring} bientôt</Badge>}
                 </div>
                 <div className="divide-y">
@@ -339,12 +339,12 @@ export default function HabilitationPage() {
                       </div>
                       <h3 className="font-semibold text-slate-800">{h.title}</h3>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap text-xs text-slate-500">
-                        <span className="font-medium text-slate-700">👤 {h.technicianName}</span>
-                        {h.department && <span>🏢 {h.department}</span>}
+                        <span className="font-medium text-slate-700">{h.technicianName}</span>
+                        {h.department && <span>{h.department}</span>}
                         <Badge variant="outline" className="text-xs">{h.habilitationType}</Badge>
                         {h.level && <Badge className="bg-indigo-100 text-indigo-700 text-xs">{h.level}</Badge>}
-                        {h.issuingBody && <span>🏛️ {h.issuingBody}</span>}
-                        {h.certificateNumber && <span>📋 {h.certificateNumber}</span>}
+                        {h.issuingBody && <span>{h.issuingBody}</span>}
+                        {h.certificateNumber && <span>{h.certificateNumber}</span>}
                       </div>
                       <div className="mt-1.5 flex items-center gap-4 flex-wrap text-xs">
                         <span>Délivré: {new Date(h.issueDate).toLocaleDateString("fr-FR")}</span>
@@ -447,7 +447,7 @@ export default function HabilitationPage() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer
                 </Button>
               </DialogFooter>
@@ -465,7 +465,7 @@ export default function HabilitationPage() {
                 <Award className={`h-6 w-6 mt-0.5 ${selected.computedStatus === "expired" ? "text-red-600" : selected.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-indigo-600"}`} />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
-                  <p className="text-sm text-slate-600 mt-0.5">👤 {selected.technicianName}{selected.department ? ` · ${selected.department}` : ""}</p>
+                  <p className="text-sm text-slate-600 mt-0.5">{selected.technicianName}{selected.department ? ` · ${selected.department}` : ""}</p>
                   <p className="text-xs text-slate-400 font-mono">{selected.habilitationNumber}</p>
                 </div>
                 <StatusBadge status={selected.computedStatus} />

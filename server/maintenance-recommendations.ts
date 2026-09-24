@@ -7,6 +7,7 @@
 import type { Express } from "express";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { storage } from "./storage";
+import { tenantRequis } from "./tenant-requis";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -364,7 +365,8 @@ export function registerRecommendationRoutes(app: Express) {
     EnterpriseAuthMiddleware.requireAuthentication,
     async (req: any, res) => {
       try {
-        const tenantId = req.user?.tenantId || "default-tenant";
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
         const result = await generateRecommendations(tenantId);
         res.json(result);
       } catch (err) {
@@ -380,7 +382,8 @@ export function registerRecommendationRoutes(app: Express) {
     EnterpriseAuthMiddleware.requireAuthentication,
     async (req: any, res) => {
       try {
-        const tenantId = req.user?.tenantId || "default-tenant";
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
         const equipmentId = parseInt(req.params.id);
         if (isNaN(equipmentId)) return res.status(400).json({ error: "Invalid equipment id" });
 
@@ -408,7 +411,8 @@ export function registerRecommendationRoutes(app: Express) {
           return res.status(400).json({ error: "equipmentId and title are required" });
         }
 
-        const tenantId = req.user?.tenantId || "default-tenant";
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
         const userId = req.user?.id;
 
         // Generate unique order number

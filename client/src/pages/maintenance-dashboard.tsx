@@ -447,17 +447,17 @@ export default function MaintenanceDashboard() {
             
             <h3 style="color: #F59E0B; margin-bottom: 10px;">Points d'Attention</h3>
             <ul>
-              ${metrics.overdueWorkOrders > 0 ? `<li>⚠️ ${metrics.overdueWorkOrders} ordres de travail en retard nécessitent une attention immédiate</li>` : ''}
-              ${metrics.criticalAlerts > 0 ? `<li>🚨 ${metrics.criticalAlerts} alertes critiques en cours</li>` : ''}
+              ${metrics.overdueWorkOrders > 0 ? `<li>${metrics.overdueWorkOrders} ordres de travail en retard nécessitent une attention immédiate</li>` : ''}
+              ${metrics.criticalAlerts > 0 ? `<li>${metrics.criticalAlerts} alertes critiques en cours</li>` : ''}
               <li>Surveiller l'évolution des coûts de pièces détachées (${maintenanceCosts[0]?.percentage}% du budget)</li>
             </ul>
 
             <h3 style="color: #10B981; margin-bottom: 10px;">Actions Recommandées</h3>
             <ul>
-              <li>✅ Maintenir le niveau de maintenance préventive</li>
-              <li>📊 Analyser les causes de pannes récurrentes pour optimiser les stocks</li>
-              <li>🎯 Former les équipes sur les nouvelles procédures d'intervention</li>
-              <li>📈 Étendre l'analyse prédictive aux équipements secondaires</li>
+              <li>Maintenir le niveau de maintenance préventive</li>
+              <li>Analyser les causes de pannes récurrentes pour optimiser les stocks</li>
+              <li>Former les équipes sur les nouvelles procédures d'intervention</li>
+              <li>Étendre l'analyse prédictive aux équipements secondaires</li>
             </ul>
           </div>
         </div>
@@ -473,22 +473,22 @@ export default function MaintenanceDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-3xl blur-3xl"></div>
-          <Card className="relative backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-2xl rounded-3xl">
+          <div className="absolute inset-0 bg-paper-deep rounded-3xl blur-3xl"></div>
+          <Card className="relative bg-white dark:bg-slate-900/80 border-0 rounded-3xl">
             <CardHeader className="text-center py-12">
               <div className="flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur-lg opacity-50"></div>
-                  <div className="relative bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-2xl">
-                    <Activity className="h-12 w-12 text-white" />
+                  <div className="absolute inset-0 bg-paper-deep rounded-2xl blur-lg opacity-50"></div>
+                  <div className="relative bg-paper-deep p-4 rounded-2xl">
+                    <Activity className="h-12 w-12 text-ink" />
                   </div>
                 </div>
               </div>
-              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+              <CardTitle className="text-4xl font-bold text-ink mb-4">
                 Tableau de Bord Maintenance
               </CardTitle>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -496,7 +496,7 @@ export default function MaintenanceDashboard() {
               </p>
               
               <div className="flex flex-wrap gap-3 justify-center mt-6">
-                <Button onClick={handleRefreshData} disabled={refreshing} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                <Button onClick={handleRefreshData} disabled={refreshing} className="bg-paper-deep">
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                   Actualiser
                 </Button>
@@ -521,7 +521,7 @@ export default function MaintenanceDashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -539,7 +539,7 @@ export default function MaintenanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -557,7 +557,7 @@ export default function MaintenanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -575,7 +575,7 @@ export default function MaintenanceDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -595,7 +595,7 @@ export default function MaintenanceDashboard() {
         </div>
 
         {/* Main Dashboard Content */}
-        <Card className="backdrop-blur-sm bg-white/80 dark:bg-slate-900/80 border-0 shadow-xl rounded-2xl">
+        <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
           <CardContent className="p-6">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
@@ -608,7 +608,7 @@ export default function MaintenanceDashboard() {
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Work Orders Overview */}
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Wrench className="h-5 w-5" />
@@ -643,7 +643,7 @@ export default function MaintenanceDashboard() {
                   </Card>
 
                   {/* Alerts & Health */}
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Zap className="h-5 w-5" />
@@ -680,7 +680,7 @@ export default function MaintenanceDashboard() {
                 </div>
 
                 {/* Work Order Trends */}
-                <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5" />
@@ -718,7 +718,7 @@ export default function MaintenanceDashboard() {
                   {equipmentStatus.map((equipment) => {
                     const statusConfig = getStatusBadge(equipment.status);
                     return (
-                      <Card key={equipment.id} className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                      <Card key={equipment.id} className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
@@ -761,7 +761,7 @@ export default function MaintenanceDashboard() {
 
               <TabsContent value="analytics" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle>Maintenance Préventive vs Corrective</CardTitle>
                     </CardHeader>
@@ -781,7 +781,7 @@ export default function MaintenanceDashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle>Fiabilité & Performance</CardTitle>
                     </CardHeader>
@@ -796,7 +796,7 @@ export default function MaintenanceDashboard() {
                       </div>
                       <div className="flex justify-between">
                         <span>OEE</span>
-                        <span className="font-semibold text-purple-600">{metrics.oee}%</span>
+                        <span className="font-semibold text-signal-deep">{metrics.oee}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Temps de réparation moyen</span>
@@ -809,7 +809,7 @@ export default function MaintenanceDashboard() {
 
               <TabsContent value="costs" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <DollarSign className="h-5 w-5" />
@@ -830,7 +830,7 @@ export default function MaintenanceDashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
                     <CardHeader>
                       <CardTitle>Répartition des Coûts</CardTitle>
                     </CardHeader>

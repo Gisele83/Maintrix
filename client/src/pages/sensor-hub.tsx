@@ -29,7 +29,7 @@ const sensorColors: Record<string, string> = {
   pressure: "from-green-500 to-emerald-500",
   humidity: "from-teal-500 to-cyan-500",
   current: "from-yellow-500 to-amber-500",
-  rpm: "from-purple-500 to-violet-500"
+  rpm: " "
 };
 
 const sensorLabels: Record<string, string> = {
@@ -54,7 +54,7 @@ export default function SensorHub() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
@@ -96,13 +96,13 @@ export default function SensorHub() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
-              <Radio className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+              <Radio className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Hub Capteurs IoT</h1>
@@ -120,12 +120,12 @@ export default function SensorHub() {
             { icon: Wifi, label: "En ligne", value: summary.online, color: "from-green-500 to-emerald-600" },
             { icon: WifiOff, label: "Hors ligne", value: summary.offline, color: "from-gray-500 to-slate-600" },
             { icon: AlertTriangle, label: "En alarme", value: summary.alarming, color: "from-red-500 to-rose-600" },
-            { icon: Database, label: "Protocoles", value: summary.protocols?.length || 0, color: "from-purple-500 to-violet-600" }
+            { icon: Database, label: "Protocoles", value: summary.protocols?.length || 0, color: " " }
           ].map((stat, i) => (
             <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-3 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon className="w-4 h-4 text-white" />
+                <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
+                  <stat.icon className="w-4 h-4 text-ink" />
                 </div>
                 <div>
                   <p className="text-lg font-bold text-white">{stat.value}</p>
@@ -169,8 +169,8 @@ export default function SensorHub() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colorGradient} flex items-center justify-center`}>
-                            <SensorIcon className="w-4 h-4 text-white" />
+                          <div className={`w-8 h-8 rounded-lg bg-paper-deep ${colorGradient} flex items-center justify-center`}>
+                            <SensorIcon className="w-4 h-4 text-ink" />
                           </div>
                           <div>
                             <p className="text-xs font-medium text-white">{sensorLabels[sensor.sensorType]}</p>
@@ -280,8 +280,8 @@ export default function SensorHub() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-                          <SensorIcon className="w-5 h-5 text-white" />
+                        <div className={`w-10 h-10 rounded-lg bg-paper-deep ${gradient} flex items-center justify-center`}>
+                          <SensorIcon className="w-5 h-5 text-ink" />
                         </div>
                         <div>
                           <p className="text-white font-medium">{stat.label}</p>

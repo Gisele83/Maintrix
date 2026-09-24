@@ -40,7 +40,7 @@ export default function SLAManagement() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
@@ -69,12 +69,12 @@ export default function SLAManagement() {
   }) || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-            <Timer className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <Timer className="w-6 h-6 text-ink" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">SLA Automatisés</h1>
@@ -89,11 +89,11 @@ export default function SLAManagement() {
             { icon: AlertTriangle, label: "À risque", value: summary.atRisk, color: "from-yellow-500 to-amber-600", sub: "Délai de réponse dépassé" },
             { icon: XCircle, label: "En dépassement", value: summary.breached, color: "from-red-500 to-rose-600", sub: "SLA non respectés" }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+            <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
-                    <stat.icon className="w-5 h-5 text-white" />
+                  <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="w-5 h-5 text-ink" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white">{stat.value}</p>

@@ -215,7 +215,7 @@ export default function Documentation() {
       title: "Introduction à Maintrix",
       description: "Découvrez les fonctionnalités principales en 5 minutes",
       duration: "5:30",
-      thumbnail: "🎬",
+      thumbnail: "",
       category: "Introduction"
     },
     {
@@ -223,7 +223,7 @@ export default function Documentation() {
       title: "Réaliser un diagnostic complet",
       description: "Démonstration pas-à-pas d'un diagnostic de moteur",
       duration: "12:45",
-      thumbnail: "🔧",
+      thumbnail: "",
       category: "Diagnostic"
     },
     {
@@ -231,7 +231,7 @@ export default function Documentation() {
       title: "Fonctionnalités IA avancées",
       description: "Exploitez toute la puissance de l'intelligence artificielle",
       duration: "18:20",
-      thumbnail: "🧠",
+      thumbnail: "",
       category: "IA/ML"
     },
     {
@@ -239,7 +239,7 @@ export default function Documentation() {
       title: "Importer vos données historiques",
       description: "Guide complet pour intégrer vos données d'entreprise",
       duration: "15:10",
-      thumbnail: "📊",
+      thumbnail: "",
       category: "Données"
     },
     {
@@ -247,7 +247,7 @@ export default function Documentation() {
       title: "Workflow de maintenance optimisé",
       description: "Organisez efficacement vos interventions",
       duration: "22:30",
-      thumbnail: "⚙️",
+      thumbnail: "",
       category: "Workflow"
     },
     {
@@ -255,7 +255,7 @@ export default function Documentation() {
       title: "Rapports et analyses",
       description: "Créez des rapports percutants pour votre direction",
       duration: "16:45",
-      thumbnail: "📈",
+      thumbnail: "",
       category: "Rapports"
     }
   ];
@@ -344,11 +344,11 @@ export default function Documentation() {
   const faqCategories = ["all", "Général", "IA/ML", "Sécurité", "Technique", "Équipements", "Formation", "Données", "Mobile", "Intégration", "ROI"];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-paper-deep from-background via-background to-muted">
       <ModernNavigation />
       
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">
+      <div className="bg-paper-deep from-primary/5 via-primary/10 to-primary/5 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center space-y-4">
             <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
@@ -405,7 +405,7 @@ export default function Documentation() {
               {filteredGuides.map((guide) => {
                 const IconComponent = guide.icon;
                 return (
-                  <Card key={guide.id} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                  <Card key={guide.id} className="border-0 transition-all duration-300 cursor-pointer">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
@@ -477,9 +477,9 @@ export default function Documentation() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVideos.map((video) => (
-                <Card key={video.id} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                <Card key={video.id} className="border-0 transition-all duration-300 cursor-pointer">
                   <CardContent className="p-6">
-                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 rounded-lg mb-4 flex items-center justify-center text-4xl">
+                    <div className="aspect-video bg-paper-deep from-primary/10 to-primary/20 rounded-lg mb-4 flex items-center justify-center text-4xl">
                       {video.thumbnail}
                     </div>
                     <div className="space-y-2">
@@ -558,7 +558,7 @@ export default function Documentation() {
           {/* Resources Tab */}
           <TabsContent value="resources" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="border-0 shadow-lg">
+              <Card className="border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="w-5 h-5 text-blue-600" />
@@ -610,7 +610,7 @@ export default function Documentation() {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg">
+              <Card className="border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Lightbulb className="w-5 h-5 text-yellow-600" />
@@ -679,7 +679,7 @@ export default function Documentation() {
             </div>
 
             {/* Quick Start Section */}
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+            <Card className="border-0 bg-paper-deep">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-green-800 dark:text-green-200">
                   <Play className="w-5 h-5" />
@@ -878,7 +878,7 @@ export default function Documentation() {
                   </div>
                   
                   {/* Placeholder vidéo simulé */}
-                  <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/20 rounded-lg flex items-center justify-center">
+                  <div className="aspect-video bg-paper-deep from-primary/10 to-primary/20 rounded-lg flex items-center justify-center">
                     <div className="text-center space-y-4">
                       <div className="text-6xl">{selectedVideo.thumbnail}</div>
                       <div>

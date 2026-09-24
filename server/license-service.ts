@@ -6,6 +6,15 @@ import { eq, count } from "drizzle-orm";
 export const TRIAL_DURATION_DAYS = 30;
 export const DEFAULT_GRACE_PERIOD_DAYS = 7;
 
+/**
+ * Nombre d'utilisateurs valant « sans limite ».
+ *
+ * Un locataire d'entreprise doit pouvoir créer les comptes de ses
+ * collaborateurs sans contrainte : c'est le cas par défaut. Une limite
+ * réelle n'existe que si le super-administrateur en fixe une explicitement.
+ */
+export const UTILISATEURS_SANS_LIMITE = 999999;
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 export interface LicenseInfo {
   type: string;
@@ -37,6 +46,15 @@ export interface LicenseStatus {
   licensedUsers: number;
   canOperate: boolean;             // true when trial/active/grace
   warningMessage: string | null;   // shown to user when near expiry
+  /**
+   * L'application des licences est-elle réellement armée ?
+   *
+   * Sans cette information, l'interface annonçait « interruption du service
+   * dans 7 jours » alors que rien ne peut interrompre quoi que ce soit :
+   * le contrôle est désactivé. Une alarme qui ne correspond à aucun risque
+   * finit par faire ignorer toutes les autres.
+   */
+  enforcement: boolean;
 }
 
 // ─── License Tiers ─────────────────────────────────────────────────────────
@@ -221,7 +239,15 @@ export class LicenseService {
     // Grace period check
     const gracePeriodEnd = t.gracePeriodEnd ? new Date(t.gracePeriodEnd) : null;
     const graceMsLeft = gracePeriodEnd ? gracePeriodEnd.getTime() - now.getTime() : 0;
-    const isGracePeriodActive = !!gracePeriodEnd && graceMsLeft > 0;
+    // ⚠️ Une période de grâce suit une EXPIRATION. Tant qu'un essai court ou
+    // qu'un abonnement est actif, il n'y a rien à « gracier ».
+    //
+    // Sans cette subordination, un locataire en essai affichait « Période de
+    // grâce — 7 jours avant interruption » : le statut calculé disait
+    // « trial », mais la bannière lisait `isGracePeriodActive` et annonçait
+    // une coupure imminente. Constaté en ligne le 2026-09-20.
+    const isGracePeriodActive =
+      !hasActiveSubscription && !isTrialActive && !!gracePeriodEnd && graceMsLeft > 0;
     const gracePeriodDaysRemaining = isGracePeriodActive ? Math.ceil(graceMsLeft / (24 * 60 * 60 * 1000)) : 0;
 
     // Determine effective status
@@ -271,20 +297,42 @@ export class LicenseService {
       licensedUsers: t.licensedUsers || 1,
       canOperate,
       warningMessage,
+      enforcement: this.licenceAppliquee(),
     };
   }
 
   // ── Record an online license check (resets grace period countdown) ─────
-  static async recordLicenseCheck(tenantId: string): Promise<void> {
+  /**
+   * Enregistre qu'un contrôle de licence a eu lieu.
+   *
+   * ═══════════════════════════════════════════════════════════════
+   * LA BOUCLE QUI FABRIQUAIT SA PROPRE ALERTE
+   * ═══════════════════════════════════════════════════════════════
+   * Cette méthode repoussait `gracePeriodEnd` à « maintenant + 7 jours » à
+   * CHAQUE appel. Or `/api/license/status` l'appelle à chaque lecture, et
+   * la bannière interroge cette route toutes les cinq minutes. Résultat :
+   *
+   *   la bannière lit le statut → la lecture ouvre une période de grâce de
+   *   7 jours → la bannière annonce « 7 jours avant interruption » → elle
+   *   relit cinq minutes plus tard → le compteur est remis à 7 jours…
+   *
+   * Le compteur ne descendait jamais, et remettre `grace_period_end` à NULL
+   * en base ne tenait pas cinq minutes. L'alerte était entièrement produite
+   * par le fait de la regarder.
+   *
+   * Consulter son statut n'ouvre donc plus rien : seule une expiration
+   * réelle ouvre une période de grâce, via `ouvrirPeriodeDeGrace`.
+   */
+  static async recordLicenseCheck(tenantId: string, ouvrirPeriodeDeGrace = false): Promise<void> {
     const now = new Date();
-    const gracePeriodDays = DEFAULT_GRACE_PERIOD_DAYS;
-    const gracePeriodEnd = new Date(now.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000);
-
-    await db.update(tenants).set({
+    const maj: Record<string, unknown> = {
       lastLicenseCheckAt: now,
-      gracePeriodEnd,
-      gracePeriodDays,
-    }).where(eq(tenants.id, tenantId));
+      gracePeriodDays: DEFAULT_GRACE_PERIOD_DAYS,
+    };
+    if (ouvrirPeriodeDeGrace) {
+      maj.gracePeriodEnd = new Date(now.getTime() + DEFAULT_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+    }
+    await db.update(tenants).set(maj).where(eq(tenants.id, tenantId));
   }
 
   // ── Activate a subscription (after payment) ────────────────────────────
@@ -413,7 +461,9 @@ export class LicenseService {
 
   // ── Generate license key (Format: SM + 13 digits) ─────────────────────
   static generateLicenseKey(tenantId: string, maxUsers: number): string {
-    const usersPadded = maxUsers.toString().padStart(4, "0");
+    // Le format de la clé réserve 4 chiffres au nombre d'utilisateurs :
+    // « sans limite » (999999) y entre comme 9999, sans allonger la clé.
+    const usersPadded = Math.min(maxUsers, 9999).toString().padStart(4, "0");
     const tenantHash = parseInt(tenantId.slice(-8), 16) % 1000000;
     const tenantPadded = tenantHash.toString().padStart(6, "0");
     const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
@@ -421,7 +471,25 @@ export class LicenseService {
   }
 
   // ── Enforce user limit ────────────────────────────────────────────────
+  /**
+   * L'application des licences est-elle activée ?
+   *
+   * MÊME interrupteur que license-enforcement-middleware.ts, pour que la
+   * licence soit active ou inactive D'UN SEUL BLOC. Avant cette mise au
+   * point, le blocage des appels API était désactivé par défaut mais la
+   * limite d'utilisateurs, elle, s'appliquait toujours : les testeurs
+   * recevaient « Nombre d'utilisateurs atteint pour votre licence » alors
+   * que la licence était censée être hors service.
+   */
+  static licenceAppliquee(): boolean {
+    return process.env.ENABLE_LICENSE_ENFORCEMENT === "true";
+  }
+
   static async enforceUserLimit(tenantId: string): Promise<void> {
+    // Licence hors service : aucune limite opposée. Le contrôle reste écrit,
+    // prêt à servir le jour où l'offre payante s'ouvre (voir docs/LICENCE.md).
+    if (!LicenseService.licenceAppliquee()) return;
+
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
     if (!tenant) { const e = new Error("Tenant introuvable"); (e as any).code = "TENANT_NOT_FOUND"; throw e; }
 

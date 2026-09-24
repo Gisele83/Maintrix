@@ -45,7 +45,7 @@ curl -s -X POST "$API/api/super-admin/tenants" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Testeur Untel","domain":"untel.test.local",
        "adminEmail":"untel@exemple.fr","adminFirstName":"Untel",
-       "adminLastName":"Testeur","maxUsers":3}'
+       "adminLastName":"Testeur"}'
 ```
 
 L'opération est **atomique** (F04) : tenant, administrateur, licence et
@@ -114,7 +114,32 @@ Auparavant, un tenant neuf n'avait ni abonnement, ni essai, ni période de
 grâce : `getLicenseStatus()` le classait **`expired`** et `canOperate` valait
 `false` dès la création.
 
-### ⚠️ Le contrôle de licence est actuellement INERTE
+### Aucune limite d'utilisateurs pour un locataire
+
+Un locataire créé sans `maxUsers` explicite reçoit un plafond « sans
+limite » : son propriétaire crée les comptes de son entreprise sans
+contrainte. Le super-administrateur peut toujours fixer un plafond en
+passant `"maxUsers": <n>`.
+
+⚠️ Le défaut était auparavant **1 utilisateur**. Le propriétaire comptant
+pour un, le quota était atteint dès la création du locataire : toute
+création de compte échouait sur « Nombre d'utilisateurs atteint pour votre
+licence ». La même erreur frappait les inscriptions publiques au-delà de
+cinq comptes, `default-tenant` ayant ce plafond. Constaté par des testeurs
+le 2026-09-17.
+
+### ⚠️ La licence est hors service, d'un seul bloc
+
+`ENABLE_LICENSE_ENFORCEMENT` gouverne DEUX choses, et vaut `false` par
+défaut :
+
+- le blocage des appels API (`licenseEnforcementMiddleware`) ;
+- la limite d'utilisateurs (`LicenseService.enforceUserLimit`).
+
+La seconde s'appliquait auparavant même interrupteur éteint : la licence
+était donc mi-active, ce qui est exactement ce qui bloquait les testeurs.
+
+#### En plus, le blocage des appels serait inerte même activé
 
 `licenseEnforcementMiddleware` ne bloque **jamais** rien, pour deux raisons
 cumulées :
@@ -130,16 +155,19 @@ cumulées :
 
 Vérifié par test : une licence rendue expirée en base ne bloque aucun accès.
 
-**Conséquence pour la suite.** Ce n'est pas un problème pour le pilote — au
-contraire, cela évite tout verrouillage accidentel. Mais **rétablir cet ordre
-verrouillerait instantanément tout tenant sans essai ni abonnement valides**. Si
-vous décidez d'activer le contrôle (phase 11 ou 12) :
+**Conséquence pour la suite.** Rien de tout cela ne gêne le pilote. Mais
+**activer le contrôle verrouillerait instantanément tout locataire sans essai
+ni abonnement valides**, et réimposerait les quotas d'utilisateurs. Avant de
+passer `ENABLE_LICENSE_ENFORCEMENT=true` :
 
 - vérifier que **tous** les tenants existants ont un essai ou un abonnement —
   y compris `default-tenant` ;
 - corriger d'abord la liste d'exemptions (préfixe de montage), sinon
   `/api/license/activate` et `/api/trial/start` seront eux-mêmes bloqués et un
   tenant expiré n'aura **aucun moyen de se débloquer** ;
+- vérifier le plafond `max_users` de CHAQUE locataire existant, y compris
+  `default-tenant`, sinon les créations de comptes échoueront :
+  `SELECT name, max_users, licensed_users FROM tenants;`
 - le seed de test pose déjà un essai sur ses tenants
   ([tests/seed.ts](../tests/seed.ts)), la suite ne cassera donc pas.
 
@@ -157,7 +185,73 @@ ne voit aucune donnée d'un autre tenant.
 - **L'envoi d'e-mail réel n'a pas été testé** — SendGrid n'est pas configuré
   dans l'environnement de test. Seule la branche « e-mail non envoyé » est
   vérifiée.
-- **Aucune limite d'utilisateurs testée.** `maxUsers` est enregistré, mais
-  l'application de cette limite lors de l'ajout d'un second utilisateur n'a pas
-  été vérifiée.
+- **La limite d'utilisateurs n'est pas éprouvée en conditions réelles.**
+  Elle est désactivée avec le reste de la licence ; seule sa neutralisation
+  est couverte par un test unitaire.
 - **Aucune procédure de suppression** d'un compte testeur en fin de pilote.
+
+## ⚠️ Deux espaces de connexion — ne pas les confondre
+
+| Vous êtes | Adresse | Ce que vous administrez |
+|---|---|---|
+| Super-administrateur de la plateforme | `/admin-login` | les organisations et leurs comptes |
+| Utilisateur d'une organisation | `/login` | la GMAO de votre entreprise |
+
+**Le super-administrateur n'a pas de compte utilisateur.** Son identité vient des
+variables d'environnement du serveur (`SUPER_ADMIN_EMAIL`,
+`SUPER_ADMIN_PASSWORD_HASH`), et non de la table `user_profiles`. Saisir ses
+identifiants sur `/login` renvoie donc « Identifiants incorrects » — message
+exact du point de vue du code, parfaitement trompeur pour la personne, qui sait
+que son mot de passe est bon. Constaté le 2026-09-23 : plusieurs heures perdues
+à chercher une panne inexistante.
+
+Pour disposer d'un accès à l'espace utilisateur, le super-administrateur doit
+**se créer un compte comme les autres** : console d'administration →
+*Organisations* → créer une organisation, ou *Utilisateurs* → créer un compte
+dans une organisation existante. Les identifiants s'affichent alors à l'écran,
+avec boutons de copie — c'est indispensable ici, puisque aucun courriel ne part
+tant que `SENDGRID_API_KEY` n'est pas configuré.
+
+La page `/login` porte désormais un lien discret vers la console
+d'administration, pour que l'ambiguïté se lève d'elle-même.
+
+## Il n'y a plus d'inscription en libre service
+
+La page publique proposait « Créer un compte ». Ce formulaire rattachait **tout
+nouveau compte au même locataire**, `default-tenant`, écrit en dur dans
+`enterprise-auth-routes.ts`. Or les données sont cloisonnées par le locataire du
+compte (`req.tenantId = session.tenant.id`) : deux testeurs de deux entreprises
+différentes se seraient retrouvés dans le **même espace de travail**, avec les
+mêmes équipements, les mêmes ordres de travail et les mêmes coûts sous les yeux.
+
+Le défaut ne se serait vu que le jour où deux testeurs auraient travaillé en
+parallèle. Fermé le 2026-09-24 :
+
+- la route `POST /api/enterprise-auth/register` répond **403** et renvoie vers
+  `contact@techlearn-saem.com` — fermer le formulaire sans fermer l'API n'aurait
+  rien fermé du tout ;
+- la page de connexion propose **« Demander un accès »** au lieu de « S'inscrire » ;
+- `/register` redirige vers la connexion, pour les signets déjà pris ;
+- la porte d'ouverture (`verify-opening.mjs`) **vérifie que la fermeture tient**,
+  et refuse l'ouverture si l'inscription redevenait possible.
+
+Le seul chemin est donc celui décrit plus haut : le super-administrateur crée
+l'organisation, son compte propriétaire et sa licence dans une même transaction.
+Chaque entreprise a son espace, cloisonné par construction.
+
+### Le cloisonnement ne repose plus sur un repli silencieux
+
+Quatre-vingt-six routes déterminaient le locataire ainsi :
+
+```ts
+const tenantId = (req as any).tenantId || 'default-tenant';
+const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+```
+
+Deux défauts : l'en-tête `x-tenant-id` venait du **client** — n'importe qui
+pouvait désigner le locataire dont il voulait lire ou modifier les données — et
+le repli sur `default-tenant` faisait lire et écrire dans un espace commun toute
+requête sans session, sans qu'aucune erreur ne le signale.
+
+Elles passent désormais toutes par `server/tenant-requis.ts`, qui n'accepte que
+le locataire posé par la validation de session et **refuse** (401) à défaut.

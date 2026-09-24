@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
+import { tenantRequis } from "./tenant-requis";
 
 export function registerEquipmentHealthRoutes(app: Express) {
   // Get equipment health data with predictive analytics
   app.get("/api/equipment/health", async (req, res) => {
     try {
       const { equipmentId, timeRange } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
       
       const healthData = await Promise.all(equipment.map(async (eq) => {
@@ -62,7 +64,8 @@ export function registerEquipmentHealthRoutes(app: Express) {
   app.get("/api/equipment/alerts", async (req, res) => {
     try {
       const { timeRange } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       // Generate sample alerts based on IoT data
       const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
@@ -87,7 +90,8 @@ export function registerEquipmentHealthRoutes(app: Express) {
   // Get predictive maintenance recommendations
   app.get("/api/equipment/predictions", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
 
       const predictions = await Promise.all(equipment.map(async (eq) => {

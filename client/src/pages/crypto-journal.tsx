@@ -31,7 +31,7 @@ interface VerifyResult {
 const DOMAIN_COLOR: Record<string, string> = {
   PTW_DOMAIN:      "bg-red-500/20 text-red-300 border-red-500/30",
   GMAO_DOMAIN:     "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  IMCA_DOMAIN:     "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  IMCA_DOMAIN:     "bg-signal-deep/20 text-signal-light border-rule/30",
   SYSTEM_DOMAIN:   "bg-slate-500/20 text-slate-300 border-slate-500/30",
   SECURITY_DOMAIN: "bg-amber-500/20 text-amber-300 border-amber-500/30",
 };
@@ -101,7 +101,7 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
                 {ACTION_VERB[entry.action] ?? entry.action}
               </span>
               {!isValid && (
-                <Badge className="bg-red-500/20 text-red-300 text-[10px] animate-pulse">⚠ Altération détectée</Badge>
+                <Badge className="bg-red-500/20 text-red-300 text-[10px] animate-pulse">Altération détectée</Badge>
               )}
             </div>
 
@@ -201,12 +201,12 @@ export default function CryptoJournalPage() {
   const chain = chainData?.chain ?? [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-slate-800/40 to-cyan-500/10 p-6">
+        <div className="rounded-2xl border border-emerald-500/30 bg-paper-deep p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
@@ -255,8 +255,8 @@ export default function CryptoJournalPage() {
             <div>
               <p className={`font-bold text-sm ${verifyData.isValid ? "text-emerald-300" : "text-red-300"}`}>
                 {verifyData.isValid
-                  ? `✓ Chaîne intègre — ${verifyData.verifiedEntries}/${verifyData.totalEntries} blocs vérifiés (${verifyData.chainCoverage}%)`
-                  : `⚠ Altération détectée au bloc #${verifyData.firstTamperedAt} — ${verifyData.firstTamperedEntry?.action}`
+                  ? `Chaîne intègre — ${verifyData.verifiedEntries}/${verifyData.totalEntries} blocs vérifiés (${verifyData.chainCoverage}%)`
+                  : `Altération détectée au bloc #${verifyData.firstTamperedAt} — ${verifyData.firstTamperedEntry?.action}`
                 }
               </p>
               <p className="text-[11px] text-slate-400 mt-1 font-mono">
@@ -344,7 +344,7 @@ export default function CryptoJournalPage() {
               </div>
               {/* Genesis block always displayed */}
               <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 w-full max-w-md text-left">
-                <p className="text-[10px] text-emerald-400 font-semibold mb-1">⛓ Bloc genesis (ancre immuable)</p>
+                <p className="text-[10px] text-emerald-400 font-semibold mb-1">Bloc genesis (ancre immuable)</p>
                 <p className="text-[9px] font-mono text-emerald-500/70 break-all">{chainData?.genesisHash ?? "—"}</p>
               </div>
             </div>
@@ -399,7 +399,7 @@ export default function CryptoJournalPage() {
                   lines: ["H(n) = SHA256(", "  seq_n || ts_n || domain || action", "  || entityId || actorId", "  || canonical_payload || H(n-1))"],
                 },
                 {
-                  color: "text-violet-400", label: "Canonicalisation payload",
+                  color: "text-signal-light", label: "Canonicalisation payload",
                   lines: ["JSON.stringify(payload, sortedKeys)", "Déterministe — tri alphabétique des clés", "Élimine les variations d'ordre JSON"],
                 },
                 {
@@ -411,7 +411,7 @@ export default function CryptoJournalPage() {
                   lines: ["Toutes mutations → journalizePTWMutation()", "Snapshot payload dénormalisé (immuable)", "Best-effort : non-blocking sur l'API"],
                 },
                 {
-                  color: "text-pink-400", label: "Propriétés cryptographiques",
+                  color: "text-signal-light", label: "Propriétés cryptographiques",
                   lines: ["Résistance aux collisions (SHA-256: 2^128)", "Imputabilité : actorName dénormalisé", "Append-only : aucun UPDATE/DELETE applicatif"],
                 },
               ].map(({ color, label, lines }) => (

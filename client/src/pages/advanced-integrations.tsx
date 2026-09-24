@@ -406,16 +406,16 @@ export default function AdvancedIntegrationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl shadow-lg">
-              <Settings className="h-8 w-8 text-white" />
+            <div className="p-3 bg-paper-deep rounded-xl">
+              <Settings className="h-8 w-8 text-ink" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-600 bg-clip-text text-transparent dark:from-white dark:via-gray-100 dark:to-gray-200">
+              <h1 className="text-3xl font-bold text-ink">
                 Intégrations Avancées
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
@@ -426,7 +426,7 @@ export default function AdvancedIntegrationsPage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -440,7 +440,7 @@ export default function AdvancedIntegrationsPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-orange-500/10 rounded-lg">
@@ -454,11 +454,11 @@ export default function AdvancedIntegrationsPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 bg-signal-deep/10 rounded-lg">
+                    <Brain className="h-5 w-5 text-signal-deep dark:text-signal-light" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Modèles IA</p>
@@ -468,7 +468,7 @@ export default function AdvancedIntegrationsPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-500/10 rounded-lg">
@@ -486,7 +486,7 @@ export default function AdvancedIntegrationsPage() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="erp-scada" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 bg-white dark:bg-gray-800/60 p-1 rounded-xl">
             <TabsTrigger value="erp-scada" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               ERP/SCADA
@@ -505,7 +505,7 @@ export default function AdvancedIntegrationsPage() {
           <TabsContent value="erp-scada" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* ERP Systems */}
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+              <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -514,7 +514,7 @@ export default function AdvancedIntegrationsPage() {
                     </div>
                     <Dialog open={isERPModalOpen} onOpenChange={setIsERPModalOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700" data-testid="button-add-erp">
+                        <Button size="sm" className="bg-paper-deep" data-testid="button-add-erp">
                           <Plus className="h-4 w-4 mr-1" />
                           Ajouter
                         </Button>
@@ -692,7 +692,7 @@ export default function AdvancedIntegrationsPage() {
                   ) : (
                     <div className="space-y-4">
                       {erpSystems?.map((system: ERPSystem) => (
-                        <div key={system.id} className="p-4 bg-white/50 dark:bg-gray-700/50 rounded-lg border border-gray-200/50 dark:border-gray-600/50">
+                        <div key={system.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium">{system.systemName}</h4>
@@ -745,7 +745,7 @@ export default function AdvancedIntegrationsPage() {
               </Card>
 
               {/* SCADA Connections */}
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+              <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -754,7 +754,7 @@ export default function AdvancedIntegrationsPage() {
                     </div>
                     <Dialog open={isSCADAModalOpen} onOpenChange={setIsSCADAModalOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700" data-testid="button-add-scada">
+                        <Button size="sm" className="bg-paper-deep" data-testid="button-add-scada">
                           <Plus className="h-4 w-4 mr-1" />
                           Ajouter
                         </Button>
@@ -898,7 +898,7 @@ export default function AdvancedIntegrationsPage() {
                   ) : (
                     <div className="space-y-4">
                       {scadaConnections?.map((connection: SCADAConnection) => (
-                        <div key={connection.id} className="p-4 bg-white/50 dark:bg-gray-700/50 rounded-lg border border-gray-200/50 dark:border-gray-600/50">
+                        <div key={connection.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium">{connection.connectionName}</h4>
@@ -943,16 +943,16 @@ export default function AdvancedIntegrationsPage() {
 
           {/* AI Predictive Tab */}
           <TabsContent value="ai-predictive" className="space-y-6">
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <Brain className="h-5 w-5 text-signal-deep dark:text-signal-light" />
                     <CardTitle>Modèles IA Prédictive</CardTitle>
                   </div>
                   <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700" data-testid="button-add-ai-model">
+                      <Button size="sm" className="bg-paper-deep" data-testid="button-add-ai-model">
                         <Plus className="h-4 w-4 mr-1" />
                         Nouveau Modèle
                       </Button>
@@ -1100,7 +1100,7 @@ export default function AdvancedIntegrationsPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {aiModels?.map((model: AIModel) => (
-                      <div key={model.id} className="p-4 bg-white/50 dark:bg-gray-700/50 rounded-lg border border-gray-200/50 dark:border-gray-600/50">
+                      <div key={model.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium">{model.modelName}</h4>
@@ -1165,7 +1165,7 @@ export default function AdvancedIntegrationsPage() {
 
           {/* Power BI Tab */}
           <TabsContent value="power-bi" className="space-y-6">
-            <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/50 dark:border-gray-700/50">
+            <Card className="bg-white dark:bg-gray-800/60 border-white/50 dark:border-rule">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1174,7 +1174,7 @@ export default function AdvancedIntegrationsPage() {
                   </div>
                   <Dialog open={isPowerBIModalOpen} onOpenChange={setIsPowerBIModalOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700" data-testid="button-add-powerbi">
+                      <Button size="sm" className="bg-paper-deep" data-testid="button-add-powerbi">
                         <Plus className="h-4 w-4 mr-1" />
                         Connecter Workspace
                       </Button>
@@ -1295,7 +1295,7 @@ export default function AdvancedIntegrationsPage() {
                 ) : (
                   <div className="space-y-4">
                     {powerBiWorkspaces?.map((workspace: PowerBiWorkspace) => (
-                      <div key={workspace.id} className="p-4 bg-white/50 dark:bg-gray-700/50 rounded-lg border border-gray-200/50 dark:border-gray-600/50">
+                      <div key={workspace.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium">{workspace.workspaceName}</h4>

@@ -156,6 +156,14 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // ═══════════════════════════════════════════════════════════════════
 section('T4 — Un testeur peut réellement se connecter depuis cette adresse');
 {
+  // Compte de sonde dédié aux contrôles (créé par provision-test-env.mjs). Les
+  // comptes de démonstration, au mot de passe public, ont été retirés de
+  // l'environnement partagé : leurs données iront en production.
+  const SONDE = { email: env.SONDE_EMAIL, motDePasse: env.SONDE_PASSWORD };
+  if (!SONDE.email || !SONDE.motDePasse) {
+    ko('compte de sonde absent de ' + ENV_FILE, 'Relancez le provisionnement : il le crée.');
+  }
+
   // Le limiteur de connexion est ACTIF en production (5/15 min). On purge les
   // compteurs pour que le résultat mesure l'origine, pas un blocage résiduel.
   docker(['exec', 'maintrix-test-db', 'psql', '-U', env.POSTGRES_USER || 'maintrix_test',
@@ -164,7 +172,7 @@ section('T4 — Un testeur peut réellement se connecter depuis cette adresse');
   const r = await req('/api/enterprise-auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: publique },
-    body: JSON.stringify({ email: 'admin@maintrix.local', password: 'Maintrix2024!' }),
+    body: JSON.stringify({ email: SONDE.email, password: SONDE.motDePasse }),
   });
 
   if (r.status === 200) {
@@ -183,7 +191,7 @@ section('T4 — Un testeur peut réellement se connecter depuis cette adresse');
   const pirate = await req('/api/enterprise-auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: 'https://site-non-declare.invalid' },
-    body: JSON.stringify({ email: 'admin@maintrix.local', password: 'Maintrix2024!' }),
+    body: JSON.stringify({ email: SONDE.email, password: SONDE.motDePasse }),
   });
   if (pirate.status === 403) ok('une origine non déclarée est bien refusée');
   else ko(`une origine non déclarée est acceptée (HTTP ${pirate.status}) — le filtre ne protège rien`);
@@ -194,6 +202,36 @@ section('T4 — Un testeur peut réellement se connecter depuis cette adresse');
 
 if (naguereTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
 else process.env.NODE_TLS_REJECT_UNAUTHORIZED = naguereTLS;
+
+// ═══════════════════════════════════════════════════════════════════
+section("T4b — L'inscription en libre service est bien fermée");
+{
+  // ⚠️ Contrôle né d'un défaut réel (2026-09-24). L'inscription publique
+  // rattachait TOUT nouveau compte au même locataire : deux testeurs de deux
+  // entreprises différentes se retrouvaient dans le même espace, avec les mêmes
+  // équipements et les mêmes coûts sous les yeux. La route est désormais fermée,
+  // et les comptes sont créés par le super-administrateur, qui crée aussi
+  // l'organisation — donc un espace cloisonné.
+  //
+  // On vérifie que la fermeture tient côté SERVEUR : retirer le bouton de
+  // l'interface ne ferme pas une API.
+  const r = await req("/api/enterprise-auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: publique },
+    body: JSON.stringify({
+      username: "sonde-ouverture",
+      firstName: "Sonde",
+      lastName: "Ouverture",
+      email: "sonde-ouverture@exemple.invalid",
+      password: "MotDePasseSonde123",
+    }),
+  });
+
+  if (r.status === 403) ok("l'inscription en libre service est fermée (403)");
+  else if (r.status === 201) ko("l'inscription en libre service est OUVERTE : les comptes créés partagent tous le même espace",
+    "Un compte vient peut-être d'être créé par ce contrôle — vérifiez et supprimez-le.");
+  else ko(`réponse inattendue de l'inscription : HTTP ${r.status}`, (r.corps || "").slice(0, 200));
+}
 
 // ═══════════════════════════════════════════════════════════════════
 section('T5 — Certificat TLS');

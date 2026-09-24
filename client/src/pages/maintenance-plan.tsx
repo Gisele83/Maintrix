@@ -159,18 +159,18 @@ export default function MaintenancePlanPage() {
   const currentMonth = new Date().getMonth() + 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-blue-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-600 shadow-lg"><CalendarCheck className="h-6 w-6 text-white" /></div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Plan de Maintenance Annuel</h1>
+            <div className="p-2.5 rounded-xl bg-paper-deep"><CalendarCheck className="h-6 w-6 text-ink" /></div>
+            <h1 className="text-3xl font-bold text-ink">Plan de Maintenance Annuel</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Planification et suivi des opérations de maintenance préventive</p>
         </div>
         <div className="flex gap-2">
           <Select value={year} onValueChange={setYear}><SelectTrigger className="w-28 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg gap-2"><Plus className="h-4 w-4" />Nouveau plan</Button>
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2"><Plus className="h-4 w-4" />Nouveau plan</Button>
         </div>
       </div>
 
@@ -178,12 +178,12 @@ export default function MaintenancePlanPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Plans", value: stats?.total ?? 0, icon: CalendarCheck, color: "from-cyan-500 to-blue-600" },
-          { label: "Tâches planifiées", value: Number(stats?.totalTasks) || 0, icon: Activity, color: "from-indigo-500 to-purple-600" },
+          { label: "Tâches planifiées", value: Number(stats?.totalTasks) || 0, icon: Activity, color: "from-indigo-500 " },
           { label: "Tâches réalisées", value: Number(stats?.completedTasks) || 0, icon: CheckCircle2, color: "from-green-500 to-emerald-600" },
           { label: "Budget alloué", value: fmtEur(stats?.budgetAllocated), icon: BarChart3, color: "from-orange-500 to-amber-600" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
             <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
           </CardContent></Card>
         ))}
@@ -195,7 +195,7 @@ export default function MaintenancePlanPage() {
 
       {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><CalendarCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun plan de maintenance pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier plan</Button></div>
+        <div className="text-center py-16"><CalendarCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun plan de maintenance pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier plan</Button></div>
       ) : (
         <div className="grid gap-4">
           {filtered.map(p => {
@@ -209,7 +209,7 @@ export default function MaintenancePlanPage() {
                         <span className="text-xs font-mono text-slate-400">{p.planNumber}</span>
                         <Badge className={sc.color + " text-xs"}>{sc.label}</Badge>
                         <Badge variant="outline" className="text-xs">{p.fiscalYear}</Badge>
-                        {p.department && <span className="text-xs text-slate-500">🏢 {p.department}</span>}
+                        {p.department && <span className="text-xs text-slate-500">{p.department}</span>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{p.title}</h3>
                       <div className="mt-2 space-y-1.5">
@@ -217,9 +217,9 @@ export default function MaintenancePlanPage() {
                         <Progress value={p.completionPct} className="h-2.5" />
                       </div>
                       <div className="flex gap-4 mt-2 text-xs flex-wrap">
-                        {p.inProgressTasks > 0 && <span className="text-blue-600">🔧 {p.inProgressTasks} en cours</span>}
-                        {p.overdueTasks > 0 && <span className="text-red-600">⚠️ {p.overdueTasks} en retard</span>}
-                        <span className="text-slate-500">💰 {fmtEur(p.budgetAllocated)}</span>
+                        {p.inProgressTasks > 0 && <span className="text-blue-600">{p.inProgressTasks} en cours</span>}
+                        {p.overdueTasks > 0 && <span className="text-red-600">{p.overdueTasks} en retard</span>}
+                        <span className="text-slate-500">{fmtEur(p.budgetAllocated)}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => openDetail(p)}><Eye className="h-4 w-4 mr-1" />Planifier</Button>
@@ -256,7 +256,7 @@ export default function MaintenancePlanPage() {
         <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setShowAddTask(false); }}>
           <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-cyan-200">
                 <CalendarCheck className="h-6 w-6 text-cyan-600" />
                 <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.planNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
@@ -344,11 +344,11 @@ export default function MaintenancePlanPage() {
                         <Badge className={ts.color + " text-xs"}>{ts.label}</Badge>
                         <Badge className={`${PRIORITY_CFG[task.priority]} text-xs`}>{PRIORITY_LABELS[task.priority]}</Badge>
                         <Badge variant="outline" className="text-xs">{MONTHS[task.plannedMonth - 1]}{task.plannedWeek ? ` S${task.plannedWeek}` : ""}</Badge>
-                        {task.equipmentName && <span className="text-xs text-slate-500">⚙️ {task.equipmentName}</span>}
-                        {task.assignedTo && <span className="text-xs text-slate-500">👤 {task.assignedTo}</span>}
-                        {task.estimatedHours && <span className="text-xs text-slate-500">⏱️ {task.estimatedHours}h</span>}
+                        {task.equipmentName && <span className="text-xs text-slate-500">{task.equipmentName}</span>}
+                        {task.assignedTo && <span className="text-xs text-slate-500">{task.assignedTo}</span>}
+                        {task.estimatedHours && <span className="text-xs text-slate-500">⏱{task.estimatedHours}h</span>}
                         {task.estimatedCost && <span className="text-xs text-blue-600">{fmtEur(task.estimatedCost)}</span>}
-                        {isOverdue && <Badge className="bg-red-100 text-red-700 text-xs">⚠️ Retard</Badge>}
+                        {isOverdue && <Badge className="bg-red-100 text-red-700 text-xs">Retard</Badge>}
                       </div>
                     </div>
                     <div className="flex gap-1 shrink-0">

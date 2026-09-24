@@ -32,7 +32,7 @@ export function TrialBanner({
   const planColors = {
     pro: "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800",
     business: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800", 
-    enterprise: "bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800"
+    enterprise: "bg-paper-deep dark:bg-ink border-rule dark:border-rule"
   };
   
   const PlanIcon = planIcons[planType];
@@ -69,7 +69,7 @@ export function TrialBanner({
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/50 dark:bg-black/20 rounded-lg">
+            <div className="p-2 bg-white dark:bg-black/20 rounded-lg">
               <Gift className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
@@ -94,7 +94,7 @@ export function TrialBanner({
           <div className="flex items-center gap-2">
             {daysRemaining <= 3 && (
               <Badge variant="destructive" className="animate-pulse">
-                ⚠️ Expiration proche
+                Expiration proche
               </Badge>
             )}
             <Button size="sm" variant="outline" disabled>
@@ -119,7 +119,7 @@ export function TrialBanner({
           />
           {usagePercentage > 80 && (
             <p className="text-xs text-orange-600 dark:text-orange-400">
-              ⚡ Utilisation élevée - Pensez à vous abonner pour ne pas perdre l'accès
+              Utilisation élevée - Pensez à vous abonner pour ne pas perdre l'accès
             </p>
           )}
         </div>
@@ -127,16 +127,16 @@ export function TrialBanner({
         {/* Fonctionnalités de l'essai */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-            ✓ Smart Diagnostic
+            Smart Diagnostic
           </div>
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-            ✓ Smart GMAO
+            Smart GMAO
           </div>
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-            ✓ IA Avancée
+            IA Avancée
           </div>
           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-            ✓ Export données
+            Export données
           </div>
         </div>
       </CardContent>

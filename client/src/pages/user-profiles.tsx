@@ -169,7 +169,7 @@ export default function UserProfiles() {
   const getExperienceBadgeColor = (level: string | null) => {
     switch (level) {
       case "expert":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+        return "bg-paper-deep text-signal-deep dark:bg-signal-deep dark:text-signal-light";
       case "intermediate":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
       case "beginner":

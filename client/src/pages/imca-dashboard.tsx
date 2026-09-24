@@ -119,7 +119,7 @@ function SubBar({ label, value, weight, tip }: { label: string; value: number; w
 // ─── Equipment card ───────────────────────────────────────────────────────────
 function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void }) {
   return (
-    <div onClick={onSelect} className={`relative rounded-xl border p-4 cursor-pointer transition-all hover:scale-[1.01] ${scoreBg(r.IMCA)}`}>
+    <div onClick={onSelect} className={`relative rounded-xl border p-4 cursor-pointer transition-colors ${scoreBg(r.IMCA)}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-sm font-semibold text-white truncate max-w-[180px]">{r.equipmentName}</p>
@@ -196,7 +196,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
           <p className="text-lg font-bold text-white">
             {((r.jsDivergence ?? r.klDivergence) || 0).toFixed(4)}
             <span className="text-xs text-slate-500 ml-1">
-              {(r.jsDivergence ?? 0) < 0.10 ? "🟢" : (r.jsDivergence ?? 0) < 0.22 ? "🟡" : (r.jsDivergence ?? 0) < 0.38 ? "🟠" : "🔴"}
+              {(r.jsDivergence ?? 0) < 0.10 ? "" : (r.jsDivergence ?? 0) < 0.22 ? "" : (r.jsDivergence ?? 0) < 0.38 ? "" : ""}
             </span>
           </p>
         </div>
@@ -283,7 +283,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
             {r.stochasticRUL.wienerRUL && r.stochasticRUL.gammaRUL && (
               <div className="grid grid-cols-2 gap-2 pt-1 border-t border-amber-500/20">
                 <div className="text-[10px] text-slate-500">
-                  <span className="text-violet-400 font-semibold">Wiener IG</span>{" "}
+                  <span className="text-signal-light font-semibold">Wiener IG</span>{" "}
                   P50={r.stochasticRUL.wienerRUL.median}h · σ={r.stochasticRUL.wienerRUL.stdDev}h
                 </div>
                 <div className="text-[10px] text-slate-500">
@@ -296,7 +296,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
             {/* Warnings */}
             {r.stochasticRUL.warnings.length > 0 && (
               <div className="text-[10px] text-yellow-500/80 italic">
-                ⚠ {r.stochasticRUL.warnings[0]}
+                {r.stochasticRUL.warnings[0]}
               </div>
             )}
           </div>
@@ -354,15 +354,15 @@ export default function IMCADashboard() {
   const fleetIMCA = fleet?.fleetIMCA ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12">
 
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-violet-600/20 border border-violet-500/30">
-              <Brain className="w-6 h-6 text-violet-400" />
+            <div className="p-2 rounded-xl bg-signal-deep/20 border border-rule/30">
+              <Brain className="w-6 h-6 text-signal-light" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">IMCA — Indice Cognitif Composite</h1>
@@ -373,7 +373,7 @@ export default function IMCADashboard() {
 
         {/* Fleet KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-5 text-center">
+          <div className="rounded-2xl border border-rule/30 bg-signal-deep/10 p-5 text-center">
             <div className={`text-4xl font-black mb-1 ${scoreColor(fleetIMCA)}`}>{fleetLoading ? "…" : fleetIMCA}</div>
             <div className="text-xs text-slate-400">IMCA Flotte</div>
           </div>
@@ -457,7 +457,7 @@ export default function IMCADashboard() {
                 <div className="grid grid-cols-1 gap-2">
                   {equipList.slice(0, 8).map(e => (
                     <button key={e.id} onClick={() => setSelectedId(e.id)}
-                      className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2 hover:border-violet-500/50 transition-colors text-left">
+                      className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2 hover:border-rule/50 transition-colors text-left">
                       <span className="text-sm text-slate-300">{e.name}</span>
                       <ChevronRight className="w-4 h-4 text-slate-600" />
                     </button>
@@ -479,8 +479,8 @@ export default function IMCADashboard() {
               <DetailPanel r={detail} />
             ) : (
               <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-12 text-center h-full flex flex-col items-center justify-center">
-                <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 mb-4">
-                  <Brain className="w-10 h-10 text-violet-400" />
+                <div className="p-4 rounded-2xl bg-signal-deep/10 border border-rule/20 mb-4">
+                  <Brain className="w-10 h-10 text-signal-light" />
                 </div>
                 <p className="text-slate-300 font-semibold mb-2">Sélectionnez un équipement</p>
                 <p className="text-slate-500 text-sm">Cliquez sur une carte pour afficher l'analyse IMCA détaillée avec distance de Mahalanobis, divergence KL, et décomposition des 4 sous-indices.</p>

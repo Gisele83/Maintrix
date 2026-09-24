@@ -36,7 +36,7 @@ const TASK_TYPE_LABELS: Record<string, string> = {
 };
 const TASK_TYPE_COLOR: Record<string, string> = {
   condition_based: "bg-green-100 text-green-700", scheduled_restoration: "bg-orange-100 text-orange-700",
-  scheduled_discard: "bg-blue-100 text-blue-700", failure_finding: "bg-purple-100 text-purple-700",
+  scheduled_discard: "bg-blue-100 text-blue-700", failure_finding: "bg-paper-deep text-signal-deep",
   run_to_failure: "bg-gray-100 text-gray-600", redesign: "bg-red-100 text-red-700",
 };
 

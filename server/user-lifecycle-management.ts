@@ -14,6 +14,7 @@ import { userProfiles, tenants, workflowTasks, auditTrail } from '../shared/sche
 import { eq, and, inArray } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sendEmail } from './notifications';
+import { normaliserRole } from "@shared/roles";
 
 // Types pour la gestion du cycle de vie
 export interface OnboardingWorkflow {
@@ -225,7 +226,9 @@ export class OnboardingManager {
       });
     }
 
-    if (role === 'manager') {
+    // `manager` n'existe pas au référentiel : la valeur équivalente est
+    // `maintenance_manager` (voir shared/roles.ts).
+    if (normaliserRole(role) === 'maintenance_manager') {
       baseSteps.push({
         id: 'team_assignment',
         name: 'Attribution d\'équipe',

@@ -173,11 +173,11 @@ export default function CCTPCompliancePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'compliant':
-        return <Badge className="bg-green-100 text-green-800">✅ Conforme</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Conforme</Badge>;
       case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800">⚠️ Partiel</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Partiel</Badge>;
       case 'missing':
-        return <Badge className="bg-red-100 text-red-800">❌ Manquant</Badge>;
+        return <Badge className="bg-red-100 text-red-800">Manquant</Badge>;
       default:
         return <Badge className="bg-blue-100 text-blue-800">🆕 Nouveau</Badge>;
     }
@@ -197,11 +197,11 @@ export default function CCTPCompliancePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-paper-deep min-h-screen">
       {/* En-tête */}
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          📋 Conformité CCTP
+        <h1 className="text-3xl font-bold text-ink">
+          Conformité CCTP
         </h1>
         <p className="text-gray-600">
           Configuration et suivi de la conformité au Cahier des Charges Techniques Particulières
@@ -233,11 +233,11 @@ export default function CCTPCompliancePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-rule bg-paper-deep">
           <CardContent className="p-4">
             <Button 
               onClick={openComplianceReport}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-signal-deep hover:bg-signal-deep"
               size="sm"
             >
               <Download className="w-4 h-4 mr-2" />

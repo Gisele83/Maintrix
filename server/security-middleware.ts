@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
 // import { users } from '@shared/schema'; // Removed unused import
 import { z } from 'zod';
+import { normaliserRole, ROLE_SUPER_ADMIN } from "@shared/roles";
 
 // Configuration des headers de sécurité
 const isProduction = process.env.NODE_ENV === 'production';
@@ -275,6 +276,10 @@ export const anomalyDetection = (req: Request, res: Response, next: NextFunction
 };
 
 // Middleware de validation d'accès par rôle
+// ⚠️ Les rôles comparés ici venaient de listes écrites à la main, alors que
+// la base contient aussi d'anciennes valeurs (`manager`, `supervisor`,
+// `maintainer`). Tout passe désormais par le référentiel partagé : les deux
+// côtés de la comparaison sont normalisés avant d'être confrontés.
 export const requireRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!(req as any).user) {
@@ -286,12 +291,16 @@ export const requireRole = (roles: string[]) => {
       return res.status(401).json({ error: 'Authentification requise' });
     }
     
-    const userRole = (req as any).user?.role || 'user';
-    if (!roles.includes(userRole)) {
+    const roleBrut = (req as any).user?.role;
+    const userRole = normaliserRole(roleBrut);
+    // `super_admin` n'est pas un rôle de locataire : il se compare tel quel.
+    const estSuperAdmin = roleBrut === ROLE_SUPER_ADMIN && roles.includes(ROLE_SUPER_ADMIN);
+    const autorises = roles.map((r) => normaliserRole(r)).filter(Boolean);
+    if (!estSuperAdmin && (!userRole || !autorises.includes(userRole))) {
       SecurityLogger.log({
         action: 'INSUFFICIENT_PRIVILEGES',
         riskLevel: 'MEDIUM',
-        details: { requiredRoles: roles, userRole }
+        details: { requiredRoles: roles, userRole: roleBrut ?? null }
       }, req, false);
       
       return res.status(403).json({ error: 'Privilèges insuffisants' });

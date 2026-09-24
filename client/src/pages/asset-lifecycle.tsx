@@ -92,16 +92,16 @@ const STAGES = [
   { value: "disposal", label: "Éliminé", color: "bg-gray-100 text-gray-500", icon: Trash2 },
 ];
 const EVENT_TYPES = [
-  { value: "purchase", label: "Achat", icon: "💳" },
-  { value: "commissioning", label: "Mise en service", icon: "🚀" },
-  { value: "maintenance", label: "Maintenance", icon: "🔧" },
-  { value: "repair", label: "Réparation", icon: "🛠️" },
-  { value: "inspection", label: "Inspection", icon: "🔍" },
-  { value: "upgrade", label: "Amélioration", icon: "⬆️" },
-  { value: "incident", label: "Incident", icon: "⚠️" },
-  { value: "decommission", label: "Déclassement", icon: "🚫" },
-  { value: "disposal", label: "Élimination", icon: "♻️" },
-  { value: "other", label: "Autre", icon: "📌" },
+  { value: "purchase", label: "Achat", icon: "" },
+  { value: "commissioning", label: "Mise en service", icon: "" },
+  { value: "maintenance", label: "Maintenance", icon: "" },
+  { value: "repair", label: "Réparation", icon: "" },
+  { value: "inspection", label: "Inspection", icon: "" },
+  { value: "upgrade", label: "Amélioration", icon: "" },
+  { value: "incident", label: "Incident", icon: "" },
+  { value: "decommission", label: "Déclassement", icon: "" },
+  { value: "disposal", label: "Élimination", icon: "" },
+  { value: "other", label: "Autre", icon: "" },
 ];
 const CRITICALITIES = [
   { value: "low", label: "Faible", color: "bg-green-100 text-green-700" },
@@ -240,25 +240,25 @@ export default function AssetLifecyclePage() {
     });
   };
 
-  const eventIcon = (type: string) => EVENT_TYPES.find(e => e.value === type)?.icon || "📌";
+  const eventIcon = (type: string) => EVENT_TYPES.find(e => e.value === type)?.icon || "";
   const eventLabel = (type: string) => EVENT_TYPES.find(e => e.value === type)?.label || type;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-cyan-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 shadow-lg">
-              <Package className="h-6 w-6 text-white" />
+            <div className="p-2.5 rounded-xl bg-paper-deep">
+              <Package className="h-6 w-6 text-ink" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               Cycle de Vie des Actifs
             </h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Asset Lifecycle Management — TCO · Amortissement · MTBF/MTTR</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvel actif
         </Button>
       </div>
@@ -273,7 +273,7 @@ export default function AssetLifecyclePage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-xl font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -284,7 +284,7 @@ export default function AssetLifecyclePage() {
         {[
           { label: "En exploitation", value: stats?.inOperation ?? 0, color: "text-green-600" },
           { label: "État moyen", value: `${Math.round(Number(stats?.avgCondition ?? 0))}%`, color: "text-blue-600" },
-          { label: "MTBF moyen", value: `${fmt(stats?.avgMtbf, 1)} h`, color: "text-purple-600" },
+          { label: "MTBF moyen", value: `${fmt(stats?.avgMtbf, 1)} h`, color: "text-signal-deep" },
           { label: "MTTR moyen", value: `${fmt(stats?.avgMttr, 1)} h`, color: "text-orange-600" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
@@ -333,7 +333,7 @@ export default function AssetLifecyclePage() {
         <div className="text-center py-16">
           <Package className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun actif référencé</h3>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white gap-2 mt-4">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Créer le premier actif
           </Button>
         </div>
@@ -350,8 +350,8 @@ export default function AssetLifecyclePage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`p-2.5 rounded-xl shadow-sm bg-gradient-to-br from-blue-500 to-cyan-600`}>
-                        <StageIcon className="h-5 w-5 text-white" />
+                      <div className={`p-2.5 rounded-xl shadow-sm bg-paper-deep`}>
+                        <StageIcon className="h-5 w-5 text-ink" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -365,9 +365,9 @@ export default function AssetLifecyclePage() {
                           {asset.category && <span><Tag className="h-3 w-3 inline mr-1" />{asset.category}</span>}
                           {asset.manufacturer && <span>{asset.manufacturer}{asset.model ? ` — ${asset.model}` : ""}</span>}
                           {asset.location && <span><MapPin className="h-3 w-3 inline mr-1" />{asset.location}</span>}
-                          {asset.purchaseCost && <span className="text-blue-600 font-medium">💰 {fmtEur(asset.purchaseCost)}</span>}
+                          {asset.purchaseCost && <span className="text-blue-600 font-medium">{fmtEur(asset.purchaseCost)}</span>}
                           {asset.currentValue && asset.purchaseCost && (
-                            <span className="text-teal-600">📉 {fmtEur(asset.currentValue)} actuel</span>
+                            <span className="text-teal-600">{fmtEur(asset.currentValue)} actuel</span>
                           )}
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -378,9 +378,9 @@ export default function AssetLifecyclePage() {
                             </div>
                             <Progress value={asset.conditionScore} className="h-1.5" />
                           </div>
-                          {asset.mtbfHours && <span className="text-xs text-purple-600">MTBF: {fmt(asset.mtbfHours, 0)}h</span>}
+                          {asset.mtbfHours && <span className="text-xs text-signal-deep">MTBF: {fmt(asset.mtbfHours, 0)}h</span>}
                           {asset.mttrHours && <span className="text-xs text-orange-600">MTTR: {fmt(asset.mttrHours, 1)}h</span>}
-                          {asset.failureCount ? <span className="text-xs text-red-600">⚠️ {asset.failureCount} pannes</span> : null}
+                          {asset.failureCount ? <span className="text-xs text-red-600">{asset.failureCount} pannes</span> : null}
                         </div>
                       </div>
                     </div>
@@ -479,7 +479,7 @@ export default function AssetLifecyclePage() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer
                 </Button>
               </DialogFooter>
@@ -493,7 +493,7 @@ export default function AssetLifecyclePage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-blue-200">
                 <Package className="h-6 w-6 text-blue-600" />
                 <div className="flex-1">
                   <DialogTitle>{selected.name}</DialogTitle>
@@ -561,7 +561,7 @@ export default function AssetLifecyclePage() {
                     { label: "Valeur d'achat", value: fmtEur(selected.purchaseCost), color: "text-blue-600" },
                     { label: "Valeur actuelle (estimée)", value: fmtEur(selected.currentValue), color: "text-teal-600" },
                     { label: "Valeur résiduelle", value: fmtEur(selected.salvageValue), color: "text-slate-600" },
-                    { label: "Durée de vie utile", value: selected.usefulLifeYears ? `${selected.usefulLifeYears} ans` : null, color: "text-purple-600" },
+                    { label: "Durée de vie utile", value: selected.usefulLifeYears ? `${selected.usefulLifeYears} ans` : null, color: "text-signal-deep" },
                     { label: "Méthode d'amortissement", value: selected.depreciationMethod === "linear" ? "Linéaire" : selected.depreciationMethod === "declining" ? "Dégressif" : "Unités de prod.", color: "text-slate-600" },
                     { label: "Coûts maintenance cumulés", value: fmtEur(selected.totalMaintenanceCost), color: "text-orange-600" },
                   ].filter(i => i.value).map(({ label, value, color }) => (
@@ -603,9 +603,9 @@ export default function AssetLifecyclePage() {
               <TabsContent value="performance" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "Pannes totales", value: selected.failureCount ?? 0, icon: "⚠️", color: "text-red-600" },
-                    { label: "Nb maintenances", value: selected.maintenanceCount ?? 0, icon: "🔧", color: "text-blue-600" },
-                    { label: "MTBF (h)", value: fmt(selected.mtbfHours, 1), icon: "⏱️", color: "text-purple-600" },
+                    { label: "Pannes totales", value: selected.failureCount ?? 0, icon: "", color: "text-red-600" },
+                    { label: "Nb maintenances", value: selected.maintenanceCount ?? 0, icon: "", color: "text-blue-600" },
+                    { label: "MTBF (h)", value: fmt(selected.mtbfHours, 1), icon: "⏱", color: "text-signal-deep" },
                     { label: "MTTR (h)", value: fmt(selected.mttrHours, 1), icon: "⌚", color: "text-orange-600" },
                   ].map(({ label, value, icon, color }) => (
                     <div key={label} className="bg-white rounded-xl p-4 border shadow-sm text-center">
@@ -655,7 +655,7 @@ export default function AssetLifecyclePage() {
                             <div className="flex items-center gap-2 mb-1">
                               <Badge variant="outline" className="text-xs">{eventLabel(evt.type)}</Badge>
                               <span className="text-xs text-slate-500">{new Date(evt.date).toLocaleDateString("fr-FR")}</span>
-                              {evt.cost && <span className="text-xs text-orange-600 font-medium">💸 {fmtEur(evt.cost)}</span>}
+                              {evt.cost && <span className="text-xs text-orange-600 font-medium">{fmtEur(evt.cost)}</span>}
                             </div>
                             <p className="text-sm text-slate-700">{evt.description}</p>
                             {evt.performedBy && <p className="text-xs text-slate-400 mt-1">Par: {evt.performedBy}</p>}

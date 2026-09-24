@@ -94,8 +94,8 @@ export default function SecurityMFAPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                <Settings className="w-5 h-5 text-purple-500" />
-                <span className="text-2xl font-bold text-purple-600">{stats.adminUsers}</span>
+                <Settings className="w-5 h-5 text-signal-deep" />
+                <span className="text-2xl font-bold text-signal-deep">{stats.adminUsers}</span>
               </div>
             </CardContent>
           </Card>
@@ -166,13 +166,13 @@ export default function SecurityMFAPage() {
               </p>
               <div className="space-y-2">
                 <Badge variant="outline" className="text-xs">
-                  ✓ Sauvegardez-les en lieu sûr
+                  Sauvegardez-les en lieu sûr
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  ✓ Chaque code n'est utilisable qu'une fois
+                  Chaque code n'est utilisable qu'une fois
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  ✓ Générez-en de nouveaux si nécessaire
+                  Générez-en de nouveaux si nécessaire
                 </Badge>
               </div>
             </CardContent>

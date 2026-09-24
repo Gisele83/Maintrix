@@ -152,7 +152,7 @@ export default function ResetPassword() {
       setIsPasswordReset(true);
       
       toast({
-        title: "✅ Mot de passe réinitialisé",
+        title: "Mot de passe réinitialisé",
         description: "Votre mot de passe a été mis à jour avec succès",
       });
 
@@ -170,7 +170,7 @@ export default function ResetPassword() {
   // État de vérification
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -184,11 +184,11 @@ export default function ResetPassword() {
   // Token invalide
   if (!tokenVerification?.valid) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center">
-              <AlertTriangle className="h-8 w-8 text-white" />
+            <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
+              <AlertTriangle className="h-8 w-8 text-ink" />
             </div>
             <CardTitle className="text-2xl font-bold text-red-600">
               Lien invalide ou expiré
@@ -229,14 +229,14 @@ export default function ResetPassword() {
   // Succès de réinitialisation
   if (isPasswordReset) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-white" />
+            <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-ink" />
             </div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              ✅ Mot de passe réinitialisé !
+            <CardTitle className="text-2xl font-bold text-ink">
+              Mot de passe réinitialisé !
             </CardTitle>
             <CardDescription>
               Votre mot de passe a été mis à jour avec succès
@@ -252,7 +252,7 @@ export default function ResetPassword() {
             </Alert>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">🔐 Pour votre sécurité :</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">Pour votre sécurité :</h3>
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• Votre ancien mot de passe n'est plus valide</li>
                 <li>• Utilisez votre nouveau mot de passe pour vous connecter</li>
@@ -262,7 +262,7 @@ export default function ResetPassword() {
             </div>
 
             <Link href="/login">
-              <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3">
+              <Button className="w-full bg-ink text-white font-semibold py-3">
                 <Lock className="mr-2 h-4 w-4" />
                 Se connecter maintenant
               </Button>
@@ -278,14 +278,14 @@ export default function ResetPassword() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-xl">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-            <Shield className="h-8 w-8 text-white" />
+          <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
+            <Shield className="h-8 w-8 text-ink" />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🔄 Réinitialiser votre mot de passe
+          <CardTitle className="text-2xl font-bold text-ink">
+            Réinitialiser votre mot de passe
           </CardTitle>
           <CardDescription className="text-base">
             Choisissez un nouveau mot de passe sécurisé pour {tokenVerification.user?.displayName || tokenVerification.user?.email}
@@ -295,14 +295,14 @@ export default function ResetPassword() {
         <CardContent className="space-y-6">
           {/* Informations utilisateur et expiration */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">👤 Informations du compte</h3>
+            <h3 className="font-semibold text-blue-900 mb-2">Informations du compte</h3>
             <div className="space-y-1 text-sm text-blue-800">
               <p><strong>Email :</strong> {tokenVerification.user?.email}</p>
               <p><strong>Nom d'utilisateur :</strong> {tokenVerification.user?.username}</p>
               {timeRemaining > 0 ? (
                 <p><strong>⏰ Temps restant :</strong> {timeRemaining} minute{timeRemaining > 1 ? 's' : ''}</p>
               ) : (
-                <p className="text-red-600"><strong>⚠️ Ce lien va bientôt expirer</strong></p>
+                <p className="text-red-600"><strong>Ce lien va bientôt expirer</strong></p>
               )}
             </div>
           </div>
@@ -390,7 +390,7 @@ export default function ResetPassword() {
 
               {/* Conseils de sécurité */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-900 mb-2">🛡️ Conseils de sécurité</h4>
+                <h4 className="font-semibold text-green-900 mb-2">Conseils de sécurité</h4>
                 <ul className="text-sm text-green-800 space-y-1">
                   <li>• Utilisez un mot de passe unique que vous n'utilisez nulle part ailleurs</li>
                   <li>• Combinez lettres majuscules, minuscules, chiffres et symboles</li>
@@ -401,7 +401,7 @@ export default function ResetPassword() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3"
+                className="w-full bg-ink text-white font-semibold py-3"
                 disabled={isLoading}
               >
                 {isLoading ? (

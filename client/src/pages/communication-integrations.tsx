@@ -55,11 +55,11 @@ type DeliveryLog = {
 };
 
 const PLATFORMS = [
-  { value: "slack", label: "Slack", icon: "💬", color: "from-purple-500 to-violet-600", description: "Envoyez des alertes vers vos canaux Slack via webhook" },
-  { value: "teams", label: "Microsoft Teams", icon: "💼", color: "from-blue-500 to-indigo-600", description: "Notifications vers vos équipes Teams via connecteur webhook" },
-  { value: "telegram", label: "Telegram", icon: "✈️", color: "from-sky-400 to-blue-500", description: "Messages instantanés via bot Telegram" },
-  { value: "whatsapp", label: "WhatsApp", icon: "📱", color: "from-green-500 to-emerald-600", description: "Alertes WhatsApp Business via API webhook" },
-  { value: "webhook", label: "Webhook Personnalisé", icon: "🔗", color: "from-gray-500 to-slate-600", description: "Envoi JSON vers n'importe quelle URL webhook" }
+  { value: "slack", label: "Slack", icon: "", color: " ", description: "Envoyez des alertes vers vos canaux Slack via webhook" },
+  { value: "teams", label: "Microsoft Teams", icon: "", color: "from-blue-500 to-indigo-600", description: "Notifications vers vos équipes Teams via connecteur webhook" },
+  { value: "telegram", label: "Telegram", icon: "", color: "from-sky-400 to-blue-500", description: "Messages instantanés via bot Telegram" },
+  { value: "whatsapp", label: "WhatsApp", icon: "", color: "from-green-500 to-emerald-600", description: "Alertes WhatsApp Business via API webhook" },
+  { value: "webhook", label: "Webhook Personnalisé", icon: "", color: "from-gray-500 to-slate-600", description: "Envoi JSON vers n'importe quelle URL webhook" }
 ];
 
 const SEVERITIES = [
@@ -172,14 +172,14 @@ export default function CommunicationIntegrations() {
   const enabledCount = channels.filter(c => c.isEnabled).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-paper-deep">
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/gmao">
             <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               Intégrations Communication
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -188,7 +188,7 @@ export default function CommunicationIntegrations() {
           </div>
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <Button className="bg-ink text-white">
                 <Plus className="h-4 w-4 mr-2" /> Ajouter un canal
               </Button>
             </DialogTrigger>
@@ -276,7 +276,7 @@ export default function CommunicationIntegrations() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40">
+          <Card className="border-0 shadow-md bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/10 rounded-lg"><MessageSquare className="h-5 w-5 text-blue-600" /></div>
@@ -287,7 +287,7 @@ export default function CommunicationIntegrations() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40">
+          <Card className="border-0 shadow-md bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/10 rounded-lg"><Wifi className="h-5 w-5 text-green-600" /></div>
@@ -298,10 +298,10 @@ export default function CommunicationIntegrations() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/40 dark:to-violet-950/40">
+          <Card className="border-0 shadow-md bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 rounded-lg"><Send className="h-5 w-5 text-purple-600" /></div>
+                <div className="p-2 bg-signal-deep/10 rounded-lg"><Send className="h-5 w-5 text-signal-deep" /></div>
                 <div>
                   <p className="text-2xl font-bold">{stats?.sent || 0}</p>
                   <p className="text-xs text-gray-500">Messages envoyés</p>
@@ -309,7 +309,7 @@ export default function CommunicationIntegrations() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/40 dark:to-orange-950/40">
+          <Card className="border-0 shadow-md bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-500/10 rounded-lg"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
@@ -339,12 +339,12 @@ export default function CommunicationIntegrations() {
                 ))}
               </div>
             ) : channels.length === 0 ? (
-              <Card className="border-0 shadow-lg">
+              <Card className="border-0">
                 <CardContent className="p-12 text-center">
                   <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun canal configuré</h3>
                   <p className="text-gray-500 mb-6">Ajoutez votre premier canal pour recevoir des alertes instantanées sur vos plateformes préférées.</p>
-                  <Button onClick={() => setShowAddDialog(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                  <Button onClick={() => setShowAddDialog(true)} className="bg-ink text-white">
                     <Plus className="h-4 w-4 mr-2" /> Ajouter un canal
                   </Button>
                 </CardContent>
@@ -354,11 +354,11 @@ export default function CommunicationIntegrations() {
                 {channels.map((channel) => {
                   const platform = getPlatformInfo(channel.platform);
                   return (
-                    <Card key={channel.id} className="border-0 shadow-md hover:shadow-lg transition-all">
+                    <Card key={channel.id} className="border-0 shadow-md transition-all">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-xl bg-gradient-to-br ${platform.color} text-white text-lg`}>
+                            <div className={`p-2.5 rounded-xl bg-paper-deep ${platform.color} text-ink text-lg`}>
                               {platform.icon}
                             </div>
                             <div>
@@ -450,10 +450,10 @@ export default function CommunicationIntegrations() {
                 const channelCount = channels.filter(c => c.platform === platform.value).length;
                 const platformStats = stats?.byPlatform?.[platform.value];
                 return (
-                  <Card key={platform.value} className="border-0 shadow-md hover:shadow-lg transition-all">
+                  <Card key={platform.value} className="border-0 shadow-md transition-all">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${platform.color} text-white text-2xl`}>
+                        <div className={`p-3 rounded-xl bg-paper-deep ${platform.color} text-ink text-2xl`}>
                           {platform.icon}
                         </div>
                         <div>

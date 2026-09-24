@@ -146,11 +146,11 @@ export default function TenantPermissions() {
   // Vérifier que l'utilisateur a les permissions appropriées
   if (!user || !["admin", "director"].includes(user.role || "")) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="pt-24 pb-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="bg-white rounded-lg p-8 text-center">
               <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès Non Autorisé</h1>
               <p className="text-gray-600 mb-4">
@@ -248,7 +248,7 @@ export default function TenantPermissions() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "admin": return <Crown className="w-4 h-4 text-purple-600" />;
+      case "admin": return <Crown className="w-4 h-4 text-signal-deep" />;
       case "director": return <Building className="w-4 h-4 text-blue-600" />;
       case "manager": return <UserCog className="w-4 h-4 text-green-600" />;
       case "supervisor": return <Shield className="w-4 h-4 text-yellow-600" />;
@@ -280,7 +280,7 @@ export default function TenantPermissions() {
 
   if (usersLoading || modulesLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse">
@@ -293,15 +293,15 @@ export default function TenantPermissions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <Shield className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+              <Shield className="w-6 h-6 text-ink" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Gestion des Permissions</h1>
@@ -523,7 +523,7 @@ export default function TenantPermissions() {
               <CardContent>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {PRESET_ROLES.map((role) => (
-                    <Card key={role.id} className="border-2 hover:shadow-lg transition-shadow">
+                    <Card key={role.id} className="border-2 transition-shadow">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
                           {getRoleIcon(role.id)}

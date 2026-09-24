@@ -198,7 +198,7 @@ test.describe('F09 — Parcours complet d\'un testeur', () => {
   });
 
   test('la connexion échoue proprement avec un mauvais mot de passe', async ({ page }) => {
-    await fillLogin(page, 'admin@maintrix.local', 'mauvais-mot-de-passe');
+    await fillLogin(page, 'compte-inexistant@maintrix.local', 'mauvais-mot-de-passe');
     // On reste sur la page de connexion, sans plantage ni page blanche.
     await expect(page).toHaveURL(/login/);
     await expect(page.getByPlaceholder('vous@exemple.com')).toBeVisible();

@@ -52,11 +52,11 @@ function NavigationItem({ item, currentPath }: NavigationItemProps) {
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer",
           isActive
-            ? "bg-purple-600 text-white shadow-lg"
-            : "text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            ? "bg-signal-deep text-white"
+            : "text-gray-700 dark:text-gray-300 hover:bg-paper-deep dark:hover:bg-signal-deep/20"
         )}
       >
-        <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-purple-600")} />
+        <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-signal-deep")} />
         <span className="font-medium">{item.label}</span>
       </div>
     </Link>
@@ -86,15 +86,15 @@ export function RoleBasedNavigation() {
   return (
     <nav className="p-4 space-y-2">
       {/* Info utilisateur */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-        <div className="text-sm font-semibold text-purple-900 dark:text-purple-100">
+      <div className="mb-6 p-4 bg-paper-deep rounded-lg border border-rule dark:border-rule">
+        <div className="text-sm font-semibold text-signal-deep dark:text-paper-deep">
           {user?.username}
         </div>
-        <div className="text-xs text-purple-700 dark:text-purple-300 capitalize">
+        <div className="text-xs text-signal-deep dark:text-signal-light capitalize">
           {user?.role?.replace(/_/g, " ")}
         </div>
         {user?.department && (
-          <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+          <div className="text-xs text-signal-deep dark:text-signal-light mt-1">
             {user.department}
           </div>
         )}

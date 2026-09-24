@@ -39,7 +39,7 @@ const STATUS_CFG: Record<string, { label: string; color: string }> = {
 };
 const TYPE_CFG: Record<string, { label: string; color: string }> = {
   maintenance: { label: "Maintenance", color: "bg-blue-100 text-blue-700" },
-  capex: { label: "CAPEX", color: "bg-purple-100 text-purple-700" },
+  capex: { label: "CAPEX", color: "bg-paper-deep text-signal-deep" },
   opex: { label: "OPEX", color: "bg-indigo-100 text-indigo-700" },
   emergency: { label: "Urgence", color: "bg-red-100 text-red-700" },
   project: { label: "Projet", color: "bg-teal-100 text-teal-700" },
@@ -135,18 +135,18 @@ export default function BudgetPage() {
   const monthlyData = Array.from({ length: 12 }, (_, i) => ({ month: monthNames[i], dépenses: 0, ...stats?.monthly?.find((m: any) => Number(m.month) === i + 1 && (m.total = Number(m.total))) }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/20 to-emerald-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg"><Wallet className="h-6 w-6 text-white" /></div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Gestion de Budget</h1>
+            <div className="p-2.5 rounded-xl bg-paper-deep"><Wallet className="h-6 w-6 text-ink" /></div>
+            <h1 className="text-3xl font-bold text-ink">Gestion de Budget</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Suivi des budgets de maintenance, CAPEX et dépenses</p>
         </div>
         <div className="flex gap-2">
           <Select value={year} onValueChange={setYear}><SelectTrigger className="w-28 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg gap-2"><Plus className="h-4 w-4" />Nouveau budget</Button>
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2"><Plus className="h-4 w-4" />Nouveau budget</Button>
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export default function BudgetPage() {
           { label: "Disponible", value: fmtEur((stats?.totalAllocated || 0) - (stats?.totalSpent || 0) - (stats?.totalCommitted || 0)), icon: TrendingUp, color: "from-green-500 to-emerald-600" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
             <div><p className="text-lg font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
           </CardContent></Card>
         ))}
@@ -184,7 +184,7 @@ export default function BudgetPage() {
 
       {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><Wallet className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun budget pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-emerald-500 to-green-600 text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier budget</Button></div>
+        <div className="text-center py-16"><Wallet className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun budget pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier budget</Button></div>
       ) : (
         <div className="grid gap-4">
           {filtered.map(b => {
@@ -200,7 +200,7 @@ export default function BudgetPage() {
                         <Badge className={statusConf.color + " text-xs"}>{statusConf.label}</Badge>
                         <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
                         <Badge variant="outline" className="text-xs">{b.fiscalYear}</Badge>
-                        {b.department && <span className="text-xs text-slate-500">🏢 {b.department}</span>}
+                        {b.department && <span className="text-xs text-slate-500">{b.department}</span>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{b.title}</h3>
                       <div className="mt-2 space-y-1">
@@ -251,7 +251,7 @@ export default function BudgetPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-emerald-200">
                 <Wallet className="h-6 w-6 text-emerald-600" />
                 <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.budgetNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
@@ -338,7 +338,7 @@ export default function BudgetPage() {
             <DialogHeader><DialogTitle>Enregistrer une transaction</DialogTitle></DialogHeader>
             <Form {...txForm}><form onSubmit={txForm.handleSubmit(d => addTxMut.mutate({ id: selected.id, data: d }))} className="space-y-3 mt-2">
               <div className="grid grid-cols-2 gap-3">
-                <FormField control={txForm.control} name="transactionType" render={({ field }) => (<FormItem><FormLabel>Type *</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="expense">💸 Dépense</SelectItem><SelectItem value="commitment">📌 Engagement</SelectItem><SelectItem value="adjustment">🔄 Ajustement</SelectItem><SelectItem value="refund">↩️ Remboursement</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={txForm.control} name="transactionType" render={({ field }) => (<FormItem><FormLabel>Type *</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="expense">Dépense</SelectItem><SelectItem value="commitment">Engagement</SelectItem><SelectItem value="adjustment">Ajustement</SelectItem><SelectItem value="refund">↩Remboursement</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                 <FormField control={txForm.control} name="amount" render={({ field }) => (<FormItem><FormLabel>Montant (€) *</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={txForm.control} name="transactionDate" render={({ field }) => (<FormItem><FormLabel>Date *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={txForm.control} name="category" render={({ field }) => (<FormItem><FormLabel>Catégorie</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />

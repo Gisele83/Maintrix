@@ -5,6 +5,7 @@
 
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { type RoleLocataire, ROLE_PAR_DEFAUT } from "@shared/roles";
 
 export interface DefaultCredentials {
   username: string;
@@ -18,7 +19,7 @@ export interface SuperAdminUserCredentials extends DefaultCredentials {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'owner' | 'admin' | 'maintainer' | 'technician' | 'viewer';
+  role: RoleLocataire;
   isDefaultCredentials: boolean;
   passwordExpiresAt: Date;
   defaultCredentialsGeneratedBy: number;
@@ -73,7 +74,7 @@ export class CredentialGenerator {
     firstName: string,
     lastName: string,
     tenantId: string,
-    role: 'owner' | 'admin' | 'maintainer' | 'technician' | 'viewer' = 'technician',
+    role: RoleLocataire = ROLE_PAR_DEFAUT,
     superAdminId: number
   ): SuperAdminUserCredentials {
     const username = this.generateUsername(email);

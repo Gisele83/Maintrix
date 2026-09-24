@@ -60,7 +60,24 @@ interface RecentAlert {
   createdAt?: string;
 }
 
+/**
+ * Contexte des indicateurs, calculé en base (gmaoStorage.getDashboardContexte).
+ * Un grand nombre seul ne renseigne sur rien : c'est la deuxième ligne qui
+ * oriente la journée d'un responsable maintenance.
+ */
+interface ContexteGMAO {
+  equipementsIndisponibles: number;
+  equipementsAjoutesCeMois: number;
+  otEnRetard: number;
+  otUrgents: number;
+  alertesDernieres24h: number;
+  piecesEnRupture: number;
+  preventifEnRetard: number;
+  preventifSous7Jours: number;
+}
+
 interface GMAODashboardData {
+  contexte?: ContexteGMAO;
   equipmentCount: number;
   activeWorkOrdersCount: number;
   pendingWorkOrdersCount: number;
@@ -150,21 +167,21 @@ export default function GMAODashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      <div className="min-h-screen bg-paper">
         <ModernNavigation />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-rule border-t-signal"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-paper">
       <ModernNavigation />
 
       {/* Navigation Tabs */}
-      <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
+      <nav className="bg-white border-b border-rule sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8 overflow-x-auto">
             {tabs.map((tab) => {
@@ -258,152 +275,294 @@ export default function GMAODashboard() {
         {/* Vue d'ensemble uniquement */}
         {!showAdminModal && activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Welcome Header */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl p-6 border border-primary/20">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Tableau de Bord GMAO</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Vue d'ensemble de votre système de maintenance - {new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setActiveTab("work-orders")}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvel OT
-                  </Button>
-                  <Button size="sm" onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}>
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Rapports
-                  </Button>
-                </div>
+            {/* ══════════════════════════════════════════════════════════
+                EN-TÊTE
+                ══════════════════════════════════════════════════════════
+                Un titre, une date, deux actions. La version précédente
+                enfermait cela dans un grand cadre teinté qui n'apportait
+                rien et repoussait les chiffres sous la ligne de flottaison. */}
+            <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-rule">
+              <div>
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
+                <h1 className="font-serif text-page font-medium text-ink mt-1.5">Vue d'ensemble</h1>
+                <p className="text-sm text-ink-soft mt-1 first-letter:uppercase">
+                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}
+                  className="inline-flex items-center gap-2 h-10 px-4 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Rapports
+                </button>
+                <button
+                  onClick={() => setActiveTab("work-orders")}
+                  className="inline-flex items-center gap-2 h-10 px-4 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nouvel ordre de travail
+                </button>
               </div>
             </div>
 
-            {/* KPI Cards - Improved Design */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-blue-100">Équipements</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Factory className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.equipmentCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-blue-100">
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    <span>Actifs et surveillés</span>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* ══════════════════════════════════════════════════════════
+                INDICATEURS
+                ══════════════════════════════════════════════════════════
+                Cartes claires à filet, chiffre en romain, et un liseré
+                gauche qui ne s'allume QUE lorsqu'il y a quelque chose à
+                faire. Les quatre cartes étaient auparavant des aplats
+                sombres identiques, ornés d'un disque blanc décoratif : la
+                couleur ne disait rien, et rien ne distinguait « 0 alerte »
+                de « 12 alertes ». */}
+            {(() => {
+              const c = dashboardData?.contexte;
+              /** Assemble les précisions non nulles ; à défaut, une phrase neutre. */
+              const detail = (parts: Array<[number, string]>, aDefaut: string) => {
+                const dits = parts.filter(([n]) => n > 0).map(([n, libelle]) => `${n} ${libelle}`);
+                return dits.length ? dits.join(' · ') : aDefaut;
+              };
+              const indicateurs = [
+                {
+                  cle: 'equipements',
+                  libelle: 'Équipements',
+                  valeur: dashboardData?.equipmentCount || 0,
+                  detail: detail(
+                    [
+                      [c?.equipementsIndisponibles || 0, 'indisponible(s)'],
+                      [c?.equipementsAjoutesCeMois || 0, 'ajouté(s) ce mois'],
+                    ],
+                    (dashboardData?.equipmentCount || 0) > 0 ? 'tous en service' : 'parc à déclarer',
+                  ),
+                  icone: Factory,
+                  alerte: (c?.equipementsIndisponibles || 0) > 0,
+                },
+                {
+                  cle: 'ot',
+                  libelle: 'Ordres de travail',
+                  valeur: dashboardData?.activeWorkOrdersCount || 0,
+                  detail: detail(
+                    [
+                      [c?.otUrgents || 0, 'urgent(s)'],
+                      [c?.otEnRetard || 0, 'en retard'],
+                      [dashboardData?.pendingWorkOrdersCount || 0, 'en attente'],
+                    ],
+                    'rien en cours',
+                  ),
+                  icone: Wrench,
+                  alerte: (c?.otEnRetard || 0) > 0 || (c?.otUrgents || 0) > 0,
+                },
+                {
+                  cle: 'alertes',
+                  libelle: 'Alertes critiques',
+                  valeur: dashboardData?.criticalAlertsCount || 0,
+                  detail: detail(
+                    [[c?.alertesDernieres24h || 0, 'depuis 24 h']],
+                    (dashboardData?.criticalAlertsCount || 0) > 0 ? 'à traiter sans délai' : 'aucune en cours',
+                  ),
+                  icone: AlertTriangle,
+                  alerte: (dashboardData?.criticalAlertsCount || 0) > 0,
+                },
+                {
+                  cle: 'stock',
+                  libelle: 'Stock sous seuil',
+                  valeur: dashboardData?.lowStockPartsCount || 0,
+                  detail: detail(
+                    [[c?.piecesEnRupture || 0, 'en rupture']],
+                    (dashboardData?.lowStockPartsCount || 0) > 0 ? 'à réapprovisionner' : 'aucun seuil franchi',
+                  ),
+                  icone: Package,
+                  alerte: (c?.piecesEnRupture || 0) > 0,
+                },
+              ];
 
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-amber-100">OT en Cours</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Wrench className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.activeWorkOrdersCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-amber-100">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{dashboardData?.pendingWorkOrdersCount || 0} en attente</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-rose-500 to-red-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-rose-100">Alertes</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <AlertTriangle className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.criticalAlertsCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-rose-100">
-                    <Bell className="w-4 h-4 mr-1" />
-                    <span>Nécessitent attention</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-violet-500 to-purple-600 text-white">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10" />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-violet-100">Stock Critique</CardTitle>
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Package className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{dashboardData?.lowStockPartsCount || 0}</div>
-                  <div className="flex items-center mt-2 text-sm text-violet-100">
-                    <ShoppingCart className="w-4 h-4 mr-1" />
-                    <span>À réapprovisionner</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Access - New Features */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                { icon: Heart, label: "Santé Machines", href: "/machine-health", color: "from-green-500 to-emerald-600" },
-                { icon: Brain, label: "Alertes IA", href: "/smart-alerts", color: "from-purple-500 to-violet-600" },
-                { icon: Timer, label: "SLA", href: "/sla-management", color: "from-amber-500 to-orange-600" },
-                { icon: Radio, label: "Capteurs IoT", href: "/sensor-hub", color: "from-cyan-500 to-blue-600" },
-                { icon: QrCode, label: "QR Codes", href: "/equipment-qr", color: "from-violet-500 to-purple-600" },
-                { icon: ExternalLink, label: "Portail Client", href: "/client-portal", color: "from-blue-500 to-indigo-600" },
-                { icon: Brain, label: "Infra Cognitive", href: "/cognitive-infrastructure", color: "from-fuchsia-500 to-pink-600" },
-                { icon: Zap, label: "Intégrations", href: "/advanced-integrations", color: "from-yellow-500 to-orange-500" },
-                { icon: Bell, label: "Communications", href: "/communication-integrations", color: "from-indigo-500 to-blue-600" },
-                { icon: Shield, label: "Permis de Travail", href: "/permit-to-work", color: "from-red-500 to-orange-500" },
-                { icon: Fish, label: "Causes Racines", href: "/rca", color: "from-purple-600 to-indigo-600" },
-                { icon: Gauge, label: "OEE", href: "/oee", color: "from-emerald-500 to-teal-600" },
-                { icon: AlertTriangle, label: "FMEA / AMDEC", href: "/fmea", color: "from-orange-500 to-amber-600" },
-                { icon: Package, label: "Cycle de vie actifs", href: "/asset-lifecycle", color: "from-blue-600 to-cyan-600" },
-                { icon: FlaskConical, label: "Calibrations", href: "/calibration", color: "from-teal-500 to-cyan-600" },
-                { icon: UserCheck, label: "Habilitations", href: "/habilitation", color: "from-indigo-600 to-purple-600" },
-                { icon: DollarSign, label: "Gestion Budget", href: "/budget", color: "from-emerald-500 to-green-600" },
-                { icon: Building2, label: "Portail Fournisseurs", href: "/supplier-portal", color: "from-purple-600 to-indigo-600" },
-                { icon: ShieldCheck, label: "Garanties", href: "/warranty", color: "from-green-600 to-teal-600" },
-                { icon: CalendarCheck, label: "Plan Maintenance", href: "/maintenance-plan", color: "from-cyan-600 to-blue-600" },
-                { icon: Download, label: "Télécharger", href: "/download", color: "from-slate-600 to-slate-800" }
-              ].map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Card className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-0 shadow-md">
-                    <CardContent className="p-3 flex flex-col items-center text-center">
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-2`}>
-                        <item.icon className="w-5 h-5 text-white" />
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
+                  {indicateurs.map((kpi) => (
+                    <div key={kpi.cle} className="bg-white p-5 relative">
+                      <span
+                        className={`absolute left-0 top-0 bottom-0 w-0.5 ${kpi.alerte ? 'bg-amber-500' : 'bg-transparent'}`}
+                        aria-hidden="true"
+                      />
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-mono text-eyebrow uppercase text-ink-mute">{kpi.libelle}</p>
+                        <kpi.icone className="w-4 h-4 text-ink-mute shrink-0" />
                       </div>
-                      <span className="text-xs font-medium">{item.label}</span>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+                      <p className="font-serif text-4xl text-ink mt-3 leading-none">{kpi.valeur}</p>
+                      <p className="text-sm text-ink-soft mt-2">{kpi.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════════════
+                À TRAITER
+                ══════════════════════════════════════════════════════════
+                Prend la place du bloc « Commencer » dès que le parc existe.
+                N'affiche que ce qui appelle une décision aujourd'hui, du plus
+                urgent au moins pressant, et disparaît quand il n'y a rien —
+                un écran qui dit « rien à signaler » vaut mieux qu'une liste
+                remplie pour ne pas paraître vide. */}
+            {(dashboardData?.equipmentCount || 0) > 0 && (() => {
+              const c = dashboardData?.contexte;
+              const points = [
+                { n: c?.otUrgents || 0, libelle: 'ordre(s) de travail urgent(s)', href: '/work-orders', grave: true },
+                { n: dashboardData?.criticalAlertsCount || 0, libelle: 'alerte(s) critique(s)', href: '/smart-alerts', grave: true },
+                { n: c?.otEnRetard || 0, libelle: 'intervention(s) en retard', href: '/work-orders', grave: true },
+                { n: c?.preventifEnRetard || 0, libelle: 'préventif(s) en retard', href: '/maintenance-plan', grave: true },
+                { n: c?.equipementsIndisponibles || 0, libelle: 'équipement(s) indisponible(s)', href: '/equipment-management', grave: false },
+                { n: c?.piecesEnRupture || 0, libelle: 'référence(s) en rupture', href: '/inventaire', grave: false },
+                { n: c?.preventifSous7Jours || 0, libelle: 'préventif(s) sous 7 jours', href: '/maintenance-plan', grave: false },
+              ].filter((point) => point.n > 0);
+
+              return (
+                <div className="border border-rule bg-white">
+                  <div className="flex items-baseline justify-between px-5 py-4 border-b border-rule">
+                    <h2 className="font-serif text-title font-medium text-ink">À traiter</h2>
+                    <span className="font-mono text-eyebrow uppercase text-ink-mute">
+                      {points.length > 0 ? `${points.length} point(s)` : 'rien à signaler'}
+                    </span>
+                  </div>
+
+                  {points.length === 0 ? (
+                    <p className="px-5 py-6 text-sm text-ink-soft">
+                      Aucune urgence, aucun retard, aucun seuil franchi. Le parc tourne.
+                    </p>
+                  ) : (
+                    <ul>
+                      {points.map((point) => (
+                        <li key={point.libelle} className="border-b border-rule last:border-b-0">
+                          <Link href={point.href}>
+                            <span className="flex items-baseline gap-4 px-5 py-3 cursor-pointer transition-colors hover:bg-paper group">
+                              <span
+                                className={`font-serif text-2xl leading-none w-10 shrink-0 ${point.grave ? 'text-ink' : 'text-ink-soft'}`}
+                              >
+                                {point.n}
+                              </span>
+                              <span className="text-sm text-ink group-hover:text-signal transition-colors">
+                                {point.libelle}
+                              </span>
+                              {point.grave && (
+                                <span className="ml-auto font-mono text-eyebrow uppercase text-amber-700 shrink-0">
+                                  priorité
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Parc vide : on dit quoi faire, au lieu d'afficher quatre zéros
+                sans suite. C'est le premier écran que voit un testeur. */}
+            {(dashboardData?.equipmentCount || 0) === 0 && (
+              <div className="border border-rule bg-white p-6">
+                <h2 className="font-serif text-title font-medium text-ink">Commencer</h2>
+                <p className="text-sm text-ink-soft mt-2 max-w-2xl">
+                  Votre parc est encore vide. Trois étapes suffisent pour que ce tableau de bord
+                  reflète votre atelier.
+                </p>
+                <ol className="mt-5 grid gap-px bg-rule border border-rule sm:grid-cols-3">
+                  {[
+                    { n: '01', titre: 'Déclarer un équipement', texte: 'Nom, emplacement, criticité.', href: '/equipment-management' },
+                    { n: '02', titre: 'Créer un ordre de travail', texte: 'Une demande, une priorité, un responsable.', href: '/work-orders' },
+                    { n: '03', titre: 'Poser un plan préventif', texte: 'Une échéance calendaire ou au compteur.', href: '/maintenance-plan' },
+                  ].map((etape) => (
+                    <li key={etape.n} className="bg-white p-4">
+                      <Link href={etape.href}>
+                        <span className="block cursor-pointer group">
+                          <span className="font-mono text-sm text-signal">{etape.n}</span>
+                          <span className="block font-medium text-ink mt-1 group-hover:text-signal transition-colors">
+                            {etape.titre}
+                          </span>
+                          <span className="block text-sm text-ink-soft mt-1">{etape.texte}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════
+                MODULES
+                ══════════════════════════════════════════════════════════
+                Ils étaient présentés en une grille unique de seize tuiles
+                équivalentes, chacune avec une pastille d'icône en dégradé.
+                Une fois les dégradés retirés, il restait seize cases pâles
+                indiscernables. On les regroupe donc par usage : on cherche
+                d'abord un domaine, ensuite un écran. */}
+            {[
+              {
+                groupe: 'Exploitation',
+                items: [
+                  { icon: Heart, label: 'Santé des machines', href: '/machine-health' },
+                  { icon: Radio, label: 'Capteurs', href: '/sensor-hub' },
+                  { icon: Bell, label: 'Alertes', href: '/smart-alerts' },
+                  { icon: Timer, label: 'Engagements de service', href: '/sla-management' },
+                  { icon: QrCode, label: 'Codes QR', href: '/equipment-qr' },
+                  { icon: CalendarCheck, label: 'Plan de maintenance', href: '/maintenance-plan' },
+                ],
+              },
+              {
+                groupe: 'Analyse',
+                items: [
+                  { icon: Gauge, label: 'OEE', href: '/oee' },
+                  { icon: Fish, label: 'Causes racines', href: '/rca' },
+                  { icon: AlertTriangle, label: 'AMDEC', href: '/fmea' },
+                  { icon: Package, label: 'Cycle de vie des actifs', href: '/asset-lifecycle' },
+                  { icon: DollarSign, label: 'Budget', href: '/budget' },
+                  { icon: Brain, label: 'Supervision adaptative', href: '/cognitive-infrastructure' },
+                ],
+              },
+              {
+                groupe: 'Conformité et partenaires',
+                items: [
+                  { icon: Shield, label: 'Permis de travail', href: '/permit-to-work' },
+                  { icon: FlaskConical, label: 'Étalonnages', href: '/calibration' },
+                  { icon: UserCheck, label: 'Habilitations', href: '/habilitation' },
+                  { icon: ShieldCheck, label: 'Garanties', href: '/warranty' },
+                  { icon: Building2, label: 'Fournisseurs', href: '/supplier-portal' },
+                  { icon: ExternalLink, label: 'Portail client', href: '/client-portal' },
+                ],
+              },
+              {
+                groupe: 'Données et échanges',
+                items: [
+                  { icon: Zap, label: 'Intégrations', href: '/advanced-integrations' },
+                  { icon: Bell, label: 'Communications', href: '/communication-integrations' },
+                  { icon: Download, label: 'Application à installer', href: '/download' },
+                ],
+              },
+            ].map((section) => (
+              <div key={section.groupe}>
+                <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">{section.groupe}</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-rule border border-rule">
+                  {section.items.map((item) => (
+                    <Link key={item.href} href={item.href}>
+                      <div className="group bg-white h-full p-4 cursor-pointer transition-colors hover:bg-paper">
+                        <item.icon className="w-5 h-5 text-ink-mute group-hover:text-signal transition-colors" />
+                        <span className="block text-sm text-ink mt-3 leading-snug">{item.label}</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Work Orders Status - Enhanced */}
-              <Card className="lg:col-span-1 shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="lg:col-span-1 border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-primary" />
                       Répartition des OT
                     </CardTitle>
@@ -441,10 +600,10 @@ export default function GMAODashboard() {
               </Card>
 
               {/* Recent Work Orders - Enhanced */}
-              <Card className="lg:col-span-2 shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="lg:col-span-2 border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <Wrench className="w-5 h-5 text-primary" />
                       Ordres de Travail Récents
                     </CardTitle>
@@ -459,8 +618,8 @@ export default function GMAODashboard() {
                     {dashboardData?.recentWorkOrders?.slice(0, 5).map((order, index) => (
                       <div 
                         key={order.id} 
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md hover:border-primary/30 ${
-                          index === 0 ? 'bg-primary/5 border-primary/20' : 'bg-card'
+                        className={`flex items-center justify-between p-4 border transition-colors hover:bg-paper ${
+                          index === 0 ? 'bg-paper border-rule' : 'bg-white border-rule'
                         }`}
                       >
                         <div className="flex items-center gap-4">
@@ -517,7 +676,7 @@ export default function GMAODashboard() {
             {/* Quick Access Section */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => setActiveTab("equipment")}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -530,7 +689,7 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => { setShowAdminModal(true); setActiveAdminTab("maintenance"); }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -543,12 +702,12 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => setActiveTab("inventory")}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors">
-                    <Package className="w-6 h-6 text-purple-600" />
+                  <div className="p-3 rounded-full bg-paper-deep dark:bg-signal-deep/30 mb-3 group-hover:bg-signal-deep dark:group-hover:bg-signal-deep/50 transition-colors">
+                    <Package className="w-6 h-6 text-signal-deep" />
                   </div>
                   <h3 className="font-semibold text-sm">Inventaire</h3>
                   <p className="text-xs text-muted-foreground mt-1">Stock et pièces</p>
@@ -556,7 +715,7 @@ export default function GMAODashboard() {
               </Card>
 
               <Card 
-                className="cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 group"
+                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
                 onClick={() => { setShowAdminModal(true); setActiveAdminTab("health-dashboard"); }}
               >
                 <CardContent className="p-4 flex flex-col items-center text-center">
@@ -572,10 +731,10 @@ export default function GMAODashboard() {
             {/* Charts and Statistics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Work Orders Trend Chart */}
-              <Card className="shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-primary" />
                       Évolution des OT (6 derniers mois)
                     </CardTitle>
@@ -622,10 +781,10 @@ export default function GMAODashboard() {
               </Card>
 
               {/* Equipment by Type Pie Chart */}
-              <Card className="shadow-md">
-                <CardHeader className="border-b bg-muted/30">
+              <Card className="border border-rule shadow-none">
+                <CardHeader className="border-b border-rule bg-paper">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-primary" />
                       Répartition par Type d'Équipement
                     </CardTitle>
@@ -678,7 +837,7 @@ export default function GMAODashboard() {
 
             {/* Performance Indicators */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="shadow-md border-l-4 border-l-emerald-500">
+              <Card className="border border-rule border-l-4 border-l-emerald-600 shadow-none">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
@@ -737,10 +896,10 @@ export default function GMAODashboard() {
             </div>
 
             {/* Monthly Statistics Bar Chart */}
-            <Card className="shadow-md">
-              <CardHeader className="border-b bg-muted/30">
+            <Card className="border border-rule shadow-none">
+              <CardHeader className="border-b border-rule bg-paper">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-primary" />
                     Statistiques Mensuelles des Interventions
                   </CardTitle>
@@ -928,7 +1087,7 @@ export default function GMAODashboard() {
               <Card>
                 <CardContent className="p-6">
                   <div className="text-center py-8">
-                    <PieChart className="w-12 h-12 mx-auto text-purple-600 mb-4" />
+                    <PieChart className="w-12 h-12 mx-auto text-signal-deep mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Tableaux de Bord</h3>
                     <p className="text-muted-foreground mb-4">
                       Visualisations interactives et métriques temps réel
@@ -1090,7 +1249,7 @@ export default function GMAODashboard() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Prédictions IA</h3>
-                  <Brain className="w-5 h-5 text-purple-600" />
+                  <Brain className="w-5 h-5 text-signal-deep" />
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between">
@@ -1132,8 +1291,8 @@ export default function GMAODashboard() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                    <Brain className="w-5 h-5 text-purple-600" />
+                  <div className="flex items-center gap-3 p-3 bg-paper-deep rounded-lg">
+                    <Brain className="w-5 h-5 text-signal-deep" />
                     <div>
                       <p className="font-medium">IA Performance</p>
                       <p className="text-sm text-muted-foreground">Modèles prédictifs améliorés de 15%</p>
@@ -1193,9 +1352,9 @@ export default function GMAODashboard() {
                   <p className="text-xs text-blue-600">+18h vs secteur</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-purple-600">4.2h</p>
+                  <p className="text-2xl font-bold text-signal-deep">4.2h</p>
                   <p className="text-sm text-muted-foreground">Votre MTTR</p>
-                  <p className="text-xs text-purple-600">-1.3h vs secteur</p>
+                  <p className="text-xs text-signal-deep">-1.3h vs secteur</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-yellow-600">€127</p>

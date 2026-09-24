@@ -167,9 +167,25 @@ section('T3 — Environnement séparé du développement');
   // Secrets propres à l'environnement.
   if (existsSync(ENV_FILE)) ok(`secrets dans ${ENV_FILE} (ignoré par git)`);
   else ko(`${ENV_FILE} absent`);
-  const ignored = spawnSync('git', ['check-ignore', '-q', ENV_FILE]).status === 0;
-  if (ignored) ok(`${ENV_FILE} est bien ignoré par git`);
-  else ko(`${ENV_FILE} n'est PAS ignoré par git — risque de fuite de secrets`);
+  // ⚠️ `git check-ignore` échoue AUSSI quand il n'y a pas de dépôt du tout :
+  // une livraison par `git archive` pose les fichiers sans .git, et le
+  // contrôle déclarait alors l'environnement NON CONFORME pour une raison
+  // fausse. On lit donc .gitignore directement dans ce cas.
+  const depotGit = spawnSync('git', ['rev-parse', '--is-inside-work-tree']).status === 0;
+  if (depotGit) {
+    const ignored = spawnSync('git', ['check-ignore', '-q', ENV_FILE]).status === 0;
+    if (ignored) ok(`${ENV_FILE} est bien ignoré par git`);
+    else ko(`${ENV_FILE} n'est PAS ignoré par git — risque de fuite de secrets`);
+  } else if (existsSync('.gitignore')) {
+    const regles = readFileSync('.gitignore', 'utf8').split(/\r?\n/).map((l) => l.trim());
+    if (regles.includes(ENV_FILE) || regles.includes(`/${ENV_FILE}`)) {
+      ok(`${ENV_FILE} figure dans .gitignore (aucun dépôt git ici — livraison par archive)`);
+    } else {
+      ko(`${ENV_FILE} n'est pas listé dans .gitignore — risque de fuite de secrets`);
+    }
+  } else {
+    info('ni dépôt git ni .gitignore : rien à vérifier ici (livraison par archive)');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -320,8 +336,10 @@ section('T7 — Le provisionnement d\'un testeur est possible');
   else ko(`réponse inattendue de /api/super-admin/login : ${login}`);
 
   const admins = psql("SELECT COUNT(*) FROM user_profiles WHERE role IN ('admin','owner')");
-  if (Number(admins) >= 1) ok(`${admins} compte(s) administrateur présent(s)`);
-  else ko('aucun compte administrateur');
+  // Informatif : les testeurs sont créés par le SUPER-ADMIN, pas par un
+  // administrateur de locataire. Depuis le retrait des comptes de
+  // démonstration, une installation neuve n'en a aucun, et c'est normal.
+  info(`${admins} compte(s) administrateur de locataire`);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -342,8 +360,9 @@ section('T8 — Un testeur peut RÉELLEMENT se connecter depuis son navigateur')
     ...(env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
   ];
 
+  if (!env.SONDE_EMAIL || !env.SONDE_PASSWORD) ko('compte de sonde absent de ' + ENV_FILE);
   for (const origin of [...new Set(origins)]) {
-    const body = JSON.stringify({ email: 'admin@maintrix.local', password: 'Maintrix2024!' });
+    const body = JSON.stringify({ email: env.SONDE_EMAIL, password: env.SONDE_PASSWORD });
     const out = docker(['exec', APP, 'curl', '-s', '-o', '/dev/null', '-w', '%{http_code}',
       '-X', 'POST', 'http://localhost:5000/api/enterprise-auth/login',
       '-H', 'Content-Type: application/json',

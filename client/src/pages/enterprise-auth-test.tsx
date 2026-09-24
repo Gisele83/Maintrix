@@ -43,14 +43,14 @@ export default function EnterpriseAuthTest() {
       
       setInvitationResult(response);
       toast({
-        title: "✅ Invitation créée",
+        title: "Invitation créée",
         description: `Invitation envoyée à ${invitationData.email}`,
         variant: "default"
       });
     } catch (error: any) {
       console.error("Invitation creation error:", error);
       toast({
-        title: "❌ Erreur d'invitation",
+        title: "Erreur d'invitation",
         description: error.message || "Échec de création de l'invitation",
         variant: "destructive"
       });
@@ -73,14 +73,14 @@ export default function EnterpriseAuthTest() {
       localStorage.setItem('sessionToken', response.sessionToken);
       
       toast({
-        title: "🔐 Connexion réussie",
+        title: "Connexion réussie",
         description: `Bienvenue ${response.user.username}`,
         variant: "default"
       });
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
-        title: "🚫 Connexion échouée",
+        title: "Connexion échouée",
         description: error.message || "Échec de connexion",
         variant: "destructive"
       });
@@ -96,14 +96,14 @@ export default function EnterpriseAuthTest() {
       
       setVerificationResult(response);
       toast({
-        title: "🔍 Invitation vérifiée",
+        title: "Invitation vérifiée",
         description: response.valid ? "Invitation valide" : "Invitation invalide",
         variant: response.valid ? "default" : "destructive"
       });
     } catch (error: any) {
       console.error("Verification error:", error);
       toast({
-        title: "❌ Erreur de vérification",
+        title: "Erreur de vérification",
         description: error.message || "Échec de vérification",
         variant: "destructive"
       });
@@ -122,14 +122,14 @@ export default function EnterpriseAuthTest() {
       localStorage.removeItem('sessionToken');
       
       toast({
-        title: "👋 Déconnexion réussie",
+        title: "Déconnexion réussie",
         description: "Session révoquée avec succès",
         variant: "default"
       });
     } catch (error: any) {
       console.error("Logout error:", error);
       toast({
-        title: "❌ Erreur de déconnexion",
+        title: "Erreur de déconnexion",
         description: error.message || "Échec de déconnexion",
         variant: "destructive"
       });
@@ -137,14 +137,14 @@ export default function EnterpriseAuthTest() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Shield className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              🔒 Test Authentification Enterprise
+            <h1 className="text-3xl font-bold text-ink">
+              Test Authentification Enterprise
             </h1>
           </div>
           <p className="text-gray-600 max-w-2xl mx-auto">
@@ -154,7 +154,7 @@ export default function EnterpriseAuthTest() {
         </div>
 
         <Tabs defaultValue="invitations" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/70 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-white">
             <TabsTrigger value="invitations" className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
               Invitations
@@ -175,11 +175,11 @@ export default function EnterpriseAuthTest() {
 
           {/* PRIORITÉ 3: SYSTÈME D'INVITATIONS */}
           <TabsContent value="invitations">
-            <Card className="bg-white/70 backdrop-blur-sm border-blue-200">
+            <Card className="bg-white border-blue-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="h-5 w-5 text-blue-600" />
-                  📧 PRIORITÉ 3: Système d'Invitations par Tenant
+                  PRIORITÉ 3: Système d'Invitations par Tenant
                 </CardTitle>
                 <CardDescription>
                   Créer des invitations sécurisées avec contrôle strict de l'inscription
@@ -237,7 +237,7 @@ export default function EnterpriseAuthTest() {
                   
                   {invitationResult && (
                     <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                      <h4 className="font-semibold text-green-800 mb-2">✅ Invitation créée</h4>
+                      <h4 className="font-semibold text-green-800 mb-2">Invitation créée</h4>
                       <div className="space-y-2 text-sm">
                         <p><strong>ID:</strong> <code className="bg-green-100 px-1 rounded">{invitationResult.invitationId}</code></p>
                         <p><strong>Lien:</strong></p>
@@ -254,11 +254,11 @@ export default function EnterpriseAuthTest() {
 
           {/* PRIORITÉ 1-2: LOGIN ENTERPRISE */}
           <TabsContent value="login">
-            <Card className="bg-white/70 backdrop-blur-sm border-purple-200">
+            <Card className="bg-white border-rule">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5 text-purple-600" />
-                  🔐 PRIORITÉ 1-2: Authentification Obligatoire
+                  <Key className="h-5 w-5 text-signal-deep" />
+                  PRIORITÉ 1-2: Authentification Obligatoire
                 </CardTitle>
                 <CardDescription>
                   Test du système de connexion enterprise avec sessions sécurisées
@@ -306,12 +306,12 @@ export default function EnterpriseAuthTest() {
                   </div>
                   
                   {sessionInfo && (
-                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                      <h4 className="font-semibold text-purple-800 mb-2">🔐 Session Active</h4>
+                    <div className="bg-paper-deep p-4 rounded-lg border border-rule">
+                      <h4 className="font-semibold text-signal-deep mb-2">Session Active</h4>
                       <div className="space-y-2 text-sm">
                         <p><strong>Utilisateur:</strong> {sessionInfo.user.username}</p>
                         <p><strong>Rôle:</strong> <Badge variant="outline">{sessionInfo.user.role}</Badge></p>
-                        <p><strong>Tenant:</strong> <code className="bg-purple-100 px-1 rounded">{sessionInfo.user.tenantId}</code></p>
+                        <p><strong>Tenant:</strong> <code className="bg-paper-deep px-1 rounded">{sessionInfo.user.tenantId}</code></p>
                         <p><strong>Expire:</strong> {new Date(sessionInfo.expiresAt).toLocaleString()}</p>
                         <Button onClick={handleLogout} size="sm" variant="outline">
                           Déconnexion
@@ -326,11 +326,11 @@ export default function EnterpriseAuthTest() {
 
           {/* VÉRIFICATION D'INVITATION */}
           <TabsContent value="verify">
-            <Card className="bg-white/70 backdrop-blur-sm border-green-200">
+            <Card className="bg-white border-green-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-green-600" />
-                  🔍 Vérification de Token d'Invitation
+                  Vérification de Token d'Invitation
                 </CardTitle>
                 <CardDescription>
                   Valider un token d'invitation avant acceptation
@@ -386,11 +386,11 @@ export default function EnterpriseAuthTest() {
 
           {/* STATUS SESSION */}
           <TabsContent value="session">
-            <Card className="bg-white/70 backdrop-blur-sm border-indigo-200">
+            <Card className="bg-white border-indigo-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-indigo-600" />
-                  👥 Status Session & Sécurité
+                  Status Session & Sécurité
                 </CardTitle>
                 <CardDescription>
                   Informations sur la session active et mesures de sécurité
@@ -400,7 +400,7 @@ export default function EnterpriseAuthTest() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Status Authentification */}
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-800 mb-2">🔒 Authentification</h4>
+                    <h4 className="font-semibold text-blue-800 mb-2">Authentification</h4>
                     <div className="space-y-1 text-sm">
                       <p>Accès public: <Badge variant="destructive">Bloqué</Badge></p>
                       <p>Session requise: <Badge variant="default">Obligatoire</Badge></p>
@@ -410,7 +410,7 @@ export default function EnterpriseAuthTest() {
                   
                   {/* Status Rate Limiting */}
                   <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                    <h4 className="font-semibold text-orange-800 mb-2">📊 Rate Limiting</h4>
+                    <h4 className="font-semibold text-orange-800 mb-2">Rate Limiting</h4>
                     <div className="space-y-1 text-sm">
                       <p>Login: <Badge variant="outline">5/15min</Badge></p>
                       <p>Invitations: <Badge variant="outline">10/1h</Badge></p>
@@ -420,7 +420,7 @@ export default function EnterpriseAuthTest() {
                   
                   {/* Status Invitations */}
                   <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h4 className="font-semibold text-green-800 mb-2">📧 Invitations</h4>
+                    <h4 className="font-semibold text-green-800 mb-2">Invitations</h4>
                     <div className="space-y-1 text-sm">
                       <p>Contrôle: <Badge variant="default">Par tenant</Badge></p>
                       <p>Expiration: <Badge variant="outline">24h-7j</Badge></p>
@@ -431,7 +431,7 @@ export default function EnterpriseAuthTest() {
                 
                 {sessionInfo && (
                   <div className="mt-6 bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                    <h4 className="font-semibold text-indigo-800 mb-2">🔐 Session Courante</h4>
+                    <h4 className="font-semibold text-indigo-800 mb-2">Session Courante</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p><strong>Token:</strong> <code className="bg-indigo-100 px-1 rounded">***{sessionInfo.sessionToken.slice(-8)}</code></p>

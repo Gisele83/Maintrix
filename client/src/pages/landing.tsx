@@ -6,15 +6,26 @@ import { BILLING_ENABLED, IS_TEST_ENVIRONMENT } from "@/lib/feature-flags";
 /**
  * Page d'accueil publique.
  *
- * Parti pris éditorial : dire concrètement ce que fait l'outil, dans les mots
- * d'un service maintenance, sans chiffre qu'on ne peut pas prouver. La version
- * précédente affichait « 99,9 % de disponibilité SLA » et « 98 % de précision
- * du diagnostic IA » : aucune mesure ne les étayait.
+ * Positionnement : Maintrix est une plateforme de SUPERVISION et de CONTRÔLE
+ * ADAPTATIF des installations industrielles, avec GMAO et maintenance
+ * prédictive intégrées. La GMAO est un module — le plus utilisé au quotidien,
+ * d'où la place qu'elle garde ici — mais le visiteur doit comprendre dès
+ * l'ouverture que la plateforme ne s'y limite pas.
+ *
+ * Parti pris éditorial : dire concrètement ce que fait l'outil, sans chiffre
+ * qu'on ne peut pas prouver. Chaque capacité citée correspond à un module
+ * existant du serveur :
+ *   supervision      server/integrations/{iot,advanced-iot,scada}-connector.ts
+ *                    (OPC UA, Modbus, MQTT), /api/machine-health, /api/smart-alerts
+ *   contrôle adaptatif  server/cognitive-kernel — niveaux d'autonomie 0 à 5,
+ *                    verrouillage par permis de travail dès l'exécution supervisée
+ *   prédictif        server/predictive-maintenance-engine.ts (santé, anomalies,
+ *                    durée de vie résiduelle Wiener/Gamma), jumeau numérique
+ *   adaptation       server/federated-adaptation.ts
  *
  * Parti pris visuel : une page qui se lit comme un document technique soigné
- * (fond papier, filets fins, numérotation, typographie à empattements pour les
- * titres) plutôt que les codes génériques du SaaS (dégradés de texte, halos,
- * pastilles lumineuses, tuiles d'icônes colorées, compteurs animés).
+ * (fond clair, filets fins, numérotation, titres à empattements) plutôt que les
+ * codes génériques du SaaS.
  */
 
 const CONTACT_EMAIL = "contact@techlearn-saem.com";
@@ -22,13 +33,82 @@ const CONTACT_EMAIL = "contact@techlearn-saem.com";
 type Lien = { href: string; label: string };
 
 const LIENS_NAV: Lien[] = [
-  { href: "#couverture", label: "Fonctionnalités" },
-  { href: "#methode", label: "Méthode" },
-  { href: "#diagnostic", label: "Diagnostic" },
+  { href: "#plateforme", label: "Plateforme" },
+  { href: "#supervision", label: "Supervision" },
+  { href: "#predictif", label: "Prédictif" },
+  { href: "#gmao", label: "GMAO" },
   ...(BILLING_ENABLED ? [{ href: "#tarifs", label: "Tarifs" }] : []),
 ];
 
-const MODULES = [
+const PILIERS = [
+  {
+    ancre: "#supervision",
+    titre: "Supervision et contrôle adaptatif",
+    texte:
+      "Les mesures de vos installations en temps réel, des alertes qui tiennent compte du contexte, et des actions de pilotage dont vous réglez le degré d'autonomie.",
+  },
+  {
+    ancre: "#predictif",
+    titre: "Maintenance prédictive",
+    texte:
+      "L'état de santé de chaque équipement, les dérives détectées avant la panne et une estimation de la durée de vie restante, avec sa marge d'incertitude.",
+  },
+  {
+    ancre: "#gmao",
+    titre: "GMAO intégrée",
+    texte:
+      "Équipements, ordres de travail, préventif, pièces, budget et conformité : l'organisation complète du service maintenance.",
+  },
+];
+
+const SUPERVISION = [
+  {
+    titre: "Connexion aux installations",
+    texte: "Capteurs et systèmes existants raccordés par OPC UA, Modbus, MQTT ou via votre SCADA.",
+  },
+  {
+    titre: "État en temps réel",
+    texte: "Mesures, santé des machines et écarts à la normale, équipement par équipement.",
+  },
+  {
+    titre: "Alertes contextualisées",
+    texte: "Une alerte rapproche la mesure de l'historique de la machine, pas seulement d'un seuil.",
+  },
+  {
+    titre: "Autonomie graduée",
+    texte:
+      "Six niveaux, de la simple surveillance à l'exécution supervisée. Par défaut, la plateforme propose et l'humain décide.",
+  },
+  {
+    titre: "Sécurité des commandes",
+    texte: "Toute action exécutée sur une installation est verrouillée par le permis de travail en vigueur.",
+  },
+  {
+    titre: "Apprentissage par site",
+    texte: "Les modèles s'ajustent au comportement propre de chaque site sans perdre ce que les autres ont appris.",
+  },
+];
+
+const PREDICTIF = [
+  {
+    titre: "Indice de santé",
+    texte: "Une note par équipement, calculée à partir de ses mesures et de ses interventions.",
+  },
+  {
+    titre: "Détection d'anomalies",
+    texte: "Les écarts au comportement habituel de la machine, repérés avant qu'ils ne deviennent une panne.",
+  },
+  {
+    titre: "Durée de vie résiduelle",
+    texte: "Une estimation assortie d'un intervalle de confiance, et non une date présentée comme certaine.",
+  },
+  {
+    titre: "Jumeau numérique",
+    texte: "Un modèle physique calé sur chaque équipement, confronté en continu à ses mesures réelles.",
+  },
+];
+
+const MODULES_GMAO = [
   {
     titre: "Équipements",
     texte: "Le parc, ses emplacements, ses documents et son historique, machine par machine.",
@@ -51,41 +131,41 @@ const MODULES = [
   },
   {
     titre: "Conformité",
-    texte: "Étalonnages des instruments et habilitations des techniciens, avec leurs échéances.",
+    texte: "Étalonnages des instruments, habilitations des techniciens et permis de travail, avec leurs échéances.",
   },
 ];
 
-const ETAPES = [
+const BOUCLE = [
   {
     n: "01",
-    titre: "Signaler",
-    texte: "Un opérateur ou un technicien décrit le problème, depuis le bureau ou le terrain.",
+    titre: "Mesurer",
+    texte: "Les capteurs et les systèmes de conduite remontent l'état réel de l'installation.",
   },
   {
     n: "02",
-    titre: "Qualifier",
-    texte: "Le responsable fixe la priorité, affecte l'intervention et prévoit les pièces.",
+    titre: "Anticiper",
+    texte: "Les dérives sont détectées, la durée de vie restante estimée, la cause probable proposée.",
   },
   {
     n: "03",
-    titre: "Intervenir",
-    texte: "Le technicien consigne ce qu'il a constaté, ce qu'il a fait et ce qu'il a remplacé.",
+    titre: "Agir",
+    texte: "Ajustement du pilotage dans les limites autorisées, ou ordre de travail créé et planifié dans la GMAO.",
   },
   {
     n: "04",
-    titre: "Capitaliser",
-    texte: "La clôture enrichit l'historique de l'équipement et nourrit les diagnostics suivants.",
+    titre: "Apprendre",
+    texte: "Chaque intervention clôturée enrichit l'historique et affine les modèles du site.",
   },
 ];
 
 const SOURCES_DIAGNOSTIC = [
   {
-    titre: "Règles de maintenance",
-    texte: "Les correspondances connues entre symptômes et défaillances.",
+    titre: "Mesures de l'installation",
+    texte: "Les signaux de la machine au moment où le symptôme apparaît.",
   },
   {
     titre: "Interventions passées",
-    texte: "Les cas proches déjà résolus sur vos équipements.",
+    texte: "Les cas proches déjà résolus sur vos équipements, et les règles de maintenance connues.",
   },
   {
     titre: "Assistance IA",
@@ -96,8 +176,8 @@ const SOURCES_DIAGNOSTIC = [
 const PLANS = [
   { id: "solo", nom: "Solo", prix: "29,99 €", periode: "par mois", public: "1 utilisateur", points: ["Équipements illimités", "GMAO complète", "Diagnostic assisté", "Rapports PDF"] },
   { id: "equipe", nom: "Équipe", prix: "89,99 €", periode: "par mois", public: "2 à 5 utilisateurs", points: ["Tout le plan Solo", "Travail en équipe", "OEE et analyse des causes", "AMDEC"] },
-  { id: "business", nom: "Entreprise S", prix: "189,99 €", periode: "par mois", public: "6 à 11 utilisateurs", points: ["Tout le plan Équipe", "Supervision des équipements", "Capteurs connectés", "Rapports avancés"] },
-  { id: "enterprise", nom: "Entreprise L", prix: "Sur devis", periode: "", public: "21 utilisateurs et plus", points: ["Plusieurs sites", "Hébergement dédié", "Intégrations ERP et SCADA", "Support dédié"] },
+  { id: "business", nom: "Entreprise S", prix: "189,99 €", periode: "par mois", public: "6 à 11 utilisateurs", points: ["Tout le plan Équipe", "Supervision des équipements", "Capteurs connectés", "Maintenance prédictive"] },
+  { id: "enterprise", nom: "Entreprise L", prix: "Sur devis", periode: "", public: "21 utilisateurs et plus", points: ["Plusieurs sites", "Contrôle adaptatif", "Intégrations ERP et SCADA", "Support dédié"] },
 ];
 
 function Filet() {
@@ -116,53 +196,67 @@ function EnTeteSection({ numero, titre, id }: { numero: string; titre: string; i
   );
 }
 
+function ListeDefinitions({ items, colonnes = 2 }: { items: { titre: string; texte: string }[]; colonnes?: 2 | 3 }) {
+  return (
+    <dl className={`grid gap-x-10 sm:grid-cols-2 ${colonnes === 3 ? "lg:grid-cols-3" : ""}`}>
+      {items.map((m) => (
+        <div key={m.titre} className="border-t border-rule py-6">
+          <dt className="font-medium text-ink">{m.titre}</dt>
+          <dd className="text-ink-soft mt-2 leading-relaxed">{m.texte}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/**
+ * Figure d'ouverture : la chaîne complète sur un cas, de la mesure à l'ordre
+ * de travail. Données d'EXEMPLE, signalées comme telles.
+ */
 function FicheExemple() {
   return (
     <figure className="bg-white border border-rule">
       <figcaption className="flex items-center justify-between border-b border-rule px-5 py-3">
-        <span className="font-mono text-eyebrow uppercase text-ink-mute">Ordre de travail</span>
+        <span className="font-mono text-eyebrow uppercase text-ink-mute">Compresseur C-02</span>
         <span className="font-mono text-eyebrow text-ink-mute">Exemple</span>
       </figcaption>
 
-      <div className="px-5 py-5 space-y-5">
-        <div>
-          <p className="font-mono text-sm text-ink-mute">OT-2026-0412</p>
-          <p className="font-serif text-title text-ink mt-1">Compresseur C-02 — vibrations anormales</p>
-        </div>
+      <ol className="divide-y divide-rule">
+        <li className="px-5 py-4">
+          <p className="font-mono text-eyebrow uppercase text-signal">Supervision</p>
+          <div className="mt-2 flex items-baseline justify-between gap-4">
+            <span className="text-ink">Vibration palier moteur</span>
+            <span className="font-mono text-sm text-ink">7,8 mm/s</span>
+          </div>
+          <p className="text-sm text-ink-mute mt-1">En hausse depuis 6 jours — habituel : 3,2 mm/s</p>
+        </li>
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <div>
-            <dt className="text-ink-mute">Priorité</dt>
-            <dd className="text-ink font-medium">Haute</dd>
-          </div>
-          <div>
-            <dt className="text-ink-mute">Affecté à</dt>
-            <dd className="text-ink font-medium">Équipe mécanique</dd>
-          </div>
-          <div>
-            <dt className="text-ink-mute">Signalé</dt>
-            <dd className="text-ink font-medium">Ligne 3, poste du matin</dd>
-          </div>
-          <div>
-            <dt className="text-ink-mute">Statut</dt>
-            <dd className="text-ink font-medium">À diagnostiquer</dd>
-          </div>
-        </dl>
+        <li className="px-5 py-4">
+          <p className="font-mono text-eyebrow uppercase text-signal">Prédiction</p>
+          <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            <div>
+              <dt className="text-ink-mute">Santé</dt>
+              <dd className="text-ink font-medium">58 / 100</dd>
+            </div>
+            <div>
+              <dt className="text-ink-mute">Durée de vie restante</dt>
+              <dd className="text-ink font-medium">18 à 31 jours</dd>
+            </div>
+          </dl>
+          <p className="text-sm text-ink mt-3">
+            Cause probable : roulement usé
+            <span className="block text-ink-mute">d'après deux interventions similaires sur ce modèle</span>
+          </p>
+        </li>
 
-        <div className="border-t border-rule pt-4">
-          <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">Causes probables</p>
-          <ol className="space-y-2.5 text-sm">
-            <li className="flex gap-3">
-              <span className="font-mono text-signal">1</span>
-              <span className="text-ink">Roulement du palier côté moteur usé<span className="block text-ink-mute">d'après deux interventions similaires sur ce modèle</span></span>
-            </li>
-            <li className="flex gap-3">
-              <span className="font-mono text-ink-mute">2</span>
-              <span className="text-ink">Désalignement de l'accouplement<span className="block text-ink-mute">règle de maintenance constructeur</span></span>
-            </li>
-          </ol>
-        </div>
-      </div>
+        <li className="px-5 py-4">
+          <p className="font-mono text-eyebrow uppercase text-signal">GMAO</p>
+          <div className="mt-2 flex items-baseline justify-between gap-4">
+            <span className="text-ink">OT-2026-0412 — remplacement du roulement</span>
+          </div>
+          <p className="text-sm text-ink-mute mt-1">Planifié à l'arrêt de ligne de jeudi · pièce réservée</p>
+        </li>
+      </ol>
     </figure>
   );
 }
@@ -177,7 +271,7 @@ export default function LandingPage() {
         <div className="bg-ink text-paper">
           <p className="mx-auto max-w-6xl px-5 sm:px-8 py-2 text-sm">
             <span className="font-mono text-eyebrow uppercase text-signal-light mr-3">Version de test</span>
-            Les données sont fictives et peuvent être réinitialisées à tout moment.
+            Les données saisies pendant les tests sont conservées lors du passage en production.
           </p>
         </div>
       )}
@@ -185,12 +279,11 @@ export default function LandingPage() {
       {/* ── En-tête ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-paper/95 border-b border-rule">
         <div className="mx-auto max-w-6xl px-5 sm:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-baseline gap-2.5">
-            <span className="font-serif text-2xl font-medium tracking-tight text-ink">Maintrix</span>
-            <span className="hidden sm:inline font-mono text-eyebrow uppercase text-ink-mute">GMAO</span>
+          <Link href="/" aria-label="Maintrix — accueil">
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-9 w-auto" />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8" aria-label="Navigation principale">
+          <nav className="hidden md:flex items-center gap-7" aria-label="Navigation principale">
             {LIENS_NAV.map((l) => (
               <a key={l.href} href={l.href} className="text-sm text-ink-soft hover:text-ink transition-colors">
                 {l.label}
@@ -205,12 +298,16 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm text-ink hover:text-signal transition-colors">
               Se connecter
             </Link>
-            <Link
-              href="/register"
+            {/* ⚠️ « Créer un compte » menait à une inscription en libre service
+                qui plaçait TOUS les nouveaux venus dans le même espace de travail.
+                Les accès sont ouverts par l'équipe, qui crée en même temps
+                l'organisation — donc un espace cloisonné. */}
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
               className="inline-flex items-center h-10 px-4 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
             >
-              Créer un compte
-            </Link>
+              Demander un accès
+            </a>
           </div>
 
           <button
@@ -243,9 +340,12 @@ export default function LandingPage() {
                 <Link href="/login" className="flex-1 inline-flex items-center justify-center h-11 border border-ink text-ink text-sm font-medium">
                   Se connecter
                 </Link>
-                <Link href="/register" className="flex-1 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium">
-                  Créer un compte
-                </Link>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
+                  className="flex-1 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium"
+                >
+                  Demander un accès
+                </a>
               </div>
             </nav>
           </div>
@@ -258,31 +358,31 @@ export default function LandingPage() {
           <div className="grid gap-14 lg:grid-cols-12 lg:gap-12 items-start">
             <div className="lg:col-span-7">
               <p className="font-mono text-eyebrow uppercase text-ink-mute mb-6">
-                Maintenance industrielle
+                Supervision et contrôle adaptatif des installations industrielles
               </p>
               <h1 className="font-serif text-display text-ink font-medium">
-                Savoir ce qui tombe en panne, pourquoi, et qui s'en occupe.
+                Voir vos installations en temps réel, anticiper les pannes, organiser la maintenance.
               </h1>
               <p className="text-lede text-ink-soft mt-8 max-w-xl">
-                Maintrix réunit vos équipements, vos ordres de travail et l'historique de chaque
-                intervention. Quand une machine dérive, il aide à en trouver la cause à partir de
-                ce que votre équipe a déjà résolu.
+                Maintrix supervise vos équipements, détecte leurs dérives et adapte leur pilotage
+                dans les limites que vous fixez. La GMAO et la maintenance prédictive sont
+                intégrées : de la mesure à l'intervention, tout se passe sur une seule plateforme.
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/register"
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
                   className="group inline-flex items-center justify-center gap-2 h-12 px-6 bg-ink text-paper font-medium hover:bg-signal transition-colors"
                 >
-                  Créer un compte
+                  Demander un accès
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                <Link
-                  href="/login"
+                </a>
+                <a
+                  href="#plateforme"
                   className="inline-flex items-center justify-center h-12 px-6 border border-ink text-ink font-medium hover:bg-ink hover:text-paper transition-colors"
                 >
-                  Se connecter
-                </Link>
+                  Découvrir la plateforme
+                </a>
               </div>
             </div>
 
@@ -292,63 +392,130 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── 01 · Couverture fonctionnelle ─────────────────── */}
+        {/* ── 01 · Plateforme ───────────────────────────────── */}
         <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-24">
-          <EnTeteSection id="couverture" numero="01" titre="Ce que couvre Maintrix" />
+          <EnTeteSection id="plateforme" numero="01" titre="Plateforme" />
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <h2 className="font-serif text-headline text-ink font-medium">
-                Toute la maintenance au même endroit.
+                Plus qu'une GMAO : trois fonctions, un même référentiel.
               </h2>
               <p className="text-ink-soft mt-5 leading-relaxed">
-                Plutôt qu'un tableur par sujet, un seul référentiel partagé entre les
-                techniciens, les responsables et la direction.
+                Ce que mesurent les capteurs, ce que prévoient les modèles et ce que font les
+                techniciens portent sur les mêmes équipements. Maintrix les réunit au lieu de les
+                répartir entre un superviseur, un outil d'analyse et une GMAO.
               </p>
             </div>
-            <dl className="lg:col-span-8 grid sm:grid-cols-2 gap-x-10">
-              {MODULES.map((m) => (
-                <div key={m.titre} className="border-t border-rule py-6">
-                  <dt className="font-medium text-ink">{m.titre}</dt>
-                  <dd className="text-ink-soft mt-2 leading-relaxed">{m.texte}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        {/* ── 02 · Méthode ──────────────────────────────────── */}
-        <section className="bg-paper-deep">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
-            <EnTeteSection id="methode" numero="02" titre="Méthode" />
-            <h2 className="font-serif text-headline text-ink font-medium max-w-2xl">
-              Une intervention, du signalement à l'historique.
-            </h2>
-            <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-              {ETAPES.map((e) => (
-                <li key={e.n} className="border-t-2 border-ink pt-5">
-                  <span className="font-mono text-sm text-signal">{e.n}</span>
-                  <h3 className="font-serif text-title text-ink font-medium mt-2">{e.titre}</h3>
-                  <p className="text-ink-soft mt-3 leading-relaxed">{e.texte}</p>
+            <ol className="lg:col-span-8 grid gap-px bg-rule border border-rule sm:grid-cols-3">
+              {PILIERS.map((p, i) => (
+                <li key={p.titre} className="bg-white p-6 flex flex-col">
+                  <span className="font-mono text-sm text-signal">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="font-serif text-title text-ink font-medium mt-2">{p.titre}</h3>
+                  <p className="text-ink-soft mt-3 leading-relaxed flex-1">{p.texte}</p>
+                  <a href={p.ancre} className="mt-5 text-sm text-signal hover:text-signal-deep inline-flex items-center gap-1.5">
+                    En savoir plus <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
                 </li>
               ))}
             </ol>
           </div>
         </section>
 
-        {/* ── 03 · Diagnostic ───────────────────────────────── */}
+        {/* ── 02 · Supervision et contrôle adaptatif ────────── */}
+        <section className="bg-paper-deep">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
+            <EnTeteSection id="supervision" numero="02" titre="Supervision et contrôle adaptatif" />
+            <div className="grid gap-12 lg:grid-cols-12">
+              <div className="lg:col-span-4">
+                <h2 className="font-serif text-headline text-ink font-medium">
+                  Suivre l'installation et ajuster son pilotage, sans perdre la main.
+                </h2>
+                <p className="text-ink-soft mt-5 leading-relaxed">
+                  La plateforme se raccorde à l'existant et monte en autonomie au rythme que vous
+                  choisissez : d'abord observer, puis recommander, puis exécuter sous supervision.
+                </p>
+              </div>
+              <div className="lg:col-span-8">
+                <ListeDefinitions items={SUPERVISION} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 03 · Maintenance prédictive ───────────────────── */}
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
+          <EnTeteSection id="predictif" numero="03" titre="Maintenance prédictive" />
+          <div className="grid gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <h2 className="font-serif text-headline text-ink font-medium">
+                Intervenir avant la panne, au moment utile.
+              </h2>
+              <p className="text-ink-soft mt-5 leading-relaxed">
+                Quand un équipement dérive, Maintrix estime le temps qui reste et crée l'ordre de
+                travail dans la GMAO. L'intervention se planifie sur un arrêt prévu plutôt que
+                dans l'urgence.
+              </p>
+            </div>
+            <div className="lg:col-span-8">
+              <ListeDefinitions items={PREDICTIF} />
+            </div>
+          </div>
+        </section>
+
+        {/* ── 04 · GMAO ─────────────────────────────────────── */}
+        <section className="bg-paper-deep">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
+            <EnTeteSection id="gmao" numero="04" titre="GMAO intégrée" />
+            <div className="grid gap-12 lg:grid-cols-12">
+              <div className="lg:col-span-4">
+                <h2 className="font-serif text-headline text-ink font-medium">
+                  Toute l'organisation de la maintenance au même endroit.
+                </h2>
+                <p className="text-ink-soft mt-5 leading-relaxed">
+                  Une GMAO complète, utilisable seule dès le premier jour. Elle reçoit directement
+                  les alertes de la supervision et les prévisions du module prédictif : aucune
+                  ressaisie entre ce qui est détecté et ce qui est planifié.
+                </p>
+              </div>
+              <div className="lg:col-span-8">
+                <ListeDefinitions items={MODULES_GMAO} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 05 · Boucle ───────────────────────────────────── */}
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
+          <EnTeteSection numero="05" titre="Fonctionnement" />
+          <h2 className="font-serif text-headline text-ink font-medium max-w-2xl">
+            Une boucle fermée, de la mesure à l'apprentissage.
+          </h2>
+          <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            {BOUCLE.map((e) => (
+              <li key={e.n} className="border-t-2 border-ink pt-5">
+                <span className="font-mono text-sm text-signal">{e.n}</span>
+                <h3 className="font-serif text-title text-ink font-medium mt-2">{e.titre}</h3>
+                <p className="text-ink-soft mt-3 leading-relaxed">{e.texte}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* ── 06 · Diagnostic ───────────────────────────────── */}
         <section id="diagnostic" className="bg-ink text-paper scroll-mt-16">
           <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24">
             <div className="flex items-baseline gap-4 pb-10">
-              <span className="font-mono text-eyebrow text-signal-light">03</span>
+              <span className="font-mono text-eyebrow text-signal-light">06</span>
               <span className="font-mono text-eyebrow uppercase text-paper/60">Diagnostic</span>
             </div>
             <div className="grid gap-12 lg:grid-cols-12">
               <h2 className="lg:col-span-6 font-serif text-headline font-medium">
-                Un diagnostic qui s'appuie sur votre historique, pas sur une boîte noire.
+                Des causes probables, chacune avec sa source.
               </h2>
               <p className="lg:col-span-5 lg:col-start-8 text-lede text-paper/75">
-                Face à un symptôme, Maintrix propose des causes probables et indique pour chacune
-                d'où elle vient. Le technicien garde la main : il confirme, écarte ou complète.
+                Face à un symptôme, Maintrix croise les mesures de l'installation et l'historique
+                des interventions, et indique d'où vient chaque hypothèse. Le technicien confirme,
+                écarte ou complète.
               </p>
             </div>
             <div className="mt-16 grid gap-px bg-paper/15 sm:grid-cols-3">
@@ -365,7 +532,7 @@ export default function LandingPage() {
         {/* ── Tarifs (offre payante en veille hors production) ── */}
         {BILLING_ENABLED && (
           <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-2 pb-24">
-            <EnTeteSection id="tarifs" numero="04" titre="Tarifs" />
+            <EnTeteSection id="tarifs" numero="07" titre="Tarifs" />
             <h2 className="font-serif text-headline text-ink font-medium max-w-2xl">
               Un abonnement selon la taille de l'équipe.
             </h2>
@@ -392,12 +559,12 @@ export default function LandingPage() {
                       Nous contacter
                     </button>
                   ) : (
-                    <Link
-                      href={`/register?plan=${p.id}`}
+                    <a
+                      href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Demande d'accès à Maintrix — formule ${p.nom}`)}`}
                       className="mt-8 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
                     >
-                      Commencer l'essai
-                    </Link>
+                      Demander un accès
+                    </a>
                   )}
                 </div>
               ))}
@@ -412,13 +579,13 @@ export default function LandingPage() {
             <h2 className="lg:col-span-7 font-serif text-headline text-ink font-medium">
               {IS_TEST_ENVIRONMENT
                 ? "Vous testez Maintrix ? Dites-nous ce qui coince."
-                : "Prêt à organiser votre maintenance ?"}
+                : "Prêt à superviser vos installations ?"}
             </h2>
             <div className="lg:col-span-5">
               <p className="text-ink-soft leading-relaxed">
                 {IS_TEST_ENVIRONMENT
                   ? "Un écran incompréhensible, une information introuvable, un parcours trop long : chaque remarque compte, surtout les plus concrètes."
-                  : "Créez un compte et renseignez vos premiers équipements en quelques minutes."}
+                  : "Écrivez-nous : nous ouvrons votre espace, et vous commencez par la GMAO et vos premiers équipements."}
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 {IS_TEST_ENVIRONMENT ? (
@@ -429,12 +596,12 @@ export default function LandingPage() {
                     Envoyer un retour
                   </a>
                 ) : (
-                  <Link
-                    href="/register"
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
                     className="inline-flex items-center justify-center h-12 px-6 bg-ink text-paper font-medium hover:bg-signal transition-colors"
                   >
-                    Créer un compte
-                  </Link>
+                    Demander un accès
+                  </a>
                 )}
               </div>
             </div>
@@ -446,15 +613,18 @@ export default function LandingPage() {
       <footer className="border-t border-rule">
         <div className="mx-auto max-w-6xl px-5 sm:px-8 py-12 grid gap-10 sm:grid-cols-12">
           <div className="sm:col-span-5">
-            <p className="font-serif text-xl font-medium">Maintrix</p>
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-8 w-auto" />
             <p className="text-sm text-ink-soft mt-2 max-w-xs leading-relaxed">
-              Gestion de la maintenance et aide au diagnostic pour les sites industriels.
+              Supervision et contrôle adaptatif des installations industrielles, avec GMAO et
+              maintenance prédictive intégrées.
             </p>
           </div>
-          <nav className="sm:col-span-3" aria-label="Produit">
-            <p className="font-mono text-eyebrow uppercase text-ink-mute mb-4">Produit</p>
+          <nav className="sm:col-span-3" aria-label="Plateforme">
+            <p className="font-mono text-eyebrow uppercase text-ink-mute mb-4">Plateforme</p>
             <ul className="space-y-2.5 text-sm">
-              <li><a href="#couverture" className="text-ink-soft hover:text-ink">Fonctionnalités</a></li>
+              <li><a href="#supervision" className="text-ink-soft hover:text-ink">Supervision</a></li>
+              <li><a href="#predictif" className="text-ink-soft hover:text-ink">Maintenance prédictive</a></li>
+              <li><a href="#gmao" className="text-ink-soft hover:text-ink">GMAO</a></li>
               {BILLING_ENABLED && <li><a href="#tarifs" className="text-ink-soft hover:text-ink">Tarifs</a></li>}
               <li><Link href="/download" className="text-ink-soft hover:text-ink">Télécharger</Link></li>
             </ul>

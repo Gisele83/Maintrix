@@ -43,12 +43,12 @@ export function ExcelProcessorDemo() {
       
       if (data.success) {
         toast({
-          title: "✅ Fichier Excel traité avec succès",
+          title: "Fichier Excel traité avec succès",
           description: `${data.data.crossReferences} cas croisés créés avec ${data.data.equipments} équipements`,
         });
       } else {
         toast({
-          title: "❌ Erreur de traitement",
+          title: "Erreur de traitement",
           description: data.message,
           variant: "destructive",
         });
@@ -61,7 +61,7 @@ export function ExcelProcessorDemo() {
         : "Erreur de connexion au serveur";
         
       toast({
-        title: "❌ Erreur de traitement Excel",
+        title: "Erreur de traitement Excel",
         description: errorMessage,
         variant: "destructive",
       });
@@ -87,9 +87,9 @@ export function ExcelProcessorDemo() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm text-gray-600">
-          <p>📊 <strong>Fichier:</strong> Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx</p>
-          <p>📋 <strong>Tables:</strong> Équipements, Diagnostics, Interventions, Techniciens, Règles_Symptômes, Procédures_Réparation</p>
-          <p>🔗 <strong>Traitement:</strong> Croisement automatique des données pour enrichir l'historique diagnostic</p>
+          <p><strong>Fichier:</strong> Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx</p>
+          <p><strong>Tables:</strong> Équipements, Diagnostics, Interventions, Techniciens, Règles_Symptômes, Procédures_Réparation</p>
+          <p><strong>Traitement:</strong> Croisement automatique des données pour enrichir l'historique diagnostic</p>
         </div>
 
         <Button 
@@ -152,7 +152,7 @@ export function ExcelProcessorDemo() {
         )}
 
         <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
-          <p><strong>💡 Fonctionnement du système:</strong></p>
+          <p><strong>Fonctionnement du système:</strong></p>
           <ul className="list-disc list-inside space-y-1 mt-2">
             <li>Analyse croisée: Équipements → Diagnostics → Procédures</li>
             <li>Enrichissement automatique de l'historique</li>

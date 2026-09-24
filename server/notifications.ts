@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { eq, and } from 'drizzle-orm';
 import { db } from './db';
 import { userProfiles } from '@shared/schema';
+import { expediteurCourriel } from "./email-service";
 
 // Interface pour l'envoi d'emails
 export interface EmailOptions {
@@ -47,7 +48,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     try {
       await sg.send({
         to: options.to,
-        from: options.from || 'noreply@maintrix-t.com',
+        from: options.from || expediteurCourriel(),
         subject: options.subject,
         html: options.html,
       });
@@ -132,7 +133,10 @@ function generateTenantInvitationEmail(tenantData: {
   domain?: string;
   tenantId: string;
 }): string {
-  const baseUrl = process.env.APP_URL ?? 'http://localhost:5000';
+  // Adresse publique réelle (voir urlConnexion dans super-admin-routes.ts).
+  // « localhost » dans un courriel ne mène nulle part pour son destinataire.
+  const baseUrl = (process.env.FRONTEND_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
+  if (!baseUrl) console.warn("⚠️ FRONTEND_URL absent : le courriel d'invitation ne portera pas de lien complet.");
   
   const loginUrl = tenantData.domain 
     ? `https://${tenantData.domain}` 
@@ -249,7 +253,7 @@ export async function sendTenantAccessNotification(tenantData: {
     to: tenantData.contactEmail,
     subject: `🎉 Accès accordé à Maintrix - ${tenantData.name}`,
     html: emailContent,
-    from: 'noreply@smartgmao.com'
+    from: expediteurCourriel()
   });
 }
 
@@ -315,6 +319,6 @@ export async function sendTenantAccessUpdateNotification(tenantData: {
     to: tenantData.contactEmail,
     subject: `🔄 Mise à jour de votre accès Maintrix - ${tenantData.name}`,
     html: emailContent,
-    from: 'noreply@smartgmao.com'
+    from: expediteurCourriel()
   });
 }

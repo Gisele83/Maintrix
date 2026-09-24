@@ -22,6 +22,10 @@ export default {
       fontSize: {
         display: ["clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem)", { lineHeight: "1.04", letterSpacing: "-0.022em" }],
         headline: ["clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem)", { lineHeight: "1.12", letterSpacing: "-0.015em" }],
+        // Titre d'écran applicatif : ~12 % sous `headline`, qui est calibré
+        // pour l'accueil public. Dans un outil dense, un titre trop grand
+        // repousse le contenu utile sous la ligne de flottaison.
+        page: ["clamp(1.5rem, 1.2rem + 1.2vw, 2.1875rem)", { lineHeight: "1.15", letterSpacing: "-0.012em" }],
         title: ["1.25rem", { lineHeight: "1.35", letterSpacing: "-0.01em" }],
         lede: ["1.1875rem", { lineHeight: "1.6" }],
         eyebrow: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
@@ -63,17 +67,22 @@ export default {
           foreground: "var(--destructive-foreground)",
         },
         /**
-         * Palette des pages publiques : papier, encre, filet, et UN accent.
-         * Contrastes MESURÉS dans le navigateur sur le rendu réel : ink-soft
-         * 7,9:1 sur papier, signal 5,6:1, signal-light 7,1:1 sur encre.
-         * ink-mute a été assombri (#6B6F77 → #5F636B) : il sert aux libellés
-         * en petites capitales de 12 px et plafonnait à 4,5:1, soit pile le
-         * seuil AA — sans aucune marge.
+         * Palette des pages publiques, tirée du LOGO : bleu nuit #011535 et
+         * cyan #00B9F2 (couleurs dominantes relevées dans logo.png).
+         *
+         * ⚠️ Le cyan du logo ne peut pas porter de texte blanc : 2,3:1, très en
+         * dessous du seuil AA. Il est donc réservé aux accents sur fond sombre
+         * (`signal-light`, 8:1 sur l'encre) et aux éléments graphiques. Sur
+         * fond clair, l'accent textuel est un cyan assombri de même teinte
+         * (`signal`, 4,8:1 ; texte blanc dessus : 4,8:1).
+         *
+         * Les tons neutres passent au froid : le papier chaud d'origine jurait
+         * avec le bleu nuit et le cyan.
          */
-        paper: { DEFAULT: "#F5F3EE", deep: "#ECE8DF" },
-        ink: { DEFAULT: "#17191D", soft: "#474B53", mute: "#5F636B" },
-        rule: "#D8D3C7",
-        signal: { DEFAULT: "#B93E0B", light: "#F08A4B", deep: "#8F2F08" },
+        paper: { DEFAULT: "#F4F7FA", deep: "#E6EDF3" },
+        ink: { DEFAULT: "#011535", soft: "#3A4A60", mute: "#56657A" },
+        rule: "#D3DCE5",
+        signal: { DEFAULT: "#0077A8", light: "#00B9F2", deep: "#005A80" },
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

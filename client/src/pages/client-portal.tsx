@@ -47,13 +47,13 @@ function PortalView({ token }: { token: string }) {
   });
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center">
       <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
     </div>
   );
 
   if (error || !data) return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-paper-deep flex items-center justify-center">
       <Card className="bg-slate-900/80 border-red-500/30 max-w-md">
         <CardContent className="p-6 text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -67,12 +67,12 @@ function PortalView({ token }: { token: string }) {
   const operationalRate = data.totalEquipment ? Math.round((operationalCount / data.totalEquipment) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900">
-      <div className="border-b border-white/10 bg-slate-900/60 backdrop-blur-lg">
+    <div className="min-h-screen bg-paper-deep">
+      <div className="border-b border-white/10 bg-slate-900/60">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center">
+              <Shield className="w-5 h-5 text-ink" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Maintrix - Portail Client</h1>
@@ -91,12 +91,12 @@ function PortalView({ token }: { token: string }) {
             { icon: Factory, label: "Équipements", value: data.totalEquipment, color: "from-blue-500 to-cyan-500" },
             { icon: Wrench, label: "OT actifs", value: data.activeWorkOrders, color: "from-orange-500 to-amber-500" },
             { icon: CheckCircle, label: "OT terminés", value: data.completedWorkOrders, color: "from-green-500 to-emerald-500" },
-            { icon: Activity, label: "Taux opérationnel", value: `${operationalRate}%`, color: "from-purple-500 to-violet-500" }
+            { icon: Activity, label: "Taux opérationnel", value: `${operationalRate}%`, color: " " }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+            <Card key={i} className="bg-slate-900/60 border-white/10">
               <CardContent className="p-4 flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shrink-0`}>
-                  <stat.icon className="w-6 h-6 text-white" />
+                <div className={`w-12 h-12 rounded-xl bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
+                  <stat.icon className="w-6 h-6 text-ink" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-white">{stat.value}</p>
@@ -108,7 +108,7 @@ function PortalView({ token }: { token: string }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+          <Card className="bg-slate-900/60 border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Factory className="w-5 h-5 text-blue-400" />
@@ -138,7 +138,7 @@ function PortalView({ token }: { token: string }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+          <Card className="bg-slate-900/60 border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-orange-400" />
@@ -171,7 +171,7 @@ function PortalView({ token }: { token: string }) {
           </Card>
         </div>
 
-        <Card className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+        <Card className="bg-slate-900/60 border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-slate-300">Taux de disponibilité global</p>
@@ -205,11 +205,11 @@ function PortalAdmin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-            <ExternalLink className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <ExternalLink className="w-6 h-6 text-ink" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Portail Client</h1>
@@ -217,7 +217,7 @@ function PortalAdmin() {
           </div>
         </div>
 
-        <Card className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
+        <Card className="bg-slate-900/60 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Générer un lien d'accès client</CardTitle>
             <CardDescription className="text-slate-400">
@@ -225,7 +225,7 @@ function PortalAdmin() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button onClick={generateToken} className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+            <Button onClick={generateToken} className="bg-paper-deep">
               <Shield className="w-4 h-4 mr-2" /> Générer un lien sécurisé
             </Button>
 

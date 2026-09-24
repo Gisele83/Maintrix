@@ -19,28 +19,14 @@ const loginSchema = z.object({
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
 
-const registerSchema = z.object({
-  username: z.string().min(3, "Le nom d'utilisateur doit contenir au moins 3 caractères"),
-  firstName: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
-  lastName: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  email: z.string().email("Email invalide"),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-  confirmPassword: z.string(),
-  department: z.string().optional(),
-  role: z.string().default("technician"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Les mots de passe ne correspondent pas",
-  path: ["confirmPassword"],
-});
 
 type LoginForm = z.infer<typeof loginSchema>;
-type RegisterForm = z.infer<typeof registerSchema>;
+
+/** Adresse par laquelle un accès se demande : aucune inscription en libre service. */
+const COURRIEL_CONTACT = "contact@techlearn-saem.com";
 
 export default function LoginPage() {
-  const [isRegistering, setIsRegistering] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,20 +40,6 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      department: "",
-      role: "technician",
     },
   });
 
@@ -142,49 +114,20 @@ export default function LoginPage() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterForm) => {
-      const { confirmPassword, ...registerData } = data;
-      const response = await apiRequest("/api/enterprise-auth/register", {
-        method: "POST",
-        body: registerData,
-      });
-      return response;
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Inscription réussie",
-        description: "Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.",
-      });
-      setIsRegistering(false);
-      loginForm.setValue("email", data.user.email);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erreur d'inscription",
-        description: messageErreurApi(error, "Impossible de créer le compte"),
-        variant: "destructive",
-      });
-    },
-  });
-
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
   };
 
-  const onRegister = (data: RegisterForm) => {
-    registerMutation.mutate(data);
-  };
 
   return (
     <div className="min-h-screen bg-paper text-ink font-sans grid lg:grid-cols-2">
       {/* Colonne éditoriale — masquée sur mobile, où le formulaire prime. */}
       <aside className="hidden lg:flex flex-col justify-between bg-ink text-paper p-12 xl:p-16">
-        <Link href="/" className="font-serif text-2xl font-medium tracking-tight">
-          Maintrix
+        <Link href="/" aria-label="Maintrix — accueil">
+          <img src="/logo-maintrix-clair.png" alt="Maintrix" width={640} height={213} className="h-9 w-auto" />
         </Link>
         <div>
-          <p className="font-mono text-eyebrow uppercase text-signal-light">Maintenance industrielle</p>
+          <p className="font-mono text-eyebrow uppercase text-signal-light">Supervision industrielle · GMAO · Prédictif</p>
           <p className="font-serif text-headline font-medium mt-6 max-w-md">
             Reprendre là où l'équipe s'est arrêtée.
           </p>
@@ -195,7 +138,7 @@ export default function LoginPage() {
         </div>
         {IS_TEST_ENVIRONMENT ? (
           <p className="text-sm text-paper/60 border-t border-paper/15 pt-5">
-            Version de test — les données sont fictives et peuvent être réinitialisées.
+            Version de test — les données saisies sont conservées lors du passage en production.
           </p>
         ) : (
           <span />
@@ -204,24 +147,22 @@ export default function LoginPage() {
 
       <main className="flex flex-col justify-center px-5 py-12 sm:px-12">
         <div className="w-full max-w-sm mx-auto">
-          <Link href="/" className="lg:hidden font-serif text-2xl font-medium tracking-tight text-ink">
-            Maintrix
+          <Link href="/" className="lg:hidden inline-block" aria-label="Maintrix — accueil">
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-8 w-auto" />
           </Link>
           <h1 className="font-serif text-headline font-medium text-ink mt-10 lg:mt-0">
-            {isRegistering ? "Créer un compte" : "Connexion"}
+            Connexion
           </h1>
           <p className="text-ink-soft mt-2 mb-8">
-            {isRegistering
-              ? "Rejoignez l'espace de travail de votre équipe."
-              : "Accédez à votre espace de maintenance."}
+            Accédez à la supervision et à la maintenance de vos installations.
           </p>
           {IS_TEST_ENVIRONMENT && (
             <p className="lg:hidden -mt-4 mb-8 text-sm text-ink-mute border-t border-rule pt-3">
-              Version de test — données fictives.
+              Version de test — vos données seront conservées en production.
             </p>
           )}
           <div className="space-y-6">
-              {!isRegistering ? (
+              {(
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                     <FormField
@@ -290,144 +231,49 @@ export default function LoginPage() {
                         </Button>
                       </Link>
                     </div>
-                  </form>
-                </Form>
-              ) : (
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Prénom</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Prénom" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nom</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Nom" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="username-field">Nom d'utilisateur</Label>
-                      <Input
-                        id="username-field"
-                        type="text"
-                        placeholder="Nom d'utilisateur unique"
-                        {...registerForm.register("username")}
-                      />
-                      {registerForm.formState.errors.username && (
-                        <p className="text-sm text-red-500">
-                          {registerForm.formState.errors.username.message}
-                        </p>
-                      )}
-                    </div>
+                    {/* ⚠️ Deux espaces de connexion coexistent, et rien ne le
+                        disait ici.
 
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="votre@email.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        Le super-administrateur de la plateforme n'a PAS de
+                        compte dans la table des utilisateurs : son identité
+                        vient des variables d'environnement du serveur. Saisir
+                        ses identifiants sur CE formulaire produit donc
+                        « Identifiants incorrects » — un message exact du point
+                        de vue du code, et parfaitement trompeur pour la
+                        personne, qui sait que son mot de passe est bon.
+                        Constaté le 2026-09-23, après plusieurs heures perdues.
 
-                    <FormField
-                      control={registerForm.control}
-                      name="department"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Département (optionnel)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: Maintenance, Production..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Mot de passe</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Mot de passe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirmer</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Confirmer" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full h-11 rounded-none bg-ink text-paper hover:bg-signal"
-                      disabled={registerMutation.isPending}
-                    >
-                      {registerMutation.isPending ? "Création..." : "Créer le compte"}
-                    </Button>
+                        Ce lien discret suffit à lever l'ambiguïté, sans révéler
+                        quelle adresse est celle d'un administrateur. */}
+                    <p className="text-center text-sm text-ink-mute pt-2 border-t border-rule">
+                      Vous administrez la plateforme ?{" "}
+                      <Link href="/admin-login" className="text-signal hover:text-signal-deep underline-offset-4 hover:underline">
+                        Console d'administration
+                      </Link>
+                    </p>
                   </form>
                 </Form>
               )}
 
-              <div className="text-center space-y-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsRegistering(!isRegistering);
-                    if (!isRegistering) {
-                      registerForm.reset();
-                    } else {
-                      loginForm.reset();
-                    }
-                  }}
-                  className="text-ink hover:bg-transparent hover:text-signal underline-offset-4 hover:underline"
+              {/* ⚠️ Il y avait ici « Pas de compte ? S'inscrire ».
+
+                  L'inscription publique rattachait TOUT nouveau compte au MÊME
+                  locataire : deux testeurs de deux entreprises différentes se
+                  retrouvaient dans le même espace, avec les mêmes équipements et
+                  les mêmes coûts sous les yeux. Les comptes sont désormais créés
+                  par l'administrateur, qui crée aussi l'organisation — donc un
+                  espace cloisonné. */}
+              <div className="text-center border-t border-rule pt-5">
+                <p className="text-sm text-ink-soft">
+                  Pas encore de compte ? Les accès sont ouverts par notre équipe.
+                </p>
+                <a
+                  href={`mailto:${COURRIEL_CONTACT}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
+                  className="inline-flex items-center justify-center h-10 px-4 mt-3 border border-ink text-sm font-medium text-ink hover:bg-ink hover:text-paper transition-colors"
                 >
-                  {isRegistering 
-                    ? "Déjà un compte ? Se connecter" 
-                    : "Pas de compte ? S'inscrire"
-                  }
-                </Button>
-                
+                  Demander un accès
+                </a>
               </div>
             </div>
         </div>

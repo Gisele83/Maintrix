@@ -58,6 +58,12 @@ services:
       - KMS_MASTER_KEY=${KMS_MASTER_KEY:?KMS_MASTER_KEY requis}
       - MFA_ENCRYPTION_KEY=${MFA_ENCRYPTION_KEY:?MFA_ENCRYPTION_KEY requis}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Application des licences — DÉSACTIVÉE tant que l'offre payante n'est
+      # pas ouverte. Activée, elle bloque les appels API des locataires sans
+      # abonnement valide ET oppose une limite d'utilisateurs : un locataire
+      # ne pourrait plus créer les comptes de ses collaborateurs au-delà de
+      # son quota. Rendue explicite ici pour que son état se lise.
+      - ENABLE_LICENSE_ENFORCEMENT=${ENABLE_LICENSE_ENFORCEMENT:-false}
       # Origines autorisées : le domaine par lequel les testeurs accèdent.
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://localhost}
       - FRONTEND_URL=${FRONTEND_URL:-https://localhost}
@@ -82,6 +88,18 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     volumes:
       - test_uploads:/app/uploads
       - test_logs:/app/logs
@@ -111,6 +129,18 @@ services:
     expose:
       - "5432"
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     networks:
       - maintrix-test
     healthcheck:
@@ -140,6 +170,18 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    # Journaux BORNÉS. Sans cette rotation, le pilote du journal
+    # json-file de Docker écrit sans limite dans
+    # /var/lib/docker/containers/<id>/<id>-json.log : le disque se
+    # remplit, et une fois plein la machine devient inutilisable —
+    # conteneurs muets, SSH qui referme la connexion après sa
+    # bannière. Constaté sur le serveur le 2026-09-17.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
     networks:
       - maintrix-test
     healthcheck:
@@ -156,10 +198,31 @@ services:
       # intervalle et toute vérification immédiate le prend pour un échec.
       start_period: 15s
 
+# ═══════════════════════════════════════════════════════════════════
+# VOLUMES PERMANENTS — données des testeurs conservées jusqu'en production
+# ═══════════════════════════════════════════════════════════════════
+# `name` fige le nom réel du volume, indépendamment du nom de projet compose ou
+# du dossier d'où la commande est lancée. Ce sont les noms que ces volumes
+# portent DÉJÀ sur les environnements existants : les conserver évite toute
+# copie de données.
+#
+# `external: true` interdit à docker compose de les créer comme de les
+# supprimer — `docker compose down -v` les laisse intacts. Ils sont créés une
+# seule fois, par scripts/provision-test-env.mjs, qui refuse de recréer une base
+# vide si un conteneur de base existe déjà.
+#
+# Stockage des fichiers : l'application écrit ses téléversements sur disque
+# (multer), dans le volume des uploads. Il n'y a pas de MinIO dans ce projet.
 volumes:
   test_postgres:
+    name: maintrix-test_test_postgres
+    external: true
   test_uploads:
+    name: maintrix-test_test_uploads
+    external: true
   test_logs:
+    name: maintrix-test_test_logs
+    external: true
 
 networks:
   maintrix-test:

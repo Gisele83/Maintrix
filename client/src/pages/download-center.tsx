@@ -100,8 +100,8 @@ const platforms: Platform[] = [
     id: "ios",
     name: "iOS / iPadOS",
     icon: Smartphone,
-    color: "text-purple-600",
-    bg: "from-purple-500 to-pink-600",
+    color: "text-signal-deep",
+    bg: " ",
     files: [
       { label: "App Store", filename: "com.maintrix.ios", size: "Automatique", recommended: true, url: "https://apps.apple.com" },
     ],
@@ -176,7 +176,7 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
           </div>
           <div className="flex items-center gap-2">
             {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré ✓</span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
           </div>
         </a>
       ) : (
@@ -190,7 +190,7 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
           </div>
           <div className="flex items-center gap-2">
             {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré ✓</span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
           </div>
         </span>
       )}
@@ -206,16 +206,16 @@ export default function DownloadCenterPage() {
   const PlatformIcon = platform.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
+    <div className="min-h-screen bg-paper-deep">
       {/* Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]" />
         <div className="relative max-w-6xl mx-auto px-6 py-20 text-center">
           <Badge className="mb-6 bg-blue-500/20 text-blue-300 border-blue-500/30 text-sm px-4 py-1.5">
-            🚀 Version {VERSION} — {RELEASE_DATE}
+            Version {VERSION} — {RELEASE_DATE}
           </Badge>
           <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
-            Télécharger <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Maintrix</span>
+            Télécharger <span className="text-ink">Maintrix</span>
           </h1>
           <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
             Disponible sur toutes vos plateformes — Windows, macOS, Linux, Android et iOS. Une seule licence, tous vos appareils.
@@ -248,7 +248,7 @@ export default function DownloadCenterPage() {
                 <button
                   key={p.id}
                   onClick={() => setActivePlatform(p.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all ${activePlatform === p.id ? `bg-gradient-to-r ${p.bg} text-white border-transparent shadow-lg shadow-blue-500/25` : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all ${activePlatform === p.id ? "bg-ink text-paper border-ink" : "bg-white/5 text-slate-300 border-white/10 hover:bg-white"}`}
                 >
                   <Icon className="h-4 w-4" />
                   {p.name}
@@ -264,11 +264,11 @@ export default function DownloadCenterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Download panel */}
           <div className="lg:col-span-2">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${platform.bg} shadow-lg`}>
-                    <PlatformIcon className="h-7 w-7 text-white" />
+                  <div className={`p-3 rounded-xl bg-paper-deep ${platform.bg}`}>
+                    <PlatformIcon className="h-7 w-7 text-ink" />
                   </div>
                   <div>
                     <CardTitle className="text-white text-xl">{platform.name}</CardTitle>
@@ -285,7 +285,7 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Installation steps */}
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm mt-4">
+            <Card className="bg-white/5 border-white/10 mt-4">
               <CardHeader>
                 <CardTitle className="text-white text-base flex items-center gap-2">
                   <Package className="h-5 w-5 text-blue-400" />
@@ -296,7 +296,7 @@ export default function DownloadCenterPage() {
                 <ol className="space-y-3">
                   {platform.installSteps.map((step, i) => (
                     <li key={i} className="flex gap-3 items-start">
-                      <span className={`shrink-0 w-6 h-6 rounded-full bg-gradient-to-br ${platform.bg} text-white text-xs flex items-center justify-center font-bold`}>{i + 1}</span>
+                      <span className={`shrink-0 w-6 h-6 rounded-full bg-paper-deep ${platform.bg} text-ink text-xs flex items-center justify-center font-bold`}>{i + 1}</span>
                       <p className="text-slate-300 text-sm pt-0.5">{step}</p>
                     </li>
                   ))}
@@ -308,10 +308,10 @@ export default function DownloadCenterPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Requirements */}
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white text-base flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-purple-400" />
+                  <Cpu className="h-5 w-5 text-signal-light" />
                   Configuration requise
                 </CardTitle>
               </CardHeader>
@@ -328,7 +328,7 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Features */}
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white text-base flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-400" />
@@ -351,7 +351,7 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Version info */}
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+            <Card className="bg-white/5 border-white/10">
               <CardContent className="p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-slate-400">Version</span><span className="text-white font-mono">{VERSION}</span></div>
@@ -366,7 +366,7 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Web access */}
-            <Card className="bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border-blue-500/30 backdrop-blur-sm">
+            <Card className="bg-paper-deep border-blue-500/30">
               <CardContent className="p-4 text-center">
                 <Globe className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                 <p className="text-white font-semibold text-sm mb-1">Version Web toujours disponible</p>

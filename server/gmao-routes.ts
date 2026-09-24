@@ -21,6 +21,7 @@ import {
 import { z } from "zod";
 import { createValidationDemo } from "./create-validation-demo";
 import { estViolationUnicite } from "./db-errors";
+import { tenantRequis } from "./tenant-requis";
 
 // Helper: reject if no authenticated tenantId (never default to 'default-tenant' for mutations)
 function requireTenant(req: any, res: any): string | null {
@@ -113,7 +114,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all equipment
   app.get("/api/equipment", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
       res.json(equipment);
     } catch (error) {
@@ -126,7 +128,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/equipment/search", async (req, res) => {
     try {
       const { equipmentType, zone, sector } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.searchEquipment(tenantId, {
         equipmentType: equipmentType as string,
         zone: zone as string,
@@ -146,7 +149,8 @@ export function registerGMAORoutes(app: Express) {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid equipment ID" });
       }
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.getEquipmentById(id, tenantId);
       if (!equipment) {
         return res.status(404).json({ message: "Equipment not found" });
@@ -164,7 +168,8 @@ export function registerGMAORoutes(app: Express) {
       console.log("Creating equipment with data:", req.body);
       
       // Add tenantId BEFORE validation
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const dataToValidate = { ...req.body, tenantId };
       
       // First validate with Zod (expects strings for date fields)
@@ -254,7 +259,8 @@ export function registerGMAORoutes(app: Express) {
         processedUpdates.warrantyExpiry = new Date(processedUpdates.warrantyExpiry);
       }
       
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipment = await gmaoStorage.updateEquipment(id, tenantId, processedUpdates);
       res.json(equipment);
     } catch (error) {
@@ -271,7 +277,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all work orders
   app.get("/api/work-orders", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrders = await gmaoStorage.getWorkOrders(tenantId);
       res.json(workOrders);
     } catch (error) {
@@ -284,7 +291,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/work-orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
       if (!workOrder) {
         return res.status(404).json({ message: "Work order not found" });
@@ -315,7 +323,8 @@ export function registerGMAORoutes(app: Express) {
         equipmentId = parseInt(req.body.equipmentId, 10);
       } else if (req.body.equipmentName) {
         // Try to find existing equipment by name
-        const tenantId = (req as any).tenantId || 'default-tenant';
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
         const existingEquipment = await gmaoStorage.searchEquipment(tenantId, { equipmentName: req.body.equipmentName });
         if (existingEquipment && existingEquipment.length > 0) {
           equipmentId = existingEquipment[0].id;
@@ -348,7 +357,8 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.notes) cleanedData.notes = req.body.notes;
 
       // Add tenantId BEFORE validation
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       cleanedData.tenantId = tenantId;
 
       // First validate with Zod (expects strings for date fields)
@@ -428,7 +438,8 @@ export function registerGMAORoutes(app: Express) {
         processedUpdates.completedAt = new Date(processedUpdates.completedAt);
       }
       
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const prevWorkOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
       const workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
 
@@ -503,7 +514,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/equipment/:equipmentId/work-orders", async (req, res) => {
     try {
       const equipmentId = parseInt(req.params.equipmentId);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrders = await gmaoStorage.getWorkOrdersByEquipment(equipmentId, tenantId);
       res.json(workOrders);
     } catch (error) {
@@ -516,7 +528,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/work-orders/status/:status", async (req, res) => {
     try {
       const status = req.params.status;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrders = await gmaoStorage.getWorkOrdersByStatus(status, tenantId);
       res.json(workOrders);
     } catch (error) {
@@ -529,7 +542,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/users/:userId/work-orders", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrders = await gmaoStorage.getWorkOrdersByAssignee(userId, tenantId);
       res.json(workOrders);
     } catch (error) {
@@ -543,7 +557,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all preventive maintenance plans
   app.get("/api/preventive-maintenance-plans", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const plans = await gmaoStorage.getPreventiveMaintenancePlans(tenantId);
       res.json(plans);
     } catch (error) {
@@ -556,7 +571,8 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/preventive-maintenance-plans", async (req, res) => {
     try {
       console.log("Received maintenance plan data:", req.body);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const data = insertPreventiveMaintenancePlanSchema.parse(req.body);
       const planData = { ...data, tenantId };
       
@@ -620,7 +636,8 @@ export function registerGMAORoutes(app: Express) {
       const partialSchema = insertPreventiveMaintenancePlanSchema.partial();
       const validatedData = partialSchema.parse(updateData);
       
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, tenantId, validatedData);
       res.json(plan);
     } catch (error) {
@@ -661,7 +678,8 @@ export function registerGMAORoutes(app: Express) {
   // Get all spare parts
   app.get("/api/spare-parts", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const parts = await gmaoStorage.getSpareParts(tenantId);
       res.json(parts);
     } catch (error) {
@@ -673,7 +691,8 @@ export function registerGMAORoutes(app: Express) {
   // Get low stock parts
   app.get("/api/spare-parts/low-stock", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const parts = await gmaoStorage.getLowStockParts(tenantId);
       res.json(parts);
     } catch (error) {
@@ -686,7 +705,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/spare-parts/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const part = await gmaoStorage.getSparePartById(id, tenantId);
       if (!part) {
         return res.status(404).json({ message: "Spare part not found" });
@@ -704,7 +724,8 @@ export function registerGMAORoutes(app: Express) {
       console.log("Received spare part data:", req.body);
       
       // Add tenantId BEFORE validation
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const dataToValidate = { ...req.body, tenantId };
       
       const data = insertSparePartSchema.parse(dataToValidate);
@@ -772,7 +793,8 @@ export function registerGMAORoutes(app: Express) {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const part = await gmaoStorage.updateSparePart(id, tenantId, updates);
       res.json(part);
     } catch (error) {
@@ -845,7 +867,8 @@ export function registerGMAORoutes(app: Express) {
   // Create stock movement
   app.post("/api/stock-movements", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const data = insertStockMovementSchema.parse(req.body);
       const movement = await gmaoStorage.createStockMovement(data, tenantId);
       res.status(201).json(movement);
@@ -982,7 +1005,8 @@ export function registerGMAORoutes(app: Express) {
 
   app.post("/api/predictive-insights/seed-demo", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const result = await gmaoStorage.seedPredictiveInsightsDemoData(tenantId);
       res.json({ success: true, ...result });
     } catch (error) {
@@ -993,7 +1017,8 @@ export function registerGMAORoutes(app: Express) {
 
   app.get("/api/predictive-insights", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { equipmentId } = req.query;
       const data = await gmaoStorage.getPredictiveInsightsDashboard(
         tenantId,
@@ -1012,7 +1037,8 @@ export function registerGMAORoutes(app: Express) {
   app.get("/api/alerts", async (req, res) => {
     try {
       const { status, limit } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const maxLimit = limit ? Math.min(parseInt(limit as string), 500) : 100;
       const alerts = await gmaoStorage.getAlertsNotifications(status as string, tenantId, maxLimit);
       res.json(alerts);
@@ -1081,12 +1107,14 @@ export function registerGMAORoutes(app: Express) {
   // Get GMAO dashboard data — optimized with SQL COUNT queries + recent rows only
   app.get("/api/gmao-dashboard", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const userRole = (req as any).user?.role || 'technician';
 
       // Run KPI counts and recent rows in parallel — no full-table scans
-      const [kpis, activeWorkOrders, pendingWorkOrders, recentAlerts, equipmentList] = await Promise.all([
+      const [kpis, contexte, activeWorkOrders, pendingWorkOrders, recentAlerts, equipmentList] = await Promise.all([
         gmaoStorage.getDashboardKPIs(tenantId),
+        gmaoStorage.getDashboardContexte(tenantId),
         gmaoStorage.getWorkOrdersByStatus('in_progress', tenantId).then(r => r.slice(0, 3)),
         gmaoStorage.getWorkOrdersByStatus('pending', tenantId).then(r => r.slice(0, 3)),
         gmaoStorage.getAlertsNotifications('active', tenantId).then(r => r.slice(0, 5)),
@@ -1099,6 +1127,9 @@ export function registerGMAORoutes(app: Express) {
         pendingWorkOrdersCount: kpis.pendingWorkOrdersCount,
         criticalAlertsCount: kpis.criticalAlertsCount,
         lowStockPartsCount: kpis.lowStockPartsCount,
+        // Ce qui donne du sens aux chiffres : indisponibilites, retards, echeances.
+        // Voir gmaoStorage.getDashboardContexte.
+        contexte,
         recentWorkOrders: [...activeWorkOrders, ...pendingWorkOrders].slice(0, 5),
         recentAlerts,
         equipmentByType: equipmentList.reduce((acc: Record<string, number>, eq) => {
@@ -1125,7 +1156,8 @@ export function registerGMAORoutes(app: Express) {
   // Get tenant data access policy - Explains who can see and modify what
   app.get("/api/tenant-access-policy", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const userRole = (req as any).user?.role || 'technician';
       
       const accessPolicy = {
@@ -1252,7 +1284,8 @@ export function registerGMAORoutes(app: Express) {
   // Trigger automatic reorder check — real stock levels, real purchase orders
   app.post("/api/trigger-reorder-check", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { triggeredRules, createdOrders } = await gmaoStorage.checkStockLevelsAndTriggerReorders(tenantId);
       const totalAmount = createdOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount || "0"), 0);
       res.json({
@@ -1298,7 +1331,8 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/maintenance-reports", async (req, res) => {
     try {
       const { workOrderId, ...reportData } = req.body;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const report = await gmaoStorage.generateMaintenanceReport(workOrderId, tenantId, reportData);
       res.status(201).json(report);
     } catch (error) {
@@ -1314,7 +1348,8 @@ export function registerGMAORoutes(app: Express) {
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "ID de rapport invalide" });
       }
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       const report = await gmaoStorage.getMaintenanceReportById(reportId);
       if (!report) {
@@ -1358,7 +1393,8 @@ export function registerGMAORoutes(app: Express) {
   app.post("/api/monthly-reports", async (req, res) => {
     try {
       const { month, year, generatedBy } = req.body;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const report = await gmaoStorage.generateMonthlyReport(month, year, tenantId, generatedBy);
       res.status(201).json(report);
     } catch (error) {

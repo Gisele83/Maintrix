@@ -36,7 +36,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
   
   if (!moduleContent) {
     return (
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0">
         <CardContent className="p-8 text-center">
           <p className="text-lg text-muted-foreground">Module non trouvé</p>
           <Button onClick={onExit} className="mt-4">
@@ -113,7 +113,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-primary/5 to-primary/10">
+        <Card className="border-0 bg-paper-deep from-primary/5 to-primary/10">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -141,7 +141,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Prerequisites */}
-          <Card className="border-0 shadow-lg">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Lightbulb className="w-5 h-5 text-yellow-600" />
@@ -161,7 +161,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
           </Card>
 
           {/* Learning Outcomes */}
-          <Card className="border-0 shadow-lg">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Target className="w-5 h-5 text-blue-600" />
@@ -182,7 +182,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
         </div>
 
         {/* Lessons Overview */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle>Plan du module</CardTitle>
           </CardHeader>
@@ -246,7 +246,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
         </Card>
 
         {/* Assessment Preview */}
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+        <Card className="border-0 bg-paper-deep">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-orange-800 dark:text-orange-200">
               <Award className="w-5 h-5" />
@@ -304,7 +304,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
   if (currentView === 'assessment') {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+        <Card className="border-0 bg-paper-deep">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-orange-800 dark:text-orange-200">
               <Award className="w-6 h-6" />
@@ -321,7 +321,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardContent className="p-6">
             <div className="space-y-8">
               {moduleContent.finalAssessment.questions.map((question, questionIndex) => (
@@ -355,7 +355,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
                         : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
                     }`}>
                       <div className="font-semibold mb-2">
-                        {assessmentAnswers[questionIndex] === question.correct ? '✅ Correct' : '❌ Incorrect'}
+                        {assessmentAnswers[questionIndex] === question.correct ? 'Correct' : 'Incorrect'}
                       </div>
                       <p className="text-sm">{question.explanation}</p>
                       {assessmentAnswers[questionIndex] !== question.correct && (

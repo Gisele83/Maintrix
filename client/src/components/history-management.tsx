@@ -249,7 +249,7 @@ export function HistoryManagement() {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <Database className="w-4 h-4 text-purple-600" />
+                    <Database className="w-4 h-4 text-signal-deep" />
                     <div>
                       <p className="font-medium">Sage Export</p>
                       <p className="text-xs text-muted-foreground">Format d'export Sage compatible</p>

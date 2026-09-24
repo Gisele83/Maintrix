@@ -213,7 +213,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
                       {/* Completed Status */}
                       {isCompleted && (
                         <div className="flex items-center space-x-2 mt-2">
-                          <span className="text-xs text-carbon-green font-medium">✓ {t("completed", language)}</span>
+                          <span className="text-xs text-carbon-green font-medium">{t("completed", language)}</span>
                           <span className="text-xs text-carbon-gray-50">{t("ago", language)} 15 {t("min", language)}</span>
                         </div>
                       )}

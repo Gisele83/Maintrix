@@ -93,7 +93,7 @@ export default function ThresholdConfiguration() {
     if (amount <= purchaseThreshold) {
       return { type: "Bon de Commande", color: "bg-blue-500", icon: FileText };
     } else if (amount >= commandThreshold) {
-      return { type: "Lettre de Commande", color: "bg-purple-500", icon: Mail };
+      return { type: "Lettre de Commande", color: "bg-signal-deep", icon: Mail };
     } else {
       return { type: "Zone de transition", color: "bg-yellow-500", icon: Settings };
     }
@@ -152,7 +152,7 @@ export default function ThresholdConfiguration() {
 
             <div className="space-y-2">
               <Label htmlFor="commandThreshold" className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-purple-600" />
+                <Mail className="h-4 w-4 text-signal-deep" />
                 Seuil Minimum Lettre de Commande (€)
               </Label>
               <Input
@@ -239,13 +239,13 @@ export default function ThresholdConfiguration() {
               </p>
             </div>
 
-            <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+            <div className="p-4 bg-paper-deep rounded-lg border-l-4 border-rule">
               <div className="flex items-center gap-2 mb-2">
-                <Mail className="h-5 w-5 text-purple-600" />
-                <h4 className="font-medium text-purple-800">Lettres de Commande</h4>
+                <Mail className="h-5 w-5 text-signal-deep" />
+                <h4 className="font-medium text-signal-deep">Lettres de Commande</h4>
               </div>
-              <p className="text-2xl font-bold text-purple-600">≥ {commandLetterThreshold}€</p>
-              <p className="text-sm text-purple-700 mt-1">
+              <p className="text-2xl font-bold text-signal-deep">≥ {commandLetterThreshold}€</p>
+              <p className="text-sm text-signal-deep mt-1">
                 Validation renforcée - Approbation spéciale
               </p>
             </div>

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { db } from "./db";
@@ -8,7 +8,35 @@ import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentia
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 import { MailService } from '@sendgrid/mail';
 import { storage } from "./storage";
-import { LicenseService } from './license-service';
+import { LicenseService, UTILISATEURS_SANS_LIMITE } from './license-service';
+import { normaliserRole, ROLE_PAR_DEFAUT } from "@shared/roles";
+
+/**
+ * URL de connexion écrite dans les courriels envoyés aux utilisateurs.
+ *
+ * ⚠️ Elle était écrite en dur : « https://votre-domaine.com/login » en
+ * production, « http://localhost:5000/login » sinon. Les identifiants
+ * partaient donc avec un lien inutilisable — et un lien mort dans le premier
+ * courriel reçu, c'est un testeur perdu dès la première minute.
+ *
+ * FRONTEND_URL est l'adresse publique déclarée au provisionnement, celle-là
+ * même qui figure dans ALLOWED_ORIGINS. À défaut, on retombe sur les en-têtes
+ * de la requête : derrière nginx, X-Forwarded-Proto porte le vrai protocole,
+ * `req.protocol` valant « http » côté conteneur.
+ */
+export function urlConnexion(req: Request): string {
+  const publique = (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '');
+  if (publique) return `${publique}/login`;
+
+  const hote = req.get('host');
+  if (hote) {
+    const proto = (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
+    console.warn(`⚠️ FRONTEND_URL non défini : lien de connexion déduit de la requête (${proto}://${hote}).`);
+    return `${proto}://${hote}/login`;
+  }
+  console.error('⛔ FRONTEND_URL non défini et requête sans en-tête Host : lien de connexion incomplet.');
+  return '/login';
+}
 import { registerBackgroundTask } from "./background-tasks";
 
 const router = Router();
@@ -82,7 +110,7 @@ async function sendUserCredentialsEmail(data: UserCredentialsEmailData): Promise
   `;
 
   // Utiliser une adresse vérifiée chez SendGrid
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@smartgmao.com';
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || '';
   
   await mailService.send({
     to: data.toEmail,
@@ -458,7 +486,11 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
     // Le try/catch qui absorbait l'erreur a été retiré : un tenant sans licence
     // ne peut pas être exploité, il ne faut donc pas le créer « à moitié ».
     // L'échec annule désormais toute la création.
-    const maxUsers = req.body.maxUsers || 1;
+    // ⚠️ Le défaut était 1. Le propriétaire du locataire comptant pour un,
+    // le quota était atteint DÈS LA CRÉATION : il ne pouvait créer aucun
+    // compte pour son entreprise. Sans valeur explicite, aucun plafond n'est
+    // posé ; le super-administrateur peut toujours en fixer un.
+    const maxUsers = req.body.maxUsers ?? UTILISATEURS_SANS_LIMITE;
     await LicenseService.initializeTenantLicense(newTenant.id, maxUsers, 1, tx);
     console.log(`📜 LICENCE INITIALISÉE pour tenant ${newTenant.name} avec ${maxUsers} utilisateurs max`);
 
@@ -467,8 +499,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
 
     // 📧 Envoyer les identifiants par email
     try {
-      const host = req.get('host') || 'localhost:5000';
-      const loginUrl = `${req.protocol}://${host}/login`;
+      const loginUrl = urlConnexion(req);
       
       // Créer la notification avec identifiants
       const credentialNotification = createCredentialNotification(
@@ -539,7 +570,7 @@ router.post('/tenants', authenticateSuperAdmin, async (req, res) => {
           temporaryCredentials: {
             username: adminCredentials.username,
             password: adminCredentials.password,
-            loginUrl: `${req.protocol}://${req.get('host') || 'localhost:5000'}/login`
+            loginUrl: urlConnexion(req)
           },
           expiresAt: adminCredentials.expiresAt
         },
@@ -763,7 +794,10 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
       validatedData.firstName,
       validatedData.lastName,
       tenant.id,
-      validatedData.role as "technician" | "viewer" | "owner" | "admin" | "maintainer",
+      // Le rôle passe par le référentiel partagé : une valeur inconnue devient
+      // le rôle par défaut, au lieu de créer un compte avec un rôle fantôme
+      // qui ne correspond à aucune permission.
+      normaliserRole(validatedData.role) ?? ROLE_PAR_DEFAUT,
       1 // Super-admin ID (à récupérer dynamiquement)
     );
     
@@ -825,9 +859,7 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
         temporaryPassword: credentials.password,
         tenantName: tenant.name,
         expiresAt: credentials.passwordExpiresAt,
-        loginUrl: process.env.NODE_ENV === 'production' 
-          ? 'https://votre-domaine.com/login' 
-          : 'http://localhost:5000/login'
+        loginUrl: urlConnexion(req)
       });
       
       emailSent = true;
@@ -901,6 +933,118 @@ router.post('/create-user', authenticateSuperAdmin, async (req, res) => {
 /**
  * 📊 LISTER LES UTILISATEURS AVEC IDENTIFIANTS PAR DÉFAUT
  */
+
+/**
+ * Tous les comptes de la plateforme, tous locataires confondus.
+ *
+ * ⚠️ Le tableau de bord affichait « Total Utilisateurs » en additionnant
+ * `tenants.current_users`, un compteur STOCKÉ que rien ne tient à jour : un
+ * compte créé directement en base (la sonde de déploiement, par exemple) n'y
+ * figurait jamais. Le chiffre affiché était donc faux, sans que rien ne le
+ * signale. On compte désormais les lignes réelles de `user_profiles`.
+ *
+ * L'endpoint /users-with-default-credentials garde son rôle : il ne sert
+ * qu'au compteur « Identifiants par défaut ».
+ */
+router.get('/users', authenticateSuperAdmin, async (_req, res) => {
+  try {
+    const utilisateurs = await db
+      .select({
+        id: userProfiles.id,
+        username: userProfiles.username,
+        firstName: userProfiles.firstName,
+        lastName: userProfiles.lastName,
+        email: userProfiles.email,
+        role: userProfiles.role,
+        tenantId: userProfiles.tenantId,
+        isActive: userProfiles.isActive,
+        isDefaultCredentials: userProfiles.isDefaultCredentials,
+        lastLogin: userProfiles.lastLogin,
+        createdAt: userProfiles.createdAt,
+      })
+      .from(userProfiles)
+      .orderBy(desc(userProfiles.createdAt));
+
+    res.json({
+      success: true,
+      users: utilisateurs,
+      count: utilisateurs.length,
+      actifs: utilisateurs.filter((u) => u.isActive).length,
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs :', error);
+    res.status(500).json({
+      error: "FETCH_USERS_ERROR",
+      message: "Erreur lors de la récupération des utilisateurs"
+    });
+  }
+});
+/**
+ * Redonner l'accès à un compte, depuis la console.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CETTE ROUTE EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Aucun courriel ne part tant que SENDGRID_API_KEY n'est pas configuré : la
+ * page « mot de passe oublié » ne mène donc nulle part. Sans cette route, un
+ * administrateur n'avait AUCUN moyen de rendre l'accès à quelqu'un depuis
+ * l'application — il fallait ouvrir une session SSH sur le serveur et parler à
+ * la base. Un testeur bloqué le restait jusqu'à ce que quelqu'un le fasse.
+ *
+ * Le mot de passe généré n'est renvoyé QU'ICI, une seule fois, dans la réponse
+ * à l'administrateur authentifié. Il n'est jamais journalisé.
+ *
+ * Les quatre causes de refus sont levées ensemble — mot de passe, compte
+ * désactivé, verrouillage après échecs, mot de passe temporaire expiré — parce
+ * qu'elles produisent toutes le même symptôme et se confondent.
+ */
+router.post('/users/:id/reinitialiser-mot-de-passe', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "ID_INVALIDE", message: "Identifiant de compte invalide" });
+    }
+
+    const [utilisateur] = await db.select().from(userProfiles).where(eq(userProfiles.id, id)).limit(1);
+    if (!utilisateur) {
+      return res.status(404).json({ error: "COMPTE_INTROUVABLE", message: "Aucun compte avec cet identifiant" });
+    }
+
+    const motDePasse = crypto.randomBytes(15).toString('base64url');
+    const empreinte = await bcrypt.hash(motDePasse, 10);
+
+    await db.update(userProfiles).set({
+      password: empreinte,
+      isActive: true,
+      mustChangePassword: false,
+      isDefaultCredentials: false,
+      passwordExpiresAt: null,
+      failedLoginAttempts: 0,
+      accountLockedUntil: null,
+      passwordResetToken: null,
+      passwordResetTokenExpiresAt: null,
+      lastPasswordChange: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(userProfiles.id, id));
+
+    // Trace d'audit SANS le mot de passe.
+    console.log(`🔑 Super-admin : accès rétabli pour ${utilisateur.email} (id=${id})`);
+
+    res.json({
+      success: true,
+      message: "Accès rétabli. Transmettez ces identifiants à la personne concernée.",
+      compte: { id, email: utilisateur.email, username: utilisateur.username },
+      motDePasse,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation d'un accès :", error);
+    res.status(500).json({
+      error: "REINITIALISATION_ECHOUEE",
+      message: "Impossible de réinitialiser cet accès",
+    });
+  }
+});
+
 router.get('/users-with-default-credentials', authenticateSuperAdmin, async (req, res) => {
   try {
     const usersWithDefaults = await db

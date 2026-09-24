@@ -35,6 +35,47 @@ export default function Dashboard() {
   const [cloudSearchPerformed, setCloudSearchPerformed] = useState(false);
   const [cloudInsights, setCloudInsights] = useState<string>("");
 
+  /**
+   * Profondeur d'analyse — un seul réglage, quatre positions.
+   *
+   * L'écran proposait auparavant trois interrupteurs indépendants nommés
+   * « Mode ML Avancé », « Mode Enhanced ML » et « Mode ML Ensemble », qui
+   * s'excluaient mutuellement sans le dire, et dont les descriptions
+   * énuméraient des algorithmes (Random Forest, SVM, réseaux de neurones).
+   * Un responsable maintenance n'a pas à arbitrer entre des noms
+   * d'algorithmes : il choisit le temps qu'il accepte d'attendre.
+   * Les trois états internes restent inchangés — seul le vocabulaire change.
+   */
+  const niveauAnalyse = ensembleMode ? 'maximale' : enhancedMode ? 'approfondie' : advancedMode ? 'avancee' : 'standard';
+  const choisirNiveau = (niveau: string) => {
+    setAdvancedMode(niveau === 'avancee');
+    setEnhancedMode(niveau === 'approfondie');
+    setEnsembleMode(niveau === 'maximale');
+  };
+
+  const NIVEAUX_ANALYSE = [
+    {
+      id: 'standard',
+      nom: 'Standard',
+      texte: "Règles de maintenance et cas similaires déjà résolus. Réponse immédiate.",
+    },
+    {
+      id: 'avancee',
+      nom: 'Avancée',
+      texte: "Ajoute la détection des écarts au comportement habituel de la machine.",
+    },
+    {
+      id: 'approfondie',
+      nom: 'Approfondie',
+      texte: "Croise plusieurs modèles indépendants et signale leur niveau d'accord.",
+    },
+    {
+      id: 'maximale',
+      nom: 'Maximale',
+      texte: "La plus complète, et la plus lente. À réserver aux cas qui résistent.",
+    },
+  ];
+
   const { data: diagnosticStats } = useQuery<{ totalSessions: number; avgConfidence: number; completionRate: number; mlPredictionRate: number }>({
     queryKey: ["/api/diagnostic-stats"],
   });
@@ -154,29 +195,48 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-paper text-ink font-sans">
       <ModernNavigation />
-      
-      {/* Modern Hero Section */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
-              <Brain className="w-4 h-4" />
-              <span>Assistant de Diagnostic IA</span>
+
+      {/* En-tête de travail. La version précédente affichait ici une accroche
+          commerciale centrée — pastille « Assistant de Diagnostic IA », titre
+          « Maintrix » et slogan « propulsée par l'intelligence artificielle » —
+          c'est-à-dire de la publicité à l'intérieur de l'outil, à relire à
+          chaque connexion. On affiche à la place ce sur quoi la personne
+          travaille, et les chiffres réels de son activité. */}
+      <header className="border-b border-rule bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostic</p>
+              <h1 className="font-serif text-headline font-medium mt-2">
+                Identifier la panne, guider la réparation.
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">
-              Maintrix
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Plateforme avancée de diagnostic et maintenance industrielle propulsée par l'intelligence artificielle
-            </p>
+
+            <dl className="flex flex-wrap gap-x-10 gap-y-3">
+              <div>
+                <dt className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostics</dt>
+                <dd className="font-serif text-title mt-1">{diagnosticStats?.totalSessions ?? 0}</dd>
+              </div>
+              <div>
+                <dt className="font-mono text-eyebrow uppercase text-ink-mute">Menés à terme</dt>
+                <dd className="font-serif text-title mt-1">
+                  {diagnosticStats ? Math.round(diagnosticStats.completionRate) : 0}<span className="text-lg text-ink-mute"> %</span>
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-eyebrow uppercase text-ink-mute">Confiance moyenne</dt>
+                <dd className="font-serif text-title mt-1">
+                  {diagnosticStats ? Math.round(diagnosticStats.avgConfidence * 100) : 0}<span className="text-lg text-ink-mute"> %</span>
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
-      </div>
-      
+      </header>
       {/* Modern Navigation Tabs */}
-      <nav className="bg-card/80 backdrop-blur-sm border-b sticky top-16 z-40">
+      <nav className="bg-white border-b border-rule sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex space-x-1 overflow-x-auto">
@@ -185,19 +245,18 @@ export default function Dashboard() {
                 const isActive = activeTab === tab.id;
                 
                 return (
-                  <Button
+                  <button
                     key={tab.id}
-                    variant={isActive ? "default" : "ghost"}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 px-6 py-3 transition-all duration-300 whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 h-14 border-b-2 text-sm transition-colors whitespace-nowrap ${
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-lg"
-                        : "hover:bg-muted/50"
+                        ? "border-signal text-ink font-medium"
+                        : "border-transparent text-ink-soft hover:text-ink hover:border-rule"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span className="hidden sm:inline">{tab.label}</span>
-                  </Button>
+                  </button>
                 );
               })}
             </div>
@@ -208,39 +267,26 @@ export default function Dashboard() {
                 const Icon = link.icon;
                 return (
                   <Link key={link.href} href={link.href}>
-                    <Button variant="outline" className="flex items-center space-x-2 hover:bg-primary/10 hover:border-primary/20">
+                    <span className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors">
                       <Icon className="w-4 h-4" />
                       <span className="hidden sm:inline">{link.label}</span>
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </Button>
+                    </span>
                   </Link>
                 );
               })}
-              <Link href="/learning">
-                <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
-                  <Brain className="w-4 h-4" />
-                  <span className="hidden sm:inline">Apprentissage IA</span>
-                </Button>
-              </Link>
-              <Link href="/iot-gamification">
-                <Button variant="outline" className="flex items-center space-x-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700">
-                  <Activity className="w-4 h-4" />
-                  <span className="hidden sm:inline">IoT & Gamification</span>
-                </Button>
-              </Link>
-              <Link href="/profiles">
-                <Button variant="outline" className="flex items-center space-x-2 hover:bg-primary/10 hover:border-primary/20">
-                  <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline">Profils</span>
-                </Button>
-              </Link>
-              <Link href="/data-import-export">
-                <Button variant="outline" className="flex items-center space-x-2 hover:bg-green-50 hover:border-green-300 hover:text-green-700">
-                  <Upload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Import/Export</span>
-                </Button>
-              </Link>
-            </div>
+              {[
+                { href: '/learning', label: 'Apprentissage', icon: Brain },
+                { href: '/iot-gamification', label: 'Capteurs', icon: Activity },
+                { href: '/profiles', label: 'Profils', icon: Users },
+                { href: '/data-import-export', label: 'Import / Export', icon: Upload },
+              ].map(({ href, label, icon: Icon }) => (
+                <Link key={href} href={href}>
+                  <span className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors">
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </span>
+                </Link>
+              ))}            </div>
           </div>
         </div>
       </nav>
@@ -250,7 +296,7 @@ export default function Dashboard() {
         {activeTab === "diagnostic" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-8">
-              <Card className="border-0 shadow-xl bg-card/95 backdrop-blur-sm card-hover">
+              <Card className="border border-rule shadow-none bg-white rounded-none">
                 <CardContent className="p-8">
                   <DiagnosticForm 
                     onSubmit={handleDiagnosticSubmit} 
@@ -259,114 +305,43 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
               
-              {/* Advanced ML Configuration */}
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10 card-hover">
+              {/* Profondeur d'analyse — un réglage, quatre positions. */}
+              <Card className="border border-rule shadow-none bg-white rounded-none">
                 <CardContent className="p-6">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Brain className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">Configuration ML</h3>
-                      <p className="text-sm text-muted-foreground">Options avancées d'intelligence artificielle</p>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium">
-                          Mode ML Avancé
-                        </label>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={advancedMode}
-                        onChange={(e) => {
-                          setAdvancedMode(e.target.checked);
-                          if (e.target.checked) {
-                            setEnhancedMode(false);
-                            setEnsembleMode(false);
-                          }
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                      </label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                    {advancedMode 
-                      ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
-                      : "Mode ML standard avec Random Forest et Gradient Boosting"
-                    }
-                  </p>
-                  
-                  {/* Enhanced ML Mode Toggle */}
-                  <div className="flex items-center justify-between mb-3 pt-3 border-t">
-                    <div className="flex items-center space-x-2">
-                      <Brain className="h-5 w-5 text-purple-600" />
-                      <label className="text-sm font-medium">
-                        Mode Enhanced ML
-                      </label>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={enhancedMode}
-                        onChange={(e) => {
-                          setEnhancedMode(e.target.checked);
-                          if (e.target.checked) {
-                            setAdvancedMode(false);
-                            setEnsembleMode(false);
-                          }
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-600/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                  </div>
-                  <p className="text-xs text-carbon-gray-70 mb-3">
-                    {enhancedMode 
-                      ? "10 algorithmes ML avec consensus, détection d'anomalies et évaluation de risque"
-                      : "Désactivé - Mode Enhanced ML avec 10 modèles indépendants"
-                    }
+                  <p className="font-mono text-eyebrow uppercase text-ink-mute">Profondeur d'analyse</p>
+                  <p className="text-sm text-ink-soft mt-2">
+                    Plus l'analyse est poussée, plus elle est longue. Le résultat indique toujours
+                    d'où vient chaque hypothèse.
                   </p>
 
-                  {/* Ensemble Mode Toggle */}
-                  <div className="flex items-center justify-between mb-3 pt-3 border-t border-carbon-gray-20">
-                    <div className="flex items-center space-x-2">
-                      <GitBranch className="h-4 w-4 text-carbon-green" />
-                      <label className="text-sm font-medium text-carbon-gray-90">
-                        Mode ML Ensemble
-                      </label>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={ensembleMode}
-                        onChange={(e) => {
-                          setEnsembleMode(e.target.checked);
-                          if (e.target.checked) {
-                            setAdvancedMode(false);
-                            setEnhancedMode(false);
-                          }
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-carbon-gray-30 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-carbon-green/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-carbon-gray-30 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-carbon-green"></div>
-                    </label>
+                  <div className="mt-5 border-t border-rule">
+                    {NIVEAUX_ANALYSE.map((niveau) => {
+                      const actif = niveauAnalyse === niveau.id;
+                      return (
+                        <label
+                          key={niveau.id}
+                          className={`flex items-start gap-3 border-b border-rule py-3 cursor-pointer transition-colors ${
+                            actif ? 'bg-paper' : 'hover:bg-paper'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="profondeur-analyse"
+                            value={niveau.id}
+                            checked={actif}
+                            onChange={() => choisirNiveau(niveau.id)}
+                            className="mt-1 accent-signal"
+                          />
+                          <span className="min-w-0">
+                            <span className={`block text-sm ${actif ? 'font-medium text-ink' : 'text-ink'}`}>
+                              {niveau.nom}
+                            </span>
+                            <span className="block text-sm text-ink-soft mt-0.5">{niveau.texte}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
-                  <p className="text-xs text-carbon-gray-70 mb-3">
-                    {ensembleMode 
-                      ? "Combine 9 algorithmes ML (RF, SVM, Neural Networks, etc.) pour une précision maximale"
-                      : enhancedMode
-                        ? "10 algorithmes ML avec consensus, détection d'anomalies et évaluation de risque"
-                        : advancedMode 
-                          ? "Utilise réseaux de neurones, détection d'anomalies et analyse prédictive"
-                          : "Mode ML standard avec Random Forest et Gradient Boosting"
-                    }
-                  </p>
-                </div>
                 </CardContent>
               </Card>
             </div>
@@ -389,21 +364,21 @@ export default function Dashboard() {
             {selectedCaseId ? (
               <RepairGuidance caseId={selectedCaseId} />
             ) : (
-              <div className="text-center py-16">
-                <Wrench className="text-carbon-gray-50 text-6xl mb-4 mx-auto" />
-                <h3 className="text-xl font-semibold text-carbon-gray-90 mb-2">
-                  Aucune réparation sélectionnée
-                </h3>
-                <p className="text-carbon-gray-70 mb-6">
-                  Effectuez d'abord un diagnostic pour démarrer une procédure de réparation.
+              <div className="border border-rule bg-white p-10 max-w-xl">
+                <Wrench className="w-6 h-6 text-ink-mute" />
+                <h2 className="font-serif text-title font-medium mt-4">
+                  Aucune réparation en cours
+                </h2>
+                <p className="text-ink-soft mt-2">
+                  Lancez d'abord un diagnostic : la procédure de réparation en découle.
                 </p>
-                <Button 
+                <button
                   onClick={() => setActiveTab("diagnostic")}
-                  className="bg-carbon-blue text-white hover:bg-blue-700"
+                  className="mt-6 inline-flex items-center gap-2 h-11 px-5 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
                 >
-                  <Search className="w-4 h-4 mr-2" />
-                  Effectuer un diagnostic
-                </Button>
+                  <Search className="w-4 h-4" />
+                  Aller au diagnostic
+                </button>
               </div>
             )}
           </div>
@@ -419,44 +394,41 @@ export default function Dashboard() {
         {activeTab === "import" && <DataImport />}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-carbon-gray-90 text-white mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">{t("appTitle", language)}</h3>
-              <p className="text-carbon-gray-50 text-sm">{t("appSubtitle", language)}</p>
-            </div>
-            <div>
-              <h4 className="font-medium mb-3">{t("statistics", language)}</h4>
-              <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• {diagnosticStats?.totalSessions ?? 0} {t("casesDiagnosed", language)}</li>
-                <li>• {diagnosticStats ? Math.round(diagnosticStats.completionRate) : 0}% {t("successRate", language)}</li>
-                <li>• {diagnosticStats ? Math.round(diagnosticStats.avgConfidence * 100) : 0}% {t("avgConfidence", language)}</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-3">{t("support", language)}</h4>
-              <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• <Link href="/documentation" className="hover:text-white transition-colors cursor-pointer">{t("documentation", language)}</Link></li>
-                <li>• <Link href="/training" className="hover:text-white transition-colors cursor-pointer">{t("training", language)}</Link></li>
-                <li>• {t("technicalContact", language)}</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-3">{t("system", language)}</h4>
-              <ul className="space-y-2 text-sm text-carbon-gray-50">
-                <li>• {t("version", language)} 1.0.0</li>
-                <li>• {t("databaseUpdated", language)}</li>
-                <li>• Status: ✓ {t("operational", language)}</li>
-              </ul>
-            </div>
+      <footer className="border-t border-rule mt-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid gap-8 sm:grid-cols-3">
+          <div>
+            <img src="/logo-maintrix.png" alt="Maintrix" width={640} height={213} className="h-7 w-auto" />
+            <p className="text-sm text-ink-soft mt-3 max-w-xs">
+              {t("appSubtitle", language)}
+            </p>
           </div>
-          <div className="border-t border-carbon-gray-70 mt-8 pt-6 text-center text-sm text-carbon-gray-50">
-            © {new Date().getFullYear()} {t("appTitle", language)} - {t("copyright", language)}
+          <div>
+            <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">{t("support", language)}</p>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/documentation" className="text-ink-soft hover:text-ink">{t("documentation", language)}</Link></li>
+              <li><Link href="/training" className="text-ink-soft hover:text-ink">{t("training", language)}</Link></li>
+              <li><Link href="/support-chatbot" className="text-ink-soft hover:text-ink">{t("technicalContact", language)}</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">{t("system", language)}</p>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between border-b border-rule pb-2">
+                <dt className="text-ink-mute">{t("version", language)}</dt>
+                <dd className="font-mono text-ink">1.0.0</dd>
+              </div>
+              <div className="flex justify-between border-b border-rule pb-2">
+                <dt className="text-ink-mute">{t("statistics", language)}</dt>
+                <dd className="font-mono text-ink">{diagnosticStats?.totalSessions ?? 0}</dd>
+              </div>
+            </dl>
           </div>
         </div>
-      </footer>
-    </div>
+        <div className="border-t border-rule">
+          <p className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 text-sm text-ink-mute">
+            © {new Date().getFullYear()} {t("appTitle", language)}
+          </p>
+        </div>
+      </footer>    </div>
   );
 }

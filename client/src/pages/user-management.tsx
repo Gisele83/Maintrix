@@ -135,7 +135,7 @@ export default function UserManagement() {
       setShowCreateDialog(false);
       
       toast({
-        title: "✅ Utilisateur créé",
+        title: "Utilisateur créé",
         description: `${result.user.email} a été créé avec des identifiants temporaires`,
       });
 
@@ -207,7 +207,7 @@ export default function UserManagement() {
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+            <Button className="bg-paper-deep">
               <UserPlus className="mr-2 h-4 w-4" />
               Créer un utilisateur
             </Button>
@@ -521,7 +521,7 @@ export default function UserManagement() {
               </Alert>
               
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-3">🔑 Identifiants temporaires</h3>
+                <h3 className="font-semibold text-blue-900 mb-3">Identifiants temporaires</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Nom d'utilisateur :</span>
@@ -572,7 +572,7 @@ export default function UserManagement() {
               </div>
               
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h4 className="font-semibold text-orange-900 mb-2">📋 Instructions importantes</h4>
+                <h4 className="font-semibold text-orange-900 mb-2">Instructions importantes</h4>
                 <ul className="text-sm text-orange-800 space-y-1">
                   {createdUserResult.instructions.map((instruction, index) => (
                     <li key={index}>• {instruction}</li>

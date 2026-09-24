@@ -268,8 +268,8 @@ export default function Inventaire() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg text-sm">
-                  <p className="font-medium text-blue-900">🚀 Compatibilité ERP Universal</p>
+                <div className="p-3 bg-paper-deep rounded-lg text-sm">
+                  <p className="font-medium text-blue-900">Compatibilité ERP Universal</p>
                   <p className="text-blue-700 mt-1">
                     Détection automatique du format : SAGE, SAP, Oracle, Dynamics, Maximo
                   </p>
@@ -349,9 +349,9 @@ export default function Inventaire() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Valeur Stock</p>
-                <p className="text-2xl font-bold text-purple-600">€127K</p>
+                <p className="text-2xl font-bold text-signal-deep">€127K</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
+              <TrendingUp className="h-8 w-8 text-signal-deep" />
             </div>
           </CardContent>
         </Card>
@@ -428,7 +428,7 @@ export default function Inventaire() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">🔵 SAGE X3/100</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">SAGE X3/100</h3>
               <ol className="text-sm text-blue-800 space-y-1">
                 <li>1. Export Excel standard depuis SAGE</li>
                 <li>2. Colonnes françaises reconnues automatiquement</li>
@@ -437,7 +437,7 @@ export default function Inventaire() {
             </div>
             
             <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">🟢 SAP/Oracle/Dynamics</h3>
+              <h3 className="font-semibold text-green-900 mb-2">SAP/Oracle/Dynamics</h3>
               <ol className="text-sm text-green-800 space-y-1">
                 <li>1. Export depuis votre ERP (Excel/CSV)</li>
                 <li>2. Format détecté et converti automatiquement</li>
@@ -445,9 +445,9 @@ export default function Inventaire() {
               </ol>
             </div>
 
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <h3 className="font-semibold text-purple-900 mb-2">🟣 IBM Maximo</h3>
-              <ol className="text-sm text-purple-800 space-y-1">
+            <div className="p-4 bg-paper-deep rounded-lg">
+              <h3 className="font-semibold text-signal-deep mb-2">IBM Maximo</h3>
+              <ol className="text-sm text-signal-deep space-y-1">
                 <li>1. Export Asset/Item/WorkOrder depuis Maximo</li>
                 <li>2. Mapping natif des champs Maximo</li>
                 <li>3. Statuts WAPPR/INPRG convertis</li>

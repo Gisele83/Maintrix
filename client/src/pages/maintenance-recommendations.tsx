@@ -96,11 +96,11 @@ const PRIORITY_CONFIG = {
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
   overdue:         { label: "En retard",       icon: AlertTriangle, color: "text-rose-600" },
-  predictive:      { label: "Prédictive",      icon: Brain,         color: "text-violet-600" },
+  predictive:      { label: "Prédictive",      icon: Brain,         color: "text-signal-deep" },
   usage_based:     { label: "Usage",           icon: Gauge,         color: "text-blue-600" },
   failure_pattern: { label: "Schéma pannes",   icon: TrendingUp,    color: "text-orange-600" },
   seasonal:        { label: "Saisonnière",     icon: CalendarDays,  color: "text-sky-600" },
-  ai_optimized:    { label: "IA Optimisée",    icon: Sparkles,      color: "text-purple-600" },
+  ai_optimized:    { label: "IA Optimisée",    icon: Sparkles,      color: "text-signal-deep" },
 };
 
 function formatDate(d: string) {
@@ -129,7 +129,7 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
       body: {
         recommendationId: rec.id,
         equipmentId: rec.equipmentId,
-        title: rec.title.replace(/^[⚠️📅🔄🔍]\s?/, ""),
+        title: rec.title.replace(/^[]\s?/, ""),
         description: rec.description,
         scheduledDate,
         estimatedDuration: rec.estimatedDuration,
@@ -147,8 +147,8 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md">
         <div className="p-6 border-b border-slate-100">
           <h3 className="text-lg font-bold text-slate-800">Créer un ordre de travail</h3>
           <p className="text-sm text-slate-500 mt-1">{rec.equipmentName}</p>
@@ -367,11 +367,11 @@ export default function MaintenanceRecommendations() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse shadow-lg shadow-blue-500/25">
-            <Brain className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-paper-deep rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse shadow-blue-500/25">
+            <Brain className="w-8 h-8 text-ink" />
           </div>
           <h2 className="text-xl font-semibold text-slate-700 mb-2">Analyse en cours…</h2>
           <p className="text-slate-500 text-sm">Analyse de l'historique des équipements, OT et plans de maintenance</p>
@@ -381,7 +381,7 @@ export default function MaintenanceRecommendations() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
 
       {applyTarget && <ApplyDialog rec={applyTarget} onClose={() => setApplyTarget(null)} />}
@@ -392,8 +392,8 @@ export default function MaintenanceRecommendations() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center shadow-blue-500/20">
+                <Sparkles className="w-5 h-5 text-ink" />
               </div>
               <h1 className="text-2xl font-bold text-slate-800">Recommandations de maintenance</h1>
             </div>
@@ -431,7 +431,7 @@ export default function MaintenanceRecommendations() {
         {/* ── Summary KPI Bar ──────────────────────────────────── */}
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
-            <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-500/20">
+            <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-ink rounded-2xl p-5 text-white shadow-blue-500/20">
               <div className="text-3xl font-extrabold mb-1">{summary.totalRecommendations}</div>
               <div className="text-blue-100 text-sm">Recommandations</div>
               <div className="mt-3 text-xs text-blue-200">Confiance moyenne : <span className="text-white font-semibold">{summary.avgConfidence}%</span></div>
@@ -492,7 +492,7 @@ export default function MaintenanceRecommendations() {
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterType === t ? "bg-violet-600 text-white border-violet-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
+                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterType === t ? "bg-signal-deep text-white border-rule" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
               >
                 {t === "all" ? "Tout type" : TYPE_CONFIG[t]?.label || t}
               </button>

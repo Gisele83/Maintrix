@@ -90,7 +90,7 @@ export default function SystemHealthPage() {
 
   if (!user || user.role !== "admin") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-paper-deep flex items-center justify-center">
         <div className="text-center space-y-4">
           <ShieldOff className="h-16 w-16 text-red-400 mx-auto" />
           <h2 className="text-2xl font-bold text-white">Accès refusé</h2>
@@ -108,7 +108,7 @@ export default function SystemHealthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
@@ -244,7 +244,7 @@ export default function SystemHealthPage() {
               <Card className="bg-slate-800/60 border-slate-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-white text-base flex items-center gap-2">
-                    <Database className="h-5 w-5 text-purple-400" /> État des données
+                    <Database className="h-5 w-5 text-signal-light" /> État des données
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -273,7 +273,7 @@ export default function SystemHealthPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                   {[
                     { label: "Fichiers serveur", value: data.codebase.serverFiles, icon: Server, color: "text-blue-400" },
-                    { label: "Fichiers frontend", value: data.codebase.clientFiles, icon: Layers, color: "text-purple-400" },
+                    { label: "Fichiers frontend", value: data.codebase.clientFiles, icon: Layers, color: "text-signal-light" },
                     { label: "Fichiers partagés", value: data.codebase.sharedFiles, icon: Package, color: "text-amber-400" },
                     { label: "Total fichiers", value: data.codebase.totalFiles, icon: HardDrive, color: "text-slate-300" },
                     { label: "Modules routes", value: data.codebase.routeModules, icon: Activity, color: "text-emerald-400" },

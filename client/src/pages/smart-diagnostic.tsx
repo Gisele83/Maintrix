@@ -578,9 +578,9 @@ export default function SmartDiagnostic() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+    <div className="min-h-screen bg-paper-deep">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-purple-200 sticky top-0 z-50">
+      <div className="bg-white border-b border-rule sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -592,13 +592,13 @@ export default function SmartDiagnostic() {
               </Link>
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur-lg opacity-50"></div>
-                  <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 p-3 rounded-xl">
-                    <Brain className="h-8 w-8 text-white" />
+                  <div className="absolute inset-0 bg-paper-deep rounded-xl blur-lg opacity-50"></div>
+                  <div className="relative bg-paper-deep p-3 rounded-xl">
+                    <Brain className="h-8 w-8 text-ink" />
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold text-ink">
                     Smart Diagnostic IA
                   </h1>
                   <p className="text-sm text-gray-600">Assistant IA de diagnostic industriel</p>
@@ -611,7 +611,7 @@ export default function SmartDiagnostic() {
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                 Système actif
               </Badge>
-              <Badge variant="outline" className="border-purple-300 text-purple-700">
+              <Badge variant="outline" className="border-rule text-signal-deep">
                 <Brain className="h-3 w-3 mr-1" />
                 IA Native
               </Badge>
@@ -626,9 +626,9 @@ export default function SmartDiagnostic() {
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 p-4 rounded-xl mb-4 mx-auto w-fit">
+              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
                 <Search className="h-8 w-8 text-blue-600" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Diagnostic Standard</h3>
@@ -636,29 +636,29 @@ export default function SmartDiagnostic() {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 p-4 rounded-xl mb-4 mx-auto w-fit">
-                <Zap className="h-8 w-8 text-purple-600" />
+              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
+                <Zap className="h-8 w-8 text-signal-deep" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Mode Avancé</h3>
               <p className="text-sm text-gray-600">Réseaux de neurones et SVM</p>
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-gradient-to-r from-pink-100 to-pink-200 dark:from-pink-900/30 dark:to-pink-800/30 p-4 rounded-xl mb-4 mx-auto w-fit">
-                <Sparkles className="h-8 w-8 text-pink-600" />
+              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
+                <Sparkles className="h-8 w-8 text-signal-deep" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Ensemble ML</h3>
               <p className="text-sm text-gray-600">Consensus multi-modèles IA</p>
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-xl rounded-2xl hover:shadow-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 p-4 rounded-xl mb-4 mx-auto w-fit">
+              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
                 <Activity className="h-8 w-8 text-green-600" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Temps Réel</h3>
@@ -668,7 +668,7 @@ export default function SmartDiagnostic() {
         </div>
 
         {/* Main Content */}
-        <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl rounded-3xl">
+        <Card className="bg-white border-0 rounded-3xl">
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Tab)}>
               <div className="border-b border-gray-200 px-6 pt-6">
@@ -706,10 +706,10 @@ export default function SmartDiagnostic() {
                     {!isOffline && (
                       <>
                         {/* ML Mode Selection */}
-                        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                        <Card className="bg-paper-deep border-rule">
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg flex items-center">
-                          <Brain className="h-5 w-5 mr-2 text-purple-600" />
+                          <Brain className="h-5 w-5 mr-2 text-signal-deep" />
                           Mode d'Analyse IA
                         </CardTitle>
                       </CardHeader>
@@ -782,10 +782,10 @@ export default function SmartDiagnostic() {
                         {(diagnosticResults.length > 0 || isAnalyzing) && (
                           <div className="space-y-4">
                           {isAnalyzing && (
-                            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                            <Card className="bg-paper-deep border-blue-200">
                               <CardContent className="p-6 text-center">
                                 <div className="flex items-center justify-center space-x-3">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule"></div>
                                   <div>
                                     <p className="font-medium text-gray-900">Analyse IA en cours...</p>
                                     <p className="text-sm text-gray-600">
@@ -816,22 +816,22 @@ export default function SmartDiagnostic() {
 
                           {/* ═══ CLAUDE AI DEEP ANALYSIS PANEL ═══ */}
                           {(isLoadingAiDeepAnalysis || aiDeepAnalysis) && diagnosticResults.length > 0 && (
-                            <Card className="border-0 shadow-2xl rounded-3xl overflow-hidden">
+                            <Card className="border-0 rounded-3xl overflow-hidden">
                               {/* Header gradient */}
-                              <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-6 py-4">
+                              <div className="bg-paper-deep px-6 py-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
-                                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-xl">
-                                      <Brain className="h-6 w-6 text-white" />
+                                    <div className="bg-white p-2 rounded-xl">
+                                      <Brain className="h-6 w-6 text-ink" />
                                     </div>
                                     <div>
                                       <h3 className="text-white font-bold text-lg flex items-center gap-2">
                                         Analyse Approfondie Claude
-                                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-normal">
+                                        <span className="text-xs bg-white px-2 py-0.5 rounded-full font-normal">
                                           claude-sonnet-4
                                         </span>
                                       </h3>
-                                      <p className="text-purple-200 text-sm">Diagnostic expert enrichi par IA générative</p>
+                                      <p className="text-signal-light text-sm">Diagnostic expert enrichi par IA générative</p>
                                     </div>
                                   </div>
                                   {!isLoadingAiDeepAnalysis && lastDiagnosticInput && (
@@ -846,12 +846,12 @@ export default function SmartDiagnostic() {
                                 </div>
                               </div>
 
-                              <CardContent className="p-6 space-y-6 bg-gradient-to-b from-violet-50/50 to-white">
+                              <CardContent className="p-6 space-y-6 bg-paper-deep">
                                 {isLoadingAiDeepAnalysis ? (
                                   <div className="flex flex-col items-center justify-center py-12 space-y-4">
                                     <div className="relative">
-                                      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-violet-400 to-indigo-400 animate-pulse" />
-                                      <Loader2 className="h-8 w-8 text-white animate-spin absolute top-4 left-4" />
+                                      <div className="w-16 h-16 rounded-full bg-paper-deep animate-pulse" />
+                                      <Loader2 className="h-8 w-8 text-ink animate-spin absolute top-4 left-4" />
                                     </div>
                                     <div className="text-center">
                                       <p className="font-semibold text-gray-900">Claude analyse la situation...</p>
@@ -859,7 +859,7 @@ export default function SmartDiagnostic() {
                                     </div>
                                     <div className="flex space-x-2">
                                       {[0,1,2].map(i => (
-                                        <div key={i} className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                                        <div key={i} className="w-2 h-2 rounded-full bg-signal-deep animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                                       ))}
                                     </div>
                                   </div>
@@ -1004,7 +1004,7 @@ export default function SmartDiagnostic() {
                                       {aiDeepAnalysis.costEstimate && (
                                         <div className="bg-white border border-gray-200 rounded-2xl p-4">
                                           <div className="flex items-center space-x-2 mb-3">
-                                            <Euro className="h-5 w-5 text-purple-600" />
+                                            <Euro className="h-5 w-5 text-signal-deep" />
                                             <h4 className="font-semibold text-gray-900">Estimation Coûts</h4>
                                           </div>
                                           <div className="space-y-2 text-sm">
@@ -1053,14 +1053,14 @@ export default function SmartDiagnostic() {
 
                                     {/* Expert insight */}
                                     {aiDeepAnalysis.expertInsight && (
-                                      <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-2xl p-4">
+                                      <div className="bg-paper-deep border border-rule rounded-2xl p-4">
                                         <div className="flex items-start space-x-3">
-                                          <div className="bg-violet-100 p-2 rounded-lg mt-0.5">
-                                            <Lightbulb className="h-4 w-4 text-violet-700" />
+                                          <div className="bg-paper-deep p-2 rounded-lg mt-0.5">
+                                            <Lightbulb className="h-4 w-4 text-signal-deep" />
                                           </div>
                                           <div>
-                                            <p className="font-semibold text-violet-900 mb-1">Insight Expert Claude</p>
-                                            <p className="text-violet-800 text-sm leading-relaxed">{aiDeepAnalysis.expertInsight}</p>
+                                            <p className="font-semibold text-signal-deep mb-1">Insight Expert Claude</p>
+                                            <p className="text-signal-deep text-sm leading-relaxed">{aiDeepAnalysis.expertInsight}</p>
                                           </div>
                                         </div>
                                       </div>
@@ -1088,7 +1088,7 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="repair" className="mt-0">
-                  <Card className="bg-white/50 border border-gray-200">
+                  <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
                       <Wrench className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -1098,7 +1098,7 @@ export default function SmartDiagnostic() {
                         Guides pas-à-pas pour la réparation d'équipements
                       </p>
                       <Button 
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="bg-paper-deep"
                         onClick={() => {
                           console.log("Repair button clicked. selectedCaseId:", selectedCaseId, "diagnosticResults:", diagnosticResults);
                           
@@ -1131,7 +1131,7 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-0">
-                  <Card className="bg-white/50 border border-gray-200">
+                  <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
                       <History className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -1141,7 +1141,7 @@ export default function SmartDiagnostic() {
                         Consultez l'historique complet des analyses IA
                       </p>
                       <Button 
-                        className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                        className="bg-paper-deep"
                         onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -1170,7 +1170,7 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="reporting" className="mt-0">
-                  <Card className="bg-white/50 border border-gray-200">
+                  <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
                       <Bug className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -1180,7 +1180,7 @@ export default function SmartDiagnostic() {
                         Génération automatique de rapports d'analyse et de performance IA
                       </p>
                       <Button 
-                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        className="bg-paper-deep"
                         onClick={() => {
                           if (diagnosticResults.length === 0) {
                             toast({
@@ -1250,7 +1250,7 @@ export default function SmartDiagnostic() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Euro className="h-4 w-4 text-purple-600" />
+                    <Euro className="h-4 w-4 text-signal-deep" />
                     <div>
                       <p className="text-xs text-gray-500">Coût</p>
                       <p className="font-medium">{getCurrentProcedure()?.cost}</p>

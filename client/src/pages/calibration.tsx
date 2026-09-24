@@ -164,19 +164,19 @@ export default function CalibrationPage() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/20 to-cyan-50/10 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 shadow-lg">
-              <FlaskConical className="h-6 w-6 text-white" />
+            <div className="p-2.5 rounded-xl bg-paper-deep">
+              <FlaskConical className="h-6 w-6 text-ink" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Gestion des Calibrations</h1>
+            <h1 className="text-3xl font-bold text-ink">Gestion des Calibrations</h1>
           </div>
           <p className="text-slate-500 ml-14 text-sm">Étalonnage et traçabilité des instruments de mesure · ISO 9001 / ISO 17025</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg gap-2">
+        <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle calibration
         </Button>
       </div>
@@ -189,9 +189,9 @@ export default function CalibrationPage() {
           { label: "Conformes", value: stats?.compliant ?? 0, color: "from-green-500 to-teal-600", icon: CheckCircle2 },
           { label: "Hors service", value: stats?.outOfService ?? 0, color: "from-gray-400 to-slate-500", icon: XCircle },
         ].map(({ label, value, color, icon: Icon }) => (
-          <Card key={label} className="border-0 shadow-md cursor-pointer hover:shadow-lg transition-all">
+          <Card key={label} className="border-0 shadow-md cursor-pointer transition-all">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}><Icon className="h-5 w-5 text-white" /></div>
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
               <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export default function CalibrationPage() {
         <div className="text-center py-16">
           <FlaskConical className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun instrument enregistré</h3>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white gap-2 mt-4">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Enregistrer le premier instrument
           </Button>
         </div>
@@ -272,17 +272,17 @@ export default function CalibrationPage() {
                         </div>
                         <h3 className="font-semibold text-slate-800 truncate">{cal.instrumentName}</h3>
                         <div className="flex items-center gap-4 text-xs text-slate-500 mt-0.5 flex-wrap">
-                          {cal.instrumentTag && <span className="font-mono">🏷️ {cal.instrumentTag}</span>}
-                          {cal.instrumentType && <span>📐 {cal.instrumentType}</span>}
-                          {cal.location && <span>📍 {cal.location}</span>}
+                          {cal.instrumentTag && <span className="font-mono">{cal.instrumentTag}</span>}
+                          {cal.instrumentType && <span>{cal.instrumentType}</span>}
+                          {cal.location && <span>{cal.location}</span>}
                           <span className={`font-medium ${overdue ? "text-red-600" : "text-slate-600"}`}>
-                            📅 Prochaine: {new Date(cal.nextCalibrationDate).toLocaleDateString("fr-FR")}
+                            Prochaine: {new Date(cal.nextCalibrationDate).toLocaleDateString("fr-FR")}
                             {cal.daysUntilDue !== undefined && (
                               <span className="ml-1">({overdue ? `${Math.abs(cal.daysUntilDue)}j retard` : `dans ${cal.daysUntilDue}j`})</span>
                             )}
                           </span>
-                          {cal.performedBy && <span>👤 {cal.performedBy}</span>}
-                          {cal.certificateNumber && <span>📋 {cal.certificateNumber}</span>}
+                          {cal.performedBy && <span>{cal.performedBy}</span>}
+                          {cal.certificateNumber && <span>{cal.certificateNumber}</span>}
                         </div>
                       </div>
                     </div>
@@ -357,9 +357,9 @@ export default function CalibrationPage() {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="pass">✅ Réussi</SelectItem>
-                        <SelectItem value="fail">❌ Échec</SelectItem>
-                        <SelectItem value="conditional">⚠️ Conditionnel</SelectItem>
+                        <SelectItem value="pass">Réussi</SelectItem>
+                        <SelectItem value="fail">Échec</SelectItem>
+                        <SelectItem value="conditional">Conditionnel</SelectItem>
                       </SelectContent>
                     </Select><FormMessage /></FormItem>
                 )} />
@@ -395,7 +395,7 @@ export default function CalibrationPage() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white">
+                <Button type="submit" disabled={createMutation.isPending} className="bg-ink text-white">
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer
                 </Button>
               </DialogFooter>
@@ -409,7 +409,7 @@ export default function CalibrationPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-teal-200">
                 <FlaskConical className="h-6 w-6 text-teal-600" />
                 <div className="flex-1">
                   <DialogTitle>{selected.instrumentName}</DialogTitle>
@@ -510,7 +510,7 @@ export default function CalibrationPage() {
                                 </td>
                                 <td className="py-1.5 px-3 text-xs text-slate-500">{m.unit || "—"}</td>
                                 <td className="py-1.5 px-3">
-                                  {m.pass != null && <Badge className={m.pass ? "bg-green-100 text-green-700 text-xs" : "bg-red-100 text-red-700 text-xs"}>{m.pass ? "✓" : "✗"}</Badge>}
+                                  {m.pass != null && <Badge className={m.pass ? "bg-green-100 text-green-700 text-xs" : "bg-red-100 text-red-700 text-xs"}>{m.pass ? "" : ""}</Badge>}
                                 </td>
                               </tr>
                             ))}
@@ -571,7 +571,7 @@ export default function CalibrationPage() {
               <div><label className="text-sm font-medium">Résultat</label>
                 <Select defaultValue="pass">
                   <SelectTrigger className="mt-1" id="ren-result"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="pass">✅ Réussi</SelectItem><SelectItem value="fail">❌ Échec</SelectItem><SelectItem value="conditional">⚠️ Conditionnel</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="pass">Réussi</SelectItem><SelectItem value="fail">Échec</SelectItem><SelectItem value="conditional">Conditionnel</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { invitations, userProfiles, tenants, allowedDomains } from "@shared/sche
 import { eq, and, gt, lt } from "drizzle-orm";
 import crypto from "crypto";
 import { z } from "zod";
+import { ROLES_ZOD } from "@shared/roles";
 
 // 📧 PRIORITÉ 3: SYSTÈME D'INVITATIONS PAR TENANT
 // Contrôle strict de l'inscription selon le plan de sécurisation
@@ -431,7 +432,7 @@ export class InvitationSystem {
 // Validation schemas
 export const createInvitationSchema = z.object({
   email: z.string().email("Invalid email format"),
-  role: z.enum(['owner', 'admin', 'maintainer', 'viewer', 'technician']),
+  role: z.enum(ROLES_ZOD),
   permissions: z.array(z.string()).optional(),
   expirationHours: z.number().min(1).max(168).optional() // Max 7 jours
 });
@@ -448,5 +449,5 @@ export const acceptInvitationSchema = z.object({
 export const addDomainSchema = z.object({
   domain: z.string().min(3, "Domain required").regex(/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/, "Invalid domain format"),
   autoProvision: z.boolean().default(false),
-  defaultRole: z.enum(['admin', 'maintainer', 'viewer', 'technician']).default('viewer')
+  defaultRole: z.enum(ROLES_ZOD).default('viewer')
 });

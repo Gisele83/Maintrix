@@ -9,16 +9,23 @@ sans donnée de production, reproductible d'une commande.
 node scripts/provision-test-env.mjs
 ```
 
-De zéro à un environnement vérifié : secrets générés, certificat TLS, image
-construite, stack démarrée, schéma appliqué, données de test chargées,
+De zéro à un environnement vérifié : secrets générés, certificat TLS, volumes
+permanents, image construite, schéma appliqué, compte de sonde créé,
 conformité contrôlée, informations d'accès affichées.
+
+Sur une base **qui contient déjà des tables**, le provisionnement refuse
+d'appliquer le schéma seul : passez par `scripts/deploy-ovh.sh`, qui sauvegarde
+et éprouve le schéma sur une copie restaurée (voir
+[DEPLOY_OVH.md](DEPLOY_OVH.md)).
 
 | Commande | Effet |
 |---|---|
-| `node scripts/provision-test-env.mjs` | Monte l'environnement (idempotent) |
-| `node scripts/provision-test-env.mjs --reset` | Détruit puis remonte à neuf |
-| `node scripts/provision-test-env.mjs --down` | Détruit tout (volumes compris) |
+| `node scripts/provision-test-env.mjs` | Monte l'environnement |
+| `node scripts/provision-test-env.mjs --down` | Arrête la stack — **volumes et données conservés** |
 | `node scripts/verify-test-environment.mjs` | Contrôle de conformité seul |
+
+L'option `--reset` a été supprimée : elle effaçait les volumes, donc les
+données des testeurs, qui doivent être conservées jusqu'en production.
 
 Prérequis : Docker. Rien d'autre à préparer.
 
@@ -132,10 +139,21 @@ Le pare-feu de l'hôte cloud ne doit ouvrir que **80 et 443**.
 
 ## Données
 
-Chargées par [tests/seed.ts](../tests/seed.ts) : 3 tenants de test, 3 comptes.
-Déterministes, rejouables. `verify-test-environment.mjs` refuse tout tenant ou
-compte dont le nom ne relève pas du jeu de test — garde-fou contre l'introduction
-accidentelle de données réelles.
+Les données saisies par les testeurs sont **conservées** : elles iront en
+production une fois l'application validée. Aucun jeu de démonstration n'est
+chargé dans cet environnement, et les anciens comptes de démonstration
+(`admin@maintrix.local`, `tech@…`, `admin-beta@…`), dont le mot de passe est
+public, sont retirés à chaque provisionnement. [tests/seed.ts](../tests/seed.ts)
+ne sert plus qu'à la suite automatisée, sur sa base jetable.
+
+Seul compte technique : la **sonde de déploiement** (`SONDE_EMAIL` dans
+`.env.test-cloud`), technicien d'un locataire vide, utilisée par les contrôles
+pour prouver qu'une connexion aboutit.
+
+`verify-test-environment.mjs` signale tout tenant ou compte à adresse réelle non
+déclaré. Les comptes réels voulus se déclarent dans `.env.test-cloud`
+(`CONFORMITE_TENANTS_ASSUMES`, `CONFORMITE_COMPTES_ASSUMES`) — jamais dans le
+dépôt.
 
 **Aucune donnée de production ne doit être copiée ici**, même anonymisée : cet
 environnement est accessible à des tiers.
@@ -220,10 +238,16 @@ testeurs. La corriger demanderait une migration vers un index composite
 - **Mono-instance obligatoire** — voir
   [SINGLE_INSTANCE_ASSUMPTION.md](SINGLE_INSTANCE_ASSUMPTION.md). Ne jamais
   utiliser `--scale`, ni une stratégie de déploiement `RollingUpdate`.
-- **Pas de sauvegarde automatique.** Le service `backup` de
-  `docker-compose.yml` n'est pas repris ici et n'a jamais tourné.
+- **Sauvegarde à chaque mise à jour, pas en continu.** `deploy-ovh.sh` en
+  produit une, chiffrée et éprouvée, avant de toucher quoi que ce soit. Entre
+  deux mises à jour, planifiez `scripts/sauvegarde-chiffree.sh` (voir
+  [DEPLOY_OVH.md](DEPLOY_OVH.md)).
 - **Aucune métrique Prometheus** — l'application n'expose pas `/api/metrics`.
-- **Le contrôle de licence est inerte** (constat F08) : aucun tenant ne sera
-  bloqué, même expiré. Voir [TESTER_ONBOARDING.md](TESTER_ONBOARDING.md).
-- **Volumes locaux à l'hôte** : détruire la stack avec `--down` supprime les
-  données. Pas de persistance externalisée.
+- **La licence est hors service**, d'un seul bloc : ni blocage des appels API,
+  ni limite d'utilisateurs (`ENABLE_LICENSE_ENFORCEMENT`, `false` par défaut).
+  Un locataire crée donc les comptes de son entreprise sans contrainte, et le
+  provisionnement relève les plafonds hérités. Voir
+  [TESTER_ONBOARDING.md](TESTER_ONBOARDING.md).
+- **Volumes locaux à l'hôte**, à noms permanents et déclarés `external` :
+  aucune commande du projet ne les supprime. Ils ne survivent pas en revanche à
+  la perte de l'instance — d'où la copie hors serveur des sauvegardes.

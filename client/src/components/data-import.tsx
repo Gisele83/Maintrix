@@ -189,7 +189,7 @@ export function DataImport() {
 
       {/* Templates Downloads */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+        <Card className="border-0 bg-paper-deep">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <FileSpreadsheet className="w-5 h-5 text-blue-600" />
@@ -230,7 +230,7 @@ export function DataImport() {
         </Card>
 
         {/* Upload Zone */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Upload className="w-5 h-5 text-green-600" />
@@ -284,7 +284,7 @@ export function DataImport() {
       </div>
 
       {/* Instructions */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
+      <Card className="border-0 bg-paper-deep">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-amber-800 dark:text-amber-200">
             <AlertCircle className="w-5 h-5" />
@@ -314,7 +314,7 @@ export function DataImport() {
 
       {/* Results */}
       {importResults && (
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <CheckCircle className="w-5 h-5 text-green-600" />

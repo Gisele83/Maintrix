@@ -72,7 +72,7 @@ const PERMIT_TYPES = [
   { value: "hot_work", label: "Travaux à chaud", icon: Flame, color: "text-orange-600", bg: "bg-orange-50 border-orange-200", badge: "bg-orange-100 text-orange-700" },
   { value: "confined_space", label: "Espace confiné", icon: Wind, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", badge: "bg-yellow-100 text-yellow-700" },
   { value: "electrical_loto", label: "Consignation LOTO", icon: Zap, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", badge: "bg-blue-100 text-blue-700" },
-  { value: "height_work", label: "Travaux en hauteur", icon: MountainSnow, color: "text-purple-600", bg: "bg-purple-50 border-purple-200", badge: "bg-purple-100 text-purple-700" },
+  { value: "height_work", label: "Travaux en hauteur", icon: MountainSnow, color: "text-signal-deep", bg: "bg-paper-deep border-rule", badge: "bg-paper-deep text-signal-deep" },
   { value: "cold_work", label: "Travaux à froid", icon: Droplets, color: "text-cyan-600", bg: "bg-cyan-50 border-cyan-200", badge: "bg-cyan-100 text-cyan-700" },
   { value: "chemical", label: "Risque chimique", icon: FlaskConical, color: "text-green-600", bg: "bg-green-50 border-green-200", badge: "bg-green-100 text-green-700" },
 ];
@@ -247,15 +247,15 @@ export default function PermitToWork() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 p-6">
+    <div className="min-h-screen bg-paper-deep p-6">
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 shadow-lg">
-              <Lock className="h-6 w-6 text-white" />
+            <div className="p-2.5 rounded-xl bg-paper-deep">
+              <Lock className="h-6 w-6 text-ink" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink">
               Permis de Travail
             </h1>
           </div>
@@ -263,7 +263,7 @@ export default function PermitToWork() {
         </div>
         <Button
           onClick={() => setShowCreate(true)}
-          className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg gap-2"
+          className="bg-ink text-white gap-2"
         >
           <Plus className="h-4 w-4" /> Nouveau permis
         </Button>
@@ -279,8 +279,8 @@ export default function PermitToWork() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow`}>
-                <Icon className="h-5 w-5 text-white" />
+              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}>
+                <Icon className="h-5 w-5 text-ink" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-800">{value}</p>
@@ -343,7 +343,7 @@ export default function PermitToWork() {
           <Lock className="h-12 w-12 text-slate-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun permis</h3>
           <p className="text-slate-400 text-sm mb-6">Créez votre premier permis de travail pour commencer</p>
-          <Button onClick={() => setShowCreate(true)} className="bg-gradient-to-r from-red-500 to-orange-500 text-white gap-2">
+          <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
             <Plus className="h-4 w-4" /> Nouveau permis
           </Button>
         </div>
@@ -539,7 +539,7 @@ export default function PermitToWork() {
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-gradient-to-r from-red-500 to-orange-500 text-white"
+                  className="bg-ink text-white"
                 >
                   {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Créer le permis

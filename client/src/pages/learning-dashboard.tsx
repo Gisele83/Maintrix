@@ -130,7 +130,7 @@ export default function LearningDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+    <div className="min-h-screen bg-paper-deep">
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -147,7 +147,7 @@ export default function LearningDashboard() {
             <Button
               onClick={() => handleAutoImprove()}
               disabled={autoImproveMutation.isPending}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              className="bg-paper-deep"
             >
               <Brain className="w-4 h-4 mr-2" />
               {autoImproveMutation.isPending ? "Amélioration..." : "Auto-Amélioration"}
@@ -193,7 +193,7 @@ export default function LearningDashboard() {
 
         {/* Overall Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100">
+          <Card className="bg-paper-deep">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -209,7 +209,7 @@ export default function LearningDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+          <Card className="bg-paper-deep">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -225,21 +225,21 @@ export default function LearningDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
+          <Card className="bg-paper-deep">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-600 mb-1">Total cas traités</p>
-                  <p className="text-2xl font-bold text-purple-800">
+                  <p className="text-sm font-medium text-signal-deep mb-1">Total cas traités</p>
+                  <p className="text-2xl font-bold text-signal-deep">
                     {learningMetrics.reduce((acc: number, m: LearningMetrics) => acc + m.totalCases, 0)}
                   </p>
                 </div>
-                <BarChart3 className="w-8 h-8 text-purple-600" />
+                <BarChart3 className="w-8 h-8 text-signal-deep" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
+          <Card className="bg-paper-deep">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -345,20 +345,20 @@ export default function LearningDashboard() {
         </Card>
 
         {/* ── ISC 4D + Φ_i Agrégation Fédérée ───────────────────── */}
-        <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50">
+        <Card className="border-2 border-rule bg-paper-deep">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="p-2 bg-violet-600 rounded-lg">
+                <div className="p-2 bg-signal-deep rounded-lg">
                   <Sigma className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <span className="text-violet-800 font-bold">ISC 4D + Φ_i — Agrégation Fédérée</span>
-                  <p className="text-xs font-normal text-violet-500 mt-0.5">Pertinence d'un pattern combinant similarité contextuelle, fiabilité et maturité</p>
+                  <span className="text-signal-deep font-bold">ISC 4D + Φ_i — Agrégation Fédérée</span>
+                  <p className="text-xs font-normal text-signal-deep mt-0.5">Pertinence d'un pattern combinant similarité contextuelle, fiabilité et maturité</p>
                 </div>
               </div>
               {iscSummary && (
-                <Badge className="bg-violet-600 text-white text-sm px-3 py-1">
+                <Badge className="bg-signal-deep text-white text-sm px-3 py-1">
                   {iscSummary.totalPatterns} patterns fédérés
                 </Badge>
               )}
@@ -367,22 +367,22 @@ export default function LearningDashboard() {
           <CardContent>
             {iscLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 mx-auto"></div>
-                <p className="text-violet-500 mt-2">Calcul des indices ISC et Φ_i...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
+                <p className="text-signal-deep mt-2">Calcul des indices ISC et Φ_i...</p>
               </div>
             ) : !iscSummary || iscSummary.totalPatterns === 0 ? (
               <div className="text-center py-10">
-                <GitMerge className="w-12 h-12 text-violet-300 mx-auto mb-3" />
-                <p className="text-violet-600 font-medium">Aucun pattern fédéré disponible</p>
-                <p className="text-sm text-violet-400 mt-1">Les patterns seront collectés lors des diagnostics</p>
+                <GitMerge className="w-12 h-12 text-signal-light mx-auto mb-3" />
+                <p className="text-signal-deep font-medium">Aucun pattern fédéré disponible</p>
+                <p className="text-sm text-signal-light mt-1">Les patterns seront collectés lors des diagnostics</p>
               </div>
             ) : (
               <div className="space-y-5">
                 {/* Φ_i KPIs */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100 text-center">
-                    <div className="text-3xl font-black text-violet-700">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
-                    <div className="text-xs font-semibold text-violet-500 mt-1">Φ_i moyen</div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-rule text-center">
+                    <div className="text-3xl font-black text-signal-deep">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-signal-deep mt-1">Φ_i moyen</div>
                     <div className="text-xs text-gray-400">Pertinence globale</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100 text-center">
@@ -403,9 +403,9 @@ export default function LearningDashboard() {
                 </div>
 
                 {/* Φ_i Distribution */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100">
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-rule">
                   <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-violet-500" />
+                    <Layers className="w-4 h-4 text-signal-deep" />
                     Distribution Φ_i des patterns fédérés
                   </h4>
                   <div className="space-y-2">
@@ -443,8 +443,8 @@ export default function LearningDashboard() {
                         { d: "D4", label: "Historique défaillances", w: iscSummary.iscWeights.D4, isNew: true },
                       ].map(({ d, label, w, isNew }) => (
                         <div key={d} className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${isNew ? "bg-violet-600" : "bg-blue-500"}`}>{d}</span>
-                          <span className="text-xs text-gray-600 flex-1">{label}{isNew && <Badge className="ml-1 text-[10px] bg-violet-100 text-violet-700 px-1 py-0">4e dim.</Badge>}</span>
+                          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${isNew ? "bg-signal-deep" : "bg-blue-500"}`}>{d}</span>
+                          <span className="text-xs text-gray-600 flex-1">{label}{isNew && <Badge className="ml-1 text-[10px] bg-paper-deep text-signal-deep px-1 py-0">4e dim.</Badge>}</span>
                           <div className="w-20 bg-gray-100 rounded-full h-2">
                             <div className="h-2 rounded-full bg-blue-500" style={{ width: `${w * 100}%` }} />
                           </div>
@@ -454,9 +454,9 @@ export default function LearningDashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-violet-100">
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-rule">
                     <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-violet-500" />
+                      <ShieldCheck className="w-4 h-4 text-signal-deep" />
                       Coefficients Φ_i
                     </h4>
                     <div className="space-y-2">
@@ -470,14 +470,14 @@ export default function LearningDashboard() {
                           <div className="w-20 bg-gray-100 rounded-full h-2">
                             <div className={`h-2 rounded-full ${color}`} style={{ width: `${val * 100}%` }} />
                           </div>
-                          <span className="text-xs font-bold text-violet-700 w-10 text-right">{(val * 100).toFixed(0)}%</span>
+                          <span className="text-xs font-bold text-signal-deep w-10 text-right">{(val * 100).toFixed(0)}%</span>
                         </div>
                       ))}
                     </div>
                     {iscSummary.topCategory && (
                       <div className="mt-3 pt-3 border-t border-gray-100">
                         <p className="text-xs text-gray-500">Catégorie dominante :</p>
-                        <p className="text-sm font-semibold text-violet-700 capitalize mt-0.5">{iscSummary.topCategory}</p>
+                        <p className="text-sm font-semibold text-signal-deep capitalize mt-0.5">{iscSummary.topCategory}</p>
                       </div>
                     )}
                   </div>
@@ -491,20 +491,20 @@ export default function LearningDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Brain className="w-5 h-5 text-purple-600" />
+              <Brain className="w-5 h-5 text-signal-deep" />
               <span>Performance des Modèles ML</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {performanceLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
                 <p className="text-gray-500 mt-2">Chargement des performances...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {modelPerformance.map((perf: ModelPerformance) => (
-                  <div key={perf.id} className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                  <div key={perf.id} className="bg-paper-deep p-4 rounded-lg border border-rule">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="font-semibold capitalize">{perf.equipmentType}</h3>
@@ -513,7 +513,7 @@ export default function LearningDashboard() {
                         </Badge>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-purple-700">
+                        <div className="text-lg font-bold text-signal-deep">
                           {Math.round(perf.accuracy * 100)}%
                         </div>
                         <div className="text-xs text-gray-600">Précision</div>

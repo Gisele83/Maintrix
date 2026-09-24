@@ -43,8 +43,8 @@ function TrainingGapCheck({ workOrderId }: { workOrderId: number }) {
   if (!gap) return null;
 
   return (
-    <div className="md:col-span-2 flex items-center justify-between bg-purple-50 border border-purple-100 rounded-lg px-4 py-3">
-      <div className="text-xs text-purple-800 flex items-center gap-2">
+    <div className="md:col-span-2 flex items-center justify-between bg-paper-deep border border-rule rounded-lg px-4 py-3">
+      <div className="text-xs text-signal-deep flex items-center gap-2">
         <GraduationCap className="h-4 w-4 flex-shrink-0" />
         {gap.technicianName} n'a jamais réalisé d'intervention sur un équipement de type "{gap.equipmentType}".
       </div>
@@ -204,7 +204,7 @@ export default function WorkOrders() {
   function getStatusConfig(status: string) {
     switch (status) {
       case "pending": return { label: "En attente", color: "bg-yellow-100 text-yellow-800", icon: Clock };
-      case "assigned": return { label: "Assigné", color: "bg-purple-100 text-purple-800", icon: User };
+      case "assigned": return { label: "Assigné", color: "bg-paper-deep text-signal-deep", icon: User };
       case "in_progress": return { label: "En cours", color: "bg-blue-100 text-blue-800", icon: Play };
       case "paused": return { label: "Suspendu", color: "bg-orange-100 text-orange-800", icon: Pause };
       case "completed": return { label: "Terminé", color: "bg-green-100 text-green-800", icon: CheckCircle };
@@ -283,17 +283,17 @@ export default function WorkOrders() {
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="container mx-auto p-6 space-y-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+    <div className="container mx-auto p-6 space-y-6 bg-paper-deep min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-ink">
             Ordres de Travail
           </h1>
           <p className="text-gray-600 mt-2">Gestion complète des interventions de maintenance</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={openCreateForm} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
+          <Button onClick={openCreateForm} className="bg-ink text-white">
             <Plus className="h-4 w-4 mr-2" />
             Nouvel Ordre
           </Button>
@@ -302,31 +302,31 @@ export default function WorkOrders() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <Card className="bg-white border-rule">
           <CardContent className="flex items-center p-4">
             <FileText className="h-8 w-8 text-blue-600" />
             <div className="ml-4"><p className="text-sm font-medium text-gray-600">Total</p><p className="text-2xl font-bold text-gray-900">{stats.total}</p></div>
           </CardContent>
         </Card>
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <Card className="bg-white border-rule">
           <CardContent className="flex items-center p-4">
             <Clock className="h-8 w-8 text-yellow-600" />
             <div className="ml-4"><p className="text-sm font-medium text-gray-600">En attente</p><p className="text-2xl font-bold text-gray-900">{stats.pending}</p></div>
           </CardContent>
         </Card>
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <Card className="bg-white border-rule">
           <CardContent className="flex items-center p-4">
             <Play className="h-8 w-8 text-blue-600" />
             <div className="ml-4"><p className="text-sm font-medium text-gray-600">En cours</p><p className="text-2xl font-bold text-gray-900">{stats.inProgress}</p></div>
           </CardContent>
         </Card>
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <Card className="bg-white border-rule">
           <CardContent className="flex items-center p-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
             <div className="ml-4"><p className="text-sm font-medium text-gray-600">Terminés</p><p className="text-2xl font-bold text-gray-900">{stats.completed}</p></div>
           </CardContent>
         </Card>
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+        <Card className="bg-white border-rule">
           <CardContent className="flex items-center p-4">
             <AlertCircle className="h-8 w-8 text-red-600" />
             <div className="ml-4"><p className="text-sm font-medium text-gray-600">Critiques</p><p className="text-2xl font-bold text-gray-900">{stats.critical}</p></div>
@@ -335,7 +335,7 @@ export default function WorkOrders() {
       </div>
 
       {/* Filters and Search */}
-      <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+      <Card className="bg-white border-rule">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
             <div className="flex-1">
@@ -370,7 +370,7 @@ export default function WorkOrders() {
       {isLoading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {[...Array(6)].map((_, index) => (
-            <Card key={index} className="bg-white/70 backdrop-blur-sm border shadow-lg animate-pulse">
+            <Card key={index} className="bg-white border animate-pulse">
               <CardHeader className="pb-3">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                 <div className="h-3 bg-gray-200 rounded w-full"></div>
@@ -407,7 +407,7 @@ export default function WorkOrders() {
               <p className="text-blue-600 mb-4">
                 {workOrders.length === 0 ? "Aucun ordre de travail n'a été créé pour le moment." : "Aucun ordre ne correspond aux filtres sélectionnés."}
               </p>
-              <Button onClick={openCreateForm} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button onClick={openCreateForm} className="bg-ink text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Créer le premier ordre
               </Button>
@@ -422,7 +422,7 @@ export default function WorkOrders() {
             const StatusIcon = statusConfig.icon;
 
             return (
-              <Card key={order.id} className={`bg-white/70 backdrop-blur-sm border-2 ${priorityConfig.color} shadow-lg hover:shadow-xl transition-all duration-200`}>
+              <Card key={order.id} className={`bg-white border-2 ${priorityConfig.color} transition-all duration-200`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -557,7 +557,7 @@ export default function WorkOrders() {
 
             <div className="flex justify-end space-x-3 mt-6">
               <Button variant="outline" onClick={closeForm}>Annuler</Button>
-              <Button onClick={handleSubmitForm} disabled={isSubmitting} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button onClick={handleSubmitForm} disabled={isSubmitting} className="bg-ink text-white">
                 {editingOrderId ? <Edit className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                 {editingOrderId ? "Enregistrer" : "Créer l'Ordre"}
               </Button>
@@ -607,7 +607,7 @@ export default function WorkOrders() {
               <Link href={`/maintenance-execution/${viewingOrder.id}`}>
                 <Button variant="outline"><ClipboardList className="h-4 w-4 mr-2" />Suivre l'intervention</Button>
               </Link>
-              <Button onClick={() => { openEditForm(viewingOrder); setViewingOrder(null); }} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button onClick={() => { openEditForm(viewingOrder); setViewingOrder(null); }} className="bg-ink text-white">
                 <Edit className="h-4 w-4 mr-2" />Éditer
               </Button>
             </div>

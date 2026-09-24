@@ -103,7 +103,7 @@ export default function AccessManagement() {
   const planColors = {
     pro: "bg-blue-50 border-blue-200 text-blue-800",
     business: "bg-green-50 border-green-200 text-green-800", 
-    enterprise: "bg-purple-50 border-purple-200 text-purple-800"
+    enterprise: "bg-paper-deep border-rule text-signal-deep"
   };
 
   const createAccess = () => {
@@ -170,18 +170,18 @@ export default function AccessManagement() {
   const totalUsage = accessGrants.reduce((sum, g) => sum + g.currentUsage, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-              <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 bg-paper-deep dark:bg-signal-deep rounded-lg">
+              <Shield className="h-6 w-6 text-signal-deep dark:text-signal-light" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-ink">
                 Gestion des accès
               </h1>
               <p className="text-muted-foreground">
@@ -231,7 +231,7 @@ export default function AccessManagement() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-purple-600" />
+                  <Gift className="h-5 w-5 text-signal-deep" />
                   <div>
                     <p className="text-sm text-muted-foreground">Ce mois</p>
                     <p className="text-xl font-bold">3</p>
@@ -282,7 +282,7 @@ export default function AccessManagement() {
               const usagePercentage = (grant.currentUsage / grant.maxDiagnostics) * 100;
               
               return (
-                <Card key={grant.id} className="border-0 shadow-lg">
+                <Card key={grant.id} className="border-0">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -374,7 +374,7 @@ export default function AccessManagement() {
         )}
 
         {activeTab === "create" && (
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" />

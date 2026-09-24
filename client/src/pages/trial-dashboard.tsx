@@ -93,7 +93,7 @@ export default function TrialDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center py-32">
           <div className="text-center">
@@ -128,7 +128,7 @@ export default function TrialDashboard() {
     : "from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-paper-deep">
       <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -139,7 +139,7 @@ export default function TrialDashboard() {
               <Gift className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-ink">
                 Tableau de bord — Période d'essai
               </h1>
               <p className="text-muted-foreground">
@@ -153,7 +153,7 @@ export default function TrialDashboard() {
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Status card */}
-            <Card className={`border-0 shadow-xl bg-gradient-to-br ${statusBg}`}>
+            <Card className={`border-0 bg-paper-deep ${statusBg}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -230,28 +230,28 @@ export default function TrialDashboard() {
                 {license?.warningMessage && (
                   <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>{license.warningMessage.replace(/^[⚠️🔶🔒]\s*/, "")}</span>
+                    <span>{license.warningMessage.replace(/^[]\s*/, "")}</span>
                   </div>
                 )}
 
                 {/* Stat boxes */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
                     <Users className="h-5 w-5 mx-auto mb-1 text-blue-600" />
                     <div className="text-lg font-bold">{license?.currentUsers ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Utilisateurs</div>
                   </div>
-                  <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
-                    <Shield className="h-5 w-5 mx-auto mb-1 text-purple-600" />
+                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
+                    <Shield className="h-5 w-5 mx-auto mb-1 text-signal-deep" />
                     <div className="text-lg font-bold">{license?.maxUsers && license.maxUsers > 10000 ? "∞" : (license?.maxUsers ?? "—")}</div>
                     <div className="text-xs text-muted-foreground">Max autorisés</div>
                   </div>
-                  <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
                     <Wifi className="h-5 w-5 mx-auto mb-1 text-green-600" />
                     <div className="text-lg font-bold">{license?.gracePeriodDays ?? 7}j</div>
                     <div className="text-xs text-muted-foreground">Grâce offline</div>
                   </div>
-                  <div className="text-center p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
                     <Calendar className="h-5 w-5 mx-auto mb-1 text-orange-600" />
                     <div className="text-lg font-bold">
                       {license?.lastLicenseCheckAt
@@ -389,7 +389,7 @@ export default function TrialDashboard() {
 
             {/* Upgrade CTA */}
             {license?.status !== "active" && (
-              <Card className="bg-gradient-to-br from-blue-600 to-violet-600 border-0 text-white">
+              <Card className="bg-ink border-0 text-white">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-white">Passez à un plan complet</CardTitle>
                   <CardDescription className="text-blue-100">
@@ -400,7 +400,7 @@ export default function TrialDashboard() {
                   <Link href="/subscription">
                     <Button
                       variant="outline"
-                      className="w-full border-white/50 bg-white/20 hover:bg-white/30 text-white hover:text-white"
+                      className="w-full border-white/50 bg-white hover:bg-white text-ink hover:text-ink"
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       Voir les offres

@@ -285,7 +285,7 @@ export default function PurchaseOrderCreator() {
                     <Badge className={`${
                       documentTypeInfo.documentType === "purchase_order" 
                         ? "bg-blue-500" 
-                        : "bg-purple-500"
+                        : "bg-signal-deep"
                     } text-white`}>
                       {documentTypeInfo.documentType === "purchase_order" ? (
                         <>
@@ -337,7 +337,7 @@ export default function PurchaseOrderCreator() {
           {/* Section Pièces Justificatives */}
           <div className="space-y-3 border-t pt-4">
             <Label className="flex items-center gap-2 text-base font-semibold">
-              <Upload className="h-5 w-5 text-purple-600" />
+              <Upload className="h-5 w-5 text-signal-deep" />
               Pièces Justificatives (Optionnel)
             </Label>
             <p className="text-sm text-gray-600">
@@ -360,7 +360,7 @@ export default function PurchaseOrderCreator() {
                   type="button"
                   variant="outline"
                   onClick={() => document.getElementById('attachments')?.click()}
-                  className="w-full border-dashed border-2 hover:border-purple-500"
+                  className="w-full border-dashed border-2 hover:border-rule"
                   data-testid="button-upload-attachments"
                   disabled={selectedFiles.length >= 5}
                 >
@@ -444,7 +444,7 @@ export default function PurchaseOrderCreator() {
                   <Plus className="h-4 w-4 mr-2" />
                   Créer la Demande
                   {selectedFiles.length > 0 && (
-                    <Badge className="ml-2 bg-purple-500">
+                    <Badge className="ml-2 bg-signal-deep">
                       +{selectedFiles.length}
                     </Badge>
                   )}

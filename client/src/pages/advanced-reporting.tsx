@@ -150,7 +150,7 @@ export default function AdvancedReporting() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-paper-deep">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -201,7 +201,7 @@ export default function AdvancedReporting() {
         
         {/* Budget Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <DollarSign className="h-5 w-5 text-green-600" />
@@ -250,7 +250,7 @@ export default function AdvancedReporting() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-orange-600" />
@@ -286,7 +286,7 @@ export default function AdvancedReporting() {
 
         {/* Work Orders & Alerts Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Settings className="h-5 w-5 text-blue-600" />
@@ -313,7 +313,7 @@ export default function AdvancedReporting() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
@@ -338,17 +338,17 @@ export default function AdvancedReporting() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-xl">
+          <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-purple-600" />
+                <Users className="h-5 w-5 text-signal-deep" />
                 <span>Équipements Critiques</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-purple-600">{kpis.criticalEquipment}</p>
+                  <p className="text-4xl font-bold text-signal-deep">{kpis.criticalEquipment}</p>
                   <p className="text-sm text-gray-600">Équipements sous surveillance</p>
                 </div>
                 <div className="space-y-2">
@@ -356,7 +356,7 @@ export default function AdvancedReporting() {
                     .filter((eq: any) => eq.criticalityLevel === 'critical')
                     .slice(0, 3)
                     .map((eq: any) => (
-                    <div key={eq.id} className="p-2 bg-purple-50 rounded border-l-4 border-purple-500">
+                    <div key={eq.id} className="p-2 bg-paper-deep rounded border-l-4 border-rule">
                       <p className="text-sm font-medium">{eq.equipmentName}</p>
                       <p className="text-xs text-gray-600">{eq.location}</p>
                     </div>
@@ -368,18 +368,18 @@ export default function AdvancedReporting() {
         </div>
 
         {/* Diagnostic IA — collaboration réelle IA → Analytics */}
-        <Card className="border-0 shadow-xl">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Brain className="h-5 w-5 text-violet-600" />
+              <Brain className="h-5 w-5 text-signal-deep" />
               <span>Diagnostic IA</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-violet-50 rounded-lg">
+              <div className="text-center p-4 bg-paper-deep rounded-lg">
                 <p className="text-sm text-gray-600">Sessions de diagnostic</p>
-                <p className="text-2xl font-bold text-violet-900">{diagnosticStats?.totalSessions ?? 0}</p>
+                <p className="text-2xl font-bold text-signal-deep">{diagnosticStats?.totalSessions ?? 0}</p>
               </div>
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-gray-600">Confiance moyenne</p>
@@ -398,7 +398,7 @@ export default function AdvancedReporting() {
         </Card>
 
         {/* Performance Trends */}
-        <Card className="border-0 shadow-xl">
+        <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart className="h-5 w-5 text-indigo-600" />
@@ -424,7 +424,7 @@ export default function AdvancedReporting() {
               </div>
               <div className="text-center">
                 <h4 className="font-semibold text-gray-900">Satisfaction Client</h4>
-                <p className="text-2xl font-bold text-purple-600">96%</p>
+                <p className="text-2xl font-bold text-signal-deep">96%</p>
                 <p className="text-sm text-gray-600">Score NPS</p>
               </div>
             </div>

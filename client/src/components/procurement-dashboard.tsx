@@ -80,7 +80,7 @@ export function ProcurementDashboard() {
     mutationFn: () => apiRequest('/api/trigger-reorder-check', { method: 'POST' }),
     onSuccess: (data) => {
       toast({
-        title: "Vérification terminée ✅",
+        title: "Vérification terminée ",
         description: `${data.triggeredRules} règles déclenchées, ${data.createdOrders} commandes créées`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/purchase-orders'] });
