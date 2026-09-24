@@ -3,6 +3,7 @@
  * Diagnostiquer, puis réparer l'accès à la console super-admin.
  *
  *   sudo node scripts/reparer-super-admin.mjs                      (diagnostic seul)
+ *   sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe
  *   sudo node scripts/reparer-super-admin.mjs --reparer
  *   sudo node scripts/reparer-super-admin.mjs --reparer --courriel contact@exemple.fr
  *
@@ -24,8 +25,15 @@
  * heures du mauvais côté. Cet outil lit ce que le CONTENEUR voit réellement —
  * pas ce que le fichier prétend — et nomme la panne.
  *
- * Aucun secret n'est affiché, sauf le mot de passe nouvellement généré, une
- * seule fois, à la demande explicite de `--reparer`.
+ * Le cas 2 se dédouble, et c'est la question qu'on se pose en dernier : le
+ * provisionnement conserve une copie EN CLAIR du mot de passe dans le fichier
+ * d'environnement. Elle devient périmée dès que le hash est régénéré ailleurs.
+ * L'outil la confronte au hash avant d'en proposer un nouveau : inutile de
+ * recréer le conteneur si le mot de passe en cours dort déjà sur le serveur.
+ *
+ * Aucun secret n'est affiché, sauf sur demande explicite : le mot de passe
+ * nouvellement généré (`--reparer`), ou celui qui est conservé et vérifié
+ * (`--afficher-mot-de-passe`).
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -101,20 +109,64 @@ if (!hashValide) {
 
 console.log(etat(secretConteneur.length >= 32, `clé secrète plateforme : ${secretConteneur.length} caractères`));
 
-// ── 2. Diagnostic ───────────────────────────────────────────────────
+// ── 2. La copie en clair conservée sur le serveur est-elle la bonne ?
+// Le provisionnement écrit `SUPER_ADMIN_PASSWORD=` en clair dans le fichier,
+// à l'usage de l'exploitant. Cette copie devient PÉRIMÉE dès que le hash est
+// régénéré ailleurs — et l'on croit alors avoir oublié un mot de passe qui n'a
+// simplement plus cours. On la confronte au hash, sans jamais l'afficher ici.
+const bcrypt = createRequire(import.meta.url)('bcrypt');
+
+let copieEnClair = null;
+let copieValide = false;
+if (existsSync(ENV_FILE)) {
+  const ligne = readFileSync(ENV_FILE, 'utf8').match(/^SUPER_ADMIN_PASSWORD=(.*)$/m);
+  if (ligne) {
+    copieEnClair = ligne[1].trim().replace(/^["']|["']$/g, '');
+    copieValide = hashValide && copieEnClair.length > 0
+      && bcrypt.compareSync(copieEnClair, hashConteneur);
+  }
+}
+
+// ── 3. Diagnostic ───────────────────────────────────────────────────
 console.log('\n═══ Diagnostic ═════════════════════════════════════════════\n');
 
 if (!hashValide) {
   rouge('Le mot de passe ne PEUT PAS être vérifié : le hash est cassé.');
-  gris('Votre mot de passe n\'est probablement pas en cause.');
+  gris("Votre mot de passe n'est probablement pas en cause.");
 } else if (courrielVoulu && courrielVoulu.trim().toLowerCase() !== courrielConteneur.trim().toLowerCase()) {
   jaune(`Le hash est valide, mais l'adresse attendue est « ${courrielConteneur} »,`);
   jaune(`pas « ${courrielVoulu} ». Saisissez la première, ou relancez avec`);
   jaune('--reparer --courriel pour adopter la seconde.');
+} else if (copieValide) {
+  vert('La configuration est bien formée, ET le mot de passe conservé dans');
+  vert(`${ENV_FILE} correspond au hash : il ouvre la console.`);
+  gris('Vous ne l\'avez donc pas perdu — il est sur ce serveur.');
+  console.log('\n  Pour l\'afficher (une fois, dans ce terminal) :');
+  console.log('    sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe\n');
+  gris('Aucune recréation de conteneur n\'est nécessaire dans ce cas.');
+} else if (copieEnClair !== null) {
+  jaune('La configuration est bien formée, mais la copie en clair conservée');
+  jaune(`dans ${ENV_FILE} NE correspond PLUS au hash : elle est périmée.`);
+  gris('Le hash a été régénéré sans que cette ligne soit mise à jour.');
+  gris('Le mot de passe en cours n\'est donc écrit nulle part → --reparer.');
 } else {
   vert('La configuration est bien formée.');
-  gris('Si la connexion échoue encore, c\'est le mot de passe lui-même :');
-  gris('relancez avec --reparer pour en générer un nouveau.');
+  gris('Aucune copie du mot de passe n\'est conservée sur ce serveur.');
+  gris('Si la connexion échoue, c\'est le mot de passe lui-même : --reparer.');
+}
+
+// ── 4. Rendre le mot de passe conservé, s'il est encore valable ──────
+if (args.includes('--afficher-mot-de-passe')) {
+  if (!copieValide) {
+    mourir("aucun mot de passe valable n'est conservé sur ce serveur.",
+      'Relancez avec --reparer pour en générer un nouveau.');
+  }
+  console.log('\n───────────────────────────────────────────────────────────');
+  console.log(`  Adresse       : ${courrielConteneur}`);
+  console.log(`  Mot de passe  : \x1b[1m${copieEnClair}\x1b[0m`);
+  console.log('───────────────────────────────────────────────────────────');
+  gris('Vérifié contre le hash du conteneur : ce couple ouvre la console.\n');
+  process.exit(0);
 }
 
 if (!reparer) {
@@ -130,7 +182,6 @@ if (!existsSync(ENV_FILE)) {
     'Précisez-le avec MAINTRIX_TEST_ENV_FILE=/chemin/vers/.env.test-cloud');
 }
 
-const bcrypt = createRequire(import.meta.url)('bcrypt');
 const motDePasse = crypto.randomBytes(18).toString('base64url');
 const hash = bcrypt.hashSync(motDePasse, 10);
 

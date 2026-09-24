@@ -337,6 +337,17 @@ sudo node scripts/reparer-super-admin.mjs
 ```
 
 Il affiche l'adresse attendue et la forme du hash, sans divulguer de secret.
+
+Il répond aussi à la question qu'on se pose en dernier : le provisionnement
+conserve une copie **en clair** du mot de passe dans le fichier
+d'environnement, et cette copie devient périmée dès que le hash est régénéré
+ailleurs. L'outil la confronte au hash. Si elle est encore valable, inutile de
+recréer quoi que ce soit — le mot de passe en cours dort déjà sur le serveur :
+
+```bash
+sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe
+```
+
 Pour régénérer le mot de passe (échappement correct garanti, copie de sécurité
 du fichier, mot de passe affiché une seule fois) :
 
