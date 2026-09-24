@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import multer from "multer";
 import { dataImportExportService } from "./data-import-export";
 import { simpleImportService } from "./simple-import-service";
+import { tenantRequis } from "./tenant-requis";
 
 const router = Router();
 
@@ -63,7 +64,8 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
     }
 
     const fileFormat = req.file.mimetype.includes('csv') ? 'csv' : 'excel';
-    const tenantId = (req as any).user?.tenantId || 'default-tenant';
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
     let result;
 
     switch (type) {

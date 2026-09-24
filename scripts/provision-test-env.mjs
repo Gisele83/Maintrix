@@ -487,6 +487,34 @@ END $$;`,
   // désormais hors service d'un seul bloc, mais on relève aussi les plafonds
   // en base : le jour où l'offre payante s'ouvrira, personne ne se retrouvera
   // bloqué par une valeur héritée d'un essai. Aucune donnée n'est supprimée.
+  // ── 6a. Locataire d'accueil des inscriptions publiques ──────────
+  // ⚠️ La page d'inscription rattache tout nouveau compte au locataire
+  // `default-tenant`. Il venait autrefois du jeu de démonstration, retiré
+  // depuis : sur une base neuve, il n'existait donc plus, et TOUTE inscription
+  // échouait sur la contrainte de clé étrangère — pour tout le monde, avec un
+  // simple « Erreur lors de la création du compte ». Constaté en ligne le
+  // 2026-09-23, après recréation de l'instance.
+  //
+  // Il est donc créé ici, sans données, et sans plafond d'utilisateurs.
+  step("Locataire d'accueil des inscriptions");
+  {
+    const accueil = spawnSync('docker', ['exec', '-i', DB, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', PGU, '-d', PGD], {
+      encoding: 'utf8',
+      input: `
+INSERT INTO tenants (id, name, domain, plan, is_active, max_users, contact_email,
+                     trial_start_date, trial_end_date, license_status)
+SELECT 'default-tenant', 'Inscriptions publiques (tests)', 'inscriptions.test.local', 'free', true, 999999,
+       'inscriptions@test.local', NOW(), NOW() + INTERVAL '3650 days', 'trial'
+WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE id = 'default-tenant');`,
+    });
+    if ((accueil.status ?? 1) !== 0) die("Création du locataire d'accueil impossible", `${accueil.stdout}${accueil.stderr}`);
+
+    const present = docker(['exec', DB, 'psql', '-U', PGU, '-d', PGD, '-tAc',
+      "SELECT COUNT(*) FROM tenants WHERE id = 'default-tenant'"]).out;
+    if (present !== '1') die("Le locataire d'accueil « default-tenant » est absent — les inscriptions échoueraient.");
+    ok("locataire d'accueil des inscriptions présent");
+  }
+
   step("Quotas d'utilisateurs des locataires");
   {
     const SANS_LIMITE = 999999; // = UTILISATEURS_SANS_LIMITE (server/license-service.ts)

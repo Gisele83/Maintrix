@@ -204,6 +204,36 @@ if (naguereTLS === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
 else process.env.NODE_TLS_REJECT_UNAUTHORIZED = naguereTLS;
 
 // ═══════════════════════════════════════════════════════════════════
+section("T4b — L'inscription en libre service est bien fermée");
+{
+  // ⚠️ Contrôle né d'un défaut réel (2026-09-24). L'inscription publique
+  // rattachait TOUT nouveau compte au même locataire : deux testeurs de deux
+  // entreprises différentes se retrouvaient dans le même espace, avec les mêmes
+  // équipements et les mêmes coûts sous les yeux. La route est désormais fermée,
+  // et les comptes sont créés par le super-administrateur, qui crée aussi
+  // l'organisation — donc un espace cloisonné.
+  //
+  // On vérifie que la fermeture tient côté SERVEUR : retirer le bouton de
+  // l'interface ne ferme pas une API.
+  const r = await req("/api/enterprise-auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: publique },
+    body: JSON.stringify({
+      username: "sonde-ouverture",
+      firstName: "Sonde",
+      lastName: "Ouverture",
+      email: "sonde-ouverture@exemple.invalid",
+      password: "MotDePasseSonde123",
+    }),
+  });
+
+  if (r.status === 403) ok("l'inscription en libre service est fermée (403)");
+  else if (r.status === 201) ko("l'inscription en libre service est OUVERTE : les comptes créés partagent tous le même espace",
+    "Un compte vient peut-être d'être créé par ce contrôle — vérifiez et supprimez-le.");
+  else ko(`réponse inattendue de l'inscription : HTTP ${r.status}`, (r.corps || "").slice(0, 200));
+}
+
+// ═══════════════════════════════════════════════════════════════════
 section('T5 — Certificat TLS');
 {
   const port = publique.startsWith('https://') ? (publique.split(':')[2] || '443') : null;

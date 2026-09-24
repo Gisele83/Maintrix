@@ -4,6 +4,7 @@ import { dataAggregationAlgorithm } from "./data-aggregation-algorithm";
 import { db } from "./db";
 import { equipmentRegistry, diagnosticSessions, companies, dataAccessPermissions } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
 
 /**
  * Routes API pour le diagnostic enrichi avec contrôle d'accès par entreprise
@@ -26,7 +27,8 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
         sensorData,
         confidentialityLevel = 'moderate'
       } = req.body;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       // 1. Validation des permissions utilisateur
       const hasAccess = await companyDataAccess.verifyUserAccess(
@@ -173,7 +175,8 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
     try {
       const { equipmentType } = req.params;
       const { userId } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       // Validation permissions
       const hasAccess = await companyDataAccess.verifyUserAccess(
@@ -254,7 +257,8 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
   app.get("/api/data-usage-stats", async (req, res) => {
     try {
       const { userId } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       // Validation permissions admin
       const hasAccess = await companyDataAccess.verifyUserAccess(

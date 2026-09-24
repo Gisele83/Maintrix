@@ -21,6 +21,7 @@ import {
   type AttachmentMetadata 
 } from "./purchase-order-attachments";
 import fs from 'fs';
+import { tenantRequis } from "./tenant-requis";
 
 const router = Router();
 
@@ -254,7 +255,8 @@ router.get("/parts-needing-reorder", async (req, res) => {
 // Trigger stock check and automatic reordering
 router.post("/trigger-reorder-check", async (req, res) => {
   try {
-    const tenantId = (req as any).tenantId || 'default-tenant';
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
     const result = await gmaoStorage.checkStockLevelsAndTriggerReorders(tenantId);
     res.json({
       message: "Stock check completed",

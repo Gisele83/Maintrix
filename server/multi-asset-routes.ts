@@ -23,6 +23,7 @@ import {
 } from "./multi-asset-optimizer";
 import { computeIMCA } from "./imca-engine";
 import { getArbitrationWeights, type ArbitrationWeights } from "./arbitration-learning";
+import { tenantRequis } from "./tenant-requis";
 
 export function registerMultiAssetRoutes(app: Express) {
   /**
@@ -94,7 +95,8 @@ export function registerMultiAssetRoutes(app: Express) {
         minCriticalInterventions: constraints.minCriticalInterventions,
       };
 
-      const tenantId = (req as any).tenantId ?? "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const learnedWeights = await getArbitrationWeights(tenantId);
       const arbitrationWeights: ArbitrationWeights = {
         riskWeight: learnedWeights.riskWeight,
@@ -124,7 +126,8 @@ export function registerMultiAssetRoutes(app: Express) {
       const totalBudget = parseFloat((req.query.totalBudget as string) ?? "50000");
       const maxTechDays = parseFloat((req.query.maxTechDays as string) ?? "30");
       const windowDays = parseInt((req.query.windowDays as string) ?? "60");
-      const tenantId = (req as any).tenantId ?? "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       const allEquipment = await db
         .select({
@@ -250,7 +253,8 @@ export function registerMultiAssetRoutes(app: Express) {
     try {
       const equipmentId = parseInt(req.params.id);
       if (isNaN(equipmentId)) return res.status(400).json({ error: "equipmentId invalide" });
-      const tenantId = (req as any).tenantId ?? "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       const [equipment] = await db
         .select({ id: equipmentRegistry.id, name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType, criticalityLevel: equipmentRegistry.criticalityLevel })

@@ -106,6 +106,7 @@ import { enhancedAuditRoutes } from "./enhanced-audit-monitoring";
 import { tenantIsolationTestRoutes } from "./tenant-isolation-tests";
 import { optimizedGDPRRoutes } from "./gdpr-api-ergonomics";
 import rbacRoutes from "./rbac-routes";
+import { tenantRequis } from "./tenant-requis";
 
 // ── ML Engine — functions extracted to server/diagnostic-ml-engine.ts ─────────
 import {
@@ -189,7 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Enrich with work order + equipment data
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const [workOrder, equipment] = await Promise.all([
         report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
         report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
@@ -285,7 +287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/pdf/comprehensive-report", async (req, res) => {
     try {
       const { period, department } = req.query;
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       const { gmaoStorage } = await import("./gmao-storage");
       const kpis = await gmaoStorage.getDashboardKPIs(tenantId);
@@ -561,7 +564,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const engine = new PredictiveMaintenanceEngine();
       
       const equipmentId = parseInt(req.params.equipmentId);
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const analysis = await engine.analyzeEquipmentHealth(equipmentId, tenantId);
       
       res.json(analysis);
@@ -761,7 +765,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/license/status — current tenant license status (with grace period + trial)
   app.get('/api/license/status', async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const status = await LicenseService.getLicenseStatus(tenantId);
       if (!status) return res.status(404).json({ message: "Tenant non trouvé" });
       // On n'ouvre une période de grâce QUE si la licence est réellement
@@ -789,7 +794,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/trial/start — start a 30-day trial for the current tenant
   app.post('/api/trial/start', async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const existing = await LicenseService.getLicenseStatus(tenantId);
 
       // Don't restart if already active or not trial
@@ -812,7 +818,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/trial/status — current trial status for the authenticated tenant
   app.get('/api/trial/status', async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
     } catch (error: any) {
@@ -824,7 +831,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/trial/status/:userId — legacy route kept for compatibility
   app.get('/api/trial/status/:userId', async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const status = await LicenseService.getLicenseStatus(tenantId);
       res.json({ status, notifications: status?.warningMessage ? [status.warningMessage] : [] });
     } catch (error: any) {
@@ -837,7 +845,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/license/activate', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
       const { subscriptionId, plan, maxUsers } = req.body;
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       if (!subscriptionId || !plan) {
         return res.status(400).json({ message: "subscriptionId et plan sont requis" });
@@ -855,7 +864,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/license/validate — check license validity (for offline cache refresh)
   app.post('/api/license/validate', async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const status = await LicenseService.getLicenseStatus(tenantId);
       if (!status) return res.status(404).json({ valid: false, message: "Tenant non trouvé" });
 
@@ -894,7 +904,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/license/history — license change history
   app.get('/api/license/history', EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId || req.tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const history = await LicenseService.getTenantLicenseHistory(tenantId);
       res.json({ history });
     } catch (error: any) {
@@ -1011,7 +1022,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // était créée avec tenant_id/user_id NULL, invisible pour toute requête scopée par tenant
       // (dont /api/diagnostic-stats). Faire confiance à la session plutôt qu'au client est aussi
       // la bonne pratique déjà suivie ailleurs dans ce fichier (req.user?.tenantId || req.tenantId).
-      const tenantId = (req as any).user?.tenantId || (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const userId = (req as any).user?.id;
 
       const session = await storage.createDiagnosticSession({ ...data, tenantId, userId });
@@ -1059,7 +1071,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🧠 IA → Analytics : agrégats réels sur les sessions de diagnostic, pour le Reporting
   app.get("/api/diagnostic-stats", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const stats = await storage.getDiagnosticStats(tenantId);
       res.json(stats);
     } catch (error: any) {
@@ -1249,7 +1262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/maintenance-history", async (req, res) => {
     try {
       const { gmaoStorage } = await import("./gmao-storage");
-      const tenantId = (req as any).tenantId || "default-tenant";
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const workOrders = await gmaoStorage.getWorkOrders(tenantId);
 
       // Build technician lookup map (id -> full name) from DB
@@ -1761,7 +1775,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Profile Management endpoints
   app.get("/api/user-profiles", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allProfiles = await storage.getUserProfiles();
       const profiles = allProfiles
         .filter(p => p.tenantId === tenantId)
@@ -1805,7 +1820,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Add tenant context
-      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       data.tenantId = tenantId;
       
       const validatedData = insertUserProfileSchema.parse(data);
@@ -1851,7 +1867,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       delete updates.tenantId; // Prevent tenant switching
       
       // Ensure tenant isolation
-      const tenantId = req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const existingProfile = await storage.getUserProfileById(id);
       
       if (!existingProfile || (existingProfile.tenantId && existingProfile.tenantId !== tenantId)) {
@@ -2807,7 +2824,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { equipmentRegistry } = await import('@shared/schema');
       const { desc, eq } = await import('drizzle-orm');
 
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       // Direct database query to get equipment
       const equipment = await db.select().from(equipmentRegistry)
         .where(eq(equipmentRegistry.tenantId, tenantId))
@@ -3688,7 +3706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/client-portal/generate-token", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const token = Buffer.from(`${tenantId}:${Date.now()}`).toString('base64');
       res.json({ token, url: `/client-portal/${token}` });
     } catch (error: any) {
@@ -3701,7 +3720,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================
   app.get("/api/machine-health", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allEquipment = await storage.getEquipmentRegistry();
       const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
       const allWorkOrders = await storage.getWorkOrders();
@@ -3764,7 +3784,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================
   app.get("/api/sla-management", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allWorkOrders = await storage.getWorkOrders();
       const workOrders = allWorkOrders.filter((wo: any) => wo.tenantId === tenantId);
       
@@ -3819,7 +3840,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================
   app.get("/api/smart-alerts", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allEquipment = await storage.getEquipmentRegistry();
       const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
       const allWorkOrders = await storage.getWorkOrders();
@@ -3906,7 +3928,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================
   app.get("/api/sensor-hub", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allEquipment = await storage.getEquipmentRegistry();
       const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
       
@@ -4000,7 +4023,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/equipment-qr-batch", async (req, res) => {
     try {
-      const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const allEquipment = await storage.getEquipmentRegistry();
       const equipment = allEquipment.filter((e: any) => e.tenantId === tenantId);
       

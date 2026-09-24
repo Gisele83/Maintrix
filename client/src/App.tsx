@@ -1,5 +1,5 @@
 import React, { lazy } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route , Redirect} from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,7 +9,6 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import Dashboard from "@/pages/dashboard";
 import ModernHome from "@/pages/modern-home";
 import LandingPage from "@/pages/landing";
-import RegisterPage from "@/pages/register";
 import SmartDiagnostic from "@/pages/smart-diagnostic";
 import GMAODashboard from "@/pages/gmao-dashboard";
 import UserProfiles from "@/pages/user-profiles";
@@ -153,7 +152,10 @@ function Router() {
     <Switch>
       {/* Public routes - Landing and Registration */}
       <Route path="/welcome" component={LandingPage} />
-      <Route path="/register" component={RegisterPage} />
+      {/* L'inscription en libre service est fermée : elle plaçait tous les
+          nouveaux venus dans le même espace de travail. On redirige les anciens
+          liens et signets vers la connexion, qui explique comment obtenir un accès. */}
+      <Route path="/register">{() => <Redirect to="/login" />}</Route>
       <Route path="/login" component={LoginPage} />
       <Route path="/first-login-password-change" component={FirstLoginPasswordChange} />
       <Route path="/change-credentials">

@@ -22,6 +22,7 @@ import {
 } from "../shared/schema";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
+import { tenantRequis } from "./tenant-requis";
 
 // ── VAPID key management ───────────────────────────────────────────────────────
 let webpush: any = null;
@@ -303,7 +304,8 @@ export function registerPushNotificationRoutes(app: Express) {
         }
 
         const userId = req.user?.id;
-        const tenantId = req.user?.tenantId || "default-tenant";
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
 
         // Upsert subscription
         await db
@@ -453,7 +455,8 @@ export function registerPushNotificationRoutes(app: Express) {
     async (req: any, res) => {
       try {
         const userId = req.user?.id;
-        const tenantId = req.user?.tenantId || "default-tenant";
+        const tenantId = tenantRequis(req as any, res as any);
+        if (!tenantId) return;
 
         // Insert into mobile feed
         const [notif] = await db

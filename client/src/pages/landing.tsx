@@ -298,12 +298,16 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm text-ink hover:text-signal transition-colors">
               Se connecter
             </Link>
-            <Link
-              href="/register"
+            {/* ⚠️ « Créer un compte » menait à une inscription en libre service
+                qui plaçait TOUS les nouveaux venus dans le même espace de travail.
+                Les accès sont ouverts par l'équipe, qui crée en même temps
+                l'organisation — donc un espace cloisonné. */}
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
               className="inline-flex items-center h-10 px-4 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
             >
-              Créer un compte
-            </Link>
+              Demander un accès
+            </a>
           </div>
 
           <button
@@ -336,9 +340,12 @@ export default function LandingPage() {
                 <Link href="/login" className="flex-1 inline-flex items-center justify-center h-11 border border-ink text-ink text-sm font-medium">
                   Se connecter
                 </Link>
-                <Link href="/register" className="flex-1 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium">
-                  Créer un compte
-                </Link>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
+                  className="flex-1 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium"
+                >
+                  Demander un accès
+                </a>
               </div>
             </nav>
           </div>
@@ -363,13 +370,13 @@ export default function LandingPage() {
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/register"
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
                   className="group inline-flex items-center justify-center gap-2 h-12 px-6 bg-ink text-paper font-medium hover:bg-signal transition-colors"
                 >
-                  Créer un compte
+                  Demander un accès
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                </a>
                 <a
                   href="#plateforme"
                   className="inline-flex items-center justify-center h-12 px-6 border border-ink text-ink font-medium hover:bg-ink hover:text-paper transition-colors"
@@ -552,12 +559,12 @@ export default function LandingPage() {
                       Nous contacter
                     </button>
                   ) : (
-                    <Link
-                      href={`/register?plan=${p.id}`}
+                    <a
+                      href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Demande d'accès à Maintrix — formule ${p.nom}`)}`}
                       className="mt-8 inline-flex items-center justify-center h-11 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
                     >
-                      Commencer l'essai
-                    </Link>
+                      Demander un accès
+                    </a>
                   )}
                 </div>
               ))}
@@ -578,7 +585,7 @@ export default function LandingPage() {
               <p className="text-ink-soft leading-relaxed">
                 {IS_TEST_ENVIRONMENT
                   ? "Un écran incompréhensible, une information introuvable, un parcours trop long : chaque remarque compte, surtout les plus concrètes."
-                  : "Commencez par la GMAO et vos premiers équipements, puis raccordez vos installations à votre rythme."}
+                  : "Écrivez-nous : nous ouvrons votre espace, et vous commencez par la GMAO et vos premiers équipements."}
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 {IS_TEST_ENVIRONMENT ? (
@@ -589,12 +596,12 @@ export default function LandingPage() {
                     Envoyer un retour
                   </a>
                 ) : (
-                  <Link
-                    href="/register"
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Demande d'accès à Maintrix")}`}
                     className="inline-flex items-center justify-center h-12 px-6 bg-ink text-paper font-medium hover:bg-signal transition-colors"
                   >
-                    Créer un compte
-                  </Link>
+                    Demander un accès
+                  </a>
                 )}
               </div>
             </div>

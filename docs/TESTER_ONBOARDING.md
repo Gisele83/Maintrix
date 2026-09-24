@@ -214,3 +214,44 @@ tant que `SENDGRID_API_KEY` n'est pas configuré.
 
 La page `/login` porte désormais un lien discret vers la console
 d'administration, pour que l'ambiguïté se lève d'elle-même.
+
+## Il n'y a plus d'inscription en libre service
+
+La page publique proposait « Créer un compte ». Ce formulaire rattachait **tout
+nouveau compte au même locataire**, `default-tenant`, écrit en dur dans
+`enterprise-auth-routes.ts`. Or les données sont cloisonnées par le locataire du
+compte (`req.tenantId = session.tenant.id`) : deux testeurs de deux entreprises
+différentes se seraient retrouvés dans le **même espace de travail**, avec les
+mêmes équipements, les mêmes ordres de travail et les mêmes coûts sous les yeux.
+
+Le défaut ne se serait vu que le jour où deux testeurs auraient travaillé en
+parallèle. Fermé le 2026-09-24 :
+
+- la route `POST /api/enterprise-auth/register` répond **403** et renvoie vers
+  `contact@techlearn-saem.com` — fermer le formulaire sans fermer l'API n'aurait
+  rien fermé du tout ;
+- la page de connexion propose **« Demander un accès »** au lieu de « S'inscrire » ;
+- `/register` redirige vers la connexion, pour les signets déjà pris ;
+- la porte d'ouverture (`verify-opening.mjs`) **vérifie que la fermeture tient**,
+  et refuse l'ouverture si l'inscription redevenait possible.
+
+Le seul chemin est donc celui décrit plus haut : le super-administrateur crée
+l'organisation, son compte propriétaire et sa licence dans une même transaction.
+Chaque entreprise a son espace, cloisonné par construction.
+
+### Le cloisonnement ne repose plus sur un repli silencieux
+
+Quatre-vingt-six routes déterminaient le locataire ainsi :
+
+```ts
+const tenantId = (req as any).tenantId || 'default-tenant';
+const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'default-tenant';
+```
+
+Deux défauts : l'en-tête `x-tenant-id` venait du **client** — n'importe qui
+pouvait désigner le locataire dont il voulait lire ou modifier les données — et
+le repli sur `default-tenant` faisait lire et écrire dans un espace commun toute
+requête sans session, sans qu'aucune erreur ne le signale.
+
+Elles passent désormais toutes par `server/tenant-requis.ts`, qui n'accepte que
+le locataire posé par la validation de session et **refuse** (401) à défaut.
