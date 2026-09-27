@@ -1194,9 +1194,20 @@ router.post('/forgot-password',
         });
       }
 
-      // Vérifier que le compte est actif
+      // ⚠️ Un compte désactivé ne recevait RIEN, alors que la réponse annonçait
+      // « un lien de réinitialisation a été envoyé ». La personne attend un
+      // courriel qui ne partira jamais, s'en prend à sa boîte, aux indésirables,
+      // puis au fournisseur d'envoi — alors que le message n'a jamais été émis.
+      // Une heure perdue le 2026-09-27 sur exactement ce chemin.
+      //
+      // La réponse HTTP reste identique : c'est elle qui empêche d'énumérer les
+      // comptes, et un attaquant ne doit rien apprendre. Mais la personne
+      // légitime, elle, reçoit désormais un courriel qui lui dit pourquoi.
       if (!user.isActive) {
-        console.log(`🚫 Tentative de réinitialisation pour compte désactivé: ${user.email}`);
+        console.log(`🚫 Réinitialisation demandée pour un compte DÉSACTIVÉ : ${user.email}`
+          + ' — courriel d\'explication envoyé, aucun lien émis.');
+        await sendCompteDesactiveEmail(user.email || '',
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username);
         return res.json({
           success: true,
           message: "Si cet email existe, un lien de réinitialisation a été envoyé"
@@ -1458,6 +1469,39 @@ router.post('/reset-password',
 /**
  * 📧 Fonction pour envoyer l'email de réinitialisation de mot de passe
  */
+/**
+ * Prévenir que le compte est désactivé — au lieu de ne rien envoyer du tout.
+ *
+ * Ce message ne contient aucun lien et ne permet aucune action : il explique,
+ * c'est tout. Il n'est adressé qu'à une adresse réellement enregistrée, donc il
+ * n'apprend rien à qui sonderait des adresses au hasard.
+ */
+async function sendCompteDesactiveEmail(destinataire: string, nom: string): Promise<boolean> {
+  if (!envoiCourrielConfigure() || !destinataire) return false;
+  try {
+    const { MailService } = require('@sendgrid/mail');
+    const mailService = new MailService();
+    mailService.setApiKey(process.env.SENDGRID_API_KEY!);
+
+    await mailService.send({
+      to: destinataire,
+      from: expediteurCourriel(),
+      subject: 'Maintrix — votre compte est désactivé',
+      text: `Bonjour ${nom},\n\n`
+        + 'Une réinitialisation de mot de passe vient d\'être demandée pour votre compte Maintrix.\n\n'
+        + "Ce compte est actuellement DÉSACTIVÉ : aucun lien de réinitialisation ne peut vous être "
+        + "adressé, et un nouveau mot de passe ne suffirait pas à vous reconnecter.\n\n"
+        + "Demandez à l'administrateur de votre organisation de réactiver votre accès.\n\n"
+        + "Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.\n",
+    });
+    console.log(`✉️ Compte désactivé — explication envoyée à ${destinataire}`);
+    return true;
+  } catch (error) {
+    console.error('Erreur envoi courriel « compte désactivé » :', raisonErreurCourriel(error));
+    return false;
+  }
+}
+
 async function sendPasswordResetEmail(notification: {
   recipientEmail: string;
   recipientName: string;
