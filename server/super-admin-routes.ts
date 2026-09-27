@@ -2,8 +2,8 @@ import { Router, type Request } from "express";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { db } from "./db";
-import { userProfiles, userSessions, tenants, federatedLearning, licenseHistory } from "@shared/schema";
-import { eq, count, desc, sql } from "drizzle-orm";
+import { userProfiles, userSessions, tenants, federatedLearning, licenseHistory, rateLimits } from "@shared/schema";
+import { eq, count, desc, sql, and, or, like } from "drizzle-orm";
 import { sendTenantInvitation, sendTenantStatusNotification, sendTenantCredentials } from './email-service';
 import { CredentialGenerator, createCredentialNotification, SuperAdminUserCredentials } from './credential-generator';
 import { MailService } from '@sendgrid/mail';
@@ -1058,13 +1058,36 @@ router.post('/users/:id/reinitialiser-mot-de-passe', authenticateSuperAdmin, asy
       updatedAt: new Date(),
     }).where(eq(userProfiles.id, id));
 
+    // ⚠️ Remettre le compte en état ne suffit pas : le limiteur anti-force-brute
+    // bloque la route de connexion PAR ADRESSE IP (`req.tenantId` n'existe pas
+    // encore à ce stade, l'identifiant retombe sur `req.ip`). Un blocage posé
+    // par les tentatives infructueuses survit donc au nouveau mot de passe, et
+    // la personne reste dehors une heure de plus sans comprendre pourquoi.
+    //
+    // On ne vide pas la table : seules les entrées RÉELLEMENT bloquantes du
+    // routeur d'authentification sont levées. Les compteurs non bloquants
+    // subsistent, et le reste de l'API garde sa protection.
+    //
+    // Le motif couvre tout `/api/enterprise-auth/` plutôt qu'une liste de
+    // routes : énumérer, c'est oublier. Un blocage sur `reset-password/verify`
+    // ou sur `invitations/accept` enferme tout autant que sur `login`.
+    const blocagesLeves = await db
+      .delete(rateLimits)
+      .where(and(
+        eq(rateLimits.isBlocked, true),
+        like(rateLimits.endpoint, '%/enterprise-auth/%'),
+      ))
+      .returning({ id: rateLimits.id });
+
     // Trace d'audit SANS le mot de passe.
-    console.log(`🔑 Super-admin : accès rétabli pour ${utilisateur.email} (id=${id})`);
+    console.log(`🔑 Super-admin : accès rétabli pour ${utilisateur.email} (id=${id})`
+      + (blocagesLeves.length ? ` — ${blocagesLeves.length} blocage(s) du limiteur levé(s)` : ''));
 
     res.json({
       success: true,
       message: "Accès rétabli. Transmettez ces identifiants à la personne concernée.",
       compte: { id, email: utilisateur.email, username: utilisateur.username },
+      blocagesLeves: blocagesLeves.length,
       motDePasse,
     });
   } catch (error) {
