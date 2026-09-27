@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { CredentialGenerator, createCredentialNotification } from "./credential-generator";
-import { sendTenantCredentials, envoiCourrielConfigure, expediteurCourriel } from "./email-service";
+import { sendTenantCredentials, envoiCourrielConfigure, expediteurCourriel, raisonErreurCourriel } from "./email-service";
 import { LicenseService } from "./license-service";
 import { MFAService } from "./mfa-system";
 import { z } from "zod";
@@ -1569,7 +1569,7 @@ async function sendPasswordResetEmail(notification: {
     console.log(`✅ Email de réinitialisation envoyé à ${notification.recipientEmail}`);
     return true;
   } catch (error) {
-    console.error('Erreur envoi email réinitialisation:', error);
+    console.error('Erreur envoi email réinitialisation :', raisonErreurCourriel(error));
     return false;
   }
 }

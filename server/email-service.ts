@@ -43,6 +43,33 @@ export function envoiCourrielConfigure(): boolean {
   return SENDGRID_ENABLED && expediteurCourriel() !== '';
 }
 
+/**
+ * La raison du refus, telle que SendGrid la donne.
+ *
+ * ⚠️ `console.error('…', error)` sur une erreur SendGrid n'affiche PAS
+ * l'essentiel : le motif se trouve dans `error.response.body.errors`, que le
+ * formatage par défaut laisse de côté. On lisait donc « Erreur envoi email »
+ * suivi d'une pile d'appels, sans jamais savoir que SendGrid répondait
+ * « from address does not match a verified Sender Identity » — la cause la
+ * plus fréquente, et la seule sur laquelle l'exploitant peut agir.
+ */
+export function raisonErreurCourriel(erreur: unknown): string {
+  const e = erreur as { code?: number; message?: string; response?: { body?: unknown } };
+  const corps = e?.response?.body as { errors?: Array<{ message?: string; field?: string; help?: string }> } | undefined;
+  const motifs = (corps?.errors ?? [])
+    .map((m) => [m.message, m.field && `(champ « ${m.field} »)`, m.help].filter(Boolean).join(' '))
+    .filter(Boolean);
+
+  const entete = e?.code ? `SendGrid a répondu ${e.code}` : 'envoi refusé';
+  if (motifs.length) return `${entete} — ${motifs.join(' | ')}`;
+
+  // Pas de corps exploitable : on rend au moins le message brut, et la piste.
+  const brut = e?.message || String(erreur);
+  return e?.code === 403
+    ? `${entete} — ${brut}. Vérifiez que « ${expediteurCourriel()} » est une identité d'expéditeur vérifiée sur SendGrid.`
+    : `${entete} — ${brut}`;
+}
+
 let mailService: MailService | null = null;
 
 if (SENDGRID_ENABLED) {
@@ -166,7 +193,7 @@ Maintrix - Plateforme de maintenance industrielle intelligente
 
     return true;
   } catch (error) {
-    console.error('Erreur envoi email invitation tenant:', error);
+    console.error('Erreur envoi email invitation tenant :', raisonErreurCourriel(error));
     return false;
   }
 }
@@ -259,7 +286,7 @@ export async function sendTenantStatusNotification(
 
     return true;
   } catch (error) {
-    console.error('Erreur envoi notification statut tenant:', error);
+    console.error('Erreur envoi notification statut tenant :', raisonErreurCourriel(error));
     return false;
   }
 }
@@ -370,7 +397,7 @@ export async function sendTenantCredentials(notification: CredentialNotification
     console.log(`✅ Identifiants envoyés par email à ${notification.recipientEmail}`);
     return true;
   } catch (error) {
-    console.error('Erreur envoi identifiants:', error);
+    console.error('Erreur envoi identifiants :', raisonErreurCourriel(error));
     return false;
   }
 }

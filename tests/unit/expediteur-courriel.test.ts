@@ -70,3 +70,61 @@ describe("Expéditeur des courriels", () => {
     expect(complet.expediteurCourriel()).toBe('noreply@techlearn-saem.com'); // espaces retirés
   });
 });
+
+/**
+ * Le motif du refus de SendGrid ressort-il dans les journaux ?
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CE TEST EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Les échecs d'envoi étaient journalisés par `console.error('Erreur envoi
+ * email', error)`. Or le motif d'un refus SendGrid ne se trouve pas dans
+ * `error.message` mais dans `error.response.body.errors`, que le formatage par
+ * défaut n'affiche pas. L'exploitant lisait donc « Erreur envoi email » suivi
+ * d'une pile d'appels, sans jamais apprendre que SendGrid répondait « from
+ * address does not match a verified Sender Identity ».
+ *
+ * Constaté le 2026-09-27 : aucun courriel ne partait, et rien dans les
+ * journaux ne disait pourquoi.
+ */
+describe('Raison du refus d\'envoi', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { raisonErreurCourriel } = require('../../server/email-service');
+
+  const erreurSendGrid = (code: number, errors: unknown[]) =>
+    Object.assign(new Error('Forbidden'), { code, response: { body: { errors } } });
+
+  it('rend le motif exact d\'un expéditeur non vérifié', () => {
+    const raison = raisonErreurCourriel(erreurSendGrid(403, [{
+      message: 'The from address does not match a verified Sender Identity.',
+      field: 'from',
+      help: 'Mail cannot be sent until this error is resolved.',
+    }]));
+
+    expect(raison).toContain('403');
+    expect(raison).toContain('verified Sender Identity');
+    expect(raison).toContain('from');
+  });
+
+  it('assemble plusieurs motifs sans en perdre', () => {
+    const raison = raisonErreurCourriel(erreurSendGrid(400, [
+      { message: 'Premier motif' },
+      { message: 'Second motif' },
+    ]));
+
+    expect(raison).toContain('Premier motif');
+    expect(raison).toContain('Second motif');
+  });
+
+  it('sur un 403 sans corps, pointe quand même vers l\'expéditeur', () => {
+    const raison = raisonErreurCourriel(Object.assign(new Error('Forbidden'), { code: 403 }));
+    expect(raison).toMatch(/identité d'expéditeur vérifiée/);
+  });
+
+  it('ne casse pas sur ce qui n\'est pas une erreur SendGrid', () => {
+    for (const valeur of [new Error('réseau injoignable'), 'texte brut', null, undefined, {}]) {
+      expect(typeof raisonErreurCourriel(valeur)).toBe('string');
+      expect(raisonErreurCourriel(valeur).length).toBeGreaterThan(0);
+    }
+  });
+});
