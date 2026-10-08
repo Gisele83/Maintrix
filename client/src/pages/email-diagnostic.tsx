@@ -167,14 +167,28 @@ export default function EmailDiagnostic() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Avertissement important */}
-              <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Configuration requise</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p><strong>Vous devez utiliser votre VRAIE adresse email</strong> que vous possédez réellement.</p>
-                  <p>Les adresses fictives (platform@admin.com, admin@smartgmao.com) ne fonctionnent pas car SendGrid exige la vérification du propriétaire du domaine.</p>
-                  <p><strong>Exemples d'adresses valides :</strong> votre-nom@gmail.com, contact@monentreprise.com</p>
+              {/* Cet encadré réclamait « votre VRAIE adresse email » comme
+                  expéditeur, du temps où ce champ était libre. Il contredisait
+                  la page depuis que l'expéditeur vient du serveur, et citait
+                  une marque abandonnée. Remplacé par ce que la page fait. */}
+              <Alert className="border-rule bg-paper-deep">
+                <Info className="h-4 w-4" />
+                <AlertTitle>Ce que ce diagnostic vérifie</AlertTitle>
+                <AlertDescription className="space-y-2 text-ink-soft">
+                  <p>
+                    Qu'une adresse soit vérifiée dans la console SendGrid ne suffit pas :
+                    encore faut-il que <strong>la clé API de ce serveur</strong> ait le droit
+                    d'envoyer, et que ce soit bien cette adresse-là qui soit configurée ici.
+                  </p>
+                  <p>
+                    La première étape n'envoie <strong>aucun message</strong> : elle interroge
+                    SendGrid et distingue les causes — clé absente du conteneur, clé invalide,
+                    permission « Mail Send » manquante, ou expéditeur non reconnu.
+                  </p>
+                  <p>
+                    La seconde envoie un vrai message à l'adresse que vous indiquez. En cas de
+                    refus, le motif exact de SendGrid est affiché.
+                  </p>
                 </AlertDescription>
               </Alert>
 
