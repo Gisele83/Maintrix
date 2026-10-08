@@ -173,7 +173,15 @@ if (!peutEnvoyer) {
   jaune('SendGrid refusera chaque message avec un 403.');
   gris('Le test réel ci-dessous le confirmera en une seconde.');
 } else {
-  vert('Rien ne s\'oppose à l\'envoi du côté de la configuration.');
+  // `verifie === null` veut dire « pas vérifiable », pas « vérifié ». Annoncer
+  // que tout va bien sur cette base, c'est répéter la faute qu'on corrige.
+  if (verifie === null) {
+    jaune('Aucun obstacle n\'a pu être CONSTATÉ — mais l\'expéditeur n\'a pas pu');
+    jaune('être vérifié : la clé n\'a pas le droit de lire les identités.');
+    gris('Seul un envoi réel tranchera (--envoyer).');
+  } else {
+    vert('Rien ne s\'oppose à l\'envoi du côté de la configuration.');
+  }
   gris('Si les messages n\'arrivent toujours pas : regardez les indésirables,');
   gris('puis l\'activité sur SendGrid (Activity Feed), qui dit si le message est');
   gris('parti, a été rejeté par le destinataire, ou mis en liste de suppression.');
@@ -238,8 +246,22 @@ if (suivi) {
   }
 
   console.log('');
-  if (!trouvailles.length) {
-    vert('Cette adresse n\'est bloquée nulle part chez SendGrid.');
+  // ⚠️ Une liste illisible n'est pas une liste vide. Sans cette distinction,
+  // cinq refus de permission se concluaient par « n'est bloquée nulle part » :
+  // une affirmation sans la moindre preuve, exactement ce que cet outil traque.
+  if (nonConsultables === LISTES.length) {
+    rouge('RIEN N\'A PU ÊTRE VÉRIFIÉ : aucune des cinq listes n\'est lisible.');
+    console.error('Cette clé ne sert qu\'à envoyer ; elle n\'a aucun droit de lecture.');
+    console.error('\nDeux façons de trancher :');
+    console.error('  • sur SendGrid, Settings → API Keys → cette clé → ajouter les');
+    console.error('    accès en lecture « Suppressions » et « Sender Authentication »,');
+    console.error('    puis recréer le conteneur et relancer cette commande ;');
+    console.error('  • ou consulter Suppressions et Activity dans l\'interface');
+    console.error('    SendGrid, qui montrent exactement la même chose.');
+    process.exit(1);
+  } else if (!trouvailles.length) {
+    vert(`Cette adresse n'est sur aucune des ${LISTES.length - nonConsultables} liste(s) consultables.`);
+    if (nonConsultables) jaune(`${nonConsultables} liste(s) illisible(s) — conclusion partielle.`);
     gris('Si le message n\'arrive toujours pas : regardez les indésirables du');
     gris('destinataire, puis l\'Activity Feed de SendGrid, qui dit si le message');
     gris('a été remis, rejeté par le serveur distant, ou différé.');

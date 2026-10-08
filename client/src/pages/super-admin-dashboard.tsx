@@ -322,10 +322,13 @@ export default function SuperAdminDashboard() {
       // de trouver une clé sans droit d'envoi.
       const diagnostic = data.sendgridTest;
       toast({
-        title: diagnostic?.success ? "Configuration SendGrid valide" : "Problème de configuration",
+        title: diagnostic?.error ? "Problème de configuration"
+          : diagnostic?.reserve ? "Vérification incomplète"
+          : "Configuration SendGrid valide",
         description: diagnostic?.error
+          || diagnostic?.reserve
           || `Expéditeur « ${diagnostic?.expediteur ?? "?"} » reconnu par SendGrid.`,
-        variant: diagnostic?.success ? "default" : "destructive",
+        variant: diagnostic?.error ? "destructive" : "default",
       });
     },
     onError: (error: any) => {

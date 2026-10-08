@@ -432,6 +432,8 @@ export interface DiagnosticCourriel {
   expediteurVerifie: boolean | null;
   domaineAuthentifie: boolean | null;
   identitesVerifiees: string[];
+  /** Ce que le diagnostic n'a PAS pu vérifier, et pourquoi. */
+  reserve?: string;
   error?: string;
 }
 
@@ -542,6 +544,17 @@ export async function diagnostiquerEnvoiCourriel(): Promise<DiagnosticCourriel> 
       domaineAuthentifie,
       identitesVerifiees: identites,
       success: reconnu || indecidable,
+      // ⚠️ `indecidable` veut dire « pas vérifiable », pas « vérifié ». Sans
+      // cette réserve, la console annonçait « Configuration SendGrid valide »
+      // alors qu'elle n'avait RIEN pu contrôler : la clé n'a souvent que le
+      // droit d'envoyer, pas celui de lire les identités ni les suppressions.
+      // Afficher un feu vert sur cette base, c'est répéter le défaut que tout
+      // ce travail corrige. Constaté le 2026-10-08.
+      reserve: indecidable
+        ? "La clé n'a pas le droit de lire les identités d'expéditeur ni les domaines "
+          + `authentifiés : impossible de confirmer que « ${expediteur} » est accepté. `
+          + "Aucun obstacle constaté, mais seul un envoi réel tranchera."
+        : undefined,
       error: reconnu || indecidable ? undefined
         : `« ${expediteur} » n'apparaît ni comme identité d'expéditeur vérifiée, ni sous un `
           + "domaine authentifié sur ce compte SendGrid. Chaque message sera refusé par un 403."
