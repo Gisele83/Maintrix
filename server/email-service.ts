@@ -401,3 +401,221 @@ export async function sendTenantCredentials(notification: CredentialNotification
     return false;
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// DIAGNOSTIC DE L'ENVOI — « pourquoi les courriels ne partent-ils pas ? »
+// ═══════════════════════════════════════════════════════════════════
+// La page /email-diagnostic appelait deux routes qui N'EXISTAIENT PAS : elles
+// étaient commentées dans super-admin-routes.ts, avec la mention « déplacées
+// vers email-service.ts » — où elles n'ont jamais été écrites. Les boutons
+// renvoyaient donc « 404 Route API inconnue », ce qui ressemble à un problème
+// SendGrid alors que la requête n'a jamais quitté Maintrix.
+// Constaté le 2026-10-08.
+//
+// Une adresse « vérifiée » dans l'interface SendGrid ne garantit rien : encore
+// faut-il que LA CLÉ du serveur ait le droit d'envoyer, et que ce soit bien
+// cette adresse-là qui soit configurée ici. Ces fonctions séparent les causes.
+
+/** Une clé SendGrid : « SG. » puis deux segments. On ne lit jamais sa valeur. */
+const FORME_CLE_SENDGRID = /^SG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}$/;
+
+export interface DiagnosticCourriel {
+  /** Rien ne s'oppose à l'envoi, côté configuration. */
+  success: boolean;
+  /** Conservé sous ce nom : la page de diagnostic s'appuie dessus. */
+  apiKeyValid: boolean;
+  clePresente: boolean;
+  formeCleValide: boolean;
+  peutEnvoyer: boolean;
+  expediteur: string;
+  /** `null` quand la clé n'a pas le droit de consulter la liste. */
+  expediteurVerifie: boolean | null;
+  domaineAuthentifie: boolean | null;
+  identitesVerifiees: string[];
+  error?: string;
+}
+
+async function appelerSendGrid(chemin: string, options: RequestInit = {}) {
+  const reponse = await fetch(`https://api.sendgrid.com/v3${chemin}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  const texte = await reponse.text();
+  let corps: any = null;
+  try { corps = texte ? JSON.parse(texte) : null; } catch { corps = texte; }
+  return { statut: reponse.status, corps };
+}
+
+export async function diagnostiquerEnvoiCourriel(): Promise<DiagnosticCourriel> {
+  const cle = (process.env.SENDGRID_API_KEY || '').trim();
+  const expediteur = expediteurCourriel();
+
+  const base: DiagnosticCourriel = {
+    success: false,
+    apiKeyValid: false,
+    clePresente: !!cle,
+    formeCleValide: FORME_CLE_SENDGRID.test(cle),
+    peutEnvoyer: false,
+    expediteur,
+    expediteurVerifie: null,
+    domaineAuthentifie: null,
+    identitesVerifiees: [],
+  };
+
+  if (!cle) {
+    return {
+      ...base,
+      error: "SENDGRID_API_KEY est absente du conteneur. Si elle figure dans le fichier "
+        + "d'environnement, c'est que le conteneur n'a pas été recréé depuis : Docker fige "
+        + "les variables à la création, un simple redémarrage ne relit rien.",
+    };
+  }
+  if (!expediteur) {
+    return {
+      ...base,
+      error: "SENDGRID_FROM_EMAIL est absente : l'application n'a aucune adresse d'expédition.",
+    };
+  }
+
+  try {
+    const scopes = await appelerSendGrid('/scopes');
+
+    if (scopes.statut === 401) {
+      return {
+        ...base,
+        error: "SendGrid refuse la clé (401) : elle est invalide, révoquée, ou tronquée.",
+      };
+    }
+    if (scopes.statut !== 200) {
+      return {
+        ...base,
+        error: `SendGrid a répondu ${scopes.statut} à une simple lecture des permissions.`,
+      };
+    }
+
+    const permissions: string[] = scopes.corps?.scopes ?? [];
+    if (!permissions.includes('mail.send')) {
+      return {
+        ...base,
+        apiKeyValid: true,
+        error: "Cette clé est valide mais n'a pas la permission « Mail Send » : elle ne peut "
+          + "envoyer aucun courriel. Sur SendGrid : Settings → API Keys → cette clé → Mail Send.",
+      };
+    }
+
+    // L'expéditeur est-il reconnu ? Cause la plus fréquente, et invisible côté
+    // application : SendGrid accepte la clé, puis refuse le message.
+    let expediteurVerifie: boolean | null = null;
+    let identites: string[] = [];
+    const senders = await appelerSendGrid('/verified_senders');
+    if (senders.statut === 200) {
+      identites = (senders.corps?.results ?? [])
+        .filter((s: any) => s.verified)
+        .map((s: any) => String(s.from_email || '').toLowerCase());
+      expediteurVerifie = identites.includes(expediteur.toLowerCase());
+    }
+
+    // Un domaine authentifié dispense de vérifier chaque adresse une par une.
+    let domaineAuthentifie: boolean | null = null;
+    const domaines = await appelerSendGrid('/whitelabel/domains');
+    if (domaines.statut === 200 && Array.isArray(domaines.corps)) {
+      const domaineExpediteur = expediteur.split('@')[1]?.toLowerCase() ?? '';
+      domaineAuthentifie = domaines.corps
+        .filter((d: any) => d.valid)
+        .some((d: any) => String(d.domain || '').toLowerCase() === domaineExpediteur);
+    }
+
+    const reconnu = expediteurVerifie === true || domaineAuthentifie === true;
+    // Si la clé ne peut consulter NI les expéditeurs NI les domaines, on ne
+    // peut pas conclure : seul un envoi réel tranchera. On ne crie pas au loup.
+    const indecidable = expediteurVerifie === null && domaineAuthentifie === null;
+
+    return {
+      ...base,
+      apiKeyValid: true,
+      peutEnvoyer: true,
+      expediteurVerifie,
+      domaineAuthentifie,
+      identitesVerifiees: identites,
+      success: reconnu || indecidable,
+      error: reconnu || indecidable ? undefined
+        : `« ${expediteur} » n'apparaît ni comme identité d'expéditeur vérifiée, ni sous un `
+          + "domaine authentifié sur ce compte SendGrid. Chaque message sera refusé par un 403."
+          + (identites.length ? ` Identités vérifiées : ${identites.join(', ')}.` : ''),
+    };
+  } catch (erreur) {
+    return {
+      ...base,
+      error: `SendGrid est injoignable depuis le serveur : ${raisonErreurCourriel(erreur)}`,
+    };
+  }
+}
+
+export interface ResultatCourrielTest {
+  success: boolean;
+  statut?: number;
+  expediteur: string;
+  error?: string;
+  details?: unknown;
+}
+
+/**
+ * Envoyer un vrai message de test.
+ *
+ * ⚠️ L'expéditeur n'est JAMAIS celui que propose l'appelant : il vient de la
+ * configuration. La page de diagnostic laissait saisir une adresse quelconque
+ * — « votre-email@gmail.com » par défaut — ce qui garantissait un refus 403 et
+ * laissait croire que SendGrid était en cause, alors que le test lui-même
+ * était mal posé.
+ */
+export async function envoyerCourrielDeTest(destinataire: string): Promise<ResultatCourrielTest> {
+  const expediteur = expediteurCourriel();
+
+  if (!envoiCourrielConfigure()) {
+    return {
+      success: false,
+      expediteur,
+      error: "L'envoi n'est pas configuré : clé API ou adresse d'expédition manquante.",
+    };
+  }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(destinataire || '')) {
+    return { success: false, expediteur, error: 'Adresse de destination invalide.' };
+  }
+
+  try {
+    const envoi = await appelerSendGrid('/mail/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: destinataire }] }],
+        from: { email: expediteur, name: 'Maintrix' },
+        subject: 'Maintrix — test de configuration des courriels',
+        content: [{
+          type: 'text/plain',
+          value: "Ce message confirme que l'environnement Maintrix peut émettre des courriels.\n"
+            + `Expéditeur configuré : ${expediteur}\n`
+            + `Envoyé le ${new Date().toLocaleString('fr-FR')}.`,
+        }],
+      }),
+    });
+
+    if (envoi.statut === 202) {
+      console.log(`✅ Courriel de test accepté par SendGrid pour ${destinataire}`);
+      return { success: true, statut: 202, expediteur };
+    }
+
+    const motifs: string[] = (envoi.corps?.errors ?? [])
+      .map((e: any) => [e.message, e.field && `(champ « ${e.field} »)`].filter(Boolean).join(' '));
+    const error = `SendGrid a refusé le message (${envoi.statut})`
+      + (motifs.length ? ` — ${motifs.join(' | ')}` : '');
+    console.error(`❌ ${error}`);
+    return { success: false, statut: envoi.statut, expediteur, error, details: envoi.corps };
+  } catch (erreur) {
+    const error = `SendGrid est injoignable depuis le serveur : ${raisonErreurCourriel(erreur)}`;
+    console.error(`❌ ${error}`);
+    return { success: false, expediteur, error };
+  }
+}

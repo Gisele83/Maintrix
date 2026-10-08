@@ -9,6 +9,7 @@ import { CredentialGenerator, createCredentialNotification, SuperAdminUserCreden
 import { MailService } from '@sendgrid/mail';
 import { storage } from "./storage";
 import { LicenseService, UTILISATEURS_SANS_LIMITE } from './license-service';
+import { diagnostiquerEnvoiCourriel, envoyerCourrielDeTest } from './email-service';
 import { normaliserRole, ROLE_PAR_DEFAUT } from "@shared/roles";
 
 /**
@@ -360,55 +361,60 @@ router.get('/tenants', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
-// 🧪 Route de test pour la configuration SendGrid (temporairement désactivée)
-// Les fonctions de test ont été déplacées vers email-service.ts
-// router.get('/test-sendgrid', authenticateSuperAdmin, async (req, res) => {
-//   try {
-//     const testResult = await testSendGridConfiguration();
-    
-//     res.json({
-//       success: true,
-//       sendgridTest: testResult,
-//       timestamp: new Date().toISOString()
-//     });
-//   } catch (error) {
-//     console.error('Erreur test SendGrid:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: 'Erreur lors du test SendGrid',
-//       details: error instanceof Error ? error.message : 'Erreur inconnue'
-//     });
-//   }
-// });
+// 🧪 Diagnostic de la configuration d'envoi — sans envoyer le moindre message.
+//
+// ⚠️ Cette route et la suivante étaient COMMENTÉES, avec la mention « les
+// fonctions de test ont été déplacées vers email-service.ts » — où elles
+// n'avaient jamais été écrites. La page /email-diagnostic appelait donc du
+// vide et recevait « 404 Route API inconnue ». Ce message ressemble à un refus
+// de SendGrid, alors que la requête n'avait jamais quitté Maintrix : on
+// cherchait une panne d'envoi là où il n'y avait qu'une route manquante.
+// Rétabli le 2026-10-08.
+router.get('/test-sendgrid', authenticateSuperAdmin, async (_req, res) => {
+  try {
+    const sendgridTest = await diagnostiquerEnvoiCourriel();
+    res.json({ success: true, sendgridTest, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Erreur diagnostic SendGrid :', error);
+    res.status(500).json({
+      success: false,
+      error: 'DIAGNOSTIC_COURRIEL_ECHOUE',
+      message: "Le diagnostic n'a pas pu être mené à son terme",
+    });
+  }
+});
 
-// 📧 Route de test d'envoi d'email réel (temporairement désactivée)
-// router.post('/test-email', authenticateSuperAdmin, async (req, res) => {
-//   try {
-//     const { toEmail, fromEmail } = req.body;
-    
-//     if (!toEmail || !fromEmail) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'toEmail et fromEmail sont requis'
-//       });
-//     }
+// 📧 Envoi d'un vrai message de test, vers une adresse choisie.
+//
+// `fromEmail` est volontairement IGNORÉ s'il est fourni : l'expéditeur vient de
+// la configuration du serveur. La page proposait de le saisir, avec
+// « votre-email@gmail.com » pour valeur par défaut — ce qui garantissait un
+// refus 403 et faisait accuser SendGrid d'un test mal posé.
+router.post('/test-email', authenticateSuperAdmin, async (req, res) => {
+  try {
+    const destinataire = String(req.body?.toEmail || '').trim();
+    if (!destinataire) {
+      return res.status(400).json({
+        success: false,
+        error: 'DESTINATAIRE_REQUIS',
+        message: "Indiquez l'adresse qui doit recevoir le message de test.",
+      });
+    }
 
-//     const testResult = await testRealEmailSend(toEmail, fromEmail);
-    
-//     res.json({
-//       success: testResult.success,
-//       result: testResult,
-//       timestamp: new Date().toISOString()
-//     });
-//   } catch (error) {
-//     console.error('Erreur test envoi email:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: 'Erreur lors du test d\'envoi d\'email',
-//       details: error instanceof Error ? error.message : 'Erreur inconnue'
-//     });
-//   }
-// });
+    const result = await envoyerCourrielDeTest(destinataire);
+    console.log(`🧪 Super-admin : test d'envoi vers ${destinataire} — `
+      + (result.success ? 'accepté par SendGrid' : `refusé (${result.error})`));
+
+    res.json({ success: result.success, result, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error("Erreur test d'envoi de courriel :", error);
+    res.status(500).json({
+      success: false,
+      error: 'TEST_COURRIEL_ECHOUE',
+      message: "Le test d'envoi n'a pas pu être mené à son terme",
+    });
+  }
+});
 
 // 🏢 Créer un nouveau tenant avec identifiants par défaut
 router.post('/tenants', authenticateSuperAdmin, async (req, res) => {

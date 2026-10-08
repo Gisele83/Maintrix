@@ -31,6 +31,12 @@ interface DiagnosticResult {
   sendgridTest?: {
     success: boolean;
     apiKeyValid: boolean;
+    clePresente?: boolean;
+    peutEnvoyer?: boolean;
+    expediteur?: string;
+    expediteurVerifie?: boolean | null;
+    domaineAuthentifie?: boolean | null;
+    identitesVerifiees?: string[];
     error?: string;
   };
   emailTest?: {
@@ -46,10 +52,8 @@ export default function EmailDiagnostic() {
   const { toast } = useToast();
   const [diagnosticProgress, setDiagnosticProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
-  const [emailTestData, setEmailTestData] = useState({
-    toEmail: 'test@example.com',
-    fromEmail: 'votre-email@gmail.com' // REMPLACER par votre vraie adresse email
-  });
+  // Seule la destination se choisit : l'expéditeur vient du serveur.
+  const [emailTestData, setEmailTestData] = useState({ toEmail: '' });
 
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
@@ -87,6 +91,10 @@ export default function EmailDiagnostic() {
     }
   });
 
+  // L'adresse que le serveur utilise réellement, telle que le diagnostic la
+  // rapporte. Elle n'est connue qu'après le premier appel.
+  const expediteurConfigure = sendgridTestMutation.data?.sendgridTest?.expediteur ?? '';
+
   const runFullDiagnostic = async () => {
     setDiagnosticProgress(0);
     setCurrentStep(0);
@@ -95,7 +103,7 @@ export default function EmailDiagnostic() {
     await sendgridTestMutation.mutateAsync();
     
     // Étape 2: Test envoi email
-    if (emailTestData.toEmail && emailTestData.fromEmail) {
+    if (emailTestData.toEmail) {
       await emailTestMutation.mutateAsync();
     }
   };
@@ -172,21 +180,22 @@ export default function EmailDiagnostic() {
 
               {/* Configuration du test */}
               <div className="grid grid-cols-1 gap-4">
+                {/* L'expéditeur n'est PAS saisissable : il vient de la
+                    configuration du serveur (SENDGRID_FROM_EMAIL). Ce champ
+                    était libre, avec « votre-email@gmail.com » par défaut, ce
+                    qui garantissait un refus 403 même sur un environnement
+                    parfaitement configuré — et faisait accuser SendGrid. */}
                 <div>
-                  <Label htmlFor="fromEmail" className="flex items-center gap-2">
+                  <Label className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-signal-deep" />
-                    Votre vraie adresse email expéditeur
+                    Adresse d'expédition configurée
                   </Label>
-                  <Input
-                    id="fromEmail"
-                    type="email"
-                    placeholder="votre-nom@gmail.com"
-                    value={emailTestData.fromEmail}
-                    onChange={(e) => setEmailTestData(prev => ({ ...prev, fromEmail: e.target.value }))}
-                    className="border-rule focus:border-rule"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Cette adresse doit être vérifiée dans votre console SendGrid
+                  <p className="font-mono text-sm text-ink border border-rule bg-paper-deep rounded px-3 py-2 mt-1">
+                    {expediteurConfigure || 'inconnue — lancez le diagnostic'}
+                  </p>
+                  <p className="text-xs text-ink-mute mt-1">
+                    Définie côté serveur. Le diagnostic vérifie qu'elle est bien
+                    reconnue par SendGrid.
                   </p>
                 </div>
                 <div>
