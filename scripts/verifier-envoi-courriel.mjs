@@ -4,6 +4,7 @@
  *
  *   sudo node scripts/verifier-envoi-courriel.mjs
  *   sudo node scripts/verifier-envoi-courriel.mjs --envoyer vous@exemple.fr
+ *   sudo node scripts/verifier-envoi-courriel.mjs --suivre destinataire@exemple.fr
  *
  * ═══════════════════════════════════════════════════════════════════
  * POURQUOI CET OUTIL EXISTE
@@ -19,7 +20,11 @@
  *   4. l'adresse d'expéditeur n'est pas une identité VÉRIFIÉE chez SendGrid →
  *      403 « from address does not match a verified Sender Identity ». C'est la
  *      cause la plus fréquente, et elle ne se voit nulle part côté application ;
- *   5. tout fonctionne, et le message est classé en indésirable.
+ *   5. l'adresse du destinataire est sur une LISTE DE SUPPRESSION de SendGrid :
+ *      il répond 202 « accepté », puis jette le message sans rien dire. Un
+ *      rebond ou un signalement passé suffit à l'y inscrire, et elle y reste
+ *      même quand la cause a disparu (--suivre) ;
+ *   6. tout fonctionne, et le message est classé en indésirable.
  *
  * Par défaut, cet outil N'ENVOIE RIEN : il interroge l'API de SendGrid en
  * lecture seule et confronte l'expéditeur configuré à la liste des identités
@@ -174,9 +179,94 @@ if (!peutEnvoyer) {
   gris('parti, a été rejeté par le destinataire, ou mis en liste de suppression.');
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// LE DESTINATAIRE EST-IL SUR UNE LISTE DE SUPPRESSION ?
+// ═══════════════════════════════════════════════════════════════════
+// ⚠️ SendGrid répond 202 — « accepté » — PUIS jette le message, sans rien dire,
+// si l'adresse figure sur l'une de ses listes de suppression. L'application
+// voit un succès et annonce « identifiants envoyés par email ». Le destinataire
+// n'a rien, et personne ne peut le savoir depuis Maintrix.
+//
+// Une adresse y arrive toute seule : un rebond (boîte pleine, serveur
+// momentanément indisponible), un signalement en indésirable, ou un blocage
+// temporaire suffisent. Une fois inscrite, elle le reste — y compris quand la
+// cause a disparu. C'est l'explication la plus courante d'un « envoyé mais
+// jamais reçu ». Ajouté le 2026-10-08.
+const LISTES = [
+  ['rebonds', '/suppression/bounces', 'le serveur du destinataire a refusé un message précédent'],
+  ['blocages', '/suppression/blocks', 'refus temporaire : boîte pleine, serveur injoignable'],
+  ['indésirables', '/suppression/spam_reports', 'le destinataire a signalé un message comme indésirable'],
+  ['adresses invalides', '/suppression/invalid_emails', 'adresse rejetée comme inexistante'],
+  ['désabonnements', '/asm/suppressions/global', 'désabonnement global demandé'],
+];
+
+const suivi = (() => {
+  const i = args.indexOf('--suivre');
+  return i >= 0 ? args[i + 1] : null;
+})();
+
+if (args.includes('--suivre') && !suivi) {
+  mourir('--suivre attend l\'adresse du destinataire à examiner.');
+}
+
+if (suivi) {
+  console.log(`\n═══ ${suivi} est-il bloqué chez SendGrid ? ════════\n`);
+
+  const trouvailles = [];
+  for (const [nom, chemin, explication] of LISTES) {
+    const r = await appeler(`${chemin}/${encodeURIComponent(suivi)}`);
+
+    // 404 = absent de la liste, c'est la bonne nouvelle.
+    if (r.statut === 404) { console.log(etat(true, `${nom} : absent`)); continue; }
+    if (r.statut === 401 || r.statut === 403) {
+      jaune(`${nom} : non consultable (${r.statut}) — la clé n'a pas cette permission.`);
+      continue;
+    }
+    if (r.statut !== 200) { jaune(`${nom} : réponse inattendue (${r.statut})`); continue; }
+
+    const entrees = Array.isArray(r.corps) ? r.corps : (r.corps ? [r.corps] : []);
+    if (!entrees.length) { console.log(etat(true, `${nom} : absent`)); continue; }
+
+    console.log(etat(false, `${nom} : PRÉSENT`));
+    trouvailles.push([nom, chemin]);
+    gris(`  ${explication}`);
+    for (const e of entrees.slice(0, 3)) {
+      if (e.created) gris(`  depuis le ${new Date(e.created * 1000).toLocaleString('fr-FR')}`);
+      if (e.reason) gris(`  motif : ${String(e.reason).slice(0, 160)}`);
+      if (e.status) gris(`  code : ${e.status}`);
+    }
+  }
+
+  console.log('');
+  if (!trouvailles.length) {
+    vert('Cette adresse n\'est bloquée nulle part chez SendGrid.');
+    gris('Si le message n\'arrive toujours pas : regardez les indésirables du');
+    gris('destinataire, puis l\'Activity Feed de SendGrid, qui dit si le message');
+    gris('a été remis, rejeté par le serveur distant, ou différé.');
+  } else {
+    rouge(`Cette adresse est sur ${trouvailles.length} liste(s) de suppression.`);
+    rouge('SendGrid accepte les messages (202) et les jette ensuite, en silence.');
+    console.log('\nPour l\'en retirer — c\'est une modification de VOTRE compte SendGrid,');
+    console.log('elle n\'est pas faite automatiquement :');
+    console.log(`  sudo node scripts/verifier-envoi-courriel.mjs --suivre ${suivi} --liberer\n`);
+
+    if (args.includes('--liberer')) {
+      console.log('Retrait demandé explicitement :\n');
+      for (const [nom, chemin] of trouvailles) {
+        const r = await appeler(`${chemin}/${encodeURIComponent(suivi)}`, { method: 'DELETE' });
+        if (r.statut === 204 || r.statut === 200) vert(`  ✓ retiré de « ${nom} »`);
+        else rouge(`  ✗ « ${nom} » : SendGrid a répondu ${r.statut}`);
+      }
+      console.log('');
+      gris('Refaites un envoi de test pour confirmer la remise.');
+    }
+  }
+}
+
 if (!destinataire) {
-  console.log('\nAucun message envoyé. Pour un test réel, sur une adresse à vous :');
-  console.log('  sudo node scripts/verifier-envoi-courriel.mjs --envoyer vous@exemple.fr\n');
+  console.log('\nAucun message envoyé.');
+  console.log('  Test réel      : --envoyer vous@exemple.fr');
+  console.log('  Adresse muette : --suivre destinataire@exemple.fr\n');
   process.exit(0);
 }
 
