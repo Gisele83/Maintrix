@@ -21,6 +21,10 @@ type SuperAdminLoginForm = z.infer<typeof superAdminLoginSchema>;
 
 export default function SuperAdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
+  // Posé par queryClient quand le serveur a oublié le jeton : les sessions de
+  // la console vivent en mémoire du processus et ne survivent pas à un
+  // déploiement. Sans ce mot, on revient ici sans savoir pourquoi.
+  const sessionExpiree = new URLSearchParams(window.location.search).get("session") === "expiree";
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -90,6 +94,12 @@ export default function SuperAdminLogin() {
           <CardDescription className="text-paper/60">
             Réservée à la gestion des organisations et de leurs comptes.
           </CardDescription>
+          {sessionExpiree && (
+            <p className="mt-4 text-sm text-signal-light border border-signal-light/40 bg-signal-light/10 rounded px-3 py-2">
+              Votre session a pris fin — c'est le cas après chaque mise à jour du
+              serveur. Reconnectez-vous, rien n'est perdu.
+            </p>
+          )}
         </CardHeader>
         
         <CardContent>

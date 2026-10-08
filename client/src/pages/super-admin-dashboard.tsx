@@ -104,10 +104,7 @@ export default function SuperAdminDashboard() {
   });
   
   // États pour le test d'email
-  const [emailTestData, setEmailTestData] = useState({
-    toEmail: '',
-    fromEmail: 'test@example.com'
-  });
+  const [emailTestData, setEmailTestData] = useState({ toEmail: '' });
   const [emailTestResult, setEmailTestResult] = useState<any>(null);
   
   // 📋 État pour afficher les identifiants générés (pour copie manuelle)
@@ -308,6 +305,10 @@ export default function SuperAdminDashboard() {
     }
   });
 
+  // L'adresse que le serveur emploie réellement : elle n'est connue qu'après
+  // le diagnostic, qui la rapporte.
+  const expediteurConfigure: string = emailTestResult?.sendgridTest?.expediteur ?? '';
+
   // Mutations pour les tests d'email
   const testSendGridMutation = useMutation({
     mutationFn: async () => {
@@ -315,10 +316,16 @@ export default function SuperAdminDashboard() {
     },
     onSuccess: (data: any) => {
       setEmailTestResult(data);
+      // ⚠️ `data.success` dit seulement que la requête a abouti. Le verdict est
+      // dans `sendgridTest.success` : sans cette distinction, la console
+      // annonçait « Configuration SendGrid OK » alors que le diagnostic venait
+      // de trouver une clé sans droit d'envoi.
+      const diagnostic = data.sendgridTest;
       toast({
-        title: data.success ? "Configuration SendGrid OK " : "Problème SendGrid ",
-        description: data.sendgridTest?.error || "Test de configuration réussi",
-        variant: data.success ? "default" : "destructive"
+        title: diagnostic?.success ? "Configuration SendGrid valide" : "Problème de configuration",
+        description: diagnostic?.error
+          || `Expéditeur « ${diagnostic?.expediteur ?? "?"} » reconnu par SendGrid.`,
+        variant: diagnostic?.success ? "default" : "destructive",
       });
     },
     onError: (error: any) => {
@@ -331,10 +338,11 @@ export default function SuperAdminDashboard() {
   });
 
   const testEmailSendMutation = useMutation({
-    mutationFn: async (emailData: { toEmail: string; fromEmail: string }) => {
-      return await apiRequest('/api/super-admin/test-email', { 
-        method: 'POST', 
-        body: emailData 
+    mutationFn: async (emailData: { toEmail: string }) => {
+      // Seule la destination est transmise : le serveur impose l'expéditeur.
+      return await apiRequest('/api/super-admin/test-email', {
+        method: 'POST',
+        body: { toEmail: emailData.toEmail },
       });
     },
     onSuccess: (data: any) => {
@@ -1564,18 +1572,18 @@ Maintrix - Maintenance intelligente et prédictive`;
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* L'expéditeur n'est PAS saisissable : le serveur utilise
+                      SENDGRID_FROM_EMAIL et ignore ce que l'appelant propose.
+                      Ce champ était libre, avec « test@example.com » pour
+                      valeur par défaut, ce qui garantissait un refus 403 et
+                      faisait accuser SendGrid d'un test mal posé. */}
                   <div>
-                    <Label htmlFor="fromEmail" className="text-ink">Email expéditeur</Label>
-                    <Input
-                      id="fromEmail"
-                      type="email"
-                      placeholder="test@example.com"
-                      value={emailTestData.fromEmail}
-                      onChange={(e) => setEmailTestData({...emailTestData, fromEmail: e.target.value})}
-                      className="bg-white border-rule text-ink placeholder:text-ink-mute"
-                    />
+                    <Label className="text-ink">Adresse d'expédition configurée</Label>
+                    <p className="font-mono text-sm text-ink border border-rule bg-paper-deep rounded px-3 py-2 mt-1">
+                      {expediteurConfigure || 'inconnue — lancez d\'abord « Tester Configuration »'}
+                    </p>
                     <p className="text-xs text-ink-mute mt-1">
-                      Cette adresse doit être vérifiée dans SendGrid
+                      Définie côté serveur, pas ici.
                     </p>
                   </div>
                   <div>
@@ -1593,11 +1601,11 @@ Maintrix - Maintenance intelligente et prédictive`;
                 
                 <Button 
                   onClick={() => {
-                    if (!emailTestData.toEmail || !emailTestData.fromEmail) {
+                    if (!emailTestData.toEmail) {
                       toast({
-                        title: "Erreur",
-                        description: "Les emails expéditeur et destinataire sont requis",
-                        variant: "destructive"
+                        title: "Destinataire manquant",
+                        description: "Indiquez l'adresse qui doit recevoir le message de test.",
+                        variant: "destructive",
                       });
                       return;
                     }

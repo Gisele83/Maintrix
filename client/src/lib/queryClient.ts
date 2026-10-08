@@ -1,8 +1,35 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/**
+ * Une session super-admin perdue renvoie-t-elle vers la connexion ?
+ *
+ * ⚠️ Les jetons super-admin vivent dans une Map EN MÉMOIRE du serveur : recréer
+ * le conteneur — donc chaque déploiement — les efface tous. Le navigateur
+ * continue d'envoyer le sien, et la console répondait par un bandeau rouge
+ * « 401: {"error":"INVALID_SUPER_ADMIN_TOKEN"...} » au milieu d'un écran par
+ * ailleurs normal. On croit à une panne de la fonction qu'on vient d'utiliser,
+ * alors qu'il suffit de se reconnecter. Constaté le 2026-10-08, juste après un
+ * déploiement.
+ *
+ * Le jeton périmé est maintenant jeté, et la page de connexion reprend la main.
+ */
+function sessionSuperAdminPerdue(texte: string): boolean {
+  return texte.includes('INVALID_SUPER_ADMIN_TOKEN')
+    || texte.includes('SUPER_ADMIN_TOKEN_REQUIRED');
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
+
+    if (res.status === 401 && sessionSuperAdminPerdue(text)) {
+      try { localStorage.removeItem('superAdminToken'); } catch { /* navigation privée */ }
+      if (!window.location.pathname.startsWith('/super-admin-login')) {
+        window.location.assign('/super-admin-login?session=expiree');
+      }
+      throw new Error('Session de la console expirée — reconnectez-vous.');
+    }
+
     throw new Error(`${res.status}: ${text}`);
   }
 }

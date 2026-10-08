@@ -217,7 +217,7 @@ export default function EmailDiagnostic() {
                   <Input
                     id="toEmail"
                     type="email"
-                    placeholder="test@example.com"
+                    placeholder="une adresse à vous, pour recevoir le test"
                     value={emailTestData.toEmail}
                     onChange={(e) => setEmailTestData(prev => ({ ...prev, toEmail: e.target.value }))}
                   />
