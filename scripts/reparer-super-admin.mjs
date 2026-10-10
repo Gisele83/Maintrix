@@ -4,6 +4,7 @@
  *
  *   sudo node scripts/reparer-super-admin.mjs                      (diagnostic seul)
  *   sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe
+ *   sudo node scripts/reparer-super-admin.mjs --verifier-saisie
  *   sudo node scripts/reparer-super-admin.mjs --reparer
  *   sudo node scripts/reparer-super-admin.mjs --reparer --courriel contact@exemple.fr
  *
@@ -158,6 +159,76 @@ if (!hashValide) {
 }
 
 // ── 4. Rendre le mot de passe conservé, s'il est encore valable ──────
+// ── Ce que vous tapez est-il ce que le serveur attend ? ─────────────
+// ⚠️ Le refus de connexion est revenu deux fois, avec un mot de passe que
+// bcrypt validait pourtant contre le hash du conteneur. Les deux faits ne
+// tiennent ensemble que si la chaîne qui PART DU NAVIGATEUR n'est pas celle
+// qu'on croit taper : un gestionnaire de mots de passe qui recouvre le champ,
+// un espace capturé par un copier-coller, un caractère perdu.
+//
+// Cette option compare la chaîne EXACTE que vous collez au hash que voit le
+// serveur. Elle sépare « je me trompe de mot de passe » de « le serveur est
+// cassé », et ces deux pannes ne se soignent pas du tout pareil.
+//
+// La saisie passe par l'entrée standard, jamais par la ligne de commande :
+// elle n'apparaît donc pas dans l'historique du shell. Elle reste visible à
+// l'écran — regardez derrière vous, c'est le seul risque.
+if (args.includes('--verifier-saisie')) {
+  if (!hashValide) {
+    mourir("le hash du conteneur est lui-même invalide : rien à comparer.",
+      'Relancez avec --reparer.');
+  }
+
+  process.stdout.write('\nCollez le mot de passe à vérifier, puis Entrée :\n> ');
+  const saisie = await new Promise((resoudre) => {
+    let tampon = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (morceau) => {
+      tampon += morceau;
+      const coupure = tampon.indexOf('\n');
+      if (coupure >= 0) { process.stdin.pause(); resoudre(tampon.slice(0, coupure)); }
+    });
+    process.stdin.on('end', () => resoudre(tampon));
+  });
+
+  // On ne « nettoie » PAS la saisie : un espace de trop est précisément le
+  // genre de défaut qu'on cherche. On le signale au lieu de le masquer.
+  const brut = saisie.replace(/\r$/, "");
+  const propre = brut.trim();
+
+  console.log("");
+  console.log(`  longueur       : ${brut.length} caractère(s)`);
+  if (brut !== propre) {
+    jaune(`  ⚠ espaces en début ou en fin : ${brut.length - propre.length} caractère(s) parasite(s).`);
+    jaune('    Un copier-coller depuis un terminal en capture souvent un.');
+  }
+
+  const correspond = bcrypt.compareSync(brut, hashConteneur);
+  const correspondPropre = !correspond && brut !== propre && bcrypt.compareSync(propre, hashConteneur);
+
+  console.log("");
+  if (correspond) {
+    vert('  ✓ CETTE CHAÎNE OUVRE LA CONSOLE.');
+    gris('    Si la connexion échoue malgré tout, ce n\'est pas le mot de passe :');
+    gris('    le navigateur n\'envoie pas ce que vous avez collé. Essayez en');
+    gris('    navigation privée, sans autocomplétion.');
+    process.exit(0);
+  }
+  if (correspondPropre) {
+    jaune('  ~ La chaîne est bonne, MAIS elle est entourée d\'espaces.');
+    gris('    Recollez-la sans les espaces et la connexion passera.');
+    process.exit(1);
+  }
+  rouge('  ✗ cette chaîne ne correspond pas au hash du serveur.');
+  if (copieValide) {
+    gris('    Un mot de passe valable est pourtant conservé sur ce serveur :');
+    gris('      sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe');
+  } else {
+    gris('    Aucun mot de passe valable n\'est conservé ici : --reparer.');
+  }
+  process.exit(1);
+}
+
 if (args.includes('--afficher-mot-de-passe')) {
   if (!copieValide) {
     mourir("aucun mot de passe valable n'est conservé sur ce serveur.",
