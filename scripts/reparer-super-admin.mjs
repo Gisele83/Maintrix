@@ -357,6 +357,26 @@ const motDePasseChoisi = indexMdp >= 0 ? args[indexMdp + 1] : null;
 if (indexMdp >= 0 && !motDePasseChoisi) {
   mourir('--mot-de-passe attend une valeur.');
 }
+// ⚠️ Un texte d'exemple finit par être collé tel quel. C'est arrivé deux
+// fois sur ce projet : une adresse fictive passée en argument, puis la phrase
+// « celui que vous choisissez » devenue, littéralement, le mot de passe du
+// super-administrateur. La faute en revient à qui écrit des exemples qui
+// ressemblent à des valeurs. À défaut de cesser d'en écrire, on les refuse.
+const VALEURS_DEXEMPLE = [
+  'celui que vous choisissez', 'celui-que-vous-choisissez',
+  'celui que je choisis', 'le vôtre', 'votre mot de passe',
+  'mot de passe', 'motdepasse', 'password', 'changeme', 'secret',
+  'exemple', 'example', 'xxxxxxxxxxxx', 'azertyuiop', 'qwertyuiop',
+];
+
+if (motDePasseChoisi) {
+  const normalise = motDePasseChoisi.trim().toLowerCase();
+  if (VALEURS_DEXEMPLE.some((v) => normalise === v || normalise.includes(v))) {
+    mourir(`« ${motDePasseChoisi} » est un texte d'exemple, pas un mot de passe.`,
+      'Omettez --mot-de-passe : le script en tire un solide au hasard et vous l\'affiche.');
+  }
+}
+
 if (motDePasseChoisi && motDePasseChoisi.length < 12) {
   mourir(`mot de passe trop court (${motDePasseChoisi.length} caractères, minimum 12).`,
     'Omettez --mot-de-passe pour en obtenir un solide, tiré au hasard.');
