@@ -77,10 +77,21 @@ export default function AdvancedReporting() {
     const pendingWorkOrders = workOrders.filter((wo: any) => wo.status === 'pending').length;
     const criticalEquipment = equipment.filter((eq: any) => eq.criticalityLevel === 'critical').length;
     
-    const mtbf = kpiMetrics.find((m: any) => m.metricType === 'mtbf')?.metricValue || 168.5;
-    const mttr = kpiMetrics.find((m: any) => m.metricType === 'mttr')?.metricValue || 4.2;
-    const availability = kpiMetrics.find((m: any) => m.metricType === 'availability')?.metricValue || 94.7;
-    const oee = kpiMetrics.find((m: any) => m.metricType === 'oee')?.metricValue || 87.3;
+    // ⚠️ Ces quatre indicateurs portaient des valeurs de repli : MTBF 168,5 h,
+    // MTTR 4,2 h, disponibilité 94,7 %, OEE 87,3 %. Des chiffres de
+    // performance inventés, qui n'apparaissaient QUE lorsque la mesure réelle
+    // était absente. Ils ne sont aujourd'hui affichés nulle part, mais ils
+    // seraient devenus visibles au premier branchement — et un industriel qui
+    // découvre que son OEE est fictif ne revient pas. Signalé le 2026-10-11.
+    //
+    // `null` signifie « pas encore mesuré », et l'affichage doit le dire.
+    const mesure = (type: string): number | null =>
+      kpiMetrics.find((m: any) => m.metricType === type)?.metricValue ?? null;
+
+    const mtbf = mesure('mtbf');
+    const mttr = mesure('mttr');
+    const availability = mesure('availability');
+    const oee = mesure('oee');
 
     return {
       activeAlerts,
@@ -91,7 +102,9 @@ export default function AdvancedReporting() {
       mttr,
       availability,
       oee,
-      budgetUtilization: budgetSummary?.utilizationRate || 25
+      // `null` plutôt qu'un taux inventé : un budget non renseigné n'est pas
+      // un budget consommé à 25 %.
+      budgetUtilization: budgetSummary?.utilizationRate ?? null
     };
   };
 

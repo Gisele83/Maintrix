@@ -38,7 +38,6 @@ import MultiAgentTeamPage from "@/pages/multi-agent-team";
 import EquipmentLifecyclePage from "@/pages/equipment-lifecycle";
 import { EquipmentManagement } from "@/components/equipment-management";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
-import MaintenanceDashboard from "@/pages/maintenance-dashboard";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
@@ -332,8 +331,14 @@ function Router() {
       <Route path="/preventive-maintenance">
         {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
       </Route>
+      {/* ⚠️ `maintenance-dashboard` affiche un jeu de métriques entièrement
+          fabriqué — son propre code le dit : « Sample data - in real app this
+          would come from API ». 156 ordres de travail, OEE 87,5 %, MTBF 720 h,
+          125 800 € de coûts : des chiffres qu'aucun locataire n'a produits.
+          La page restait pourtant accessible aux testeurs. Elle renvoie au
+          tableau de bord réel tant qu'elle n'est pas branchée. 2026-10-11. */}
       <Route path="/maintenance-dashboard">
-        {(params) => <ProtectedRoute component={MaintenanceDashboard} {...params} />}
+        <Redirect to="/gmao" />
       </Route>
       <Route path="/voice-diagnostic">
         {(params) => <ProtectedRoute component={VoiceDiagnostic} {...params} />}

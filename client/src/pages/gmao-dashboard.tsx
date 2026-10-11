@@ -76,8 +76,27 @@ interface ContexteGMAO {
   preventifSous7Jours: number;
 }
 
+/** Un mois d'activité, tel que `getEvolutionMensuelle` le rapporte. */
+interface PointMensuel {
+  mois: string;
+  termines: number;
+  enCours: number;
+  urgents: number;
+  preventif: number;
+  correctif: number;
+}
+
 interface GMAODashboardData {
   contexte?: ContexteGMAO;
+  /** Activité réelle mois par mois, telle que le serveur l'agrège. */
+  evolution?: PointMensuel[];
+  /** Les seuls indicateurs que les données permettent de calculer. */
+  indicateurs?: {
+    tauxResolution: number | null;
+    tauxPreventif: number | null;
+    mttrHeures: number | null;
+    totalInterventions: number;
+  };
   equipmentCount: number;
   activeWorkOrdersCount: number;
   pendingWorkOrdersCount: number;
@@ -105,6 +124,35 @@ export default function GMAODashboard() {
     queryKey: ["/api/gmao-dashboard"],
     retry: 2,
   });
+
+  // ⚠️ Ces deux graphiques contenaient des CONSTANTES INVENTÉES : cinq mois
+  // sur six pour le premier, douze sur douze pour le second. Le dernier point
+  // valait « … || 45 », si bien que le chiffre fabriqué apparaissait
+  // UNIQUEMENT quand la vraie valeur était zéro. Un locataire sans la moindre
+  // saisie voyait donc une courbe d'activité fournie, précisément parce qu'il
+  // n'avait rien saisi. Montrer cela à un industriel qui évalue l'outil est le
+  // plus sûr moyen de perdre sa confiance. Signalé le 2026-10-11.
+  const evolution: PointMensuel[] = dashboardData?.evolution ?? [];
+  const evolutionDouzeMois = evolution;
+  const evolutionSixMois = evolution.slice(-6);
+
+  const indicateurs = dashboardData?.indicateurs;
+
+  /** Un pourcentage mesuré, ou un tiret. Jamais un nombre plausible. */
+  const pourcent = (v: number | null | undefined) => (v == null ? '—' : `${v}%`);
+  /** Idem pour une durée. */
+  const heures = (v: number | null | undefined) => (v == null ? '—' : `${v} h`);
+  /** Une barre de progression ne peut rien représenter sans mesure. */
+  const jauge = (v: number | null | undefined) => (v == null ? 0 : v);
+  /** La mention qui remplace une comparaison inventée. */
+  const NON_MESURE = (
+    <span className="text-xs text-ink-mute">non mesuré sur cet environnement</span>
+  );
+
+  // « Aucune donnée » n'est pas « en cours de chargement » : on ne l'affirme
+  // qu'une fois la réponse reçue, et seulement si tout est réellement à zéro.
+  const aucuneActivite = !isLoading && evolution.length > 0
+    && evolution.every((m) => m.termines + m.enCours + m.preventif + m.correctif === 0);
 
   const tabs = [
     {
@@ -729,6 +777,16 @@ export default function GMAODashboard() {
             </div>
 
             {/* Charts and Statistics Section */}
+            {/* Un graphique plat à zéro est honnête — encore faut-il dire
+                pourquoi. Sans cette phrase, on croit à une panne d'affichage
+                plutôt qu'à un parc qui n'a pas encore servi. */}
+            {aucuneActivite && (
+              <div className="border border-rule bg-paper rounded px-4 py-3 text-sm text-ink-soft">
+                <span className="font-medium text-ink">Aucune intervention enregistrée à ce jour.</span>{" "}
+                Les courbes ci-dessous resteront à zéro tant qu'aucun ordre de travail
+                n'aura été créé. Elles reflètent vos données, et rien d'autre.
+              </div>
+            )}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Work Orders Trend Chart */}
               <Card className="border border-rule shadow-none">
@@ -743,14 +801,7 @@ export default function GMAODashboard() {
                 <CardContent className="pt-6">
                   <ResponsiveContainer width="100%" height={250}>
                     <AreaChart
-                      data={[
-                        { mois: 'Juil', termines: 28, enCours: 12, urgents: 4 },
-                        { mois: 'Août', termines: 32, enCours: 8, urgents: 3 },
-                        { mois: 'Sept', termines: 35, enCours: 10, urgents: 5 },
-                        { mois: 'Oct', termines: 41, enCours: 7, urgents: 2 },
-                        { mois: 'Nov', termines: 38, enCours: 9, urgents: 4 },
-                        { mois: 'Déc', termines: dashboardData?.workOrdersByStatus?.completed || 45, enCours: dashboardData?.activeWorkOrdersCount || 6, urgents: 3 },
-                      ]}
+                      data={evolutionSixMois}
                       margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                     >
                       <defs>
@@ -841,18 +892,19 @@ export default function GMAODashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Taux de Résolution</p>
-                      <p className="text-2xl font-bold text-emerald-600">94.2%</p>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600">
-                        <ArrowUpRight className="w-3 h-3" />
-                        <span>+2.4% ce mois</span>
+                      <p className="text-sm text-muted-foreground">Taux de résolution</p>
+                      <p className="text-2xl font-bold text-emerald-600">{pourcent(indicateurs?.tauxResolution)}</p>
+                      <div className="mt-1 text-xs text-ink-mute">
+                        {indicateurs?.tauxResolution == null
+                          ? 'aucune intervention enregistrée'
+                          : `sur ${indicateurs.totalInterventions} intervention(s)`}
                       </div>
                     </div>
                     <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
                       <CheckCircle className="w-6 h-6 text-emerald-600" />
                     </div>
                   </div>
-                  <Progress value={94.2} className="h-2 mt-3" />
+                  <Progress value={jauge(indicateurs?.tauxResolution)} className="h-2 mt-3" />
                 </CardContent>
               </Card>
 
@@ -860,18 +912,19 @@ export default function GMAODashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">MTTR (Temps Moyen Réparation)</p>
-                      <p className="text-2xl font-bold text-blue-600">2.8h</p>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-blue-600">
-                        <ArrowDownRight className="w-3 h-3" />
-                        <span>-15min vs mois dernier</span>
+                      <p className="text-sm text-muted-foreground">MTTR (temps moyen de réparation)</p>
+                      <p className="text-2xl font-bold text-blue-600">{heures(indicateurs?.mttrHeures)}</p>
+                      <div className="mt-1 text-xs text-ink-mute">
+                        {indicateurs?.mttrHeures == null
+                          ? 'aucun correctif clos avec sa durée réelle'
+                          : 'moyenne des correctifs clos'}
                       </div>
                     </div>
                     <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                       <Clock className="w-6 h-6 text-blue-600" />
                     </div>
                   </div>
-                  <Progress value={72} className="h-2 mt-3" />
+                  {/* Une durée n'a pas de maximum : la jauge serait arbitraire. */}
                 </CardContent>
               </Card>
 
@@ -879,18 +932,19 @@ export default function GMAODashboard() {
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Maintenance Préventive</p>
-                      <p className="text-2xl font-bold text-amber-600">78.5%</p>
-                      <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
-                        <ArrowUpRight className="w-3 h-3" />
-                        <span>+5.2% ce mois</span>
+                      <p className="text-sm text-muted-foreground">Part du préventif</p>
+                      <p className="text-2xl font-bold text-amber-600">{pourcent(indicateurs?.tauxPreventif)}</p>
+                      <div className="mt-1 text-xs text-ink-mute">
+                        {indicateurs?.tauxPreventif == null
+                          ? 'aucune intervention enregistrée'
+                          : 'des interventions créées'}
                       </div>
                     </div>
                     <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
                       <CalendarCheck className="w-6 h-6 text-amber-600" />
                     </div>
                   </div>
-                  <Progress value={78.5} className="h-2 mt-3" />
+                  <Progress value={jauge(indicateurs?.tauxPreventif)} className="h-2 mt-3" />
                 </CardContent>
               </Card>
             </div>
@@ -911,20 +965,7 @@ export default function GMAODashboard() {
               <CardContent className="pt-6">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart
-                    data={[
-                      { mois: 'Jan', preventif: 22, correctif: 15, urgent: 3 },
-                      { mois: 'Fév', preventif: 25, correctif: 12, urgent: 4 },
-                      { mois: 'Mar', preventif: 28, correctif: 18, urgent: 2 },
-                      { mois: 'Avr', preventif: 24, correctif: 14, urgent: 5 },
-                      { mois: 'Mai', preventif: 30, correctif: 11, urgent: 3 },
-                      { mois: 'Jun', preventif: 27, correctif: 16, urgent: 4 },
-                      { mois: 'Jul', preventif: 26, correctif: 13, urgent: 2 },
-                      { mois: 'Août', preventif: 20, correctif: 10, urgent: 1 },
-                      { mois: 'Sep', preventif: 29, correctif: 17, urgent: 3 },
-                      { mois: 'Oct', preventif: 32, correctif: 14, urgent: 4 },
-                      { mois: 'Nov', preventif: 28, correctif: 12, urgent: 2 },
-                      { mois: 'Déc', preventif: 25, correctif: 15, urgent: 3 },
-                    ]}
+                    data={evolutionDouzeMois}
                     margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -1005,24 +1046,26 @@ export default function GMAODashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* ⚠️ Ces trois taux étaient écrits en dur. « Efficacité » et
+                      « satisfaction » n'ont aucune source dans cette base ; le
+                      taux préventif, lui, se calcule vraiment. */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Efficacité Maintenance</span>
-                      <span className="font-medium">87.3%</span>
+                      <span className="text-sm">Part du préventif</span>
+                      <span className="font-medium">{pourcent(indicateurs?.tauxPreventif)}</span>
                     </div>
-                    <Progress value={87.3} className="h-2" />
+                    <Progress value={jauge(indicateurs?.tauxPreventif)} className="h-2" />
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-ink-mute">Efficacité maintenance</span>
+                      <span className="font-medium text-ink-mute">—</span>
+                    </div>
+                    {NON_MESURE}
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Taux Préventif</span>
-                      <span className="font-medium">68.5%</span>
+                      <span className="text-sm text-ink-mute">Satisfaction qualité</span>
+                      <span className="font-medium text-ink-mute">—</span>
                     </div>
-                    <Progress value={68.5} className="h-2" />
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Satisfaction Qualité</span>
-                      <span className="font-medium">92.1%</span>
-                    </div>
-                    <Progress value={92.1} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -1035,30 +1078,16 @@ export default function GMAODashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm">Disponibilité Cible: 95%</span>
-                        <span className="font-medium text-green-600">94.7%</span>
-                      </div>
-                      <Progress value={94.7} max={95} className="h-2" />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm">MTBF Cible: 180h</span>
-                        <span className="font-medium text-blue-600">168h</span>
-                      </div>
-                      <Progress value={168} max={180} className="h-2" />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm">Budget Maintenance: €50K</span>
-                        <span className="font-medium text-green-600">€47.2K</span>
-                      </div>
-                      <Progress value={47.2} max={50} className="h-2" />
-                    </div>
+                  {/* ⚠️ Cibles ET mesures étaient inventées : « disponibilité
+                      94,7 % pour une cible de 95 % », « MTBF 168 h », « budget
+                      47,2 k€ sur 50 k€ ». Aucune cible n'est configurable dans
+                      Maintrix aujourd'hui, et aucune de ces mesures n'existe. */}
+                  <div className="space-y-2 text-sm text-ink-soft">
+                    <p>Aucun objectif n'est défini pour cette organisation.</p>
+                    <p className="text-ink-mute">
+                      Disponibilité, MTBF et budget ne sont pas encore mesurés par la
+                      plateforme : aucun chiffre ne peut être affiché ici.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -1203,11 +1232,12 @@ export default function GMAODashboard() {
                   <Gauge className="w-5 h-5 text-blue-600" />
                 </div>
                 <div className="space-y-3">
+                  {/* OEE, disponibilité et performance ne sont calculés nulle
+                      part : ces trois taux étaient des constantes. */}
                   <div className="flex justify-between">
-                    <span className="text-sm">OEE (Overall Equipment Effectiveness)</span>
-                    <span className="font-medium">78.4%</span>
+                    <span className="text-sm text-ink-mute">OEE (Overall Equipment Effectiveness)</span>
+                    <span className="font-medium text-ink-mute">—</span>
                   </div>
-                  <Progress value={78.4} className="h-2" />
                   
                   <div className="flex justify-between">
                     <span className="text-sm">Taux d'utilisation</span>
@@ -1251,21 +1281,16 @@ export default function GMAODashboard() {
                   <h3 className="text-lg font-semibold">Prédictions IA</h3>
                   <Brain className="w-5 h-5 text-signal-deep" />
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Pannes évitées ce mois</span>
-                    <span className="font-medium">7</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">Précision prédictions</span>
-                    <span className="font-medium">94.3%</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">Alertes précoces actives</span>
-                    <span className="font-medium text-orange-600">3</span>
-                  </div>
+                {/* ⚠️ « 7 pannes évitées », « 94,3 % de précision » : des
+                    résultats annoncés pour un module qui n'a rien produit.
+                    C'est le pire endroit pour inventer — on y promet ce que la
+                    plateforme sait faire. */}
+                <div className="space-y-2 text-sm text-ink-soft">
+                  <p>Aucune prédiction disponible.</p>
+                  <p className="text-ink-mute">
+                    Le diagnostic prédictif a besoin d'un historique d'interventions
+                    et de relevés avant de produire des résultats.
+                  </p>
                 </div>
               </Card>
             </div>
@@ -1337,32 +1362,14 @@ export default function GMAODashboard() {
               </Card>
             </div>
 
-            {/* Performance Benchmarks */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Comparaison Sectorielle</h3>
-              <div className="grid md:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">94.7%</p>
-                  <p className="text-sm text-muted-foreground">Votre disponibilité</p>
-                  <p className="text-xs text-green-600">+2.1% vs secteur</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-600">168h</p>
-                  <p className="text-sm text-muted-foreground">Votre MTBF</p>
-                  <p className="text-xs text-blue-600">+18h vs secteur</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-signal-deep">4.2h</p>
-                  <p className="text-sm text-muted-foreground">Votre MTTR</p>
-                  <p className="text-xs text-signal-deep">-1.3h vs secteur</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-600">€127</p>
-                  <p className="text-sm text-muted-foreground">Coût/h productive</p>
-                  <p className="text-xs text-yellow-600">-€15 vs secteur</p>
-                </div>
-              </div>
-            </Card>
+            {/* ⚠️ Une carte « Comparaison Sectorielle » annonçait « votre
+                disponibilité 94,7 %, +2,1 % vs secteur », « votre MTBF 168 h,
+                +18 h vs secteur », « coût/h 127 €, -15 € vs secteur ». Ni ces
+                mesures ni ce référentiel sectoriel n'existent dans Maintrix :
+                tout était écrit en dur. Promettre à un industriel qu'il fait
+                mieux que son secteur, sur des chiffres inventés, est la faute
+                la plus grave de ce tableau de bord. Carte retirée le
+                2026-10-11 ; elle reviendra le jour où ces données existeront. */}
           </div>
         </DialogContent>
       </Dialog>

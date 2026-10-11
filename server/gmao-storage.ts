@@ -89,6 +89,137 @@ export class GMAOStorage {
    * Tout est borné au locataire, et chaque requête est un COUNT indexé : pas de
    * lecture de table complète.
    */
+  /**
+   * L'activité réelle des N derniers mois, locataire par locataire.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI CETTE MÉTHODE EXISTE
+   * ═══════════════════════════════════════════════════════════════════
+   * Le tableau de bord GMAO affichait deux graphiques entièrement INVENTÉS :
+   * une évolution sur six mois dont cinq étaient des constantes, et une
+   * répartition préventif/correctif sur douze mois intégralement fictive. Le
+   * sixième point valait `dashboardData?.…?.completed || 45` — autrement dit,
+   * le chiffre fabriqué n'apparaissait QUE lorsque la vraie valeur était zéro.
+   * Un locataire sans la moindre saisie voyait donc une courbe d'activité
+   * fournie, précisément parce qu'il n'avait rien saisi.
+   *
+   * Montrer des chiffres inventés à un industriel qui évalue l'outil est le
+   * plus sûr moyen de perdre sa confiance. Signalé le 2026-10-11.
+   *
+   * Un mois sans activité rend des zéros. C'est une information, pas un vide à
+   * combler : l'interface le présentera comme tel.
+   */
+  async getEvolutionMensuelle(tenantId: string, nombreDeMois = 6): Promise<Array<{
+    mois: string;
+    cles: string;
+    termines: number;
+    enCours: number;
+    urgents: number;
+    preventif: number;
+    correctif: number;
+  }>> {
+    const mois = Math.min(Math.max(nombreDeMois, 1), 24);
+    const debut = new Date();
+    debut.setDate(1);
+    debut.setHours(0, 0, 0, 0);
+    debut.setMonth(debut.getMonth() - (mois - 1));
+
+    // Une seule passe : agréger en base plutôt que de rapatrier les lignes.
+    const lignes = await db
+      .select({
+        cles: sql<string>`to_char(date_trunc('month', ${workOrders.createdAt}), 'YYYY-MM')`,
+        termines: sql<number>`count(*) filter (where ${workOrders.status} = 'completed')`,
+        enCours: sql<number>`count(*) filter (where ${workOrders.status} in ('pending','assigned','in_progress','paused'))`,
+        urgents: sql<number>`count(*) filter (where ${workOrders.priority} = 'urgent')`,
+        preventif: sql<number>`count(*) filter (where ${workOrders.orderType} = 'preventive')`,
+        correctif: sql<number>`count(*) filter (where ${workOrders.orderType} in ('corrective','emergency'))`,
+      })
+      .from(workOrders)
+      .where(and(eq(workOrders.tenantId, tenantId), gte(workOrders.createdAt, debut)))
+      .groupBy(sql`date_trunc('month', ${workOrders.createdAt})`);
+
+    const parCle = new Map(lignes.map((l) => [l.cles, l]));
+
+    // Les mois sans aucune intervention doivent apparaître — à zéro. Les
+    // omettre déformerait la courbe en rapprochant deux mois distants.
+    const NOMS = ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin',
+      'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+
+    return Array.from({ length: mois }, (_, i) => {
+      const d = new Date(debut.getFullYear(), debut.getMonth() + i, 1);
+      const cles = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const trouve = parCle.get(cles);
+      return {
+        mois: NOMS[d.getMonth()],
+        cles,
+        termines: Number(trouve?.termines ?? 0),
+        enCours: Number(trouve?.enCours ?? 0),
+        urgents: Number(trouve?.urgents ?? 0),
+        preventif: Number(trouve?.preventif ?? 0),
+        correctif: Number(trouve?.correctif ?? 0),
+      };
+    });
+  }
+
+  /**
+   * Les seuls indicateurs que nos données permettent réellement de calculer.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI CETTE MÉTHODE EXISTE
+   * ═══════════════════════════════════════════════════════════════════
+   * Le tableau de bord affichait « Taux de résolution 94,2 % (+2,4 % ce mois) »,
+   * « MTTR 2,8 h (-15 min vs mois dernier) », « Maintenance préventive 78,5 % »,
+   * « Disponibilité 94,7 % (+2,1 % vs secteur) » — tous écrits en dur dans le
+   * code. Un locataire sans la moindre intervention voyait ces performances.
+   *
+   * Trois d'entre eux se calculent vraiment. Les autres — OEE, disponibilité,
+   * comparaison sectorielle — n'ont aucune source dans cette base : ils sont
+   * retirés plutôt que devinés. Signalé le 2026-10-11.
+   *
+   * `null` signifie « pas encore mesurable », et l'interface doit le dire.
+   */
+  async getIndicateursReels(tenantId: string): Promise<{
+    tauxResolution: number | null;
+    tauxPreventif: number | null;
+    mttrHeures: number | null;
+    totalInterventions: number;
+  }> {
+    const [ligne] = await db
+      .select({
+        total: count(),
+        termines: sql<number>`count(*) filter (where ${workOrders.status} = 'completed')`,
+        preventif: sql<number>`count(*) filter (where ${workOrders.orderType} = 'preventive')`,
+        // MTTR : durée réelle moyenne des interventions correctives CLOSES.
+        // Les préventifs n'y entrent pas — réparer et entretenir ne se mesurent
+        // pas ensemble. Une durée nulle ou absente est écartée, sinon la
+        // moyenne s'effondre avec les saisies incomplètes.
+        mttrMinutes: sql<number | null>`avg(${workOrders.actualDuration}) filter (
+          where ${workOrders.status} = 'completed'
+            and ${workOrders.orderType} in ('corrective','emergency')
+            and ${workOrders.actualDuration} > 0
+        )`,
+      })
+      .from(workOrders)
+      .where(eq(workOrders.tenantId, tenantId));
+
+    const total = Number(ligne?.total ?? 0);
+    if (total === 0) {
+      // Aucun ordre de travail : aucun taux n'a de sens. Zéro serait un
+      // mensonge aussi grave qu'un chiffre inventé.
+      return { tauxResolution: null, tauxPreventif: null, mttrHeures: null, totalInterventions: 0 };
+    }
+
+    const arrondir = (v: number) => Math.round(v * 10) / 10;
+    const mttrMinutes = ligne?.mttrMinutes == null ? null : Number(ligne.mttrMinutes);
+
+    return {
+      tauxResolution: arrondir((Number(ligne.termines) / total) * 100),
+      tauxPreventif: arrondir((Number(ligne.preventif) / total) * 100),
+      mttrHeures: mttrMinutes == null ? null : arrondir(mttrMinutes / 60),
+      totalInterventions: total,
+    };
+  }
+
   async getDashboardContexte(tenantId: string): Promise<{
     equipementsIndisponibles: number;
     equipementsAjoutesCeMois: number;

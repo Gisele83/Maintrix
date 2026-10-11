@@ -213,9 +213,15 @@ export default function CCTPCompliancePage() {
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">
-              {compliance?.overallScore || 90}%
+              {/* ⚠️ « || 90 » affichait un score de conformité de 90 % quand
+                  AUCUNE conformité n'avait été évaluée — et seulement dans ce
+                  cas. Sur un écran de conformité réglementaire, c'est le pire
+                  endroit possible pour inventer un chiffre. */}
+              {compliance?.overallScore != null ? `${compliance.overallScore}%` : '—'}
             </div>
-            <div className="text-sm text-green-800">Score Global</div>
+            <div className="text-sm text-green-800">
+              {compliance?.overallScore != null ? 'Score global' : 'Score global — non évalué'}
+            </div>
           </CardContent>
         </Card>
 

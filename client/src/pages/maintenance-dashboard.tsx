@@ -81,25 +81,42 @@ export default function MaintenanceDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sample data - in real app this would come from API
+  // ⚠️ CETTE PAGE N'EST PAS BRANCHÉE À L'API, et elle ne doit pas être remise
+  // en service telle quelle.
+  //
+  // Elle portait un jeu complet de métriques inventées — 156 ordres de travail,
+  // 142 terminés, OEE 87,5 %, MTBF 720 h, 125 800 € de coûts, 34 500 €
+  // d'économies — sous un commentaire qui l'assumait : « Sample data - in real
+  // app this would come from API ». Mais la page était ROUTÉE : un testeur qui
+  // n'avait rien saisi y découvrait l'activité d'une usine entière, et des
+  // économies qu'il n'avait jamais réalisées. Constaté le 2026-10-11.
+  //
+  // La route renvoie désormais vers le tableau de bord réel (voir App.tsx), et
+  // les valeurs sont remises à zéro : si quelqu'un rebranche cette page, elle
+  // montrera un vide — ce qui se remarque — plutôt qu'une usine fictive, qui
+  // ne se remarque pas.
+  //
+  // Pour la remettre en service : consommer /api/gmao-dashboard, qui fournit
+  // déjà `indicateurs` (taux de résolution, part du préventif, MTTR réel) et
+  // `evolution` (douze mois d'activité), tous deux calculés par locataire.
   const metrics: MaintenanceMetrics = {
-    totalWorkOrders: 156,
-    completedWorkOrders: 142,
-    pendingWorkOrders: 12,
-    overdueWorkOrders: 2,
-    avgCompletionTime: 4.2,
-    mtbf: 720, // hours
-    mttr: 2.8, // hours
-    oee: 87.5, // percentage
-    availability: 94.2,
-    reliability: 92.8,
-    plannedMaintenanceRate: 78.5,
-    maintenanceCosts: 125800,
-    costSavings: 34500,
-    activeAlerts: 8,
-    criticalAlerts: 2,
-    technicianUtilization: 85.3,
-    equipmentHealth: 89.2
+    totalWorkOrders: 0,
+    completedWorkOrders: 0,
+    pendingWorkOrders: 0,
+    overdueWorkOrders: 0,
+    avgCompletionTime: 0,
+    mtbf: 0,
+    mttr: 0,
+    oee: 0,
+    availability: 0,
+    reliability: 0,
+    plannedMaintenanceRate: 0,
+    maintenanceCosts: 0,
+    costSavings: 0,
+    activeAlerts: 0,
+    criticalAlerts: 0,
+    technicianUtilization: 0,
+    equipmentHealth: 0
   };
 
   const workOrderTrends: WorkOrderTrend[] = [
