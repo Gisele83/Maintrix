@@ -1861,10 +1861,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates = req.body;
       }
       
-      // Remove fields that shouldn't be updated directly
-      delete updates.id;
-      delete updates.createdAt;
-      delete updates.tenantId; // Prevent tenant switching
+      // ⚠️ Cette route écartait TROIS champs et écrivait tout le reste. Le
+      // corps de la requête pouvait donc poser `password`, `role`, `isActive`,
+      // `validationLevel`, `maxPurchaseAmount`, les jetons de réinitialisation…
+      // Autrement dit : n'importe quel membre du locataire pouvait se nommer
+      // `owner`, désactiver un collègue, ou remplacer le mot de passe d'autrui
+      // par une empreinte de son choix. Une seule requête suffisait.
+      //
+      // Et côté interface, le formulaire renvoie l'objet profil complet : un
+      // `isActive` recopié depuis un état périmé désactivait le compte comme
+      // effet de bord d'une modification sans rapport. C'est la piste la plus
+      // probable des comptes retrouvés DÉSACTIVÉS sans que personne ne l'ait
+      // demandé, les 2026-09-27 et 2026-10-11.
+      //
+      // On liste donc ce qui est modifiable ici, au lieu de lister ce qui ne
+      // l'est pas : une colonne ajoutée demain est refusée par défaut, et non
+      // acceptée par oubli.
+      const CHAMPS_MODIFIABLES = new Set([
+        'firstName', 'lastName', 'sector', 'department', 'phoneNumber',
+        'preferredLanguage', 'specializations', 'experienceLevel',
+      ]);
+
+      const refuses = Object.keys(updates).filter((c) => !CHAMPS_MODIFIABLES.has(c));
+      updates = Object.fromEntries(
+        Object.entries(updates).filter(([c]) => CHAMPS_MODIFIABLES.has(c)));
+
+      if (refuses.length) {
+        // On ne se tait pas : un champ ignoré en silence ferait croire à une
+        // mise à jour qui n'a pas eu lieu — le défaut que toute cette campagne
+        // s'emploie à faire disparaître.
+        console.warn(`[user-profiles] champs non modifiables ici, ignorés : ${refuses.join(', ')}`);
+      }
+
+      if (!Object.keys(updates).length) {
+        return res.status(400).json({
+          error: "AUCUN_CHAMP_MODIFIABLE",
+          message: "Aucun champ modifiable dans cette requête.",
+          champsIgnores: refuses,
+          champsAcceptes: [...CHAMPS_MODIFIABLES],
+        });
+      }
       
       // Ensure tenant isolation
       const tenantId = tenantRequis(req as any, res as any);
