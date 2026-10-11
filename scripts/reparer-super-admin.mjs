@@ -6,6 +6,8 @@
  *   sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe
  *   sudo node scripts/reparer-super-admin.mjs --verifier-saisie
  *   sudo node scripts/reparer-super-admin.mjs --reparer
+ *   sudo node scripts/reparer-super-admin.mjs --reparer --mot-de-passe "celui que je choisis"
+ *   sudo node scripts/reparer-super-admin.mjs --reparer --sans-compte-utilisateur
  *   sudo node scripts/reparer-super-admin.mjs --reparer --courriel contact@exemple.fr
  *
  * ═══════════════════════════════════════════════════════════════════
@@ -35,6 +37,12 @@
  * Aucun secret n'est affiché, sauf sur demande explicite : le mot de passe
  * nouvellement généré (`--reparer`), ou celui qui est conservé et vérifié
  * (`--afficher-mot-de-passe`).
+ *
+ * `--reparer` pose le MÊME mot de passe sur le compte de l'espace utilisateur
+ * portant la même adresse, afin qu'une seule chose soit à retenir. Les deux
+ * mécanismes restent séparés — le super-administrateur ne dépend toujours pas
+ * de la base, c'est ce qui en fait une porte de secours. Seule l'empreinte est
+ * commune. `--sans-compte-utilisateur` s'en abstient.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -50,6 +58,7 @@ const ENV_FILE = process.env.MAINTRIX_TEST_ENV_FILE || '.env.test-cloud';
 const APP = process.env.MAINTRIX_CONTENEUR_APP || 'maintrix-test-app';
 /** Le même nom de projet que `deploy-ovh.sh` — voir la note en fin de script. */
 const PROJET = process.env.MAINTRIX_PROJET_COMPOSE || 'maintrix-test';
+const BASE = process.env.MAINTRIX_CONTENEUR_BASE || 'maintrix-test-db';
 
 const rouge = (m) => console.error(`\x1b[31m${m}\x1b[0m`);
 const jaune = (m) => console.log(`\x1b[33m${m}\x1b[0m`);
@@ -130,6 +139,91 @@ if (existsSync(ENV_FILE)) {
   }
 }
 
+/**
+ * Poser le MÊME mot de passe sur le compte de l'espace utilisateur.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CECI EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Le super-administrateur n'a pas de compte en base : son identité vient des
+ * variables d'environnement. C'est délibéré — c'est ce qui en fait une porte
+ * de secours quand la base est cassée, et on ne va pas supprimer ce filet.
+ *
+ * Mais l'exploitant est la même personne des deux côtés, et retenir deux mots
+ * de passe de 24 caractères aléatoires ne tient pas. On garde donc les deux
+ * mécanismes séparés, et on synchronise la seule chose qui gêne : l'empreinte.
+ *
+ * ⚠️ Le fichier d'environnement reçoit le hash ÉCHAPPÉ (chaque $ doublé, pour
+ * Docker Compose) ; la base reçoit le hash BRUT. Confondre les deux rend le
+ * compte inaccessible sans que rien ne le signale.
+ */
+function synchroniserCompteUtilisateur(courriel, hashBrut) {
+  const lireBase = (variable) => {
+    const r = spawnSync('docker', ['exec', BASE, 'printenv', variable], { encoding: 'utf8' });
+    return (r.stdout || '').trim();
+  };
+
+  const utilisateur = lireBase('POSTGRES_USER');
+  const base = lireBase('POSTGRES_DB');
+  if (!utilisateur || !base) {
+    jaune(`  ⚠ conteneur « ${BASE} » injoignable : compte utilisateur NON synchronisé.`);
+    return false;
+  }
+
+  // ⚠️ Les « -v » sont des variables de psql, pas de docker : après la commande.
+  const r = spawnSync('docker', ['exec', '-i', BASE,
+    'psql', '-v', 'ON_ERROR_STOP=1',
+    '-v', `empreinte=${hashBrut}`, '-v', `courriel=${courriel}`,
+    '-U', utilisateur, '-d', base, '-tA'], {
+    encoding: 'utf8',
+    input: `
+UPDATE user_profiles
+   SET password = :'empreinte',
+       is_active = true,
+       must_change_password = false,
+       is_default_credentials = false,
+       password_expires_at = NULL,
+       failed_login_attempts = 0,
+       account_locked_until = NULL,
+       password_reset_token = NULL,
+       password_reset_token_expires_at = NULL,
+       last_password_change = NOW(),
+       updated_at = NOW()
+ WHERE lower(email) = lower(:'courriel')
+ RETURNING id || '|' || COALESCE(role, '');
+
+-- Le limiteur compte par adresse IP : un compte réparé resterait sinon
+-- injoignable une heure de plus.
+DELETE FROM rate_limits WHERE is_blocked = true;
+`,
+  });
+
+  if ((r.status ?? 1) !== 0) {
+    jaune('  ⚠ la base a refusé la mise à jour : compte utilisateur NON synchronisé.');
+    console.error((r.stdout || '') + (r.stderr || ''));
+    return false;
+  }
+
+  const resultats = (r.stdout || '').split('\n').map((l) => l.trim()).filter((l) => /^\d+\|/.test(l));
+  if (!resultats.length) {
+    jaune(`  ⚠ aucun compte utilisateur avec l'adresse ${courriel} : rien à synchroniser.`);
+    gris('    Créez-le depuis la console, puis relancez cette commande.');
+    return false;
+  }
+
+  const [id, role] = resultats[0].split('|');
+  vert(`  ✓ compte utilisateur id=${id} aligné sur le même mot de passe`);
+
+  // ⚠️ Un rôle hors référentiel ne lève AUCUNE erreur : il donne zéro
+  // permission. On se connecte, et l'interface est vide. Vu le 2026-09-27 avec
+  // un rôle « Directrice » saisi en texte libre, avant que la création ne soit
+  // contrainte. On affiche donc le rôle, plutôt que de laisser la découverte
+  // se faire après la connexion.
+  gris(`    rôle du compte : ${role || '(vide)'}`);
+  gris("    S'il ne figure pas dans shared/roles.ts, ce compte n'aura AUCUN droit :");
+  gris(`      sudo node scripts/reinitialiser-mot-de-passe.mjs ${courriel} --role admin`);
+  return true;
+}
 // ── 3. Diagnostic ───────────────────────────────────────────────────
 console.log('\n═══ Diagnostic ═════════════════════════════════════════════\n');
 
@@ -255,7 +349,19 @@ if (!existsSync(ENV_FILE)) {
     'Précisez-le avec MAINTRIX_TEST_ENV_FILE=/chemin/vers/.env.test-cloud');
 }
 
-const motDePasse = crypto.randomBytes(18).toString('base64url');
+// Un mot de passe choisi est accepté, mais jamais faible : le serveur
+// refuserait moins de 6 caractères, et un mot de passe d'administrateur de
+// plateforme qui tiendrait en dessous de 12 ne vaut pas la peine d'exister.
+const indexMdp = args.indexOf('--mot-de-passe');
+const motDePasseChoisi = indexMdp >= 0 ? args[indexMdp + 1] : null;
+if (indexMdp >= 0 && !motDePasseChoisi) {
+  mourir('--mot-de-passe attend une valeur.');
+}
+if (motDePasseChoisi && motDePasseChoisi.length < 12) {
+  mourir(`mot de passe trop court (${motDePasseChoisi.length} caractères, minimum 12).`,
+    'Omettez --mot-de-passe pour en obtenir un solide, tiré au hasard.');
+}
+const motDePasse = motDePasseChoisi || crypto.randomBytes(18).toString('base64url');
 const hash = bcrypt.hashSync(motDePasse, 10);
 
 // Garde-fou : on ne réécrit rien tant que le hash qu'on vient de produire
@@ -315,6 +421,12 @@ writeFileSync(ENV_FILE, contenu, { mode: 0o600 });
 
 vert(`${ENV_FILE} mis à jour (permissions 600).`);
 gris('Hash vérifié après simulation de l\'interpolation Docker Compose.');
+
+// Le même mot de passe ouvre aussi l'espace utilisateur, sauf refus explicite.
+if (!args.includes('--sans-compte-utilisateur')) {
+  console.log('');
+  synchroniserCompteUtilisateur(courriel, hash);
+}
 
 console.log('\n───────────────────────────────────────────────────────────');
 console.log(`  Adresse       : ${courriel}`);
