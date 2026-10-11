@@ -324,6 +324,20 @@ router.post('/login', async (req, res) => {
 });
 
 // 🏢 Récupérer tous les tenants
+// 🔎 La session est-elle encore valide ?
+//
+// ⚠️ La console se contentait de constater qu'une chaîne existait dans le
+// navigateur, puis affichait l'adresse lue depuis cette même mémoire locale.
+// Elle avait donc l'air parfaitement connectée avec un jeton que le serveur
+// avait oublié, et chaque action échouait en 401 brut — ce qui fait croire à
+// une panne de la fonction qu'on vient d'utiliser. Constaté le 2026-10-10.
+//
+// Cette route est délibérément minuscule : elle ne lit rien, n'interroge
+// aucune base. Son seul travail est de traverser `authenticateSuperAdmin`.
+router.get('/session', authenticateSuperAdmin, (req: any, res) => {
+  res.json({ authentifie: true, email: req.superAdmin?.email ?? null });
+});
+
 router.get('/tenants', authenticateSuperAdmin, async (req, res) => {
   try {
     // Récupérer tous les tenants

@@ -142,21 +142,38 @@ export default function SuperAdminDashboard() {
       });
     }
   };
-
+  // ⚠️ La présence d'une chaîne dans le navigateur ne prouve RIEN : le jeton
+  // peut avoir été oublié par le serveur depuis des jours. On le lui demande,
+  // au lieu de le supposer. Sans cela, la console s'affiche comme connectée —
+  // adresse comprise, lue depuis cette même mémoire locale — et chaque action
+  // échoue ensuite par un 401 brut, qui fait croire à une panne de la
+  // fonction qu'on vient d'utiliser. Constaté le 2026-10-10.
   useEffect(() => {
     const token = localStorage.getItem('superAdminToken');
     const user = localStorage.getItem('superAdminUser');
-    
+
     if (!token || !user) {
       setLocation('/admin-login');
       return;
     }
-    
-    try {
-      setSuperAdminUser(JSON.parse(user));
-    } catch {
-      setLocation('/admin-login');
-    }
+
+    let abandonne = false;
+    (async () => {
+      try {
+        await apiRequest('/api/super-admin/session');
+        if (abandonne) return;
+        setSuperAdminUser(JSON.parse(user));
+      } catch {
+        // Jeton refusé, ou identité illisible : dans les deux cas on repart de
+        // la connexion plutôt que d'afficher une console inerte.
+        if (abandonne) return;
+        localStorage.removeItem('superAdminToken');
+        localStorage.removeItem('superAdminUser');
+        setLocation('/admin-login?session=expiree');
+      }
+    })();
+
+    return () => { abandonne = true; };
   }, [setLocation]);
 
   // Récupérer les tenants
