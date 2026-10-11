@@ -6,7 +6,7 @@
  *   sudo node scripts/reparer-super-admin.mjs --afficher-mot-de-passe
  *   sudo node scripts/reparer-super-admin.mjs --verifier-saisie
  *   sudo node scripts/reparer-super-admin.mjs --reparer
- *   sudo node scripts/reparer-super-admin.mjs --reparer --mot-de-passe "celui que je choisis"
+ *   sudo node scripts/reparer-super-admin.mjs --reparer --mot-de-passe   (saisie au clavier)
  *   sudo node scripts/reparer-super-admin.mjs --reparer --sans-compte-utilisateur
  *   sudo node scripts/reparer-super-admin.mjs --reparer --courriel contact@exemple.fr
  *
@@ -224,6 +224,75 @@ DELETE FROM rate_limits WHERE is_blocked = true;
   gris(`      sudo node scripts/reinitialiser-mot-de-passe.mjs ${courriel} --role admin`);
   return true;
 }
+/**
+ * Tout ce qui a déjà été lu sur l'entrée standard mais pas encore consommé.
+ *
+ * ⚠️ Une lecture qui prend la première ligne et JETTE le reste du bloc rend
+ * la lecture suivante impossible : elle attend une donnée déjà arrivée, et
+ * le programme se fige. C'est ce qui s'est produit à la confirmation du mot
+ * de passe, l'entrée étant livrée en un seul morceau. Le reliquat est donc
+ * conservé ici.
+ */
+let reliquatEntree = '';
+
+function lireLigne() {
+  const coupure = reliquatEntree.indexOf('\n');
+  if (coupure >= 0) {
+    const ligne = reliquatEntree.slice(0, coupure);
+    reliquatEntree = reliquatEntree.slice(coupure + 1);
+    return Promise.resolve(ligne);
+  }
+
+  return new Promise((resoudre) => {
+    const surDonnees = (morceau) => {
+      reliquatEntree += morceau;
+      const c = reliquatEntree.indexOf('\n');
+      if (c < 0) return;
+      process.stdin.removeListener('data', surDonnees);
+      process.stdin.pause();
+      const ligne = reliquatEntree.slice(0, c);
+      reliquatEntree = reliquatEntree.slice(c + 1);
+      resoudre(ligne);
+    };
+    process.stdin.setEncoding('utf8');
+    process.stdin.resume();
+    process.stdin.on('data', surDonnees);
+  });
+}
+
+/** L'écho a-t-il déjà été signalé comme impossible à couper ? */
+let echoSignale = false;
+
+/**
+ * Demander un mot de passe au clavier, sans le faire transiter ailleurs.
+ *
+ * Passé en argument, un mot de passe entre dans l'historique du shell, se
+ * retrouve dans la sortie que l'on recopie, et finit dans une conversation.
+ * Les trois sont arrivés sur ce projet. Ici il ne quitte pas le terminal.
+ *
+ * L'écho est coupé quand le terminal le permet. Sans TTY, ou si `stty` est
+ * absent, la saisie reste visible : on le DIT une fois, au lieu de laisser
+ * croire à une frappe masquée qui ne l'est pas.
+ */
+async function demanderMotDePasse(invite) {
+  const echo = (actif) => {
+    try {
+      const r = spawnSync('stty', [actif ? 'echo' : '-echo'], { stdio: ['inherit', 'ignore', 'ignore'] });
+      return (r.status ?? 1) === 0;
+    } catch { return false; }
+  };
+
+  const masque = echo(false);
+  if (!masque && !echoSignale) {
+    echoSignale = true;
+    jaune('  (la frappe restera visible : ce terminal ne permet pas de la masquer)');
+  }
+
+  process.stdout.write(invite);
+  const saisie = await lireLigne();
+  if (masque) { echo(true); process.stdout.write('\n'); }
+  return saisie.replace(/\r$/, '');
+}
 // ── 3. Diagnostic ───────────────────────────────────────────────────
 console.log('\n═══ Diagnostic ═════════════════════════════════════════════\n');
 
@@ -354,8 +423,25 @@ if (!existsSync(ENV_FILE)) {
 // plateforme qui tiendrait en dessous de 12 ne vaut pas la peine d'exister.
 const indexMdp = args.indexOf('--mot-de-passe');
 const motDePasseChoisi = indexMdp >= 0 ? args[indexMdp + 1] : null;
-if (indexMdp >= 0 && !motDePasseChoisi) {
-  mourir('--mot-de-passe attend une valeur.');
+// `--mot-de-passe` sans valeur ouvre la saisie au clavier — la façon
+// recommandée : rien ne transite par la ligne de commande.
+let motDePasseSaisi = null;
+const saisieDemandee = indexMdp >= 0
+  && (!motDePasseChoisi || motDePasseChoisi.startsWith('--'));
+
+if (saisieDemandee) {
+  console.log('');
+  motDePasseSaisi = await demanderMotDePasse('  Nouveau mot de passe      : ');
+  const confirmation = await demanderMotDePasse('  Confirmez ce mot de passe : ');
+  if (motDePasseSaisi !== confirmation) {
+    mourir('les deux saisies diffèrent — rien n\'a été modifié.');
+  }
+  // Sans ceci, deux « Entrée » retomberaient en silence sur un mot de passe
+  // tiré au hasard : on croirait avoir choisi le sien.
+  if (!motDePasseSaisi) {
+    mourir('aucun mot de passe saisi — rien n\'a été modifié.',
+      'Omettez --mot-de-passe pour en obtenir un tiré au hasard.');
+  }
 }
 // ⚠️ Un texte d'exemple finit par être collé tel quel. C'est arrivé deux
 // fois sur ce projet : une adresse fictive passée en argument, puis la phrase
@@ -369,19 +455,21 @@ const VALEURS_DEXEMPLE = [
   'exemple', 'example', 'xxxxxxxxxxxx', 'azertyuiop', 'qwertyuiop',
 ];
 
-if (motDePasseChoisi) {
-  const normalise = motDePasseChoisi.trim().toLowerCase();
+const motDePasseVoulu = motDePasseSaisi ?? (saisieDemandee ? null : motDePasseChoisi);
+
+if (motDePasseVoulu) {
+  const normalise = motDePasseVoulu.trim().toLowerCase();
   if (VALEURS_DEXEMPLE.some((v) => normalise === v || normalise.includes(v))) {
-    mourir(`« ${motDePasseChoisi} » est un texte d'exemple, pas un mot de passe.`,
+    mourir("cette valeur est un texte d'exemple, pas un mot de passe.",
       'Omettez --mot-de-passe : le script en tire un solide au hasard et vous l\'affiche.');
   }
 }
 
-if (motDePasseChoisi && motDePasseChoisi.length < 12) {
-  mourir(`mot de passe trop court (${motDePasseChoisi.length} caractères, minimum 12).`,
+if (motDePasseVoulu && motDePasseVoulu.length < 12) {
+  mourir(`mot de passe trop court (${motDePasseVoulu.length} caractères, minimum 12).`,
     'Omettez --mot-de-passe pour en obtenir un solide, tiré au hasard.');
 }
-const motDePasse = motDePasseChoisi || crypto.randomBytes(18).toString('base64url');
+const motDePasse = motDePasseVoulu || crypto.randomBytes(18).toString('base64url');
 const hash = bcrypt.hashSync(motDePasse, 10);
 
 // Garde-fou : on ne réécrit rien tant que le hash qu'on vient de produire
@@ -450,9 +538,14 @@ if (!args.includes('--sans-compte-utilisateur')) {
 
 console.log('\n───────────────────────────────────────────────────────────');
 console.log(`  Adresse       : ${courriel}`);
-console.log(`  Mot de passe  : \x1b[1m${motDePasse}\x1b[0m`);
+console.log(motDePasseSaisi
+  // Le réafficher n'apprendrait rien et l'exposerait au-dessus de l'épaule.
+  ? '  Mot de passe  : celui que vous venez de saisir'
+  : `  Mot de passe  : \x1b[1m${motDePasse}\x1b[0m`);
 console.log('───────────────────────────────────────────────────────────');
-jaune('Ce mot de passe ne sera plus affiché. Notez-le maintenant.');
+jaune(motDePasseSaisi
+  ? 'Conservez-le : hors de ce fichier, il n\'est écrit nulle part.'
+  : 'Ce mot de passe ne sera plus affiché. Notez-le maintenant.');
 gris('La clé secrète plateforme est inchangée — continuez à utiliser la vôtre.');
 
 console.log('\n⚠️  Docker fige les variables à la création du conteneur.');
