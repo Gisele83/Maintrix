@@ -192,9 +192,15 @@ export default function CognitiveInfrastructure() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
           <MetricCard icon={<Radio className="w-5 h-5 text-blue-600" />} label="Capteurs actifs" value={kernelStatus?.agents?.active || 0} />
-          <MetricCard icon={<Network className="w-5 h-5 text-sky-600" />} label="Noeuds causaux" value={kernelStatus?.knowledgeGraph?.nodes || 0} />
-          <MetricCard icon={<GitBranch className="w-5 h-5 text-signal-deep" />} label="Relations causales" value={kernelStatus?.knowledgeGraph?.edges || 0} />
-          <MetricCard icon={<Shield className="w-5 h-5 text-emerald-600" />} label="Politiques" value={kernelStatus?.policyCount || 0} />
+          {/* Ces deux compteurs décrivent le RÉFÉRENTIEL livré, pas le parc du
+              locataire. Côte à côte avec « Capteurs actifs », qui lui est bien
+              mesuré, l'intitulé seul les distinguait mal. */}
+          <MetricCard icon={<Network className="w-5 h-5 text-sky-600" />} label="Noeuds du référentiel" value={kernelStatus?.knowledgeGraph?.nodes || 0} />
+          <MetricCard icon={<GitBranch className="w-5 h-5 text-signal-deep" />} label="Relations du référentiel" value={kernelStatus?.knowledgeGraph?.edges || 0} />
+          {/* Les politiques livrées par défaut comptent ici au même titre que
+              celles qu'une organisation définirait — or elle n'en a défini
+              aucune. L'intitulé le dit désormais. */}
+          <MetricCard icon={<Shield className="w-5 h-5 text-emerald-600" />} label="Politiques par défaut" value={kernelStatus?.policyCount || 0} />
           <MetricCard icon={<Activity className="w-5 h-5 text-amber-600" />} label="Decisions auditees" value={kernelStatus?.decisionAuditCount || 0} />
           <MetricCard icon={<RefreshCw className="w-5 h-5 text-rose-600" />} label="Adaptations" value={kernelStatus?.modelCount || 0} />
         </div>
@@ -413,6 +419,22 @@ export default function CognitiveInfrastructure() {
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Database className="w-5 h-5 text-rose-600" /> Modele causal — Graphe de connaissances</h2>
             <p className="text-sm text-slate-500">Module (c) : modelisation causale structurant les relations entre parametres et defaillances.</p>
 
+            {/* ⚠️ Ces 49 nœuds et 50 relations ne proviennent PAS des données du
+                locataire : c'est un référentiel d'ingénierie livré avec la
+                plateforme, identique pour tous. Affiché sans mention, au milieu
+                de compteurs réels (« 0 capteurs actifs », « 0 décisions
+                auditées »), il se lit comme une mesure du parc — un exploitant
+                sans la moindre saisie y voyait un graphe de connaissances
+                abondant. Signalé le 2026-10-13. */}
+            <div className="border border-rule bg-paper rounded px-4 py-3 text-sm text-ink-soft">
+              <span className="font-medium text-ink">Référentiel livré avec la plateforme.</span>{" "}
+              Ce graphe encode des relations de cause à effet établies en ingénierie de
+              maintenance — « vibration élevée indique un roulement usé », par exemple.
+              Il est <strong>identique pour toutes les organisations</strong> et ne reflète
+              pas vos équipements. Il sert de point de départ au diagnostic ; votre
+              historique l'enrichit au fil des interventions.
+            </div>
+
             {kgStats && (
               <>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -430,8 +452,15 @@ export default function CognitiveInfrastructure() {
                   </Card>
                   <Card className="bg-white border border-slate-200 shadow-sm">
                     <CardContent className="pt-4">
+                      {/* ⚠️ Ce n'est pas une confiance MESURÉE : c'est la moyenne des
+                          poids attribués a priori par des experts aux relations du
+                          référentiel. Intitulée « confiance », elle se lisait comme une
+                          précision de modèle — « notre IA est fiable à 78 % ». */}
                       <div className="text-3xl font-bold text-emerald-600">{(kgStats.avgConfidence * 100).toFixed(0)}%</div>
-                      <p className="text-sm text-slate-500">Confiance moyenne des aretes</p>
+                      <p className="text-sm text-slate-500">Poids moyen attribué aux relations</p>
+                      <p className="text-xs text-ink-mute mt-1">
+                        Valeurs d'expert du référentiel, non mesurées sur votre parc
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
