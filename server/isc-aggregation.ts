@@ -102,11 +102,38 @@ function computeD2(
  */
 function computeD3(urgency1: string, urgency2: string, severity1: number, severity2: number): number {
   const urgencyMap: Record<string, number> = { low: 1, normal: 2, medium: 2, high: 3, critical: 4, emergency: 5 };
-  const u1 = urgencyMap[urgency1?.toLowerCase()] ?? 2;
-  const u2 = urgencyMap[urgency2?.toLowerCase()] ?? 2;
-  const urgencySim = 1 - Math.abs(u1 - u2) / 4;
-  const severitySim = 1 - Math.abs((severity1 || 3) - (severity2 || 3)) / 4;
-  return 0.5 * urgencySim + 0.5 * severitySim;
+
+  // ⚠️ LES VALEURS NEUTRES PRODUISAIENT UNE SIMILARITÉ PARFAITE.
+  //
+  // `?? 2` et `|| 3` remplaçaient une donnée absente par une valeur médiane.
+  // Deux sites n'ayant RIEN renseigné recevaient donc la même note que deux
+  // sites réellement identiques : D3 = 1. Mesuré.
+  //
+  // Ce n'est pas un détail d'affichage : l'ISC gouverne le transfert de
+  // connaissance entre sites, avec un seuil Φ ≥ 0,3. Une similarité gonflée
+  // par l'absence de données fait franchir ce seuil à des patterns issus de
+  // contextes sans rapport — et l'on propose à une usine la solution d'une
+  // autre, au motif qu'aucune des deux n'a documenté sa criticité.
+  //
+  // Une dimension non mesurable ne vaut ni 0 ni 1 : elle sort du calcul, et
+  // les poids restants sont renormalisés. Constaté le 2026-10-13.
+  const u1 = urgencyMap[urgency1?.toLowerCase()];
+  const u2 = urgencyMap[urgency2?.toLowerCase()];
+  const urgenceMesurable = u1 !== undefined && u2 !== undefined;
+
+  const severiteMesurable = Number.isFinite(severity1) && Number.isFinite(severity2)
+    && severity1 > 0 && severity2 > 0;
+
+  const composantes: number[] = [];
+  if (urgenceMesurable) composantes.push(1 - Math.abs(u1 - u2) / 4);
+  if (severiteMesurable) composantes.push(1 - Math.abs(severity1 - severity2) / 4);
+
+  // Rien de comparable : la dimension est inconnue, et 0,5 le dit mieux que 1.
+  // C'est la valeur médiane de l'échelle, donc celle qui ne penche d'aucun côté
+  // — la même convention que `computeD4` emploie déjà pour un profil absent.
+  if (composantes.length === 0) return 0.5;
+
+  return composantes.reduce((s, v) => s + v, 0) / composantes.length;
 }
 
 /**

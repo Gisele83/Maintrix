@@ -101,7 +101,12 @@ async function computeEquipmentRUL(equipmentId: number, tenantId: string, window
   const currentIMCA = imcaHistory[imcaHistory.length - 1];
   const result = computeStochasticRUL(imcaHistory, currentIMCA, deltaTHours, failureIMCA);
   // Valeur la plus prudente entre les deux modèles indépendants — ne modifie pas `result` lui-même.
-  const combinedRUL = twinSignal ? Math.min(result.recommended.mean, twinSignal.remainingUsefulLife) : undefined;
+  // La distribution peut être absente — moins de trois relevés, ou aucun
+  // modèle convergent. Prendre le minimum avec une valeur inexistante
+  // produirait NaN, qui se propagerait en silence jusqu à l affichage.
+  const combinedRUL = twinSignal && result.recommended
+    ? Math.min(result.recommended.mean, twinSignal.remainingUsefulLife)
+    : twinSignal?.remainingUsefulLife;
   return { available: true as const, result, nReadings: sensorRows.length, twinSignal, combinedRUL };
 }
 

@@ -146,7 +146,8 @@ export interface StochasticRULResult {
   gammaParams?: GammaParams;
   wienerRUL?: RULDistribution;
   gammaRUL?: RULDistribution;
-  recommended: RULDistribution;    // distribution recommandée (meilleure adéquation)
+  /** `null` quand aucune durée de vie résiduelle n est estimable. */
+  recommended: RULDistribution | null;    // distribution recommandée (meilleure adéquation)
   recommendedModel: "wiener" | "gamma" | "ensemble";
   ensemble?: RULDistribution;      // fusion bayésienne Wiener + Gamma si les deux disponibles
   warnings: string[];
@@ -161,7 +162,16 @@ export interface StochasticRULResult {
  */
 export function estimateWienerParams(degradationPath: number[], deltaT: number = 1): WienerParams {
   const n = degradationPath.length;
-  if (n < 3) return { mu: 0.001, sigma: 0.1, nObs: n, r2: 0 };
+  // ⚠️ Ces valeurs étaient INVENTÉES : une dérive de 0,001 point par heure et
+  // un écart-type de 0,1. Avec une marge de 50 points, elles produisaient un
+  // RUL de 50 000 heures — près de six ans — assorti d'intervalles de confiance
+  // calculés sur un σ tout aussi fictif.
+  //
+  // `computeStochasticRUL` écarte ce cas en amont, mais la fonction est
+  // EXPORTÉE : rien n'empêche un autre appelant de l'utiliser directement. Les
+  // paramètres restent à zéro, ce qui rend tout RUL non calculable plutôt que
+  // plausible. Constaté le 2026-10-13.
+  if (n < 3) return { mu: 0, sigma: 0, nObs: n, r2: 0 };
 
   const increments = [];
   for (let i = 1; i < n; i++) increments.push(degradationPath[i] - degradationPath[i - 1]);
@@ -169,7 +179,25 @@ export function estimateWienerParams(degradationPath: number[], deltaT: number =
   const muRaw = increments.reduce((a, b) => a + b, 0) / increments.length;
   const mu = muRaw / deltaT;  // MLE dérive par heure
 
-  const varRaw = increments.reduce((a, b) => a + (b - muRaw * deltaT) ** 2, 0) / increments.length;
+  // ⚠️ LE CENTRE ÉTAIT FAUX : `muRaw * deltaT` au lieu de `muRaw`.
+  //
+  // `muRaw` est déjà la moyenne des INCRÉMENTS, c'est-à-dire la dérive par PAS
+  // de mesure. La multiplier par `deltaT` la convertit en « dérive par pas ×
+  // heures par pas », une grandeur qui ne correspond à rien, et les écarts sont
+  // alors mesurés autour d'un centre arbitrairement éloigné.
+  //
+  // Avec `deltaT = 1` l'erreur était invisible. Or TOUS les appels passent 24
+  // (relevés quotidiens exprimés en heures) : le défaut était donc actif
+  // partout.
+  //
+  // Mesuré sur une dégradation parfaitement régulière de 0,5 point par jour :
+  // σ passait de 0,007 à 2,34, et le RUL sortait à 2406 h ± 5526 h au lieu de
+  // 2406 h ± 16 h. L'incertitude dépassait le double de l'estimation, donc la
+  // borne basse de l'intervalle tombait à zéro — et une alarme pouvait se
+  // déclencher sur un équipement en parfait état. Les intervalles de confiance,
+  // qui sont l'argument de ce module, ne voulaient rien dire.
+  // Constaté le 2026-10-13.
+  const varRaw = increments.reduce((a, b) => a + (b - muRaw) ** 2, 0) / increments.length;
   const sigma2 = varRaw / deltaT;
   const sigma = Math.sqrt(Math.max(sigma2, 1e-8));
 
@@ -189,7 +217,9 @@ export function estimateWienerParams(degradationPath: number[], deltaT: number =
  */
 export function estimateGammaParams(degradationPath: number[], deltaT: number = 1): GammaParams {
   const n = degradationPath.length;
-  if (n < 3) return { alpha: 0.001, beta: 1, nObs: n, positiveRatio: 0 };
+  // ⚠️ Mêmes valeurs inventées que pour le modèle de Wiener, et même remède :
+  // des paramètres nuls rendent le RUL non calculable, au lieu de plausible.
+  if (n < 3) return { alpha: 0, beta: 0, nObs: n, positiveRatio: 0 };
 
   const increments = [];
   for (let i = 1; i < n; i++) increments.push(degradationPath[i] - degradationPath[i - 1]);
@@ -452,18 +482,25 @@ export function computeStochasticRUL(
 
   if (degradationPath.length < 3) {
     warnings.push("Historique IMCA insuffisant (< 3 points) — RUL calculé par heuristique simplifiée.");
-    const heuristic: RULDistribution = {
-      mean: currentIMCA * 10, median: currentIMCA * 9, mode: currentIMCA * 8, stdDev: currentIMCA * 3,
-      unit: "heures",
-      confidenceIntervals: {
-        p05: currentIMCA * 4, p10: currentIMCA * 5, p25: currentIMCA * 7,
-        p50: currentIMCA * 9, p75: currentIMCA * 12, p90: currentIMCA * 15, p95: currentIMCA * 18,
-      }
-    };
+    // ⚠️ Cette branche produisait une DISTRIBUTION COMPLÈTE — moyenne, médiane,
+    // mode, écart-type et sept quantiles — à partir de multiplicateurs inventés :
+    // `currentIMCA × 10`, `× 9`, `× 18`. Un IMCA de 80 donnait un RUL de 800 h
+    // avec un intervalle [320 h, 1440 h]. Ces coefficients ne reposent sur rien.
+    //
+    // Le résultat était certes étiqueté « fallback » avec un avertissement —
+    // bien plus honnête que la moyenne de ce qu'on trouve ailleurs. Mais sept
+    // quantiles affichés restent lus comme des bornes calculées : personne ne
+    // se dit « p05 = 320 h, voilà une multiplication arbitraire ».
+    //
+    // Avec moins de trois points, une durée de vie résiduelle n'est pas
+    // estimable. On le dit, et on ne rend aucune distribution.
+    // Constaté le 2026-10-13.
     return {
       model: "fallback", currentDegradation, failureThreshold, remainingMargin,
-      recommended: heuristic, recommendedModel: "wiener", warnings,
-      explanation: "Historique insuffisant pour ajuster un modèle stochastique. Heuristique appliquée.",
+      recommended: null, recommendedModel: "wiener", warnings,
+      explanation: "Historique insuffisant (moins de trois relevés) pour ajuster un modèle "
+        + "stochastique. Aucune durée de vie résiduelle ne peut être estimée : il en faudrait "
+        + "au moins trois pour mesurer une tendance de dégradation.",
     };
   }
 

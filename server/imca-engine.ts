@@ -622,13 +622,21 @@ export async function computeIMCA(
   const imcaHistoryForRUL = imcaProxy.length >= 3 ? imcaProxy : [IMCA];
   const stochasticRUL = computeStochasticRUL(imcaHistoryForRUL, IMCA, 24, 30);
 
-  // Compatibilité rul_hours : utiliser la médiane de la distribution recommandée
+  // ⚠️ LA CHAÎNE DE REPLI INVENTAIT UNE DURÉE DE VIE RÉSIDUELLE.
+  //
+  // Faute de distribution stochastique, elle produisait `200 / dM`, `500 / dM`
+  // ou `2000 / dM` selon le niveau d'IMCA — l'inverse d'une distance de
+  // Mahalanobis, multipliée par un coefficient choisi au hasard, présentée en
+  // HEURES. Une distance est sans dimension : son inverse ne produit pas une
+  // durée, et les coefficients 200, 500 et 2000 ne reposent sur rien.
+  //
+  // Un exploitant lisant « RUL : 180 h » planifie un arrêt. Il mérite de savoir
+  // que ce nombre n'a pas été mesuré. Quand aucun modèle ne converge, la durée
+  // de vie résiduelle est inconnue — et c'est une information en soi.
+  // Constaté le 2026-10-13.
+  const medianeRUL = stochasticRUL.recommended?.median;
   const rul_hours: number | null =
-    stochasticRUL.recommended.median > 0 ? stochasticRUL.recommended.median
-    : IMCA < 20 ? Math.round(isdResult.dM > 0 ? 200 / isdResult.dM : 50)
-    : IMCA < 40 ? Math.round(500 / Math.max(1, isdResult.dM))
-    : IMCA < 60 ? Math.round(2000 / Math.max(0.5, isdResult.dM))
-    : null;
+    medianeRUL !== undefined && medianeRUL > 0 ? medianeRUL : null;
 
   // ─── Propagation de surveillance (jumeau comportemental, Brevet 1 rev. 1c/4) ──
   // Sur anomalie significative, propage l'intensité de surveillance depuis le
