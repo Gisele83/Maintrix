@@ -5,6 +5,7 @@
 
 import { gmaoStorage } from "../gmao-storage";
 import { InsertPredictiveAnalytics, InsertWorkOrder, InsertKpiMetrics } from "@shared/schema";
+import { probabiliteDefaillance, combinerAvecSymptomes, joursAvantDefaillance } from "@shared/pronostic";
 
 export interface PredictiveModel {
   equipmentType: string;
@@ -41,7 +42,26 @@ export interface PredictiveThreshold {
   trendThreshold: number;
 }
 
+/**
+ * Les symptômes que la supervision sait réellement détecter.
+ *
+ * ⚠️ Les modèles déclaraient des symptômes absents du détecteur, qui
+ * comptaient donc toujours comme non observés — sans que rien ne le signale.
+ * Cette liste est la SEULE source : y ajouter une entrée oblige à écrire la
+ * détection correspondante, et un modèle qui s en écarte est journalisé.
+ */
+const SYMPTOMES_RECONNUS = new Set<string>([
+  'vibrations_excessives',
+  'echauffement',
+  'échauffement_excessif',
+  'surintensité',
+  'baisse_debit',
+]);
+
 export class PredictiveMaintenanceEngine {
+  /** Symptômes inconnus déjà signalés — on ne journalise qu une seule fois. */
+  private static readonly symptomesInconnusSignales = new Set<string>();
+
   private models: Map<string, PredictiveModel>;
   private learningEnabled = true;
 
@@ -283,22 +303,38 @@ export class PredictiveMaintenanceEngine {
   ): Promise<any[]> {
     const predictions: any[] = [];
 
+    // Horizon sur lequel la probabilité de base est évaluée. Il DOIT être
+    // explicite : une probabilité sans horizon n'a aucun sens, et l'ancienne
+    // formule n'en avait pas.
+    const HORIZON_JOURS = 30;
+
     for (const pattern of model.failurePatterns) {
-      let probabilityScore = 0;
-      let matchingSymptoms = 0;
+      // ⚠️ `probabilityScore` était incrémenté de 0,3 par symptôme puis
+      // JAMAIS utilisé : la probabilité finale se calculait à partir du ratio.
+      // Une variable morte au cœur d'un calcul de risque donne à croire qu'un
+      // raisonnement a lieu là où il n'y en a pas. Supprimée.
+      const symptomesObserves = pattern.symptoms.filter(
+        (sy) => this.isSymptomPresent(sy, sensorData),
+      );
+      const symptomRatio = symptomesObserves.length / pattern.symptoms.length;
 
-      // Check each symptom pattern
-      for (const symptom of pattern.symptoms) {
-        if (this.isSymptomPresent(symptom, sensorData)) {
-          matchingSymptoms++;
-          probabilityScore += 0.3;
-        }
-      }
+      // ⚠️ AUCUNE PRÉDICTION SANS LE MOINDRE SYMPTÔME.
+      //
+      // L'ancienne version émettait une alerte pour un équipement parfaitement
+      // sain : la probabilité de base d'un roulement moteur valait 0,25, soit
+      // au-dessus du seuil de 0,2, et une rupture était annoncée à dix jours.
+      // Un système qui crie au loup sur du matériel sain est abandonné en trois
+      // semaines — et c'est l'alerte juste qu'on cesse alors de croire.
+      //
+      // Un taux de défaillance décrit une POPULATION ; il ne dit rien de CETTE
+      // machine tant qu'aucun signe n'est relevé sur elle.
+      if (symptomesObserves.length === 0) continue;
 
-      // Calculate failure probability
-      const symptomRatio = matchingSymptoms / pattern.symptoms.length;
-      const baseProbability = pattern.frequency / 10; // Convert annual frequency to probability
-      const finalProbability = Math.min(0.95, baseProbability + symptomRatio * 0.6);
+      const base = probabiliteDefaillance(pattern.frequency, HORIZON_JOURS);
+      if (base === undefined) continue;
+
+      const finalProbability = combinerAvecSymptomes(base, symptomRatio);
+      const estimatedDays = joursAvantDefaillance(pattern.leadTime, symptomRatio);
 
       if (finalProbability > 0.2) {
         predictions.push({
@@ -306,9 +342,18 @@ export class PredictiveMaintenanceEngine {
           failureType: pattern.name,
           description: pattern.description,
           probability: finalProbability,
-          estimatedDays: Math.round(pattern.leadTime * (1 - finalProbability)),
+          probabiliteDeBase: base,
+          horizonJours: HORIZON_JOURS,
+          estimatedDays,
           criticality: pattern.criticality,
-          symptoms: pattern.symptoms.filter(s => this.isSymptomPresent(s, sensorData))
+          symptoms: symptomesObserves,
+          // Combien de symptômes du mode sont réellement observables par la
+          // supervision : un mode dont la plupart des signes échappent aux
+          // capteurs ne peut pas être pronostiqué de façon fiable.
+          symptomesObservables: pattern.symptoms.filter(
+            (sy) => SYMPTOMES_RECONNUS.has(sy),
+          ).length,
+          symptomesDeclares: pattern.symptoms.length,
         });
       }
     }
@@ -419,11 +464,40 @@ export class PredictiveMaintenanceEngine {
   }
 
   private isSymptomPresent(symptom: string, sensorData: any[]): boolean {
-    // Simplified symptom detection logic
+    // ⚠️ Le `default: return false` traitait de la même façon « ce symptôme est
+    // absent » et « ce symptôme, je ne sais pas le détecter ». Or les modèles
+    // déclaraient des symptômes absents de ce switch — `bruit_anormal`,
+    // `échauffement_excessif`, `baisse_rendement` — qui comptaient donc
+    // systématiquement comme non observés. Le mode « bobinage endommagé »
+    // plafonnait ainsi à un symptôme sur trois, quelle que soit la réalité.
+    //
+    // Un symptôme inconnu est maintenant journalisé, et le nombre de symptômes
+    // réellement observables remonte dans la prédiction : un mode dont la
+    // plupart des signes échappent aux capteurs ne peut pas être pronostiqué
+    // de façon fiable, et celui qui lit l'alerte doit le savoir.
+    // Constaté le 2026-10-13.
+    if (!SYMPTOMES_RECONNUS.has(symptom)) {
+      if (!PredictiveMaintenanceEngine.symptomesInconnusSignales.has(symptom)) {
+        PredictiveMaintenanceEngine.symptomesInconnusSignales.add(symptom);
+        console.warn(
+          `[pronostic] symptôme « ${symptom} » déclaré dans un modèle mais `
+          + `non détectable : aucun capteur ne lui est associé. Il comptera `
+          + `toujours comme absent.`,
+        );
+      }
+      return false;
+    }
+
+    // Les seuils ci-dessous sont des valeurs par défaut génériques. Ils
+    // devraient à terme être propres à chaque équipement : un seuil de
+    // vibration de 6 mm/s n'a pas le même sens sur un ventilateur et sur une
+    // pompe haute pression (cf. ISO 10816, qui classe les machines avant de
+    // fixer des zones).
     switch (symptom) {
       case 'vibrations_excessives':
         return sensorData.some(d => d.sensorType === 'vibration' && parseFloat(d.value) > 6);
       case 'echauffement':
+      case 'échauffement_excessif':
         return sensorData.some(d => d.sensorType === 'temperature' && parseFloat(d.value) > 80);
       case 'surintensité':
         return sensorData.some(d => d.sensorType === 'current' && parseFloat(d.value) > 110);
