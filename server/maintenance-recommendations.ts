@@ -61,16 +61,51 @@ function daysBetween(a: Date, b: Date): number {
   return Math.abs((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function frequencyToDays(freq: string, value?: number | null): number {
+/**
+ * Régime de fonctionnement supposé, faute de mieux.
+ *
+ * ⚠️ Maintrix n'enregistre NI les heures de marche NI les cycles des
+ * équipements : `equipment_registry` ne porte aucun compteur. Convertir un
+ * intervalle exprimé en heures vers un nombre de jours exige donc une
+ * hypothèse, et cette hypothèse décide d'une échéance de maintenance.
+ *
+ * Elle était cachée dans un commentaire de fin de ligne — `// assume 8h/day` —
+ * et valait 8 heures par jour. Sur une installation qui tourne en continu,
+ * c'est faux d'un facteur 3, et dans le MAUVAIS SENS : un plan à 500 h était
+ * réputé échu au bout de 62 jours au lieu de 21. La maintenance passait trois
+ * fois trop tard. Constaté le 2026-10-13.
+ *
+ * La valeur est posée ici pour être vue, discutée, et un jour remplacée par un
+ * compteur réel par équipement.
+ */
+const HEURES_DE_MARCHE_PAR_JOUR = 8;
+const CYCLES_PAR_JOUR = 20;
+
+/**
+ * Intervalle d'un plan en jours — ou `undefined` s'il n'est pas déterminable.
+ *
+ * ⚠️ Cette fonction inventait trois valeurs :
+ *   • 500 heures quand l'intervalle horaire n'était pas renseigné ;
+ *   • 1000 cycles quand l'intervalle d'usage ne l'était pas ;
+ *   • 90 jours pour TOUTE fréquence inconnue — une faute de frappe dans le
+ *     champ `frequency` programmait donc silencieusement un trimestriel.
+ *
+ * Un intervalle inventé produit une échéance inventée, et c'est sur cette
+ * échéance que se décide une intervention.
+ */
+function frequencyToDays(freq: string, value?: number | null): number | undefined {
   switch (freq) {
     case "daily":     return 1;
     case "weekly":    return 7;
     case "monthly":   return 30;
     case "quarterly": return 90;
     case "annually":  return 365;
-    case "hours_based": return (value || 500) / 8; // assume 8h/day
-    case "usage_based": return (value || 1000) / 20; // assume 20 cycles/day
-    default: return 90;
+    case "hours_based":
+      return value && value > 0 ? value / HEURES_DE_MARCHE_PAR_JOUR : undefined;
+    case "usage_based":
+      return value && value > 0 ? value / CYCLES_PAR_JOUR : undefined;
+    default:
+      return undefined;
   }
 }
 
@@ -175,6 +210,13 @@ function estimateCost(equipmentType: string, duration: number): number {
 export async function generateRecommendations(tenantId: string): Promise<{
   recommendations: MaintenanceRecommendation[];
   summary: RecommendationSummary;
+  /**
+   * Plans dont l'intervalle n'est pas déterminable — fréquence inconnue, ou
+   * valeur absente pour un plan exprimé en heures ou en cycles. Ils ne
+   * produisent AUCUNE échéance : sans cette liste ils passeraient pour des
+   * plans à jour, alors qu'ils ne sont pas suivis du tout.
+   */
+  plansIndetermines: string[];
   generatedAt: string;
   analysisMetadata: object;
 }> {
@@ -193,6 +235,11 @@ export async function generateRecommendations(tenantId: string): Promise<{
   const plans = allPlans.filter((p: any) => !p.tenantId || p.tenantId === tenantId);
 
   const recommendations: MaintenanceRecommendation[] = [];
+
+  // Plans dont l intervalle n est pas déterminable : fréquence inconnue, ou
+  // valeur manquante pour un plan exprimé en heures ou en cycles. Ils ne
+  // produisent aucune échéance, et doivent être corrigés plutôt qu ignorés.
+  const plansIndetermines: string[] = [];
 
   for (const eq of equipment) {
     if (eq.operationalState === "decommissioned") continue;
@@ -223,6 +270,16 @@ export async function generateRecommendations(tenantId: string): Promise<{
     for (const plan of relatedPlans) {
       if (!plan.isActive) continue;
       const intervalDays = frequencyToDays(plan.frequency, plan.frequencyValue);
+
+      // Un plan dont l'intervalle est indéterminable ne peut pas être échu :
+      // il est MAL RENSEIGNÉ. L'ignorer en silence le rendrait invisible, et
+      // lui inventer 90 jours produirait une échéance sans fondement. On le
+      // signale pour qu'il soit corrigé.
+      if (intervalDays === undefined) {
+        plansIndetermines.push(plan.planName || `plan #${plan.id}`);
+        continue;
+      }
+
       const overdueBy = daysSinceLast - intervalDays;
 
       if (overdueBy > -14) { // Within 2 weeks of due date or already overdue
@@ -380,6 +437,11 @@ export async function generateRecommendations(tenantId: string): Promise<{
   return {
     recommendations,
     summary,
+    // Les plans écartés remontent jusqu'à l'appelant : un plan dont
+    // l'intervalle est indéterminable ne génère aucune échéance, et passerait
+    // donc pour un plan « à jour » s'il disparaissait en silence. C'est
+    // l'inverse qui est vrai — il n'est pas suivi du tout.
+    plansIndetermines: [...new Set(plansIndetermines)],
     generatedAt: now.toISOString(),
     analysisMetadata: {
       equipmentAnalyzed: equipment.length,

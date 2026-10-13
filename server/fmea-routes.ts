@@ -7,6 +7,7 @@
 import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
 import { pool as sharedPool } from "./db";
+import { coterModeDefaillance } from "@shared/amdec";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
@@ -74,21 +75,29 @@ const UpdateFmeaSchema = z.object({
   reviewedById: z.number().optional(),
 });
 
-function computeRpn(s: number, o: number, d: number) {
-  const rpn = s * o * d;
-  let cls = "low";
-  if (rpn >= 200) cls = "critical";
-  else if (rpn >= 100) cls = "high";
-  else if (rpn >= 50) cls = "medium";
-  return { rpn, criticalityClass: cls };
-}
+// La cotation vit dans `shared/amdec.ts` : c est une règle de méthode, pas
+// une affaire de route HTTP, et elle doit pouvoir être testée seule.
+const computeRpn = coterModeDefaillance;
 
 function enrichEntries(raw: any[]): any[] {
   return (raw || []).map((e, i) => {
-    const { rpn, criticalityClass } = computeRpn(e.severity, e.occurrence, e.detection);
-    const newRpn = e.newSeverity && e.newOccurrence && e.newDetection
-      ? e.newSeverity * e.newOccurrence * e.newDetection : undefined;
-    return { ...e, id: e.id || `entry-${i}`, rpn, criticalityClass, newRpn };
+    const { rpn, criticalityClass, motifsCriticite } = computeRpn(e.severity, e.occurrence, e.detection);
+
+    // La cotation APRÈS actions se juge avec la même règle : une gravité de 9
+    // reste une gravité de 9. Les actions correctives réduisent l occurrence ou
+    // améliorent la détection — elles ne changent presque jamais la gravité,
+    // qui tient à la nature de la défaillance et non à sa probabilité.
+    const apres = e.newSeverity && e.newOccurrence && e.newDetection
+      ? computeRpn(e.newSeverity, e.newOccurrence, e.newDetection) : undefined;
+
+    return {
+      ...e,
+      id: e.id || `entry-${i}`,
+      rpn, criticalityClass, motifsCriticite,
+      newRpn: apres?.rpn,
+      newCriticalityClass: apres?.criticalityClass,
+      motifsCriticiteApres: apres?.motifsCriticite,
+    };
   });
 }
 
@@ -166,12 +175,31 @@ export function registerFmeaRoutes(app: Express) {
           if (e.criticalityClass === "high") highEntries++;
         });
       });
+      // ⚠️ `avgRpn` est conservé pour ne pas casser l'affichage existant, mais
+      // c'est une statistique trompeuse et elle est désormais nommée comme
+      // telle. Le RPN est une grandeur ORDINALE : un RPN de 200 n'est pas
+      // « deux fois pire » qu'un RPN de 100, et un écart de 10 entre 20 et 30
+      // ne vaut pas celui entre 500 et 510. En faire une moyenne mélange des
+      // rangs, et surtout DILUE les modes critiques dans la masse : dix modes
+      // anodins font baisser la moyenne autant qu'ils veulent, pendant qu'un
+      // mode à gravité 10 reste invisible.
+      //
+      // Ce sont `criticalEntries` et `rpnMax` qui doivent guider l'action.
+      const rpnMax = allRows.reduce((max: number, r: any) => {
+        const entries = enrichEntries(safeJson(r.entries, []));
+        return entries.reduce((m: number, e: any) => Math.max(m, e.rpn || 0), max);
+      }, 0);
+
       res.json({
         ...rows[0],
         totalEntries,
         criticalEntries,
         highEntries,
-        avgRpn: totalEntries > 0 ? Math.round(totalRpn / totalEntries) : 0,
+        rpnMax: totalEntries > 0 ? rpnMax : undefined,
+        avgRpn: totalEntries > 0 ? Math.round(totalRpn / totalEntries) : undefined,
+        avertissementAvgRpn:
+          "Le RPN est ordinal : sa moyenne dilue les modes critiques et ne doit "
+          + "pas servir de pilotage. Suivre le nombre de modes critiques et le RPN maximal.",
       });
     } catch (e: any) { res.status(500).json({ error: e.message }); }
   });

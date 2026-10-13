@@ -6,6 +6,7 @@
 
 import type { Express, Request, Response } from "express";
 import type { Pool } from "pg";
+import { calculerOEE } from "@shared/oee";
 import { pool as sharedPool } from "./db";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
@@ -79,20 +80,11 @@ function toStatsShape(agg: any, byEquip: any[], trend: any[]) {
   };
 }
 
-function computeOEE(planned: number, downtime: number, speedLoss: number, actualProd: number, plannedProd: number, defects: number) {
-  const operatingTime = planned - downtime;
-  const availability = planned > 0 ? operatingTime / planned : 0;
-  const performance = (operatingTime - speedLoss) > 0 && plannedProd > 0
-    ? Math.min(actualProd / (plannedProd * (operatingTime / planned)), 1)
-    : (actualProd > 0 && plannedProd > 0 ? Math.min(actualProd / plannedProd, 1) : 0);
-  const quality = actualProd > 0 ? Math.max((actualProd - defects) / actualProd, 0) : 1;
-  const oee = availability * performance * quality;
-  return {
-    availability: Math.round(availability * 10000) / 10000,
-    performance: Math.round(performance * 10000) / 10000,
-    quality: Math.round(quality * 10000) / 10000,
-    oee: Math.round(oee * 10000) / 10000,
-  };
+// Le calcul vit dans `shared/oee.ts` : c est une définition normalisée, pas
+// une affaire de route HTTP, et elle doit pouvoir être testée seule.
+function computeOEE(planned: number, downtime: number, speedLoss: number,
+                    actualProd: number, plannedProd: number, defects: number) {
+  return calculerOEE({ planned, downtime, speedLoss, actualProd, plannedProd, defects });
 }
 
 const CreateOeeSchema = z.object({
