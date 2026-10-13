@@ -777,7 +777,13 @@ export default function PreventiveMaintenance() {
                           date.setDate(date.getDate() - date.getDay() + 1 + i);
                           const isCurrentMonth = date.getMonth() === new Date().getMonth();
                           const isToday = date.toDateString() === new Date().toDateString();
-                          const hasEvent = Math.random() > 0.7; // Random events for demo
+                          // ⚠️ `Math.random() > 0.7` semait des interventions au hasard
+                          // dans le calendrier : environ trois jours sur dix en portaient
+                          // une, et elles changeaient à chaque affichage. On planifie sa
+                          // semaine là-dessus. Les vraies échéances viennent des plans.
+                          const jour = date.toDateString();
+                          const hasEvent = (maintenancePlans as any[]).some((plan: any) =>
+                            plan?.nextDue && new Date(plan.nextDue).toDateString() === jour);
                           
                           return (
                             <div
@@ -841,14 +847,34 @@ export default function PreventiveMaintenance() {
                     </h3>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => {
-                        const csvData = `Métrique,Valeur,Période\nMTBF,${120 + Math.random() * 80} heures,Janvier 2025\nMTTR,${2 + Math.random() * 3} heures,Janvier 2025\nDisponibilité,${95 + Math.random() * 4}%,Janvier 2025`;
+                        // ⚠️ Cet export fabriquait ses chiffres : MTBF entre 120 et
+                        // 200 h, MTTR entre 2 et 5 h, disponibilité entre 95 et 99 %,
+                        // tirés au sort à chaque clic, et datés « Janvier 2025 ». Le
+                        // fichier obtenu porte le nom de l'outil et circule ensuite
+                        // par courriel. C'est la fabrication la plus dommageable :
+                        // elle quitte l'écran et devient une pièce.
+                        //
+                        // On exporte désormais les plans réellement enregistrés.
+                        const lignes = (maintenancePlans as any[]).map((plan: any) => [
+                          JSON.stringify(plan?.planName ?? ''),
+                          JSON.stringify(plan?.maintenanceType ?? ''),
+                          JSON.stringify(plan?.frequency ?? ''),
+                          plan?.nextDue ? new Date(plan.nextDue).toLocaleDateString('fr-FR') : '',
+                          plan?.isActive ? 'actif' : 'inactif',
+                        ].join(','));
+                        const csvData = ['Plan,Type,Fréquence,Prochaine échéance,État', ...lignes].join('\n');
                         const blob = new Blob([csvData], { type: 'text/csv' });
                         const url = URL.createObjectURL(blob);
                         const link = document.createElement('a');
                         link.href = url;
-                        link.download = 'analytics-maintenance.csv';
+                        link.download = 'plans-maintenance-preventive.csv';
                         link.click();
-                        toast({ title: "Export terminé", description: "Rapport analytique téléchargé en CSV" });
+                        toast({
+                          title: (maintenancePlans as any[]).length ? "Export terminé" : "Rien à exporter",
+                          description: (maintenancePlans as any[]).length
+                            ? `${(maintenancePlans as any[]).length} plan(s) exporté(s).`
+                            : "Aucun plan de maintenance n'est enregistré.",
+                        });
                       }}>
                         <Download className="h-4 w-4 mr-2" />
                         Exporter rapport
@@ -872,28 +898,19 @@ export default function PreventiveMaintenance() {
                           Tendances de Performance
                         </h4>
                         <div className="space-y-4">
-                          {['MTBF', 'MTTR', 'Disponibilité', 'Coûts'].map((metric, index) => {
-                            const values = Array.from({ length: 12 }, () => Math.random() * 100);
-                            const color = (['blue', 'green', 'purple', 'orange'] as ChartColor[])[index];
-                            return (
-                              <div key={metric} className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric}</span>
-                                  <span className={`text-sm font-bold ${CHART_COLOR[color].text600}`}>
-                                    {metric === 'Coûts' ? `${Math.round(values[11] * 30)}€` :
-                                     metric === 'Disponibilité' ? `${(95 + values[11] * 0.05).toFixed(1)}%` :
-                                     `${(values[11] * 2).toFixed(1)}h`}
-                                  </span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                                  <div
-                                    className={`${CHART_COLOR[color].bg600} h-2 rounded-full transition-all duration-500`}
-                                    style={{ width: `${values[11]}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                          {/* ⚠️ MTBF, MTTR, disponibilité et coûts étaient tirés au
+                              sort : douze valeurs aléatoires par indicateur, redessinées
+                              à chaque affichage. La barre de progression bougeait donc
+                              toute seule, ce qui rendait l'ensemble crédible. Aucune de
+                              ces quatre mesures n'existe dans la base. 2026-10-13. */}
+                          <p className="text-sm text-ink-soft">
+                            Aucune tendance de performance n'est disponible.
+                          </p>
+                          <p className="text-xs text-ink-mute">
+                            MTBF, MTTR, disponibilité et coûts ne sont pas encore mesurés
+                            par la plateforme. Le tableau de bord GMAO présente en revanche
+                            les indicateurs réellement calculés à partir de vos interventions.
+                          </p>
                         </div>
                       </CardContent>
                     </Card>

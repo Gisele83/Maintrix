@@ -97,6 +97,31 @@ describe('Aucun chiffre inventé en l\'absence de données', () => {
     expect(fautifs).toEqual([]);
   });
 
+  it("aucune valeur n'est tirée au sort pour être affichée", () => {
+    // Pire qu'une constante : une valeur aléatoire CHANGE à chaque affichage,
+    // ce qui la fait passer pour vivante. On en a trouvé quatre : un calendrier
+    // qui semait des interventions environ trois jours sur dix, un historique
+    // de capteur sur 24 h, des tendances MTBF/MTTR/disponibilité, et un export
+    // CSV dont les chiffres étaient tirés au sort à chaque clic — un fichier
+    // qui quitte l'écran et devient une pièce.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      // `components/ui/` ne contient que les primitives du système de design —
+      // boutons, cartes, squelettes de chargement. Rien n'y est une mesure : la
+      // largeur aléatoire d'une barre de chargement ne trompe personne.
+      if (/[\\/]components[\\/]ui[\\/]/.test(fichier)) continue;
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (!/Math\.random/.test(texte)) continue;
+        // Un identifiant tiré au sort ne trompe personne : il ne s'affiche pas
+        // comme une mesure.
+        if (/toString\(36\)|key=|uuid|randomId/i.test(texte)) continue;
+        const relatif = fichier.replace(RACINE, '').split('\\').join('/');
+        fautifs.push(`${relatif}:${n} → ${texte.trim().slice(0, 70)}`);
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
   it('le tableau de bord GMAO ne contient plus de série mensuelle constante', () => {
     const contenu = readFileSync(join(RACINE, 'client', 'src', 'pages', 'gmao-dashboard.tsx'), 'utf8');
 

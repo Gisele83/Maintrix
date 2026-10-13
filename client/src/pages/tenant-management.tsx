@@ -198,9 +198,13 @@ const TenantManagement: React.FC = () => {
                 <Brain className="w-6 h-6 text-signal-deep" />
               </div>
               <div>
+                {/* ⚠️ « 98,5 % de précision globale » était écrit en dur. Aucune
+                    précision n'est mesurée nulle part : annoncer un tel chiffre
+                    sur la page qui présente la plateforme à ses administrateurs
+                    est une promesse sans contrepartie. 2026-10-13. */}
                 <p className="text-sm text-gray-600">IA Collaborative</p>
-                <p className="text-2xl font-bold">98.5%</p>
-                <p className="text-xs text-gray-500">Précision globale</p>
+                <p className="text-2xl font-bold text-ink-mute">—</p>
+                <p className="text-xs text-gray-500">Précision non mesurée</p>
               </div>
             </div>
           </CardContent>

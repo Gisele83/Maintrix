@@ -82,18 +82,16 @@ export default function SensorHub() {
     type, label: sensorLabels[type] || type, ...stats
   }));
 
-  const generateHistoricalData = (sensor: any) => {
-    const data = [];
-    for (let i = 24; i >= 0; i--) {
-      const variation = (Math.random() - 0.5) * sensor.value * 0.3;
-      data.push({
-        time: `${i}h`,
-        value: Math.round((sensor.value + variation) * 100) / 100,
-        threshold: sensor.threshold
-      });
-    }
-    return data;
-  };
+  // ⚠️ Cette fonction FABRIQUAIT un historique de 24 heures en faisant varier
+  // au hasard la valeur courante (± 15 %). La courbe changeait à chaque
+  // affichage, ce qui la rendait d'autant plus crédible : elle paraissait
+  // vivante. Un exploitant pouvait y lire une dérive, une stabilité ou un pic
+  // qui n'avaient jamais eu lieu — et décider d'une intervention là-dessus.
+  // Constaté le 2026-10-13.
+  //
+  // Maintrix n'archive pas encore les relevés : `/api/iot-data` rend l'état
+  // courant, pas une série temporelle. Tant que cet historique n'existe pas,
+  // on ne l'affiche pas.
 
   return (
     <div className="min-h-screen bg-paper-deep">
@@ -207,17 +205,10 @@ export default function SensorHub() {
 
                       {selectedSensor?.id === sensor.id && (
                         <div className="mt-3 pt-3 border-t border-white/10">
-                          <p className="text-xs text-slate-300 mb-2">Historique 24h</p>
-                          <ResponsiveContainer width="100%" height={120}>
-                            <LineChart data={generateHistoricalData(sensor)}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                              <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 8 }} />
-                              <YAxis tick={{ fill: '#64748b', fontSize: 8 }} />
-                              <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', fontSize: 10 }} />
-                              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
-                              <Line type="monotone" dataKey="threshold" stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
+                          <p className="text-xs text-ink-mute">
+                            Historique indisponible : les relevés ne sont pas encore archivés.
+                            Seule la valeur courante est mesurée.
+                          </p>
                         </div>
                       )}
                     </CardContent>

@@ -55,44 +55,16 @@ export default function AccessManagement() {
     notes: ""
   });
 
-  // Mock data - en production, vient de l'API
-  const [accessGrants, setAccessGrants] = useState<AccessGrant[]>([
-    {
-      id: "grant_001",
-      grantedTo: "partenaire@entreprise.com",
-      planType: "business",
-      daysRemaining: 25,
-      isActive: true,
-      currentUsage: 45,
-      maxDiagnostics: 1000,
-      reason: "Partenariat commercial",
-      createdAt: "2024-12-01",
-      lastUsed: "2024-12-15"
-    },
-    {
-      id: "grant_002", 
-      grantedTo: "consultant@expertise.com",
-      planType: "enterprise",
-      daysRemaining: 8,
-      isActive: true,
-      currentUsage: 189,
-      maxDiagnostics: 5000,
-      reason: "Mission de consulting",
-      createdAt: "2024-11-20",
-      lastUsed: "2024-12-14"
-    },
-    {
-      id: "grant_003",
-      grantedTo: "evaluateur@prospect.com",
-      planType: "pro",
-      daysRemaining: 0,
-      isActive: false,
-      currentUsage: 67,
-      maxDiagnostics: 200,
-      reason: "Évaluation prospect",
-      createdAt: "2024-10-15"
-    }
-  ]);
+  // ⚠️ Cette liste était pré-remplie d'octrois d'accès FICTIFS — un
+  // « partenaire@entreprise.com » avec 25 jours restants et un volume d'usage
+  // inventé. Sur une page qui gouverne des accès, montrer des autorisations
+  // qui n'existent pas est à la fois trompeur et inquiétant : on croit avoir
+  // ouvert sa plateforme à quelqu'un. Constaté le 2026-10-13.
+  //
+  // La liste démarre vide. Elle devra être alimentée par l'API le jour où ces
+  // octrois seront réellement persistés ; aujourd'hui ils ne le sont pas, et
+  // un écran vide le dit honnêtement.
+  const [accessGrants, setAccessGrants] = useState<AccessGrant[]>([]);
 
   const planIcons = {
     pro: Zap,

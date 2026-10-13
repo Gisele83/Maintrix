@@ -30,6 +30,26 @@ import {
 export default function Inventaire() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // ⚠️ Les quatre cartes de cette page affichaient « 1 247 pièces en stock »,
+  // « 156 équipements », « 23 alertes stock » et « 127 k€ de valeur » — écrits
+  // en dur, sans la moindre requête. Un testeur dont le magasin est vide y
+  // lisait l'inventaire d'une usine. Constaté le 2026-10-13.
+  const { data: piecesStock = [] } = useQuery<any[]>({ queryKey: ["/api/spare-parts"] });
+  const { data: equipements = [] } = useQuery<any[]>({ queryKey: ["/api/equipment"] });
+
+  // Rupture ou seuil atteint : les deux demandent une commande.
+  const alertesStock = piecesStock.filter((p: any) =>
+    Number(p?.currentStock ?? 0) <= Number(p?.minStock ?? 0)).length;
+
+  // Valeur immobilisée : quantité × prix unitaire, pièces sans prix exclues.
+  const valeurStock = piecesStock.reduce((total: number, p: any) =>
+    total + Number(p?.currentStock ?? 0) * Number(p?.unitPrice ?? 0), 0);
+
+  /** Un montant lisible, ou un tiret s'il n'y a rien à valoriser. */
+  const montant = (v: number) => (v > 0
+    ? v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+    : '—');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("alerts");
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -313,7 +333,7 @@ export default function Inventaire() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Pièces en Stock</p>
-                <p className="text-2xl font-bold text-blue-600">1,247</p>
+                <p className="text-2xl font-bold text-blue-600">{piecesStock.length.toLocaleString('fr-FR')}</p>
               </div>
               <Package className="h-8 w-8 text-blue-500" />
             </div>
@@ -325,7 +345,7 @@ export default function Inventaire() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Équipements</p>
-                <p className="text-2xl font-bold text-green-600">156</p>
+                <p className="text-2xl font-bold text-green-600">{equipements.length.toLocaleString('fr-FR')}</p>
               </div>
               <Factory className="h-8 w-8 text-green-500" />
             </div>
@@ -337,7 +357,7 @@ export default function Inventaire() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Alertes Stock</p>
-                <p className="text-2xl font-bold text-orange-600">23</p>
+                <p className="text-2xl font-bold text-orange-600">{alertesStock}</p>
               </div>
               <AlertTriangle className="h-8 w-8 text-orange-500" />
             </div>
@@ -349,7 +369,7 @@ export default function Inventaire() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Valeur Stock</p>
-                <p className="text-2xl font-bold text-signal-deep">€127K</p>
+                <p className="text-2xl font-bold text-signal-deep">{montant(valeurStock)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-signal-deep" />
             </div>
