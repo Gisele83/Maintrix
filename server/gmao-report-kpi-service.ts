@@ -21,13 +21,14 @@ export interface GmaoReportKpis {
   completedWorkOrders: number;
   pendingWorkOrders: number;
   emergencyInterventions: number;
-  preventiveCompliance: number;
-  performanceScore: number;
+  preventiveCompliance: number | undefined;
+  /** `undefined` sans aucun ordre de travail : un taux sans dénominateur n existe pas. */
+  performanceScore: number | undefined;
   averageResolutionTime: number;
   mttr: number;
   mtbf: number | undefined;
   availability: number;
-  reliability: number;
+  reliability: number | undefined;
   laborCost: number;
   partsCost: number;
   contractorCost: number;
@@ -78,9 +79,19 @@ export function computeGmaoReportKpis(
   const failureOrders = periodOrders.filter((wo) => FAILURE_ORDER_TYPES.has(wo.orderType));
   const preventiveOrders = periodOrders.filter((wo) => wo.orderType === "preventive");
 
-  const preventiveCompliance = totalWorkOrders > 0 ? (preventiveOrders.length / totalWorkOrders) * 100 : 0;
-  const performanceScore = totalWorkOrders > 0 ? (completedWorkOrders / totalWorkOrders) * 100 : 0;
-  const reliability = totalWorkOrders > 0 ? 100 - (failureOrders.length / totalWorkOrders) * 100 : 100;
+  // ⚠️ Ces trois taux retombaient sur une valeur par défaut en l absence
+  // d ordres de travail — et dans DEUX SENS OPPOSÉS, ce qui est le plus
+  // révélateur : conformité et performance à 0 (le pire), fiabilité à 100 (le
+  // meilleur). Un parc sans activité était donc décrit comme parfaitement
+  // fiable et totalement défaillant, dans le même rapport.
+  //
+  // Un taux sans dénominateur n existe pas. Constaté le 2026-10-13.
+  const preventiveCompliance = totalWorkOrders > 0
+    ? (preventiveOrders.length / totalWorkOrders) * 100 : undefined;
+  const performanceScore = totalWorkOrders > 0
+    ? (completedWorkOrders / totalWorkOrders) * 100 : undefined;
+  const reliability = totalWorkOrders > 0
+    ? 100 - (failureOrders.length / totalWorkOrders) * 100 : undefined;
 
   // Durées réelles (heures) — uniquement les OT complétés avec un début et une fin renseignés.
   const completedWithDuration = periodOrders.filter(
@@ -183,9 +194,13 @@ export function computeGmaoReportKpis(
   if (totalWorkOrders === 0) {
     recommendedActions.push("Aucun ordre de travail enregistré sur cette période — vérifier la saisie GMAO.");
   } else {
-    if (preventiveCompliance < 50) {
+    // Dans cette branche `totalWorkOrders > 0`, donc les trois taux existent.
+    // TypeScript ne déduit pas cette garantie à travers la condition.
+    const partPreventive = preventiveCompliance as number;
+
+    if (partPreventive < 50) {
       recommendedActions.push(
-        `Seulement ${preventiveCompliance.toFixed(0)}% des ordres de travail sont de type préventif sur la période (référence courante en fiabilité industrielle : majorité préventive) — la part corrective/urgente reste élevée.`
+        `Seulement ${partPreventive.toFixed(0)}% des ordres de travail sont de type préventif sur la période (référence courante en fiabilité industrielle : majorité préventive) — la part corrective/urgente reste élevée.`
       );
     }
     if (emergencyInterventions > 0) {
@@ -205,7 +220,7 @@ export function computeGmaoReportKpis(
     }
     if (recommendedActions.length === 0) {
       recommendedActions.push(
-        `${completedWorkOrders}/${totalWorkOrders} ordres de travail complétés, ${preventiveCompliance.toFixed(0)}% de part préventive — aucun signal défavorable détecté sur la période.`
+        `${completedWorkOrders}/${totalWorkOrders} ordres de travail complétés, ${partPreventive.toFixed(0)}% de part préventive — aucun signal défavorable détecté sur la période.`
       );
     }
   }

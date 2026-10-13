@@ -1,5 +1,18 @@
 import { Response } from "express";
 
+/**
+ * Une grandeur imprimable, ou « N/D ».
+ *
+ * ⚠️ `(valeur || 0).toFixed(1)` imprimait « 0,0 » là où rien n avait été
+ * mesuré — une disponibilité nulle, un MTTR nul. Dans un PDF qui porte le nom
+ * de l entreprise et circule, c est une affirmation, pas une absence.
+ * 2026-10-13.
+ */
+function nd(valeur: number | undefined, decimales: number, unite: string): string {
+  return valeur === undefined ? 'N/D' : `${valeur.toFixed(decimales)}${unite}`;
+}
+
+
 export interface MaintenanceReportData {
   reportNumber: string;
   equipment: string;
@@ -25,7 +38,8 @@ export interface MonthlyReportData {
   reportNumber: string;
   year: number;
   month: number;
-  performanceScore: number;
+  /** `undefined` sans aucun ordre de travail : un taux sans dénominateur n existe pas. */
+  performanceScore?: number;
   totalWorkOrders: number;
   completedWorkOrders: number;
   pendingWorkOrders: number;
@@ -34,7 +48,7 @@ export interface MonthlyReportData {
   mtbf?: number;
   mttr: number;
   availability: number;
-  reliability: number;
+  reliability?: number;
   /** Toujours absent : Performance et Qualité (2 des 3 facteurs) supposent un suivi de production que ce rapport GMAO ne collecte pas — voir server/oee-routes.ts pour l'OEE réel, saisi séparément. */
   oee?: number;
   costsBreakdown: {
@@ -46,7 +60,7 @@ export interface MonthlyReportData {
   topEquipmentIssues: Array<{equipment: string, issues: number, cost: number}>;
   techniciansPerformance: Array<{name: string, workOrders: number, avgTime: number, rating: number}>;
   emergencyInterventions: number;
-  preventiveCompliance: number;
+  preventiveCompliance?: number;
   budgetVariance: number;
   recommendedActions: string[];
   kpiTrends: {
@@ -542,7 +556,7 @@ export class PDFGeneratorClientSide {
             
             <div class="section">
               <h3>🎯 SCORE DE PERFORMANCE</h3>
-              <div class="performance-score">${reportData.performanceScore}%</div>
+              <div class="performance-score">${reportData.performanceScore === undefined ? 'N/D' : `${reportData.performanceScore}%`}</div>
             </div>
             
             <div class="section">
@@ -550,7 +564,7 @@ export class PDFGeneratorClientSide {
               <div class="stats-grid">
                 <div class="stats-item">
                   <strong>Disponibilité</strong>
-                  <div class="stats-value">${(reportData.availability || 0).toFixed(1)}%</div>
+                  <div class="stats-value">${nd(reportData.availability, 1, '%')}</div>
                 </div>
                 <div class="stats-item">
                   <strong>MTBF</strong>
@@ -558,7 +572,7 @@ export class PDFGeneratorClientSide {
                 </div>
                 <div class="stats-item">
                   <strong>MTTR</strong>
-                  <div class="stats-value">${(reportData.mttr || 0).toFixed(1)}h</div>
+                  <div class="stats-value">${nd(reportData.mttr, 1, 'h')}</div>
                 </div>
                 <div class="stats-item">
                   <strong>OEE</strong>

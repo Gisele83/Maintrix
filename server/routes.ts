@@ -126,6 +126,19 @@ import {
 } from "./diagnostic-ml-engine";
 
 /**
+ * Une grandeur exportable, ou « N/D ».
+ *
+ * ⚠️ Un export CSV circule : il est ouvert dans un tableur, recopié dans une
+ * présentation, envoyé à un client. Y écrire « 0,0 » là où rien n a été
+ * mesuré affirme une performance nulle. « N/D » n affirme rien, ce qui est
+ * exact. 2026-10-13.
+ */
+function nd(valeur: number | undefined, decimales = 1): string {
+  return valeur === undefined ? 'N/D' : valeur.toFixed(decimales);
+}
+
+
+/**
  * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
  *
  * ⚠️ Le code faisait `parseFloat(x?.toString() ?? "0")` : une valeur
@@ -3222,11 +3235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ['', '', ''],
         ['KPI', 'Valeur', 'Note'],
         ['MTBF (heures)', kpis.mtbf !== undefined ? kpis.mtbf.toFixed(1) : 'N/D', kpis.mtbf === undefined ? 'Moins de 2 pannes sur la période' : ''],
-        ['MTTR (heures)', kpis.mttr.toFixed(1), ''],
+        ['MTTR (heures)', nd(kpis.mttr), ''],
         ['OEE (%)', 'N/D', 'Nécessite un suivi de production (module OEE dédié)'],
-        ['Disponibilité (%)', kpis.availability.toFixed(1), ''],
-        ['Fiabilité (%)', kpis.reliability.toFixed(1), 'Part des OT non correctifs/urgents'],
-        ['Conformité préventive (%)', kpis.preventiveCompliance.toFixed(1), ''],
+        ['Disponibilité (%)', nd(kpis.availability), ''],
+        ['Fiabilité (%)', nd(kpis.reliability), 'Part des OT non correctifs/urgents'],
+        ['Conformité préventive (%)', nd(kpis.preventiveCompliance), ''],
         ['', '', ''],
         ['Dépenses réelles', 'Montant (€)', ''],
         ['Main d\'œuvre', kpis.laborCost.toFixed(2), ''],

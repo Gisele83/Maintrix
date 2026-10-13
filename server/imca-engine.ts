@@ -44,6 +44,10 @@ export interface IMCAResult {
   mahalanobisDistance: number;
   klDivergence: number;
   weights: { ISD: number; IDC: number; ISO: number; IRS: number };
+  /** Part du composite issue d une valeur par défaut, entre 0 et 1. */
+  partEstimee: number;
+  /** Ce qui n a pas pu être mesuré, et son poids dans le composite. */
+  reserves: string[];
   trend: "improving" | "stable" | "degrading" | "critical";
   alertLevel: "ok" | "watch" | "warning" | "critical";
   explanation: IMCAExplanation;
@@ -237,10 +241,16 @@ function computeISO(
 function computeIRS(
   tauMoyenHours: number | null,  // temps moyen de retour à l'état nominal (heures), null si aucune donnée
   beta: number = 0.02
-): { value: number; explanation: string } {
+): { value: number; explanation: string; estime: boolean } {
   const hasData = tauMoyenHours !== null;
   const tau = tauMoyenHours ?? 24; // valeur neutre par défaut en l'absence d'historique de perturbation
   const irs = Math.round(100 / (1 + beta * tau));
+  // ⚠️ Quand `tauMoyenHours` est absent, la valeur 24 h sert de défaut et
+  // produit un IRS d'environ 68/100. La prose l'annonçait, mais l'INDICATEUR,
+  // lui, ne portait aucune marque : le composite l'agrégeait comme une mesure.
+  // Avec un poids pouvant atteindre 0,40, près de la moitié de l'IMCA pouvait
+  // ainsi reposer sur une convention, sans que rien ne le dise au lecteur.
+  // Constaté le 2026-10-13.
   const explanation = !hasData
     ? `Aucune perturbation résolue dans l'historique — résilience estimée par défaut (τ_moyen=${tau}h).`
     : tau < 8
@@ -250,21 +260,40 @@ function computeIRS(
     : tau < 72
     ? `Résilience dégradée. τ_moyen=${tau.toFixed(1)}h — temps de récupération élevé après incident.`
     : `Résilience critique. τ_moyen=${tau.toFixed(1)}h — l'actif met très longtemps à revenir à l'état nominal.`;
-  return { value: Math.max(0, Math.min(100, irs)), explanation };
+  return { value: Math.max(0, Math.min(100, irs)), explanation, estime: !hasData };
 }
 
 // ─── Adaptive weight calculation ─────────────────────────────────────────────
 
+/**
+ * ⚠️ `hasMaintenance` était déclaré, calculé par l'appelant, transmis… et
+ * JAMAIS lu. Or c'est lui qui conditionne l'IRS : sans historique de
+ * maintenance, le temps moyen de retour à l'état nominal n'est pas mesurable,
+ * l'IRS retombe sur sa valeur par défaut — et il pesait tout de même jusqu'à
+ * 0,40 dans le composite. Autrement dit, le cas où l'IRS vaut le moins était
+ * précisément celui où on lui donnait le plus de poids.
+ *
+ * Son poids est désormais réduit et redistribué sur les indices réellement
+ * mesurés. Les quatre pondérations somment à 1 dans chaque branche.
+ */
 function adaptiveWeights(
   dataQuality: { hasIot: boolean; hasHistory: boolean; hasMaintenance: boolean }
 ): { ISD: number; IDC: number; ISO: number; IRS: number } {
   if (!dataQuality.hasIot) {
-    // No IoT: lean on history and maintenance
-    return { ISD: 0.10, IDC: 0.15, ISO: 0.35, IRS: 0.40 };
+    // Sans IoT, on s'appuie sur l'historique et la maintenance — à condition
+    // que cette dernière existe.
+    return dataQuality.hasMaintenance
+      ? { ISD: 0.10, IDC: 0.15, ISO: 0.35, IRS: 0.40 }
+      : { ISD: 0.15, IDC: 0.20, ISO: 0.55, IRS: 0.10 };
   }
   if (!dataQuality.hasHistory) {
     // No history: lean on current sensors
     return { ISD: 0.45, IDC: 0.05, ISO: 0.35, IRS: 0.15 };
+  }
+  if (!dataQuality.hasMaintenance) {
+    // Capteurs et historique présents, mais aucune intervention enregistrée :
+    // l'IRS est une convention, il ne doit pas peser comme une mesure.
+    return { ISD: 0.40, IDC: 0.30, ISO: 0.22, IRS: 0.08 };
   }
   // Full data — pondérations par défaut du Brevet N°1
   return { ISD: 0.35, IDC: 0.25, ISO: 0.20, IRS: 0.20 };
@@ -413,6 +442,22 @@ export async function computeIMCA(
     weights.IRS * irsResult.value;
   const IMCA = Math.round(Math.max(0, Math.min(100, imcaRaw)));
 
+  // ⚠️ Une réserve portée par un sous-indice se perdait ici. Le lecteur voyait
+  // « IMCA 68 — à surveiller » sans savoir qu'une part de ce nombre reposait
+  // sur une valeur par défaut. La part estimée est donc remontée, chiffrée :
+  // c'est elle qui dit combien de confiance accorder au composite.
+  const reserves: string[] = [];
+  let partEstimee = 0;
+  if (irsResult.estime) {
+    partEstimee += weights.IRS;
+    reserves.push(
+      `IRS estimé par défaut (aucune perturbation résolue dans l'historique) — `
+      + `${Math.round(weights.IRS * 100)} % du composite`,
+    );
+  }
+  if (!hasIot) reserves.push("aucune donnée capteur : ISD et IDC reposent sur peu d'observations");
+  if (!hasMaintenance) reserves.push("aucune intervention enregistrée sur la période");
+
   // ─── Alert level & trend ─────────────────────────────────────────────────
   const alertLevel: IMCAResult["alertLevel"] =
     IMCA >= 75 ? "ok" : IMCA >= 55 ? "watch" : IMCA >= 35 ? "warning" : "critical";
@@ -504,6 +549,11 @@ export async function computeIMCA(
     klDivergence: parseFloat(idcResult.kl.toFixed(4)),   // conservé pour compat. ascendante
     jsDivergence: parseFloat(idcResult.jsdDistance.toFixed(4)), // √JSD ∈ [0,1] — métrique principale
     weights,
+    // Part du composite reposant sur une valeur par défaut plutôt que sur une
+    // mesure, et les raisons. Sans ces deux champs, « IMCA 68 — à surveiller »
+    // se lit comme un résultat alors qu il peut être une convention.
+    partEstimee: Math.round(partEstimee * 100) / 100,
+    reserves,
     trend,
     alertLevel,
     rul_hours,
