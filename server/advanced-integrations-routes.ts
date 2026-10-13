@@ -31,6 +31,51 @@ import {
   insertReportingScheduleSchema,
 } from "@shared/schema";
 
+/**
+ * Ce que la plateforme ne sait PAS encore faire, dit franchement.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CECI EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Sept points d'entrée de ce fichier rendaient des résultats INVENTÉS, et
+ * ils étaient tous accessibles :
+ *
+ *   • un test de connexion ERP qui réussissait toujours, avec un temps de
+ *     réponse tiré au sort entre 500 et 1500 ms ;
+ *   • une synchronisation annonçant entre 100 et 600 enregistrements traités ;
+ *   • un test SCADA rendant un nombre de tags lus et une latence au hasard ;
+ *   • un entraînement de modèle avec une durée et un volume de données fictifs ;
+ *   • et surtout une PRÉDICTION de défaillance : score de risque aléatoire,
+ *     confiance entre 0,7 et 1, durée de vie résiduelle entre 30 et 395 jours,
+ *     assortie d'une explication inventée (« vibration 35 %, température
+ *     28 % »). Elle pouvait recommander au hasard « maintenance immédiate
+ *     requise, envisager l'arrêt de l'équipement ».
+ *
+ * Un industriel qui arrête une ligne sur un chiffre tiré au sort ne revient
+ * pas. Ces appels répondent désormais 501 : la fonctionnalité n'existe pas,
+ * et le dire coûte infiniment moins cher que de la simuler.
+ * Constaté le 2026-10-13.
+ */
+class ErreurNonImplemente extends Error {
+  constructor(public readonly fonctionnalite: string) {
+    super(`Non implémenté : ${fonctionnalite}`);
+    this.name = 'ErreurNonImplemente';
+  }
+}
+
+/** Renvoie 501 si la cause est une absence de fonctionnalité ; sinon `false`. */
+function repondreNonImplemente(error: unknown, res: any): boolean {
+  if (!(error instanceof ErreurNonImplemente)) return false;
+  res.status(501).json({
+    error: 'NON_IMPLEMENTE',
+    message: `Maintrix ne réalise pas encore ${error.fonctionnalite} : `
+      + `aucun résultat ne peut être produit. Cette fonction est présente dans `
+      + `l'interface mais n'est pas raccordée.`,
+  });
+  return true;
+}
+
+
 // =======================
 // ERP/SCADA CONNECTOR ROUTES
 // =======================
@@ -53,6 +98,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(systems);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching ERP systems:", error);
       res.status(500).json({ error: "Failed to fetch ERP systems" });
     }
@@ -75,6 +121,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.status(201).json(system);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error creating ERP system:", error);
       res.status(400).json({ error: "Failed to create ERP system" });
     }
@@ -95,10 +142,11 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       }
 
       // Simulate connection test based on system type
-      const testResult = await testERPConnection(system);
+      const testResult: any = await testERPConnection(system);
       
       res.json(testResult);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error testing ERP connection:", error);
       res.status(500).json({ error: "Failed to test ERP connection" });
     }
@@ -120,7 +168,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       }
 
       // Perform synchronization
-      const syncResult = await performERPSync(system, entityTypes);
+      const syncResult: any = await performERPSync(system, entityTypes);
       
       // Log the integration
       await db.insert(dataIntegrationLogs).values({
@@ -138,6 +186,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.json(syncResult);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error syncing ERP data:", error);
       res.status(500).json({ error: "Failed to sync ERP data" });
     }
@@ -159,6 +208,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(connections);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching SCADA connections:", error);
       res.status(500).json({ error: "Failed to fetch SCADA connections" });
     }
@@ -181,6 +231,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.status(201).json(connection);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error creating SCADA connection:", error);
       res.status(400).json({ error: "Failed to create SCADA connection" });
     }
@@ -200,10 +251,11 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         return res.status(404).json({ error: "SCADA connection not found" });
       }
 
-      const testResult = await testSCADAConnection(connection);
+      const testResult: any = await testSCADAConnection(connection);
       
       res.json(testResult);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error testing SCADA connection:", error);
       res.status(500).json({ error: "Failed to test SCADA connection" });
     }
@@ -225,6 +277,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(models);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching AI models:", error);
       res.status(500).json({ error: "Failed to fetch AI models" });
     }
@@ -247,6 +300,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.status(201).json(model);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error creating AI model:", error);
       res.status(400).json({ error: "Failed to create AI model" });
     }
@@ -281,7 +335,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         .returning();
 
       // Start training process (async)
-      const trainingResult = await startModelTraining(model, hyperParameters, dataFilters);
+      const trainingResult: any = await startModelTraining(model, hyperParameters, dataFilters);
       
       res.json({
         trainingJobId: trainingJob.id,
@@ -289,6 +343,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         estimatedDuration: trainingResult.estimatedDuration
       });
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error training AI model:", error);
       res.status(500).json({ error: "Failed to train AI model" });
     }
@@ -329,7 +384,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       }
 
       // Generate prediction
-      const prediction = await generatePrediction(model, equipmentId, sensorData, predictionHorizon);
+      const prediction: any = await generatePrediction(model, equipmentId, sensorData, predictionHorizon);
       
       // Save prediction
       const [savedPrediction] = await db
@@ -353,6 +408,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       
       res.json(savedPrediction);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error generating prediction:", error);
       res.status(500).json({ error: "Failed to generate prediction" });
     }
@@ -374,6 +430,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(workspaces);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching Power BI workspaces:", error);
       res.status(500).json({ error: "Failed to fetch Power BI workspaces" });
     }
@@ -396,6 +453,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.status(201).json(workspace);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error creating Power BI workspace:", error);
       res.status(400).json({ error: "Failed to create Power BI workspace" });
     }
@@ -414,6 +472,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(reports);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching Power BI reports:", error);
       res.status(500).json({ error: "Failed to fetch Power BI reports" });
     }
@@ -431,6 +490,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 
       res.status(201).json(report);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error creating Power BI report:", error);
       res.status(400).json({ error: "Failed to create Power BI report" });
     }
@@ -455,7 +515,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       }
 
       // Generate embed token (simulation)
-      const embedToken = await generatePowerBIEmbedToken(report.workspace, report.report);
+      const embedToken: any = await generatePowerBIEmbedToken(report.workspace, report.report);
       
       res.json({
         embedToken: embedToken.token,
@@ -463,6 +523,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         expiresAt: embedToken.expiresAt
       });
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error generating embed token:", error);
       res.status(500).json({ error: "Failed to generate embed token" });
     }
@@ -487,10 +548,11 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       }
 
       // Refresh dataset
-      const refreshResult = await refreshPowerBIDataset(dataset.workspace, dataset.dataset);
+      const refreshResult: any = await refreshPowerBIDataset(dataset.workspace, dataset.dataset);
       
       res.json(refreshResult);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error refreshing Power BI dataset:", error);
       res.status(500).json({ error: "Failed to refresh Power BI dataset" });
     }
@@ -526,6 +588,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
         
       res.json(logs);
     } catch (error) {
+      if (repondreNonImplemente(error, res)) return;
       console.error("Error fetching integration logs:", error);
       res.status(500).json({ error: "Failed to fetch integration logs" });
     }
@@ -536,128 +599,44 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
 // HELPER FUNCTIONS
 // =======================
 
-async function testERPConnection(system: any) {
-  // Simulate ERP connection test
-  return {
-    success: true,
-    connectionTime: Math.random() * 1000 + 500,
-    systemInfo: {
-      version: "12.3.1",
-      capabilities: ["work_orders", "equipment", "spare_parts"],
-      lastSync: system.lastSyncAt,
-    },
-    message: `Successfully connected to ${system.systemName}`
-  };
+async function testERPConnection(system: any): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("le test de connexion à un ERP");
 }
 
-async function performERPSync(system: any, entityTypes: string[]) {
-  // Simulate ERP synchronization
-  const startTime = Date.now();
-  
-  // Mock sync results
-  const totalRecords = Math.floor(Math.random() * 500) + 100;
-  const successfulRecords = Math.floor(totalRecords * 0.85);
-  const failedRecords = totalRecords - successfulRecords;
-  
-  return {
-    totalRecords,
-    successfulRecords,
-    failedRecords,
-    executionTime: Date.now() - startTime,
-    errors: failedRecords > 0 ? [
-      { entityType: "work_order", error: "Duplicate ID", count: failedRecords }
-    ] : null,
-    syncedEntities: entityTypes
-  };
+async function performERPSync(system: any, entityTypes: string[]): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("la synchronisation avec un ERP");
 }
 
-async function testSCADAConnection(connection: any) {
-  // Simulate SCADA connection test
-  return {
-    success: true,
-    protocol: connection.protocol,
-    endpoint: connection.endpoint,
-    tagsRead: Math.floor(Math.random() * 100) + 20,
-    latency: Math.random() * 50 + 10,
-    message: `Successfully connected via ${connection.protocol}`
-  };
+async function testSCADAConnection(connection: any): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("le test de connexion à un automate SCADA");
 }
 
-async function startModelTraining(model: any, hyperParameters: any, dataFilters: any) {
-  // Simulate model training initialization
-  return {
-    estimatedDuration: Math.floor(Math.random() * 3600) + 1800, // 30 minutes to 2 hours
-    dataSize: Math.floor(Math.random() * 10000) + 1000,
-    status: "training_started"
-  };
+async function startModelTraining(model: any, hyperParameters: any, dataFilters: any): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("l'entraînement d'un modèle");
 }
 
-async function generatePrediction(model: any, equipmentId: number, sensorData: any[], predictionHorizon: number) {
-  // Advanced AI prediction simulation
-  const features = sensorData.slice(0, 10).map(data => ({
-    sensorType: data.sensorType,
-    value: data.value,
-    timestamp: data.timestamp
-  }));
-
-  const confidence = Math.random() * 0.3 + 0.7; // 0.7-1.0
-  const riskScore = Math.random();
-  
-  let riskLevel: string;
-  let actions: string[] = [];
-  
-  if (riskScore < 0.3) {
-    riskLevel = "low";
-    actions = ["Continue normal operation", "Schedule routine maintenance"];
-  } else if (riskScore < 0.6) {
-    riskLevel = "medium";
-    actions = ["Increase monitoring frequency", "Plan preventive maintenance"];
-  } else if (riskScore < 0.8) {
-    riskLevel = "high";
-    actions = ["Schedule immediate inspection", "Prepare replacement parts"];
-  } else {
-    riskLevel = "critical";
-    actions = ["Immediate maintenance required", "Consider equipment shutdown"];
-  }
-
-  return {
-    value: model.modelType === "rul_estimation" ? Math.floor(Math.random() * 365) + 30 : riskScore,
-    category: model.modelType === "failure_prediction" ? (riskScore > 0.7 ? "likely_failure" : "normal") : null,
-    confidence,
-    riskLevel,
-    features,
-    actions,
-    explanation: {
-      topFactors: [
-        { feature: "vibration_level", importance: 0.35 },
-        { feature: "temperature", importance: 0.28 },
-        { feature: "operating_hours", importance: 0.22 },
-        { feature: "pressure", importance: 0.15 }
-      ]
-    }
-  };
+async function generatePrediction(model: any, equipmentId: number, sensorData: any[], predictionHorizon: number): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("la prédiction de défaillance");
 }
 
-async function generatePowerBIEmbedToken(workspace: any, report: any) {
-  // Simulate Power BI embed token generation
-  return {
-    token: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(JSON.stringify({
-      workspaceId: workspace.workspaceId,
-      reportId: report.reportId,
-      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiry
-      iss: "maintrix"
-    })).toString('base64')}.mock-signature`,
-    expiresAt: new Date(Date.now() + 3600 * 1000)
-  };
+async function generatePowerBIEmbedToken(workspace: any, report: any): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("la génération d'un jeton Power BI");
 }
 
-async function refreshPowerBIDataset(workspace: any, dataset: any) {
-  // Simulate Power BI dataset refresh
-  return {
-    success: true,
-    refreshId: `refresh_${Date.now()}`,
-    startTime: new Date().toISOString(),
-    status: "InProgress",
-    message: "Dataset refresh started successfully"
-  };
+async function refreshPowerBIDataset(workspace: any, dataset: any): Promise<never> {
+  // ⚠️ Cette fonction FABRIQUAIT sa réponse. Elle ne mesurait rien, ne
+  // contactait aucun système, et rendait des valeurs tirées au sort.
+  throw new ErreurNonImplemente("le rafraîchissement d'un jeu de données Power BI");
 }

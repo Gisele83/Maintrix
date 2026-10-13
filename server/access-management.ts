@@ -202,12 +202,21 @@ export class AccessManager {
       throw new Error("Seul le propriétaire peut étendre l'accès");
     }
     
-    // Simulation - dans la réalité, récupérer depuis la base de données
-    const mockGrant = this.createAccessGrant(ownerId, "test@example.com", "business", 30);
-    mockGrant.endDate = new Date(mockGrant.endDate.getTime() + (additionalDays * 24 * 60 * 60 * 1000));
-    mockGrant.duration += additionalDays;
-    
-    return mockGrant;
+    // ⚠️ Cette méthode ne prolongeait RIEN. Elle fabriquait un octroi d'accès
+    // pour « test@example.com », lui ajoutait les jours demandés, et le
+    // renvoyait. La route répondait donc par un succès, l'interface affichait
+    // la nouvelle échéance — et l'accès réel, lui, expirait comme prévu.
+    //
+    // Un partenaire se retrouve dehors alors qu'on vient de lui confirmer une
+    // prolongation. Pire : le compte nommé dans la réponse n'était même pas le
+    // sien. Constaté le 2026-10-13.
+    //
+    // Les octrois ne sont pas encore persistés : tant qu'ils ne le sont pas,
+    // cette méthode refuse plutôt que de simuler un succès.
+    throw new Error(
+      "La prolongation d'accès n'est pas encore implémentée : les octrois ne "
+      + "sont pas enregistrés en base. Aucun accès n'a été modifié.",
+    );
   }
   
   // Générer un rapport d'utilisation pour le propriétaire
