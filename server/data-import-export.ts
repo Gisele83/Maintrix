@@ -6,6 +6,60 @@ import { parse } from "csv-parse/sync";
 import * as XLSX from "xlsx";
 import { z } from "zod";
 
+/**
+ * Une cellule CSV correctement échappée.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * TROIS DÉFAUTS CORRIGÉS ICI
+ * ═══════════════════════════════════════════════════════════════════
+ * Les cinq exports écrivaient `\"${valeur || ''}\"`.
+ *
+ * 1. GUILLEMETS NON ÉCHAPPÉS. La norme CSV (RFC 4180) exige de DOUBLER les
+ *    guillemets internes. Une référence comme « Pompe 5\" BSP » cassait donc la
+ *    structure du fichier : toutes les colonnes suivantes se décalaient d une
+ *    cellule, sur cette ligne et parfois sur les suivantes. Le fichier
+ *    s ouvrait sans erreur, simplement faux.
+ *
+ * 2. LE ZÉRO DEVENAIT VIDE. `valeur || ''` efface un 0 légitime : un coût de
+ *    0 € et un coût inconnu devenaient indiscernables dans l export.
+ *
+ * 3. INJECTION DE FORMULE. Une cellule commençant par =, +, - ou @ est
+ *    interprétée comme une FORMULE à l ouverture dans un tableur. Une donnée
+ *    saisie par un utilisateur pouvait ainsi exécuter quelque chose chez le
+ *    destinataire du fichier. On la neutralise par une apostrophe initiale.
+ *
+ * Constaté le 2026-10-13.
+ */
+function celluleCsv(valeur: unknown): string {
+  if (valeur === null || valeur === undefined) return '""';
+
+  let texte = valeur instanceof Date ? valeur.toISOString() : String(valeur);
+
+  // Neutralisation des formules : le tableur ne doit rien interpréter.
+  //
+  // ⚠️ Un nombre négatif commence par « - » et reste un NOMBRE : le préfixer
+  // d une apostrophe le transformerait en texte, et une colonne de coûts
+  // cesserait d être sommable. On n échappe donc que ce qui n est PAS un nombre
+  // valide — soit exactement ce que l on redoute : une saisie commençant par
+  // « = », « + », « @ », ou par « - » suivi de texte.
+  // Seul le signe « - » bénéficie de l'exception numérique. Un « + » initial
+  // n'est jamais une notation légitime dans une donnée exportée, alors qu'il
+  // est courant dans un numéro de téléphone : « +33612345678 » serait lu comme
+  // le nombre 33612345678 et perdrait son indicatif. On le garde en texte.
+  const estUnNombreNegatifOuPositif = texte.trim() !== ''
+    && !texte.startsWith('+')
+    && Number.isFinite(Number(texte));
+
+  const DEBUTS_DANGEREUX = ['=', '+', '-', '@', String.fromCharCode(9), String.fromCharCode(13)];
+  if (!estUnNombreNegatifOuPositif && DEBUTS_DANGEREUX.includes(texte.charAt(0))) {
+    texte = "'" + texte;
+  }
+
+  // RFC 4180 : les guillemets internes se doublent.
+  return '"' + texte.split('"').join('""') + '"';
+}
+
+
 // Schemas de validation pour l'import
 const ImportEquipmentSchema = z.object({
   equipmentId: z.string().min(1),
@@ -788,7 +842,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => celluleCsv((row as Record<string, any>)[header])).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -844,7 +898,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => celluleCsv((row as Record<string, any>)[header])).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -878,7 +932,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => celluleCsv((row as Record<string, any>)[header])).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -926,7 +980,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0] || {});
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${(row as Record<string, any>)[header] || ''}"`).join(','))
+        ...data.map(row => headers.map(header => celluleCsv((row as Record<string, any>)[header])).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {
@@ -1001,7 +1055,7 @@ export class DataImportExportService {
       const headers = Object.keys(data[0]);
       const csvContent = [
         headers.join(','),
-        ...data.map(row => headers.map(header => `"${row[header]}"`).join(','))
+        ...data.map(row => headers.map(header => celluleCsv(row[header])).join(','))
       ].join('\n');
       return Buffer.from(csvContent, 'utf-8');
     } else {

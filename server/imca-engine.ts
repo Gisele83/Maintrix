@@ -126,13 +126,63 @@ function computeCovariance(data: Record<string, number[]>, types: string[]): num
       cov[i][j] = n > 1 ? sum / (n - 1) : 0;
     }
   }
-  // Regularize diagonal to avoid singular matrix
-  for (let i = 0; i < types.length; i++) cov[i][i] = Math.max(cov[i][i], 1e-6);
+  // ⚠️ LA RÉGULARISATION ÉTAIT ABSOLUE : `max(variance, 1e-6)`.
+  //
+  // Les capteurs n ont pas les mêmes unités — une température en °C autour de
+  // 80, un débit autour de 100, une vibration en mm/s autour de 6. Un plancher
+  // unique de 1e-6 n a de sens pour aucun d eux.
+  //
+  // Conséquence mesurée : un débitmètre PARFAITEMENT STABLE sur la fenêtre de
+  // référence obtenait une variance de 1e-6, donc une inverse de 1e6. Une
+  // déviation de 0,1 unité — un dixième de pour cent — produisait une distance
+  // de Mahalanobis de 100, et un ISD de 0/100, « critique ». Or sur une
+  // installation qui tourne bien, les capteurs stables sont la NORME : le
+  // dispositif s effondrait précisément là où tout allait bien.
+  //
+  // Deux corrections, toutes deux classiques en analyse multivariée :
+  //
+  //   1. plancher RELATIF à l échelle de la variable. Une fenêtre sans
+  //      variation ne prouve pas une variance nulle — elle prouve seulement
+  //      qu on a observé trop peu, ou trop calme. On retient 1 % de la moyenne.
+  //
+  //   2. terme de crête (ridge) proportionnel à la variance moyenne, qui
+  //      conditionne la matrice sans privilégier aucune variable.
+  //
+  // Constaté le 2026-10-13.
+  const PLANCHER_RELATIF = 0.01;   // 1 % de la moyenne de la variable
+  const CRETE = 0.01;              // 1 % de la variance moyenne
+
+  const variances = types.map((_, i) => cov[i][i]);
+  const varianceMoyenne = variances.reduce((a, b) => a + b, 0) / Math.max(types.length, 1);
+
+  for (let i = 0; i < types.length; i++) {
+    const echelle = Math.abs(means[types[i]]);
+    const plancher = (PLANCHER_RELATIF * echelle) ** 2;
+    cov[i][i] = Math.max(cov[i][i], plancher, 1e-9) + CRETE * varianceMoyenne;
+  }
   return cov;
 }
 
-function mahalanobisDistance(x: Record<string, number>, model: NominalModel): number {
+/**
+ * Distance de Mahalanobis au modèle nominal.
+ *
+ * ⚠️ `x[t] ?? model.mean[t]` remplace un capteur MUET par sa propre moyenne
+ * nominale : sa contribution à la distance vaut alors exactement zéro, et le
+ * capteur passe pour parfaitement conforme. Un capteur qui cesse d'émettre est
+ * pourtant un signal en soi — ligne coupée, carte morte, sonde arrachée — et
+ * c'est souvent le premier symptôme d'un incident.
+ *
+ * Le remplacement est conservé faute de mieux : on ne peut pas inventer une
+ * mesure. Mais les capteurs manquants sont désormais RAPPORTÉS, et celui qui
+ * lit l'indice sait sur combien de voies il repose réellement.
+ * Constaté le 2026-10-13.
+ */
+function mahalanobisDistance(
+  x: Record<string, number>,
+  model: NominalModel,
+): { distance: number; capteursManquants: string[] } {
   const types = model.sensorTypes;
+  const capteursManquants = types.filter(t => x[t] === undefined || x[t] === null);
   const diff = types.map(t => (x[t] ?? model.mean[t]) - model.mean[t]);
   // d² = diff^T × Σ^-1 × diff
   const inv = model.covarianceInverse;
@@ -142,7 +192,7 @@ function mahalanobisDistance(x: Record<string, number>, model: NominalModel): nu
     for (let j = 0; j < types.length; j++) row += inv[i][j] * diff[j];
     d2 += diff[i] * row;
   }
-  return Math.sqrt(Math.max(d2, 0));
+  return { distance: Math.sqrt(Math.max(d2, 0)), capteursManquants };
 }
 
 // buildHistogram is imported from ./js-divergence
@@ -159,11 +209,24 @@ function computeISD(
   currentMeans: Record<string, number>,
   model: NominalModel,
   alpha: number = 0.1
-): { value: number; dM: number; explanation: string } {
+): { value: number; dM: number; explanation: string; estime: boolean; capteursManquants: string[] } {
+  // ⚠️ Cette branche rendait `value: 75`, soit « bonne santé », quand AUCUNE
+  // donnée capteur ne permettait de calibrer un modèle nominal. Un indice de
+  // santé inventé, qui pesait ensuite de 0,35 à 0,45 dans le composite IMCA :
+  // l'actif le moins instrumenté était ainsi présenté comme l'un des mieux
+  // portants. Il est désormais marqué comme estimé, et le composite en tient
+  // compte. Constaté le 2026-10-13.
   if (model.sensorTypes.length === 0 || !model.covarianceInverse) {
-    return { value: 75, dM: 0, explanation: "Données capteurs insuffisantes pour calibration nominale." };
+    return {
+      value: 75,
+      dM: 0,
+      estime: true,
+      capteursManquants: [],
+      explanation: "Données capteurs insuffisantes pour calibrer un modèle nominal — "
+        + "valeur conventionnelle, à ne pas lire comme une mesure.",
+    };
   }
-  const dM = mahalanobisDistance(currentMeans, model);
+  const { distance: dM, capteursManquants } = mahalanobisDistance(currentMeans, model);
   const isd = Math.round(100 * Math.exp(-alpha * dM));
   const explanation =
     dM < 1
@@ -173,7 +236,18 @@ function computeISD(
       : dM < 4
       ? `Déviation significative (D_M=${dM.toFixed(2)}). L'actif s'éloigne de son comportement nominal.`
       : `Déviation critique (D_M=${dM.toFixed(2)}). Intervention requise — comportement anormal multi-capteurs.`;
-  return { value: Math.max(0, Math.min(100, isd)), dM, explanation };
+  const mention = capteursManquants.length
+    ? " Attention : " + capteursManquants.length + " capteur(s) sans mesure sur la fenêtre ("
+      + capteursManquants.join(", ") + ") — ils comptent comme conformes faute de donnée."
+    : "";
+
+  return {
+    value: Math.max(0, Math.min(100, isd)),
+    dM,
+    estime: false,
+    capteursManquants,
+    explanation: explanation + mention,
+  };
 }
 
 /**
@@ -189,7 +263,7 @@ function computeIDC(
   recentValues: number[],
   referenceValues: number[],
   beta: number = 3.0
-): { value: number; kl: number; jsd: number; jsdDistance: number; slidingResult: SlidingWindowResult; explanation: string } {
+): { value: number; kl: number; jsd: number; jsdDistance: number; slidingResult: SlidingWindowResult; explanation: string; estime: boolean } {
   const result = computeIDCWithJSD(recentValues, referenceValues, beta, 20, 20);
   return {
     value: result.value,
@@ -198,6 +272,7 @@ function computeIDC(
     jsdDistance: result.jsdDistance,
     slidingResult: result.slidingResult,
     explanation: result.explanation,
+    estime: result.estime,
   };
 }
 
@@ -392,9 +467,19 @@ export async function computeIMCA(
   }
 
   // ─── ISD ─────────────────────────────────────────────────────────────────
+  // ⚠️ Second indice de santé inventé, à 70 cette fois — et à un autre endroit
+  // que celui qui en inventait 75. Deux conventions différentes pour la même
+  // situation, dans la même fonction. Il est maintenant marqué comme estimé.
   const isdResult = nominalModel
     ? computeISD(currentMeans, nominalModel, 0.1)
-    : { value: 70, dM: 0, explanation: "Modèle nominal non calibré — historique de capteurs insuffisant." };
+    : {
+      value: 70,
+      dM: 0,
+      estime: true,
+      capteursManquants: [] as string[],
+      explanation: "Modèle nominal non calibré — historique de capteurs insuffisant. "
+        + "Valeur conventionnelle, à ne pas lire comme une mesure.",
+    };
 
   // ─── IDC ─────────────────────────────────────────────────────────────────
   const primarySensor = sensorTypes.find(t => ["temperature", "vibration", "pressure"].includes(t)) ?? sensorTypes[0];
@@ -453,6 +538,26 @@ export async function computeIMCA(
     reserves.push(
       `IRS estimé par défaut (aucune perturbation résolue dans l'historique) — `
       + `${Math.round(weights.IRS * 100)} % du composite`,
+    );
+  }
+  if (isdResult.estime) {
+    partEstimee += weights.ISD;
+    reserves.push(
+      `ISD conventionnel (aucun modèle nominal calibrable) — `
+      + `${Math.round(weights.ISD * 100)} % du composite`,
+    );
+  }
+  if (isdResult.capteursManquants.length) {
+    reserves.push(
+      `${isdResult.capteursManquants.length} capteur(s) sans mesure sur la fenêtre : `
+      + `${isdResult.capteursManquants.join(", ")} — comptés comme conformes faute de donnée`,
+    );
+  }
+  if (idcResult.estime) {
+    partEstimee += weights.IDC;
+    reserves.push(
+      `IDC conventionnel (historique insuffisant pour mesurer une dérive) — `
+      + `${Math.round(weights.IDC * 100)} % du composite`,
     );
   }
   if (!hasIot) reserves.push("aucune donnée capteur : ISD et IDC reposent sur peu d'observations");

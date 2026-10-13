@@ -83,7 +83,14 @@ export function buildHistogram(
 
   const hist = Array(bins).fill(0);
   for (const v of values) {
-    const bin = Math.min(Math.floor(((v - min) / range) * bins), bins - 1);
+    // ⚠️ L'indice n'était borné que PAR LE HAUT. Avec des bornes imposées
+    // (`forcedMin`), une valeur inférieure donnait un indice NÉGATIF, et
+    // `hist[-1]++` créait une propriété « -1 » sur le tableau au lieu
+    // d'incrémenter une case : la valeur disparaissait de l'histogramme sans
+    // la moindre erreur, et la distribution s'en trouvait faussée.
+    // Constaté le 2026-10-13.
+    const brut = Math.floor(((v - min) / range) * bins);
+    const bin = Math.min(Math.max(brut, 0), bins - 1);
     hist[bin]++;
   }
 
@@ -344,10 +351,17 @@ export function computeIDCWithJSD(
   kl_compat: number;          // KL (sens P→Q) pour compatibilité ascendante
   slidingResult: SlidingWindowResult;
   explanation: string;
+  /** `true` quand la valeur est conventionnelle faute d historique exploitable. */
+  estime: boolean;
 } {
   // Cas dégénéré
   if (recentValues.length < 5 || referenceValues.length < 5) {
+    // ⚠️ Valeur conventionnelle de 80, qui descendait dans le composite IMCA
+    // avec un poids pouvant atteindre 0,30 sans qu aucune marque ne la
+    // distingue d une mesure. C est le troisième sous-indice dans ce cas —
+    // ISD inventait 75 ou 70, IRS partait d un tau par défaut.
     return {
+      estime: true,
       value: 80, jsd: 0, jsdDistance: 0, kl_compat: 0,
       slidingResult: {
         series: [],
@@ -409,6 +423,7 @@ export function computeIDCWithJSD(
     kl_compat: parseFloat(kl_compat.toFixed(4)),
     slidingResult,
     explanation,
+    estime: false,
   };
 }
 
