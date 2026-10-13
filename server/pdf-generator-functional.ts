@@ -1,5 +1,16 @@
 import { Response } from 'express';
 
+/**
+ * Une grandeur imprimable, ou « N/D ».
+ *
+ * Un rapport qui écrit « 0,0 h » là où il ne sait rien affirme une
+ * performance catastrophique. « N/D » n'affirme rien, ce qui est la vérité.
+ */
+function valeurOuND(valeur: number | undefined, unite: string): string {
+  return valeur === undefined ? 'N/D' : `${valeur.toFixed(1)}${unite}`;
+}
+
+
 export interface MaintenanceReportData {
   reportNumber: string;
   equipment: string;
@@ -34,10 +45,18 @@ export interface MonthlyReportData {
     interventionCount: number;
     totalDowntime: number;
   }>;
+  /**
+   * ⚠️ Ces trois grandeurs peuvent ne PAS être calculables : le MTBF exige au
+   * moins deux pannes datées, le MTTR au moins une réparation close. Elles
+   * étaient typées obligatoires et le code amont les forçait à zéro — un MTBF
+   * de « 0,0 h » imprimé dans un rapport se lit « tombe en panne en
+   * permanence ». Ce document porte le nom de l'entreprise et circule :
+   * il doit pouvoir écrire « non disponible ». 2026-10-13.
+   */
   monthlyKPIs: {
-    availability: number;
-    mtbf: number;
-    mttr: number;
+    availability?: number;
+    mtbf?: number;
+    mttr?: number;
   };
 }
 
@@ -510,15 +529,15 @@ export class PDFGeneratorFunctional {
               <h3>🎯 KPIs DE MAINTENANCE</h3>
               <div class="kpi-grid">
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.monthlyKPIs.availability.toFixed(1)}%</div>
+                  <div class="kpi-value">${valeurOuND(reportData.monthlyKPIs.availability, '%')}</div>
                   <div class="kpi-label">Disponibilité</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.monthlyKPIs.mtbf.toFixed(1)}h</div>
+                  <div class="kpi-value">${valeurOuND(reportData.monthlyKPIs.mtbf, 'h')}</div>
                   <div class="kpi-label">MTBF</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.monthlyKPIs.mttr.toFixed(1)}h</div>
+                  <div class="kpi-value">${valeurOuND(reportData.monthlyKPIs.mttr, 'h')}</div>
                   <div class="kpi-label">MTTR</div>
                 </div>
               </div>
@@ -647,15 +666,15 @@ export class PDFGeneratorFunctional {
               <h2>📈 Indicateurs Clés de Performance</h2>
               <div class="kpi-grid">
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.kpis.availability.toFixed(1)}%</div>
+                  <div class="kpi-value">${valeurOuND(reportData.kpis.availability, "%")}</div>
                   <div>Disponibilité</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.kpis.mtbf.toFixed(0)}h</div>
+                  <div class="kpi-value">${valeurOuND(reportData.kpis.mtbf, "h")}</div>
                   <div>MTBF</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.kpis.mttr.toFixed(1)}h</div>
+                  <div class="kpi-value">${valeurOuND(reportData.kpis.mttr, "h")}</div>
                   <div>MTTR</div>
                 </div>
                 <div class="kpi-card">

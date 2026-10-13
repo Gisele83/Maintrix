@@ -23,6 +23,21 @@ import { createValidationDemo } from "./create-validation-demo";
 import { estViolationUnicite } from "./db-errors";
 import { tenantRequis } from "./tenant-requis";
 
+/**
+ * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
+ *
+ * ⚠️ Le code faisait `parseFloat(x?.toString() ?? "0")` : une valeur
+ * délibérément absente redevenait zéro. Pour un MTBF, zéro se lit « tombe en
+ * panne en permanence » ; pour une disponibilité, « jamais disponible ».
+ * L'absence doit traverser.
+ */
+function nombreOuNull(valeur: unknown): number | undefined {
+  if (valeur === null || valeur === undefined || valeur === "") return undefined;
+  const n = Number(valeur);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+
 // Helper: reject if no authenticated tenantId (never default to 'default-tenant' for mutations)
 function requireTenant(req: any, res: any): string | null {
   const tenantId = req.tenantId as string | undefined;
@@ -100,9 +115,10 @@ function buildMonthlyReportPDFData(report: any): MonthlyReportData {
     averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
     equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
     monthlyKPIs: {
-      availability: parseFloat(report.equipmentAvailability?.toString() ?? "0"),
-      mtbf: parseFloat(report.mtbf?.toString() ?? "0"),
-      mttr: parseFloat(report.mttr?.toString() ?? "0"),
+      // L'absence traverse : une grandeur non calculable ne devient pas zéro.
+      availability: nombreOuNull(report.equipmentAvailability),
+      mtbf: nombreOuNull(report.mtbf),
+      mttr: nombreOuNull(report.mttr),
     },
   };
 }

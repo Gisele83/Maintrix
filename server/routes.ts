@@ -125,6 +125,21 @@ import {
   generatePredictiveTips,
 } from "./diagnostic-ml-engine";
 
+/**
+ * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
+ *
+ * ⚠️ Le code faisait `parseFloat(x?.toString() ?? "0")` : une valeur
+ * délibérément absente redevenait zéro. Pour un MTBF, zéro se lit « tombe en
+ * panne en permanence » ; pour une disponibilité, « jamais disponible ».
+ * L'absence doit traverser.
+ */
+function nombreOuNull(valeur: unknown): number | undefined {
+  if (valeur === null || valeur === undefined || valeur === "") return undefined;
+  const n = Number(valeur);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+
 // Middleware pour une meilleure gestion des erreurs JSON
 function jsonErrorHandler(err: any, req: any, res: any, next: any) {
   if (err instanceof SyntaxError && 'body' in err) {
@@ -268,9 +283,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
         equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
         monthlyKPIs: {
-          availability: parseFloat(report.equipmentAvailability?.toString() ?? "0"),
-          mtbf: parseFloat(report.mtbf?.toString() ?? "0"),
-          mttr: parseFloat(report.mttr?.toString() ?? "0"),
+          // L'absence traverse : une grandeur non calculable ne devient pas zéro.
+          availability: nombreOuNull(report.equipmentAvailability),
+          mtbf: nombreOuNull(report.mtbf),
+          mttr: nombreOuNull(report.mttr),
         },
       };
 
@@ -303,12 +319,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         period: period || "month",
         department: department || "all",
         generatedAt: new Date().toISOString(),
+        // ⚠️ Ce rapport annonçait « disponibilité 100 % » dès qu'un seul
+        // équipement existait — sans rien mesurer — et des MTBF, MTTR et OEE
+        // à zéro, qui se lisent comme les pires valeurs possibles. Un rapport
+        // porte le nom de l'entreprise et circule : il ne peut pas inventer.
+        // Ces quatre grandeurs demandent un historique que ce rapport ne
+        // rassemble pas ; elles sont donc absentes, et nommées comme telles.
         kpis: {
-          availability: kpis.equipmentCount > 0 ? 100 : 0,
-          mtbf: 0,
-          mttr: 0,
-          oee: 0,
+          availability: null,
+          mtbf: null,
+          mttr: null,
+          oee: null,
         },
+        kpisNonCalcules: "Disponibilité, MTBF, MTTR et OEE exigent un historique "
+          + "d'interventions datées que ce rapport ne rassemble pas. Le module GMAO "
+          + "les calcule à partir des ordres de travail réellement clos.",
         summary: {
           totalInterventions: totalWOs,
           completedInterventions: kpis.completedWorkOrdersCount,

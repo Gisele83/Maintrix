@@ -8,6 +8,7 @@ import type { Express } from "express";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { storage } from "./storage";
 import { tenantRequis } from "./tenant-requis";
+import { mtbfHeures, enJours, arrondir } from "@shared/fiabilite";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,9 +29,16 @@ interface MaintenanceRecommendation {
   confidence: number; // 0-100
   kpis: {
     failureRisk: number;       // % risk of failure in 30 days
-    mtbfDays: number;          // Mean Time Between Failures (days)
+    /**
+     * MTBF en jours, ou `undefined` si l'équipement compte moins de deux
+     * pannes datées. Ce champ valait auparavant 365 par défaut : un
+     * équipement neuf était présenté comme ayant une fiabilité annuelle
+     * mesurée. L'absence doit remonter jusqu'à l'affichage.
+     */
+    mtbfDays: number | undefined;
     daysSinceLastMaintenance: number;
-    completionRate: number;    // % of PM plans completed on time
+    /** % de préventifs réalisés, ou `undefined` si aucun plan n'existe. */
+    completionRate: number | undefined;
   };
   actions: string[];
   relatedWorkOrders: number[];
@@ -66,22 +74,42 @@ function frequencyToDays(freq: string, value?: number | null): number {
   }
 }
 
-function calcMTBF(workOrders: any[], equipmentId: number): number {
-  const failures = workOrders
-    .filter((wo: any) => wo.equipmentId === equipmentId && wo.orderType === "corrective" && wo.actualEnd)
-    .sort((a: any, b: any) => new Date(a.actualEnd).getTime() - new Date(b.actualEnd).getTime());
+/**
+ * MTBF de l'équipement, en JOURS — ou `undefined` s'il n'est pas calculable.
+ *
+ * ⚠️ Cette fonction rendait 365 quand l'équipement comptait moins de deux
+ * pannes. Un an inventé, qui descendait ensuite dans `calcFailureRisk` et dans
+ * les recommandations faites aux équipes. Un équipement neuf et un équipement
+ * dont la fiabilité est réellement annuelle y devenaient indiscernables.
+ *
+ * Elle mesurait en outre l'écart entre FINS de réparation consécutives, là où
+ * le MTBF se mesure entre DÉCLENCHEMENTS : l'écart incluait donc la réparation
+ * suivante. Les deux conventions vivent maintenant dans `shared/fiabilite.ts`.
+ *
+ * Les urgences comptent comme des pannes : les exclure flattait la fiabilité
+ * en écartant précisément les défaillances les plus graves.
+ */
+function calcMTBF(workOrders: any[], equipmentId: number): number | undefined {
+  const pannes = workOrders
+    .filter((wo: any) => wo.equipmentId === equipmentId
+      && (wo.orderType === "corrective" || wo.orderType === "emergency"))
+    .map((wo: any) => ({ debut: wo.actualStart, fin: wo.actualEnd }));
 
-  if (failures.length < 2) return 365; // default: 1 year
-  const gaps: number[] = [];
-  for (let i = 1; i < failures.length; i++) {
-    gaps.push(daysBetween(new Date(failures[i - 1].actualEnd), new Date(failures[i].actualEnd)));
-  }
-  return Math.round(gaps.reduce((s, v) => s + v, 0) / gaps.length);
+  return arrondir(enJours(mtbfHeures(pannes)), 0);
 }
 
-function calcCompletionRate(workOrders: any[], equipmentId: number): number {
-  const preventive = workOrders.filter((wo: any) => wo.equipmentId === equipmentId && wo.orderType === "preventive");
-  if (!preventive.length) return 100;
+/**
+ * Taux de réalisation du préventif, en pourcentage — ou `undefined`.
+ *
+ * ⚠️ Rendait 100 % lorsqu'aucun préventif n'existait : un équipement sans le
+ * moindre plan affichait un sans-faute, et la recommandation « taux de
+ * complétion insuffisant » ne pouvait jamais se déclencher pour lui. Le cas le
+ * plus préoccupant était ainsi le mieux noté.
+ */
+function calcCompletionRate(workOrders: any[], equipmentId: number): number | undefined {
+  const preventive = workOrders.filter((wo: any) =>
+    wo.equipmentId === equipmentId && wo.orderType === "preventive");
+  if (!preventive.length) return undefined;
   const completed = preventive.filter((wo: any) => wo.status === "completed").length;
   return Math.round((completed / preventive.length) * 100);
 }
@@ -89,7 +117,10 @@ function calcCompletionRate(workOrders: any[], equipmentId: number): number {
 function calcFailureRisk(
   daysSinceLast: number,
   intervalDays: number,
-  mtbf: number,
+  // `undefined` = fiabilité inconnue. Elle n'ajoute aucun risque, mais elle
+  // n'en retire pas non plus : un équipement sans historique n'est pas un
+  // équipement fiable, il est un équipement dont on ne sait rien.
+  mtbf: number | undefined,
   recentFailures: number,
   criticalityLevel: string
 ): number {
@@ -103,9 +134,11 @@ function calcFailureRisk(
   else if (overdueRatio > 0.8) risk += 5;
 
   // MTBF factor
-  if (mtbf < 30)  risk += 30;
-  else if (mtbf < 60) risk += 20;
-  else if (mtbf < 90) risk += 10;
+  if (mtbf !== undefined) {
+    if (mtbf < 30) risk += 30;
+    else if (mtbf < 60) risk += 20;
+    else if (mtbf < 90) risk += 10;
+  }
 
   // Recent failures
   risk += Math.min(recentFailures * 8, 20);
@@ -202,8 +235,9 @@ export async function generateRecommendations(tenantId: string): Promise<{
         if (isOverdue) reasoning.push(`En retard de ${Math.round(overdueBy)} jours selon le plan "${plan.planName}"`);
         else reasoning.push(`Échéance dans ${Math.abs(Math.round(overdueBy))} jours — planification recommandée`);
         if (recentFailures > 0) reasoning.push(`${recentFailures} panne(s) corrective(s) ces 90 derniers jours`);
-        if (mtbf < 60) reasoning.push(`MTBF bas (${mtbf} jours) — risque de défaillance élevé`);
-        if (completionRate < 70) reasoning.push(`Taux de complétion des MP : ${completionRate}% — amélioration nécessaire`);
+        if (mtbf !== undefined && mtbf < 60) reasoning.push(`MTBF bas (${mtbf} jours) — risque de défaillance élevé`);
+        if (mtbf === undefined) reasoning.push(`Fiabilité inconnue — moins de deux pannes datées sur cet équipement`);
+        if (completionRate !== undefined && completionRate < 70) reasoning.push(`Taux de réalisation du préventif : ${completionRate}% — amélioration nécessaire`);
 
         const suggestedDays = Math.max(0, -overdueBy);
         const suggestedDate = new Date(now.getTime() + suggestedDays * 86400000);

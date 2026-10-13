@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { eq, desc, and, or, gte, lte, isNull, sql, count } from "drizzle-orm";
+import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
   workOrders,
@@ -1737,10 +1738,27 @@ export class GMAOStorage {
       endDate: periodEnd
     });
 
-    // MTBF and MTTR calculations (simplified)
-    const mtbf = totalEquipment > 0 && correctiveWorkOrders > 0 ? 
-      (30 * 24 * totalEquipment) / correctiveWorkOrders : 0; // 30 days in hours per equipment
-    const mttr = correctiveWorkOrders > 0 ? averageCompletionTime : 0;
+    // ⚠️ Le calcul précédent tenait en une ligne et portait trois fautes :
+    //
+    //   (30 * 24 * totalEquipment) / correctiveWorkOrders
+    //
+    //   • il supposait une période de 30 jours alors que `periodStart` et
+    //     `periodEnd` délimitent un mois civil, qui en compte 28 à 31 ;
+    //   • il prenait le temps CALENDAIRE de tout le parc — équipements à
+    //     l'arrêt, en réforme ou jamais mis en service compris — pour du temps
+    //     de fonctionnement ;
+    //   • sans aucun correctif, il rendait 0. Un MTBF nul se lit « tombe en
+    //     panne en permanence », soit exactement l'inverse de la réalité.
+    //
+    // On emploie désormais la définition unique de `shared/fiabilite.ts` :
+    // moyenne des intervalles entre déclenchements de pannes, en heures, et
+    // `undefined` quand elle n'est pas calculable.
+    const evenementsPanne = workOrders
+      .filter(wo => wo.orderType === "corrective" || wo.orderType === "emergency")
+      .map(wo => ({ debut: wo.actualStart, fin: wo.actualEnd }));
+
+    const mtbf = arrondir(mtbfHeures(evenementsPanne), 1);
+    const mttr = arrondir(mttrHeures(evenementsPanne), 1);
     const plannedMaintenanceRatio = totalWorkOrders > 0 ? (preventiveWorkOrders / totalWorkOrders) * 100 : 0;
     const maintenanceEfficiency = completedWorkOrders > 0 ? (completedWorkOrders / totalWorkOrders) * 100 : 0;
 
@@ -1803,7 +1821,7 @@ export class GMAOStorage {
       equipmentAvailability,
       plannedMaintenanceRatio,
       maintenanceEfficiency,
-      mtbf: mtbf > 0 ? Math.min(mtbf / 100, 100) : 0 // Normalize MTBF
+      mtbf,
     });
 
     // Generate recommendations
@@ -1830,8 +1848,10 @@ export class GMAOStorage {
       preventiveWorkOrders,
       correctiveWorkOrders,
       averageCompletionTime: averageCompletionTime.toString(),
-      mtbf: mtbf.toString(),
-      mttr: mttr.toString(),
+      // `null` et non `"0"` : une grandeur non calculable n'est pas une
+      // grandeur nulle, et la distinction doit survivre à l'enregistrement.
+      mtbf: mtbf === undefined ? null : mtbf.toString(),
+      mttr: mttr === undefined ? null : mttr.toString(),
       plannedMaintenanceRatio: plannedMaintenanceRatio.toString(),
       maintenanceEfficiency: maintenanceEfficiency.toString(),
       totalMaintenanceCost: totalMaintenanceCost.toString(),
@@ -1847,7 +1867,9 @@ export class GMAOStorage {
       criticalAlerts,
       safetyIncidents: this.countSafetyIncidents(maintenanceReportsInPeriod),
       qualityIssues: this.countQualityIssues(maintenanceReportsInPeriod),
-      performanceScore: performanceScore.toString(),
+      // Une note non calculable reste absente plutôt que de valoir « 0 », qui
+      // se lirait comme la pire performance possible.
+      performanceScore: performanceScore === undefined ? null : performanceScore.toString(),
       improvementAreas: this.identifyImprovementAreas(performanceScore, plannedMaintenanceRatio, equipmentAvailability),
       recommendations,
       statisticsData,
@@ -1945,21 +1967,56 @@ export class GMAOStorage {
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   }
 
-  private calculatePerformanceScore(metrics: any): number {
-    const weights = {
-      equipmentAvailability: 0.3,
-      plannedMaintenanceRatio: 0.25,
-      maintenanceEfficiency: 0.25,
-      mtbf: 0.2
-    };
-    
-    return Math.round(
-      (metrics.equipmentAvailability * weights.equipmentAvailability) +
-      (metrics.plannedMaintenanceRatio * weights.plannedMaintenanceRatio) +
-      (metrics.maintenanceEfficiency * weights.maintenanceEfficiency) +
-      (metrics.mtbf * weights.mtbf)
-    );
+  /**
+   * Note globale de performance, de 0 à 100 — ou `undefined`.
+   *
+   * ⚠️ DEUX FAUTES corrigées ici, le 2026-10-13.
+   *
+   * 1. Le MTBF entrait dans la note après un `Math.min(mtbf / 100, 100)`
+   *    présenté comme une « normalisation ». Diviser une DURÉE par 100 pour en
+   *    faire un pourcentage n'a aucun sens : 10 000 h donnait 100, 50 h donnait
+   *    0,5. Le choix de 100 ne reposait sur rien. L'échelle est désormais
+   *    explicite : on sature à un horizon de référence, énoncé et modifiable.
+   *
+   * 2. Un MTBF inconnu valait 0 et retirait jusqu'à 20 points sur 100. Un site
+   *    neuf, ou un site SANS AUCUNE PANNE, était donc noté comme le plus
+   *    mauvais possible sur ce critère. Un indicateur ne doit jamais punir
+   *    l'absence de défaillance. Les composantes absentes sont maintenant
+   *    exclues, et les poids restants renormalisés.
+   */
+  private calculatePerformanceScore(metrics: {
+    equipmentAvailability?: number;
+    plannedMaintenanceRatio?: number;
+    maintenanceEfficiency?: number;
+    /** MTBF en HEURES, ou `undefined` s'il n'est pas calculable. */
+    mtbf?: number;
+  }): number | undefined {
+    // Horizon de référence : un MTBF de 90 jours vaut la note maximale sur ce
+    // critère. Valeur conventionnelle, posée ici pour être discutée plutôt que
+    // dissimulée dans une division.
+    const MTBF_REFERENCE_HEURES = 90 * 24;
+
+    const composantes: Array<{ valeur: number | undefined; poids: number }> = [
+      { valeur: metrics.equipmentAvailability, poids: 0.3 },
+      { valeur: metrics.plannedMaintenanceRatio, poids: 0.25 },
+      { valeur: metrics.maintenanceEfficiency, poids: 0.25 },
+      {
+        valeur: metrics.mtbf === undefined
+          ? undefined
+          : Math.min((metrics.mtbf / MTBF_REFERENCE_HEURES) * 100, 100),
+        poids: 0.2,
+      },
+    ];
+
+    const retenues = composantes.filter(
+      (c) => typeof c.valeur === 'number' && Number.isFinite(c.valeur));
+    if (!retenues.length) return undefined;
+
+    const poidsTotal = retenues.reduce((s, c) => s + c.poids, 0);
+    const somme = retenues.reduce((s, c) => s + (c.valeur as number) * c.poids, 0);
+    return Math.round(somme / poidsTotal);
   }
+
 
   private generateRecommendations(metrics: any): string[] {
     const recommendations = [];
@@ -1983,10 +2040,15 @@ export class GMAOStorage {
     return recommendations;
   }
 
-  private identifyImprovementAreas(score: number, plannedRatio: number, availability: number): string[] {
+  /**
+   * ⚠️ `score < 70` était vrai pour une note ABSENTE une fois passée par
+   * `undefined` : la plateforme recommandait d'améliorer une performance
+   * qu'elle n'avait pas mesurée. Une absence n'est pas un mauvais résultat.
+   */
+  private identifyImprovementAreas(score: number | undefined, plannedRatio: number, availability: number): string[] {
     const areas = [];
-    
-    if (score < 70) areas.push("Performance globale");
+
+    if (score !== undefined && score < 70) areas.push("Performance globale");
     if (plannedRatio < 60) areas.push("Maintenance préventive");
     if (availability < 80) areas.push("Disponibilité équipements");
     
