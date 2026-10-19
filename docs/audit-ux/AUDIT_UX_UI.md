@@ -277,10 +277,14 @@ de 399 à 131 lignes.
 P1-6, P1-7, P1-8 (diagnostic), P1-9, P1-10, P1-11 (diagnostic), P1-12, P2-1, P2-2 (GMAO),
 P2-8, P2-9, P2-10, P2-12.
 
-**Restent ouvertes, pour l'étape D** : P0-1 sur les 24 autres écrans sans navigation, P1-3
-(95 fragments de dégradé orphelins sur 20 pages), P1-4 (thème sombre), P1-5 (contrastes
-résiduels sur `/predictive-insights`, `/modules-overview`, `/oee`, `/localhost-diagnostic`,
-`/sensor-hub`), P1-13 (PDF, traité ailleurs), P2-3 à P2-7, P2-11, P2-13 à P2-15.
+**Restaient ouvertes à la fin de l'étape B**, et traitées depuis : P0-1 sur les autres
+écrans sans navigation (étape D, §5.4), P1-3 (95 fragments de dégradé orphelins, §5.4),
+P1-4 (thème sombre — **retiré**, §5.5), P1-5 (contrastes résiduels, §5.4), P2-3 à P2-10.
+
+**Restent ouvertes à ce jour** : P1-13 (téléchargements PDF, traité par une autre
+session), P2-6 (bundle en un seul morceau), P2-11 (ordres de travail en cartes plutôt
+qu'en tableau triable — arbitrage laissé à l'utilisateur), P2-14 (accroche commerciale du
+pied de page), et le retrait des pages de développement de la table de routage.
 
 ### 5.2 Résultats des tests
 
