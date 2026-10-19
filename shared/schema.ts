@@ -1397,8 +1397,25 @@ export type InsertReorderRule = z.infer<typeof insertReorderRuleSchema>;
 // ============= MAINTENANCE REPORTS TABLES =============
 
 // Maintenance Reports table - Generated after each intervention
+//
+// ⚠️ `tenantId` manquait ici, alors que la quasi-totalité des autres tables le
+// portent. La table n'était rattachée qu'à `equipmentId` — colonne NULLABLE —
+// si bien qu'aucun filtrage par locataire n'était exprimable :
+// `getMaintenanceReports()` lisait les rapports de TOUS les locataires de
+// l'instance, et les coûts du rapport mensuel les additionnaient.
+//
+// Le rattachement est direct plutôt que dérivé de l'équipement, pour deux
+// raisons :
+//   • `equipment_id` est NULLABLE (un ordre de travail peut n'être rattaché à
+//     aucun équipement) ; une jointure laisserait ces rapports hors de toute
+//     portée — ni lisibles par leur propriétaire, ni filtrables ;
+//   • le locataire est déjà connu au seul point d'insertion
+//     (`generateMaintenanceReport(workOrderId, tenantId, …)`) : il n'y a rien
+//     à deviner, et une colonne posée APRÈS le corps fourni par le client ne
+//     peut pas être usurpée par celui-ci.
 export const maintenanceReports = pgTable("maintenance_reports", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
   workOrderId: integer("work_order_id").references(() => workOrders.id),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
@@ -1432,8 +1449,17 @@ export const maintenanceReports = pgTable("maintenance_reports", {
 });
 
 // Monthly Reports table - Generated monthly with KPIs and statistics
+//
+// ⚠️ Même défaut, une marche plus loin : `generateMonthlyReport` reçoit bien
+// un `tenantId` et s'en sert pour le parc, les ordres de travail et les
+// alertes, mais la ligne produite ne le conservait pas. Les agrégats d'un
+// locataire — dont `totalMaintenanceCost`, `laborCost`, `partsCost` et
+// `costPerWorkOrder` — étaient donc rendus à tout le monde par
+// `GET /api/monthly-reports`. Corriger le seul calcul aurait produit des
+// chiffres justes, toujours lisibles par les autres.
 export const monthlyReports = pgTable("monthly_reports", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
   month: integer("month").notNull(), // 1-12
   year: integer("year").notNull(),

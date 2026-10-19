@@ -211,15 +211,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID de rapport invalide" });
       }
 
+      // Le locataire est exigé AVANT la lecture, et non après : l'ordre
+      // précédent lisait le rapport d'autrui puis refusait la requête — la
+      // donnée était déjà sortie de la base, et seul le hasard de l'ordre des
+      // instructions l'empêchait d'atteindre la réponse.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMaintenanceReportById(reportId);
+      const report = await gmaoStorage.getMaintenanceReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport de maintenance introuvable" });
       }
 
       // Enrich with work order + equipment data
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
       const [workOrder, equipment] = await Promise.all([
         report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
         report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
@@ -263,15 +268,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ⚠️ Cette route n'exigeait RIEN : ni session, ni locataire. Enregistrée
+  // avant les middlewares d'authentification et hors du préfixe /api, elle
+  // servait à tout appelant anonyme le rapport mensuel n° N — donc les coûts de
+  // maintenance agrégés du locataire à qui il appartient — à qui en devinait le
+  // numéro, un entier séquentiel. C'était la seule des fuites recensées à être
+  // exploitable sans aucun compte.
+  //
+  // ⚠️ CONSÉQUENCE ASSUMÉE : rien ne pose `req.tenantId` en dehors de /api (le
+  // middleware tenant est monté sur ce seul préfixe, voir
+  // server/tenant-integration.ts). Exiger le locataire rend donc cette route
+  // inaccessible — 401 — exactement comme l'est déjà sa jumelle
+  // /pdf/maintenance-reports/:id, qui appelle `tenantRequis` depuis plus
+  // longtemps. Le bouton de téléchargement du client s'en trouve inopérant,
+  // mais un 401 lisible vaut mieux qu'un PDF des dépenses d'autrui servi à un
+  // inconnu. Rétablir ces deux téléchargements demande de résoudre la session
+  // sur /pdf aussi : c'est un autre chantier, pas un cloisonnement.
   app.get("/pdf/monthly-reports/:id", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "ID de rapport invalide" });
       }
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
       const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMonthlyReportById(reportId);
+      const report = await gmaoStorage.getMonthlyReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport mensuel introuvable" });
       }

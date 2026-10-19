@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { db } from "./db";
 import { equipmentRegistry, workOrders, spareParts, iotSensorData, preventiveMaintenancePlans } from "@shared/schema";
-import { eq, gte } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
 import * as XLSX from "xlsx";
 import { z } from "zod";
@@ -820,8 +820,18 @@ export class DataImportExportService {
   }
 
   // Export des équipements
-  async exportEquipments(format: 'csv' | 'excel'): Promise<Buffer> {
-    const equipments = await db.select().from(equipmentRegistry).orderBy(equipmentRegistry.equipmentName);
+  //
+  // ⚠️ Les quatre exports de ce service lisaient leur table SANS condition de
+  // locataire : le fichier téléchargé contenait le parc, les stocks, les ordres
+  // de travail (avec leur coût) et les relevés de capteurs de TOUTE l'instance.
+  // Un export est une sortie de données comme une autre, et celle-ci était la
+  // plus volumineuse. `tenantId` est obligatoire sur chacun, pour la même
+  // raison que sur getMaintenanceReports : un paramètre facultatif se fait
+  // oublier.
+  async exportEquipments(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
+    const equipments = await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.tenantId, tenantId))
+      .orderBy(equipmentRegistry.equipmentName);
     
     const data = equipments.map(eq => ({
       'ID Équipement': eq.equipmentId,
@@ -854,7 +864,7 @@ export class DataImportExportService {
   }
 
   // Export de l'historique de maintenance
-  async exportMaintenanceHistory(format: 'csv' | 'excel'): Promise<Buffer> {
+  async exportMaintenanceHistory(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
     const maintenanceHistory = await db.select({
       orderNumber: workOrders.orderNumber,
       equipmentId: equipmentRegistry.equipmentId,
@@ -874,6 +884,10 @@ export class DataImportExportService {
     })
     .from(workOrders)
     .leftJoin(equipmentRegistry, eq(workOrders.equipmentId, equipmentRegistry.id))
+    // Le filtre porte sur work_orders, et non sur l'équipement joint : la
+    // jointure est un LEFT JOIN, et un ordre de travail sans équipement doit
+    // rester visible à son propriétaire.
+    .where(eq(workOrders.tenantId, tenantId))
     .orderBy(workOrders.createdAt);
 
     const data = maintenanceHistory.map(mh => ({
@@ -910,8 +924,10 @@ export class DataImportExportService {
   }
 
   // Export des pièces détachées
-  async exportSpareParts(format: 'csv' | 'excel'): Promise<Buffer> {
-    const parts = await db.select().from(spareParts).orderBy(spareParts.partName);
+  async exportSpareParts(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
+    const parts = await db.select().from(spareParts)
+      .where(eq(spareParts.tenantId, tenantId))
+      .orderBy(spareParts.partName);
     
     const data = parts.map(part => ({
       'Numéro Pièce': part.partNumber,
@@ -944,7 +960,15 @@ export class DataImportExportService {
   }
 
   // Export des données IoT
-  async exportIoTData(format: 'csv' | 'excel', days: number = 30): Promise<Buffer> {
+  //
+  // ⚠️ Cas particulier : `iot_sensor_data` ne porte PAS de tenant_id (elle fait
+  // partie des tables rattachées au seul equipment_registry.id). Le
+  // cloisonnement passe donc par une jointure INTERNE sur l'équipement, et non
+  // par une colonne propre. C'est un pis-aller assumé, pas le modèle retenu
+  // ailleurs dans ce correctif : il laisse hors export les relevés sans
+  // équipement, qui ne sont de toute façon attribuables à personne. Doter
+  // iot_sensor_data de sa propre colonne reste à faire.
+  async exportIoTData(format: 'csv' | 'excel', tenantId: string, days: number = 30): Promise<Buffer> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -960,8 +984,13 @@ export class DataImportExportService {
       alarmState: iotSensorData.alarmState,
     })
     .from(iotSensorData)
-    .leftJoin(equipmentRegistry, eq(iotSensorData.equipmentId, equipmentRegistry.id))
-    .where(gte(iotSensorData.timestamp, cutoffDate))
+    // INNER JOIN, et non LEFT : sans équipement rattaché, un relevé n'a pas de
+    // locataire connu — l'inclure reviendrait à le montrer à tout le monde.
+    .innerJoin(equipmentRegistry, eq(iotSensorData.equipmentId, equipmentRegistry.id))
+    .where(and(
+      eq(equipmentRegistry.tenantId, tenantId),
+      gte(iotSensorData.timestamp, cutoffDate),
+    ))
     .orderBy(iotSensorData.timestamp);
 
     const data = iotData.map(iot => ({
