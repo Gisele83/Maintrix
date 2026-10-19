@@ -1,0 +1,21 @@
+{
+  // Le tsconfig principal n'inclut que client/, shared/ et server/. Les trois
+  // scripts TypeScript de scripts/ n'étaient donc vérifiés par rien : une
+  // colonne renommée dans shared/schema.ts ne s'y voyait qu'à l'exécution,
+  // c'est-à-dire au pire moment, sur une base réelle et à moitié écrite.
+  //
+  // Même découpage que tsconfig.tests.json — un tsconfig par zone.
+  //   npm run check:scripts
+  "extends": "./tsconfig.json",
+  // `client/src/**/*` est présent pour la même raison que dans
+  // tsconfig.tests.json : shared/schema.ts référence le namespace `React`, qui
+  // n'est chargé que si le client fait partie du programme. Sans lui :
+  // « Cannot find namespace 'React' ».
+  "include": ["scripts/**/*.ts", "shared/**/*", "server/**/*", "client/src/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "compilerOptions": {
+    // Build info distinct : partager celui du tsconfig principal ferait sauter
+    // l'analyse de l'un ou de l'autre selon l'ordre d'exécution.
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo.scripts"
+  }
+}
