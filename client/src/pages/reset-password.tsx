@@ -190,7 +190,7 @@ export default function ResetPassword() {
             <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center">
               <AlertTriangle className="h-8 w-8 text-ink" />
             </div>
-            <CardTitle className="text-2xl font-bold text-red-600">
+            <CardTitle className="text-2xl font-bold text-etat-critique-texte">
               Lien invalide ou expiré
             </CardTitle>
             <CardDescription>
@@ -199,16 +199,16 @@ export default function ResetPassword() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
+            <Alert className="border-etat-critique-filet bg-etat-critique-fond">
+              <AlertTriangle className="h-4 w-4 text-etat-critique-texte" />
+              <AlertDescription className="text-etat-critique-texte">
                 {tokenVerification?.error || "Le lien de réinitialisation a expiré ou est invalide"}
               </AlertDescription>
             </Alert>
 
             <div className="space-y-3">
               <Link href="/forgot-password">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                <Button className="w-full bg-etat-encours-vif hover:bg-etat-encours-vif">
                   Demander un nouveau lien
                 </Button>
               </Link>
@@ -244,16 +244,16 @@ export default function ResetPassword() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-etat-nominal-filet bg-etat-nominal-fond">
+              <CheckCircle className="h-4 w-4 text-etat-nominal-texte" />
+              <AlertDescription className="text-etat-nominal-texte">
                 <strong>Succès !</strong> Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
               </AlertDescription>
             </Alert>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Pour votre sécurité :</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
+            <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-4">
+              <h3 className="font-semibold text-etat-encours-texte mb-2">Pour votre sécurité :</h3>
+              <ul className="text-sm text-etat-encours-texte space-y-1">
                 <li>• Votre ancien mot de passe n'est plus valide</li>
                 <li>• Utilisez votre nouveau mot de passe pour vous connecter</li>
                 <li>• Gardez votre mot de passe confidentiel</li>
@@ -294,15 +294,15 @@ export default function ResetPassword() {
 
         <CardContent className="space-y-6">
           {/* Informations utilisateur et expiration */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">Informations du compte</h3>
-            <div className="space-y-1 text-sm text-blue-800">
+          <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-4">
+            <h3 className="font-semibold text-etat-encours-texte mb-2">Informations du compte</h3>
+            <div className="space-y-1 text-sm text-etat-encours-texte">
               <p><strong>Email :</strong> {tokenVerification.user?.email}</p>
               <p><strong>Nom d'utilisateur :</strong> {tokenVerification.user?.username}</p>
               {timeRemaining > 0 ? (
                 <p><strong>⏰ Temps restant :</strong> {timeRemaining} minute{timeRemaining > 1 ? 's' : ''}</p>
               ) : (
-                <p className="text-red-600"><strong>Ce lien va bientôt expirer</strong></p>
+                <p className="text-etat-critique-texte"><strong>Ce lien va bientôt expirer</strong></p>
               )}
             </div>
           </div>
@@ -328,7 +328,7 @@ export default function ResetPassword() {
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink-mute hover:text-ink-soft"
                         >
                           {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -341,11 +341,11 @@ export default function ResetPassword() {
                         {passwordRequirements.map((req, index) => (
                           <div key={index} className="flex items-center space-x-2 text-sm">
                             {req.isValid ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-etat-nominal-texte" />
                             ) : (
-                              <div className="h-4 w-4 border-2 border-gray-300 rounded-full"></div>
+                              <div className="h-4 w-4 border-2 border-rule rounded-full"></div>
                             )}
-                            <span className={req.isValid ? "text-green-700" : "text-gray-600"}>
+                            <span className={req.isValid ? "text-etat-nominal-texte" : "text-ink-soft"}>
                               {req.message}
                             </span>
                           </div>
@@ -377,7 +377,7 @@ export default function ResetPassword() {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink-mute hover:text-ink-soft"
                         >
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -389,9 +389,9 @@ export default function ResetPassword() {
               />
 
               {/* Conseils de sécurité */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-900 mb-2">Conseils de sécurité</h4>
-                <ul className="text-sm text-green-800 space-y-1">
+              <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-4">
+                <h4 className="font-semibold text-etat-nominal-texte mb-2">Conseils de sécurité</h4>
+                <ul className="text-sm text-etat-nominal-texte space-y-1">
                   <li>• Utilisez un mot de passe unique que vous n'utilisez nulle part ailleurs</li>
                   <li>• Combinez lettres majuscules, minuscules, chiffres et symboles</li>
                   <li>• Évitez les informations personnelles (nom, date de naissance, etc.)</li>

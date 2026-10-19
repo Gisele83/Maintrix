@@ -115,7 +115,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
 
           <CardContent className="p-6">
             {/* Safety Warning */}
-            <div className="bg-red-50 border border-etat-critique-filet rounded-lg p-4 mb-6">
+            <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-lg p-4 mb-6">
               <div className="flex items-start space-x-3">
                 <AlertTriangle className="text-etat-critique-texte text-xl flex-shrink-0 mt-1" />
                 <div>
@@ -141,10 +141,10 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
                     key={procedure.id}
                     className={`flex items-start space-x-4 p-4 rounded-lg border ${
                       isCompleted
-                        ? "bg-green-50 border-etat-nominal-filet"
+                        ? "bg-etat-nominal-fond border-etat-nominal-filet"
                         : isCurrent
-                        ? "bg-blue-50 border-2 border-signal"
-                        : "bg-gray-50 border-rule opacity-60"
+                        ? "bg-etat-encours-fond border-2 border-signal"
+                        : "bg-paper border-rule opacity-60"
                     }`}
                   >
                     <div
@@ -281,7 +281,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
         </Card>
 
         {/* Contact Support */}
-        <Card className="bg-orange-50 border border-etat-alerte-filet shadow-sm">
+        <Card className="bg-etat-alerte-fond border border-etat-alerte-filet shadow-sm">
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold text-ink mb-3 flex items-center space-x-2">
               <Phone className="text-etat-alerte-texte" />
@@ -295,7 +295,7 @@ export function RepairGuidance({ caseId }: RepairGuidanceProps) {
               </Button>
               <Button
                 variant="outline"
-                className="w-full border-etat-alerte-filet text-etat-alerte-texte hover:bg-orange-50 transition-colors duration-200 text-sm"
+                className="w-full border-etat-alerte-filet text-etat-alerte-texte hover:bg-etat-alerte-fond transition-colors duration-200 text-sm"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 {t("chatSupport", language)}

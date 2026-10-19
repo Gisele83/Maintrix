@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { BookOpen, Search, Plus, Sparkles, FileText, Loader2 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface KnowledgeHubDocument {
@@ -79,17 +82,18 @@ export default function KnowledgeHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Ressources" }, { libelle: "Documentation technique" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+              <BookOpen className="w-6 h-6 text-etat-encours-texte" />
               Engineering Knowledge Hub
             </h1>
-            <p className="text-gray-500">Schémas, plans, notices, bulletins techniques, normes IEC/ISO, procédures SAEM, REX.</p>
+            <p className="text-ink-mute">Schémas, plans, notices, bulletins techniques, normes IEC/ISO, procédures SAEM, REX.</p>
           </div>
-          <Badge variant="outline" className={status?.semanticSearchAvailable ? "text-green-700 border-green-300" : "text-gray-500 border-gray-300"}>
+          <Badge variant="outline" className={status?.semanticSearchAvailable ? "text-etat-nominal-texte border-etat-nominal-filet" : "text-ink-mute border-rule"}>
             <Sparkles className="w-3 h-3 mr-1" />
             {status?.semanticSearchAvailable ? "Recherche sémantique active" : "Recherche par mots-clés (pas de clé OpenAI configurée)"}
           </Badge>
@@ -119,10 +123,10 @@ export default function KnowledgeHubPage() {
                         <Badge variant="outline" className="text-xs">{DOC_TYPE_LABELS[r.document.documentType]}</Badge>
                         <span className="font-medium text-sm">{r.document.title}</span>
                       </div>
-                      {r.document.description && <p className="text-xs text-gray-500 mt-1">{r.document.description}</p>}
+                      {r.document.description && <p className="text-xs text-ink-mute mt-1">{r.document.description}</p>}
                     </div>
                     <div className="text-right">
-                      <Badge className={r.matchType === "semantic" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}>
+                      <Badge className={r.matchType === "semantic" ? "bg-etat-encours-fond text-etat-encours-texte" : "bg-paper-deep text-ink-soft"}>
                         {r.matchType === "semantic" ? "sémantique" : "mot-clé"}
                       </Badge>
                       <p className="text-xs text-ink-mute mt-1">score {r.score}</p>
@@ -136,7 +140,7 @@ export default function KnowledgeHubPage() {
 
         {/* Bibliothèque */}
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">Bibliothèque documentaire</h2>
+          <h2 className="text-lg font-semibold text-ink">Bibliothèque documentaire</h2>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="w-4 h-4 mr-1" />Ajouter un document</Button></DialogTrigger>
             <DialogContent>
@@ -174,9 +178,9 @@ export default function KnowledgeHubPage() {
                 <CardTitle className="text-sm">{doc.title}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {doc.description && <p className="text-xs text-gray-500 line-clamp-2">{doc.description}</p>}
+                {doc.description && <p className="text-xs text-ink-mute line-clamp-2">{doc.description}</p>}
                 {doc.fileUrl && (
-                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 flex items-center gap-1">
+                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-etat-encours-texte flex items-center gap-1">
                     <FileText className="w-3 h-3" />Voir le fichier
                   </a>
                 )}
@@ -192,5 +196,6 @@ export default function KnowledgeHubPage() {
         </div>
       </div>
     </div>
+    </AppShell>
   );
 }

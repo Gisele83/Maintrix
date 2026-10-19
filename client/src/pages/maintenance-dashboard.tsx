@@ -178,10 +178,10 @@ export default function MaintenanceDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "operational": return "bg-green-500";
-      case "maintenance": return "bg-yellow-500";
+      case "operational": return "bg-etat-nominal-vif";
+      case "maintenance": return "bg-etat-alerte-vif";
       case "down": return "bg-gray-500";
-      case "critical": return "bg-red-500";
+      case "critical": return "bg-etat-critique-vif";
       default: return "bg-gray-400";
     }
   };
@@ -198,8 +198,8 @@ export default function MaintenanceDashboard() {
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case "up": return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case "down": return <TrendingDown className="h-4 w-4 text-red-600" />;
+      case "up": return <TrendingUp className="h-4 w-4 text-etat-nominal-texte" />;
+      case "down": return <TrendingDown className="h-4 w-4 text-etat-critique-texte" />;
       default: return <div className="h-4 w-4" />;
     }
   };
@@ -494,13 +494,13 @@ export default function MaintenanceDashboard() {
       <div className="container mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="relative">
-          <div className="absolute inset-0 bg-paper-deep rounded-3xl blur-3xl"></div>
-          <Card className="relative bg-white dark:bg-paper-deep border-0 rounded-3xl">
+          <div className="absolute inset-0 bg-paper-deep rounded-none blur-3xl"></div>
+          <Card className="relative bg-white dark:bg-paper-deep border-0 rounded-none">
             <CardHeader className="text-center py-12">
               <div className="flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-paper-deep rounded-2xl blur-lg opacity-50"></div>
-                  <div className="relative bg-paper-deep p-4 rounded-2xl">
+                  <div className="absolute inset-0 bg-paper-deep rounded-none blur-lg opacity-50"></div>
+                  <div className="relative bg-paper-deep p-4 rounded-none">
                     <Activity className="h-12 w-12 text-ink" />
                   </div>
                 </div>
@@ -508,7 +508,7 @@ export default function MaintenanceDashboard() {
               <CardTitle className="text-4xl font-bold text-ink mb-4">
                 Tableau de Bord Maintenance
               </CardTitle>
-              <p className="text-xl text-gray-600 dark:text-ink-soft max-w-2xl mx-auto">
+              <p className="text-xl text-ink-soft dark:text-ink-soft max-w-2xl mx-auto">
                 Vue d'ensemble complète des activités de maintenance avec KPIs en temps réel
               </p>
               
@@ -524,7 +524,7 @@ export default function MaintenanceDashboard() {
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-white dark:border-rule"
+                  className="px-4 py-2 border border-rule rounded-lg bg-white dark:bg-white dark:border-rule"
                 >
                   <option value="week">Cette semaine</option>
                   <option value="month">Ce mois</option>
@@ -538,73 +538,73 @@ export default function MaintenanceDashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">OEE Global</p>
-                  <p className="text-3xl font-bold text-blue-600">{metrics.oee}%</p>
-                  <p className="text-sm text-green-600 flex items-center">
+                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">OEE Global</p>
+                  <p className="text-3xl font-bold text-etat-encours-texte">{metrics.oee}%</p>
+                  <p className="text-sm text-etat-nominal-texte flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +2.3% ce mois
                   </p>
                 </div>
-                <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
-                  <Gauge className="h-8 w-8 text-blue-600" />
+                <div className="bg-etat-encours-fond dark:bg-etat-encours-fond p-3 rounded-none">
+                  <Gauge className="h-8 w-8 text-etat-encours-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">MTBF Moyen</p>
-                  <p className="text-3xl font-bold text-green-600">{metrics.mtbf}h</p>
-                  <p className="text-sm text-green-600 flex items-center">
+                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">MTBF Moyen</p>
+                  <p className="text-3xl font-bold text-etat-nominal-texte">{metrics.mtbf}h</p>
+                  <p className="text-sm text-etat-nominal-texte flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +45h ce mois
                   </p>
                 </div>
-                <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
-                  <Clock className="h-8 w-8 text-green-600" />
+                <div className="bg-etat-nominal-fond dark:bg-etat-nominal-fond p-3 rounded-none">
+                  <Clock className="h-8 w-8 text-etat-nominal-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">MTTR Moyen</p>
-                  <p className="text-3xl font-bold text-orange-600">{metrics.mttr}h</p>
-                  <p className="text-sm text-green-600 flex items-center">
+                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">MTTR Moyen</p>
+                  <p className="text-3xl font-bold text-etat-alerte-texte">{metrics.mttr}h</p>
+                  <p className="text-sm text-etat-nominal-texte flex items-center">
                     <TrendingDown className="h-3 w-3 mr-1" />
                     -0.8h ce mois
                   </p>
                 </div>
-                <div className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
-                  <Wrench className="h-8 w-8 text-orange-600" />
+                <div className="bg-etat-alerte-fond dark:bg-etat-alerte-fond p-3 rounded-none">
+                  <Wrench className="h-8 w-8 text-etat-alerte-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">Disponibilité</p>
-                  <p className="text-3xl font-bold text-blue-600">{metrics.availability}%</p>
-                  <p className="text-sm text-green-600 flex items-center">
+                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">Disponibilité</p>
+                  <p className="text-3xl font-bold text-etat-encours-texte">{metrics.availability}%</p>
+                  <p className="text-sm text-etat-nominal-texte flex items-center">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     +1.2% ce mois
                   </p>
                 </div>
-                <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-blue-600" />
+                <div className="bg-etat-encours-fond dark:bg-etat-encours-fond p-3 rounded-none">
+                  <CheckCircle className="h-8 w-8 text-etat-encours-texte" />
                 </div>
               </div>
             </CardContent>
@@ -612,7 +612,7 @@ export default function MaintenanceDashboard() {
         </div>
 
         {/* Main Dashboard Content */}
-        <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
+        <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
           <CardContent className="p-6">
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
@@ -625,7 +625,7 @@ export default function MaintenanceDashboard() {
               <TabsContent value="overview" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Work Orders Overview */}
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Wrench className="h-5 w-5" />
@@ -634,13 +634,13 @@ export default function MaintenanceDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <p className="text-2xl font-bold text-blue-600">{metrics.completedWorkOrders}</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">Terminés</p>
+                        <div className="text-center p-4 bg-etat-encours-fond dark:bg-etat-encours-fond rounded-lg">
+                          <p className="text-2xl font-bold text-etat-encours-texte">{metrics.completedWorkOrders}</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">Terminés</p>
                         </div>
-                        <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                          <p className="text-2xl font-bold text-yellow-600">{metrics.pendingWorkOrders}</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">En cours</p>
+                        <div className="text-center p-4 bg-etat-alerte-fond dark:bg-etat-alerte-fond rounded-lg">
+                          <p className="text-2xl font-bold text-etat-alerte-texte">{metrics.pendingWorkOrders}</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">En cours</p>
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -651,16 +651,16 @@ export default function MaintenanceDashboard() {
                         <Progress value={(metrics.completedWorkOrders / metrics.totalWorkOrders) * 100} className="h-2" />
                       </div>
                       {metrics.overdueWorkOrders > 0 && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <span className="text-sm text-red-600">{metrics.overdueWorkOrders} ordres en retard</span>
+                        <div className="flex items-center gap-2 p-3 bg-etat-critique-fond dark:bg-etat-critique-fond rounded-lg">
+                          <AlertTriangle className="h-4 w-4 text-etat-critique-texte" />
+                          <span className="text-sm text-etat-critique-texte">{metrics.overdueWorkOrders} ordres en retard</span>
                         </div>
                       )}
                     </CardContent>
                   </Card>
 
                   {/* Alerts & Health */}
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Zap className="h-5 w-5" />
@@ -669,19 +669,19 @@ export default function MaintenanceDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                          <p className="text-2xl font-bold text-red-600">{metrics.criticalAlerts}</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">Critiques</p>
+                        <div className="text-center p-4 bg-etat-critique-fond dark:bg-etat-critique-fond rounded-lg">
+                          <p className="text-2xl font-bold text-etat-critique-texte">{metrics.criticalAlerts}</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">Critiques</p>
                         </div>
-                        <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                          <p className="text-2xl font-bold text-orange-600">{metrics.activeAlerts}</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">Actives</p>
+                        <div className="text-center p-4 bg-etat-alerte-fond dark:bg-etat-alerte-fond rounded-lg">
+                          <p className="text-2xl font-bold text-etat-alerte-texte">{metrics.activeAlerts}</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">Actives</p>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">Santé globale des équipements</span>
-                          <span className="text-sm font-semibold text-green-600">{metrics.equipmentHealth}%</span>
+                          <span className="text-sm font-semibold text-etat-nominal-texte">{metrics.equipmentHealth}%</span>
                         </div>
                         <Progress value={metrics.equipmentHealth} className="h-2" />
                       </div>
@@ -697,7 +697,7 @@ export default function MaintenanceDashboard() {
                 </div>
 
                 {/* Work Order Trends */}
-                <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5" />
@@ -711,15 +711,15 @@ export default function MaintenanceDashboard() {
                           <div className="w-12 text-sm font-medium">{trend.month}</div>
                           <div className="flex-1 space-y-2">
                             <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <div className="w-2 h-2 bg-etat-nominal-vif rounded-full"></div>
                               <span className="text-sm">Planifiés: {trend.planned}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <div className="w-2 h-2 bg-etat-encours-vif rounded-full"></div>
                               <span className="text-sm">Terminés: {trend.completed}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              <div className="w-2 h-2 bg-etat-critique-vif rounded-full"></div>
                               <span className="text-sm">Urgences: {trend.emergency}</span>
                             </div>
                           </div>
@@ -735,37 +735,37 @@ export default function MaintenanceDashboard() {
                   {equipmentStatus.map((equipment) => {
                     const statusConfig = getStatusBadge(equipment.status);
                     return (
-                      <Card key={equipment.id} className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                      <Card key={equipment.id} className="bg-white dark:bg-white border border-rule dark:border-rule">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-4">
                               <div className={`w-4 h-4 rounded-full ${getStatusColor(equipment.status)}`}></div>
                               <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-ink">{equipment.name}</h3>
+                                <h3 className="font-semibold text-ink dark:text-ink">{equipment.name}</h3>
                                 <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-2xl font-bold text-blue-600">{equipment.healthScore}%</span>
-                              <span className="text-sm text-gray-500">Santé</span>
+                              <span className="text-2xl font-bold text-etat-encours-texte">{equipment.healthScore}%</span>
+                              <span className="text-sm text-ink-mute">Santé</span>
                             </div>
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-ink-mute">MTBF</p>
+                              <p className="text-sm text-ink-soft dark:text-ink-mute">MTBF</p>
                               <p className="font-semibold">{equipment.mtbf}h</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-ink-mute">Utilisation</p>
+                              <p className="text-sm text-ink-soft dark:text-ink-mute">Utilisation</p>
                               <p className="font-semibold">{equipment.utilization}%</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-ink-mute">Dernière maintenance</p>
+                              <p className="text-sm text-ink-soft dark:text-ink-mute">Dernière maintenance</p>
                               <p className="font-semibold">{new Date(equipment.lastMaintenance).toLocaleDateString('fr-FR')}</p>
                             </div>
                             <div>
-                              <p className="text-sm text-gray-600 dark:text-ink-mute">Prochaine maintenance</p>
+                              <p className="text-sm text-ink-soft dark:text-ink-mute">Prochaine maintenance</p>
                               <p className="font-semibold">{new Date(equipment.nextMaintenance).toLocaleDateString('fr-FR')}</p>
                             </div>
                           </div>
@@ -778,7 +778,7 @@ export default function MaintenanceDashboard() {
 
               <TabsContent value="analytics" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle>Maintenance Préventive vs Corrective</CardTitle>
                     </CardHeader>
@@ -798,18 +798,18 @@ export default function MaintenanceDashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle>Fiabilité & Performance</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex justify-between">
                         <span>Fiabilité</span>
-                        <span className="font-semibold text-green-600">{metrics.reliability}%</span>
+                        <span className="font-semibold text-etat-nominal-texte">{metrics.reliability}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Disponibilité</span>
-                        <span className="font-semibold text-blue-600">{metrics.availability}%</span>
+                        <span className="font-semibold text-etat-encours-texte">{metrics.availability}%</span>
                       </div>
                       <div className="flex justify-between">
                         <span>OEE</span>
@@ -826,7 +826,7 @@ export default function MaintenanceDashboard() {
 
               <TabsContent value="costs" className="space-y-6 mt-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <DollarSign className="h-5 w-5" />
@@ -835,33 +835,33 @@ export default function MaintenanceDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <p className="text-3xl font-bold text-blue-600">{metrics.maintenanceCosts.toLocaleString()}€</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">Coût total ce mois</p>
+                        <div className="text-center p-4 bg-etat-encours-fond dark:bg-etat-encours-fond rounded-lg">
+                          <p className="text-3xl font-bold text-etat-encours-texte">{metrics.maintenanceCosts.toLocaleString()}€</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">Coût total ce mois</p>
                         </div>
-                        <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                          <p className="text-3xl font-bold text-green-600">{metrics.costSavings.toLocaleString()}€</p>
-                          <p className="text-sm text-gray-600 dark:text-ink-mute">Économies réalisées</p>
+                        <div className="text-center p-4 bg-etat-nominal-fond dark:bg-etat-nominal-fond rounded-lg">
+                          <p className="text-3xl font-bold text-etat-nominal-texte">{metrics.costSavings.toLocaleString()}€</p>
+                          <p className="text-sm text-ink-soft dark:text-ink-mute">Économies réalisées</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
+                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
                     <CardHeader>
                       <CardTitle>Répartition des Coûts</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
                         {maintenanceCosts.map((cost, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                          <div key={index} className="flex items-center justify-between p-3 bg-paper dark:bg-ink/50 rounded-lg">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium">{cost.category}</span>
                               {getTrendIcon(cost.trend)}
                             </div>
                             <div className="text-right">
                               <p className="font-semibold">{cost.amount.toLocaleString()}€</p>
-                              <p className="text-sm text-gray-500">{cost.percentage}%</p>
+                              <p className="text-sm text-ink-mute">{cost.percentage}%</p>
                             </div>
                           </div>
                         ))}

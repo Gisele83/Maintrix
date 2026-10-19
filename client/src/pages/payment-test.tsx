@@ -171,7 +171,7 @@ export default function PaymentTest() {
   };
 
   const StatusIcon = ({ success }: { success: boolean }) => (
-    success ? <CheckCircle className="w-5 h-5 text-green-500" /> : <XCircle className="w-5 h-5 text-red-500" />
+    success ? <CheckCircle className="w-5 h-5 text-etat-nominal-texte" /> : <XCircle className="w-5 h-5 text-etat-critique-texte" />
   );
 
   return (
@@ -184,11 +184,11 @@ export default function PaymentTest() {
               Retour
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <CreditCard className="w-8 h-8 text-blue-600" />
+          <h1 className="text-3xl font-bold text-ink flex items-center gap-3">
+            <CreditCard className="w-8 h-8 text-etat-encours-texte" />
             Test des Systèmes de Paiement
           </h1>
-          <p className="text-gray-600 mt-2">Vérifiez la configuration et le fonctionnement de Stripe et PayPal</p>
+          <p className="text-ink-soft mt-2">Vérifiez la configuration et le fonctionnement de Stripe et PayPal</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -201,22 +201,22 @@ export default function PaymentTest() {
               <CardDescription>Paiements par carte bancaire</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <span>Configuration</span>
                 <div className="flex items-center gap-2">
                   {status.stripe.configured ? (
-                    <Badge variant="default" className="bg-green-500">Configuré</Badge>
+                    <Badge variant="default" className="bg-etat-nominal-vif">Configuré</Badge>
                   ) : (
                     <Badge variant="secondary">Non testé</Badge>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <span>Payment Intent</span>
                 <div className="flex items-center gap-2">
                   {status.stripe.tested ? (
-                    <Badge variant="default" className="bg-green-500">Fonctionnel</Badge>
+                    <Badge variant="default" className="bg-etat-nominal-vif">Fonctionnel</Badge>
                   ) : (
                     <Badge variant="secondary">Non testé</Badge>
                   )}
@@ -224,7 +224,7 @@ export default function PaymentTest() {
               </div>
 
               {status.stripe.error && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                <div className="p-3 bg-etat-critique-fond text-etat-critique-texte rounded-lg text-sm">
                   {status.stripe.error}
                 </div>
               )}
@@ -251,31 +251,31 @@ export default function PaymentTest() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-blue-200 bg-white">
+          <Card className="border-2 border-etat-encours-filet bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-3">
-                <SiPaypal className="w-8 h-8 text-blue-600" />
+                <SiPaypal className="w-8 h-8 text-etat-encours-texte" />
                 PayPal
               </CardTitle>
               <CardDescription>Paiements via compte PayPal</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <span>Configuration</span>
                 <div className="flex items-center gap-2">
                   {status.paypal.configured ? (
-                    <Badge variant="default" className="bg-green-500">Configuré</Badge>
+                    <Badge variant="default" className="bg-etat-nominal-vif">Configuré</Badge>
                   ) : (
                     <Badge variant="secondary">Non testé</Badge>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <span>Création Commande</span>
                 <div className="flex items-center gap-2">
                   {status.paypal.tested ? (
-                    <Badge variant="default" className="bg-green-500">Fonctionnel</Badge>
+                    <Badge variant="default" className="bg-etat-nominal-vif">Fonctionnel</Badge>
                   ) : (
                     <Badge variant="secondary">Non testé</Badge>
                   )}
@@ -283,7 +283,7 @@ export default function PaymentTest() {
               </div>
 
               {status.paypal.error && (
-                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                <div className="p-3 bg-etat-critique-fond text-etat-critique-texte rounded-lg text-sm">
                   {status.paypal.error}
                 </div>
               )}
@@ -301,7 +301,7 @@ export default function PaymentTest() {
                 <Button 
                   onClick={testPayPalOrder} 
                   disabled={loading !== null}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-etat-encours-vif hover:bg-etat-encours-vif"
                 >
                   {loading === "paypal-order" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Tester Commande
@@ -321,7 +321,7 @@ export default function PaymentTest() {
                 <SiStripe className="w-6 h-6 text-signal-deep" />
                 <div>
                   <p className="font-medium">Stripe</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-ink-soft">
                     {status.stripe.configured && status.stripe.tested 
                       ? "Entièrement fonctionnel"
                       : status.stripe.configured 
@@ -330,11 +330,11 @@ export default function PaymentTest() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
-                <SiPaypal className="w-6 h-6 text-blue-600" />
+              <div className="flex items-center gap-3 p-4 bg-etat-encours-fond rounded-lg">
+                <SiPaypal className="w-6 h-6 text-etat-encours-texte" />
                 <div>
                   <p className="font-medium">PayPal</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-ink-soft">
                     {status.paypal.configured && status.paypal.tested 
                       ? "Entièrement fonctionnel"
                       : status.paypal.configured 

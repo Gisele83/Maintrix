@@ -148,7 +148,7 @@ export default function EmailDiagnostic() {
             <h1 className="text-3xl font-bold text-ink">
               Diagnostic Email Avancé
             </h1>
-            <p className="text-gray-600 dark:text-ink-soft">
+            <p className="text-ink-soft dark:text-ink-soft">
               Outils de diagnostic et résolution des problèmes d'envoi d'emails
             </p>
           </div>
@@ -159,7 +159,7 @@ export default function EmailDiagnostic() {
           <Card className="glassmorphism">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-500" />
+                <Zap className="h-5 w-5 text-etat-encours-texte" />
                 Diagnostic Automatique
               </CardTitle>
               <CardDescription>
@@ -221,7 +221,7 @@ export default function EmailDiagnostic() {
                     value={emailTestData.toEmail}
                     onChange={(e) => setEmailTestData(prev => ({ ...prev, toEmail: e.target.value }))}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Adresse pour recevoir l'email de test
                   </p>
                 </div>
@@ -262,20 +262,20 @@ export default function EmailDiagnostic() {
                 {diagnosticSteps.map((step, index) => {
                   const Icon = step.icon;
                   return (
-                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800/50">
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg border bg-white dark:bg-ink/50">
                       <div className={`p-2 rounded-full ${
-                        step.status === 'success' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' :
-                        step.status === 'error' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' :
-                        'bg-gray-100 text-ink-mute dark:bg-gray-700 dark:text-gray-500'
+                        step.status === 'success' ? 'bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-etat-nominal-texte' :
+                        step.status === 'error' ? 'bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-etat-critique-texte' :
+                        'bg-paper-deep text-ink-mute dark:bg-gray-700 dark:text-ink-mute'
                       }`}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">{step.title}</div>
-                        <div className="text-sm text-gray-600 dark:text-ink-mute">{step.description}</div>
+                        <div className="text-sm text-ink-soft dark:text-ink-mute">{step.description}</div>
                       </div>
-                      {step.status === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
-                      {step.status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
+                      {step.status === 'success' && <CheckCircle className="h-5 w-5 text-etat-nominal-texte" />}
+                      {step.status === 'error' && <XCircle className="h-5 w-5 text-etat-critique-texte" />}
                     </div>
                   );
                 })}
@@ -302,8 +302,8 @@ export default function EmailDiagnostic() {
                   {/* Résultats du test SendGrid */}
                   {sendgridTestMutation.data && (
                     <Alert className={sendgridTestMutation.data.sendgridTest?.success ? 
-                      "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" :
-                      "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"
+                      "border-etat-nominal-filet bg-etat-nominal-fond dark:border-green-800 dark:bg-green-950" :
+                      "border-etat-critique-filet bg-etat-critique-fond dark:border-red-800 dark:bg-red-950"
                     }>
                       <Settings className="h-4 w-4" />
                       <AlertTitle>Configuration SendGrid</AlertTitle>
@@ -319,8 +319,8 @@ export default function EmailDiagnostic() {
                   {/* Résultats du test d'email */}
                   {emailTestMutation.data && (
                     <Alert className={emailTestMutation.data.result?.success ? 
-                      "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" :
-                      "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950"
+                      "border-etat-nominal-filet bg-etat-nominal-fond dark:border-green-800 dark:bg-green-950" :
+                      "border-etat-critique-filet bg-etat-critique-fond dark:border-red-800 dark:bg-red-950"
                     }>
                       <Mail className="h-4 w-4" />
                       <AlertTitle>Test d'envoi email</AlertTitle>
@@ -332,7 +332,7 @@ export default function EmailDiagnostic() {
                         {emailTestMutation.data.result?.details && (
                           <details className="mt-2">
                             <summary className="cursor-pointer text-sm font-medium">Détails techniques</summary>
-                            <pre className="mt-1 text-xs bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-auto">
+                            <pre className="mt-1 text-xs bg-paper-deep dark:bg-ink p-2 rounded overflow-auto">
                               {JSON.stringify(emailTestMutation.data.result.details, null, 2)}
                             </pre>
                           </details>
@@ -343,7 +343,7 @@ export default function EmailDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="solutions" className="space-y-4">
-                  <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
+                  <Alert className="border-etat-alerte-filet bg-etat-alerte-fond dark:border-yellow-800 dark:bg-yellow-950">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Solution principale: Vérification d'expéditeur</AlertTitle>
                     <AlertDescription className="space-y-3">
@@ -373,7 +373,7 @@ export default function EmailDiagnostic() {
                     </AlertDescription>
                   </Alert>
 
-                  <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+                  <Alert className="border-etat-encours-filet bg-etat-encours-fond dark:border-blue-800 dark:bg-blue-950">
                     <Info className="h-4 w-4" />
                     <AlertTitle>Vérifications supplémentaires</AlertTitle>
                     <AlertDescription className="space-y-2">

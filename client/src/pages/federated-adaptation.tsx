@@ -37,6 +37,9 @@ import {
   Cpu,
   Info,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types mirroring server ────────────────────────────────────────────────────
 
@@ -120,21 +123,21 @@ interface SpecializationReport {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function lambdaColor(lambda: number): string {
-  if (lambda > 0.65) return "text-emerald-400";
-  if (lambda > 0.4) return "text-amber-400";
-  return "text-blue-400";
+  if (lambda > 0.65) return "text-etat-nominal-texte";
+  if (lambda > 0.4) return "text-etat-alerte-texte";
+  return "text-etat-encours-texte";
 }
 
 function maturityColor(m: number): string {
-  if (m > 0.7) return "from-emerald-500 to-emerald-600";
-  if (m > 0.4) return "from-amber-500 to-amber-600";
-  return "from-blue-500 to-blue-600";
+  if (m > 0.7) return "";
+  if (m > 0.4) return "";
+  return "";
 }
 
 function spiLabel(spi: number): { label: string; color: string } {
-  if (spi > 0.5) return { label: "Fortement spécialisé", color: "text-signal-light" };
-  if (spi > 0.2) return { label: "Spécialisation émergente", color: "text-amber-400" };
-  return { label: "Proche du consensus", color: "text-blue-400" };
+  if (spi > 0.5) return { label: "Fortement spécialisé", color: "text-signal" };
+  if (spi > 0.2) return { label: "Spécialisation émergente", color: "text-etat-alerte-texte" };
+  return { label: "Proche du consensus", color: "text-etat-encours-texte" };
 }
 
 function riskBadge(level: string) {
@@ -284,7 +287,7 @@ function SiteCard({
   );
 
   return (
-    <div className="rounded-xl border border-rule bg-white/5 overflow-hidden">
+    <div className="rounded-none border border-rule bg-white/5 overflow-hidden">
       {/* Header */}
       <div className="p-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -297,7 +300,7 @@ function SiteCard({
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="text-xs text-ink/50">{profile.daysActive}j actif</span>
             {profile.specializations.slice(0, 2).map(s => (
-              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 bg-signal-deep/20 text-signal-light border-rule/30">
+              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 bg-signal-deep/20 text-signal border-rule/30">
                 {s.replace(/_w$|_p$/, "")}
               </Badge>
             ))}
@@ -369,9 +372,9 @@ function SiteCard({
           </div>
           <div>
             <div className="text-xs text-ink/50 mb-2">
-              Modèle · <span className="text-blue-400">■ global</span> &nbsp;
-              <span className="text-signal-light">■ local</span> &nbsp;
-              <span className="text-green-400">▪ personnalisé θ̂(s)</span>
+              Modèle · <span className="text-etat-encours-texte">■ global</span> &nbsp;
+              <span className="text-signal">■ local</span> &nbsp;
+              <span className="text-etat-nominal-texte">▪ personnalisé θ̂(s)</span>
             </div>
             <RadarChart
               global={globalModel}
@@ -383,13 +386,13 @@ function SiteCard({
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-white/5 p-2.5 space-y-0.5">
               <div className="text-ink/40">Modèle global (1 − λ)</div>
-              <div className="text-blue-300 font-mono font-bold">
+              <div className="text-etat-encours-texte font-mono font-bold">
                 {((1 - profile.mixingCoefficient) * 100).toFixed(1)}%
               </div>
             </div>
             <div className="rounded-lg bg-white/5 p-2.5 space-y-0.5">
               <div className="text-ink/40">Modèle local (λ)</div>
-              <div className="text-signal-light font-mono font-bold">
+              <div className="text-signal font-mono font-bold">
                 {(profile.mixingCoefficient * 100).toFixed(1)}%
               </div>
             </div>
@@ -433,13 +436,14 @@ export default function FederatedAdaptationPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-paper-deep p-4 md:p-8">
+      <AppShell filAriane={[{ libelle: "Supervision" }, { libelle: "Adaptation fédérée" }]} largeur="large">
+      <div className="space-y-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-paper-deep flex items-center justify-center shadow-indigo-500/30">
+                <div className="w-10 h-10 rounded-none bg-paper-deep flex items-center justify-center shadow-indigo-500/30">
                   <Brain className="w-5 h-5 text-ink" />
                 </div>
                 <div>
@@ -452,13 +456,13 @@ export default function FederatedAdaptationPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 ml-13">
-                <Badge variant="outline" className="text-xs border-indigo-500/40 text-indigo-300 bg-indigo-500/10">
+                <Badge variant="outline" className="text-xs border-etat-encours-filet text-etat-encours-texte bg-etat-encours-fond">
                   pFed · Couplage Élastique
                 </Badge>
-                <Badge variant="outline" className="text-xs border-rule/40 text-signal-light bg-signal-deep/10">
+                <Badge variant="outline" className="text-xs border-etat-encours-filet text-etat-encours-texte bg-etat-encours-fond">
                   Mélange adaptatif global/local
                 </Badge>
-                <Badge variant="outline" className="text-xs border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
+                <Badge variant="outline" className="text-xs border-etat-encours-filet text-etat-encours-texte bg-etat-encours-fond">
                   SPI · FedAvg pondéré différentiel
                 </Badge>
               </div>
@@ -486,21 +490,21 @@ export default function FederatedAdaptationPage() {
                 label: "Sites actifs",
                 value: stats.nSites,
                 icon: Network,
-                color: "from-blue-500 to-blue-600",
+                color: "",
                 suffix: "",
               },
               {
                 label: "Maturité moy. M̄",
                 value: (stats.fleetMaturityAvg * 100).toFixed(0),
                 icon: Activity,
-                color: "from-emerald-500 to-emerald-600",
+                color: "",
                 suffix: "%",
               },
               {
                 label: "Mélange moy. λ̄",
                 value: stats.fleetLambdaAvg.toFixed(3),
                 icon: Layers,
-                color: "from-indigo-500 to-indigo-600",
+                color: "",
                 suffix: "",
               },
               {
@@ -514,7 +518,7 @@ export default function FederatedAdaptationPage() {
                 label: "Sites matures",
                 value: stats.nSitesMature,
                 icon: CheckCircle2,
-                color: "from-teal-500 to-teal-600",
+                color: "",
                 suffix: "",
               },
               {
@@ -527,7 +531,7 @@ export default function FederatedAdaptationPage() {
             ].map(({ label, value, icon: Icon, color, suffix }) => (
               <Card key={label} className="border-rule bg-white/5">
                 <CardContent className="p-4">
-                  <div className={`w-8 h-8 rounded-lg bg-paper-deep ${color} flex items-center justify-center mb-2 shadow-md`}>
+                  <div className={`w-8 h-8 rounded-lg bg-paper-deep ${color} flex items-center justify-center mb-2 shadow-none`}>
                     <Icon className="w-4 h-4 text-ink" />
                   </div>
                   <div className="text-2xl font-bold text-ink font-mono">
@@ -556,11 +560,11 @@ export default function FederatedAdaptationPage() {
             {sitesLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-40 rounded-xl bg-white/5 animate-pulse" />
+                  <div key={i} className="h-40 rounded-none bg-white/5 animate-pulse" />
                 ))}
               </div>
             ) : sites.length === 0 ? (
-              <div className="rounded-xl border border-rule bg-white/5 p-12 text-center">
+              <div className="rounded-none border border-rule bg-white/5 p-12 text-center">
                 <Brain className="w-12 h-12 text-ink/20 mx-auto mb-3" />
                 <div className="text-ink/40 text-sm">
                   Aucun site actif — créez des tenants et des sessions diagnostiques pour alimenter l'apprentissage fédéré.
@@ -588,12 +592,12 @@ export default function FederatedAdaptationPage() {
             {/* Drift alerts */}
             {specData?.summary?.driftAlerts && specData.summary.driftAlerts.length > 0 && (
               <div className="mt-6 space-y-2">
-                <div className="text-sm font-semibold text-amber-400 flex items-center gap-2">
+                <div className="text-sm font-semibold text-etat-alerte-texte flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" /> Alertes de dérive détectées
                 </div>
                 {specData.summary.driftAlerts.map((alert: any, i: number) => (
-                  <div key={i} className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200">
-                    <span className="font-mono text-amber-400 mr-2">[{alert.tenantId.slice(0, 8)}]</span>
+                  <div key={i} className="rounded-lg border border-etat-alerte-filet bg-etat-alerte-fond p-3 text-xs text-amber-200">
+                    <span className="font-mono text-etat-alerte-texte mr-2">[{alert.tenantId.slice(0, 8)}]</span>
                     {alert.reason}
                   </div>
                 ))}
@@ -604,7 +608,7 @@ export default function FederatedAdaptationPage() {
           {/* ── Specialization tab ────────────────────────────────────────── */}
           <TabsContent value="specialization">
             {specLoading ? (
-              <div className="h-64 rounded-xl bg-white/5 animate-pulse" />
+              <div className="h-64 rounded-none bg-white/5 animate-pulse" />
             ) : (
               <div className="space-y-4">
                 {/* Summary pills */}
@@ -612,22 +616,22 @@ export default function FederatedAdaptationPage() {
                   <div className="flex flex-wrap gap-3">
                     {[
                       { label: "Génériques", count: specData.summary.nGeneric, color: "bg-slate-500/20 text-ink-soft border-rule" },
-                      { label: "Émergents", count: specData.summary.nEmerging, color: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
-                      { label: "Spécialisés", count: specData.summary.nSpecialized, color: "bg-signal-deep/20 text-signal-light border-rule/30" },
-                      { label: "Artefacts", count: specData.summary.nArtefact, color: "bg-red-500/20 text-red-300 border-red-500/30" },
+                      { label: "Émergents", count: specData.summary.nEmerging, color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet" },
+                      { label: "Spécialisés", count: specData.summary.nSpecialized, color: "bg-signal-deep/20 text-signal border-rule/30" },
+                      { label: "Artefacts", count: specData.summary.nArtefact, color: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet" },
                     ].map(({ label, count, color }) => (
                       <div key={label} className={`rounded-full border px-3 py-1 text-xs font-medium ${color}`}>
                         {count} {label}
                       </div>
                     ))}
-                    <div className="rounded-full border px-3 py-1 text-xs font-medium bg-indigo-500/20 text-indigo-300 border-indigo-500/30">
+                    <div className="rounded-full border px-3 py-1 text-xs font-medium bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet">
                       SPI max = {specData.summary.maxSPI.toFixed(3)}
                     </div>
                   </div>
                 )}
 
                 {/* SPI table */}
-                <div className="rounded-xl border border-rule bg-white/5 overflow-hidden">
+                <div className="rounded-none border border-rule bg-white/5 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -671,7 +675,7 @@ export default function FederatedAdaptationPage() {
                                 <span className="text-ink/40 text-xs">/12</span>
                               </td>
                               <td className="p-3">
-                                <Badge variant="secondary" className="text-xs bg-signal-deep/20 text-signal-light border-rule/30 font-mono">
+                                <Badge variant="secondary" className="text-xs bg-signal-deep/20 text-signal border-rule/30 font-mono">
                                   {row.dominantSpecialization.replace(/_w$|_p$/, "") || "—"}
                                 </Badge>
                               </td>
@@ -700,6 +704,7 @@ export default function FederatedAdaptationPage() {
 
         </Tabs>
       </div>
+      </AppShell>
     </TooltipProvider>
   );
 }

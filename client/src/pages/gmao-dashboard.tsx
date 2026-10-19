@@ -220,21 +220,21 @@ export default function GMAODashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      case 'in_progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-ink-soft';
+      case 'pending': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
+      case 'in_progress': return 'bg-etat-encours-fond text-etat-encours-texte dark:bg-etat-encours-vif dark:text-etat-encours-texte';
+      case 'completed': return 'bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-etat-nominal-texte';
+      case 'cancelled': return 'bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-etat-critique-texte';
+      default: return 'bg-paper-deep text-ink dark:bg-ink dark:text-ink-soft';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-ink-soft';
+      case 'urgent': return 'bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-etat-critique-texte';
+      case 'high': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
+      case 'medium': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
+      case 'low': return 'bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-etat-nominal-texte';
+      default: return 'bg-paper-deep text-ink dark:bg-ink dark:text-ink-soft';
     }
   };
 
@@ -506,7 +506,7 @@ export default function GMAODashboard() {
                                 {point.libelle}
                               </span>
                               {point.grave && (
-                                <span className="ml-auto font-mono text-eyebrow uppercase text-amber-700 shrink-0">
+                                <span className="ml-auto font-mono text-eyebrow uppercase text-etat-alerte-texte shrink-0">
                                   priorité
                                 </span>
                               )}
@@ -1076,7 +1076,7 @@ export default function GMAODashboard() {
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Efficacité Globale</h3>
-                  <Gauge className="w-5 h-5 text-blue-600" />
+                  <Gauge className="w-5 h-5 text-etat-encours-texte" />
                 </div>
                 {/* ⚠️ OEE, taux d'utilisation et taux de performance ne sont
                     calculés nulle part dans cette base. Les deux derniers

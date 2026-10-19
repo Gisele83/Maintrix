@@ -85,7 +85,7 @@ export default function SuperAdminLogin() {
             height={213}
             className="h-8 w-auto mx-auto mb-6"
           />
-          <p className="font-mono text-eyebrow uppercase tracking-wider text-signal-light">
+          <p className="font-mono text-eyebrow uppercase tracking-wider text-signal">
             Console de plateforme
           </p>
           <CardTitle className="font-serif text-2xl font-medium text-paper mt-2">
@@ -95,7 +95,7 @@ export default function SuperAdminLogin() {
             Réservée à la gestion des organisations et de leurs comptes.
           </CardDescription>
           {sessionExpiree && (
-            <p className="mt-4 text-sm text-signal-light border border-signal-light/40 bg-signal-light/10 rounded px-3 py-2">
+            <p className="mt-4 text-sm text-signal border border-signal-light/40 bg-signal-light/10 rounded px-3 py-2">
               Votre session a pris fin — c'est le cas après chaque mise à jour du
               serveur. Reconnectez-vous, rien n'est perdu.
             </p>

@@ -233,7 +233,7 @@ export function HistoryManagement() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-etat-nominal-texte" />
                     <div>
                       <p className="font-medium">Excel (.xlsx, .xls)</p>
                       <p className="text-xs text-muted-foreground">Format recommandé</p>
@@ -241,7 +241,7 @@ export function HistoryManagement() {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                    <FileText className="w-4 h-4 text-etat-encours-texte" />
                     <div>
                       <p className="font-medium">CSV (.csv)</p>
                       <p className="text-xs text-muted-foreground">Séparateur: virgule ou point-virgule</p>
@@ -257,8 +257,8 @@ export function HistoryManagement() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800">
+                <div className="p-3 bg-etat-encours-fond rounded-lg border border-etat-encours-filet">
+                  <p className="text-sm text-etat-encours-texte">
                     <strong>Conseil:</strong> Vérifiez que vos colonnes correspondent aux champs attendus pour optimiser l'importation.
                   </p>
                 </div>
@@ -270,30 +270,30 @@ export function HistoryManagement() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />
                   <span>Résultat de l'importation</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{importProgress.processed}</p>
-                    <p className="text-sm text-green-800">Enregistrements traités</p>
+                  <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
+                    <p className="text-2xl font-bold text-etat-nominal-texte">{importProgress.processed}</p>
+                    <p className="text-sm text-etat-nominal-texte">Enregistrements traités</p>
                   </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">{importProgress.total}</p>
-                    <p className="text-sm text-blue-800">Total d'enregistrements</p>
+                  <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
+                    <p className="text-2xl font-bold text-etat-encours-texte">{importProgress.total}</p>
+                    <p className="text-sm text-etat-encours-texte">Total d'enregistrements</p>
                   </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <p className="text-2xl font-bold text-red-600">{importProgress.errors.length}</p>
-                    <p className="text-sm text-red-800">Erreurs</p>
+                  <div className="text-center p-4 bg-etat-critique-fond rounded-lg">
+                    <p className="text-2xl font-bold text-etat-critique-texte">{importProgress.errors.length}</p>
+                    <p className="text-sm text-etat-critique-texte">Erreurs</p>
                   </div>
                 </div>
 
                 {importProgress.errors.length > 0 && (
-                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                    <h4 className="font-medium text-red-800 mb-2">Erreurs d'importation:</h4>
-                    <ul className="text-sm text-red-700 space-y-1">
+                  <div className="p-3 bg-etat-critique-fond rounded-lg border border-etat-critique-filet">
+                    <h4 className="font-medium text-etat-critique-texte mb-2">Erreurs d'importation:</h4>
+                    <ul className="text-sm text-etat-critique-texte space-y-1">
                       {importProgress.errors.map((error, index) => (
                         <li key={index}>• {error}</li>
                       ))}
@@ -302,9 +302,9 @@ export function HistoryManagement() {
                 )}
 
                 {importProgress.warnings.length > 0 && (
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <h4 className="font-medium text-yellow-800 mb-2">Avertissements:</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
+                  <div className="p-3 bg-etat-alerte-fond rounded-lg border border-etat-alerte-filet">
+                    <h4 className="font-medium text-etat-alerte-texte mb-2">Avertissements:</h4>
+                    <ul className="text-sm text-etat-alerte-texte space-y-1">
                       {importProgress.warnings.map((warning, index) => (
                         <li key={index}>• {warning}</li>
                       ))}
@@ -368,7 +368,7 @@ export function HistoryManagement() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                     <div>
                       <p className="font-medium">Export complet</p>
                       <p className="text-xs text-muted-foreground">Toutes les données disponibles</p>
@@ -376,7 +376,7 @@ export function HistoryManagement() {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                     <div>
                       <p className="font-medium">Format Excel</p>
                       <p className="text-xs text-muted-foreground">Compatible avec Excel et autres tableurs</p>
@@ -384,7 +384,7 @@ export function HistoryManagement() {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                     <div>
                       <p className="font-medium">Colonnes structurées</p>
                       <p className="text-xs text-muted-foreground">En-têtes clairs et données organisées</p>
@@ -392,8 +392,8 @@ export function HistoryManagement() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-800">
+                <div className="p-3 bg-etat-nominal-fond rounded-lg border border-etat-nominal-filet">
+                  <p className="text-sm text-etat-nominal-texte">
                     <strong>Info:</strong> L'exportation inclut toutes les données visibles selon vos permissions utilisateur.
                   </p>
                 </div>
@@ -427,12 +427,12 @@ export function HistoryManagement() {
             </div>
 
             {selectedFile && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="p-3 bg-etat-encours-fond rounded-lg border border-etat-encours-filet">
                 <div className="flex items-center space-x-2">
-                  <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">{selectedFile.name}</span>
+                  <FileSpreadsheet className="w-4 h-4 text-etat-encours-texte" />
+                  <span className="text-sm font-medium text-etat-encours-texte">{selectedFile.name}</span>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-etat-encours-texte mt-1">
                   {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
@@ -471,8 +471,8 @@ export function HistoryManagement() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
+            <div className="p-3 bg-etat-encours-fond rounded-lg border border-etat-encours-filet">
+              <p className="text-sm text-etat-encours-texte">
                 Cette exportation téléchargera toutes les données de type "{importTypeOptions.find(opt => opt.value === exportType)?.label}" au format Excel.
               </p>
             </div>

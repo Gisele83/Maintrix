@@ -22,6 +22,9 @@ import {
   TrendingUp,
   Shield
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface ImportResult {
   success: boolean;
@@ -226,7 +229,7 @@ export default function DataImportExport() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Succès</Badge>;
+        return <Badge variant="default" className="bg-etat-nominal-fond text-etat-nominal-texte"><CheckCircle className="w-3 h-3 mr-1" />Succès</Badge>;
       case 'error':
         return <Badge variant="destructive"><AlertCircle className="w-3 h-3 mr-1" />Erreur</Badge>;
       default:
@@ -235,14 +238,15 @@ export default function DataImportExport() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Import et export" }]} largeur="large">
+    <div className="space-y-6">
       <div className="container mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-ink mb-4">
+          <h1 className="text-4xl font-bold text-ink dark:text-ink mb-4">
             Import/Export de Données GMAO
           </h1>
-          <p className="text-xl text-gray-600 dark:text-ink-soft max-w-3xl mx-auto">
+          <p className="text-xl text-ink-soft dark:text-ink-soft max-w-3xl mx-auto">
             Gérez vos données GMAO : importez vos équipements, historiques de maintenance, 
             pièces détachées et exportez vos données pour analyse externe.
           </p>
@@ -340,14 +344,14 @@ export default function DataImportExport() {
                 </CardHeader>
                 <CardContent>
                   <div 
-                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-rule dark:border-gray-600 rounded-lg p-6 text-center hover:border-etat-encours-filet transition-colors cursor-pointer"
                     onClick={triggerFileInput}
                   >
                     <Upload className="w-12 h-12 mx-auto text-ink-mute mb-4" />
-                    <p className="text-lg font-medium text-gray-700 dark:text-ink-soft mb-2">
+                    <p className="text-lg font-medium text-ink-soft dark:text-ink-soft mb-2">
                       Cliquez pour sélectionner un fichier
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-ink-mute">
+                    <p className="text-sm text-ink-mute dark:text-ink-mute">
                       Formats supportés: CSV, Excel (.xlsx)
                     </p>
                     <input
@@ -383,7 +387,7 @@ export default function DataImportExport() {
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Statut:</span>
                       {importMutation.data.success ? (
-                        <Badge variant="default" className="bg-green-100 text-green-800">
+                        <Badge variant="default" className="bg-etat-nominal-fond text-etat-nominal-texte">
                           <CheckCircle className="w-4 h-4 mr-1" />
                           Succès
                         </Badge>
@@ -397,14 +401,14 @@ export default function DataImportExport() {
                     
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Enregistrements importés:</span>
-                      <span className="text-lg font-bold text-green-600">
+                      <span className="text-lg font-bold text-etat-nominal-texte">
                         {importMutation.data.imported}
                       </span>
                     </div>
 
                     {importMutation.data.errors.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-red-600 mb-2">Erreurs:</h4>
+                        <h4 className="font-medium text-etat-critique-texte mb-2">Erreurs:</h4>
                         <div className="space-y-1">
                           {importMutation.data.errors.slice(0, 5).map((error, index) => (
                             <Alert key={index} variant="destructive">
@@ -413,7 +417,7 @@ export default function DataImportExport() {
                             </Alert>
                           ))}
                           {importMutation.data.errors.length > 5 && (
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-ink-mute">
                               ... et {importMutation.data.errors.length - 5} autres erreurs
                             </p>
                           )}
@@ -423,7 +427,7 @@ export default function DataImportExport() {
 
                     {importMutation.data.warnings.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-orange-600 mb-2">Avertissements:</h4>
+                        <h4 className="font-medium text-etat-alerte-texte mb-2">Avertissements:</h4>
                         <div className="space-y-1">
                           {importMutation.data.warnings.slice(0, 3).map((warning, index) => (
                             <Alert key={index}>
@@ -453,7 +457,7 @@ export default function DataImportExport() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <p className="text-sm text-gray-600 dark:text-ink-mute">
+                      <p className="text-sm text-ink-soft dark:text-ink-mute">
                         Exporter les données {dataType.label.toLowerCase()}
                       </p>
                       <div className="flex space-x-2">
@@ -497,29 +501,29 @@ export default function DataImportExport() {
                 {historyLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-4">Chargement de l'historique...</p>
+                    <p className="text-sm text-ink-mute mt-4">Chargement de l'historique...</p>
                   </div>
                 ) : importHistory && importHistory.length > 0 ? (
                   <div className="space-y-4">
                     {importHistory.map((item) => (
-                      <div key={item.id} className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <div key={item.id} className="border rounded-lg p-4 hover:bg-paper dark:hover:bg-ink transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-medium capitalize">
                               {item.type === 'import' ? '' : ''} {item.type}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-ink-mute">
                               {DATA_TYPES.find(t => t.value === item.dataType)?.label || item.dataType}
                             </div>
                             {getStatusBadge(item.status)}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-ink-mute">
                             {new Date(item.timestamp).toLocaleString()}
                           </div>
                         </div>
                         
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-ink-mute">
+                          <span className="text-ink-soft dark:text-ink-mute">
                             {item.filename}
                           </span>
                           <span className="font-medium">
@@ -528,7 +532,7 @@ export default function DataImportExport() {
                         </div>
                         
                         {item.errors.length > 0 && (
-                          <div className="mt-2 text-sm text-red-600">
+                          <div className="mt-2 text-sm text-etat-critique-texte">
                             {item.errors.length} erreur(s)
                           </div>
                         )}
@@ -538,7 +542,7 @@ export default function DataImportExport() {
                 ) : (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 text-ink-mute mx-auto mb-4" />
-                    <p className="text-gray-500">Aucun historique d'opération disponible</p>
+                    <p className="text-ink-mute">Aucun historique d'opération disponible</p>
                   </div>
                 )}
               </CardContent>
@@ -558,7 +562,7 @@ export default function DataImportExport() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-medium mb-3">Import de Données</h4>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-ink-mute">
+                <ul className="space-y-2 text-sm text-ink-soft dark:text-ink-mute">
                   <li>• Téléchargez d'abord un template pour voir le format requis</li>
                   <li>• Remplissez votre fichier en respectant les colonnes</li>
                   <li>• Uploadez votre fichier au format CSV ou Excel</li>
@@ -567,7 +571,7 @@ export default function DataImportExport() {
               </div>
               <div>
                 <h4 className="font-medium mb-3">Export de Données</h4>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-ink-mute">
+                <ul className="space-y-2 text-sm text-ink-soft dark:text-ink-mute">
                   <li>• Sélectionnez le type de données à exporter</li>
                   <li>• Choisissez le format (CSV pour analyse, Excel pour présentation)</li>
                   <li>• Le fichier sera téléchargé automatiquement</li>
@@ -579,5 +583,6 @@ export default function DataImportExport() {
         </Card>
       </div>
     </div>
+    </AppShell>
   );
 }

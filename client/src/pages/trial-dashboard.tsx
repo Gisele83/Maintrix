@@ -97,7 +97,7 @@ export default function TrialDashboard() {
         <ModernNavigation />
         <div className="flex items-center justify-center py-32">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <div className="w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-muted-foreground">Chargement du statut de licence...</p>
           </div>
         </div>
@@ -117,15 +117,15 @@ export default function TrialDashboard() {
     : license?.status === "grace" ? AlertCircle
     : Gift;
 
-  const statusColor = license?.status === "active" ? "text-green-600 dark:text-green-400"
-    : license?.status === "expired" || license?.status === "suspended" ? "text-red-600 dark:text-red-400"
-    : license?.status === "grace" ? "text-orange-600 dark:text-orange-400"
-    : "text-blue-600 dark:text-blue-400";
+  const statusColor = license?.status === "active" ? "text-etat-nominal-texte dark:text-etat-nominal-texte"
+    : license?.status === "expired" || license?.status === "suspended" ? "text-etat-critique-texte dark:text-etat-critique-texte"
+    : license?.status === "grace" ? "text-etat-alerte-texte dark:text-etat-alerte-texte"
+    : "text-etat-encours-texte dark:text-etat-encours-texte";
 
-  const statusBg = license?.status === "active" ? "from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950"
-    : license?.status === "expired" || license?.status === "suspended" ? "from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950"
-    : license?.status === "grace" ? "from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950"
-    : "from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950";
+  const statusBg = license?.status === "active" ? " dark: dark:"
+    : license?.status === "expired" || license?.status === "suspended" ? " dark: dark:"
+    : license?.status === "grace" ? " dark: dark:"
+    : " dark: dark:";
 
   return (
     <div className="min-h-screen bg-paper-deep">
@@ -135,8 +135,8 @@ export default function TrialDashboard() {
         {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <Gift className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-etat-encours-fond dark:bg-etat-encours-vif rounded-lg">
+              <Gift className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">
@@ -216,8 +216,8 @@ export default function TrialDashboard() {
                 {license?.isGracePeriodActive && (
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-orange-700 dark:text-orange-300 font-medium">Période de grâce</span>
-                      <span className="text-orange-700 dark:text-orange-300">{license.gracePeriodDaysRemaining} / {license.gracePeriodDays} jours</span>
+                      <span className="text-etat-alerte-texte dark:text-etat-alerte-texte font-medium">Période de grâce</span>
+                      <span className="text-etat-alerte-texte dark:text-etat-alerte-texte">{license.gracePeriodDaysRemaining} / {license.gracePeriodDays} jours</span>
                     </div>
                     <Progress
                       value={((license.gracePeriodDays - license.gracePeriodDaysRemaining) / license.gracePeriodDays) * 100}
@@ -228,7 +228,7 @@ export default function TrialDashboard() {
 
                 {/* Warning message */}
                 {license?.warningMessage && (
-                  <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+                  <div className="flex items-center gap-2 p-3 bg-etat-alerte-fond dark:bg-etat-alerte-fond border border-etat-alerte-filet dark:border-yellow-800 rounded-lg text-sm text-etat-alerte-texte dark:text-yellow-200">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     <span>{license.warningMessage.replace(/^[]\s*/, "")}</span>
                   </div>
@@ -237,7 +237,7 @@ export default function TrialDashboard() {
                 {/* Stat boxes */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
-                    <Users className="h-5 w-5 mx-auto mb-1 text-blue-600" />
+                    <Users className="h-5 w-5 mx-auto mb-1 text-etat-encours-texte" />
                     <div className="text-lg font-bold">{license?.currentUsers ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Utilisateurs</div>
                   </div>
@@ -247,12 +247,12 @@ export default function TrialDashboard() {
                     <div className="text-xs text-muted-foreground">Max autorisés</div>
                   </div>
                   <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
-                    <Wifi className="h-5 w-5 mx-auto mb-1 text-green-600" />
+                    <Wifi className="h-5 w-5 mx-auto mb-1 text-etat-nominal-texte" />
                     <div className="text-lg font-bold">{license?.gracePeriodDays ?? 7}j</div>
                     <div className="text-xs text-muted-foreground">Grâce offline</div>
                   </div>
                   <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
-                    <Calendar className="h-5 w-5 mx-auto mb-1 text-orange-600" />
+                    <Calendar className="h-5 w-5 mx-auto mb-1 text-etat-alerte-texte" />
                     <div className="text-lg font-bold">
                       {license?.lastLicenseCheckAt
                         ? new Date(license.lastLicenseCheckAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })
@@ -374,7 +374,7 @@ export default function TrialDashboard() {
                   {features.map((feature, index) => (
                     <div key={index} className="flex items-center gap-2">
                       {feature.included ? (
-                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <CheckCircle className="h-4 w-4 text-etat-nominal-texte flex-shrink-0" />
                       ) : (
                         <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 flex-shrink-0" />
                       )}
@@ -389,10 +389,10 @@ export default function TrialDashboard() {
 
             {/* Upgrade CTA */}
             {license?.status !== "active" && (
-              <Card className="bg-ink border-0 text-white">
+              <Card className="bg-ink border-0 text-paper">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-ink">Passez à un plan complet</CardTitle>
-                  <CardDescription className="text-blue-100">
+                  <CardTitle className="text-paper">Passez à un plan complet</CardTitle>
+                  <CardDescription className="text-paper/80">
                     Accès illimité à toutes les fonctionnalités industrielles.
                   </CardDescription>
                 </CardHeader>

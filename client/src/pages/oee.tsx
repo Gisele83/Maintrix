@@ -21,6 +21,9 @@ import {
   Plus, Loader2, TrendingUp, TrendingDown, Activity, Gauge,
   CheckCircle2, AlertTriangle, Trash2, Calendar, Search, Filter
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface OeeRecord {
@@ -61,7 +64,7 @@ interface OeeStats {
 const pct = (v: number | null | undefined) => v ? Math.round(Number(v) * 100) : 0;
 const oeeColor = (v: number) => v >= 0.85 ? "#22c55e" : v >= 0.65 ? "#f59e0b" : "#ef4444";
 const oeeLabel = (v: number) => v >= 0.85 ? "Classe mondiale" : v >= 0.65 ? "Acceptable" : "Critique";
-const oeeBg = (v: number) => v >= 0.85 ? "from-green-500 to-emerald-600" : v >= 0.65 ? "from-yellow-500 to-amber-600" : "from-red-500 to-rose-600";
+const oeeBg = (v: number) => v >= 0.85 ? "" : v >= 0.65 ? "" : "";
 const shiftLabel: Record<string, string> = { day: "Matin", evening: "Après-midi", night: "Nuit", all: "Journée" };
 
 // ─── Form Schema ──────────────────────────────────────────────────────────────
@@ -195,12 +198,13 @@ export default function OeePage() {
   const avgOee = Number(stats?.avgOee || 0);
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "OEE" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <Gauge className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
@@ -216,7 +220,7 @@ export default function OeePage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3">
+        <div className="flex items-center gap-2 bg-white rounded-lg border border-rule px-3">
           <Calendar className="h-4 w-4 text-ink-mute" />
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="border-0 w-32 p-0 text-sm" />
           <span className="text-ink-mute">→</span>
@@ -229,21 +233,21 @@ export default function OeePage() {
       </div>
 
       {/* OEE Formula Banner */}
-      <Card className="border-0 shadow-md mb-8 overflow-hidden">
+      <Card className="border-0 shadow-none mb-8 overflow-hidden">
         <div className="bg-paper-deep p-4">
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <div className="text-center">
               <p className="text-ink-mute text-xs mb-1">OEE</p>
               <OEEGauge value={avgOee} size={100} />
-              <Badge className={`mt-1 text-xs ${avgOee >= 0.85 ? "bg-green-500" : avgOee >= 0.65 ? "bg-yellow-500" : "bg-red-500"} text-white`}>
+              <Badge className={`mt-1 text-xs ${avgOee >= 0.85 ? "bg-etat-nominal-vif" : avgOee >= 0.65 ? "bg-etat-alerte-vif" : "bg-etat-critique-vif"} text-white`}>
                 {oeeLabel(avgOee)}
               </Badge>
             </div>
             <div className="text-ink text-2xl font-light">=</div>
             {[
-              { label: "Disponibilité", value: stats?.avgAvailability, color: "from-blue-500 to-indigo-600" },
+              { label: "Disponibilité", value: stats?.avgAvailability, color: "" },
               { label: "Performance", value: stats?.avgPerformance, color: " " },
-              { label: "Qualité", value: stats?.avgQuality, color: " to-rose-600" },
+              { label: "Qualité", value: stats?.avgQuality, color: "" },
             ].map(({ label, value, color }, i) => (
               <div key={label} className="flex items-center gap-4">
                 {i > 0 && <span className="text-ink-mute text-2xl">×</span>}
@@ -260,15 +264,15 @@ export default function OeePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Enregistrements", value: stats?.totalRecords ?? 0, icon: Activity, color: "from-slate-500 to-slate-600" },
-          { label: "Classe mondiale ≥85%", value: stats?.worldClassCount ?? 0, icon: CheckCircle2, color: "from-green-500 to-emerald-600" },
-          { label: "Critiques <65%", value: stats?.criticalCount ?? 0, icon: AlertTriangle, color: "from-red-500 to-rose-600" },
-          { label: "Production totale", value: Number(stats?.totalProduction ?? 0).toLocaleString("fr-FR"), icon: TrendingUp, color: "from-blue-500 to-indigo-600" },
+          { label: "Enregistrements", value: stats?.totalRecords ?? 0, icon: Activity, color: "" },
+          { label: "Classe mondiale ≥85%", value: stats?.worldClassCount ?? 0, icon: CheckCircle2, color: "" },
+          { label: "Critiques <65%", value: stats?.criticalCount ?? 0, icon: AlertTriangle, color: "" },
+          { label: "Production totale", value: Number(stats?.totalProduction ?? 0).toLocaleString("fr-FR"), icon: TrendingUp, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md">
+          <Card key={label} className="border-0 shadow-none">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+              <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -277,10 +281,10 @@ export default function OeePage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Trend */}
-        <Card className="border-0 shadow-md">
+        <Card className="border-0 shadow-none">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-600" /> Tendance OEE
+            <CardTitle className="text-base font-semibold text-ink-soft flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-etat-nominal-texte" /> Tendance OEE
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -309,10 +313,10 @@ export default function OeePage() {
         </Card>
 
         {/* By equipment */}
-        <Card className="border-0 shadow-md">
+        <Card className="border-0 shadow-none">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-600" /> OEE par équipement
+            <CardTitle className="text-base font-semibold text-ink-soft flex items-center gap-2">
+              <Activity className="h-4 w-4 text-etat-encours-texte" /> OEE par équipement
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -338,10 +342,16 @@ export default function OeePage() {
       </div>
 
       {/* Calculator */}
-      <Card className="border-0 shadow-md mb-8 bg-ink text-white">
+      {/* ⚠️ Cette carte était restée en fond bleu nuit après le passage de
+          l'application au thème clair, mais ses textes, eux, avaient suivi :
+          titre en encre sur encre, donc invisible, et six étiquettes de champ
+          en `text-ink-mute` sur `bg-ink`, mesurées à 3,05:1. Le calculateur
+          OEE est l'outil même de cet écran — on ne lisait plus ce qu'on
+          saisissait. La carte rejoint le fond clair des autres. */}
+      <Card className="border border-rule shadow-none mb-8 bg-white">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-ink flex items-center gap-2">
-            <Gauge className="h-4 w-4" /> Calculateur OEE en temps réel
+          <CardTitle className="font-serif text-title font-medium text-ink flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-ink-mute" /> Calculateur OEE en temps réel
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -355,15 +365,15 @@ export default function OeePage() {
               { key: "defectiveUnits", label: "Défauts", unit: "pcs" },
             ].map(({ key, label, unit }) => (
               <div key={key}>
-                <label className="text-ink-mute text-xs">{label}</label>
-                <Input type="number" className="bg-paper-deep border-rule text-ink mt-1"
+                <label className="text-ink-soft text-xs">{label}</label>
+                <Input type="number" aria-label={label} className="bg-white border-rule text-ink mt-1"
                   value={(liveCalc as any)[key]}
                   onChange={e => setLiveCalc(prev => ({ ...prev, [key]: Number(e.target.value) }))} />
               </div>
             ))}
           </div>
           <div className="flex items-center gap-4 flex-wrap">
-            <Button onClick={() => calcMutation.mutate(liveCalc)} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+            <Button onClick={() => calcMutation.mutate(liveCalc)} className="bg-etat-nominal-vif hover:bg-etat-nominal-vif text-white">
               {calcMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Calculer
             </Button>
@@ -389,9 +399,9 @@ export default function OeePage() {
       </Card>
 
       {/* Records table */}
-      <Card className="border-0 shadow-md">
+      <Card className="border-0 shadow-none">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold text-slate-700">Historique des enregistrements</CardTitle>
+          <CardTitle className="text-base font-semibold text-ink-soft">Historique des enregistrements</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -413,11 +423,11 @@ export default function OeePage() {
                 </thead>
                 <tbody>
                   {records.slice(0, 50).map(r => (
-                    <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <tr key={r.id} className="border-b border-slate-50 hover:bg-paper transition-colors">
                       <td className="py-2 px-3 font-mono text-xs text-ink-soft">
                         {new Date(r.recordDate).toLocaleDateString("fr-FR")}
                       </td>
-                      <td className="py-2 px-3 text-slate-700 font-medium">
+                      <td className="py-2 px-3 text-ink-soft font-medium">
                         {r.equipmentName || `Éq. ${r.equipmentId}`}
                       </td>
                       <td className="py-2 px-3">
@@ -441,7 +451,7 @@ export default function OeePage() {
                       </td>
                       <td className="py-2 px-3">
                         <button onClick={() => { if (confirm("Supprimer ?")) deleteMutation.mutate(r.id); }}
-                          className="text-red-400 hover:text-red-600 transition-colors">
+                          className="text-etat-critique-texte hover:text-etat-critique-texte transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </td>
@@ -459,7 +469,7 @@ export default function OeePage() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Gauge className="h-5 w-5 text-emerald-600" /> Nouvelle saisie OEE
+              <Gauge className="h-5 w-5 text-etat-nominal-texte" /> Nouvelle saisie OEE
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -547,19 +557,20 @@ export default function OeePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppShell>
   );
 }
 
 function Separator2({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="h-px bg-slate-200 flex-1" />
+      <div className="h-px bg-paper-deep flex-1" />
       <span className="text-xs text-ink-mute font-medium">{label}</span>
-      <div className="h-px bg-slate-200 flex-1" />
+      <div className="h-px bg-paper-deep flex-1" />
     </div>
   );
 }
 
 function Separator() {
-  return <div className="h-px bg-slate-200" />;
+  return <div className="h-px bg-paper-deep" />;
 }

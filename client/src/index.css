@@ -30,7 +30,13 @@
   --secondary-foreground: hsl(215, 25%, 15%);
   --accent: hsl(210, 15%, 95%);
   --accent-foreground: hsl(215, 25%, 15%);
-  --destructive: hsl(4, 79%, 55%);
+  /* ⚠️ 55 % de clarté donnait rgb(231, 62, 50). Le texte blanc que la
+     bibliothèque pose dessus — variante « destructive » des badges et des
+     boutons — n'y atteignait que 4,09:1, sous le seuil AA de 4,5:1. Mesuré
+     sur le badge « En retard » de la maintenance préventive, mais le jeton
+     sert partout où une action détruit ou un état alarme.
+     Assombri à 48 % à teinte constante : 4,87:1 sur blanc. */
+  --destructive: hsl(4, 79%, 48%);
   --destructive-foreground: hsl(0, 0%, 100%);
   --ring: hsl(197, 100%, 33%);
   --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */

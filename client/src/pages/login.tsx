@@ -127,7 +127,7 @@ export default function LoginPage() {
           <img src="/logo-maintrix-clair.png" alt="Maintrix" width={640} height={213} className="h-9 w-auto" />
         </Link>
         <div>
-          <p className="font-mono text-eyebrow uppercase text-signal-light">Supervision industrielle · GMAO · Prédictif</p>
+          <p className="font-mono text-eyebrow uppercase text-signal">Supervision industrielle · GMAO · Prédictif</p>
           <p className="font-serif text-headline font-medium mt-6 max-w-md">
             Reprendre là où l'équipe s'est arrêtée.
           </p>

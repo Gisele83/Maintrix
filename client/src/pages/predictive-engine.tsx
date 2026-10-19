@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Activity, Gauge, Clock, AlertTriangle, Wrench, ClipboardCheck, ArrowRight, Loader2, PlayCircle,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Equipment { id: number; equipmentName: string; equipmentType: string; }
 
@@ -26,14 +29,14 @@ interface UnifiedResult {
 }
 
 const RISK_COLOR: Record<string, string> = {
-  low: "bg-green-100 text-green-700", medium: "bg-yellow-100 text-yellow-700",
-  high: "bg-orange-100 text-orange-700", critical: "bg-red-100 text-red-700",
+  low: "bg-etat-nominal-fond text-etat-nominal-texte", medium: "bg-etat-alerte-fond text-etat-alerte-texte",
+  high: "bg-etat-alerte-fond text-etat-alerte-texte", critical: "bg-etat-critique-fond text-etat-critique-texte",
 };
 
 function StageCard({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
   return (
     <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Icon className="w-4 h-4 text-blue-600" />{title}</CardTitle></CardHeader>
+      <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Icon className="w-4 h-4 text-etat-encours-texte" />{title}</CardTitle></CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
   );
@@ -62,14 +65,15 @@ export default function PredictiveEnginePage() {
   const result = queryClient.getQueryData<UnifiedResult>(["/api/predictive-engine", selectedId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Maintenance prédictive" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Activity className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <Activity className="w-6 h-6 text-etat-encours-texte" />
             Predictive Maintenance Engine
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             Health Score → RUL → Anomaly Detection → Failure Prediction → Automatic Work Order — un seul pipeline, pas 5 briques dispersées.
           </p>
         </div>
@@ -102,7 +106,7 @@ export default function PredictiveEnginePage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{result.healthScore}<span className="text-base text-ink-mute">/100</span></div>
-                <p className="text-xs text-gray-500">Health Score</p>
+                <p className="text-xs text-ink-mute">Health Score</p>
               </CardContent>
             </Card>
 
@@ -110,9 +114,9 @@ export default function PredictiveEnginePage() {
               <StageCard icon={Clock} title="Remaining Useful Life (RUL)">
                 {result.rul.available ? (
                   <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-500">Modèle :</span> {result.rul.result?.recommendedModel}</p>
-                    <p><span className="text-gray-500">Médiane :</span> {Math.round(result.rul.result?.recommended?.median ?? 0)}h</p>
-                    <p><span className="text-gray-500">P10 (pessimiste) :</span> {Math.round(result.rul.result?.recommended?.confidenceIntervals?.p10 ?? 0)}h</p>
+                    <p><span className="text-ink-mute">Modèle :</span> {result.rul.result?.recommendedModel}</p>
+                    <p><span className="text-ink-mute">Médiane :</span> {Math.round(result.rul.result?.recommended?.median ?? 0)}h</p>
+                    <p><span className="text-ink-mute">P10 (pessimiste) :</span> {Math.round(result.rul.result?.recommended?.confidenceIntervals?.p10 ?? 0)}h</p>
                     <p className="text-xs text-ink-mute">{result.rul.nReadings} lectures IoT utilisées</p>
                   </div>
                 ) : (
@@ -127,13 +131,13 @@ export default function PredictiveEnginePage() {
                       {result.anomaly.detections.map((a: any, i: number) => (
                         <div key={i} className="text-sm">
                           <Badge variant="outline" className="text-xs mr-1">{a.rawData?.sensorType ?? a.anomalyType}</Badge>
-                          <Badge className={a.severity === "critical" ? "bg-red-100 text-red-700 mr-1" : "bg-orange-100 text-orange-700 mr-1"}>{a.severity}</Badge>
+                          <Badge className={a.severity === "critical" ? "bg-etat-critique-fond text-etat-critique-texte mr-1" : "bg-etat-alerte-fond text-etat-alerte-texte mr-1"}>{a.severity}</Badge>
                           {a.description}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-green-600">Aucune anomalie détectée (agent health score : {result.anomaly.agentHealthScore})</p>
+                    <p className="text-sm text-etat-nominal-texte">Aucune anomalie détectée (agent health score : {result.anomaly.agentHealthScore})</p>
                   )
                 ) : (
                   <p className="text-sm text-ink-mute">{result.anomaly.message}</p>
@@ -155,8 +159,8 @@ export default function PredictiveEnginePage() {
               <StageCard icon={Wrench} title="Automatic Work Order">
                 {result.autoWorkOrder.created ? (
                   <div className="text-sm">
-                    <Badge className="bg-green-100 text-green-700 mb-1">Créé : {result.autoWorkOrder.orderNumber}</Badge>
-                    <p className="text-gray-500">{result.autoWorkOrder.reason}</p>
+                    <Badge className="bg-etat-nominal-fond text-etat-nominal-texte mb-1">Créé : {result.autoWorkOrder.orderNumber}</Badge>
+                    <p className="text-ink-mute">{result.autoWorkOrder.reason}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-ink-mute">{result.autoWorkOrder.reason}</p>
@@ -182,5 +186,6 @@ export default function PredictiveEnginePage() {
         )}
       </div>
     </div>
+    </AppShell>
   );
 }

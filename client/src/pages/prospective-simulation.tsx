@@ -11,6 +11,9 @@ import {
   ChevronRight, Clock, Cpu, DollarSign, FlaskConical, RefreshCw,
   Shield, TrendingDown, TrendingUp, Zap, XCircle
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ScenarioType = "IMMEDIATE" | "DEFERRED" | "NO_INTERVENTION";
@@ -40,16 +43,16 @@ interface FleetItem { equipmentId: number; equipmentName: string; criticalityLev
 const fmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k€` : `${Math.round(n)}€`;
 
 const urgencyConfig: Record<UrgencyLevel, { label: string; color: string; bg: string; border: string; icon: any }> = {
-  low:      { label: "Faible",    color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", icon: CheckCircle },
-  moderate: { label: "Modérée",   color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/30",    icon: Activity },
-  high:     { label: "Élevée",    color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/30",   icon: AlertTriangle },
-  critical: { label: "Critique",  color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30",     icon: Zap },
+  low:      { label: "Faible",    color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond", border: "border-etat-nominal-filet", icon: CheckCircle },
+  moderate: { label: "Modérée",   color: "text-etat-encours-texte",    bg: "bg-etat-encours-fond",    border: "border-etat-encours-filet",    icon: Activity },
+  high:     { label: "Élevée",    color: "text-etat-alerte-texte",   bg: "bg-etat-alerte-fond",   border: "border-etat-alerte-filet",   icon: AlertTriangle },
+  critical: { label: "Critique",  color: "text-etat-critique-texte",     bg: "bg-etat-critique-fond",     border: "border-etat-critique-filet",     icon: Zap },
 };
 
 const scenarioConfig: Record<ScenarioType, { color: string; bg: string; border: string; dotColor: string }> = {
-  IMMEDIATE:       { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", dotColor: "#10b981" },
-  DEFERRED:        { color: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/30",    dotColor: "#3b82f6" },
-  NO_INTERVENTION: { color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30",     dotColor: "#ef4444" },
+  IMMEDIATE:       { color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond", border: "border-etat-nominal-filet", dotColor: "#10b981" },
+  DEFERRED:        { color: "text-etat-encours-texte",    bg: "bg-etat-encours-fond",    border: "border-etat-encours-filet",    dotColor: "#3b82f6" },
+  NO_INTERVENTION: { color: "text-etat-critique-texte",     bg: "bg-etat-critique-fond",     border: "border-etat-critique-filet",     dotColor: "#ef4444" },
 };
 
 const imcaColor = (v: number) =>
@@ -96,7 +99,7 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
 }) {
   const cfg = scenarioConfig[scenario.id];
   return (
-    <div className={`rounded-2xl border ${cfg.border} ${cfg.bg} overflow-hidden transition-all`}>
+    <div className={`rounded-none border ${cfg.border} ${cfg.bg} overflow-hidden transition-all`}>
       {/* Header */}
       <div className="p-4 cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between mb-2">
@@ -119,13 +122,13 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
             <div className="text-[10px] text-ink-mute">Coût total</div>
           </div>
           <div className="text-center">
-            <div className={`text-base font-black ${scenario.failureProbability30d > 30 ? "text-red-400" : "text-ink-soft"}`}>
+            <div className={`text-base font-black ${scenario.failureProbability30d > 30 ? "text-etat-critique-texte" : "text-ink-soft"}`}>
               {scenario.failureProbability30d.toFixed(1)}%
             </div>
             <div className="text-[10px] text-ink-mute">Défaillance 30j</div>
           </div>
           <div className="text-center">
-            <div className={`text-base font-black ${scenario.oeeAverageLoss > 10 ? "text-amber-400" : "text-ink-soft"}`}>
+            <div className={`text-base font-black ${scenario.oeeAverageLoss > 10 ? "text-etat-alerte-texte" : "text-ink-soft"}`}>
               -{scenario.oeeAverageLoss.toFixed(1)}pt
             </div>
             <div className="text-[10px] text-ink-mute">OEE moyen</div>
@@ -163,9 +166,9 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
           <div className="space-y-1">
             <p className="text-xs text-ink-mute font-semibold">Décomposition des coûts</p>
             {[
-              { label: "Maintenance", val: scenario.cost.maintenance, color: "bg-blue-500" },
-              { label: "Arrêts/Production", val: scenario.cost.downtime, color: "bg-amber-500" },
-              { label: "Risque défaillance", val: scenario.cost.failureRisk, color: "bg-red-500" },
+              { label: "Maintenance", val: scenario.cost.maintenance, color: "bg-etat-encours-vif" },
+              { label: "Arrêts/Production", val: scenario.cost.downtime, color: "bg-etat-alerte-vif" },
+              { label: "Risque défaillance", val: scenario.cost.failureRisk, color: "bg-etat-critique-vif" },
             ].map(({ label, val, color }) => (
               <div key={label} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${color}`} />
@@ -180,7 +183,7 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
             {[["30j", scenario.failureProbability30d], ["90j", scenario.failureProbability90d]].map(([horizon, prob]) => (
               <div key={horizon as string} className="rounded-lg bg-white p-2">
                 <div className="text-xs text-ink-mute">P(défaillance {horizon})</div>
-                <div className={`text-base font-bold ${(prob as number) > 20 ? "text-red-400" : "text-ink-soft"}`}>
+                <div className={`text-base font-bold ${(prob as number) > 20 ? "text-etat-critique-texte" : "text-ink-soft"}`}>
                   {(prob as number).toFixed(1)}%
                 </div>
               </div>
@@ -190,21 +193,21 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
           {/* Pros/Cons */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs text-emerald-400 font-semibold mb-1">Avantages</p>
+              <p className="text-xs text-etat-nominal-texte font-semibold mb-1">Avantages</p>
               <ul className="space-y-1">
-                {scenario.pros.map((p, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-emerald-500 flex-shrink-0">+</span>{p}</li>)}
+                {scenario.pros.map((p, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-etat-nominal-texte flex-shrink-0">+</span>{p}</li>)}
               </ul>
             </div>
             <div>
-              <p className="text-xs text-red-400 font-semibold mb-1">Inconvénients</p>
+              <p className="text-xs text-etat-critique-texte font-semibold mb-1">Inconvénients</p>
               <ul className="space-y-1">
-                {scenario.cons.map((c, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-red-500 flex-shrink-0">−</span>{c}</li>)}
+                {scenario.cons.map((c, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-etat-critique-texte flex-shrink-0">−</span>{c}</li>)}
               </ul>
             </div>
           </div>
 
           {scenario.rul_days !== null && (
-            <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-xs text-etat-alerte-texte bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg px-3 py-2">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
               <span>RUL estimé sans intervention : <strong>{scenario.rul_days} jours</strong></span>
             </div>
@@ -228,10 +231,10 @@ function ComparisonTable({ data }: { data: SimResult }) {
     { label: "Score global", ranking: data.comparisonMatrix.overallRanking, format: () => "" },
   ];
   return (
-    <div className="rounded-2xl border border-rule bg-white overflow-hidden">
+    <div className="rounded-none border border-rule bg-white overflow-hidden">
       <div className="p-4 border-b border-rule">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-signal-light" />
+          <BarChart3 className="w-4 h-4 text-signal" />
           <span className="text-sm font-bold text-ink">Matrice de comparaison</span>
         </div>
       </div>
@@ -275,7 +278,7 @@ function FleetRow({ item, onSelect }: { item: FleetItem; onSelect: () => void })
   const UrgIcon = cfg.icon;
   const scenarioLabel: Record<ScenarioType, string> = { IMMEDIATE: "Immédiat", DEFERRED: "Différé", NO_INTERVENTION: "Aucune action" };
   return (
-    <div onClick={onSelect} className={`flex items-center gap-3 rounded-xl border ${cfg.border} ${cfg.bg} p-3 cursor-pointer hover:opacity-90 transition-all`}>
+    <div onClick={onSelect} className={`flex items-center gap-3 rounded-none border ${cfg.border} ${cfg.bg} p-3 cursor-pointer hover:opacity-90 transition-all`}>
       <UrgIcon className={`w-4 h-4 flex-shrink-0 ${cfg.color}`} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-ink truncate">{item.equipmentName}</p>
@@ -319,15 +322,16 @@ export default function ProspectiveSimulationPage() {
   const UrgIcon = urgCfg?.icon ?? Activity;
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Supervision" }, { libelle: "Simulation prospective" }]} largeur="large">
+    <div className="space-y-6">
       <ModernNavigation />
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12">
 
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-cyan-600/20 border border-cyan-500/30">
-              <FlaskConical className="w-6 h-6 text-cyan-400" />
+            <div className="p-2 rounded-none bg-etat-encours-fond border border-etat-encours-filet">
+              <FlaskConical className="w-6 h-6 text-etat-encours-texte" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-ink">Simulation Prospective</h1>
@@ -359,16 +363,16 @@ export default function ProspectiveSimulationPage() {
 
         {/* Fleet KPIs */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-2xl border border-rule bg-white p-4 text-center">
+          <div className="rounded-none border border-rule bg-white p-4 text-center">
             <div className="text-3xl font-black text-ink mb-1">{fleet?.totalEquipment ?? "–"}</div>
             <div className="text-xs text-ink-mute">Actifs simulés</div>
           </div>
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center">
-            <div className="text-3xl font-black text-red-400 mb-1">{fleet?.criticalCount ?? "–"}</div>
+          <div className="rounded-none border border-etat-critique-filet bg-etat-critique-fond p-4 text-center">
+            <div className="text-3xl font-black text-etat-critique-texte mb-1">{fleet?.criticalCount ?? "–"}</div>
             <div className="text-xs text-ink-mute">Urgence critique</div>
           </div>
-          <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-center">
-            <div className="text-3xl font-black text-cyan-400 mb-1">{deferDays}j</div>
+          <div className="rounded-none border border-etat-encours-filet bg-etat-encours-fond p-4 text-center">
+            <div className="text-3xl font-black text-etat-encours-texte mb-1">{deferDays}j</div>
             <div className="text-xs text-ink-mute">Horizon report simulé</div>
           </div>
         </div>
@@ -378,7 +382,7 @@ export default function ProspectiveSimulationPage() {
           <div className="space-y-4">
             <h2 className="text-sm font-bold text-ink">Classement par urgence — Flotte</h2>
             {fleetLoading ? (
-              <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-xl bg-white animate-pulse" />)}</div>
+              <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-none bg-white animate-pulse" />)}</div>
             ) : fleet?.results && fleet.results.length > 0 ? (
               <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                 {fleet.results.map(item => (
@@ -390,7 +394,7 @@ export default function ProspectiveSimulationPage() {
                 <p className="text-xs text-ink-mute">Sélectionner un équipement :</p>
                 {equipList.slice(0, 10).map(e => (
                   <button key={e.id} onClick={() => setSelectedId(e.id)}
-                    className="w-full flex items-center justify-between rounded-xl border border-rule bg-white px-4 py-2.5 hover:border-cyan-500/50 transition-colors text-left">
+                    className="w-full flex items-center justify-between rounded-none border border-rule bg-white px-4 py-2.5 hover:border-etat-encours-filet transition-colors text-left">
                     <span className="text-sm text-ink-soft">{e.name}</span>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs border-rule text-ink-mute">{e.criticalityLevel}</Badge>
@@ -400,7 +404,7 @@ export default function ProspectiveSimulationPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-rule bg-white p-8 text-center">
+              <div className="rounded-none border border-rule bg-white p-8 text-center">
                 <Cpu className="w-8 h-8 text-ink-soft mx-auto mb-3" />
                 <p className="text-ink-mute text-sm">Aucun équipement disponible.</p>
               </div>
@@ -410,17 +414,17 @@ export default function ProspectiveSimulationPage() {
           {/* Right — Simulation detail */}
           <div>
             {simLoading ? (
-              <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-40 rounded-xl bg-white animate-pulse" />)}</div>
+              <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-40 rounded-none bg-white animate-pulse" />)}</div>
             ) : sim ? (
               <div className="space-y-4">
                 {/* Equipment header */}
-                <div className="rounded-2xl border border-rule bg-white p-4">
+                <div className="rounded-none border border-rule bg-white p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <p className="font-bold text-ink">{sim.equipmentName}</p>
                       <p className="text-xs text-ink-mute mt-0.5">
                         Criticité : <span className="text-ink-soft capitalize">{sim.criticalityLevel}</span> ·
-                        Taux de dégradation : <span className="text-amber-400">{sim.currentDegradationRate.toFixed(3)} IMCA/j</span>
+                        Taux de dégradation : <span className="text-etat-alerte-texte">{sim.currentDegradationRate.toFixed(3)} IMCA/j</span>
                       </p>
                     </div>
                     <div className="text-right">
@@ -432,7 +436,7 @@ export default function ProspectiveSimulationPage() {
 
                 {/* Recommendation banner */}
                 {rec && urgCfg && (
-                  <div className={`rounded-2xl border ${urgCfg.border} ${urgCfg.bg} p-4`}>
+                  <div className={`rounded-none border ${urgCfg.border} ${urgCfg.bg} p-4`}>
                     <div className="flex items-start gap-3">
                       <UrgIcon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${urgCfg.color}`} />
                       <div className="flex-1">
@@ -440,8 +444,8 @@ export default function ProspectiveSimulationPage() {
                           <span className={`text-sm font-bold ${urgCfg.color}`}>Urgence {urgCfg.label}</span>
                           <span className="text-xs text-ink-mute">— Confiance : {Math.round(rec.confidence * 100)}%</span>
                           {rec.autonomyCompatible
-                            ? <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full px-2">Autonomie compatible</span>
-                            : <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full px-2">Approbation humaine requise</span>}
+                            ? <span className="text-xs bg-etat-nominal-fond text-etat-nominal-texte border border-etat-nominal-filet rounded-full px-2">Autonomie compatible</span>
+                            : <span className="text-xs bg-etat-alerte-fond text-etat-alerte-texte border border-etat-alerte-filet rounded-full px-2">Approbation humaine requise</span>}
                         </div>
                         <p className="text-xs text-ink-soft leading-relaxed">{rec.rationale}</p>
                         {rec.decisionDeadline && (
@@ -471,9 +475,9 @@ export default function ProspectiveSimulationPage() {
 
               </div>
             ) : (
-              <div className="rounded-2xl border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center min-h-[400px]">
-                <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
-                  <FlaskConical className="w-10 h-10 text-cyan-400" />
+              <div className="rounded-none border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center min-h-[400px]">
+                <div className="p-4 rounded-none bg-etat-encours-fond border border-etat-encours-filet mb-4">
+                  <FlaskConical className="w-10 h-10 text-etat-encours-texte" />
                 </div>
                 <p className="text-ink-soft font-semibold mb-2">Sélectionnez un équipement</p>
                 <p className="text-ink-mute text-sm max-w-xs">La simulation compare les trois scénarios décisionnels (Immédiat / Différé / Non-intervention) sur un horizon de 90 jours avec modèle de Weibull calibré.</p>
@@ -483,5 +487,6 @@ export default function ProspectiveSimulationPage() {
         </div>
       </div>
     </div>
+    </AppShell>
   );
 }

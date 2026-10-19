@@ -111,14 +111,19 @@ describe('Classes de couleur réellement générées', () => {
     expect(fautifs).toEqual([]);
   });
 
-  it('les trois écrans refondus ne portent plus de fragment de dégradé orphelin', () => {
+  it('aucun écran ne porte de fragment de dégradé orphelin', () => {
     // `from-red-500 to-rose-600` sans `bg-gradient-to-*` ne pose aucun fond :
-    // la couleur d'état est perdue, pas remplacée.
+    // la couleur d'état est perdue, pas remplacée. Il en restait 97, répartis
+    // sur 20 pages, après qu'une passe de dé-dégradage eut retiré le
+    // `bg-gradient-to-r` sans retirer ce qu'il activait.
     const fautifs: string[] = [];
-    for (const fichier of ECRANS_PRIORITAIRES) {
+    for (const fichier of fichiers) {
       const contenu = readFileSync(fichier, 'utf8');
       const aUnDegrade = /bg-gradient-to-/.test(contenu);
       for (const { n, texte } of lignesDeCode(contenu)) {
+        // `data-[motion^=from-]` est un sélecteur d'animation Radix, pas une
+        // couleur : la bibliothèque n'est pas concernée par cette règle.
+        if (/data-\[/.test(texte)) continue;
         if (/\bfrom-[a-z]+-\d{2,3}\b/.test(texte) && !aUnDegrade) {
           fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 90)}`);
         }
@@ -263,6 +268,78 @@ describe('Navigation et accessibilité', () => {
       return !/AppShell|ModernNavigation/.test(contenu);
     });
     expect(sansNavigation.map(relatif)).toEqual([]);
+  });
+
+  it('tout écran applicatif affiche la navigation principale', () => {
+    // Étape D : le gabarit est posé sur l'ensemble des écrans, pas seulement
+    // sur les trois prototypes. Les pages publiques et les parcours
+    // d'authentification s'en passent par construction — on ne met pas de
+    // menu applicatif devant quelqu'un qui n'est pas encore entré.
+    const HORS_PERIMETRE = new Set([
+      'login', 'landing', 'not-found', 'forgot-password', 'reset-password',
+      'first-login-password-change', 'force-logout', 'change-credentials',
+      'super-admin-login', 'super-admin-dashboard', 'email-diagnostic',
+      'payment-test', 'enterprise-auth-test', 'client-portal', 'download-center',
+      'maintenance-dashboard', 'security-mfa', 'localhost-diagnostic',
+    ]);
+    const sansNavigation: string[] = [];
+    for (const fichier of sources(join(CLIENT, 'pages'))) {
+      const nom = fichier.split(/[\\/]/).pop()!.replace(/\.tsx$/, '');
+      if (HORS_PERIMETRE.has(nom)) continue;
+      if (!/AppShell|ModernNavigation/.test(readFileSync(fichier, 'utf8'))) {
+        sansNavigation.push(nom);
+      }
+    }
+    expect(sansNavigation).toEqual([]);
+  });
+
+  it('aucun jeton d\'état vif n\'est posé en fond translucide', () => {
+    // Un fond translucide se compose sur son parent AVANT tout calcul de
+    // contraste. `bg-etat-nominal-vif/20` sur une carte donnait
+    // rgb(204, 223, 216), et le texte par-dessus tombait à 4,27:1. Sur
+    // l'écran IMCA, qui affiche une pastille par équipement, le même défaut
+    // se répétait 250 fois. Les jetons `fond` sont opaques et mesurés.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/\bbg-etat-[a-z]+-vif\/\d+/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('le cyan du logo ne porte pas de texte sur fond clair', () => {
+    // `signal-light` (#00B9F2) plafonne à 2,3:1 sur fond clair — sous le
+    // seuil AA pour du texte comme pour un élément graphique porteur de sens.
+    // La charte le réserve aux accents sur fond sombre.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/(^|[^:\w-])text-signal-light\b/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('aucun identifiant d\'organisation n\'est écrit en dur', () => {
+    // L'écran de conformité CCTP interrogeait — et ÉCRIVAIT — sous la chaîne
+    // littérale « default-tenant ». La route répondait 200 avec `{}`, le
+    // composant lisait `poConfig.companyHeader.name` sur un objet vide, et
+    // l'écran entier restait blanc. Les seuils de bon de commande d'un client
+    // n'arrivaient donc jamais chez lui.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/\btenantId\s*=\s*["'][^"']+["']/.test(texte) || /["']default-tenant["']/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
   });
 
   it('le gabarit d\'application expose un fil d\'Ariane et une zone de titre', () => {

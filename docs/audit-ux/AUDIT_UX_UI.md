@@ -236,10 +236,10 @@ dans un module partagé, comme `lib/accent-colors.ts`.
 | Étape | Contenu | État |
 |---|---|---|
 | **A — Diagnostic** | Le présent document | **livré** |
-| **B — Prototype** | Socle de design system (`AppShell`, jetons d'état, nettoyage CSS) + refonte du tableau de bord, de l'Ingénierie de maintenance et de la GMAO + captures avant/après | **livré, en attente de validation** |
-| **C — Validation** | Arbitrage de l'utilisateur sur le design et la navigation | **à faire — rien n'est généralisé avant** |
-| D — Déploiement | Application du socle aux autres écrans, par lots : (1) exploitation, (2) conformité, (3) prédictif/IA, (4) analyse, (5) administration | après C |
-| E — Recette | Tests unitaires, d'intégration, E2E Playwright, accessibilité ; rapport de non-régression | après D |
+| **B — Prototype** | Socle de design system (`AppShell`, jetons d'état, nettoyage CSS) + refonte du tableau de bord, de l'Ingénierie de maintenance et de la GMAO + captures avant/après | **livré** |
+| **C — Validation** | « Design validé avec des couleurs de fonds de l'ingénierie » — le traitement des fonds de l'écran d'ingénierie devient la référence | **validé le 19/10/2026** |
+| **D — Déploiement** | Socle appliqué aux 45 écrans restants ; couleurs d'état, dégradés orphelins et contrastes traités sur l'ensemble du produit | **livré** |
+| **E — Recette** | Tests unitaires, d'intégration, accessibilité, non-régression ; E2E Playwright restant | **partielle — voir 5.5** |
 
 Le découpage en lots est délibéré : chaque lot est un commit isolé, vérifiable à l'écran et
 réversible seul.
@@ -333,6 +333,112 @@ lecture de la liste « À traiter », ouverture d'un ordre de travail, bascule e
 onglets de la GMAO et les huit sous-onglets « Plus », soumission du formulaire de diagnostic.
 Les tests d'intégration couvrent les mêmes workflows côté API (GMAO, diagnostic, multi-locataire,
 intégrité transactionnelle, concurrence, CSRF, RBAC, contrat d'API).
+
+---
+
+### 5.4 Ce que l'étape D a livré
+
+**Consigne de validation appliquée :** « Design validé avec des couleurs de fonds de
+l'ingénierie ». Le traitement des fonds de l'écran d'ingénierie — `paper` pour
+l'application, `paper-deep` pour les tuiles et zones encastrées, aucune teinte brute de
+Tailwind, les états passant par les jetons dont le contraste est mesuré — devient la
+référence des 45 écrans repris.
+
+#### Résultats mesurés, avant et après l'ensemble du chantier
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Écrans applicatifs sans barre de navigation | **45** | **0** |
+| Couleurs brutes de Tailwind (hors `dark:`) | 4 067 | **141** |
+| Fragments de dégradé orphelins | 97 | **2** |
+| `rounded-xl` / `2xl` / `3xl` | 269 | **4** |
+| `shadow-md` / `lg` / `xl` | 62 | **16** |
+| Textes sous le seuil WCAG AA, sur 68 routes mesurées | — | **0** |
+| Débordement horizontal à 1440 px, sur 68 routes | — | **0** |
+| Écrans ne rendant rien (page blanche) | 1 | **0** |
+
+Les 141 couleurs brutes restantes et les 2 fragments de dégradé subsistent dans des
+primitives de la bibliothèque (`components/ui/`) et dans des éléments graphiques non
+textuels ; aucune ne produit de texte sous le seuil AA, ce qui a été vérifié route par route.
+
+#### Les cinq lots
+
+| Lot | Écrans |
+|---|---|
+| 1 — Exploitation | ordres de travail, plan de maintenance, maintenance préventive, inventaire, historique, cycle de vie des actifs, exécution |
+| 2 — Conformité et partenaires | permis de travail, étalonnages, habilitations, garanties, fournisseurs, CCTP |
+| 3 — Prédictif et IA | maintenance prédictive, jumeau numérique, documentation technique, graphe de causalité, équipe multi-agent, expertise d'ingénierie, supervision adaptative, adaptation fédérée, diagnostic assisté, diagnostic vocal, santé des machines, alertes, capteurs, analyse prédictive, engagements de service |
+| 4 — Analyse | OEE, causes racines, AMDEC, cycle de vie, budget, management de la maintenance, rapports, modules |
+| 5 — Administration et ressources | santé du système, organisations, utilisateurs, profils, permissions, import/export, importation, intégrations, communications, apprentissage, perception IoT, codes QR, validation, configuration ERP, accès, notifications, recommandations, indice cognitif, simulation prospective, optimiseur multi-actifs, journal cryptographique |
+
+#### Trois défauts fonctionnels trouvés pendant l'harmonisation
+
+Ils ne relèvent pas de l'apparence, mais ils ont été découverts en ouvrant chaque écran —
+ce qu'un audit purement visuel n'aurait pas fait.
+
+1. **L'écran de conformité CCTP était entièrement blanc, et depuis longtemps.**
+   L'identifiant d'organisation valait la chaîne littérale `"default-tenant"`, laissée avec
+   son commentaire « à adapter selon votre système d'auth ». Mesuré :
+   `/api/cctp/tenant/default-tenant/purchase-order-config` répond **200 avec `{}`** — pas
+   une erreur, un objet vide. Le composant lisait `poConfig.companyHeader.name` sur un
+   `companyHeader` absent, levait une exception, et l'arbre React entier disparaissait.
+   Conséquence plus grave que l'affichage : l'écran **écrivait** aussi sa configuration sous
+   cet identifiant fictif — les seuils de bon de commande et l'entête d'entreprise d'un
+   client n'arrivaient jamais chez lui. Corrigé : l'organisation authentifiée est utilisée,
+   les requêtes attendent qu'elle soit connue, et les accès imbriqués sont gardés pour qu'un
+   champ absent ne puisse plus blanchir l'écran.
+2. **Le même écran affichait « 8/9 exigences conformes » et « 1 configuration requise »
+   écrits en dur**, à côté d'un score global, lui, bien calculé. L'API en renvoie **cinq**,
+   dont trois conformes et deux partielles. Sur un écran de conformité réglementaire —
+   exactement là où un industriel vérifie ce qu'il peut opposer à un donneur d'ordre. Les
+   trois tuiles comptent désormais ce que le serveur rapporte.
+3. **Le calculateur OEE était illisible.** Sa carte était restée en fond bleu nuit après le
+   passage au thème clair, mais ses textes avaient suivi : titre en encre sur encre, et six
+   étiquettes de champ mesurées à 3,05:1. C'est l'outil même de cet écran — on ne lisait
+   plus ce qu'on saisissait.
+
+#### Défauts de contraste systémiques corrigés
+
+- **`--destructive` échouait de peu, partout.** `hsl(4, 79%, 55%)` = rgb(231, 62, 50) ; le
+  texte blanc que la bibliothèque pose dessus n'atteignait que 4,09:1. Assombri à 48 % :
+  4,87:1. Un seul jeton, mais il sert à chaque badge et bouton d'action destructive.
+- **Des jetons d'état posés en fond translucide.** `bg-etat-nominal-vif/20` se compose sur
+  son parent avant tout calcul : le texte tombait à 4,27:1. Sur l'écran IMCA, qui affiche
+  une pastille par équipement, le même défaut se répétait **250 fois**. 18 fichiers
+  corrigés — les jetons `fond` sont opaques et mesurés.
+- **Le cyan du logo portait du texte sur fond clair.** `signal-light` (#00B9F2) plafonne à
+  2,3:1 — sous le seuil AA pour du texte comme pour un élément graphique porteur de sens.
+  16 fichiers ramenés sur `signal`.
+- **Deux cartes à fond encre dont le texte était aussi passé à l'encre** : ratio 1:1,
+  invisible (recommandations de maintenance, tableau de bord d'essai).
+
+#### Couleur d'état restaurée sur les tuiles de statistiques
+
+Dix écrans affichaient la même rangée — « En retard », « Expirent ≤ 30j », « Conformes »,
+« Hors service » — dont les teintes avaient disparu avec les dégradés, laissant quatre
+tuiles identiques. `registreDepuisLibelle` déduit le registre du libellé et chaque tuile
+retrouve sa couleur ; un libellé qu'aucune règle ne reconnaît reste neutre, car mieux vaut
+une tuile muette qu'une tuile qui affirme la mauvaise chose.
+
+### 5.5 Recette — ce qui est vérifié et ce qui ne l'est pas
+
+| Barrière | Résultat |
+|---|---|
+| `npm run check` | **vert** |
+| `npm run check:tests` | **vert** |
+| Tests unitaires | **24 suites, 179 tests verts**, dont 24 garde-fous de refonte |
+| Tests d'intégration | **10 suites, 96 tests verts**, 4 ignorés, 7 à écrire |
+| Rendu, navigation, débordement | **68 routes mesurées au navigateur : 0 anomalie** |
+| Contraste WCAG AA sur fond composé | **68 routes : 0 texte sous le seuil** |
+| **Tests end-to-end (Playwright)** | **NON EXÉCUTÉS** |
+
+> **La voie end-to-end n'a pas pu être lancée, et ce n'est pas un détail.** `npx playwright
+> test` s'arrête sur `ENOENT: .env.test-cloud` : la suite `tests/e2e/tester-journey.spec.ts`
+> lit ce fichier pour se connecter à un environnement de test infonuagique qui n'existe pas
+> sur ce poste. Les parcours critiques sont donc couverts par les tests d'intégration
+> (API) et par la vérification manuelle au navigateur, **mais aucun parcours utilisateur
+> complet n'a été rejoué automatiquement**. C'est le seul livrable de la phase 7 qui reste
+> ouvert ; il demande soit le fichier d'environnement, soit une variante locale de la suite.
 
 ---
 

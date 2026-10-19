@@ -168,12 +168,12 @@ export default function FirstLoginPasswordChange() {
         
         <CardContent className="space-y-6">
           {/* Informations utilisateur */}
-          <div className="p-3 bg-white/5 rounded-lg border border-orange-500/30">
+          <div className="p-3 bg-white/5 rounded-lg border border-etat-alerte-filet/30">
             <div className="text-sm text-ink-mute">Utilisateur connecté:</div>
             <div className="text-ink font-medium">{firstLoginData.email}</div>
-            <div className="text-xs text-gray-500">Nom d'utilisateur: {firstLoginData.username}</div>
+            <div className="text-xs text-ink-mute">Nom d'utilisateur: {firstLoginData.username}</div>
             {firstLoginData.passwordExpiresAt && (
-              <div className="text-xs text-yellow-400 mt-1">
+              <div className="text-xs text-etat-alerte-texte mt-1">
                 ⏰ Expire: {new Date(firstLoginData.passwordExpiresAt).toLocaleString()}
               </div>
             )}
@@ -246,7 +246,7 @@ export default function FirstLoginPasswordChange() {
                     'Un chiffre': passwordRequirements.number,
                     'Un caractère spécial (@$!%*?&)': passwordRequirements.special
                   }).map(([requirement, met]) => (
-                    <div key={requirement} className={`flex items-center gap-2 text-xs ${met ? 'text-green-400' : 'text-ink-mute'}`}>
+                    <div key={requirement} className={`flex items-center gap-2 text-xs ${met ? 'text-etat-nominal-texte' : 'text-ink-mute'}`}>
                       {met ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                       {requirement}
                     </div>
@@ -281,7 +281,7 @@ export default function FirstLoginPasswordChange() {
                 </Button>
               </div>
               {formData.confirmPassword && !passwordsMatch && (
-                <div className="text-red-400 text-xs mt-1">
+                <div className="text-etat-critique-texte text-xs mt-1">
                   Les mots de passe ne correspondent pas
                 </div>
               )}
@@ -296,7 +296,7 @@ export default function FirstLoginPasswordChange() {
             </Button>
           </form>
 
-          <div className="text-center text-xs text-gray-500">
+          <div className="text-center text-xs text-ink-mute">
             Une fois le mot de passe changé, vous aurez accès à toutes les fonctionnalités de Maintrix
           </div>
         </CardContent>

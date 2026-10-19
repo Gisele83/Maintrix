@@ -254,22 +254,22 @@ export function WorkOrderManagement() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "in_progress": return "bg-blue-100 text-blue-800";
-      case "completed": return "bg-green-100 text-green-800";
-      case "cancelled": return "bg-gray-100 text-gray-800";
-      case "on_hold": return "bg-orange-100 text-orange-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "pending": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "in_progress": return "bg-etat-encours-fond text-etat-encours-texte";
+      case "completed": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      case "cancelled": return "bg-paper-deep text-ink";
+      case "on_hold": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "urgent": return "bg-red-100 text-red-800";
-      case "high": return "bg-orange-100 text-orange-800";
-      case "medium": return "bg-yellow-100 text-yellow-800";
-      case "low": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "urgent": return "bg-etat-critique-fond text-etat-critique-texte";
+      case "high": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "medium": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "low": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
@@ -291,8 +291,8 @@ export function WorkOrderManagement() {
       {/* Header and Actions */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Ordres de Travail</h2>
-          <p className="text-gray-600">Gérez les demandes de maintenance et réparations</p>
+          <h2 className="text-2xl font-bold text-ink">Ordres de Travail</h2>
+          <p className="text-ink-soft">Gérez les demandes de maintenance et réparations</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -319,7 +319,7 @@ export function WorkOrderManagement() {
       {/* Search and Filters */}
       <div className="flex space-x-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute w-4 h-4" />
           <Input
             placeholder="Rechercher par numéro, description ou équipement..."
             value={searchTerm}
@@ -360,7 +360,7 @@ export function WorkOrderManagement() {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => handleDelete(wo.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-etat-critique-texte hover:text-etat-critique-texte"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -369,27 +369,27 @@ export function WorkOrderManagement() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="font-medium text-sm text-gray-900 mb-1">Description:</p>
-                <p className="text-sm text-gray-600 line-clamp-2">{wo.description || 'Aucune description'}</p>
+                <p className="font-medium text-sm text-ink mb-1">Description:</p>
+                <p className="text-sm text-ink-soft line-clamp-2">{wo.description || 'Aucune description'}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="font-medium">Équipement:</span>
-                  <p className="text-gray-600">{wo.equipmentName || `ID: ${wo.equipmentId}`}</p>
+                  <p className="text-ink-soft">{wo.equipmentName || `ID: ${wo.equipmentId}`}</p>
                 </div>
                 <div>
                   <span className="font-medium">Type:</span>
-                  <p className="text-gray-600">{wo.workOrderType || wo.orderType || 'Non spécifié'}</p>
+                  <p className="text-ink-soft">{wo.workOrderType || wo.orderType || 'Non spécifié'}</p>
                 </div>
                 <div>
                   <span className="font-medium">Demandeur:</span>
-                  <p className="text-gray-600">{wo.requestedBy || 'Non spécifié'}</p>
+                  <p className="text-ink-soft">{wo.requestedBy || 'Non spécifié'}</p>
                 </div>
                 {wo.assignedTo && (
                   <div>
                     <span className="font-medium">Assigné à:</span>
-                    <p className="text-gray-600">{wo.assignedTo}</p>
+                    <p className="text-ink-soft">{wo.assignedTo}</p>
                   </div>
                 )}
               </div>
@@ -420,7 +420,7 @@ export function WorkOrderManagement() {
               {wo.scheduledDate && (
                 <div className="text-sm">
                   <span className="font-medium">Programmé:</span>
-                  <p className="text-gray-600">{new Date(wo.scheduledDate).toLocaleDateString('fr-FR')}</p>
+                  <p className="text-ink-soft">{new Date(wo.scheduledDate).toLocaleDateString('fr-FR')}</p>
                 </div>
               )}
             </CardContent>
@@ -430,9 +430,9 @@ export function WorkOrderManagement() {
 
       {filteredWorkOrders.length === 0 && (
         <div className="text-center py-12">
-          <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun ordre de travail trouvé</h3>
-          <p className="text-gray-600 mb-6">
+          <User className="w-12 h-12 text-ink-mute mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-ink mb-2">Aucun ordre de travail trouvé</h3>
+          <p className="text-ink-soft mb-6">
             {searchTerm ? "Aucun ordre ne correspond à votre recherche." : "Commencez par créer votre premier ordre de travail."}
           </p>
         </div>
@@ -593,7 +593,7 @@ function WorkOrderForm({
                   type="button"
                   variant="link"
                   size="sm"
-                  className="px-0 h-auto text-blue-600"
+                  className="px-0 h-auto text-etat-encours-texte"
                   onClick={() => setShowNewEquipment(!showNewEquipment)}
                 >
                   <Plus className="w-3 h-3 mr-1" />
@@ -630,9 +630,9 @@ function WorkOrderForm({
         </div>
 
         {showNewEquipment && (
-          <Card className="border-blue-200 bg-blue-50/50">
+          <Card className="border-etat-encours-filet bg-etat-encours-fond/50">
             <CardContent className="p-4 space-y-3">
-              <p className="text-sm font-medium text-blue-800">Nouvel équipement</p>
+              <p className="text-sm font-medium text-etat-encours-texte">Nouvel équipement</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium">Nom *</label>

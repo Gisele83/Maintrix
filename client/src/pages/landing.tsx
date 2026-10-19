@@ -270,7 +270,7 @@ export default function LandingPage() {
       {IS_TEST_ENVIRONMENT && (
         <div className="bg-ink text-paper">
           <p className="mx-auto max-w-6xl px-5 sm:px-8 py-2 text-sm">
-            <span className="font-mono text-eyebrow uppercase text-signal-light mr-3">Version de test</span>
+            <span className="font-mono text-eyebrow uppercase text-signal mr-3">Version de test</span>
             Les données saisies pendant les tests sont conservées lors du passage en production.
           </p>
         </div>
@@ -505,7 +505,7 @@ export default function LandingPage() {
         <section id="diagnostic" className="bg-ink text-paper scroll-mt-16">
           <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24">
             <div className="flex items-baseline gap-4 pb-10">
-              <span className="font-mono text-eyebrow text-signal-light">06</span>
+              <span className="font-mono text-eyebrow text-signal">06</span>
               <span className="font-mono text-eyebrow uppercase text-paper/60">Diagnostic</span>
             </div>
             <div className="grid gap-12 lg:grid-cols-12">

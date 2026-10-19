@@ -16,6 +16,10 @@ import { Separator } from "@/components/ui/separator";
 import { FileCheck, Settings, Building2, Shield, Download, CheckCircle, AlertCircle, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface PurchaseOrderConfig {
   letterOrderThreshold: number;
@@ -63,7 +67,30 @@ interface CCTPCompliance {
 export default function CCTPCompliancePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const tenantId = "default-tenant"; // À adapter selon votre système d'auth
+
+  /**
+   * ⚠️ CET ÉCRAN ÉTAIT ENTIÈREMENT BLANC, ET DEPUIS LONGTEMPS.
+   *
+   * L'identifiant d'organisation valait la chaîne littérale
+   * `"default-tenant"`, laissée avec son commentaire « à adapter selon votre
+   * système d'auth ». Mesuré le 19/10/2026 :
+   * `/api/cctp/tenant/default-tenant/purchase-order-config` répond
+   * **200 avec `{}`** — pas une erreur, un objet vide. Le composant lisait
+   * alors `poConfig.companyHeader.name` sur un `companyHeader` absent, levait
+   * une exception, et l'arbre React entier disparaissait : écran blanc, sans
+   * message. Avec le véritable identifiant, la même route renvoie la
+   * configuration complète.
+   *
+   * Conséquence plus grave que l'affichage : l'écran ÉCRIVAIT aussi sa
+   * configuration sous cet identifiant fictif. Les seuils de bon de commande
+   * et l'entête d'entreprise d'un client n'arrivaient donc jamais chez lui.
+   *
+   * On prend l'organisation réellement authentifiée. Les requêtes attendent
+   * qu'elle soit connue — sans quoi on repartirait interroger une
+   * organisation inexistante le temps du chargement du profil.
+   */
+  const { user } = useAuth();
+  const tenantId = (user as { tenantId?: string } | undefined)?.tenantId;
 
   // =====================================================
   // QUERIES POUR RÉCUPÉRER LES CONFIGURATIONS
@@ -71,12 +98,14 @@ export default function CCTPCompliancePage() {
 
   const { data: purchaseOrderConfig, isLoading: loadingPOConfig } = useQuery({
     queryKey: ["/api/cctp/tenant", tenantId, "purchase-order-config"],
-    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/purchase-order-config`)
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/purchase-order-config`),
+    enabled: !!tenantId
   });
 
   const { data: reportingConfig, isLoading: loadingReportingConfig } = useQuery({
     queryKey: ["/api/cctp/tenant", tenantId, "reporting-config"],
-    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/reporting-config`)
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/reporting-config`),
+    enabled: !!tenantId
   });
 
   const { data: compliance, isLoading: loadingCompliance } = useQuery<{
@@ -84,7 +113,8 @@ export default function CCTPCompliancePage() {
     requirements: Record<string, { status: string; score: number; details: string }>;
   }>({
     queryKey: ["/api/cctp/tenant", tenantId, "cctp-compliance"],
-    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/cctp-compliance`)
+    queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/cctp-compliance`),
+    enabled: !!tenantId
   });
 
   // =====================================================
@@ -165,31 +195,31 @@ export default function CCTPCompliancePage() {
   };
 
   const getComplianceColor = (score: number) => {
-    if (score >= 90) return "text-green-600";
-    if (score >= 70) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 90) return "text-etat-nominal-texte";
+    if (score >= 70) return "text-etat-alerte-texte";
+    return "text-etat-critique-texte";
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'compliant':
-        return <Badge className="bg-green-100 text-green-800">Conforme</Badge>;
+        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte">Conforme</Badge>;
       case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800">Partiel</Badge>;
+        return <Badge className="bg-etat-alerte-fond text-etat-alerte-texte">Partiel</Badge>;
       case 'missing':
-        return <Badge className="bg-red-100 text-red-800">Manquant</Badge>;
+        return <Badge className="bg-etat-critique-fond text-etat-critique-texte">Manquant</Badge>;
       default:
-        return <Badge className="bg-blue-100 text-blue-800">🆕 Nouveau</Badge>;
+        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">🆕 Nouveau</Badge>;
     }
   };
 
   if (loadingPOConfig || loadingReportingConfig || loadingCompliance) {
     return (
       <div className="p-6 space-y-6">
-        <div className="h-8 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-paper-deep rounded animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 bg-gray-200 rounded animate-pulse" />
+            <div key={i} className="h-32 bg-paper-deep rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -197,61 +227,58 @@ export default function CCTPCompliancePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-paper-deep min-h-screen">
-      {/* En-tête */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-ink">
-          Conformité CCTP
-        </h1>
-        <p className="text-gray-600">
-          Configuration et suivi de la conformité au Cahier des Charges Techniques Particulières
-        </p>
-      </div>
+    <AppShell filAriane={[{ libelle: "Conformité" }, { libelle: "CCTP" }]} largeur="large">
+    <div className="space-y-6">
+      <EnTetePage
+        surTitre="Conformité"
+        titre="Conformité CCTP"
+        phrase="Suivi des exigences du cahier des charges techniques particulières."
+        action={
+          <ActionPrincipale onClick={openComplianceReport}>
+            <Download className="w-4 h-4" />
+            Rapport PDF
+          </ActionPrincipale>
+        }
+      />
 
-      {/* Tableau de bord de conformité */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {/* ⚠️ « || 90 » affichait un score de conformité de 90 % quand
-                  AUCUNE conformité n'avait été évaluée — et seulement dans ce
-                  cas. Sur un écran de conformité réglementaire, c'est le pire
-                  endroit possible pour inventer un chiffre. */}
-              {compliance?.overallScore != null ? `${compliance.overallScore}%` : '—'}
-            </div>
-            <div className="text-sm text-green-800">
-              {compliance?.overallScore != null ? 'Score global' : 'Score global — non évalué'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">8/9</div>
-            <div className="text-sm text-blue-800">Exigences Conformes</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">1</div>
-            <div className="text-sm text-yellow-800">Configuration Requise</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-rule bg-paper-deep">
-          <CardContent className="p-4">
-            <Button 
-              onClick={openComplianceReport}
-              className="w-full bg-signal-deep hover:bg-signal-deep"
-              size="sm"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Rapport PDF
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      {/* ⚠️ « 8/9 exigences conformes » et « 1 configuration requise » étaient
+          écrits en dur, à côté d'un score global, lui, bien calculé. Mesuré
+          le 19/10/2026 sur ce locataire : l'API renvoie CINQ exigences, dont
+          trois conformes et deux partielles. L'écran affichait donc neuf
+          exigences là où il y en a cinq — sur un écran de conformité
+          réglementaire, c'est-à-dire exactement là où un industriel vérifie
+          ce qu'il peut opposer à un donneur d'ordre. On compte désormais ce
+          que le serveur rapporte. */}
+      {(() => {
+        const exigences = Object.values(compliance?.requirements ?? {});
+        const conformes = exigences.filter((e) => e.status === 'compliant').length;
+        const aConfigurer = exigences.filter((e) => e.status !== 'compliant').length;
+        return (
+          <RangeeIndicateurs colonnes={3}>
+            <Indicateur
+              libelle="Score global"
+              valeur={compliance?.overallScore != null ? `${compliance.overallScore} %` : '—'}
+              precision={compliance?.overallScore != null
+                ? `évalué le ${new Date().toLocaleDateString('fr-FR')}`
+                : 'conformité non encore évaluée'}
+              icone={Shield}
+            />
+            <Indicateur
+              libelle="Exigences conformes"
+              valeur={exigences.length > 0 ? `${conformes}/${exigences.length}` : '—'}
+              precision={exigences.length > 0 ? 'exigences du CCTP satisfaites' : 'aucune exigence évaluée'}
+              icone={CheckCircle}
+            />
+            <Indicateur
+              libelle="À configurer"
+              valeur={exigences.length > 0 ? aConfigurer : '—'}
+              precision={aConfigurer > 0 ? 'exigences partielles ou manquantes' : 'rien à configurer'}
+              icone={AlertCircle}
+              alerte={aConfigurer > 0}
+            />
+          </RangeeIndicateurs>
+        );
+      })()}
 
       {/* Onglets de configuration */}
       <Tabs defaultValue="purchase-orders" className="space-y-6">
@@ -319,10 +346,10 @@ export default function CCTPCompliancePage() {
                       <div className="space-y-2">
                         <Label>Nom de l'entreprise</Label>
                         <Input
-                          value={poConfig.companyHeader.name}
+                          value={poConfig.companyHeader?.name ?? ""}
                           onChange={(e) => setPOConfig({
                             ...poConfig,
-                            companyHeader: { ...poConfig.companyHeader, name: e.target.value }
+                            companyHeader: { ...(poConfig.companyHeader ?? {}), name: e.target.value } as PurchaseOrderConfig["companyHeader"]
                           })}
                         />
                       </div>
@@ -330,30 +357,30 @@ export default function CCTPCompliancePage() {
                         <Label>Email</Label>
                         <Input
                           type="email"
-                          value={poConfig.companyHeader.email}
+                          value={poConfig.companyHeader?.email ?? ""}
                           onChange={(e) => setPOConfig({
                             ...poConfig,
-                            companyHeader: { ...poConfig.companyHeader, email: e.target.value }
+                            companyHeader: { ...(poConfig.companyHeader ?? {}), email: e.target.value } as PurchaseOrderConfig["companyHeader"]
                           })}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>Adresse</Label>
                         <Textarea
-                          value={poConfig.companyHeader.address}
+                          value={poConfig.companyHeader?.address ?? ""}
                           onChange={(e) => setPOConfig({
                             ...poConfig,
-                            companyHeader: { ...poConfig.companyHeader, address: e.target.value }
+                            companyHeader: { ...(poConfig.companyHeader ?? {}), address: e.target.value } as PurchaseOrderConfig["companyHeader"]
                           })}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>Téléphone</Label>
                         <Input
-                          value={poConfig.companyHeader.phone}
+                          value={poConfig.companyHeader?.phone ?? ""}
                           onChange={(e) => setPOConfig({
                             ...poConfig,
-                            companyHeader: { ...poConfig.companyHeader, phone: e.target.value }
+                            companyHeader: { ...(poConfig.companyHeader ?? {}), phone: e.target.value } as PurchaseOrderConfig["companyHeader"]
                           })}
                         />
                       </div>
@@ -365,7 +392,7 @@ export default function CCTPCompliancePage() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-1">
                       <Label>Auto-génération activée</Label>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-ink-soft">
                         Générer automatiquement les documents selon les seuils
                       </p>
                     </div>
@@ -407,7 +434,7 @@ export default function CCTPCompliancePage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <Label>Rapports d'intervention automatiques</Label>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                           Générer un rapport PDF à chaque fin d'intervention
                         </p>
                       </div>
@@ -423,7 +450,7 @@ export default function CCTPCompliancePage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <Label>Rapports mensuels automatiques</Label>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                           Générer automatiquement les rapports mensuels
                         </p>
                       </div>
@@ -439,7 +466,7 @@ export default function CCTPCompliancePage() {
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
                         <Label>Détection automatique de langue</Label>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                           FR/EN selon navigateur utilisateur
                         </p>
                       </div>
@@ -482,7 +509,7 @@ export default function CCTPCompliancePage() {
                     <div className="font-medium capitalize">
                       {key.replace(/([A-Z])/g, ' $1').trim()}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-ink-soft">
                       {req.details}
                     </div>
                   </div>
@@ -499,5 +526,6 @@ export default function CCTPCompliancePage() {
         </TabsContent>
       </Tabs>
     </div>
+    </AppShell>
   );
 }

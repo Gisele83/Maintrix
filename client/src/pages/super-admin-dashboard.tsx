@@ -403,7 +403,7 @@ export default function SuperAdminDashboard() {
                 className="h-7 w-auto"
               />
               <div className="pl-4 border-l border-rule">
-                <p className="font-mono text-eyebrow uppercase tracking-wider text-signal-light">
+                <p className="font-mono text-eyebrow uppercase tracking-wider text-signal">
                   Console de plateforme
                 </p>
                 <h1 className="font-serif text-xl font-medium">Administration</h1>
@@ -486,7 +486,7 @@ export default function SuperAdminDashboard() {
                     Nouvelle organisation
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-gray-900/95 border-gray-600">
+                <DialogContent className="sm:max-w-md bg-ink/95 border-gray-600">
                   <DialogHeader>
                     <DialogTitle className="text-ink">Créer une organisation</DialogTitle>
                     <DialogDescription className="text-ink-mute">
@@ -711,7 +711,7 @@ export default function SuperAdminDashboard() {
             
             {/* MODAL DE MODIFICATION DE LA LIMITE D'UTILISATEURS */}
             <Dialog open={isEditLimitDialogOpen} onOpenChange={setIsEditLimitDialogOpen}>
-              <DialogContent className="sm:max-w-md bg-gray-900/95 border-gray-600">
+              <DialogContent className="sm:max-w-md bg-ink/95 border-gray-600">
                 <DialogHeader>
                   <DialogTitle className="text-ink">Modifier la limite d'utilisateurs</DialogTitle>
                   <DialogDescription className="text-ink-mute">
@@ -786,7 +786,7 @@ export default function SuperAdminDashboard() {
                     Créer Utilisateur
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-lg bg-gray-900/95 border-gray-600">
+                <DialogContent className="sm:max-w-lg bg-ink/95 border-gray-600">
                   <DialogHeader>
                     <DialogTitle className="text-ink">Créer un nouvel utilisateur</DialogTitle>
                     <DialogDescription className="text-ink-mute">
@@ -1045,7 +1045,7 @@ export default function SuperAdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="bg-gray-800/50 rounded-lg p-4 space-y-3 border border-gray-600">
+                  <div className="bg-ink/50 rounded-lg p-4 space-y-3 border border-gray-600">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Nom d'utilisateur */}
                       <div className="space-y-2">
@@ -1219,12 +1219,12 @@ Maintrix - Maintenance intelligente et prédictive`;
                       <div className="flex items-center gap-2 text-sm">
                         {createdUserCredentials.message?.includes('Email non envoyé') ? (
                           <>
-                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                            <span className="text-orange-300">Email non envoyé - Transmission manuelle requise</span>
+                            <div className="w-2 h-2 bg-etat-alerte-vif rounded-full"></div>
+                            <span className="text-etat-alerte-texte">Email non envoyé - Transmission manuelle requise</span>
                           </>
                         ) : (
                           <>
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-etat-nominal-vif rounded-full"></div>
                             <span className="text-ink">Email envoyé automatiquement</span>
                           </>
                         )}
@@ -1336,9 +1336,9 @@ Maintrix - Maintenance intelligente et prédictive`;
                 ) : (
                   <div className="space-y-3">
                     {defaultCredentialUsers?.users?.map((user: any) => (
-                      <div key={user.id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-orange-500/30">
+                      <div key={user.id} className="flex justify-between items-center p-4 bg-white rounded-lg border border-etat-alerte-filet">
                         <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center">
+                          <div className="w-10 h-10 bg-etat-alerte-vif rounded-full flex items-center justify-center">
                             <Users className="w-5 h-5 text-ink" />
                           </div>
                           <div>
@@ -1357,7 +1357,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                         <div className="flex items-center space-x-2">
                           <div className="flex flex-col space-y-2">
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-signal-deep border-orange-400">
+                              <Badge variant="outline" className="text-signal-deep border-etat-alerte-filet">
                                 Défaut
                               </Badge>
                               
@@ -1366,17 +1366,17 @@ Maintrix - Maintenance intelligente et prédictive`;
                                   ⏰ Expiré
                                 </Badge>
                               ) : user.passwordExpiresAt ? (
-                                <Badge variant="secondary" className="text-yellow-400 border-yellow-400">
+                                <Badge variant="secondary" className="text-etat-alerte-texte border-etat-alerte-filet">
                                   ⏰ Expire: {new Date(user.passwordExpiresAt).toLocaleDateString()}
                                 </Badge>
                               ) : null}
                               
                               {user.lastLogin ? (
-                                <Badge variant="secondary" className="text-ink border-green-400">
+                                <Badge variant="secondary" className="text-ink border-etat-nominal-filet">
                                   Connecté: {new Date(user.lastLogin).toLocaleDateString()}
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-ink-mute border-gray-400">
+                                <Badge variant="outline" className="text-ink-mute border-rule">
                                   Jamais connecté
                                 </Badge>
                               )}
@@ -1394,7 +1394,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                                     description: "Fonctionnalité d'édition en cours de développement",
                                   });
                                 }}
-                                className="bg-blue-600/20 border-blue-400 text-signal hover:bg-blue-600/40"
+                                className="bg-etat-encours-fond border-etat-encours-filet text-signal hover:bg-etat-encours-fond"
                               >
                                 <Edit className="w-3 h-3 mr-1" />
                                 Éditer
@@ -1434,7 +1434,7 @@ Maintrix - Maintenance intelligente et prédictive`;
                                     });
                                   }
                                 }}
-                                className="bg-red-600/20 border-red-400 text-red-300 hover:bg-red-600/40"
+                                className="bg-etat-critique-fond border-etat-critique-filet text-etat-critique-texte hover:bg-etat-critique-fond"
                               >
                                 <Trash2 className="w-3 h-3 mr-1" />
                                 Supprimer
@@ -1562,12 +1562,12 @@ Maintrix - Maintenance intelligente et prédictive`;
                 </Button>
                 
                 {emailTestResult?.sendgridTest && (
-                  <div className={`p-4 rounded-lg ${emailTestResult.sendgridTest.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
+                  <div className={`p-4 rounded-lg ${emailTestResult.sendgridTest.success ? 'bg-etat-nominal-fond border-etat-nominal-filet' : 'bg-etat-critique-fond border-etat-critique-filet'} border`}>
                     <div className="text-sm text-ink">
                       <strong>Status:</strong> {emailTestResult.sendgridTest.success ? 'OK' : 'Erreur'}
                     </div>
                     {emailTestResult.sendgridTest.error && (
-                      <div className="text-sm text-red-300 mt-1">
+                      <div className="text-sm text-etat-critique-texte mt-1">
                         <strong>Erreur:</strong> {emailTestResult.sendgridTest.error}
                       </div>
                     )}
@@ -1638,12 +1638,12 @@ Maintrix - Maintenance intelligente et prédictive`;
                 </Button>
                 
                 {emailTestResult?.result && (
-                  <div className={`p-4 rounded-lg ${emailTestResult.result.success ? 'bg-green-500/20 border-green-500/30' : 'bg-red-500/20 border-red-500/30'} border`}>
+                  <div className={`p-4 rounded-lg ${emailTestResult.result.success ? 'bg-etat-nominal-fond border-etat-nominal-filet' : 'bg-etat-critique-fond border-etat-critique-filet'} border`}>
                     <div className="text-sm text-ink">
                       <strong>Status:</strong> {emailTestResult.result.success ? 'Envoyé' : 'Échec'}
                     </div>
                     {emailTestResult.result.error && (
-                      <div className="text-sm text-red-300 mt-1">
+                      <div className="text-sm text-etat-critique-texte mt-1">
                         <strong>Erreur:</strong> {emailTestResult.result.error}
                       </div>
                     )}

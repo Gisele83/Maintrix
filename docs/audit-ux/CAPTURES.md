@@ -151,3 +151,39 @@ locataire `TENANT_ALPHA` authentifié en `admin`), à 1440 px de large, page ent
   toujours de la même quantité. Assombri de 45 % à 40 % de clarté : 5,26:1, mesuré.
 - **Les cinq déclencheurs de la navigation principale n'avaient aucun indicateur de focus
   clavier** (`outline-none` sans contrepartie). WCAG 2.4.7.
+
+---
+
+## Étape D — harmonisation des autres écrans
+
+Deux exemples représentatifs des 45 écrans repris. Il n'existe pas de capture « avant »
+pour eux : l'étape D a été engagée après la validation, sur l'état déjà commité.
+
+### Ordres de travail — `/work-orders`
+
+[`captures/apres-ordres-de-travail.jpg`](captures/apres-ordres-de-travail.jpg)
+
+- **L'écran n'avait aucune navigation.** C'est pourtant la destination de la liste
+  « À traiter » de la GMAO : on y arrivait en un clic et on ne pouvait plus en repartir.
+- **Le même statut n'avait pas la même couleur qu'en GMAO** : « En attente » était ambre
+  ici, jaune là-bas, parce que chaque écran écrivait ses propres aplats
+  (`bg-yellow-100 text-yellow-800`). Statuts et priorités passent par `lib/etats.ts`.
+- **La priorité tenait la bordure entière de la carte en couleur vive** (`border-2
+  border-red-500`). Sur une grille, cela produisait un damier où plus rien ne ressortait.
+  Elle passe sur un liseré de gauche, comme les indicateurs.
+- Les cinq cartes de statistiques à grosse icône colorée — dont deux bleues côte à côte,
+  pour « Total » et « En cours » — deviennent la rangée d'indicateurs partagée.
+- **Arbitrage assumé :** les ordres restent présentés en **cartes**, pas en tableau. Le
+  cahier des charges demande des tableaux triables ; la bascule change la façon de
+  travailler des techniciens et mérite d'être arbitrée à part, pas glissée dans une passe
+  d'harmonisation.
+
+### Habilitations — `/habilitation`
+
+[`captures/apres-habilitations.jpg`](captures/apres-habilitations.jpg)
+
+Représentatif des dix écrans dont les tuiles d'état avaient perdu leur couleur : les
+fragments `from-…` / `to-…` restés sans `bg-gradient-to-*` ne posaient plus aucun fond, et
+une correction de secours leur avait donné à toutes le même gris. « Expirent ≤ 30j » est à
+nouveau ambre, « Expirées » rouge, et les deux tuiles de dénombrement restent neutres —
+elles ne décrivent aucun état.

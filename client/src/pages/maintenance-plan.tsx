@@ -23,6 +23,9 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 interface PlanTask {
   id?: string; title: string; description?: string; equipmentName?: string; taskType: string;
@@ -41,21 +44,21 @@ interface Plan {
 interface PlanStats { total: number; approved: number; totalTasks: any; completedTasks: any; budgetAllocated: any; budgetSpent: any; }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  draft: { label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
-  in_review: { label: "En révision", color: "bg-blue-100 text-blue-700" },
-  approved: { label: "Approuvé", color: "bg-green-100 text-green-700" },
-  closed: { label: "Clôturé", color: "bg-gray-200 text-gray-500" },
+  draft: { label: "Brouillon", color: "bg-paper-deep text-ink-soft" },
+  in_review: { label: "En révision", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  approved: { label: "Approuvé", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  closed: { label: "Clôturé", color: "bg-paper-deep text-ink-mute" },
 };
 const TASK_STATUS: Record<string, { label: string; color: string }> = {
-  planned: { label: "Planifiée", color: "bg-slate-100 text-ink-soft" },
-  in_progress: { label: "En cours", color: "bg-blue-100 text-blue-700" },
-  completed: { label: "Réalisée", color: "bg-green-100 text-green-700" },
-  cancelled: { label: "Annulée", color: "bg-gray-200 text-ink-mute" },
-  postponed: { label: "Reportée", color: "bg-yellow-100 text-yellow-700" },
+  planned: { label: "Planifiée", color: "bg-paper-deep text-ink-soft" },
+  in_progress: { label: "En cours", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  completed: { label: "Réalisée", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  cancelled: { label: "Annulée", color: "bg-paper-deep text-ink-mute" },
+  postponed: { label: "Reportée", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
 };
 const TASK_TYPES = ["preventive","corrective","inspection","calibration","lubrication","cleaning","replacement","overhaul"];
 const TASK_TYPE_LABELS: Record<string, string> = { preventive:"Préventive", corrective:"Corrective", inspection:"Inspection", calibration:"Calibration", lubrication:"Lubrification", cleaning:"Nettoyage", replacement:"Remplacement", overhaul:"Révision générale" };
-const PRIORITY_CFG: Record<string, string> = { low:"bg-green-100 text-green-700", medium:"bg-yellow-100 text-yellow-700", high:"bg-orange-100 text-orange-700", critical:"bg-red-100 text-red-700" };
+const PRIORITY_CFG: Record<string, string> = { low:"bg-etat-nominal-fond text-etat-nominal-texte", medium:"bg-etat-alerte-fond text-etat-alerte-texte", high:"bg-etat-alerte-fond text-etat-alerte-texte", critical:"bg-etat-critique-fond text-etat-critique-texte" };
 const PRIORITY_LABELS: Record<string, string> = { low:"Faible", medium:"Moyen", high:"Élevé", critical:"Critique" };
 const MONTHS = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const fmtEur = (n: any) => n != null ? `${Number(n).toLocaleString("fr-FR",{maximumFractionDigits:0})} €` : "—";
@@ -159,11 +162,12 @@ export default function MaintenancePlanPage() {
   const currentMonth = new Date().getMonth() + 1;
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "GMAO", href: "/gmao" }, { libelle: "Plan de maintenance" }]} largeur="large">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep"><CalendarCheck className="h-6 w-6 text-ink" /></div>
+            <div className="p-2.5 rounded-none bg-paper-deep"><CalendarCheck className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Plan de Maintenance Annuel</h1>
           </div>
           <p className="text-ink-mute ml-14 text-sm">Planification et suivi des opérations de maintenance préventive</p>
@@ -177,14 +181,14 @@ export default function MaintenancePlanPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Plans", value: stats?.total ?? 0, icon: CalendarCheck, color: "from-cyan-500 to-blue-600" },
-          { label: "Tâches planifiées", value: Number(stats?.totalTasks) || 0, icon: Activity, color: "from-indigo-500 " },
-          { label: "Tâches réalisées", value: Number(stats?.completedTasks) || 0, icon: CheckCircle2, color: "from-green-500 to-emerald-600" },
-          { label: "Budget alloué", value: fmtEur(stats?.budgetAllocated), icon: BarChart3, color: "from-orange-500 to-amber-600" },
+          { label: "Plans", value: stats?.total ?? 0, icon: CalendarCheck, color: "" },
+          { label: "Tâches planifiées", value: Number(stats?.totalTasks) || 0, icon: Activity, color: " " },
+          { label: "Tâches réalisées", value: Number(stats?.completedTasks) || 0, icon: CheckCircle2, color: "" },
+          { label: "Budget alloué", value: fmtEur(stats?.budgetAllocated), icon: BarChart3, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+          <Card key={label} className="border-0 shadow-none"><CardContent className="p-4 flex items-center gap-4">
+            <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+            <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -201,7 +205,7 @@ export default function MaintenancePlanPage() {
           {filtered.map(p => {
             const sc = STATUS_CFG[p.status] || STATUS_CFG.draft;
             return (
-              <Card key={p.id} className="border border-slate-100 shadow-sm hover:shadow-md transition-all">
+              <Card key={p.id} className="border border-slate-100 shadow-sm hover:shadow-none transition-all">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -211,14 +215,14 @@ export default function MaintenancePlanPage() {
                         <Badge variant="outline" className="text-xs">{p.fiscalYear}</Badge>
                         {p.department && <span className="text-xs text-ink-mute">{p.department}</span>}
                       </div>
-                      <h3 className="font-semibold text-slate-800">{p.title}</h3>
+                      <h3 className="font-semibold text-ink">{p.title}</h3>
                       <div className="mt-2 space-y-1.5">
                         <div className="flex items-center justify-between text-xs text-ink-mute"><span>Avancement: {p.completionPct}%</span><span className="font-medium">{p.completedTasks}/{p.totalTasks} tâches</span></div>
                         <Progress value={p.completionPct} className="h-2.5" />
                       </div>
                       <div className="flex gap-4 mt-2 text-xs flex-wrap">
-                        {p.inProgressTasks > 0 && <span className="text-blue-600">{p.inProgressTasks} en cours</span>}
-                        {p.overdueTasks > 0 && <span className="text-red-600">{p.overdueTasks} en retard</span>}
+                        {p.inProgressTasks > 0 && <span className="text-etat-encours-texte">{p.inProgressTasks} en cours</span>}
+                        {p.overdueTasks > 0 && <span className="text-etat-critique-texte">{p.overdueTasks} en retard</span>}
                         <span className="text-ink-mute">{fmtEur(p.budgetAllocated)}</span>
                       </div>
                     </div>
@@ -234,7 +238,7 @@ export default function MaintenancePlanPage() {
       {/* CREATE */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-cyan-600" />Nouveau plan de maintenance</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-etat-encours-texte" />Nouveau plan de maintenance</DialogTitle></DialogHeader>
           <Form {...form}><form onSubmit={form.handleSubmit(d => createMut.mutate(d))} className="space-y-3 mt-2">
             <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Intitulé *</FormLabel><FormControl><Input placeholder="Ex: Plan de maintenance préventive 2025" {...field} /></FormControl><FormMessage /></FormItem>)} />
             <div className="grid grid-cols-2 gap-3">
@@ -246,7 +250,7 @@ export default function MaintenancePlanPage() {
               <FormField control={form.control} name="endDate" render={({ field }) => (<FormItem><FormLabel>Date fin</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </div>
             <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-cyan-600 text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-etat-encours-vif text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
           </form></Form>
         </DialogContent>
       </Dialog>
@@ -256,11 +260,11 @@ export default function MaintenancePlanPage() {
         <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setShowAddTask(false); }}>
           <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-cyan-200">
-                <CalendarCheck className="h-6 w-6 text-cyan-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-encours-filet">
+                <CalendarCheck className="h-6 w-6 text-etat-encours-texte" />
                 <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.planNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
-                  {Object.keys(STATUS_CFG).map(s => (<Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={`text-xs ${selected.status === s ? "bg-cyan-600 text-white" : ""}`} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s].label}</Button>))}
+                  {Object.keys(STATUS_CFG).map(s => (<Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={`text-xs ${selected.status === s ? "bg-etat-encours-vif text-white" : ""}`} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s].label}</Button>))}
                 </div>
               </div>
             </DialogHeader>
@@ -268,13 +272,13 @@ export default function MaintenancePlanPage() {
             {/* Summary + chart */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
               {[
-                { l: "Total tâches", v: selected.totalTasks, c: "text-slate-800" },
-                { l: "Réalisées", v: selected.completedTasks, c: "text-green-700" },
-                { l: "En cours", v: selected.inProgressTasks, c: "text-blue-700" },
-                { l: "En retard", v: selected.overdueTasks, c: "text-red-600" },
-              ].map(({ l, v, c }) => (<div key={l} className="bg-white border rounded-xl p-3 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute">{l}</p></div>))}
+                { l: "Total tâches", v: selected.totalTasks, c: "text-ink" },
+                { l: "Réalisées", v: selected.completedTasks, c: "text-etat-nominal-texte" },
+                { l: "En cours", v: selected.inProgressTasks, c: "text-etat-encours-texte" },
+                { l: "En retard", v: selected.overdueTasks, c: "text-etat-critique-texte" },
+              ].map(({ l, v, c }) => (<div key={l} className="bg-white border rounded-none p-3 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute">{l}</p></div>))}
             </div>
-            <div className="mb-2"><div className="flex justify-between text-sm mb-1"><span>Avancement global</span><span className="font-bold text-cyan-700">{selected.completionPct}%</span></div><Progress value={selected.completionPct} className="h-3" /></div>
+            <div className="mb-2"><div className="flex justify-between text-sm mb-1"><span>Avancement global</span><span className="font-bold text-etat-encours-texte">{selected.completionPct}%</span></div><Progress value={selected.completionPct} className="h-3" /></div>
 
             {/* Monthly chart */}
             <ResponsiveContainer width="100%" height={130}>
@@ -290,12 +294,12 @@ export default function MaintenancePlanPage() {
 
             {/* Month filter */}
             <div className="flex gap-1.5 flex-wrap">
-              <button onClick={() => setFilterMonth(0)} className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${filterMonth === 0 ? "bg-cyan-600 text-white border-cyan-600" : "bg-white border-slate-200"}`}>Tous</button>
+              <button onClick={() => setFilterMonth(0)} className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${filterMonth === 0 ? "bg-etat-encours-vif text-white border-etat-encours-filet" : "bg-white border-rule"}`}>Tous</button>
               {MONTHS.map((m, i) => {
                 const mNum = i + 1;
                 const mData = selected.monthlyData.find(d => d.monthNum === mNum);
                 return (
-                  <button key={m} onClick={() => setFilterMonth(filterMonth === mNum ? 0 : mNum)} className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${filterMonth === mNum ? "bg-cyan-600 text-white border-cyan-600" : mNum === currentMonth ? "border-cyan-300 bg-cyan-50" : "bg-white border-slate-200"}`}>
+                  <button key={m} onClick={() => setFilterMonth(filterMonth === mNum ? 0 : mNum)} className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${filterMonth === mNum ? "bg-etat-encours-vif text-white border-etat-encours-filet" : mNum === currentMonth ? "border-etat-encours-filet bg-etat-encours-fond" : "bg-white border-rule"}`}>
                     {m} {mData && mData.planned > 0 ? <span className="opacity-70">({mData.completed}/{mData.planned})</span> : ""}
                   </button>
                 );
@@ -304,13 +308,13 @@ export default function MaintenancePlanPage() {
 
             {/* Tasks */}
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-slate-700">{filterMonth > 0 ? `Tâches — ${MONTHS[filterMonth-1]}` : "Toutes les tâches"} ({displayedTasks.length})</h4>
-              <Button size="sm" onClick={() => { setShowAddTask(true); setEditTaskIdx(null); taskForm.reset({ taskType: "preventive", priority: "medium", plannedMonth: filterMonth || currentMonth }); }} className="bg-cyan-600 text-white gap-2"><Plus className="h-4 w-4" />Ajouter</Button>
+              <h4 className="font-semibold text-ink-soft">{filterMonth > 0 ? `Tâches — ${MONTHS[filterMonth-1]}` : "Toutes les tâches"} ({displayedTasks.length})</h4>
+              <Button size="sm" onClick={() => { setShowAddTask(true); setEditTaskIdx(null); taskForm.reset({ taskType: "preventive", priority: "medium", plannedMonth: filterMonth || currentMonth }); }} className="bg-etat-encours-vif text-white gap-2"><Plus className="h-4 w-4" />Ajouter</Button>
             </div>
 
             {showAddTask && (
-              <div className="border-2 border-cyan-200 rounded-xl p-4 bg-cyan-50/30 space-y-3">
-                <h4 className="font-semibold text-cyan-800">{editTaskIdx !== null ? "Modifier la tâche" : "Nouvelle tâche"}</h4>
+              <div className="border-2 border-etat-encours-filet rounded-none p-4 bg-etat-encours-fond/30 space-y-3">
+                <h4 className="font-semibold text-etat-encours-texte">{editTaskIdx !== null ? "Modifier la tâche" : "Nouvelle tâche"}</h4>
                 <Form {...taskForm}><form onSubmit={taskForm.handleSubmit(addTask)} className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <FormField control={taskForm.control} name="title" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Intitulé *</FormLabel><FormControl><Input placeholder="Ex: Remplacement filtre compresseur" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -325,7 +329,7 @@ export default function MaintenancePlanPage() {
                     <FormField control={taskForm.control} name="frequency" render={({ field }) => (<FormItem><FormLabel>Fréquence</FormLabel><FormControl><Input placeholder="Ex: Annuel, Semestriel..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
                   <FormField control={taskForm.control} name="spareParts" render={({ field }) => (<FormItem><FormLabel>Pièces de rechange nécessaires</FormLabel><FormControl><Input placeholder="Ex: Filtre A-001, Joint K-002" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                  <div className="flex gap-2"><Button type="submit" size="sm" disabled={updateMut.isPending} className="bg-cyan-600 text-white"><Save className="h-3.5 w-3.5 mr-1" />{editTaskIdx !== null ? "Mettre à jour" : "Ajouter"}</Button><Button type="button" size="sm" variant="outline" onClick={() => { setShowAddTask(false); setEditTaskIdx(null); }}>Annuler</Button></div>
+                  <div className="flex gap-2"><Button type="submit" size="sm" disabled={updateMut.isPending} className="bg-etat-encours-vif text-white"><Save className="h-3.5 w-3.5 mr-1" />{editTaskIdx !== null ? "Mettre à jour" : "Ajouter"}</Button><Button type="button" size="sm" variant="outline" onClick={() => { setShowAddTask(false); setEditTaskIdx(null); }}>Annuler</Button></div>
                 </form></Form>
               </div>
             )}
@@ -337,7 +341,7 @@ export default function MaintenancePlanPage() {
                 const ts = TASK_STATUS[task.status] || TASK_STATUS.planned;
                 const isOverdue = task.status === "planned" && task.plannedDate && new Date(task.plannedDate) < new Date();
                 return (
-                  <div key={task.id || i} className={`flex items-center gap-3 border rounded-xl px-4 py-2.5 ${isOverdue ? "bg-red-50 border-red-200" : "bg-white"}`}>
+                  <div key={task.id || i} className={`flex items-center gap-3 border rounded-none px-4 py-2.5 ${isOverdue ? "bg-etat-critique-fond border-etat-critique-filet" : "bg-white"}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm truncate">{task.title}</span>
@@ -347,14 +351,14 @@ export default function MaintenancePlanPage() {
                         {task.equipmentName && <span className="text-xs text-ink-mute">{task.equipmentName}</span>}
                         {task.assignedTo && <span className="text-xs text-ink-mute">{task.assignedTo}</span>}
                         {task.estimatedHours && <span className="text-xs text-ink-mute">⏱{task.estimatedHours}h</span>}
-                        {task.estimatedCost && <span className="text-xs text-blue-600">{fmtEur(task.estimatedCost)}</span>}
-                        {isOverdue && <Badge className="bg-red-100 text-red-700 text-xs">Retard</Badge>}
+                        {task.estimatedCost && <span className="text-xs text-etat-encours-texte">{fmtEur(task.estimatedCost)}</span>}
+                        {isOverdue && <Badge className="bg-etat-critique-fond text-etat-critique-texte text-xs">Retard</Badge>}
                       </div>
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      {task.status !== "completed" && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-green-700" onClick={() => setTaskStatus(realIdx, "completed")}><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Réalisé</Button>}
-                      {task.status === "planned" && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-blue-700" onClick={() => setTaskStatus(realIdx, "in_progress")}><Clock className="h-3.5 w-3.5" /></Button>}
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-400" onClick={() => removeTask(realIdx)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      {task.status !== "completed" && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-etat-nominal-texte" onClick={() => setTaskStatus(realIdx, "completed")}><CheckCircle2 className="h-3.5 w-3.5 mr-1" />Réalisé</Button>}
+                      {task.status === "planned" && <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-etat-encours-texte" onClick={() => setTaskStatus(realIdx, "in_progress")}><Clock className="h-3.5 w-3.5" /></Button>}
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-etat-critique-texte" onClick={() => removeTask(realIdx)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </div>
                 );
@@ -362,12 +366,13 @@ export default function MaintenancePlanPage() {
             </div>
 
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer ce plan ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer ce plan ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

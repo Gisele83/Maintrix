@@ -87,7 +87,7 @@ export default function StockAlertsDashboard() {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-etat-encours-texte" />
           <p>Chargement des alertes de stock...</p>
         </CardContent>
       </Card>
@@ -103,38 +103,38 @@ export default function StockAlertsDashboard() {
     <div className="space-y-6">
       {/* Résumé des alertes */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-etat-critique-filet bg-etat-critique-fond">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-red-600">Stock épuisé</p>
-                <p className="text-2xl font-bold text-red-700">{criticalAlerts.length}</p>
+                <p className="text-sm font-medium text-etat-critique-texte">Stock épuisé</p>
+                <p className="text-2xl font-bold text-etat-critique-texte">{criticalAlerts.length}</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <AlertTriangle className="h-8 w-8 text-etat-critique-texte" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-etat-alerte-filet bg-etat-alerte-fond">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-yellow-600">Stock bas</p>
-                <p className="text-2xl font-bold text-yellow-700">{warningAlerts.length}</p>
+                <p className="text-sm font-medium text-etat-alerte-texte">Stock bas</p>
+                <p className="text-2xl font-bold text-etat-alerte-texte">{warningAlerts.length}</p>
               </div>
-              <TrendingDown className="h-8 w-8 text-yellow-500" />
+              <TrendingDown className="h-8 w-8 text-etat-alerte-texte" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-etat-encours-filet bg-etat-encours-fond">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">À commander</p>
-                <p className="text-2xl font-bold text-blue-700">{recommendations.length}</p>
+                <p className="text-sm font-medium text-etat-encours-texte">À commander</p>
+                <p className="text-2xl font-bold text-etat-encours-texte">{recommendations.length}</p>
               </div>
-              <ShoppingCart className="h-8 w-8 text-blue-500" />
+              <ShoppingCart className="h-8 w-8 text-etat-encours-texte" />
             </div>
           </CardContent>
         </Card>
@@ -177,8 +177,8 @@ export default function StockAlertsDashboard() {
                     key={rec.sparePartId} 
                     className={`p-4 rounded border transition-colors cursor-pointer ${
                       selectedRecommendations.includes(rec.sparePartId)
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'border-etat-encours-filet bg-etat-encours-fond'
+                        : 'border-rule hover:bg-paper'
                     }`}
                     onClick={() => toggleRecommendation(rec.sparePartId)}
                   >
@@ -189,30 +189,30 @@ export default function StockAlertsDashboard() {
                             type="checkbox"
                             checked={selectedRecommendations.includes(rec.sparePartId)}
                             onChange={() => toggleRecommendation(rec.sparePartId)}
-                            className="rounded border-gray-300"
+                            className="rounded border-rule"
                             onClick={(e) => e.stopPropagation()}
                           />
                           <div>
                             <h3 className="font-semibold">{rec.partName}</h3>
-                            <p className="text-sm text-gray-600">{rec.partNumber}</p>
+                            <p className="text-sm text-ink-soft">{rec.partNumber}</p>
                           </div>
                         </div>
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <span className="font-medium text-gray-500">Stock actuel:</span>
-                            <div className="font-semibold text-red-600">{rec.currentStock}</div>
+                            <span className="font-medium text-ink-mute">Stock actuel:</span>
+                            <div className="font-semibold text-etat-critique-texte">{rec.currentStock}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Stock min:</span>
+                            <span className="font-medium text-ink-mute">Stock min:</span>
                             <div className="font-semibold">{rec.minStock}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Qté recommandée:</span>
-                            <div className="font-semibold text-green-600">{rec.recommendedOrder}</div>
+                            <span className="font-medium text-ink-mute">Qté recommandée:</span>
+                            <div className="font-semibold text-etat-nominal-texte">{rec.recommendedOrder}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-500">Coût estimé:</span>
+                            <span className="font-medium text-ink-mute">Coût estimé:</span>
                             <div className="font-semibold flex items-center">
                               <Euro className="w-3 h-3 mr-1" />
                               {rec.estimatedCost}€
@@ -220,7 +220,7 @@ export default function StockAlertsDashboard() {
                           </div>
                         </div>
 
-                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+                        <div className="mt-2 flex items-center gap-4 text-xs text-ink-soft">
                           <span className="flex items-center">
                             <User className="w-3 h-3 mr-1" />
                             <strong>Fournisseur:</strong> {rec.supplier}
@@ -240,9 +240,9 @@ export default function StockAlertsDashboard() {
       {alerts.length === 0 && recommendations.length === 0 && (
         <Card>
           <CardContent className="p-8 text-center">
-            <Package className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-green-700">Stocks optimaux</h3>
-            <p className="text-gray-600">
+            <Package className="w-12 h-12 text-etat-nominal-texte mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2 text-etat-nominal-texte">Stocks optimaux</h3>
+            <p className="text-ink-soft">
               Aucune alerte de stock. Tous les niveaux de stock sont corrects.
             </p>
           </CardContent>

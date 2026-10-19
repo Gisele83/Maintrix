@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Network, GitBranch, TrendingUp, Info } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface KgNode {
@@ -106,14 +109,15 @@ export default function KnowledgeGraphPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <AppShell filAriane={[{ libelle: "Diagnostic" }, { libelle: "Graphe de causalité" }]} largeur="large">
+      <div className="space-y-6">
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Network className="w-6 h-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+              <Network className="w-6 h-6 text-etat-encours-texte" />
               Knowledge Graph métier
             </h1>
-            <p className="text-gray-500">
+            <p className="text-ink-mute">
               Mémoire technique construite automatiquement à chaque intervention complétée — pas un jeu de données statique.
             </p>
           </div>
@@ -123,13 +127,13 @@ export default function KnowledgeGraphPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold">{nodes?.length ?? 0}</div>
-                <div className="text-sm text-gray-500">Nœuds</div>
+                <div className="text-sm text-ink-mute">Nœuds</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold">{edges?.length ?? 0}</div>
-                <div className="text-sm text-gray-500">Relations</div>
+                <div className="text-sm text-ink-mute">Relations</div>
               </CardContent>
             </Card>
             <Card>
@@ -137,14 +141,14 @@ export default function KnowledgeGraphPage() {
                 <div className="text-2xl font-bold">
                   {edges && edges.length > 0 ? Math.max(...edges.map(e => e.occurrenceCount)) : 0}
                 </div>
-                <div className="text-sm text-gray-500">Renforcement maximal (occurrences)</div>
+                <div className="text-sm text-ink-mute">Renforcement maximal (occurrences)</div>
               </CardContent>
             </Card>
           </div>
 
           {(!nodes || nodes.length === 0) ? (
             <Card>
-              <CardContent className="pt-6 text-center text-gray-500">
+              <CardContent className="pt-6 text-center text-ink-mute">
                 Le graphe est vide pour l'instant. Il s'enrichira automatiquement à mesure que des interventions
                 (réception → ... → REX) seront complétées dans Maintenance Execution.
               </CardContent>
@@ -230,7 +234,7 @@ export default function KnowledgeGraphPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <TrendingUp className="w-4 h-4 text-etat-nominal-texte" />
                     Relations les plus renforcées
                   </CardTitle>
                   <CardDescription>
@@ -268,6 +272,7 @@ export default function KnowledgeGraphPage() {
           )}
         </div>
       </div>
+      </AppShell>
     </TooltipProvider>
   );
 }

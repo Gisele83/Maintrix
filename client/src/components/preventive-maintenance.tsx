@@ -245,16 +245,16 @@ export function PreventiveMaintenance() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "urgent": return "bg-red-100 text-red-800";
-      case "high": return "bg-orange-100 text-orange-800";
-      case "medium": return "bg-yellow-100 text-yellow-800";
-      case "low": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "urgent": return "bg-etat-critique-fond text-etat-critique-texte";
+      case "high": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "medium": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "low": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
   const getStatusColor = (isActive: boolean) => {
-    return isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
+    return isActive ? "bg-etat-nominal-fond text-etat-nominal-texte" : "bg-paper-deep text-ink";
   };
 
   const calculateNextMaintenance = (lastMaintenance: string, frequency: string, frequencyValue: number) => {
@@ -295,8 +295,8 @@ export function PreventiveMaintenance() {
       {/* Header and Actions */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Maintenance Préventive</h2>
-          <p className="text-gray-600">Planifiez et gérez la maintenance préventive de vos équipements</p>
+          <h2 className="text-2xl font-bold text-ink">Maintenance Préventive</h2>
+          <p className="text-ink-soft">Planifiez et gérez la maintenance préventive de vos équipements</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -323,7 +323,7 @@ export function PreventiveMaintenance() {
       {/* Search and Filters */}
       <div className="flex space-x-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute w-4 h-4" />
           <Input
             placeholder="Rechercher par description ou équipement..."
             value={searchTerm}
@@ -354,11 +354,11 @@ export function PreventiveMaintenance() {
           const isMaintenanceOverdue = isOverdue(nextMaintenanceDate);
           
           return (
-            <Card key={plan.id} className={`transition-shadow ${isMaintenanceOverdue ? 'border-red-200' : ''}`}>
+            <Card key={plan.id} className={`transition-shadow ${isMaintenanceOverdue ? 'border-etat-critique-filet' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-2">
-                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <Calendar className="w-5 h-5 text-etat-encours-texte" />
                     <CardTitle className="text-lg">{plan.planName}</CardTitle>
                   </div>
                   <div className="flex space-x-1">
@@ -369,7 +369,7 @@ export function PreventiveMaintenance() {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => handleDelete(plan.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-etat-critique-texte hover:text-etat-critique-texte"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -378,13 +378,13 @@ export function PreventiveMaintenance() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="font-medium text-sm text-gray-900 mb-1">Type d'équipement:</p>
-                  <p className="text-sm text-gray-600">{plan.equipmentType}</p>
+                  <p className="font-medium text-sm text-ink mb-1">Type d'équipement:</p>
+                  <p className="text-sm text-ink-soft">{plan.equipmentType}</p>
                 </div>
 
                 <div>
-                  <p className="font-medium text-sm text-gray-900 mb-1">Tâches:</p>
-                  <p className="text-sm text-gray-600 line-clamp-2">
+                  <p className="font-medium text-sm text-ink mb-1">Tâches:</p>
+                  <p className="text-sm text-ink-soft line-clamp-2">
                     {Array.isArray(plan.tasks) ? plan.tasks.join(', ') : 'Aucune tâche définie'}
                   </p>
                 </div>
@@ -392,18 +392,18 @@ export function PreventiveMaintenance() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Fréquence:</span>
-                    <p className="text-gray-600">{plan.frequencyValue || ''} {plan.frequency}</p>
+                    <p className="text-ink-soft">{plan.frequencyValue || ''} {plan.frequency}</p>
                   </div>
                   {plan.estimatedDuration && (
                     <div>
                       <span className="font-medium">Durée:</span>
-                      <p className="text-gray-600">{plan.estimatedDuration}h</p>
+                      <p className="text-ink-soft">{plan.estimatedDuration}h</p>
                     </div>
                   )}
                   {plan.requiredSkills && Array.isArray(plan.requiredSkills) && plan.requiredSkills.length > 0 && (
                     <div className="col-span-2">
                       <span className="font-medium">Compétences:</span>
-                      <p className="text-gray-600">{plan.requiredSkills.join(', ')}</p>
+                      <p className="text-ink-soft">{plan.requiredSkills.join(', ')}</p>
                     </div>
                   )}
                 </div>
@@ -412,7 +412,7 @@ export function PreventiveMaintenance() {
                   {plan.lastExecuted && (
                     <div className="text-sm">
                       <span className="font-medium">Dernière exécution:</span>
-                      <p className="text-gray-600">
+                      <p className="text-ink-soft">
                         {typeof plan.lastExecuted === 'string' ? 
                           new Date(plan.lastExecuted).toLocaleDateString('fr-FR') : 
                           plan.lastExecuted.toLocaleDateString('fr-FR')}
@@ -421,7 +421,7 @@ export function PreventiveMaintenance() {
                   )}
                   <div className="text-sm">
                     <span className="font-medium">Prochaine maintenance:</span>
-                    <p className={`${isMaintenanceOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                    <p className={`${isMaintenanceOverdue ? 'text-etat-critique-texte font-medium' : 'text-ink-soft'}`}>
                       {isMaintenanceOverdue && <AlertTriangle className="w-4 h-4 inline mr-1" />}
                       {nextMaintenanceDate}
                     </p>
@@ -451,9 +451,9 @@ export function PreventiveMaintenance() {
 
       {filteredPlans.length === 0 && (
         <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun plan de maintenance trouvé</h3>
-          <p className="text-gray-600 mb-6">
+          <Calendar className="w-12 h-12 text-ink-mute mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-ink mb-2">Aucun plan de maintenance trouvé</h3>
+          <p className="text-ink-soft mb-6">
             {searchTerm ? "Aucun plan ne correspond à votre recherche." : "Commencez par créer votre premier plan de maintenance."}
           </p>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

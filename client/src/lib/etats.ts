@@ -126,6 +126,29 @@ export function registrePriorite(priorite: string | undefined | null): RegistreE
   }
 }
 
+/**
+ * Déduit le registre d'une tuile de statistiques à partir de son libellé.
+ *
+ * Une dizaine d'écrans affichent la même rangée — « En retard », « Expirent
+ * ≤ 30j », « Conformes », « Hors service » — et chacun portait sa propre
+ * teinte, écrite à la main. Après le retrait des dégradés, ces teintes ont
+ * disparu et les quatre tuiles se sont retrouvées identiques : la couleur ne
+ * distinguait plus un retard d'une conformité.
+ *
+ * Le libellé est la seule information disponible à cet endroit — les tuiles
+ * sont déclarées dans un tableau littéral, sans clé de statut. C'est donc lui
+ * qu'on lit. Un libellé qu'aucune règle ne reconnaît reste `neutre` : mieux
+ * vaut une tuile muette qu'une tuile qui affirme la mauvaise chose.
+ */
+export function registreDepuisLibelle(libelle: string): RegistreEtat {
+  const l = libelle.toLowerCase();
+  if (/retard|expir(é|ées|ee|ees)\b|critique|rupture|dépass|hors délai|non conforme|urgent/.test(l)) return "critique";
+  if (/expirent|échéance|echeance|bientôt|bientot|≤ ?\d|sous \d|attente|à planifier|a planifier|surveill|alerte/.test(l)) return "alerte";
+  if (/conforme|à jour|a jour|valide|actif|actives|terminé|termine|résolu|resolu|sain/.test(l)) return "nominal";
+  if (/en cours|engagé|engage|assigné|assigne|planifié|planifie/.test(l)) return "encours";
+  return "neutre";
+}
+
 /** Traduit une gravité d'alerte ou un niveau d'urgence déclaré. */
 export function registreGravite(gravite: string | undefined | null): RegistreEtat {
   switch (gravite) {

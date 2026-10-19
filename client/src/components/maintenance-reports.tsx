@@ -178,28 +178,28 @@ export function MaintenanceReports() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-green-100 text-green-800">Approuvé</Badge>;
+        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte">Approuvé</Badge>;
       case "draft":
-        return <Badge className="bg-yellow-100 text-yellow-800">Brouillon</Badge>;
+        return <Badge className="bg-etat-alerte-fond text-etat-alerte-texte">Brouillon</Badge>;
       case "generated":
-        return <Badge className="bg-blue-100 text-blue-800">Généré</Badge>;
+        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">Généré</Badge>;
       case "reviewed":
         return <Badge className="bg-paper-deep text-signal-deep">Révisé</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+        return <Badge className="bg-paper-deep text-ink">{status}</Badge>;
     }
   };
 
   const getReportTypeBadge = (type: string) => {
     switch (type) {
       case "preventive":
-        return <Badge className="bg-green-100 text-green-800">Préventive</Badge>;
+        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte">Préventive</Badge>;
       case "corrective":
-        return <Badge className="bg-red-100 text-red-800">Corrective</Badge>;
+        return <Badge className="bg-etat-critique-fond text-etat-critique-texte">Corrective</Badge>;
       case "inspection":
-        return <Badge className="bg-blue-100 text-blue-800">Inspection</Badge>;
+        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">Inspection</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">{type}</Badge>;
+        return <Badge className="bg-paper-deep text-ink">{type}</Badge>;
     }
   };
 
@@ -381,7 +381,7 @@ export function MaintenanceReports() {
         <div className="space-y-3">
           {Object.entries(data).map(([key, value], index) => {
             const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
-            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'];
+            const colors = ['bg-etat-encours-vif', 'bg-etat-nominal-vif', 'bg-etat-alerte-vif', 'bg-etat-critique-vif', 'bg-etat-encours-vif'];
             return (
               <div key={key} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -515,15 +515,15 @@ export function MaintenanceReports() {
                         </div>
 
                         {(report.safetyIncidents || report.followUpRequired) && (
-                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="mt-4 p-3 bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg">
                             {report.safetyIncidents && (
-                              <div className="flex items-center gap-2 text-yellow-800">
+                              <div className="flex items-center gap-2 text-etat-alerte-texte">
                                 <AlertTriangle className="w-4 h-4" />
                                 <span className="text-sm font-medium">Incident de sécurité signalé</span>
                               </div>
                             )}
                             {report.followUpRequired && (
-                              <div className="flex items-center gap-2 text-yellow-800">
+                              <div className="flex items-center gap-2 text-etat-alerte-texte">
                                 <Clock className="w-4 h-4" />
                                 <span className="text-sm font-medium">Suivi requis</span>
                                 {report.followUpDate && (
@@ -539,7 +539,7 @@ export function MaintenanceReports() {
                         <div className="mt-4 flex justify-between items-center">
                           <div className="flex items-center gap-4">
                             {report.qualityCheck && (
-                              <div className="flex items-center gap-1 text-green-600">
+                              <div className="flex items-center gap-1 text-etat-nominal-texte">
                                 <CheckCircle className="w-4 h-4" />
                                 <span className="text-sm">Contrôle qualité validé</span>
                               </div>
@@ -621,7 +621,7 @@ export function MaintenanceReports() {
 
               {loadingMonthly ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet mx-auto"></div>
                   <p className="mt-2 text-muted-foreground">Chargement des rapports mensuels...</p>
                 </div>
               ) : (monthlyReports as MonthlyReport[]).length === 0 ? (
@@ -648,7 +648,7 @@ export function MaintenanceReports() {
                             </p>
                           </div>
                           <div className="flex gap-2">
-                            <Badge className="bg-blue-100 text-blue-800">
+                            <Badge className="bg-etat-encours-fond text-etat-encours-texte">
                               Score: {report.performanceScore || 0}/100
                             </Badge>
                             {getStatusBadge(report.status)}
@@ -659,8 +659,8 @@ export function MaintenanceReports() {
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-green-100 rounded-lg">
-                                <TrendingUp className="w-5 h-5 text-green-600" />
+                              <div className="p-2 bg-etat-nominal-fond rounded-lg">
+                                <TrendingUp className="w-5 h-5 text-etat-nominal-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Disponibilité</p>
@@ -671,8 +671,8 @@ export function MaintenanceReports() {
 
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Clock className="w-5 h-5 text-blue-600" />
+                              <div className="p-2 bg-etat-encours-fond rounded-lg">
+                                <Clock className="w-5 h-5 text-etat-encours-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTBF</p>
@@ -683,8 +683,8 @@ export function MaintenanceReports() {
 
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-orange-100 rounded-lg">
-                                <Clock className="w-5 h-5 text-orange-600" />
+                              <div className="p-2 bg-etat-alerte-fond rounded-lg">
+                                <Clock className="w-5 h-5 text-etat-alerte-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTTR</p>
@@ -753,7 +753,7 @@ export function MaintenanceReports() {
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>Critiques</span>
-                                <span className="font-medium text-red-600">{report.criticalAlerts || 0}</span>
+                                <span className="font-medium text-etat-critique-texte">{report.criticalAlerts || 0}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>Incidents sécurité</span>
@@ -765,12 +765,12 @@ export function MaintenanceReports() {
 
                         {/* Recommendations */}
                         {report.recommendations && report.recommendations.length > 0 && (
-                          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="font-medium text-blue-900 mb-2">Recommandations</h4>
+                          <div className="mt-4 p-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg">
+                            <h4 className="font-medium text-etat-encours-texte mb-2">Recommandations</h4>
                             <ul className="space-y-1">
                               {report.recommendations.map((rec, index) => (
-                                <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                                <li key={index} className="text-sm text-etat-encours-texte flex items-start gap-2">
+                                  <span className="w-1.5 h-1.5 bg-etat-encours-vif rounded-full mt-2 flex-shrink-0"></span>
                                   {rec}
                                 </li>
                               ))}
@@ -850,14 +850,14 @@ export function MaintenanceReports() {
                 {renderKpiCard(
                   "Score Performance", 
                   `${selectedMonthlyReport.performanceScore}/100`,
-                  <Target className="w-5 h-5 text-blue-600" />,
-                  "bg-blue-100"
+                  <Target className="w-5 h-5 text-etat-encours-texte" />,
+                  "bg-etat-encours-fond"
                 )}
                 {renderKpiCard(
                   "Efficacité Maintenance", 
                   formatPercentage(selectedMonthlyReport.maintenanceEfficiency),
-                  <Zap className="w-5 h-5 text-green-600" />,
-                  "bg-green-100"
+                  <Zap className="w-5 h-5 text-etat-nominal-texte" />,
+                  "bg-etat-nominal-fond"
                 )}
                 {renderKpiCard(
                   "Ratio Préventif", 
@@ -921,11 +921,11 @@ export function MaintenanceReports() {
                   <h3 className="text-lg font-semibold mb-4">Recommandations d'Amélioration</h3>
                   <div className="space-y-3">
                     {selectedMonthlyReport.recommendations.map((rec, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                      <div key={index} className="flex items-start gap-3 p-3 bg-etat-encours-fond rounded-lg">
+                        <div className="w-6 h-6 bg-etat-encours-vif text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-sm text-blue-900">{rec}</p>
+                        <p className="text-sm text-etat-encours-texte">{rec}</p>
                       </div>
                     ))}
                   </div>
@@ -987,18 +987,18 @@ export function MaintenanceReports() {
                 <h3 className="text-lg font-semibold mb-4">Indicateurs de Performance</h3>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
-                      <Activity className="w-8 h-8 text-green-600" />
+                    <div className="w-16 h-16 mx-auto bg-etat-nominal-fond rounded-full flex items-center justify-center mb-2">
+                      <Activity className="w-8 h-8 text-etat-nominal-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
+                    <p className="text-2xl font-bold text-etat-nominal-texte">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
                     <p className="text-sm text-muted-foreground">Disponibilité</p>
                   </div>
                   
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                      <Clock className="w-8 h-8 text-blue-600" />
+                    <div className="w-16 h-16 mx-auto bg-etat-encours-fond rounded-full flex items-center justify-center mb-2">
+                      <Clock className="w-8 h-8 text-etat-encours-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-blue-600">{selectedMonthlyReport.averageCompletionTime?.toFixed(1)}h</p>
+                    <p className="text-2xl font-bold text-etat-encours-texte">{selectedMonthlyReport.averageCompletionTime?.toFixed(1)}h</p>
                     <p className="text-sm text-muted-foreground">Temps Moyen</p>
                   </div>
                   
@@ -1017,16 +1017,16 @@ export function MaintenanceReports() {
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-4">Tendances du Mois</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-nominal-fond rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-etat-nominal-texte" />
                       <span className="text-sm">Amélioration de l'efficacité maintenance (+5%)</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-encours-fond rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-etat-encours-texte" />
                       <span className="text-sm">Augmentation des maintenances préventives (+12%)</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-alerte-fond rounded-lg">
+                      <AlertTriangle className="w-5 h-5 text-etat-alerte-texte" />
                       <span className="text-sm">Réduction des alertes critiques (-8%)</span>
                     </div>
                   </div>

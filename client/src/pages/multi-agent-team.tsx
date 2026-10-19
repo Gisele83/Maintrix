@@ -9,6 +9,9 @@ import {
   Users, Stethoscope, CalendarClock, ShieldCheck, HardHat, BookOpen, Package,
   Network, Boxes, GraduationCap, Zap, Crown, Loader2, AlertTriangle, CheckCircle2, HelpCircle,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 type AgentStatus = "nominal" | "attention" | "alert" | "not_instrumented";
 
@@ -82,29 +85,30 @@ const DOMAIN_ICONS: Record<string, any> = {
 };
 
 const STATUS_STYLE: Record<AgentStatus, { label: string; badge: string; icon: any }> = {
-  nominal: { label: "Nominal", badge: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
-  attention: { label: "Attention", badge: "bg-orange-100 text-orange-700 border-orange-200", icon: AlertTriangle },
-  alert: { label: "Alerte", badge: "bg-red-100 text-red-700 border-red-200", icon: AlertTriangle },
-  not_instrumented: { label: "Non instrumenté", badge: "bg-gray-100 text-gray-500 border-gray-200", icon: HelpCircle },
+  nominal: { label: "Nominal", badge: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet", icon: CheckCircle2 },
+  attention: { label: "Attention", badge: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", icon: AlertTriangle },
+  alert: { label: "Alerte", badge: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet", icon: AlertTriangle },
+  not_instrumented: { label: "Non instrumenté", badge: "bg-paper-deep text-ink-mute border-rule", icon: HelpCircle },
 };
 
 const SEVERITY_DOT: Record<AgentSignal["severity"], string> = {
   info: "bg-gray-300",
-  warning: "bg-orange-400",
-  high: "bg-red-400",
-  critical: "bg-red-600",
+  warning: "bg-etat-alerte-vif",
+  high: "bg-etat-critique-vif",
+  critical: "bg-etat-critique-vif",
 };
 
 export default function MultiAgentTeamPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Équipe multi-agent" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <Users className="w-6 h-6 text-etat-encours-texte" />
             Équipe Multi-Agent
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             11 agents fonctionnels (spécialité métier) consomment les remontées des agents topologiques
             (Equipment/Site/Global) pour raisonner par domaine. Chaque signal ci-dessous est une requête réelle
             sur l'état actuel du système — pas une simulation.
@@ -121,6 +125,7 @@ export default function MultiAgentTeamPage() {
         </Tabs>
       </div>
     </div>
+    </AppShell>
   );
 }
 
@@ -134,7 +139,7 @@ function AgentCard({ agent }: { agent: FunctionalAgentAssessment }) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Icon className="w-4 h-4 text-blue-600" />
+            <Icon className="w-4 h-4 text-etat-encours-texte" />
             {agent.name}
           </CardTitle>
           <Badge variant="outline" className={style.badge}>
@@ -144,19 +149,19 @@ function AgentCard({ agent }: { agent: FunctionalAgentAssessment }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <p className="text-xs text-gray-600">{agent.summary}</p>
+        <p className="text-xs text-ink-soft">{agent.summary}</p>
         <div className="space-y-1">
           {agent.signals.map((s, i) => (
             <div key={i} className="flex items-start gap-2 text-xs">
               <span className={`w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0 ${SEVERITY_DOT[s.severity]}`} />
-              <span className="text-gray-500">{s.label} : <span className="font-medium text-gray-700">{String(s.value)}</span></span>
+              <span className="text-ink-mute">{s.label} : <span className="font-medium text-ink-soft">{String(s.value)}</span></span>
             </div>
           ))}
         </div>
         {agent.recommendations.length > 0 && (
           <div className="pt-2 border-t border-gray-100 space-y-1">
             {agent.recommendations.map((r, i) => (
-              <p key={i} className="text-xs text-blue-700">→ {r}</p>
+              <p key={i} className="text-xs text-etat-encours-texte">→ {r}</p>
             ))}
           </div>
         )}
@@ -251,8 +256,8 @@ function TrainingRequestsList() {
         <div key={r.id} className="flex items-center justify-between text-xs bg-white rounded-lg border border-rule px-3 py-2">
           <span>
             {[r.first_name, r.last_name].filter(Boolean).join(" ")} — {r.equipment_type} {r.order_number ? `(OT ${r.order_number})` : ""}
-            {r.techlearn_tp_title && <span className="text-gray-500"> · TP : {r.techlearn_tp_title}</span>}
-            {r.techlearn_score !== null && <span className="text-gray-500"> · Score : {r.techlearn_score}%</span>}
+            {r.techlearn_tp_title && <span className="text-ink-mute"> · TP : {r.techlearn_tp_title}</span>}
+            {r.techlearn_score !== null && <span className="text-ink-mute"> · Score : {r.techlearn_score}%</span>}
           </span>
           <Badge variant="outline">{TRAINING_STATUS_LABEL[r.status] ?? r.status}</Badge>
         </div>
@@ -268,9 +273,9 @@ function ArbitrationTab() {
     <div className="space-y-4 mt-4">
       {isLoading && <p className="text-sm text-ink-mute flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Arbitrage en cours…</p>}
 
-      <Card className="bg-blue-50 border-blue-100">
+      <Card className="bg-etat-encours-fond border-etat-encours-filet">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Crown className="w-4 h-4 text-blue-700" />Supervisor Agent</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2"><Crown className="w-4 h-4 text-etat-encours-texte" />Supervisor Agent</CardTitle>
           <CardDescription className="text-xs">
             Évolution du rôle tenu par cognitive-kernel/index.ts (portée topologique) vers l'arbitrage de la dimension
             fonctionnelle : agrège les 11 domaines et priorise ce qui mérite l'attention en premier.
@@ -278,12 +283,12 @@ function ArbitrationTab() {
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-center">
           <div>
-            <div className="text-2xl font-bold text-red-600">{data?.domainsInAlert.length ?? "—"}</div>
-            <p className="text-xs text-gray-500">Domaines en alerte</p>
+            <div className="text-2xl font-bold text-etat-critique-texte">{data?.domainsInAlert.length ?? "—"}</div>
+            <p className="text-xs text-ink-mute">Domaines en alerte</p>
           </div>
           <div>
-            <div className="text-2xl font-bold text-orange-500">{data?.domainsNeedingAttention.length ?? "—"}</div>
-            <p className="text-xs text-gray-500">Domaines à surveiller</p>
+            <div className="text-2xl font-bold text-etat-alerte-texte">{data?.domainsNeedingAttention.length ?? "—"}</div>
+            <p className="text-xs text-ink-mute">Domaines à surveiller</p>
           </div>
         </CardContent>
       </Card>
@@ -295,11 +300,11 @@ function ArbitrationTab() {
             <Card key={i}>
               <CardContent className="pt-4 flex items-start gap-3">
                 <Badge variant="outline" className="flex-shrink-0">{i + 1}</Badge>
-                <Icon className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <Icon className="w-4 h-4 text-etat-encours-texte mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm font-medium">{p.agentName}</p>
-                  <p className="text-xs text-gray-500">{p.reason}</p>
-                  <p className="text-xs text-blue-700 mt-1">→ {p.recommendation}</p>
+                  <p className="text-xs text-ink-mute">{p.reason}</p>
+                  <p className="text-xs text-etat-encours-texte mt-1">→ {p.recommendation}</p>
                 </div>
               </CardContent>
             </Card>

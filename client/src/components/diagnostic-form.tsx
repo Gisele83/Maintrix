@@ -523,21 +523,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <div>
                 {/* Symptômes prioritaires */}
                 <div className="mb-4">
-                  <h4 className="font-medium text-sm text-red-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-critique-texte mb-2 flex items-center">
                     Symptômes critiques
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "high").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-red-50 p-2 rounded border-l-4 border-red-500">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-critique-fond p-2 rounded border-l-4 border-etat-critique-filet">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-red-300 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                          className="border-etat-critique-filet data-[state=checked]:bg-etat-critique-vif data-[state=checked]:border-etat-critique-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm font-medium text-red-800">
+                        <Label htmlFor={symptom.id} className="text-sm font-medium text-etat-critique-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -547,21 +547,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
                 {/* Symptômes moyens */}
                 <div className="mb-4">
-                  <h4 className="font-medium text-sm text-orange-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-alerte-texte mb-2 flex items-center">
                     Symptômes moyens
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "medium").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-orange-50 p-2 rounded">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-alerte-fond p-2 rounded">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-orange-300 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                          className="border-etat-alerte-filet data-[state=checked]:bg-etat-alerte-vif data-[state=checked]:border-etat-alerte-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm text-orange-800">
+                        <Label htmlFor={symptom.id} className="text-sm text-etat-alerte-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -571,21 +571,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
                 {/* Symptômes mineurs */}
                 <div>
-                  <h4 className="font-medium text-sm text-blue-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-encours-texte mb-2 flex items-center">
                     ℹSymptômes mineurs
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "low").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-blue-50 p-2 rounded">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-encours-fond p-2 rounded">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-blue-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          className="border-etat-encours-filet data-[state=checked]:bg-etat-encours-vif data-[state=checked]:border-etat-encours-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm text-blue-800">
+                        <Label htmlFor={symptom.id} className="text-sm text-etat-encours-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -594,8 +594,8 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
                 </div>
               </div>
             ) : (
-              <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <p className="text-gray-600">Veuillez d'abord sélectionner un type d'équipement pour voir les symptômes spécifiques</p>
+              <div className="text-center p-8 bg-paper rounded-lg border-2 border-dashed border-rule">
+                <p className="text-ink-soft">Veuillez d'abord sélectionner un type d'équipement pour voir les symptômes spécifiques</p>
               </div>
             )}
           </div>

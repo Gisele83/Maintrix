@@ -205,21 +205,21 @@ export function EquipmentManagement() {
 
   const getStatusColor = (operationalState: string) => {
     switch (operationalState) {
-      case "operational": return "bg-green-100 text-green-800";
-      case "maintenance": return "bg-yellow-100 text-yellow-800";
-      case "broken": return "bg-red-100 text-red-800";
-      case "decommissioned": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "operational": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      case "maintenance": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "broken": return "bg-etat-critique-fond text-etat-critique-texte";
+      case "decommissioned": return "bg-paper-deep text-ink";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
   const getCriticalityColor = (level: string) => {
     switch (level) {
-      case "critical": return "bg-red-100 text-red-800";
-      case "high": return "bg-orange-100 text-orange-800";
-      case "medium": return "bg-yellow-100 text-yellow-800";
-      case "low": return "bg-green-100 text-green-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "critical": return "bg-etat-critique-fond text-etat-critique-texte";
+      case "high": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "medium": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "low": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
@@ -232,8 +232,8 @@ export function EquipmentManagement() {
       {/* Header and Actions */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestion des Équipements</h2>
-          <p className="text-gray-600">Gérez vos équipements industriels et leurs informations</p>
+          <h2 className="text-2xl font-bold text-ink">Gestion des Équipements</h2>
+          <p className="text-ink-soft">Gérez vos équipements industriels et leurs informations</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
@@ -259,7 +259,7 @@ export function EquipmentManagement() {
       {/* Search and Filters */}
       <div className="flex space-x-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute w-4 h-4" />
           <Input
             placeholder="Rechercher par nom, code ou type d'équipement..."
             value={searchTerm}
@@ -276,7 +276,7 @@ export function EquipmentManagement() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-2">
-                  <Factory className="w-5 h-5 text-blue-600" />
+                  <Factory className="w-5 h-5 text-etat-encours-texte" />
                   <CardTitle className="text-lg">{eq.equipmentName}</CardTitle>
                 </div>
                 <div className="flex space-x-1">
@@ -287,7 +287,7 @@ export function EquipmentManagement() {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => handleDelete(eq.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-etat-critique-texte hover:text-etat-critique-texte"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -298,19 +298,19 @@ export function EquipmentManagement() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="font-medium">ID:</span>
-                  <p className="text-gray-600">{eq.equipmentId}</p>
+                  <p className="text-ink-soft">{eq.equipmentId}</p>
                 </div>
                 <div>
                   <span className="font-medium">Type:</span>
-                  <p className="text-gray-600">{eq.equipmentType}</p>
+                  <p className="text-ink-soft">{eq.equipmentType}</p>
                 </div>
                 <div>
                   <span className="font-medium">Zone:</span>
-                  <p className="text-gray-600">{eq.zone}</p>
+                  <p className="text-ink-soft">{eq.zone}</p>
                 </div>
                 <div>
                   <span className="font-medium">Lieu:</span>
-                  <p className="text-gray-600">{eq.location}</p>
+                  <p className="text-ink-soft">{eq.location}</p>
                 </div>
               </div>
               
@@ -324,7 +324,7 @@ export function EquipmentManagement() {
               </div>
 
               {eq.manufacturer && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ink-mute">
                   <span className="font-medium">Fabricant:</span> {eq.manufacturer}
                 </p>
               )}
@@ -335,9 +335,9 @@ export function EquipmentManagement() {
 
       {filteredEquipment.length === 0 && (
         <div className="text-center py-12">
-          <Factory className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun équipement trouvé</h3>
-          <p className="text-gray-600 mb-6">
+          <Factory className="w-12 h-12 text-ink-mute mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-ink mb-2">Aucun équipement trouvé</h3>
+          <p className="text-ink-soft mb-6">
             {searchTerm ? "Aucun équipement ne correspond à votre recherche." : "Commencez par ajouter votre premier équipement."}
           </p>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

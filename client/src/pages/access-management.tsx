@@ -28,6 +28,9 @@ import {
   Gift
 } from "lucide-react";
 import { Link } from "wouter";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface AccessGrant {
   id: string;
@@ -73,8 +76,8 @@ export default function AccessManagement() {
   };
 
   const planColors = {
-    pro: "bg-blue-50 border-blue-200 text-blue-800",
-    business: "bg-green-50 border-green-200 text-green-800", 
+    pro: "bg-etat-encours-fond border-etat-encours-filet text-etat-encours-texte",
+    business: "bg-etat-nominal-fond border-etat-nominal-filet text-etat-nominal-texte", 
     enterprise: "bg-paper-deep border-rule text-signal-deep"
   };
 
@@ -142,7 +145,8 @@ export default function AccessManagement() {
   const totalUsage = accessGrants.reduce((sum, g) => sum + g.currentUsage, 0);
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Accès" }]} largeur="large">
+    <div className="space-y-6">
       <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -167,7 +171,7 @@ export default function AccessManagement() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-600" />
+                  <Users className="h-5 w-5 text-etat-encours-texte" />
                   <div>
                     <p className="text-sm text-muted-foreground">Accès actifs</p>
                     <p className="text-xl font-bold">{activeGrants.length}</p>
@@ -179,7 +183,7 @@ export default function AccessManagement() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-orange-600" />
+                  <Clock className="h-5 w-5 text-etat-alerte-texte" />
                   <div>
                     <p className="text-sm text-muted-foreground">Expirés</p>
                     <p className="text-xl font-bold">{expiredGrants.length}</p>
@@ -191,7 +195,7 @@ export default function AccessManagement() {
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-green-600" />
+                  <BarChart3 className="h-5 w-5 text-etat-nominal-texte" />
                   <div>
                     <p className="text-sm text-muted-foreground">Utilisation totale</p>
                     <p className="text-xl font-bold">{totalUsage}</p>
@@ -326,7 +330,7 @@ export default function AccessManagement() {
                             variant="outline"
                             size="sm"
                             onClick={() => revokeAccess(grant.id)}
-                            className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                            className="flex items-center gap-1 text-etat-critique-texte hover:text-etat-critique-texte"
                           >
                             <Trash2 className="h-3 w-3" />
                             Révoquer
@@ -486,5 +490,6 @@ export default function AccessManagement() {
         )}
       </div>
     </div>
+    </AppShell>
   );
 }

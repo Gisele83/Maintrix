@@ -26,6 +26,9 @@ import {
   Wrench,
   Package
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface MaintenanceHistoryItem {
   id: number;
@@ -197,31 +200,32 @@ export default function Historique() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed": return "bg-green-100 text-green-800";
-      case "in_progress": return "bg-blue-100 text-blue-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "completed": return "bg-etat-nominal-fond text-etat-nominal-texte";
+      case "in_progress": return "bg-etat-encours-fond text-etat-encours-texte";
+      case "cancelled": return "bg-etat-critique-fond text-etat-critique-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case "preventive": return "bg-blue-100 text-blue-800";
-      case "corrective": return "bg-orange-100 text-orange-800";
-      case "emergency": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "preventive": return "bg-etat-encours-fond text-etat-encours-texte";
+      case "corrective": return "bg-etat-alerte-fond text-etat-alerte-texte";
+      case "emergency": return "bg-etat-critique-fond text-etat-critique-texte";
+      default: return "bg-paper-deep text-ink";
     }
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" data-testid="page-historique">
+    <AppShell filAriane={[{ libelle: "GMAO" }, { libelle: "Historique" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header avec actions d'import/export */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="title-historique">
+          <h1 className="text-3xl font-bold text-ink" data-testid="title-historique">
             Historique de Maintenance
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-ink-soft mt-2">
             Consultez et gérez l'historique complet des interventions de maintenance
           </p>
         </div>
@@ -261,7 +265,7 @@ export default function Historique() {
                 <DialogTitle>Importer Historique de Maintenance</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-ink-soft">
                   <p>Formats et ERP supportés :</p>
                   <ul className="list-disc list-inside mt-2">
                     <li>Excel (.xlsx, .xls) et CSV</li>
@@ -333,7 +337,7 @@ export default function Historique() {
         <CardContent className="p-4">
           <div className="flex gap-4 items-center">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute h-4 w-4" />
               <Input
                 placeholder="Rechercher par équipement, technicien ou N° OT..."
                 value={searchTerm}
@@ -346,7 +350,7 @@ export default function Historique() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md"
+              className="px-3 py-2 border border-rule rounded-md"
               data-testid="select-type-filter"
             >
               <option value="all">Tous les types</option>
@@ -363,16 +367,16 @@ export default function Historique() {
         {isLoading ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Chargement de l'historique...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet mx-auto"></div>
+              <p className="mt-2 text-ink-soft">Chargement de l'historique...</p>
             </CardContent>
           </Card>
         ) : filteredHistory.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Aucun historique de maintenance trouvé</p>
-              <p className="text-sm text-gray-500 mt-1">
+              <History className="h-12 w-12 text-ink-mute mx-auto mb-4" />
+              <p className="text-ink-soft">Aucun historique de maintenance trouvé</p>
+              <p className="text-sm text-ink-mute mt-1">
                 Importez vos données ou créez votre première intervention
               </p>
             </CardContent>
@@ -394,9 +398,9 @@ export default function Historique() {
                          item.maintenanceType === "corrective" ? "Correctif" : "Urgence"}
                       </Badge>
                     </div>
-                    <p className="text-gray-600">{item.description}</p>
+                    <p className="text-ink-soft">{item.description}</p>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
+                  <div className="text-right text-sm text-ink-mute">
                     <p>{new Date(item.startDate).toLocaleDateString()}</p>
                     <p>{item.duration}h - {item.cost}€</p>
                   </div>
@@ -404,16 +408,16 @@ export default function Historique() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500">Équipement</p>
+                    <p className="text-ink-mute">Équipement</p>
                     <p className="font-medium">{item.equipmentName}</p>
-                    <p className="text-gray-400">{item.equipmentId}</p>
+                    <p className="text-ink-mute">{item.equipmentId}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Technicien</p>
+                    <p className="text-ink-mute">Technicien</p>
                     <p className="font-medium">{item.technicianName}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Pièces utilisées</p>
+                    <p className="text-ink-mute">Pièces utilisées</p>
                     <p className="font-medium">
                       {item.spareParts.length > 0 ? item.spareParts.join(", ") : "Aucune"}
                     </p>
@@ -421,9 +425,9 @@ export default function Historique() {
                 </div>
                 
                 {item.notes && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-gray-500 text-sm">Notes</p>
-                    <p className="text-gray-700 text-sm">{item.notes}</p>
+                  <div className="mt-4 pt-4 border-t border-rule">
+                    <p className="text-ink-mute text-sm">Notes</p>
+                    <p className="text-ink-soft text-sm">{item.notes}</p>
                   </div>
                 )}
               </CardContent>
@@ -432,5 +436,6 @@ export default function Historique() {
         )}
       </div>
     </div>
+    </AppShell>
   );
 }

@@ -241,7 +241,7 @@ export function ModernNavigation() {
                       return (
                         <DropdownMenuItem key={item.name} asChild className={isActive ? 'bg-accent font-medium' : ''}>
                           <Link href={item.href} className="flex items-center gap-2.5 cursor-pointer">
-                            <Icon className="w-4 h-4 text-gray-500" />
+                            <Icon className="w-4 h-4 text-ink-mute" />
                             <span>{item.name}</span>
                           </Link>
                         </DropdownMenuItem>
@@ -389,7 +389,7 @@ export function ModernNavigation() {
               <div className="flex items-center justify-between px-3 py-2">
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-ink-soft">
                     {user?.firstName || user?.username}
                   </span>
                 </div>

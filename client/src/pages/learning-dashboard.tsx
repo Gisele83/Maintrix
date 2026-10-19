@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface LearningMetrics {
   id: number;
@@ -103,15 +106,15 @@ export default function LearningDashboard() {
   });
 
   const getSuccessRateColor = (rate: number) => {
-    if (rate >= 85) return "text-green-600";
-    if (rate >= 70) return "text-yellow-600";
-    return "text-red-600";
+    if (rate >= 85) return "text-etat-nominal-texte";
+    if (rate >= 70) return "text-etat-alerte-texte";
+    return "text-etat-critique-texte";
   };
 
   const getSuccessRateBg = (rate: number) => {
-    if (rate >= 85) return "bg-green-100";
-    if (rate >= 70) return "bg-yellow-100";
-    return "bg-red-100";
+    if (rate >= 85) return "bg-etat-nominal-fond";
+    if (rate >= 70) return "bg-etat-alerte-fond";
+    return "bg-etat-critique-fond";
   };
 
   const equipmentTypes = Array.from(new Set(learningMetrics.map((m: LearningMetrics) => m.equipmentType)));
@@ -130,15 +133,16 @@ export default function LearningDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Ressources" }, { libelle: "Apprentissage" }]} largeur="large">
+    <div className="space-y-6">
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-ink mb-2">
               Tableau de Bord - Apprentissage Continu
             </h1>
-            <p className="text-gray-600">
+            <p className="text-ink-soft">
               Suivi des performances IA et amélioration automatique du système
             </p>
           </div>
@@ -157,7 +161,7 @@ export default function LearningDashboard() {
               onClick={handleForceRetrain}
               disabled={autoImproveMutation.isPending}
               variant="outline"
-              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+              className="border-etat-alerte-filet text-etat-alerte-texte hover:bg-etat-alerte-fond"
             >
               <RefreshCcw className="w-4 h-4 mr-2" />
               Réentraîner Tout
@@ -197,14 +201,14 @@ export default function LearningDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-600 mb-1">Taux de succès moyen</p>
-                  <p className="text-2xl font-bold text-green-800">
+                  <p className="text-sm font-medium text-etat-nominal-texte mb-1">Taux de succès moyen</p>
+                  <p className="text-2xl font-bold text-etat-nominal-texte">
                     {learningMetrics.length > 0 
                       ? Math.round(learningMetrics.reduce((acc: number, m: LearningMetrics) => acc + m.successRate, 0) / learningMetrics.length)
                       : 0}%
                   </p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-etat-nominal-texte" />
               </div>
             </CardContent>
           </Card>
@@ -213,14 +217,14 @@ export default function LearningDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 mb-1">Confiance moyenne</p>
-                  <p className="text-2xl font-bold text-blue-800">
+                  <p className="text-sm font-medium text-etat-encours-texte mb-1">Confiance moyenne</p>
+                  <p className="text-2xl font-bold text-etat-encours-texte">
                     {learningMetrics.length > 0 
                       ? Math.round(learningMetrics.reduce((acc: number, m: LearningMetrics) => acc + m.avgConfidence, 0) / learningMetrics.length * 100)
                       : 0}%
                   </p>
                 </div>
-                <Target className="w-8 h-8 text-blue-600" />
+                <Target className="w-8 h-8 text-etat-encours-texte" />
               </div>
             </CardContent>
           </Card>
@@ -243,12 +247,12 @@ export default function LearningDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-600 mb-1">Modèles actifs</p>
-                  <p className="text-2xl font-bold text-orange-800">
+                  <p className="text-sm font-medium text-etat-alerte-texte mb-1">Modèles actifs</p>
+                  <p className="text-2xl font-bold text-etat-alerte-texte">
                     {modelPerformance.length}
                   </p>
                 </div>
-                <Brain className="w-8 h-8 text-orange-600" />
+                <Brain className="w-8 h-8 text-etat-alerte-texte" />
               </div>
             </CardContent>
           </Card>
@@ -258,15 +262,15 @@ export default function LearningDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <TrendingUp className="w-5 h-5 text-etat-encours-texte" />
               <span>Métriques d'Apprentissage par Équipement</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {metricsLoading ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-500 mt-2">Chargement des métriques...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet mx-auto"></div>
+                <p className="text-ink-mute mt-2">Chargement des métriques...</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -280,7 +284,7 @@ export default function LearningDashboard() {
                             {metric.successRate >= 85 ? "Excellent" : metric.successRate >= 70 ? "Bon" : "À améliorer"}
                           </Badge>
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                           Dernière mise à jour: {new Date(metric.lastUpdated).toLocaleDateString()}
                         </p>
                       </div>
@@ -289,22 +293,22 @@ export default function LearningDashboard() {
                         <div className={`text-2xl font-bold ${getSuccessRateColor(metric.successRate)}`}>
                           {Math.round(metric.successRate)}%
                         </div>
-                        <div className="text-sm text-gray-600">de réussite</div>
+                        <div className="text-sm text-ink-soft">de réussite</div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                       <div className="text-center">
-                        <div className="text-lg font-semibold text-gray-800">{metric.totalCases}</div>
-                        <div className="text-xs text-gray-600">Total cas</div>
+                        <div className="text-lg font-semibold text-ink">{metric.totalCases}</div>
+                        <div className="text-xs text-ink-soft">Total cas</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-semibold text-green-600">{metric.successfulCases}</div>
-                        <div className="text-xs text-gray-600">Succès</div>
+                        <div className="text-lg font-semibold text-etat-nominal-texte">{metric.successfulCases}</div>
+                        <div className="text-xs text-ink-soft">Succès</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-semibold text-blue-600">{Math.round(metric.avgConfidence * 100)}%</div>
-                        <div className="text-xs text-gray-600">Confiance</div>
+                        <div className="text-lg font-semibold text-etat-encours-texte">{Math.round(metric.avgConfidence * 100)}%</div>
+                        <div className="text-xs text-ink-soft">Confiance</div>
                       </div>
                       <div className="text-center">
                         <Button
@@ -322,15 +326,15 @@ export default function LearningDashboard() {
                     <Progress value={metric.successRate} className="mb-3" />
 
                     {metric.improvementSuggestions && metric.improvementSuggestions.length > 0 && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                      <div className="bg-etat-alerte-fond border border-etat-alerte-filet rounded p-3">
                         <div className="flex items-center space-x-2 mb-2">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                          <span className="font-medium text-yellow-800">Suggestions d'amélioration:</span>
+                          <AlertTriangle className="w-4 h-4 text-etat-alerte-texte" />
+                          <span className="font-medium text-etat-alerte-texte">Suggestions d'amélioration:</span>
                         </div>
-                        <ul className="text-sm text-yellow-700 space-y-1">
+                        <ul className="text-sm text-etat-alerte-texte space-y-1">
                           {metric.improvementSuggestions.map((suggestion, index) => (
                             <li key={index} className="flex items-start">
-                              <span className="text-yellow-600 mr-2">•</span>
+                              <span className="text-etat-alerte-texte mr-2">•</span>
                               {suggestion}
                             </li>
                           ))}
@@ -372,53 +376,53 @@ export default function LearningDashboard() {
               </div>
             ) : !iscSummary || iscSummary.totalPatterns === 0 ? (
               <div className="text-center py-10">
-                <GitMerge className="w-12 h-12 text-signal-light mx-auto mb-3" />
+                <GitMerge className="w-12 h-12 text-ink-soft mx-auto mb-3" />
                 <p className="text-signal-deep font-medium">Aucun pattern fédéré disponible</p>
-                <p className="text-sm text-signal-light mt-1">Les patterns seront collectés lors des diagnostics</p>
+                <p className="text-sm text-ink-soft mt-1">Les patterns seront collectés lors des diagnostics</p>
               </div>
             ) : (
               <div className="space-y-5">
                 {/* Φ_i KPIs */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-rule text-center">
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-rule text-center">
                     <div className="text-3xl font-black text-signal-deep">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
                     <div className="text-xs font-semibold text-signal-deep mt-1">Φ_i moyen</div>
                     <div className="text-xs text-ink-mute">Pertinence globale</div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100 text-center">
-                    <div className="text-3xl font-black text-emerald-700">{(iscSummary.avgFiabilite * 100).toFixed(0)}%</div>
-                    <div className="text-xs font-semibold text-emerald-500 mt-1">Fiabilité</div>
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-etat-nominal-filet text-center">
+                    <div className="text-3xl font-black text-etat-nominal-texte">{(iscSummary.avgFiabilite * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-etat-nominal-texte mt-1">Fiabilité</div>
                     <div className="text-xs text-ink-mute">eff. + succès + consistance</div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 text-center">
-                    <div className="text-3xl font-black text-amber-700">{(iscSummary.avgMaturite * 100).toFixed(0)}%</div>
-                    <div className="text-xs font-semibold text-amber-500 mt-1">Maturité</div>
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-etat-alerte-filet text-center">
+                    <div className="text-3xl font-black text-etat-alerte-texte">{(iscSummary.avgMaturite * 100).toFixed(0)}%</div>
+                    <div className="text-xs font-semibold text-etat-alerte-texte mt-1">Maturité</div>
                     <div className="text-xs text-ink-mute">confirmations + âge + diversité</div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 text-center">
-                    <div className="text-3xl font-black text-blue-700">4D</div>
-                    <div className="text-xs font-semibold text-blue-500 mt-1">Dimensions ISC</div>
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-etat-encours-filet text-center">
+                    <div className="text-3xl font-black text-etat-encours-texte">4D</div>
+                    <div className="text-xs font-semibold text-etat-encours-texte mt-1">Dimensions ISC</div>
                     <div className="text-xs text-ink-mute">D1·D2·D3·D4</div>
                   </div>
                 </div>
 
                 {/* Φ_i Distribution */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-rule">
-                  <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <div className="bg-white rounded-none p-4 shadow-sm border border-rule">
+                  <h4 className="text-sm font-bold text-ink-soft mb-3 flex items-center gap-2">
                     <Layers className="w-4 h-4 text-signal-deep" />
                     Distribution Φ_i des patterns fédérés
                   </h4>
                   <div className="space-y-2">
                     {[
-                      { label: "Haute pertinence (Φ ≥ 0.7)", count: iscSummary.phiDistribution.high, color: "bg-emerald-500", text: "text-emerald-700" },
-                      { label: "Pertinence modérée (0.4 ≤ Φ < 0.7)", count: iscSummary.phiDistribution.medium, color: "bg-amber-400", text: "text-amber-700" },
-                      { label: "Faible pertinence (Φ < 0.4)", count: iscSummary.phiDistribution.low, color: "bg-rose-400", text: "text-rose-700" },
+                      { label: "Haute pertinence (Φ ≥ 0.7)", count: iscSummary.phiDistribution.high, color: "bg-etat-nominal-vif", text: "text-etat-nominal-texte" },
+                      { label: "Pertinence modérée (0.4 ≤ Φ < 0.7)", count: iscSummary.phiDistribution.medium, color: "bg-etat-alerte-vif", text: "text-etat-alerte-texte" },
+                      { label: "Faible pertinence (Φ < 0.4)", count: iscSummary.phiDistribution.low, color: "bg-etat-critique-vif", text: "text-etat-critique-texte" },
                     ].map(({ label, count, color, text }) => {
                       const pct = iscSummary.totalPatterns > 0 ? (count / iscSummary.totalPatterns) * 100 : 0;
                       return (
                         <div key={label} className="flex items-center gap-3">
-                          <div className="w-40 text-xs text-gray-600 flex-shrink-0">{label}</div>
-                          <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                          <div className="w-40 text-xs text-ink-soft flex-shrink-0">{label}</div>
+                          <div className="flex-1 bg-paper-deep rounded-full h-3 overflow-hidden">
                             <div className={`h-3 rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
                           </div>
                           <div className={`w-12 text-xs font-bold text-right ${text}`}>{count}</div>
@@ -430,9 +434,9 @@ export default function LearningDashboard() {
 
                 {/* ISC 4 dimensions weights + Φ_i config */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100">
-                    <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                      <FlaskConical className="w-4 h-4 text-blue-500" />
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-etat-encours-filet">
+                    <h4 className="text-sm font-bold text-ink-soft mb-3 flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-etat-encours-texte" />
                       Poids ISC 4 Dimensions
                     </h4>
                     <div className="space-y-2">
@@ -443,31 +447,31 @@ export default function LearningDashboard() {
                         { d: "D4", label: "Historique défaillances", w: iscSummary.iscWeights.D4, isNew: true },
                       ].map(({ d, label, w, isNew }) => (
                         <div key={d} className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${isNew ? "bg-signal-deep" : "bg-blue-500"}`}>{d}</span>
-                          <span className="text-xs text-gray-600 flex-1">{label}{isNew && <Badge className="ml-1 text-[10px] bg-paper-deep text-signal-deep px-1 py-0">4e dim.</Badge>}</span>
-                          <div className="w-20 bg-gray-100 rounded-full h-2">
-                            <div className="h-2 rounded-full bg-blue-500" style={{ width: `${w * 100}%` }} />
+                          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-white text-xs font-bold ${isNew ? "bg-signal-deep" : "bg-etat-encours-vif"}`}>{d}</span>
+                          <span className="text-xs text-ink-soft flex-1">{label}{isNew && <Badge className="ml-1 text-[10px] bg-paper-deep text-signal-deep px-1 py-0">4e dim.</Badge>}</span>
+                          <div className="w-20 bg-paper-deep rounded-full h-2">
+                            <div className="h-2 rounded-full bg-etat-encours-vif" style={{ width: `${w * 100}%` }} />
                           </div>
-                          <span className="text-xs font-bold text-blue-700 w-10 text-right">{(w * 100).toFixed(0)}%</span>
+                          <span className="text-xs font-bold text-etat-encours-texte w-10 text-right">{(w * 100).toFixed(0)}%</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-rule">
-                    <h4 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="bg-white rounded-none p-4 shadow-sm border border-rule">
+                    <h4 className="text-sm font-bold text-ink-soft mb-3 flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-signal-deep" />
                       Coefficients Φ_i
                     </h4>
                     <div className="space-y-2">
                       {[
-                        { lbl: "α — ISC (similarité contextuelle)", val: iscSummary.phiConfig.alpha, color: "bg-blue-500" },
-                        { lbl: "β — Fiabilité", val: iscSummary.phiConfig.beta, color: "bg-emerald-500" },
-                        { lbl: "γ — Maturité", val: iscSummary.phiConfig.gamma, color: "bg-amber-500" },
+                        { lbl: "α — ISC (similarité contextuelle)", val: iscSummary.phiConfig.alpha, color: "bg-etat-encours-vif" },
+                        { lbl: "β — Fiabilité", val: iscSummary.phiConfig.beta, color: "bg-etat-nominal-vif" },
+                        { lbl: "γ — Maturité", val: iscSummary.phiConfig.gamma, color: "bg-etat-alerte-vif" },
                       ].map(({ lbl, val, color }) => (
                         <div key={lbl} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-600 flex-1">{lbl}</span>
-                          <div className="w-20 bg-gray-100 rounded-full h-2">
+                          <span className="text-xs text-ink-soft flex-1">{lbl}</span>
+                          <div className="w-20 bg-paper-deep rounded-full h-2">
                             <div className={`h-2 rounded-full ${color}`} style={{ width: `${val * 100}%` }} />
                           </div>
                           <span className="text-xs font-bold text-signal-deep w-10 text-right">{(val * 100).toFixed(0)}%</span>
@@ -476,7 +480,7 @@ export default function LearningDashboard() {
                     </div>
                     {iscSummary.topCategory && (
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-500">Catégorie dominante :</p>
+                        <p className="text-xs text-ink-mute">Catégorie dominante :</p>
                         <p className="text-sm font-semibold text-signal-deep capitalize mt-0.5">{iscSummary.topCategory}</p>
                       </div>
                     )}
@@ -499,7 +503,7 @@ export default function LearningDashboard() {
             {performanceLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
-                <p className="text-gray-500 mt-2">Chargement des performances...</p>
+                <p className="text-ink-mute mt-2">Chargement des performances...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -516,30 +520,30 @@ export default function LearningDashboard() {
                         <div className="text-lg font-bold text-signal-deep">
                           {Math.round(perf.accuracy * 100)}%
                         </div>
-                        <div className="text-xs text-gray-600">Précision</div>
+                        <div className="text-xs text-ink-soft">Précision</div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-center p-2 bg-white rounded">
                         <div className="font-semibold">{Math.round(perf.precision * 100)}%</div>
-                        <div className="text-xs text-gray-600">Précision</div>
+                        <div className="text-xs text-ink-soft">Précision</div>
                       </div>
                       <div className="text-center p-2 bg-white rounded">
                         <div className="font-semibold">{Math.round(perf.recall * 100)}%</div>
-                        <div className="text-xs text-gray-600">Rappel</div>
+                        <div className="text-xs text-ink-soft">Rappel</div>
                       </div>
                       <div className="text-center p-2 bg-white rounded">
                         <div className="font-semibold">{Math.round(perf.f1Score * 100)}%</div>
-                        <div className="text-xs text-gray-600">F1-Score</div>
+                        <div className="text-xs text-ink-soft">F1-Score</div>
                       </div>
                       <div className="text-center p-2 bg-white rounded">
                         <div className="font-semibold">{perf.sampleSize}</div>
-                        <div className="text-xs text-gray-600">Échantillons</div>
+                        <div className="text-xs text-ink-soft">Échantillons</div>
                       </div>
                     </div>
 
-                    <div className="mt-3 text-xs text-gray-600 flex items-center">
+                    <div className="mt-3 text-xs text-ink-soft flex items-center">
                       <Clock className="w-3 h-3 mr-1" />
                       Entraîné le {new Date(perf.trainingDate).toLocaleDateString()}
                     </div>
@@ -551,5 +555,6 @@ export default function LearningDashboard() {
         </Card>
       </div>
     </div>
+    </AppShell>
   );
 }

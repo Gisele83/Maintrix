@@ -107,8 +107,8 @@ export function DiagnosticResults({
   const [showTrends, setShowTrends] = useState(false);
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "bg-green-600";
-    if (confidence >= 50) return "bg-orange-500";
+    if (confidence >= 80) return "bg-etat-nominal-vif";
+    if (confidence >= 50) return "bg-etat-alerte-vif";
     return "bg-gray-500";
   };
 
@@ -121,18 +121,18 @@ export function DiagnosticResults({
   const getSourceBadge = (source?: string) => {
     switch (source) {
       case 'rules': return { label: 'Règle Expert', color: 'bg-signal-deep text-white', icon: <Shield className="w-3 h-3 mr-1" /> };
-      case 'historical': return { label: 'Historique', color: 'bg-blue-600 text-white', icon: <History className="w-3 h-3 mr-1" /> };
-      case 'failure_memory': return { label: 'Mémoire Pannes', color: 'bg-amber-600 text-white', icon: <Brain className="w-3 h-3 mr-1" /> };
-      case 'ai_structured': return { label: 'IA Claude', color: 'bg-cyan-600 text-white', icon: <Cloud className="w-3 h-3 mr-1" /> };
+      case 'historical': return { label: 'Historique', color: 'bg-etat-encours-vif text-white', icon: <History className="w-3 h-3 mr-1" /> };
+      case 'failure_memory': return { label: 'Mémoire Pannes', color: 'bg-etat-alerte-vif text-white', icon: <Brain className="w-3 h-3 mr-1" /> };
+      case 'ai_structured': return { label: 'IA Claude', color: 'bg-etat-encours-vif text-white', icon: <Cloud className="w-3 h-3 mr-1" /> };
       default: return { label: 'Analyse', color: 'bg-gray-600 text-white', icon: <Target className="w-3 h-3 mr-1" /> };
     }
   };
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'border-red-300 bg-red-50 text-red-800';
-      case 'medium': return 'border-orange-300 bg-orange-50 text-orange-800';
-      default: return 'border-gray-300 bg-gray-50 text-gray-700';
+      case 'high': return 'border-etat-critique-filet bg-etat-critique-fond text-etat-critique-texte';
+      case 'medium': return 'border-etat-alerte-filet bg-etat-alerte-fond text-etat-alerte-texte';
+      default: return 'border-rule bg-paper text-ink-soft';
     }
   };
 
@@ -177,17 +177,17 @@ export function DiagnosticResults({
   return (
     <div className="space-y-4">
       {explanationSummary && (
-        <Card className="border border-blue-200 bg-paper-deep shadow-sm">
+        <Card className="border border-etat-encours-filet bg-paper-deep shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
-              <Layers className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Layers className="w-5 h-5 text-etat-encours-texte mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold text-blue-900 text-sm mb-1">Moteur Hybride de Diagnostic</h4>
-                <p className="text-sm text-blue-800">{explanationSummary}</p>
+                <h4 className="font-semibold text-etat-encours-texte text-sm mb-1">Moteur Hybride de Diagnostic</h4>
+                <p className="text-sm text-etat-encours-texte">{explanationSummary}</p>
                 {engineSources && engineSources.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {engineSources.map((source, i) => (
-                      <Badge key={i} variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                      <Badge key={i} variant="secondary" className="bg-etat-encours-fond text-etat-encours-texte text-xs">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {source}
                       </Badge>
@@ -201,27 +201,27 @@ export function DiagnosticResults({
       )}
 
       {contextSignals && contextSignals.length > 0 && (
-        <Card className="border border-amber-200 bg-amber-50/50 shadow-sm">
+        <Card className="border border-etat-alerte-filet bg-etat-alerte-fond/50 shadow-sm">
           <CardContent className="p-4">
-            <h4 className="font-semibold text-amber-900 text-sm mb-2 flex items-center">
+            <h4 className="font-semibold text-etat-alerte-texte text-sm mb-2 flex items-center">
               <Info className="w-4 h-4 mr-2" />
               Signaux Contextuels GMAO
             </h4>
             <div className="space-y-1.5">
               {contextSignals.map((signal, i) => (
                 <div key={i} className="flex items-start space-x-2 text-sm">
-                  <span className="text-amber-600 mt-0.5">
+                  <span className="text-etat-alerte-texte mt-0.5">
                     {signal.type === 'criticality' && <AlertTriangle className="w-3.5 h-3.5" />}
                     {signal.type === 'recent_intervention' && <Clock className="w-3.5 h-3.5" />}
                     {signal.type === 'recurrence' && <TrendingUp className="w-3.5 h-3.5" />}
                     {signal.type === 'operational_state' && <Activity className="w-3.5 h-3.5" />}
                     {signal.type === 'machine_hours' && <Timer className="w-3.5 h-3.5" />}
-                    {signal.type === 'machine_hours_alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-600" />}
+                    {signal.type === 'machine_hours_alert' && <AlertTriangle className="w-3.5 h-3.5 text-etat-critique-texte" />}
                     {signal.type === 'counter_data' && <Gauge className="w-3.5 h-3.5" />}
                   </span>
                   <div>
-                    <span className="font-medium text-amber-800">{signal.label}</span>
-                    <span className="text-amber-700"> — {signal.detail}</span>
+                    <span className="font-medium text-etat-alerte-texte">{signal.label}</span>
+                    <span className="text-etat-alerte-texte"> — {signal.detail}</span>
                   </div>
                 </div>
               ))}
@@ -271,8 +271,8 @@ export function DiagnosticResults({
         
         <CardContent className="p-6">
           {showSimilarIncidents && similarIncidents && similarIncidents.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
-              <h5 className="font-semibold text-slate-900 text-sm mb-3 flex items-center">
+            <div className="bg-paper border border-rule rounded-lg p-4 mb-6">
+              <h5 className="font-semibold text-ink text-sm mb-3 flex items-center">
                 <History className="w-4 h-4 mr-2" />
                 Incidents Similaires Récents
               </h5>
@@ -280,10 +280,10 @@ export function DiagnosticResults({
                 {similarIncidents.map((incident, i) => (
                   <div key={i} className="flex items-center justify-between bg-white p-2.5 rounded border text-sm">
                     <div className="flex-1">
-                      <span className="text-slate-500 text-xs">{incident.date}</span>
-                      <span className="mx-2 text-slate-300">|</span>
-                      <span className="font-medium text-slate-800">{incident.equipmentType}</span>
-                      <p className="text-xs text-slate-600 mt-0.5 truncate">{incident.diagnosis}</p>
+                      <span className="text-ink-mute text-xs">{incident.date}</span>
+                      <span className="mx-2 text-ink-mute">|</span>
+                      <span className="font-medium text-ink">{incident.equipmentType}</span>
+                      <p className="text-xs text-ink-soft mt-0.5 truncate">{incident.diagnosis}</p>
                     </div>
                     <Badge variant="secondary" className="text-xs ml-2">
                       il y a {incident.daysAgo}j
@@ -309,9 +309,9 @@ export function DiagnosticResults({
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className={`text-xs ${
-                        trend.direction === 'increasing' ? 'bg-red-100 text-red-800' : 
-                        trend.direction === 'decreasing' ? 'bg-green-100 text-green-800' : 
-                        'bg-gray-100 text-gray-800'
+                        trend.direction === 'increasing' ? 'bg-etat-critique-fond text-etat-critique-texte' : 
+                        trend.direction === 'decreasing' ? 'bg-etat-nominal-fond text-etat-nominal-texte' : 
+                        'bg-paper-deep text-ink'
                       }`}>
                         {trend.direction === 'increasing' ? 'En hausse' : 
                          trend.direction === 'decreasing' ? 'En baisse' : 'Stable'}
@@ -325,17 +325,17 @@ export function DiagnosticResults({
           )}
 
           {cloudSearchPerformed && (
-            <div className="bg-paper-deep border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="bg-paper-deep border border-etat-encours-filet rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-2 mb-2">
-                <Cloud className="text-blue-500 w-5 h-5" />
-                <span className="font-medium text-blue-800">Recherche Cloud Effectuée</span>
-                <Badge className="bg-blue-500 text-white text-xs">
+                <Cloud className="text-etat-encours-texte w-5 h-5" />
+                <span className="font-medium text-etat-encours-texte">Recherche Cloud Effectuée</span>
+                <Badge className="bg-etat-encours-vif text-white text-xs">
                   <Globe className="w-3 h-3 mr-1" />
                   IA Cloud
                 </Badge>
               </div>
               {cloudInsights && (
-                <p className="text-sm text-blue-700">{cloudInsights}</p>
+                <p className="text-sm text-etat-encours-texte">{cloudInsights}</p>
               )}
             </div>
           )}
@@ -355,7 +355,7 @@ export function DiagnosticResults({
                         {sourceBadge.label}
                       </Badge>
                       {suggestion.cloudSource && (
-                        <Badge variant="secondary" className="bg-blue-500 text-white text-xs">
+                        <Badge variant="secondary" className="bg-etat-encours-vif text-white text-xs">
                           <Cloud className="w-3 h-3 mr-1" />
                           Cloud
                         </Badge>
@@ -372,12 +372,12 @@ export function DiagnosticResults({
                   </div>
 
                   {suggestion.diagnosticReasoning && (
-                    <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                      <h5 className="text-sm font-semibold text-indigo-900 mb-1.5 flex items-center">
-                        <HelpCircle className="w-4 h-4 mr-2 text-indigo-600" />
+                    <div className="mb-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-3">
+                      <h5 className="text-sm font-semibold text-etat-encours-texte mb-1.5 flex items-center">
+                        <HelpCircle className="w-4 h-4 mr-2 text-etat-encours-texte" />
                         Pourquoi ce diagnostic ?
                       </h5>
-                      <p className="text-sm text-indigo-800 leading-relaxed">{suggestion.diagnosticReasoning}</p>
+                      <p className="text-sm text-etat-encours-texte leading-relaxed">{suggestion.diagnosticReasoning}</p>
                     </div>
                   )}
 
@@ -411,12 +411,12 @@ export function DiagnosticResults({
                   </div>
 
                   {suggestion.repairSteps && suggestion.repairSteps.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                      <h5 className="font-semibold text-green-800 text-sm mb-2 flex items-center">
+                    <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3 mb-4">
+                      <h5 className="font-semibold text-etat-nominal-texte text-sm mb-2 flex items-center">
                         <Wrench className="w-4 h-4 mr-2" />
                         Étapes de réparation
                       </h5>
-                      <ol className="text-xs text-green-800 space-y-1 list-decimal list-inside">
+                      <ol className="text-xs text-etat-nominal-texte space-y-1 list-decimal list-inside">
                         {suggestion.repairSteps.map((step, si) => (
                           <li key={si}>{step}</li>
                         ))}
@@ -425,15 +425,15 @@ export function DiagnosticResults({
                   )}
 
                   {suggestion.safetyWarnings && suggestion.safetyWarnings.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                      <h5 className="font-semibold text-red-800 text-sm mb-2 flex items-center">
+                    <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-lg p-3 mb-4">
+                      <h5 className="font-semibold text-etat-critique-texte text-sm mb-2 flex items-center">
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         Avertissements de sécurité
                       </h5>
-                      <ul className="text-xs text-red-700 space-y-1">
+                      <ul className="text-xs text-etat-critique-texte space-y-1">
                         {suggestion.safetyWarnings.map((warn, wi) => (
                           <li key={wi} className="flex items-start">
-                            <span className="text-red-500 mr-2 font-bold">!</span>
+                            <span className="text-etat-critique-texte mr-2 font-bold">!</span>
                             {warn}
                           </li>
                         ))}
@@ -453,7 +453,7 @@ export function DiagnosticResults({
                   )}
 
                   {suggestion.aiInsights && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-1">
                         <Brain className="text-signal w-4 h-4" />
                         <span className="text-sm font-medium text-signal">{t("aiInsights", language)}</span>
@@ -466,8 +466,8 @@ export function DiagnosticResults({
                     {suggestion.riskLevel && (
                       <div className="text-center p-2 bg-paper rounded">
                         <AlertTriangle className={`w-4 h-4 mx-auto mb-1 ${
-                          suggestion.riskLevel === "Élevé" ? "text-red-500" : 
-                          suggestion.riskLevel === "Moyen" ? "text-orange-500" : "text-green-500"
+                          suggestion.riskLevel === "Élevé" ? "text-etat-critique-texte" : 
+                          suggestion.riskLevel === "Moyen" ? "text-etat-alerte-texte" : "text-etat-nominal-texte"
                         }`} />
                         <div className="text-xs font-medium text-ink">{t("riskLevel", language)}</div>
                         <div className="text-xs text-ink-soft">{suggestion.riskLevel}</div>
@@ -509,7 +509,7 @@ export function DiagnosticResults({
                   </div>
 
                   {suggestion.predictiveTips && suggestion.predictiveTips.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-2">
                         <Wrench className="text-etat-nominal-texte w-4 h-4" />
                         <span className="text-sm font-medium text-etat-nominal-texte">{t("predictiveMaintenance", language)}</span>
@@ -539,7 +539,7 @@ export function DiagnosticResults({
                         setFeedbackModalOpen(true);
                       }}
                       variant="outline"
-                      className="border-green-300 text-green-700 hover:bg-green-50"
+                      className="border-etat-nominal-filet text-etat-nominal-texte hover:bg-etat-nominal-fond"
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Feedback

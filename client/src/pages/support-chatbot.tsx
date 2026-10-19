@@ -237,10 +237,10 @@ export default function SupportChatbot() {
 
   const getCategoryColor = (category?: string) => {
     switch (category) {
-      case 'diagnostic': return 'bg-blue-100 text-blue-800';
-      case 'gmao': return 'bg-green-100 text-green-800';
-      case 'security': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'diagnostic': return 'bg-etat-encours-fond text-etat-encours-texte';
+      case 'gmao': return 'bg-etat-nominal-fond text-etat-nominal-texte';
+      case 'security': return 'bg-etat-critique-fond text-etat-critique-texte';
+      default: return 'bg-paper-deep text-ink';
     }
   };
 
@@ -252,8 +252,8 @@ export default function SupportChatbot() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <Bot className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-etat-encours-fond dark:bg-etat-encours-vif rounded-lg">
+              <Bot className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">
@@ -290,8 +290,8 @@ export default function SupportChatbot() {
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         message.type === 'user' 
-                          ? 'bg-blue-100 text-blue-600' 
-                          : 'bg-green-100 text-green-600'
+                          ? 'bg-etat-encours-fond text-etat-encours-texte' 
+                          : 'bg-etat-nominal-fond text-etat-nominal-texte'
                       }`}>
                         {message.type === 'user' ? 
                           <User className="h-4 w-4" /> : 
@@ -302,8 +302,8 @@ export default function SupportChatbot() {
                       <div className={`max-w-[80%] ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
                         <div className={`rounded-lg p-3 ${
                           message.type === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-foreground'
+                            ? 'bg-etat-encours-vif text-white'
+                            : 'bg-paper-deep dark:bg-ink text-foreground'
                         }`}>
                           <div className="whitespace-pre-wrap">{message.content}</div>
                         </div>
@@ -334,7 +334,7 @@ export default function SupportChatbot() {
                               className="h-6 px-2"
                               onClick={() => handleFeedback(message.id, true)}
                             >
-                              <ThumbsUp className={`h-3 w-3 ${message.helpful === true ? 'text-green-600' : ''}`} />
+                              <ThumbsUp className={`h-3 w-3 ${message.helpful === true ? 'text-etat-nominal-texte' : ''}`} />
                             </Button>
                             <Button
                               variant="ghost"
@@ -342,7 +342,7 @@ export default function SupportChatbot() {
                               className="h-6 px-2"
                               onClick={() => handleFeedback(message.id, false)}
                             >
-                              <ThumbsDown className={`h-3 w-3 ${message.helpful === false ? 'text-red-600' : ''}`} />
+                              <ThumbsDown className={`h-3 w-3 ${message.helpful === false ? 'text-etat-critique-texte' : ''}`} />
                             </Button>
                           </div>
                         )}
@@ -352,10 +352,10 @@ export default function SupportChatbot() {
                   
                   {isTyping && (
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-etat-nominal-fond text-etat-nominal-texte flex items-center justify-center">
                         <Bot className="h-4 w-4" />
                       </div>
-                      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                      <div className="bg-paper-deep dark:bg-ink rounded-lg p-3">
                         <div className="flex gap-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -416,10 +416,10 @@ export default function SupportChatbot() {
                     <Badge 
                       variant="outline" 
                       className={`mt-1 text-xs ${
-                        solution.severity === 'critical' ? 'border-red-200 text-red-700' :
-                        solution.severity === 'high' ? 'border-orange-200 text-orange-700' :
-                        solution.severity === 'medium' ? 'border-yellow-200 text-yellow-700' :
-                        'border-green-200 text-green-700'
+                        solution.severity === 'critical' ? 'border-etat-critique-filet text-etat-critique-texte' :
+                        solution.severity === 'high' ? 'border-etat-alerte-filet text-etat-alerte-texte' :
+                        solution.severity === 'medium' ? 'border-etat-alerte-filet text-etat-alerte-texte' :
+                        'border-etat-nominal-filet text-etat-nominal-texte'
                       }`}
                     >
                       {solution.severity}

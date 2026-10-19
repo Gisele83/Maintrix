@@ -432,7 +432,7 @@ export default function Documentation() {
                       <div className="space-y-2">
                         {guide.content.slice(0, 3).map((item, index) => (
                           <div key={index} className="flex items-center space-x-2 text-sm">
-                            <CheckCircle className="w-3 h-3 text-green-600" />
+                            <CheckCircle className="w-3 h-3 text-etat-nominal-texte" />
                             <span>{item}</span>
                           </div>
                         ))}
@@ -561,7 +561,7 @@ export default function Documentation() {
               <Card className="border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                    <FileText className="w-5 h-5 text-etat-encours-texte" />
                     <span>Documents Techniques</span>
                   </CardTitle>
                 </CardHeader>
@@ -613,7 +613,7 @@ export default function Documentation() {
               <Card className="border-0">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Lightbulb className="w-5 h-5 text-yellow-600" />
+                    <Lightbulb className="w-5 h-5 text-etat-alerte-texte" />
                     <span>Ressources Complémentaires</span>
                   </CardTitle>
                 </CardHeader>
@@ -681,29 +681,29 @@ export default function Documentation() {
             {/* Quick Start Section */}
             <Card className="border-0 bg-paper-deep">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-green-800 dark:text-green-200">
+                <CardTitle className="flex items-center space-x-2 text-etat-nominal-texte dark:text-green-200">
                   <Play className="w-5 h-5" />
                   <span>Démarrage Rapide</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-green-700 dark:text-green-300">
+                <p className="text-etat-nominal-texte dark:text-etat-nominal-texte">
                   Nouveau sur Maintrix ? Suivez ces étapes pour être opérationnel en 15 minutes :
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
                     onClick={() => handleWatchVideo("intro-video", "Vidéo d'introduction Maintrix")}
                   >
                     <div>
-                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
+                      <div className="w-8 h-8 bg-etat-nominal-vif text-white rounded-full flex items-center justify-center mx-auto mb-2">1</div>
                       <div className="font-medium">Regarder l'intro (5 min)</div>
                     </div>
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
                     onClick={() => {
                       toast({
                         title: "Diagnostic démarré",
@@ -713,13 +713,13 @@ export default function Documentation() {
                     }}
                   >
                     <div>
-                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
+                      <div className="w-8 h-8 bg-etat-nominal-vif text-white rounded-full flex items-center justify-center mx-auto mb-2">2</div>
                       <div className="font-medium">Premier diagnostic (5 min)</div>
                     </div>
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-green-900 rounded-lg h-auto hover:bg-green-50 dark:hover:bg-green-800 transition-colors"
+                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
                     onClick={() => {
                       toast({
                         title: "GMAO ouvert",
@@ -729,7 +729,7 @@ export default function Documentation() {
                     }}
                   >
                     <div>
-                      <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
+                      <div className="w-8 h-8 bg-etat-nominal-vif text-white rounded-full flex items-center justify-center mx-auto mb-2">3</div>
                       <div className="font-medium">Explorer les fonctionnalités (5 min)</div>
                     </div>
                   </Button>
@@ -916,19 +916,19 @@ export default function Documentation() {
                     <h3 className="text-lg font-semibold">Dans cette vidéo, vous apprendrez :</h3>
                     <ul className="space-y-2">
                       <li className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                         <span>Les concepts fondamentaux de la fonctionnalité</span>
                       </li>
                       <li className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                         <span>Une démonstration pratique étape par étape</span>
                       </li>
                       <li className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                         <span>Les meilleures pratiques et conseils d'experts</span>
                       </li>
                       <li className="flex items-center space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />
                         <span>Comment éviter les erreurs courantes</span>
                       </li>
                     </ul>

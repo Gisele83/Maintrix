@@ -16,6 +16,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertUserProfileSchema, type UserProfile, type InsertUserProfile } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, User, Phone, Mail, Building, Award } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 export default function UserProfiles() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -157,13 +160,13 @@ export default function UserProfiles() {
   const getRoleBadgeColor = (role: string | null) => {
     switch (role) {
       case "admin":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-red-200";
       case "supervisor":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        return "bg-etat-encours-fond text-etat-encours-texte dark:bg-etat-encours-vif dark:text-blue-200";
       case "technician":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-green-200";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-paper-deep text-ink dark:bg-ink dark:text-gray-200";
     }
   };
 
@@ -172,11 +175,11 @@ export default function UserProfiles() {
       case "expert":
         return "bg-paper-deep text-signal-deep dark:bg-signal-deep dark:text-signal-light";
       case "intermediate":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        return "bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-yellow-200";
       case "beginner":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+        return "bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-orange-200";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+        return "bg-paper-deep text-ink dark:bg-ink dark:text-gray-200";
     }
   };
 
@@ -189,11 +192,12 @@ export default function UserProfiles() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Profils" }]} largeur="large">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestion des Profils Utilisateur</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-ink-soft dark:text-ink-mute">
             Gérez les profils et les permissions des utilisateurs du système Maintrix
           </p>
         </div>
@@ -419,12 +423,12 @@ export default function UserProfiles() {
 
       <div className="grid gap-6">
         {profiles.map((profile: UserProfile) => (
-          <Card key={profile.id} className="hover:shadow-md transition-shadow">
+          <Card key={profile.id} className="hover:shadow-none transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="h-12 w-12 rounded-full bg-etat-encours-fond dark:bg-etat-encours-vif flex items-center justify-center">
+                    <User className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
                   </div>
                   <div>
                     <CardTitle className="text-lg">
@@ -456,27 +460,27 @@ export default function UserProfiles() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 {profile.email && (
                   <div className="flex items-center space-x-2">
-                    <Mail className="h-4 w-4 text-gray-500" />
+                    <Mail className="h-4 w-4 text-ink-mute" />
                     <span className="text-sm">{profile.email}</span>
                   </div>
                 )}
                 
                 {profile.phoneNumber && (
                   <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4 text-gray-500" />
+                    <Phone className="h-4 w-4 text-ink-mute" />
                     <span className="text-sm">{profile.phoneNumber}</span>
                   </div>
                 )}
                 
                 {profile.department && (
                   <div className="flex items-center space-x-2">
-                    <Building className="h-4 w-4 text-gray-500" />
+                    <Building className="h-4 w-4 text-ink-mute" />
                     <span className="text-sm">{profile.department}</span>
                   </div>
                 )}
                 
                 <div className="flex items-center space-x-2">
-                  <Award className="h-4 w-4 text-gray-500" />
+                  <Award className="h-4 w-4 text-ink-mute" />
                   <span className="text-sm">
                     {profile.specializations?.length || 0} spécialisation(s)
                   </span>
@@ -497,7 +501,7 @@ export default function UserProfiles() {
               )}
 
               <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-ink-mute">
                   {profile.lastLogin 
                     ? `Dernière connexion: ${new Date(profile.lastLogin).toLocaleDateString("fr-FR")}`
                     : "Jamais connecté"
@@ -539,14 +543,14 @@ export default function UserProfiles() {
           {editingProfile && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <div className="bg-paper dark:bg-ink p-3 rounded-lg border">
+                  <div className="text-sm font-medium text-ink-soft dark:text-ink-mute mb-1">
                     Nom d'utilisateur
                   </div>
-                  <div className="text-gray-600 dark:text-gray-400">
+                  <div className="text-ink-soft dark:text-ink-mute">
                     {editingProfile.username}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-ink-mute mt-1">
                     Le nom d'utilisateur ne peut pas être modifié
                   </div>
                 </div>
@@ -715,5 +719,6 @@ export default function UserProfiles() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppShell>
   );
 }

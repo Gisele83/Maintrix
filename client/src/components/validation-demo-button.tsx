@@ -43,7 +43,7 @@ export function ValidationDemoButton() {
     <Button 
       onClick={createDemoData}
       disabled={isCreating}
-      className="bg-blue-600 hover:bg-blue-700"
+      className="bg-etat-encours-vif hover:bg-etat-encours-vif"
     >
       {isCreating ? (
         <>

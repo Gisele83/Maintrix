@@ -84,17 +84,17 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <MessageSquare className="w-5 h-5 text-blue-600" />
+            <MessageSquare className="w-5 h-5 text-etat-encours-texte" />
             <span>Évaluation du Diagnostic</span>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Diagnostic Summary */}
-          <div className="bg-paper-deep p-4 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-900 mb-2">Diagnostic fourni:</h3>
-            <p className="text-sm text-blue-800 mb-2">{diagnosis}</p>
-            <p className="text-sm text-blue-700">{solution}</p>
+          <div className="bg-paper-deep p-4 rounded-lg border border-etat-encours-filet">
+            <h3 className="font-semibold text-etat-encours-texte mb-2">Diagnostic fourni:</h3>
+            <p className="text-sm text-etat-encours-texte mb-2">{diagnosis}</p>
+            <p className="text-sm text-etat-encours-texte">{solution}</p>
           </div>
 
           {/* Star Rating */}
@@ -106,13 +106,13 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
                   key={star}
                   onClick={() => setRating(star)}
                   className={`p-1 transition-colors ${
-                    rating >= star ? "text-yellow-500" : "text-gray-300 hover:text-yellow-400"
+                    rating >= star ? "text-etat-alerte-texte" : "text-ink-mute hover:text-etat-alerte-texte"
                   }`}
                 >
                   <Star className="w-6 h-6 fill-current" />
                 </button>
               ))}
-              <span className="ml-2 text-sm text-gray-600">
+              <span className="ml-2 text-sm text-ink-soft">
                 {rating > 0 && `${rating}/5`}
               </span>
             </div>
@@ -126,7 +126,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
                 variant={helpful === true ? "default" : "outline"}
                 onClick={() => setHelpful(true)}
                 className={`flex items-center space-x-2 ${
-                  helpful === true ? "bg-green-600 text-white" : "hover:bg-green-50 hover:border-green-300"
+                  helpful === true ? "bg-etat-nominal-vif text-white" : "hover:bg-etat-nominal-fond hover:border-etat-nominal-filet"
                 }`}
               >
                 <ThumbsUp className="w-4 h-4" />
@@ -136,7 +136,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
                 variant={helpful === false ? "default" : "outline"}
                 onClick={() => setHelpful(false)}
                 className={`flex items-center space-x-2 ${
-                  helpful === false ? "bg-red-600 text-white" : "hover:bg-red-50 hover:border-red-300"
+                  helpful === false ? "bg-etat-critique-vif text-white" : "hover:bg-etat-critique-fond hover:border-etat-critique-filet"
                 }`}
               >
                 <ThumbsDown className="w-4 h-4" />
@@ -179,7 +179,7 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
                 onChange={(e) => setActualSolution(e.target.value)}
                 className="min-h-[80px] resize-none"
               />
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-etat-alerte-texte">
                 Cette information enrichit automatiquement la base de connaissances
               </p>
             </div>
@@ -194,16 +194,16 @@ export function FeedbackModal({ isOpen, onClose, sessionId, diagnosis, solution 
               onChange={(e) => setComments(e.target.value)}
               className="min-h-[100px] resize-none"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-mute">
               Vos commentaires nous aident à améliorer l'IA de diagnostic
             </p>
           </div>
 
           {/* Rating Summary */}
           {rating > 0 && (
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-paper p-3 rounded-lg">
               <div className="flex items-center space-x-2 text-sm">
-                <span className="text-gray-600">Votre évaluation:</span>
+                <span className="text-ink-soft">Votre évaluation:</span>
                 <Badge variant={rating >= 4 ? "default" : rating >= 3 ? "secondary" : "destructive"}>
                   {rating >= 4 ? "Excellent" : rating >= 3 ? "Satisfaisant" : "À améliorer"}
                 </Badge>

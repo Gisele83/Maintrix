@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { auMoins } from "@shared/roles";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface HealthData {
   overall: "healthy" | "warning" | "degraded" | "error";
@@ -44,17 +47,17 @@ interface HealthData {
 
 function OverallBadge({ status }: { status: string }) {
   if (status === "healthy") return (
-    <Badge className="bg-emerald-500 text-white gap-1 px-3 py-1 text-sm">
+    <Badge className="bg-etat-nominal-vif text-white gap-1 px-3 py-1 text-sm">
       <CheckCircle2 className="h-4 w-4" /> Opérationnel
     </Badge>
   );
   if (status === "warning") return (
-    <Badge className="bg-amber-500 text-white gap-1 px-3 py-1 text-sm">
+    <Badge className="bg-etat-alerte-vif text-white gap-1 px-3 py-1 text-sm">
       <AlertTriangle className="h-4 w-4" /> Avertissement
     </Badge>
   );
   return (
-    <Badge className="bg-red-500 text-white gap-1 px-3 py-1 text-sm">
+    <Badge className="bg-etat-critique-vif text-white gap-1 px-3 py-1 text-sm">
       <XCircle className="h-4 w-4" /> Dégradé
     </Badge>
   );
@@ -96,7 +99,7 @@ export default function SystemHealthPage() {
     return (
       <div className="min-h-screen bg-paper-deep flex items-center justify-center">
         <div className="text-center space-y-4">
-          <ShieldOff className="h-16 w-16 text-red-600 mx-auto" />
+          <ShieldOff className="h-16 w-16 text-etat-critique-texte mx-auto" />
           <h2 className="text-2xl font-bold text-ink">Accès refusé</h2>
           <p className="text-ink-mute max-w-sm mx-auto">
             Cette page est réservée aux administrateurs de la plateforme.
@@ -112,7 +115,8 @@ export default function SystemHealthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Santé du système" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
@@ -177,7 +181,7 @@ export default function SystemHealthPage() {
                   <div className="flex items-center gap-2 text-ink-mute text-sm mb-1">
                     <Database className="h-4 w-4" /> Base de données
                   </div>
-                  <div className={`font-semibold ${data.database.status === "ok" ? "text-emerald-700" : "text-red-600"}`}>
+                  <div className={`font-semibold ${data.database.status === "ok" ? "text-etat-nominal-texte" : "text-etat-critique-texte"}`}>
                     {data.database.status === "ok" ? "Connectée" : "Erreur"}
                   </div>
                   <div className="text-ink-mute text-xs">{data.database.latencyMs}ms latence</div>
@@ -270,7 +274,7 @@ export default function SystemHealthPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-ink text-base flex items-center gap-2">
-                  <Code2 className="h-5 w-5 text-cyan-700" /> Métriques de la base de code
+                  <Code2 className="h-5 w-5 text-etat-encours-texte" /> Métriques de la base de code
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -278,13 +282,13 @@ export default function SystemHealthPage() {
                   {[
                     { label: "Fichiers serveur", value: data.codebase.serverFiles, icon: Server, color: "text-signal" },
                     { label: "Fichiers frontend", value: data.codebase.clientFiles, icon: Layers, color: "text-signal-deep" },
-                    { label: "Fichiers partagés", value: data.codebase.sharedFiles, icon: Package, color: "text-amber-700" },
+                    { label: "Fichiers partagés", value: data.codebase.sharedFiles, icon: Package, color: "text-etat-alerte-texte" },
                     { label: "Total fichiers", value: data.codebase.totalFiles, icon: HardDrive, color: "text-ink-mute" },
-                    { label: "Modules routes", value: data.codebase.routeModules, icon: Activity, color: "text-emerald-700" },
-                    { label: "Gén. PDF actifs", value: data.codebase.pdfGenerators, icon: Code2, color: "text-cyan-700" },
-                    { label: "Process. Excel", value: data.codebase.excelProcessors, icon: Code2, color: "text-green-700" },
+                    { label: "Modules routes", value: data.codebase.routeModules, icon: Activity, color: "text-etat-nominal-texte" },
+                    { label: "Gén. PDF actifs", value: data.codebase.pdfGenerators, icon: Code2, color: "text-etat-encours-texte" },
+                    { label: "Process. Excel", value: data.codebase.excelProcessors, icon: Code2, color: "text-etat-nominal-texte" },
                   ].map(({ label, value, icon: Icon, color }) => (
-                    <div key={label} className="bg-paper-deep border border-rule rounded-xl p-3 text-center">
+                    <div key={label} className="bg-paper-deep border border-rule rounded-none p-3 text-center">
                       <Icon className={`h-5 w-5 mx-auto mb-1 ${color}`} />
                       <div className="text-ink font-bold text-lg">{value}</div>
                       <div className="text-ink-mute text-xs leading-tight">{label}</div>
@@ -298,7 +302,7 @@ export default function SystemHealthPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-ink text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-700" />
+                  <CheckCircle2 className="h-5 w-5 text-etat-nominal-texte" />
                   Modules actifs ({data.modules.filter(m => m.status === "active").length}/{data.modules.length})
                 </CardTitle>
               </CardHeader>
@@ -310,16 +314,16 @@ export default function SystemHealthPage() {
                       className="flex items-center gap-3 bg-paper-deep border border-rule rounded-lg px-3 py-2"
                     >
                       <div className={`h-2 w-2 rounded-full flex-shrink-0 ${
-                        mod.status === "active" ? "bg-emerald-600" :
-                        mod.status === "warning" ? "bg-amber-600" : "bg-red-600"
+                        mod.status === "active" ? "bg-etat-nominal-vif" :
+                        mod.status === "warning" ? "bg-etat-alerte-vif" : "bg-etat-critique-vif"
                       }`} />
                       <span className="text-ink-soft text-sm">{mod.name}</span>
                       <Badge
                         variant="outline"
                         className={`ml-auto text-xs py-0 ${
                           mod.status === "active"
-                            ? "border-emerald-600 text-emerald-700"
-                            : "border-amber-600 text-amber-700"
+                            ? "border-etat-nominal-filet text-etat-nominal-texte"
+                            : "border-etat-alerte-filet text-etat-alerte-texte"
                         }`}
                       >
                         {mod.status === "active" ? "Actif" : "Avertissement"}
@@ -339,5 +343,6 @@ export default function SystemHealthPage() {
         )}
       </div>
     </div>
+    </AppShell>
   );
 }

@@ -18,17 +18,21 @@ import {
   AlertTriangle,
   CheckCircle
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 export default function ModulesOverview() {
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Plateforme", href: "/maintenance-platform" }, { libelle: "Modules" }]}>
+    <div className="space-y-6">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold text-ink mb-4">
             Architecture Modulaire Maintrix
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-ink-soft max-w-3xl mx-auto">
             Interface unifiée avec deux modules spécialisés pour une maintenance industrielle optimale
           </p>
         </div>
@@ -46,7 +50,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module GMAO</CardTitle>
-                    <Badge variant="secondary" className="bg-white/15 text-ink border-rule">
+                    <Badge variant="secondary" className="bg-paper-deep text-ink border-rule">
                       Planification & Interventions
                     </Badge>
                   </div>
@@ -56,36 +60,36 @@ export default function ModulesOverview() {
             
             <CardContent className="p-8">
               <div className="space-y-6">
-                <p className="text-gray-700 text-lg leading-relaxed">
+                <p className="text-ink-soft text-lg leading-relaxed">
                   Gestion complète de la maintenance avec planification des interventions, 
                   attribution aux techniciens, et suivi des ordres de travail.
                 </p>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white p-4 rounded-lg">
-                    <Users className="w-6 h-6 text-blue-600 mb-2" />
-                    <h4 className="font-semibold text-blue-900">Techniciens</h4>
-                    <p className="text-sm text-gray-600">Gestion équipes</p>
+                    <Users className="w-6 h-6 text-etat-encours-texte mb-2" />
+                    <h4 className="font-semibold text-etat-encours-texte">Techniciens</h4>
+                    <p className="text-sm text-ink-soft">Gestion équipes</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg">
-                    <Clock className="w-6 h-6 text-blue-600 mb-2" />
-                    <h4 className="font-semibold text-blue-900">Planification</h4>
-                    <p className="text-sm text-gray-600">Ordres de travail</p>
+                    <Clock className="w-6 h-6 text-etat-encours-texte mb-2" />
+                    <h4 className="font-semibold text-etat-encours-texte">Planification</h4>
+                    <p className="text-sm text-ink-soft">Ordres de travail</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg">
-                    <Cpu className="w-6 h-6 text-blue-600 mb-2" />
-                    <h4 className="font-semibold text-blue-900">Équipements</h4>
-                    <p className="text-sm text-gray-600">Registre complet</p>
+                    <Cpu className="w-6 h-6 text-etat-encours-texte mb-2" />
+                    <h4 className="font-semibold text-etat-encours-texte">Équipements</h4>
+                    <p className="text-sm text-ink-soft">Registre complet</p>
                   </div>
                   <div className="bg-white p-4 rounded-lg">
-                    <Database className="w-6 h-6 text-blue-600 mb-2" />
-                    <h4 className="font-semibold text-blue-900">Stock</h4>
-                    <p className="text-sm text-gray-600">Pièces détachées</p>
+                    <Database className="w-6 h-6 text-etat-encours-texte mb-2" />
+                    <h4 className="font-semibold text-etat-encours-texte">Stock</h4>
+                    <p className="text-sm text-ink-soft">Pièces détachées</p>
                   </div>
                 </div>
                 
                 <div className="space-y-3">
-                  <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
+                  <Button asChild className="w-full bg-etat-encours-vif hover:bg-etat-encours-vif text-lg py-6">
                     <Link href="/gmao">
                       <Settings className="w-5 h-5 mr-2" />
                       Accéder au Module GMAO
@@ -122,7 +126,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module Diagnostic IA</CardTitle>
-                    <Badge variant="secondary" className="bg-white/15 text-ink border-rule">
+                    <Badge variant="secondary" className="bg-paper-deep text-ink border-rule">
                       Intelligence Artificielle
                     </Badge>
                   </div>
@@ -132,7 +136,7 @@ export default function ModulesOverview() {
             
             <CardContent className="p-8">
               <div className="space-y-6">
-                <p className="text-gray-700 text-lg leading-relaxed">
+                <p className="text-ink-soft text-lg leading-relaxed">
                   Analyse intelligente des symptômes pour générer des diagnostics précis, 
                   des préconisations et créer automatiquement les interventions.
                 </p>
@@ -153,7 +157,7 @@ export default function ModulesOverview() {
                       <span>Préconisations détaillées</span>
                     </div>
                     <div className="flex items-center">
-                      <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">4</div>
+                      <div className="w-8 h-8 bg-etat-nominal-vif text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">4</div>
                       <span>Lien vers intervention GMAO</span>
                     </div>
                   </div>
@@ -170,7 +174,7 @@ export default function ModulesOverview() {
                   
                   <Button asChild variant="outline" className="w-full border-rule text-signal-deep hover:bg-paper-deep">
                     <Link href="/voice-diagnostic">
-                      <div className="w-5 h-5 mr-2 rounded-full bg-red-500 animate-pulse flex items-center justify-center">
+                      <div className="w-5 h-5 mr-2 rounded-full bg-etat-critique-vif animate-pulse flex items-center justify-center">
                         <div className="w-2 h-2 bg-white rounded-full"></div>
                       </div>
                       Assistant Vocal
@@ -186,7 +190,7 @@ export default function ModulesOverview() {
         {/* Integration Section */}
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center text-2xl text-green-800">
+            <CardTitle className="flex items-center text-2xl text-etat-nominal-texte">
               <TrendingUp className="w-6 h-6 mr-3" />
               Intégration des Modules
             </CardTitle>
@@ -194,21 +198,21 @@ export default function ModulesOverview() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-etat-nominal-vif rounded-full flex items-center justify-center mx-auto mb-4">
                   <AlertTriangle className="w-8 h-8 text-ink" />
                 </div>
-                <h3 className="font-semibold text-green-800 mb-2">Détection Automatique</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-etat-nominal-texte mb-2">Détection Automatique</h3>
+                <p className="text-sm text-ink-soft">
                   Le module IA détecte les problèmes et alertes en temps réel
                 </p>
               </div>
               
               <div className="text-center">
-                <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-etat-encours-vif rounded-full flex items-center justify-center mx-auto mb-4">
                   <Brain className="w-8 h-8 text-ink" />
                 </div>
-                <h3 className="font-semibold text-blue-800 mb-2">Diagnostic Intelligent</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-etat-encours-texte mb-2">Diagnostic Intelligent</h3>
+                <p className="text-sm text-ink-soft">
                   Analyse avancée et recommandations précises
                 </p>
               </div>
@@ -218,7 +222,7 @@ export default function ModulesOverview() {
                   <CheckCircle className="w-8 h-8 text-ink" />
                 </div>
                 <h3 className="font-semibold text-signal-deep mb-2">Action GMAO</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-ink-soft">
                   Création automatique des ordres de travail
                 </p>
               </div>
@@ -227,5 +231,6 @@ export default function ModulesOverview() {
         </Card>
       </div>
     </div>
+    </AppShell>
   );
 }

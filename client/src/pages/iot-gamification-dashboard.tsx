@@ -59,15 +59,15 @@ interface SystemStatusResponse {
 // IoT Device Status Component
 const IoTDeviceCard = ({ device }: { device: any }) => {
   const getBatteryColor = (level: number) => {
-    if (level > 0.5) return 'text-green-600';
-    if (level > 0.3) return 'text-yellow-600';
-    return 'text-red-600';
+    if (level > 0.5) return 'text-etat-nominal-texte';
+    if (level > 0.3) return 'text-etat-alerte-texte';
+    return 'text-etat-critique-texte';
   };
 
   const getSignalColor = (strength: number) => {
-    if (strength > 0.8) return 'text-green-600';
-    if (strength > 0.5) return 'text-yellow-600';
-    return 'text-red-600';
+    if (strength > 0.8) return 'text-etat-nominal-texte';
+    if (strength > 0.5) return 'text-etat-alerte-texte';
+    return 'text-etat-critique-texte';
   };
 
   return (
@@ -130,23 +130,23 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
 }) => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'border-red-500 bg-red-50';
-      case 'warning': return 'border-yellow-500 bg-yellow-50';
-      case 'info': return 'border-blue-500 bg-blue-50';
-      default: return 'border-gray-200';
+      case 'critical': return 'border-etat-critique-filet bg-etat-critique-fond';
+      case 'warning': return 'border-etat-alerte-filet bg-etat-alerte-fond';
+      case 'info': return 'border-etat-encours-filet bg-etat-encours-fond';
+      default: return 'border-rule';
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case 'critical': return <AlertTriangle className="h-5 w-5 text-red-600" />;
-      case 'warning': return <Clock className="h-5 w-5 text-yellow-600" />;
-      default: return <Activity className="h-5 w-5 text-blue-600" />;
+      case 'critical': return <AlertTriangle className="h-5 w-5 text-etat-critique-texte" />;
+      case 'warning': return <Clock className="h-5 w-5 text-etat-alerte-texte" />;
+      default: return <Activity className="h-5 w-5 text-etat-encours-texte" />;
     }
   };
 
   return (
-    <Card className={`transition-all duration-200 ${getSeverityColor(notification.severity)} ${!notification.isRead ? 'shadow-md' : 'opacity-75'}`}>
+    <Card className={`transition-all duration-200 ${getSeverityColor(notification.severity)} ${!notification.isRead ? 'shadow-none' : 'opacity-75'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
@@ -168,7 +168,7 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-ink-soft">
           {notification.message}
         </p>
         
@@ -184,7 +184,7 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
         
         {notification.estimatedTimeToFailure && (
           <div className="flex items-center space-x-2 text-sm">
-            <Clock className="h-4 w-4 text-orange-500" />
+            <Clock className="h-4 w-4 text-etat-alerte-texte" />
             <span>Temps estimé avant défaillance: {notification.estimatedTimeToFailure}h</span>
           </div>
         )}
@@ -337,7 +337,8 @@ export default function IoTGamificationDashboard() {
   });
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Perception IoT" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -351,11 +352,11 @@ export default function IoTGamificationDashboard() {
         {systemStatus && (
           <div className="flex space-x-4">
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${systemStatus.iot?.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`w-3 h-3 rounded-full ${systemStatus.iot?.connected ? 'bg-etat-nominal-vif' : 'bg-etat-critique-vif'}`} />
               <span className="text-sm">IoT: {systemStatus.iot?.devicesCount || 0} capteurs</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
+              <div className="w-3 h-3 rounded-full bg-etat-encours-vif" />
               <span className="text-sm">Gamification: {systemStatus.gamification?.totalUsers || 0} utilisateurs</span>
             </div>
           </div>
@@ -390,13 +391,13 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
+                    <div className="h-3 bg-paper-deep rounded w-1/2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-3 bg-paper-deep rounded w-2/3" />
                     </div>
                   </CardContent>
                 </Card>
@@ -409,7 +410,7 @@ export default function IoTGamificationDashboard() {
               <Card className="col-span-full">
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Activity className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Activity className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucun capteur IoT</h3>
                     <p className="text-muted-foreground">
                       Les capteurs IoT apparaîtront ici une fois connectés
@@ -425,7 +426,7 @@ export default function IoTGamificationDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Gauge className="h-8 w-8 text-blue-600" />
+                  <Gauge className="h-8 w-8 text-etat-encours-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Total Capteurs</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.totalDevices}</p>
@@ -435,7 +436,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <CheckCircle className="h-8 w-8 text-etat-nominal-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Actifs</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.activeDevices}</p>
@@ -445,7 +446,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Battery className="h-8 w-8 text-orange-600" />
+                  <Battery className="h-8 w-8 text-etat-alerte-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Batterie Faible</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.lowBatteryDevices}</p>
@@ -477,13 +478,13 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
+                    <div className="h-3 bg-paper-deep rounded w-1/2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-3 bg-paper-deep rounded w-2/3" />
                     </div>
                   </CardContent>
                 </Card>
@@ -501,7 +502,7 @@ export default function IoTGamificationDashboard() {
               <Card>
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Bell className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucune notification</h3>
                     <p className="text-muted-foreground">
                       Les notifications intelligentes apparaîtront ici
@@ -535,7 +536,7 @@ export default function IoTGamificationDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Trophy className="h-8 w-8 text-yellow-600" />
+                  <Trophy className="h-8 w-8 text-etat-alerte-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Niveau Moyen</p>
                     <p className="text-2xl font-bold">{userSkills.summary.averageLevel.toFixed(1)}</p>
@@ -545,7 +546,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Star className="h-8 w-8 text-blue-600" />
+                  <Star className="h-8 w-8 text-etat-encours-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">XP Total</p>
                     <p className="text-2xl font-bold">{userSkills.summary.totalExperience}</p>
@@ -555,7 +556,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Award className="h-8 w-8 text-green-600" />
+                  <Award className="h-8 w-8 text-etat-nominal-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Classement</p>
                     <p className="text-2xl font-bold">#{userSkills.leaderboard?.position || 'N/A'}</p>
@@ -570,12 +571,12 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-2 bg-gray-200 rounded" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-2 bg-paper-deep rounded" />
                     </div>
                   </CardContent>
                 </Card>
@@ -588,7 +589,7 @@ export default function IoTGamificationDashboard() {
               <Card className="col-span-full">
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Trophy className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Trophy className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucune compétence</h3>
                     <p className="text-muted-foreground">
                       Les compétences apparaîtront après les premières activités
@@ -615,9 +616,9 @@ export default function IoTGamificationDashboard() {
                   <div key={player.position} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        player.position === 1 ? 'bg-yellow-100 text-yellow-800' :
-                        player.position === 2 ? 'bg-gray-100 text-gray-800' :
-                        'bg-orange-100 text-orange-800'
+                        player.position === 1 ? 'bg-etat-alerte-fond text-etat-alerte-texte' :
+                        player.position === 2 ? 'bg-paper-deep text-ink' :
+                        'bg-etat-alerte-fond text-etat-alerte-texte'
                       }`}>
                         {player.position}
                       </div>
@@ -639,9 +640,9 @@ export default function IoTGamificationDashboard() {
                         <p className="text-xs text-muted-foreground">Succès</p>
                       </div>
                       <Medal className={`h-6 w-6 ${
-                        player.position === 1 ? 'text-yellow-500' :
-                        player.position === 2 ? 'text-gray-500' :
-                        'text-orange-500'
+                        player.position === 1 ? 'text-etat-alerte-texte' :
+                        player.position === 2 ? 'text-ink-mute' :
+                        'text-etat-alerte-texte'
                       }`} />
                     </div>
                   </div>
@@ -652,8 +653,12 @@ export default function IoTGamificationDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </AppShell>
   );
 }
 
 // Import Bell component fix
 import { Bell } from 'lucide-react';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";

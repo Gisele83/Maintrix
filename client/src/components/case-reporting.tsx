@@ -344,7 +344,7 @@ export function CaseReporting() {
               </div>
             ) : (
               reportedCases.slice(0, 5).map((reportedCase: any) => (
-                <div key={reportedCase.id} className="border border-rule rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                <div key={reportedCase.id} className="border border-rule rounded-lg p-4 hover:shadow-none transition-shadow duration-200">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h4 className="font-medium text-ink">

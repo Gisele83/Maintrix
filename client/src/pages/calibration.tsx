@@ -20,6 +20,9 @@ import {
   AlertTriangle, Clock, XCircle, RefreshCw, Thermometer,
   Droplets, FileText, BarChart3, FlaskConical, Calendar
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Measurement { point: string; nominal?: number; measured?: number; deviation?: number; unit?: string; pass?: boolean; }
@@ -42,16 +45,16 @@ interface CalStats {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  compliant:     { label: "Conforme",       color: "bg-green-100 text-green-700 border-green-200",  icon: CheckCircle2 },
-  due_soon:      { label: "Bientôt échu",   color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
-  overdue:       { label: "En retard",      color: "bg-red-100 text-red-700 border-red-200",         icon: AlertTriangle },
-  non_compliant: { label: "Non conforme",   color: "bg-orange-100 text-orange-700 border-orange-200", icon: XCircle },
-  out_of_service:{ label: "Hors service",   color: "bg-gray-200 text-gray-600 border-gray-300",      icon: XCircle },
+  compliant:     { label: "Conforme",       color: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",  icon: CheckCircle2 },
+  due_soon:      { label: "Bientôt échu",   color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", icon: Clock },
+  overdue:       { label: "En retard",      color: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",         icon: AlertTriangle },
+  non_compliant: { label: "Non conforme",   color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", icon: XCircle },
+  out_of_service:{ label: "Hors service",   color: "bg-paper-deep text-ink-soft border-rule",      icon: XCircle },
 };
 const RESULT_CONFIG: Record<string, { label: string; color: string }> = {
-  pass:        { label: "Réussi",       color: "bg-green-100 text-green-700" },
-  fail:        { label: "Échec",        color: "bg-red-100 text-red-700" },
-  conditional: { label: "Conditionnel", color: "bg-yellow-100 text-yellow-700" },
+  pass:        { label: "Réussi",       color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  fail:        { label: "Échec",        color: "bg-etat-critique-fond text-etat-critique-texte" },
+  conditional: { label: "Conditionnel", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
 };
 const INSTRUMENT_TYPES = ["Manomètre", "Thermomètre", "Débitmètre", "Capteur de pression", "Capteur de température",
   "Analyseur", "Balance", "Voltmètre", "Ampèremètre", "pH-mètre", "Hygromètre", "Tachymètre", "Oscilloscope", "Autre"];
@@ -164,12 +167,13 @@ export default function CalibrationPage() {
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Conformité" }, { libelle: "Étalonnages" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <FlaskConical className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">Gestion des Calibrations</h1>
@@ -181,35 +185,61 @@ export default function CalibrationPage() {
         </Button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "En retard", value: stats?.overdue ?? 0, color: "from-red-500 to-rose-600", icon: AlertTriangle },
-          { label: "Bientôt échus (30j)", value: stats?.dueSoon ?? 0, color: "from-yellow-400 to-orange-500", icon: Clock },
-          { label: "Conformes", value: stats?.compliant ?? 0, color: "from-green-500 to-teal-600", icon: CheckCircle2 },
-          { label: "Hors service", value: stats?.outOfService ?? 0, color: "from-gray-400 to-slate-500", icon: XCircle },
-        ].map(({ label, value, color, icon: Icon }) => (
-          <Card key={label} className="border-0 shadow-md cursor-pointer transition-all">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* ══════════════════════════════════════════════════════════
+          ÉTAT DU PARC D'INSTRUMENTS
+          ══════════════════════════════════════════════════════════
+          Ces quatre tuiles portaient chacune un fragment de dégradé —
+          `from-red-500 to-rose-600`, `from-green-500 to-teal-600` — resté
+          sans le `bg-gradient-to-*` qui l'aurait activé. Aucun fond n'était
+          donc posé, et une correction de secours leur avait donné à toutes
+          le MÊME `bg-paper-deep` : « En retard » ne se distinguait plus de
+          « Conformes ». Le retrait des dégradés avait supprimé
+          l'information d'état au lieu de la reporter sur un aplat.
+          Chaque tuile retrouve son registre, et le liseré ne s'allume que
+          lorsqu'il y a quelque chose à faire. */}
+      <div className="mb-6">
+        <RangeeIndicateurs>
+          <Indicateur
+            libelle="En retard"
+            valeur={stats?.overdue ?? 0}
+            precision={(stats?.overdue ?? 0) > 0 ? "étalonnages dépassés" : "aucun étalonnage dépassé"}
+            icone={AlertTriangle}
+            alerte={(stats?.overdue ?? 0) > 0}
+          />
+          <Indicateur
+            libelle="Échéance sous 30 jours"
+            valeur={stats?.dueSoon ?? 0}
+            precision={(stats?.dueSoon ?? 0) > 0 ? "à planifier" : "aucune échéance proche"}
+            icone={Clock}
+            alerte={(stats?.dueSoon ?? 0) > 0}
+          />
+          <Indicateur
+            libelle="Conformes"
+            valeur={stats?.compliant ?? 0}
+            precision={(stats?.compliant ?? 0) > 0 ? "instruments à jour" : "aucun instrument à jour"}
+            icone={CheckCircle2}
+          />
+          <Indicateur
+            libelle="Hors service"
+            valeur={stats?.outOfService ?? 0}
+            precision={(stats?.outOfService ?? 0) > 0 ? "retirés de l'exploitation" : "aucun retrait"}
+            icone={XCircle}
+          />
+        </RangeeIndicateurs>
       </div>
 
       {/* Upcoming */}
       {stats?.upcoming && stats.upcoming.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+        <div className="mb-6 bg-etat-alerte-fond border border-etat-alerte-filet rounded-none p-4">
+          <h3 className="font-semibold text-etat-alerte-texte mb-3 flex items-center gap-2">
             <Calendar className="h-4 w-4" /> Prochaines calibrations (90 jours)
           </h3>
           <div className="flex flex-wrap gap-2">
             {stats.upcoming.map((u, i) => (
-              <div key={i} className="bg-white rounded-lg border border-amber-200 px-3 py-1.5 text-sm">
+              <div key={i} className="bg-white rounded-lg border border-etat-alerte-filet px-3 py-1.5 text-sm">
                 <span className="font-medium">{u.instrument_name}</span>
                 {u.instrument_tag && <span className="text-ink-mute ml-1">({u.instrument_tag})</span>}
-                <span className="text-amber-700 ml-2 text-xs">{new Date(u.next_calibration_date).toLocaleDateString("fr-FR")}</span>
+                <span className="text-etat-alerte-texte ml-2 text-xs">{new Date(u.next_calibration_date).toLocaleDateString("fr-FR")}</span>
               </div>
             ))}
           </div>
@@ -256,26 +286,26 @@ export default function CalibrationPage() {
             const StatusIcon = statusConf.icon;
             const overdue = (cal.daysUntilDue || 0) < 0;
             return (
-              <Card key={cal.id} className={`border shadow-sm hover:shadow-md transition-all ${overdue ? "border-red-200 bg-red-50/30" : "border-slate-100"}`}>
+              <Card key={cal.id} className={`border shadow-sm hover:shadow-none transition-all ${overdue ? "border-etat-critique-filet bg-etat-critique-fond/30" : "border-slate-100"}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className={`p-2.5 rounded-xl shadow-sm ${overdue ? "bg-red-100" : "bg-teal-50"}`}>
-                        <FlaskConical className={`h-5 w-5 ${overdue ? "text-red-600" : "text-teal-600"}`} />
+                      <div className={`p-2.5 rounded-none shadow-sm ${overdue ? "bg-etat-critique-fond" : "bg-etat-encours-fond"}`}>
+                        <FlaskConical className={`h-5 w-5 ${overdue ? "text-etat-critique-texte" : "text-etat-encours-texte"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
                           <span className="text-xs font-mono text-ink-mute">{cal.calibrationNumber}</span>
                           <StatusBadge status={cal.computedStatus} />
                           <Badge className={`${RESULT_CONFIG[cal.result]?.color} text-xs`}>{RESULT_CONFIG[cal.result]?.label}</Badge>
-                          {cal.outOfService && <Badge className="bg-gray-200 text-gray-600 text-xs">Hors service</Badge>}
+                          {cal.outOfService && <Badge className="bg-paper-deep text-ink-soft text-xs">Hors service</Badge>}
                         </div>
-                        <h3 className="font-semibold text-slate-800 truncate">{cal.instrumentName}</h3>
+                        <h3 className="font-semibold text-ink truncate">{cal.instrumentName}</h3>
                         <div className="flex items-center gap-4 text-xs text-ink-mute mt-0.5 flex-wrap">
                           {cal.instrumentTag && <span className="font-mono">{cal.instrumentTag}</span>}
                           {cal.instrumentType && <span>{cal.instrumentType}</span>}
                           {cal.location && <span>{cal.location}</span>}
-                          <span className={`font-medium ${overdue ? "text-red-600" : "text-ink-soft"}`}>
+                          <span className={`font-medium ${overdue ? "text-etat-critique-texte" : "text-ink-soft"}`}>
                             Prochaine: {new Date(cal.nextCalibrationDate).toLocaleDateString("fr-FR")}
                             {cal.daysUntilDue !== undefined && (
                               <span className="ml-1">({overdue ? `${Math.abs(cal.daysUntilDue)}j retard` : `dans ${cal.daysUntilDue}j`})</span>
@@ -301,7 +331,7 @@ export default function CalibrationPage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><FlaskConical className="h-5 w-5 text-teal-600" /> Nouvelle calibration</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><FlaskConical className="h-5 w-5 text-etat-encours-texte" /> Nouvelle calibration</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(d => createMutation.mutate(d))} className="space-y-4 mt-2">
@@ -409,8 +439,8 @@ export default function CalibrationPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-teal-200">
-                <FlaskConical className="h-6 w-6 text-teal-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-encours-filet">
+                <FlaskConical className="h-6 w-6 text-etat-encours-texte" />
                 <div className="flex-1">
                   <DialogTitle>{selected.instrumentName}</DialogTitle>
                   <p className="text-xs text-ink-mute font-mono">{selected.calibrationNumber}{selected.instrumentTag ? ` · ${selected.instrumentTag}` : ""}</p>
@@ -449,11 +479,11 @@ export default function CalibrationPage() {
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-lg p-3">
+                  <div className="bg-paper rounded-lg p-3">
                     <p className="text-xs text-ink-mute">Date de calibration</p>
                     <p className="font-semibold">{new Date(selected.calibrationDate).toLocaleDateString("fr-FR")}</p>
                   </div>
-                  <div className={`rounded-lg p-3 ${(selected.daysUntilDue || 0) < 0 ? "bg-red-50" : (selected.daysUntilDue || 0) <= 30 ? "bg-yellow-50" : "bg-green-50"}`}>
+                  <div className={`rounded-lg p-3 ${(selected.daysUntilDue || 0) < 0 ? "bg-etat-critique-fond" : (selected.daysUntilDue || 0) <= 30 ? "bg-etat-alerte-fond" : "bg-etat-nominal-fond"}`}>
                     <p className="text-xs text-ink-mute">Prochaine calibration</p>
                     <p className="font-semibold">{new Date(selected.nextCalibrationDate).toLocaleDateString("fr-FR")}</p>
                     {selected.daysUntilDue !== undefined && (
@@ -463,8 +493,8 @@ export default function CalibrationPage() {
                     )}
                   </div>
                 </div>
-                {selected.notes && <div className="bg-slate-50 rounded-lg p-3 text-sm"><p className="text-xs text-ink-mute mb-1">Observations</p>{selected.notes}</div>}
-                {selected.correctiveAction && <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm"><p className="text-xs text-orange-600 mb-1 font-medium">Action corrective</p>{selected.correctiveAction}</div>}
+                {selected.notes && <div className="bg-paper rounded-lg p-3 text-sm"><p className="text-xs text-ink-mute mb-1">Observations</p>{selected.notes}</div>}
+                {selected.correctiveAction && <div className="bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg p-3 text-sm"><p className="text-xs text-etat-alerte-texte mb-1 font-medium">Action corrective</p>{selected.correctiveAction}</div>}
                 <div className="flex items-center gap-3">
                   <Switch checked={selected.outOfService} onCheckedChange={v => updateMutation.mutate({ id: selected.id, data: { outOfService: v } })} />
                   <span className="text-sm">Instrument hors service</span>
@@ -472,11 +502,11 @@ export default function CalibrationPage() {
 
                 {/* Quick status update */}
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Résultat</p>
+                  <p className="text-sm font-medium text-ink-soft mb-2">Résultat</p>
                   <div className="flex gap-2">
                     {Object.entries(RESULT_CONFIG).map(([v, c]) => (
                       <Button key={v} variant={selected.result === v ? "default" : "outline"} size="sm"
-                        className={selected.result === v ? "bg-teal-600 text-white" : ""}
+                        className={selected.result === v ? "bg-etat-encours-vif text-white" : ""}
                         onClick={() => updateMutation.mutate({ id: selected.id, data: { result: v } })}>
                         {c.label}
                       </Button>
@@ -487,18 +517,18 @@ export default function CalibrationPage() {
 
               <TabsContent value="mesures" className="space-y-4 mt-4">
                 {[
-                  { key: "asFound", label: "Mesures avant calibration (As Found)", color: "border-orange-200 bg-orange-50" },
-                  { key: "asLeft", label: "Mesures après calibration (As Left)", color: "border-green-200 bg-green-50" },
+                  { key: "asFound", label: "Mesures avant calibration (As Found)", color: "border-etat-alerte-filet bg-etat-alerte-fond" },
+                  { key: "asLeft", label: "Mesures après calibration (As Left)", color: "border-etat-nominal-filet bg-etat-nominal-fond" },
                 ].map(({ key, label, color }) => {
                   const measurements: Measurement[] = (selected as any)[key] || [];
                   return (
                     <div key={key}>
-                      <h4 className={`text-sm font-semibold text-slate-700 mb-2 p-2 rounded-lg border ${color}`}>{label}</h4>
+                      <h4 className={`text-sm font-semibold text-ink-soft mb-2 p-2 rounded-lg border ${color}`}>{label}</h4>
                       {measurements.length === 0 ? (
                         <p className="text-xs text-ink-mute text-center py-4">Aucune mesure enregistrée</p>
                       ) : (
-                        <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-                          <thead><tr className="bg-slate-50">{["Point", "Nominal", "Mesuré", "Écart", "Unité", "Résultat"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft">{h}</th>)}</tr></thead>
+                        <table className="w-full text-sm border border-rule rounded-lg overflow-hidden">
+                          <thead><tr className="bg-paper">{["Point", "Nominal", "Mesuré", "Écart", "Unité", "Résultat"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft">{h}</th>)}</tr></thead>
                           <tbody>
                             {measurements.map((m, i) => (
                               <tr key={i} className="border-t">
@@ -510,7 +540,7 @@ export default function CalibrationPage() {
                                 </td>
                                 <td className="py-1.5 px-3 text-xs text-ink-mute">{m.unit || "—"}</td>
                                 <td className="py-1.5 px-3">
-                                  {m.pass != null && <Badge className={m.pass ? "bg-green-100 text-green-700 text-xs" : "bg-red-100 text-red-700 text-xs"}>{m.pass ? "" : ""}</Badge>}
+                                  {m.pass != null && <Badge className={m.pass ? "bg-etat-nominal-fond text-etat-nominal-texte text-xs" : "bg-etat-critique-fond text-etat-critique-texte text-xs"}>{m.pass ? "" : ""}</Badge>}
                                 </td>
                               </tr>
                             ))}
@@ -525,19 +555,19 @@ export default function CalibrationPage() {
               <TabsContent value="conditions" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   {selected.temperatureC != null && (
-                    <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                      <Thermometer className="h-8 w-8 text-blue-500" />
-                      <div><p className="text-xs text-blue-600">Température ambiante</p><p className="text-2xl font-bold text-blue-800">{selected.temperatureC} °C</p></div>
+                    <div className="flex items-center gap-3 bg-etat-encours-fond rounded-none p-4 border border-etat-encours-filet">
+                      <Thermometer className="h-8 w-8 text-etat-encours-texte" />
+                      <div><p className="text-xs text-etat-encours-texte">Température ambiante</p><p className="text-2xl font-bold text-etat-encours-texte">{selected.temperatureC} °C</p></div>
                     </div>
                   )}
                   {selected.humidityPct != null && (
-                    <div className="flex items-center gap-3 bg-teal-50 rounded-xl p-4 border border-teal-200">
-                      <Droplets className="h-8 w-8 text-teal-500" />
-                      <div><p className="text-xs text-teal-600">Humidité relative</p><p className="text-2xl font-bold text-teal-800">{selected.humidityPct} %</p></div>
+                    <div className="flex items-center gap-3 bg-etat-encours-fond rounded-none p-4 border border-etat-encours-filet">
+                      <Droplets className="h-8 w-8 text-etat-encours-texte" />
+                      <div><p className="text-xs text-etat-encours-texte">Humidité relative</p><p className="text-2xl font-bold text-etat-encours-texte">{selected.humidityPct} %</p></div>
                     </div>
                   )}
                   {selected.standardUsed && (
-                    <div className="col-span-2 bg-slate-50 rounded-xl p-4 border">
+                    <div className="col-span-2 bg-paper rounded-none p-4 border">
                       <p className="text-xs text-ink-mute mb-1">Étalon de référence utilisé</p>
                       <p className="font-medium">{selected.standardUsed}</p>
                     </div>
@@ -547,7 +577,7 @@ export default function CalibrationPage() {
             </Tabs>
 
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer cette calibration ?")) deleteMutation.mutate(selected.id); }}>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer cette calibration ?")) deleteMutation.mutate(selected.id); }}>
                 <Trash2 className="h-4 w-4 mr-1" />Supprimer
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowRenew(true)} className="gap-2">
@@ -563,7 +593,7 @@ export default function CalibrationPage() {
       {showRenew && selected && (
         <Dialog open={showRenew} onOpenChange={setShowRenew}>
           <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5 text-teal-600" />Renouveler la calibration</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5 text-etat-encours-texte" />Renouveler la calibration</DialogTitle></DialogHeader>
             <div className="space-y-3 mt-2">
               <div><label className="text-sm font-medium">Date de calibration *</label><Input type="date" className="mt-1" id="ren-date" defaultValue={today} /></div>
               <div><label className="text-sm font-medium">Prochaine calibration *</label><Input type="date" className="mt-1" id="ren-next" /></div>
@@ -577,7 +607,7 @@ export default function CalibrationPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowRenew(false)}>Annuler</Button>
-              <Button disabled={renewMutation.isPending} className="bg-teal-600 text-white" onClick={() => {
+              <Button disabled={renewMutation.isPending} className="bg-etat-encours-vif text-white" onClick={() => {
                 const d = (document.getElementById("ren-date") as HTMLInputElement)?.value;
                 const n = (document.getElementById("ren-next") as HTMLInputElement)?.value;
                 const c = (document.getElementById("ren-cert") as HTMLInputElement)?.value;
@@ -591,5 +621,6 @@ export default function CalibrationPage() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

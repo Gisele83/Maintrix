@@ -25,6 +25,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RePie, Pie, Cell, Legend
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface BudgetLine { id?: string; category: string; description: string; allocated: number; spent: number; committed: number; unit?: string; quantity?: number; unitCost?: number; }
 interface Budget { id: number; budgetNumber: string; title: string; fiscalYear: number; department?: string; budgetType: string; status: string; totalAllocated: number; totalSpent: number; totalCommitted: number; contingencyPct: number; currency: string; startDate?: string; endDate?: string; approvedBy?: string; lines: BudgetLine[]; notes?: string; availableBudget: number; contingency: number; consumptionPct: number; }
@@ -32,21 +35,21 @@ interface BudgetStats { total: number; totalAllocated: number; totalSpent: numbe
 interface Transaction { id: number; transactionType: string; amount: number; description: string; supplierName?: string; transactionDate: string; category?: string; reference?: string; }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  draft: { label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
-  in_review: { label: "En révision", color: "bg-blue-100 text-blue-700" },
-  approved: { label: "Approuvé", color: "bg-green-100 text-green-700" },
-  closed: { label: "Clôturé", color: "bg-gray-200 text-gray-500" },
+  draft: { label: "Brouillon", color: "bg-paper-deep text-ink-soft" },
+  in_review: { label: "En révision", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  approved: { label: "Approuvé", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  closed: { label: "Clôturé", color: "bg-paper-deep text-ink-mute" },
 };
 const TYPE_CFG: Record<string, { label: string; color: string }> = {
-  maintenance: { label: "Maintenance", color: "bg-blue-100 text-blue-700" },
+  maintenance: { label: "Maintenance", color: "bg-etat-encours-fond text-etat-encours-texte" },
   capex: { label: "CAPEX", color: "bg-paper-deep text-signal-deep" },
-  opex: { label: "OPEX", color: "bg-indigo-100 text-indigo-700" },
-  emergency: { label: "Urgence", color: "bg-red-100 text-red-700" },
-  project: { label: "Projet", color: "bg-teal-100 text-teal-700" },
+  opex: { label: "OPEX", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  emergency: { label: "Urgence", color: "bg-etat-critique-fond text-etat-critique-texte" },
+  project: { label: "Projet", color: "bg-etat-encours-fond text-etat-encours-texte" },
 };
 const COLORS = ["#6366f1","#22c55e","#f97316","#3b82f6","#ec4899","#14b8a6"];
 const fmtEur = (n: number | undefined | null) => n != null ? `${Number(n).toLocaleString("fr-FR",{maximumFractionDigits:0})} €` : "—";
-const pctColor = (p: number) => p >= 90 ? "text-red-600" : p >= 75 ? "text-orange-500" : "text-green-600";
+const pctColor = (p: number) => p >= 90 ? "text-etat-critique-texte" : p >= 75 ? "text-etat-alerte-texte" : "text-etat-nominal-texte";
 
 const CreateSchema = z.object({
   title: z.string().min(3),
@@ -135,11 +138,12 @@ export default function BudgetPage() {
   const monthlyData = Array.from({ length: 12 }, (_, i) => ({ month: monthNames[i], dépenses: 0, ...stats?.monthly?.find((m: any) => Number(m.month) === i + 1 && (m.total = Number(m.total))) }));
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "Budget" }]} largeur="large">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep"><Wallet className="h-6 w-6 text-ink" /></div>
+            <div className="p-2.5 rounded-none bg-paper-deep"><Wallet className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Gestion de Budget</h1>
           </div>
           <p className="text-ink-mute ml-14 text-sm">Suivi des budgets de maintenance, CAPEX et dépenses</p>
@@ -153,14 +157,14 @@ export default function BudgetPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Budget alloué", value: fmtEur(stats?.totalAllocated), icon: DollarSign, color: "from-blue-500 to-indigo-600" },
-          { label: "Dépenses réelles", value: fmtEur(stats?.totalSpent), icon: TrendingDown, color: "from-red-500 to-rose-600" },
-          { label: "Engagements", value: fmtEur(stats?.totalCommitted), icon: Clock, color: "from-yellow-400 to-orange-500" },
-          { label: "Disponible", value: fmtEur((stats?.totalAllocated || 0) - (stats?.totalSpent || 0) - (stats?.totalCommitted || 0)), icon: TrendingUp, color: "from-green-500 to-emerald-600" },
+          { label: "Budget alloué", value: fmtEur(stats?.totalAllocated), icon: DollarSign, color: "" },
+          { label: "Dépenses réelles", value: fmtEur(stats?.totalSpent), icon: TrendingDown, color: "" },
+          { label: "Engagements", value: fmtEur(stats?.totalCommitted), icon: Clock, color: "" },
+          { label: "Disponible", value: fmtEur((stats?.totalAllocated || 0) - (stats?.totalSpent || 0) - (stats?.totalCommitted || 0)), icon: TrendingUp, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-lg font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+          <Card key={label} className="border-0 shadow-none"><CardContent className="p-4 flex items-center gap-4">
+            <div className={`p-3 rounded-none bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
+            <div><p className="text-lg font-bold text-ink leading-tight">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -168,10 +172,10 @@ export default function BudgetPage() {
       {/* Charts */}
       {(pieData.length > 0 || monthlyData.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Répartition par type</CardTitle></CardHeader>
+          <Card className="border-0 shadow-none"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Répartition par type</CardTitle></CardHeader>
             <CardContent><ResponsiveContainer width="100%" height={180}><RePie><Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}>{pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(v: any) => fmtEur(Number(v))} /></RePie></ResponsiveContainer></CardContent>
           </Card>
-          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Dépenses mensuelles</CardTitle></CardHeader>
+          <Card className="border-0 shadow-none"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Dépenses mensuelles</CardTitle></CardHeader>
             <CardContent><ResponsiveContainer width="100%" height={180}><BarChart data={monthlyData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" /><XAxis dataKey="month" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip formatter={(v: any) => fmtEur(Number(v))} /><Bar dataKey="total" fill="#6366f1" radius={[3,3,0,0]} /></BarChart></ResponsiveContainer></CardContent>
           </Card>
         </div>
@@ -191,7 +195,7 @@ export default function BudgetPage() {
             const typeConf = TYPE_CFG[b.budgetType] || TYPE_CFG.maintenance;
             const statusConf = STATUS_CFG[b.status] || STATUS_CFG.draft;
             return (
-              <Card key={b.id} className="border border-slate-100 shadow-sm hover:shadow-md transition-all">
+              <Card key={b.id} className="border border-slate-100 shadow-sm hover:shadow-none transition-all">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
@@ -202,7 +206,7 @@ export default function BudgetPage() {
                         <Badge variant="outline" className="text-xs">{b.fiscalYear}</Badge>
                         {b.department && <span className="text-xs text-ink-mute">{b.department}</span>}
                       </div>
-                      <h3 className="font-semibold text-slate-800">{b.title}</h3>
+                      <h3 className="font-semibold text-ink">{b.title}</h3>
                       <div className="mt-2 space-y-1">
                         <div className="flex items-center justify-between text-xs text-ink-mute">
                           <span>Consommation: {b.consumptionPct}%</span>
@@ -211,8 +215,8 @@ export default function BudgetPage() {
                         <Progress value={b.consumptionPct} className="h-2" />
                       </div>
                       <div className="flex gap-4 mt-2 text-xs text-ink-mute flex-wrap">
-                        <span className="text-orange-600">Engagements: {fmtEur(b.totalCommitted)}</span>
-                        <span className="text-green-600">Disponible: {fmtEur(b.availableBudget)}</span>
+                        <span className="text-etat-alerte-texte">Engagements: {fmtEur(b.totalCommitted)}</span>
+                        <span className="text-etat-nominal-texte">Disponible: {fmtEur(b.availableBudget)}</span>
                         <span>Provision: {b.contingencyPct}% ({fmtEur(b.contingency)})</span>
                       </div>
                     </div>
@@ -228,7 +232,7 @@ export default function BudgetPage() {
       {/* CREATE */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-emerald-600" />Nouveau budget</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-etat-nominal-texte" />Nouveau budget</DialogTitle></DialogHeader>
           <Form {...form}><form onSubmit={form.handleSubmit(d => createMut.mutate(d))} className="space-y-3 mt-2">
             <FormField control={form.control} name="title" render={({ field }) => (<FormItem><FormLabel>Intitulé *</FormLabel><FormControl><Input placeholder="Ex: Budget maintenance préventive 2025" {...field} /></FormControl><FormMessage /></FormItem>)} />
             <div className="grid grid-cols-2 gap-3">
@@ -241,7 +245,7 @@ export default function BudgetPage() {
               <FormField control={form.control} name="endDate" render={({ field }) => (<FormItem><FormLabel>Fin</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
             </div>
             <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-emerald-600 text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-etat-nominal-vif text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
           </form></Form>
         </DialogContent>
       </Dialog>
@@ -251,12 +255,12 @@ export default function BudgetPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-emerald-200">
-                <Wallet className="h-6 w-6 text-emerald-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-nominal-filet">
+                <Wallet className="h-6 w-6 text-etat-nominal-texte" />
                 <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.budgetNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
                   {["draft","in_review","approved","closed"].map(s => (
-                    <Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={selected.status === s ? "bg-emerald-600 text-white text-xs" : "text-xs"} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s]?.label}</Button>
+                    <Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={selected.status === s ? "bg-etat-nominal-vif text-white text-xs" : "text-xs"} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s]?.label}</Button>
                   ))}
                 </div>
               </div>
@@ -267,41 +271,41 @@ export default function BudgetPage() {
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { l: "Alloué", v: fmtEur(selected.totalAllocated), c: "text-blue-700" },
-                    { l: "Dépensé", v: fmtEur(selected.totalSpent), c: "text-red-600" },
-                    { l: "Engagé", v: fmtEur(selected.totalCommitted), c: "text-orange-600" },
-                    { l: "Disponible", v: fmtEur(selected.availableBudget), c: "text-green-700" },
-                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-3 text-center"><p className="text-xs text-ink-mute">{l}</p><p className={`text-xl font-bold ${c}`}>{v}</p></div>))}
+                    { l: "Alloué", v: fmtEur(selected.totalAllocated), c: "text-etat-encours-texte" },
+                    { l: "Dépensé", v: fmtEur(selected.totalSpent), c: "text-etat-critique-texte" },
+                    { l: "Engagé", v: fmtEur(selected.totalCommitted), c: "text-etat-alerte-texte" },
+                    { l: "Disponible", v: fmtEur(selected.availableBudget), c: "text-etat-nominal-texte" },
+                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-none border p-3 text-center"><p className="text-xs text-ink-mute">{l}</p><p className={`text-xl font-bold ${c}`}>{v}</p></div>))}
                 </div>
                 <div><div className="flex justify-between text-sm mb-1"><span>Consommation</span><span className={`font-bold ${pctColor(selected.consumptionPct)}`}>{selected.consumptionPct}%</span></div><Progress value={selected.consumptionPct} className="h-3" /></div>
-                {selected.notes && <div className="bg-slate-50 p-3 rounded-lg text-sm">{selected.notes}</div>}
+                {selected.notes && <div className="bg-paper p-3 rounded-lg text-sm">{selected.notes}</div>}
               </TabsContent>
 
               <TabsContent value="lines" className="space-y-3 mt-4">
                 <Button size="sm" variant="outline" onClick={() => setNewLine({ allocated: 0, spent: 0, committed: 0 })} className="gap-2"><Plus className="h-4 w-4" />Ajouter une ligne</Button>
                 {newLine && (
-                  <div className="border-2 border-emerald-200 rounded-xl p-4 bg-emerald-50/30 space-y-3">
+                  <div className="border-2 border-etat-nominal-filet rounded-none p-4 bg-etat-nominal-fond/30 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <div><label className="text-xs font-medium text-slate-700">Catégorie *</label><Input className="mt-1" value={newLine.category || ""} onChange={e => setNewLine(p => ({ ...p, category: e.target.value }))} placeholder="Ex: Pièces de rechange" /></div>
-                      <div><label className="text-xs font-medium text-slate-700">Description</label><Input className="mt-1" value={newLine.description || ""} onChange={e => setNewLine(p => ({ ...p, description: e.target.value }))} /></div>
-                      <div><label className="text-xs font-medium text-slate-700">Montant alloué (€)</label><Input type="number" className="mt-1" value={newLine.allocated || 0} onChange={e => setNewLine(p => ({ ...p, allocated: Number(e.target.value) }))} /></div>
+                      <div><label className="text-xs font-medium text-ink-soft">Catégorie *</label><Input className="mt-1" value={newLine.category || ""} onChange={e => setNewLine(p => ({ ...p, category: e.target.value }))} placeholder="Ex: Pièces de rechange" /></div>
+                      <div><label className="text-xs font-medium text-ink-soft">Description</label><Input className="mt-1" value={newLine.description || ""} onChange={e => setNewLine(p => ({ ...p, description: e.target.value }))} /></div>
+                      <div><label className="text-xs font-medium text-ink-soft">Montant alloué (€)</label><Input type="number" className="mt-1" value={newLine.allocated || 0} onChange={e => setNewLine(p => ({ ...p, allocated: Number(e.target.value) }))} /></div>
                     </div>
-                    <div className="flex gap-2"><Button size="sm" onClick={saveLine} className="bg-emerald-600 text-white"><Plus className="h-4 w-4 mr-1" />Ajouter</Button><Button size="sm" variant="outline" onClick={() => setNewLine(null)}>Annuler</Button></div>
+                    <div className="flex gap-2"><Button size="sm" onClick={saveLine} className="bg-etat-nominal-vif text-white"><Plus className="h-4 w-4 mr-1" />Ajouter</Button><Button size="sm" variant="outline" onClick={() => setNewLine(null)}>Annuler</Button></div>
                   </div>
                 )}
-                <div className="overflow-x-auto rounded-xl border">
+                <div className="overflow-x-auto rounded-none border">
                   <table className="w-full text-sm">
-                    <thead><tr className="bg-slate-50 border-b">{["Catégorie","Description","Alloué","Dépensé","Engagé","Disponible","Consommation"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft whitespace-nowrap">{h}</th>)}</tr></thead>
+                    <thead><tr className="bg-paper border-b">{["Catégorie","Description","Alloué","Dépensé","Engagé","Disponible","Consommation"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft whitespace-nowrap">{h}</th>)}</tr></thead>
                     <tbody>{(selected.lines || []).map((l, i) => {
                       const avail = (l.allocated || 0) - (l.spent || 0) - (l.committed || 0);
                       const pct = l.allocated > 0 ? Math.round((l.spent / l.allocated) * 100) : 0;
-                      return (<tr key={i} className="border-b hover:bg-slate-50">
+                      return (<tr key={i} className="border-b hover:bg-paper">
                         <td className="py-2 px-3 font-medium">{l.category}</td>
                         <td className="py-2 px-3 text-ink-mute text-xs">{l.description || "—"}</td>
-                        <td className="py-2 px-3 text-blue-700 font-medium">{fmtEur(l.allocated)}</td>
-                        <td className="py-2 px-3 text-red-600">{fmtEur(l.spent)}</td>
-                        <td className="py-2 px-3 text-orange-600">{fmtEur(l.committed)}</td>
-                        <td className={`py-2 px-3 font-medium ${avail < 0 ? "text-red-700" : "text-green-700"}`}>{fmtEur(avail)}</td>
+                        <td className="py-2 px-3 text-etat-encours-texte font-medium">{fmtEur(l.allocated)}</td>
+                        <td className="py-2 px-3 text-etat-critique-texte">{fmtEur(l.spent)}</td>
+                        <td className="py-2 px-3 text-etat-alerte-texte">{fmtEur(l.committed)}</td>
+                        <td className={`py-2 px-3 font-medium ${avail < 0 ? "text-etat-critique-texte" : "text-etat-nominal-texte"}`}>{fmtEur(avail)}</td>
                         <td className="py-2 px-3"><div className="flex items-center gap-2"><Progress value={pct} className="h-1.5 w-20" /><span className={`text-xs ${pctColor(pct)}`}>{pct}%</span></div></td>
                       </tr>);
                     })}</tbody>
@@ -310,13 +314,13 @@ export default function BudgetPage() {
               </TabsContent>
 
               <TabsContent value="transactions" className="space-y-3 mt-4">
-                <Button size="sm" onClick={() => setShowTx(true)} className="bg-emerald-600 text-white gap-2"><Plus className="h-4 w-4" />Enregistrer une transaction</Button>
+                <Button size="sm" onClick={() => setShowTx(true)} className="bg-etat-nominal-vif text-white gap-2"><Plus className="h-4 w-4" />Enregistrer une transaction</Button>
                 <div className="space-y-2">
                   {((selected as any).transactions || []).map((tx: Transaction) => (
-                    <div key={tx.id} className="flex items-center gap-3 bg-white border rounded-xl px-4 py-2.5">
-                      <div className={`w-2 h-2 rounded-full ${tx.transactionType === "expense" ? "bg-red-500" : tx.transactionType === "commitment" ? "bg-orange-400" : tx.transactionType === "refund" ? "bg-green-500" : "bg-slate-400"}`} />
+                    <div key={tx.id} className="flex items-center gap-3 bg-white border rounded-none px-4 py-2.5">
+                      <div className={`w-2 h-2 rounded-full ${tx.transactionType === "expense" ? "bg-etat-critique-vif" : tx.transactionType === "commitment" ? "bg-etat-alerte-vif" : tx.transactionType === "refund" ? "bg-etat-nominal-vif" : "bg-slate-400"}`} />
                       <div className="flex-1"><p className="text-sm font-medium">{tx.description}</p><p className="text-xs text-ink-mute">{tx.category} · {tx.supplierName} · {new Date(tx.transactionDate).toLocaleDateString("fr-FR")}</p></div>
-                      <span className={`font-bold ${tx.transactionType === "expense" ? "text-red-600" : tx.transactionType === "refund" ? "text-green-600" : "text-orange-600"}`}>{tx.transactionType === "refund" ? "+" : "-"}{fmtEur(tx.amount)}</span>
+                      <span className={`font-bold ${tx.transactionType === "expense" ? "text-etat-critique-texte" : tx.transactionType === "refund" ? "text-etat-nominal-texte" : "text-etat-alerte-texte"}`}>{tx.transactionType === "refund" ? "+" : "-"}{fmtEur(tx.amount)}</span>
                     </div>
                   ))}
                   {!((selected as any).transactions?.length) && <p className="text-ink-mute text-sm text-center py-8">Aucune transaction</p>}
@@ -324,7 +328,7 @@ export default function BudgetPage() {
               </TabsContent>
             </Tabs>
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer ce budget ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer ce budget ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
             </DialogFooter>
           </DialogContent>
@@ -346,11 +350,12 @@ export default function BudgetPage() {
                 <FormField control={txForm.control} name="reference" render={({ field }) => (<FormItem><FormLabel>Référence</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField control={txForm.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <DialogFooter><Button type="button" variant="outline" onClick={() => setShowTx(false)}>Annuler</Button><Button type="submit" disabled={addTxMut.isPending} className="bg-emerald-600 text-white">{addTxMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Enregistrer</Button></DialogFooter>
+              <DialogFooter><Button type="button" variant="outline" onClick={() => setShowTx(false)}>Annuler</Button><Button type="submit" disabled={addTxMut.isPending} className="bg-etat-nominal-vif text-white">{addTxMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Enregistrer</Button></DialogFooter>
             </form></Form>
           </DialogContent>
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

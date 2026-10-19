@@ -256,19 +256,19 @@ export function MFASetup() {
     <div className="w-full max-w-2xl mx-auto space-y-6">
       {/* Header avec statut */}
       <div className="flex items-center space-x-3">
-        <Shield className="w-8 h-8 text-blue-600" />
+        <Shield className="w-8 h-8 text-etat-encours-texte" />
         <div>
           <h1 className="text-2xl font-bold">Authentification Multi-Facteurs (MFA)</h1>
           <p className="text-muted-foreground">Sécurisez votre compte administrateur</p>
         </div>
         {mfaStatus.enabled && (
-          <Badge variant="outline" className="ml-auto text-green-600 border-green-600">
+          <Badge variant="outline" className="ml-auto text-etat-nominal-texte border-etat-nominal-filet">
             <CheckCircle className="w-3 h-3 mr-1" />
             Activé
           </Badge>
         )}
         {mfaStatus.required && !mfaStatus.enabled && (
-          <Badge variant="outline" className="ml-auto text-red-600 border-red-600">
+          <Badge variant="outline" className="ml-auto text-etat-critique-texte border-etat-critique-filet">
             <AlertTriangle className="w-3 h-3 mr-1" />
             Requis
           </Badge>
@@ -277,9 +277,9 @@ export function MFASetup() {
 
       {/* Alerte pour MFA obligatoire */}
       {mfaStatus.enforcement === 'REQUIRED' && !mfaStatus.enabled && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="border-etat-critique-filet bg-etat-critique-fond">
+          <AlertTriangle className="h-4 w-4 text-etat-critique-texte" />
+          <AlertDescription className="text-etat-critique-texte">
             <strong>Configuration MFA obligatoire !</strong><br />
             En tant qu'administrateur, vous devez configurer l'authentification multi-facteurs pour accéder au système.
           </AlertDescription>
@@ -356,7 +356,7 @@ export function MFASetup() {
                 <img 
                   src={setupData.qrCode} 
                   alt="QR Code MFA" 
-                  className="border-2 border-gray-300 rounded-lg"
+                  className="border-2 border-rule rounded-lg"
                 />
               </div>
               
@@ -411,7 +411,7 @@ export function MFASetup() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-green-600">
+              <CardTitle className="text-etat-nominal-texte">
                 <CheckCircle className="w-5 h-5 inline mr-2" />
                 MFA Configuré avec Succès
               </CardTitle>
@@ -437,7 +437,7 @@ export function MFASetup() {
           {showBackupCodes && setupData?.backupCodes && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-amber-600">
+                <CardTitle className="text-etat-alerte-texte">
                   <AlertTriangle className="w-5 h-5 inline mr-2" />
                   Codes de Récupération
                 </CardTitle>
@@ -446,7 +446,7 @@ export function MFASetup() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-2 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 p-4 bg-paper rounded-lg">
                   {setupData.backupCodes.map((code, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
                       <code className="font-mono text-sm">{code}</code>
