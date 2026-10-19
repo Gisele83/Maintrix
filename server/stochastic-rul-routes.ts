@@ -11,7 +11,8 @@
 import type { Express } from "express";
 import { db } from "./db";
 import { iotSensorData, equipmentRegistry } from "@shared/schema";
-import { eq, gte, desc } from "drizzle-orm";
+import { and, eq, gte, desc } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
 import {
   computeStochasticRUL,
   estimateWienerParams,
@@ -115,8 +116,20 @@ export function registerStochasticRULRoutes(app: Express) {
    * GET /api/stochastic-rul/equipment/:id
    * RUL stochastique depuis l'historique IMCA reconstruit par capteurs IoT
    */
+  // ⚠️ Même défaut que /api/jsd/equipment/:id, sur une grandeur plus lourde de
+  // conséquences : la DURÉE DE VIE RESTANTE d'un équipement. L'identifiant
+  // reçu servait à nommer le résultat et à lire le nom de l'équipement, jamais
+  // à filtrer les relevés : le RUL était ajusté sur les capteurs mêlés de tout
+  // le parc de toute l'instance. Un exploitant pouvait lire « il reste 12
+  // jours » sur une machine dont aucune mesure n'était entrée dans le calcul.
+  //
+  // La lecture de l'équipement lui-même n'était pas cloisonnée non plus : on y
+  // ajoute la condition de locataire, et un équipement qui n'appartient pas au
+  // demandeur est désormais introuvable plutôt que silencieusement nommé.
   app.get("/api/stochastic-rul/equipment/:id", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.id);
       const windowDays = parseInt((req.query.windowDays as string) ?? "90");
       const deltaTHours = parseFloat((req.query.deltaTHours as string) ?? "24");
@@ -129,7 +142,7 @@ export function registerStochasticRULRoutes(app: Express) {
       const equipment = await db
         .select({ name: equipmentRegistry.equipmentName, type: equipmentRegistry.equipmentType })
         .from(equipmentRegistry)
-        .where(eq(equipmentRegistry.id, equipmentId))
+        .where(and(eq(equipmentRegistry.id, equipmentId), eq(equipmentRegistry.tenantId, tenantId)))
         .limit(1);
 
       const cutoff = new Date(Date.now() - windowDays * 86_400_000);
@@ -137,7 +150,11 @@ export function registerStochasticRULRoutes(app: Express) {
       const sensorRows = await db
         .select({ value: iotSensorData.value, timestamp: iotSensorData.timestamp, sensorType: iotSensorData.sensorType })
         .from(iotSensorData)
-        .where(gte(iotSensorData.timestamp, cutoff))
+        .where(and(
+          eq(iotSensorData.tenantId, tenantId),
+          eq(iotSensorData.equipmentId, equipmentId),
+          gte(iotSensorData.timestamp, cutoff),
+        ))
         .orderBy(iotSensorData.timestamp)
         .limit(5000);
 

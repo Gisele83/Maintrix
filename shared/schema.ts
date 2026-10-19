@@ -726,8 +726,37 @@ export const stockMovements = pgTable("stock_movements", {
 });
 
 // IoT Sensor Data - Real-time monitoring
+// ⚠️ `tenantId` manquait ici aussi, et l'audit du cloisonnement des coûts
+// (migration 0020) avait laissé cette table de côté en rapiéçant son seul
+// export par une jointure. Le recensement complet de ses lectures a montré que
+// le défaut était bien plus large, et qu'il ne se limitait pas à une question
+// d'isolation :
+//
+//   • `/api/jsd/equipment/:id`, `/api/jsd/global-status` et
+//     `/api/stochastic-rul/equipment/:id` lisaient la table AVEC pour seule
+//     condition une fenêtre temporelle. Les deux routes « equipment/:id »
+//     recevaient un identifiant d'équipement, le renvoyaient dans leur réponse
+//     — et ne s'en servaient JAMAIS dans la requête. Elles calculaient donc une
+//     dérive et un RUL sur les relevés mêlés de tout le parc de toute
+//     l'instance, puis les étiquetaient du nom d'un équipement. Ce n'était pas
+//     seulement une fuite : le nombre affiché ne mesurait rien ;
+//   • `POST /api/equipment/:equipmentId/predict` et
+//     `POST /api/advanced-diagnostic` prenaient l'identifiant d'équipement de
+//     la requête sans vérifier à qui il appartient — lire les capteurs d'autrui
+//     ne demandait que d'en deviner le numéro ;
+//   • `getIotSensorData(equipmentId?)` avait un équipement FACULTATIF : appelée
+//     sans lui par `GET /api/iot-data`, elle rendait toute l'instance.
+//
+// La colonne est posée directement plutôt que dérivée par jointure, pour la
+// même raison que sur `maintenance_reports` : `equipment_id` est NULLABLE, et
+// une jointure rendrait ces relevés invisibles à leur propre propriétaire. À
+// l'ingestion, le seul chemin qui ne connaît pas son locataire est le
+// connecteur IoT, qui ne reçoit qu'un équipement : il résout le locataire
+// depuis `equipment_registry` au moment d'écrire, une fois, au lieu de laisser
+// chaque lecture le redériver.
 export const iotSensorData = pgTable("iot_sensor_data", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   sensorType: varchar("sensor_type", { length: 50 }).notNull(), // temperature, vibration, pressure, flow, current, etc.
   sensorId: varchar("sensor_id", { length: 100 }).notNull(),

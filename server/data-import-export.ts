@@ -961,13 +961,11 @@ export class DataImportExportService {
 
   // Export des données IoT
   //
-  // ⚠️ Cas particulier : `iot_sensor_data` ne porte PAS de tenant_id (elle fait
-  // partie des tables rattachées au seul equipment_registry.id). Le
-  // cloisonnement passe donc par une jointure INTERNE sur l'équipement, et non
-  // par une colonne propre. C'est un pis-aller assumé, pas le modèle retenu
-  // ailleurs dans ce correctif : il laisse hors export les relevés sans
-  // équipement, qui ne sont de toute façon attribuables à personne. Doter
-  // iot_sensor_data de sa propre colonne reste à faire.
+  // La jointure interne qui servait de pis-aller ici — `iot_sensor_data` n'ayant
+  // pas de tenant_id — est remplacée par la condition sur la colonne, posée par
+  // la migration 0021. L'équipement est toujours joint, mais pour en afficher le
+  // nom, non plus pour deviner le propriétaire : un relevé sans équipement reste
+  // donc dans l'export de son locataire au lieu d'en disparaître.
   async exportIoTData(format: 'csv' | 'excel', tenantId: string, days: number = 30): Promise<Buffer> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -984,11 +982,9 @@ export class DataImportExportService {
       alarmState: iotSensorData.alarmState,
     })
     .from(iotSensorData)
-    // INNER JOIN, et non LEFT : sans équipement rattaché, un relevé n'a pas de
-    // locataire connu — l'inclure reviendrait à le montrer à tout le monde.
-    .innerJoin(equipmentRegistry, eq(iotSensorData.equipmentId, equipmentRegistry.id))
+    .leftJoin(equipmentRegistry, eq(iotSensorData.equipmentId, equipmentRegistry.id))
     .where(and(
-      eq(equipmentRegistry.tenantId, tenantId),
+      eq(iotSensorData.tenantId, tenantId),
       gte(iotSensorData.timestamp, cutoffDate),
     ))
     .orderBy(iotSensorData.timestamp);

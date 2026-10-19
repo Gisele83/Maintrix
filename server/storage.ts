@@ -160,9 +160,11 @@ export interface IStorage {
   createStockMovement(data: InsertStockMovement): Promise<StockMovement>;
 
   // IoT Sensor Data
-  getIotSensorData(equipmentId?: number, limit?: number): Promise<IotSensorData[]>;
+  // `tenantId` est obligatoire et positionnel : c'est l'omission d'un filtre
+  // facultatif qui a laissé ces lectures parcourir toute l'instance.
+  getIotSensorData(tenantId: string, equipmentId?: number, limit?: number): Promise<IotSensorData[]>;
   createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData>;
-  getLatestSensorData(equipmentId: number): Promise<IotSensorData[]>;
+  getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]>;
 
   // Predictive Analytics
   getPredictiveAnalytics(tenantId?: string, limit?: number): Promise<PredictiveAnalytics[]>;
@@ -288,9 +290,9 @@ export class DatabaseStorage implements IStorage {
 
   // Dernière lecture capteur / prédiction par équipement (utilisées pour des vues détail,
   // distinctes des listes paginées getIotSensorData / getPredictiveAnalytics ci-dessous).
-  async getLatestSensorData(equipmentId: number): Promise<IotSensorData[]> {
+  async getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]> {
     return await db.select().from(iotSensorData)
-      .where(eq(iotSensorData.equipmentId, equipmentId))
+      .where(and(eq(iotSensorData.equipmentId, equipmentId), eq(iotSensorData.tenantId, tenantId)))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(50);
   }
@@ -555,15 +557,18 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getIotSensorData(equipmentId?: number, limit = 500): Promise<IotSensorData[]> {
+  async getIotSensorData(tenantId: string, equipmentId?: number, limit = 500): Promise<IotSensorData[]> {
     try {
-      const query = db.select().from(iotSensorData).orderBy(desc(iotSensorData.timestamp)).limit(limit);
-      if (equipmentId !== undefined) {
-        return await db.select().from(iotSensorData)
-          .where(eq(iotSensorData.equipmentId, equipmentId))
-          .orderBy(desc(iotSensorData.timestamp)).limit(limit);
-      }
-      return await query;
+      // La branche « pas d'équipement » partait sans aucun WHERE : c'était
+      // elle, la fuite. Le locataire est désormais la condition de base, et
+      // l'équipement s'y ajoute quand il est fourni.
+      const conditions = [eq(iotSensorData.tenantId, tenantId)];
+      if (equipmentId !== undefined) conditions.push(eq(iotSensorData.equipmentId, equipmentId));
+
+      return await db.select().from(iotSensorData)
+        .where(and(...conditions))
+        .orderBy(desc(iotSensorData.timestamp))
+        .limit(limit);
     } catch (error) {
       console.error('getIotSensorData error:', error);
       return [];

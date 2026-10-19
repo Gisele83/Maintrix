@@ -148,6 +148,13 @@
       "when": 1784672027523,
       "tag": "0020_maintenance_reports_tenant_scoped",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784672087523,
+      "tag": "0021_iot_sensor_data_tenant_scoped",
+      "breakpoints": true
     }
   ]
 }

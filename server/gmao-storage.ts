@@ -827,21 +827,32 @@ export class GMAOStorage {
   }
 
   // IoT Sensor Data Methods
-  async getIotSensorData(equipmentId?: number, sensorType?: string, limit: number = 1000): Promise<IotSensorData[]> {
-    const conditions = [];
+  /**
+   * Relevés de capteurs d'UN locataire.
+   *
+   * `equipmentId` reste facultatif — lire tout le parc du demandeur est un
+   * besoin légitime — mais `tenantId` ne l'est plus. C'est la conjonction des
+   * deux qui faisait la fuite : appelée sans équipement par
+   * `GET /api/iot-data`, cette méthode partait sans AUCUNE condition et rendait
+   * les relevés de toute l'instance.
+   */
+  async getIotSensorData(tenantId: string, equipmentId?: number, sensorType?: string, limit: number = 1000): Promise<IotSensorData[]> {
+    const conditions = [eq(iotSensorData.tenantId, tenantId)];
     if (equipmentId) conditions.push(eq(iotSensorData.equipmentId, equipmentId));
     if (sensorType) conditions.push(eq(iotSensorData.sensorType, sensorType));
 
+    // Plus de branche « aucune condition » : le locataire est toujours là.
     return await db.select().from(iotSensorData)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(limit);
   }
 
   // Get alerts for equipment
-  async getAlerts(equipmentId?: number, limit: number = 50): Promise<any[]> {
+  // Dérive des relevés : son cloisonnement est celui de la lecture appelée.
+  async getAlerts(tenantId: string, equipmentId?: number, limit: number = 50): Promise<any[]> {
     // For now, generate mock alerts based on recent sensor data
-    const sensorData = await this.getIotSensorData(equipmentId, undefined, 20);
+    const sensorData = await this.getIotSensorData(tenantId, equipmentId, undefined, 20);
     const alerts: any[] = [];
     let alertId = 1;
     
@@ -887,9 +898,30 @@ export class GMAOStorage {
     return sensorData;
   }
 
-  async getLatestSensorData(equipmentId: number): Promise<IotSensorData[]> {
+  /**
+   * Résout le locataire d'un équipement, pour les chemins d'INGESTION qui ne
+   * connaissent que lui.
+   *
+   * Le connecteur IoT reçoit des trames portant un identifiant d'équipement et
+   * rien d'autre : il n'a pas de session, donc pas de locataire. Plutôt que de
+   * laisser chaque LECTURE redériver le rattachement par jointure — ce qui est
+   * précisément l'oubli qui a produit la fuite — on le résout une fois, à
+   * l'écriture. Rend `undefined` pour un équipement inconnu, que l'appelant
+   * doit traiter comme un refus d'écrire : un relevé sans locataire connu ne
+   * doit pas entrer en base.
+   */
+  async resoudreLocataireEquipement(equipmentId: number): Promise<string | undefined> {
+    const [equipement] = await db
+      .select({ tenantId: equipmentRegistry.tenantId })
+      .from(equipmentRegistry)
+      .where(eq(equipmentRegistry.id, equipmentId))
+      .limit(1);
+    return equipement?.tenantId;
+  }
+
+  async getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]> {
     return await db.select().from(iotSensorData)
-      .where(eq(iotSensorData.equipmentId, equipmentId))
+      .where(and(eq(iotSensorData.equipmentId, equipmentId), eq(iotSensorData.tenantId, tenantId)))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(10);
   }
@@ -944,12 +976,17 @@ export class GMAOStorage {
     const equipmentIds = equipmentList.map(e => e.id);
 
     // 2. Get latest sensor data per equipment (last 200 readings)
+    // La liste d'équipements vient déjà d'une requête filtrée par locataire,
+    // mais la condition est posée explicitement : un cloisonnement qui repose
+    // sur la provenance d'une variable se perd au premier remaniement.
     const sensorDataRaw = equipmentIds.length > 0
       ? await db.select().from(iotSensorData)
-          .where(equipmentIds.length === 1
-            ? eq(iotSensorData.equipmentId, equipmentIds[0])
-            : or(...equipmentIds.map(id => eq(iotSensorData.equipmentId, id)))
-          )
+          .where(and(
+            eq(iotSensorData.tenantId, tenantId),
+            equipmentIds.length === 1
+              ? eq(iotSensorData.equipmentId, equipmentIds[0])
+              : or(...equipmentIds.map(id => eq(iotSensorData.equipmentId, id)))!,
+          ))
           .orderBy(desc(iotSensorData.timestamp))
           .limit(500)
       : [];
@@ -1264,6 +1301,7 @@ export class GMAOStorage {
             : 'normal';
 
           await db.insert(iotSensorData).values({
+            tenantId,
             equipmentId: eq.id,
             sensorType: s.type,
             sensorId: s.sensorId,
