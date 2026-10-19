@@ -148,7 +148,7 @@ export default function EmailDiagnostic() {
             <h1 className="text-3xl font-bold text-ink">
               Diagnostic Email Avancé
             </h1>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-gray-600 dark:text-ink-soft">
               Outils de diagnostic et résolution des problèmes d'envoi d'emails
             </p>
           </div>
@@ -266,13 +266,13 @@ export default function EmailDiagnostic() {
                       <div className={`p-2 rounded-full ${
                         step.status === 'success' ? 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400' :
                         step.status === 'error' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400' :
-                        'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                        'bg-gray-100 text-ink-mute dark:bg-gray-700 dark:text-gray-500'
                       }`}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">{step.title}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">{step.description}</div>
+                        <div className="text-sm text-gray-600 dark:text-ink-mute">{step.description}</div>
                       </div>
                       {step.status === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
                       {step.status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}

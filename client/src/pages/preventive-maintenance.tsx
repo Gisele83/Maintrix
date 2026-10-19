@@ -495,7 +495,7 @@ export default function PreventiveMaintenance() {
         {/* Header Section */}
         <div className="relative">
           <div className="absolute inset-0 bg-paper-deep rounded-3xl blur-3xl"></div>
-          <Card className="relative bg-white dark:bg-slate-900/80 border-0 rounded-3xl">
+          <Card className="relative bg-white dark:bg-paper-deep border-0 rounded-3xl">
             <CardHeader className="text-center py-12">
               <div className="flex items-center justify-center mb-4">
                 <div className="relative">
@@ -508,7 +508,7 @@ export default function PreventiveMaintenance() {
               <CardTitle className="text-4xl font-bold text-ink mb-4">
                 Maintenance Préventive
               </CardTitle>
-              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-xl text-gray-600 dark:text-ink-soft max-w-2xl mx-auto">
                 Planification et suivi des maintenances préventives avec optimisation prédictive
               </p>
             </CardHeader>
@@ -517,12 +517,12 @@ export default function PreventiveMaintenance() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Plans</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalPlans}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">Total Plans</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-ink">{totalPlans}</p>
                 </div>
                 <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
                   <Calendar className="h-8 w-8 text-blue-600" />
@@ -531,11 +531,11 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Actifs</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">Actifs</p>
                   <p className="text-3xl font-bold text-green-600">{activePlans}</p>
                 </div>
                 <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-xl">
@@ -545,11 +545,11 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">En Retard</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">En Retard</p>
                   <p className="text-3xl font-bold text-red-600">{overduePlans}</p>
                 </div>
                 <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl">
@@ -559,11 +559,11 @@ export default function PreventiveMaintenance() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
+          <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Taux Réalisation</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-ink-mute">Taux Réalisation</p>
                   <p className="text-3xl font-bold text-blue-600">{avgCompletionRate}%</p>
                 </div>
                 <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
@@ -575,14 +575,14 @@ export default function PreventiveMaintenance() {
         </div>
 
         {/* Main Content */}
-        <Card className="bg-white dark:bg-slate-900/80 border-0 rounded-2xl">
+        <Card className="bg-white dark:bg-paper-deep border-0 rounded-2xl">
           <CardHeader>
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
               <div>
-                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-ink">
                   Plans de Maintenance
                 </CardTitle>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-gray-600 dark:text-ink-mute mt-1">
                   Gestion et planification des maintenances préventives
                 </p>
               </div>
@@ -602,7 +602,7 @@ export default function PreventiveMaintenance() {
             {/* Search and Filters */}
             <div className="flex flex-col md:flex-row gap-4 mt-6">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-ink-mute" />
                 <Input
                   placeholder="Rechercher un plan..."
                   value={searchTerm}
@@ -614,7 +614,7 @@ export default function PreventiveMaintenance() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-600"
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-white dark:border-rule"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="active">Actif</option>
@@ -641,7 +641,7 @@ export default function PreventiveMaintenance() {
                     const daysUntilNext = getDaysUntilNext(plan.nextExecution);
                     
                     return (
-                      <Card key={plan.id} className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 transition-all duration-300">
+                      <Card key={plan.id} className="bg-white dark:bg-white border border-gray-200 dark:border-rule transition-all duration-300">
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
@@ -650,11 +650,11 @@ export default function PreventiveMaintenance() {
                                   {getTypeIcon(plan.type)}
                                 </div>
                                 <div>
-                                  <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{plan.name}</h3>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">{plan.equipmentName}</p>
+                                  <h3 className="font-semibold text-gray-900 dark:text-ink text-lg">{plan.name}</h3>
+                                  <p className="text-sm text-gray-600 dark:text-ink-mute">{plan.equipmentName}</p>
                                 </div>
                               </div>
-                              <p className="text-gray-600 dark:text-gray-400 mb-3">{plan.description}</p>
+                              <p className="text-gray-600 dark:text-ink-mute mb-3">{plan.description}</p>
                             </div>
                             <div className="flex gap-2">
                               <Badge variant={statusConfig.variant}>
@@ -668,12 +668,12 @@ export default function PreventiveMaintenance() {
 
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Fréquence:</span>
-                              <p className="font-medium text-gray-900 dark:text-white">{plan.frequency}</p>
+                              <span className="text-gray-600 dark:text-ink-mute">Fréquence:</span>
+                              <p className="font-medium text-gray-900 dark:text-ink">{plan.frequency}</p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Prochaine maintenance:</span>
-                              <p className="font-medium text-gray-900 dark:text-white">
+                              <span className="text-gray-600 dark:text-ink-mute">Prochaine maintenance:</span>
+                              <p className="font-medium text-gray-900 dark:text-ink">
                                 {new Date(plan.nextExecution).toLocaleDateString('fr-FR')}
                                 {daysUntilNext <= 7 && (
                                   <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
@@ -687,23 +687,23 @@ export default function PreventiveMaintenance() {
                               </p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Technicien:</span>
-                              <p className="font-medium text-gray-900 dark:text-white">{plan.assignedTechnician}</p>
+                              <span className="text-gray-600 dark:text-ink-mute">Technicien:</span>
+                              <p className="font-medium text-gray-900 dark:text-ink">{plan.assignedTechnician}</p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Durée estimée:</span>
-                              <p className="font-medium text-gray-900 dark:text-white">{plan.estimatedDuration}h</p>
+                              <span className="text-gray-600 dark:text-ink-mute">Durée estimée:</span>
+                              <p className="font-medium text-gray-900 dark:text-ink">{plan.estimatedDuration}h</p>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div className="text-sm">
-                                <span className="text-gray-600 dark:text-gray-400">Taux de réalisation:</span>
+                                <span className="text-gray-600 dark:text-ink-mute">Taux de réalisation:</span>
                                 <span className="ml-2 font-semibold text-blue-600">{plan.completionRate}%</span>
                               </div>
                               <div className="text-sm">
-                                <span className="text-gray-600 dark:text-gray-400">Coût estimé:</span>
+                                <span className="text-gray-600 dark:text-ink-mute">Coût estimé:</span>
                                 <span className="ml-2 font-semibold text-green-600">{plan.cost}€</span>
                               </div>
                             </div>
@@ -739,7 +739,7 @@ export default function PreventiveMaintenance() {
                 <div className="space-y-6">
                   {/* Calendar Header */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-ink">
                       Calendrier de Maintenance - {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="flex gap-2">
@@ -761,12 +761,12 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Calendar Grid */}
-                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-7 gap-2">
                         {/* Days of week header */}
                         {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
-                          <div key={day} className="p-2 text-center text-sm font-medium text-gray-600 dark:text-gray-400">
+                          <div key={day} className="p-2 text-center text-sm font-medium text-gray-600 dark:text-ink-mute">
                             {day}
                           </div>
                         ))}
@@ -788,7 +788,7 @@ export default function PreventiveMaintenance() {
                           return (
                             <div
                               key={i}
-                              className={`p-2 min-h-[80px] border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors ${
+                              className={`p-2 min-h-[80px] border border-gray-200 dark:border-rule rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-paper-deep transition-colors ${
                                 !isCurrentMonth ? 'opacity-50' : ''
                               } ${isToday ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300' : ''}`}
                               onClick={() => {
@@ -798,7 +798,7 @@ export default function PreventiveMaintenance() {
                                 });
                               }}
                             >
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              <div className="text-sm font-medium text-gray-900 dark:text-ink">
                                 {date.getDate()}
                               </div>
                               {hasEvent && isCurrentMonth && (
@@ -816,21 +816,21 @@ export default function PreventiveMaintenance() {
                   </Card>
 
                   {/* Legend */}
-                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
                     <CardContent className="p-4">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-3">Légende</h4>
+                      <h4 className="font-medium text-gray-900 dark:text-ink mb-3">Légende</h4>
                       <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-blue-600 rounded"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Maintenance planifiée</span>
+                          <span className="text-sm text-gray-600 dark:text-ink-mute">Maintenance planifiée</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-green-600 rounded"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Maintenance terminée</span>
+                          <span className="text-sm text-gray-600 dark:text-ink-mute">Maintenance terminée</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-red-600 rounded"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">Maintenance en retard</span>
+                          <span className="text-sm text-gray-600 dark:text-ink-mute">Maintenance en retard</span>
                         </div>
                       </div>
                     </CardContent>
@@ -842,7 +842,7 @@ export default function PreventiveMaintenance() {
                 <div className="space-y-6">
                   {/* Analytics Header */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-ink">
                       Analyses et Métriques de Performance
                     </h3>
                     <div className="flex gap-2">
@@ -892,9 +892,9 @@ export default function PreventiveMaintenance() {
                   {/* Charts Section */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Performance Trends */}
-                    <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                    <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
                       <CardContent className="p-6">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-ink mb-4">
                           Tendances de Performance
                         </h4>
                         <div className="space-y-4">
@@ -916,9 +916,9 @@ export default function PreventiveMaintenance() {
                     </Card>
 
                     {/* Equipment Health Distribution */}
-                    <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                    <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
                       <CardContent className="p-6">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-ink mb-4">
                           Distribution Santé Équipements
                         </h4>
                         <div className="space-y-4">
@@ -931,11 +931,11 @@ export default function PreventiveMaintenance() {
                             <div key={item.status} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className={`w-4 h-4 ${CHART_COLOR[item.color].bg500} rounded-full`}></div>
-                                <span className="text-sm text-gray-600 dark:text-gray-400">{item.status}</span>
+                                <span className="text-sm text-gray-600 dark:text-ink-mute">{item.status}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-gray-900 dark:text-white">{item.count}</span>
-                                <div className="w-20 bg-gray-200 dark:bg-slate-700 rounded-full h-2">
+                                <span className="text-sm font-bold text-gray-900 dark:text-ink">{item.count}</span>
+                                <div className="w-20 bg-gray-200 dark:bg-paper-deep rounded-full h-2">
                                   <div
                                     className={`${CHART_COLOR[item.color].bg500} h-2 rounded-full`}
                                     style={{ width: `${(item.count / 27) * 100}%` }}
@@ -950,17 +950,17 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Maintenance Schedule Analysis */}
-                  <Card className="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+                  <Card className="bg-white dark:bg-white border border-gray-200 dark:border-rule">
                     <CardContent className="p-6">
-                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-ink mb-4">
                         Analyse Planning Maintenance
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-3">
-                          <h5 className="font-medium text-gray-900 dark:text-white">Cette Semaine</h5>
+                          <h5 className="font-medium text-gray-900 dark:text-ink">Cette Semaine</h5>
                           <div className="space-y-2">
                             {['Lundi: 3 maintenances', 'Mercredi: 2 maintenances', 'Vendredi: 1 maintenance'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-ink-mute">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                 {item}
                               </div>
@@ -969,10 +969,10 @@ export default function PreventiveMaintenance() {
                         </div>
                         
                         <div className="space-y-3">
-                          <h5 className="font-medium text-gray-900 dark:text-white">Prochaine Semaine</h5>
+                          <h5 className="font-medium text-gray-900 dark:text-ink">Prochaine Semaine</h5>
                           <div className="space-y-2">
                             {['Mardi: 2 maintenances', 'Jeudi: 4 maintenances', 'Samedi: 1 maintenance'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-ink-mute">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                 {item}
                               </div>
@@ -981,10 +981,10 @@ export default function PreventiveMaintenance() {
                         </div>
                         
                         <div className="space-y-3">
-                          <h5 className="font-medium text-gray-900 dark:text-white">En Retard</h5>
+                          <h5 className="font-medium text-gray-900 dark:text-ink">En Retard</h5>
                           <div className="space-y-2">
                             {['Moteur Principal: 2 jours', 'Pompe Hydraulique: 1 jour'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-ink-mute">
                                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                                 {item}
                               </div>
@@ -1003,8 +1003,8 @@ export default function PreventiveMaintenance() {
         {/* Add Plan Modal Placeholder */}
         {showAddModal && (
           <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="bg-white dark:bg-white p-6 rounded-2xl max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-ink mb-4">
                 Nouveau Plan de Maintenance
               </h3>
               <div className="space-y-4">
@@ -1103,8 +1103,8 @@ export default function PreventiveMaintenance() {
         {/* Edit Plan Modal */}
         {showEditModal && selectedPlan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="bg-white dark:bg-white p-6 rounded-2xl max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-ink mb-4">
                 Modifier le Plan de Maintenance
               </h3>
               <div className="space-y-4">

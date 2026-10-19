@@ -91,8 +91,8 @@ export default function SmartAlerts() {
             <Brain className="w-6 h-6 text-ink" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Alertes Intelligentes</h1>
-            <p className="text-slate-400">Détection de schémas, alertes prédictives et recommandations d'actions IA</p>
+            <h1 className="text-2xl font-bold text-ink">Alertes Intelligentes</h1>
+            <p className="text-ink-mute">Détection de schémas, alertes prédictives et recommandations d'actions IA</p>
           </div>
         </div>
 
@@ -104,14 +104,14 @@ export default function SmartAlerts() {
             { icon: Brain, label: "Schémas IA", value: summary.patternDetected, color: " " },
             { icon: TrendingUp, label: "Prédictives", value: summary.predictive, color: "from-cyan-500 to-blue-600" }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10">
+            <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-4 h-4 text-ink" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-white">{stat.value}</p>
-                  <p className="text-[10px] text-slate-400">{stat.label}</p>
+                  <p className="text-lg font-bold text-ink">{stat.value}</p>
+                  <p className="text-[10px] text-ink-mute">{stat.label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -119,9 +119,9 @@ export default function SmartAlerts() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="bg-slate-900/60 border-white/10">
+          <Card className="bg-paper-deep border-rule">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm">Par sévérité</CardTitle>
+              <CardTitle className="text-ink text-sm">Par sévérité</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={180}>
@@ -137,9 +137,9 @@ export default function SmartAlerts() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/60 border-white/10 lg:col-span-2">
+          <Card className="bg-paper-deep border-rule lg:col-span-2">
             <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm">Par type de détection</CardTitle>
+              <CardTitle className="text-ink text-sm">Par type de détection</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={180}>
@@ -157,14 +157,14 @@ export default function SmartAlerts() {
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-mute" />
             <Input placeholder="Rechercher une alerte..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9" />
           </div>
           <div className="flex gap-1">
             {["all", "critical", "high", "warning", "info"].map(sev => (
               <Button key={sev} size="sm" variant={filterSeverity === sev ? "default" : "outline"}
-                className={filterSeverity === sev ? "bg-blue-600" : "border-white/10 text-slate-300"}
+                className={filterSeverity === sev ? "bg-blue-600" : "border-rule text-ink-soft"}
                 onClick={() => setFilterSeverity(sev)}>
                 {sev === "all" ? "Tout" : sev === "critical" ? "Critique" : sev === "high" ? "Haute" : sev === "warning" ? "Attention" : "Info"}
               </Button>
@@ -173,7 +173,7 @@ export default function SmartAlerts() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-800/50 border border-white/10">
+          <TabsList className="bg-white border border-rule">
             <TabsTrigger value="all">Toutes ({summary.total})</TabsTrigger>
             <TabsTrigger value="critical">Urgentes ({summary.critical + summary.high})</TabsTrigger>
             <TabsTrigger value="predictive">Prédictives ({summary.predictive})</TabsTrigger>
@@ -185,7 +185,7 @@ export default function SmartAlerts() {
               const config = severityConfig[alert.severity] || severityConfig.info;
               const StatusIcon = config.icon;
               return (
-                <Card key={alert.id} className={`bg-slate-900/60 border ${config.bg}`}>
+                <Card key={alert.id} className={`bg-paper-deep border ${config.bg}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <div className={`w-10 h-10 rounded-lg bg-paper-deep ${config.gradient} flex items-center justify-center shrink-0 mt-0.5`}>
@@ -193,9 +193,9 @@ export default function SmartAlerts() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <p className="text-white font-medium">{alert.title}</p>
+                          <p className="text-ink font-medium">{alert.title}</p>
                           <Badge className={`text-[10px] ${config.bg}`}>{alert.severity}</Badge>
-                          <Badge variant="outline" className="text-[10px] text-slate-400 border-white/10">
+                          <Badge variant="outline" className="text-[10px] text-ink-mute border-rule">
                             {typeLabels[alert.type] || alert.type}
                           </Badge>
                           {alert.confidence && (
@@ -205,14 +205,14 @@ export default function SmartAlerts() {
                           )}
                         </div>
                         {alert.equipment && (
-                          <p className="text-xs text-slate-400 mb-1">Équipement : {alert.equipment}</p>
+                          <p className="text-xs text-ink-mute mb-1">Équipement : {alert.equipment}</p>
                         )}
-                        <p className="text-sm text-slate-300 mb-2">{alert.message}</p>
+                        <p className="text-sm text-ink-soft mb-2">{alert.message}</p>
                         {alert.recommendation && (
-                          <div className="p-2 bg-slate-800/50 rounded-lg border border-white/5">
-                            <p className="text-xs text-slate-300 flex items-start gap-1.5">
+                          <div className="p-2 bg-white rounded-lg border border-rule">
+                            <p className="text-xs text-ink-soft flex items-start gap-1.5">
                               <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                              <span><strong className="text-white">Action recommandée :</strong> {alert.recommendation}</span>
+                              <span><strong className="text-ink">Action recommandée :</strong> {alert.recommendation}</span>
                             </p>
                           </div>
                         )}
@@ -225,8 +225,8 @@ export default function SmartAlerts() {
             {filteredAlerts.length === 0 && (
               <div className="text-center py-12">
                 <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                <p className="text-white font-medium">Aucune alerte trouvée</p>
-                <p className="text-sm text-slate-400">Aucune alerte ne correspond à vos critères de recherche</p>
+                <p className="text-ink font-medium">Aucune alerte trouvée</p>
+                <p className="text-sm text-ink-mute">Aucune alerte ne correspond à vos critères de recherche</p>
               </div>
             )}
           </TabsContent>

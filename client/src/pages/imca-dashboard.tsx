@@ -88,7 +88,7 @@ function Gauge({ value, size = 80, label }: { value: number; size?: number; labe
           style={{ transition: "stroke-dasharray 0.8s ease" }} />
         <text x={cx} y={cy + 4} textAnchor="middle" fontSize={size * 0.2} fontWeight="700" fill={color}>{value}</text>
       </svg>
-      <span className="text-xs text-slate-400 font-medium">{label}</span>
+      <span className="text-xs text-ink-mute font-medium">{label}</span>
     </div>
   );
 }
@@ -102,15 +102,15 @@ function SubBar({ label, value, weight, tip }: { label: string; value: number; w
         <TooltipTrigger asChild>
           <div className="space-y-1 cursor-help">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-300 font-semibold">{label}</span>
-              <span className={`font-bold ${scoreColor(value)}`}>{value}/100 <span className="text-slate-500">({Math.round(weight * 100)}%)</span></span>
+              <span className="text-ink-soft font-semibold">{label}</span>
+              <span className={`font-bold ${scoreColor(value)}`}>{value}/100 <span className="text-ink-mute">({Math.round(weight * 100)}%)</span></span>
             </div>
-            <div className="h-2 rounded-full bg-slate-700/60">
+            <div className="h-2 rounded-full bg-paper-deep">
               <div className={`h-2 rounded-full ${color} transition-all duration-700`} style={{ width: `${value}%` }} />
             </div>
           </div>
         </TooltipTrigger>
-        <TooltipContent className="max-w-xs bg-slate-900 border-slate-700 text-slate-200 text-xs p-3">{tip}</TooltipContent>
+        <TooltipContent className="max-w-xs bg-paper-deep border-rule text-slate-200 text-xs p-3">{tip}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -122,7 +122,7 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
     <div onClick={onSelect} className={`relative rounded-xl border p-4 cursor-pointer transition-colors ${scoreBg(r.IMCA)}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-white truncate max-w-[180px]">{r.equipmentName}</p>
+          <p className="text-sm font-semibold text-ink truncate max-w-[180px]">{r.equipmentName}</p>
           <div className="flex items-center gap-2 mt-1">{alertBadge(r.alertLevel)}{trendIcon(r.trend)}</div>
         </div>
         <div className={`text-2xl font-black ${scoreColor(r.IMCA)}`}>{r.IMCA}</div>
@@ -131,7 +131,7 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
         {["ISD", "IDC", "ISO", "IRS"].map(k => (
           <div key={k}>
             <div className={`text-sm font-bold ${scoreColor((r as any)[k])}`}>{(r as any)[k]}</div>
-            <div className="text-[10px] text-slate-500">{k}</div>
+            <div className="text-[10px] text-ink-mute">{k}</div>
           </div>
         ))}
       </div>
@@ -140,7 +140,7 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
           <Clock className="w-3 h-3" />
           RUL P50 : ~{r.stochasticRUL?.recommended.median ?? r.rul_hours}h
           {r.stochasticRUL && (
-            <span className="text-slate-500 ml-1">
+            <span className="text-ink-mute ml-1">
               [IC90 : {r.stochasticRUL.recommended.confidenceIntervals.p05}–{r.stochasticRUL.recommended.confidenceIntervals.p95}h]
             </span>
           )}
@@ -154,23 +154,23 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
 function DetailPanel({ r }: { r: IMCAResult }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-6 space-y-6">
+    <div className="rounded-2xl border border-rule bg-paper-deep p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">{r.equipmentName}</h2>
+          <h2 className="text-lg font-bold text-ink">{r.equipmentName}</h2>
           <div className="flex items-center gap-2 mt-1">{alertBadge(r.alertLevel)}{trendIcon(r.trend)}
-            <span className="text-xs text-slate-500">{r.trend === "improving" ? "En amélioration" : r.trend === "stable" ? "Stable" : r.trend === "degrading" ? "En dégradation" : "Critique"}</span>
+            <span className="text-xs text-ink-mute">{r.trend === "improving" ? "En amélioration" : r.trend === "stable" ? "Stable" : r.trend === "degrading" ? "En dégradation" : "Critique"}</span>
           </div>
         </div>
         <div className="text-right">
           <div className={`text-5xl font-black ${scoreColor(r.IMCA)}`}>{r.IMCA}</div>
-          <div className="text-xs text-slate-500 mt-1">IMCA / 100</div>
+          <div className="text-xs text-ink-mute mt-1">IMCA / 100</div>
         </div>
       </div>
 
       {/* 4 gauges */}
-      <div className="grid grid-cols-4 gap-4 py-2 border-y border-slate-700/50">
+      <div className="grid grid-cols-4 gap-4 py-2 border-y border-rule">
         <Gauge value={r.ISD} label="ISD" size={90} />
         <Gauge value={r.IDC} label="IDC" size={90} />
         <Gauge value={r.ISO} label="ISO" size={90} />
@@ -187,15 +187,15 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
       {/* Technical metrics */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-slate-800/60 border border-slate-700/50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Écart au comportement normal</p>
-          <p className="text-lg font-bold text-white">{r.mahalanobisDistance.toFixed(3)}</p>
+        <div className="rounded-xl bg-white border border-rule p-3">
+          <p className="text-xs text-ink-mute mb-1">Écart au comportement normal</p>
+          <p className="text-lg font-bold text-ink">{r.mahalanobisDistance.toFixed(3)}</p>
         </div>
-        <div className="rounded-xl bg-slate-800/60 border border-slate-700/50 p-3">
-          <p className="text-xs text-slate-500 mb-1">Distance Jensen-Shannon (√JSD)</p>
-          <p className="text-lg font-bold text-white">
+        <div className="rounded-xl bg-white border border-rule p-3">
+          <p className="text-xs text-ink-mute mb-1">Distance Jensen-Shannon (√JSD)</p>
+          <p className="text-lg font-bold text-ink">
             {((r.jsDivergence ?? r.klDivergence) || 0).toFixed(4)}
-            <span className="text-xs text-slate-500 ml-1">
+            <span className="text-xs text-ink-mute ml-1">
               {(r.jsDivergence ?? 0) < 0.10 ? "" : (r.jsDivergence ?? 0) < 0.22 ? "" : (r.jsDivergence ?? 0) < 0.38 ? "" : ""}
             </span>
           </p>
@@ -233,8 +233,8 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
             {/* Confidence interval bar */}
             <div className="space-y-1">
-              <p className="text-[10px] text-slate-500 font-mono">Intervalles de confiance</p>
-              <div className="relative h-6 rounded-full bg-slate-800/60 overflow-hidden">
+              <p className="text-[10px] text-ink-mute font-mono">Intervalles de confiance</p>
+              <div className="relative h-6 rounded-full bg-white overflow-hidden">
                 {(() => {
                   const ci = r.stochasticRUL.recommended.confidenceIntervals;
                   const max = Math.max(ci.p95 * 1.05, 1);
@@ -257,7 +257,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
                   );
                 })()}
               </div>
-              <div className="flex justify-between text-[9px] text-slate-600 font-mono">
+              <div className="flex justify-between text-[9px] text-ink-soft font-mono">
                 {[
                   ["P05", r.stochasticRUL.recommended.confidenceIntervals.p05],
                   ["P25", r.stochasticRUL.recommended.confidenceIntervals.p25],
@@ -271,7 +271,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
             </div>
 
             {/* σ and margin */}
-            <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-slate-400">
+            <div className="grid grid-cols-3 gap-2 text-[10px] font-mono text-ink-mute">
               <div>σ = ±{r.stochasticRUL.recommended.stdDev}h</div>
               <div>Marge = {r.stochasticRUL.remainingMargin.toFixed(1)} pts</div>
               {r.stochasticRUL.wienerParams && (
@@ -282,11 +282,11 @@ function DetailPanel({ r }: { r: IMCAResult }) {
             {/* Wiener vs Gamma comparison if both available */}
             {r.stochasticRUL.wienerRUL && r.stochasticRUL.gammaRUL && (
               <div className="grid grid-cols-2 gap-2 pt-1 border-t border-amber-500/20">
-                <div className="text-[10px] text-slate-500">
+                <div className="text-[10px] text-ink-mute">
                   <span className="text-signal-light font-semibold">Wiener IG</span>{" "}
                   P50={r.stochasticRUL.wienerRUL.median}h · σ={r.stochasticRUL.wienerRUL.stdDev}h
                 </div>
-                <div className="text-[10px] text-slate-500">
+                <div className="text-[10px] text-ink-mute">
                   <span className="text-emerald-400 font-semibold">Gamma MC</span>{" "}
                   P50={r.stochasticRUL.gammaRUL.median}h · σ={r.stochasticRUL.gammaRUL.stdDev}h
                 </div>
@@ -306,21 +306,21 @@ function DetailPanel({ r }: { r: IMCAResult }) {
       {/* Recommendation */}
       <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4 space-y-2">
         <div className="flex items-center gap-2 text-blue-300 font-semibold text-sm"><Brain className="w-4 h-4" /> Facteur dominant</div>
-        <p className="text-xs text-slate-400">{r.explanation.dominantFactor}</p>
+        <p className="text-xs text-ink-mute">{r.explanation.dominantFactor}</p>
         <div className="flex items-center gap-2 text-blue-300 font-semibold text-sm mt-2"><Zap className="w-4 h-4" /> Recommandation</div>
-        <p className="text-xs text-slate-300">{r.explanation.recommendation}</p>
+        <p className="text-xs text-ink-soft">{r.explanation.recommendation}</p>
       </div>
 
       {/* Expandable detail */}
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 text-xs text-ink-mute hover:text-ink-soft transition-colors">
         {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />} Détails explicatifs par sous-indice
       </button>
       {open && (
-        <div className="space-y-3 border-t border-slate-700/50 pt-3">
+        <div className="space-y-3 border-t border-rule pt-3">
           {(["ISD", "IDC", "ISO", "IRS"] as const).map(k => (
-            <div key={k} className="rounded-lg bg-slate-800/40 p-3">
-              <p className="text-xs font-semibold text-slate-300 mb-1">{k}</p>
-              <p className="text-xs text-slate-500">{r.explanation[k]}</p>
+            <div key={k} className="rounded-lg bg-white p-3">
+              <p className="text-xs font-semibold text-ink-soft mb-1">{k}</p>
+              <p className="text-xs text-ink-mute">{r.explanation[k]}</p>
             </div>
           ))}
         </div>
@@ -365,8 +365,8 @@ export default function IMCADashboard() {
               <Brain className="w-6 h-6 text-signal-light" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white">IMCA — Indice Cognitif Composite</h1>
-              <p className="text-sm text-slate-400">Score de santé composite combinant comportement, dérive, stress opérationnel et résilience structurelle</p>
+              <h1 className="text-2xl font-black text-ink">IMCA — Indice Cognitif Composite</h1>
+              <p className="text-sm text-ink-mute">Score de santé composite combinant comportement, dérive, stress opérationnel et résilience structurelle</p>
             </div>
           </div>
         </div>
@@ -375,19 +375,19 @@ export default function IMCADashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="rounded-2xl border border-rule/30 bg-signal-deep/10 p-5 text-center">
             <div className={`text-4xl font-black mb-1 ${scoreColor(fleetIMCA)}`}>{fleetLoading ? "…" : fleetIMCA}</div>
-            <div className="text-xs text-slate-400">IMCA Flotte</div>
+            <div className="text-xs text-ink-mute">IMCA Flotte</div>
           </div>
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/40 p-5 text-center">
-            <div className="text-4xl font-black mb-1 text-white">{fleet?.results.length ?? "–"}</div>
-            <div className="text-xs text-slate-400">Actifs analysés</div>
+          <div className="rounded-2xl border border-rule bg-white p-5 text-center">
+            <div className="text-4xl font-black mb-1 text-ink">{fleet?.results.length ?? "–"}</div>
+            <div className="text-xs text-ink-mute">Actifs analysés</div>
           </div>
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-center">
             <div className="text-4xl font-black mb-1 text-red-400">{fleet?.criticalCount ?? "–"}</div>
-            <div className="text-xs text-slate-400">Critiques</div>
+            <div className="text-xs text-ink-mute">Critiques</div>
           </div>
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center">
             <div className="text-4xl font-black mb-1 text-amber-400">{fleet?.degradingCount ?? "–"}</div>
-            <div className="text-xs text-slate-400">En dégradation</div>
+            <div className="text-xs text-ink-mute">En dégradation</div>
           </div>
         </div>
 
@@ -395,9 +395,9 @@ export default function IMCADashboard() {
           {/* Equipment selection & fleet list */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white">Analyse par équipement</h2>
+              <h2 className="text-base font-bold text-ink">Analyse par équipement</h2>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => refetchFleet()} className="text-slate-400 hover:text-white">
+                <Button variant="ghost" size="sm" onClick={() => refetchFleet()} className="text-ink-mute hover:text-ink">
                   <RefreshCw className="w-4 h-4" />
                 </Button>
               </div>
@@ -406,24 +406,24 @@ export default function IMCADashboard() {
             {/* Fenêtre glissante params */}
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="text-xs text-slate-500 mb-1 block">Fenêtre courte (ISD/ISO)</label>
+                <label className="text-xs text-ink-mute mb-1 block">Fenêtre courte (ISD/ISO)</label>
                 <Select value={windowShort} onValueChange={setWindowShort}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-300 h-8 text-xs">
+                  <SelectTrigger className="bg-white border-rule text-ink-soft h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {["3", "7", "14", "30"].map(v => <SelectItem key={v} value={v} className="text-slate-300">{v} jours</SelectItem>)}
+                  <SelectContent className="bg-white border-rule">
+                    {["3", "7", "14", "30"].map(v => <SelectItem key={v} value={v} className="text-ink-soft">{v} jours</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex-1">
-                <label className="text-xs text-slate-500 mb-1 block">Fenêtre longue KL (IDC)</label>
+                <label className="text-xs text-ink-mute mb-1 block">Fenêtre longue KL (IDC)</label>
                 <Select value={windowLong} onValueChange={setWindowLong}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-300 h-8 text-xs">
+                  <SelectTrigger className="bg-white border-rule text-ink-soft h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
-                    {["30", "60", "90"].map(v => <SelectItem key={v} value={v} className="text-slate-300">{v} jours</SelectItem>)}
+                  <SelectContent className="bg-white border-rule">
+                    {["30", "60", "90"].map(v => <SelectItem key={v} value={v} className="text-ink-soft">{v} jours</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -433,7 +433,7 @@ export default function IMCADashboard() {
             {fleetLoading ? (
               <div className="grid grid-cols-2 gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-36 rounded-xl bg-slate-800/40 animate-pulse" />
+                  <div key={i} className="h-36 rounded-xl bg-white animate-pulse" />
                 ))}
               </div>
             ) : fleet?.results && fleet.results.length > 0 ? (
@@ -443,23 +443,23 @@ export default function IMCADashboard() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-8 text-center">
-                <Activity className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm">Aucune donnée capteur disponible.</p>
-                <p className="text-slate-600 text-xs mt-1">Connectez des capteurs IoT pour alimenter l'IMCA.</p>
+              <div className="rounded-xl border border-rule bg-white p-8 text-center">
+                <Activity className="w-8 h-8 text-ink-soft mx-auto mb-3" />
+                <p className="text-ink-mute text-sm">Aucune donnée capteur disponible.</p>
+                <p className="text-ink-soft text-xs mt-1">Connectez des capteurs IoT pour alimenter l'IMCA.</p>
               </div>
             )}
 
             {/* Equipment selector if fleet empty */}
             {(!fleet?.results || fleet.results.length === 0) && equipList && equipList.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-slate-500">Sélectionner un équipement à analyser :</p>
+                <p className="text-xs text-ink-mute">Sélectionner un équipement à analyser :</p>
                 <div className="grid grid-cols-1 gap-2">
                   {equipList.slice(0, 8).map(e => (
                     <button key={e.id} onClick={() => setSelectedId(e.id)}
-                      className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2 hover:border-rule/50 transition-colors text-left">
-                      <span className="text-sm text-slate-300">{e.name}</span>
-                      <ChevronRight className="w-4 h-4 text-slate-600" />
+                      className="flex items-center justify-between rounded-xl border border-rule bg-white px-4 py-2 hover:border-rule/50 transition-colors text-left">
+                      <span className="text-sm text-ink-soft">{e.name}</span>
+                      <ChevronRight className="w-4 h-4 text-ink-soft" />
                     </button>
                   ))}
                 </div>
@@ -472,26 +472,26 @@ export default function IMCADashboard() {
             {detailLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-xl bg-slate-800/40 animate-pulse" />
+                  <div key={i} className="h-24 rounded-xl bg-white animate-pulse" />
                 ))}
               </div>
             ) : detail ? (
               <DetailPanel r={detail} />
             ) : (
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-12 text-center h-full flex flex-col items-center justify-center">
+              <div className="rounded-2xl border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center">
                 <div className="p-4 rounded-2xl bg-signal-deep/10 border border-rule/20 mb-4">
                   <Brain className="w-10 h-10 text-signal-light" />
                 </div>
-                <p className="text-slate-300 font-semibold mb-2">Sélectionnez un équipement</p>
-                <p className="text-slate-500 text-sm">Cliquez sur une carte pour afficher l'analyse IMCA détaillée avec distance de Mahalanobis, divergence KL, et décomposition des 4 sous-indices.</p>
+                <p className="text-ink-soft font-semibold mb-2">Sélectionnez un équipement</p>
+                <p className="text-ink-mute text-sm">Cliquez sur une carte pour afficher l'analyse IMCA détaillée avec distance de Mahalanobis, divergence KL, et décomposition des 4 sous-indices.</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Legend */}
-        <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-800/20 p-5">
-          <p className="text-xs font-semibold text-slate-400 mb-3">Échelle IMCA</p>
+        <div className="mt-8 rounded-2xl border border-rule bg-white p-5">
+          <p className="text-xs font-semibold text-ink-mute mb-3">Échelle IMCA</p>
           <div className="flex flex-wrap gap-4">
             {[
               { range: "75–100", label: "Nominal", color: "bg-emerald-500" },
@@ -501,15 +501,15 @@ export default function IMCADashboard() {
             ].map(item => (
               <div key={item.range} className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                <span className="text-xs text-slate-400">{item.range} — {item.label}</span>
+                <span className="text-xs text-ink-mute">{item.range} — {item.label}</span>
               </div>
             ))}
           </div>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-500">
-            <div><span className="font-semibold text-slate-400">ISD</span> Indice de Santé Dynamique (Mahalanobis)</div>
-            <div><span className="font-semibold text-slate-400">IDC</span> Dérive Comportementale (Jensen-Shannon · fenêtres glissantes)</div>
-            <div><span className="font-semibold text-slate-400">ISO</span> Stress Opérationnel (alarmes + surcharge)</div>
-            <div><span className="font-semibold text-slate-400">IRS</span> Résilience Structurelle (MTBF + âge)</div>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-ink-mute">
+            <div><span className="font-semibold text-ink-mute">ISD</span> Indice de Santé Dynamique (Mahalanobis)</div>
+            <div><span className="font-semibold text-ink-mute">IDC</span> Dérive Comportementale (Jensen-Shannon · fenêtres glissantes)</div>
+            <div><span className="font-semibold text-ink-mute">ISO</span> Stress Opérationnel (alarmes + surcharge)</div>
+            <div><span className="font-semibold text-ink-mute">IRS</span> Résilience Structurelle (MTBF + âge)</div>
           </div>
         </div>
       </div>

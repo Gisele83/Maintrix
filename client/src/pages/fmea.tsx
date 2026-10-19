@@ -83,7 +83,7 @@ const rpnBg = (cls: string) => ({
 const rpnLabel = (cls: string) => ({ critical: "Critique", high: "Élevé", medium: "Moyen", low: "Faible" })[cls] || "";
 
 const STATUSES = [
-  { value: "draft", label: "Brouillon", color: "bg-slate-100 text-slate-600" },
+  { value: "draft", label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
   { value: "in_review", label: "En revue", color: "bg-blue-100 text-blue-700" },
   { value: "approved", label: "Approuvé", color: "bg-green-100 text-green-700" },
   { value: "obsolete", label: "Obsolète", color: "bg-gray-100 text-gray-500" },
@@ -119,17 +119,17 @@ function CriticalityMatrix({ entries }: { entries: FmeaEntry[] }) {
   };
   return (
     <div className="overflow-x-auto">
-      <div className="text-xs text-slate-500 mb-2">Matrice de criticité (Sévérité × Occurrence)</div>
+      <div className="text-xs text-ink-mute mb-2">Matrice de criticité (Sévérité × Occurrence)</div>
       <div className="inline-block">
         <div className="flex">
           <div className="w-8" />
           {[1,2,3,4,5,6,7,8,9,10].map(s => (
-            <div key={s} className="w-8 h-6 flex items-center justify-center text-xs font-bold text-slate-600">{s}</div>
+            <div key={s} className="w-8 h-6 flex items-center justify-center text-xs font-bold text-ink-soft">{s}</div>
           ))}
         </div>
         {[10,9,8,7,6,5,4,3,2,1].map(o => (
           <div key={o} className="flex">
-            <div className="w-8 h-7 flex items-center justify-center text-xs font-bold text-slate-600">{o}</div>
+            <div className="w-8 h-7 flex items-center justify-center text-xs font-bold text-ink-soft">{o}</div>
             {[1,2,3,4,5,6,7,8,9,10].map(s => {
               const cnt = grid[`${o}-${s}`] || 0;
               return (
@@ -142,7 +142,7 @@ function CriticalityMatrix({ entries }: { entries: FmeaEntry[] }) {
         ))}
         <div className="flex mt-1">
           <div className="w-8" />
-          <div className="flex-1 text-center text-xs text-slate-500">← Sévérité →</div>
+          <div className="flex-1 text-center text-xs text-ink-mute">← Sévérité →</div>
         </div>
       </div>
     </div>
@@ -256,7 +256,7 @@ export default function FmeaPage() {
             </div>
             <h1 className="text-3xl font-bold text-ink">FMEA / AMDEC</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Failure Mode & Effects Analysis — RPN = Sévérité × Occurrence × Détection</p>
+          <p className="text-ink-mute ml-14 text-sm">Failure Mode & Effects Analysis — RPN = Sévérité × Occurrence × Détection</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle FMEA
@@ -274,7 +274,7 @@ export default function FmeaPage() {
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -295,7 +295,7 @@ export default function FmeaPage() {
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input placeholder="Rechercher une FMEA..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -309,11 +309,11 @@ export default function FmeaPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <AlertTriangle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune analyse FMEA</h3>
+          <AlertTriangle className="h-12 w-12 text-ink-soft mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink-soft mb-1">Aucune analyse FMEA</h3>
           <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Créer la première FMEA
           </Button>
@@ -331,15 +331,15 @@ export default function FmeaPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-slate-500">{f.fmeaNumber}</span>
+                        <span className="text-xs font-mono text-ink-mute">{f.fmeaNumber}</span>
                         <Badge className={sc.color + " text-xs"}>{sc.label}</Badge>
                         <Badge variant="outline" className="text-xs">Rev. {f.revision}</Badge>
                         {f.equipmentName && <Badge variant="outline" className="text-xs">{f.equipmentName}</Badge>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{f.title}</h3>
-                      {f.scope && <p className="text-xs text-slate-500 mt-1 line-clamp-1">{f.scope}</p>}
+                      {f.scope && <p className="text-xs text-ink-mute mt-1 line-clamp-1">{f.scope}</p>}
                       <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="text-xs text-slate-500">{f.entries?.length || 0} modes de défaillance</span>
+                        <span className="text-xs text-ink-mute">{f.entries?.length || 0} modes de défaillance</span>
                         {critical > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{critical} critique{critical > 1 ? "s" : ""}</Badge>}
                         {high > 0 && <Badge className="bg-orange-100 text-orange-700 text-xs">{high} élevé{high > 1 ? "s" : ""}</Badge>}
                         {maxRpn > 0 && <span className="text-xs font-medium" style={{ color: rpnColor(maxRpn) }}>RPN max: {maxRpn}</span>}
@@ -398,7 +398,7 @@ export default function FmeaPage() {
                 <AlertTriangle className="h-6 w-6 text-orange-600" />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
-                  <p className="text-xs text-slate-500 font-mono">{selected.fmeaNumber} · Rev. {selected.revision}</p>
+                  <p className="text-xs text-ink-mute font-mono">{selected.fmeaNumber} · Rev. {selected.revision}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {STATUSES.map(s => (
@@ -428,13 +428,13 @@ export default function FmeaPage() {
                 <thead>
                   <tr className="bg-slate-50 border-b">
                     {["Composant", "Mode de défaillance", "Effet", "Cause", "S", "O", "D", "RPN", "Criticité", "Actions", "Statut", ""].map(h => (
-                      <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap">{h}</th>
+                      <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {(selected.entries || []).length === 0 && (
-                    <tr><td colSpan={12} className="py-8 text-center text-slate-400 text-sm">Aucun mode de défaillance — ajoutez-en un ci-dessous</td></tr>
+                    <tr><td colSpan={12} className="py-8 text-center text-ink-mute text-sm">Aucun mode de défaillance — ajoutez-en un ci-dessous</td></tr>
                   )}
                   {(selected.entries || []).map((e, i) => (
                     <tr key={e.id || i} className={`border-b hover:bg-slate-50 ${e.criticalityClass === "critical" ? "bg-red-50/30" : e.criticalityClass === "high" ? "bg-orange-50/30" : ""}`}>
@@ -449,7 +449,7 @@ export default function FmeaPage() {
                       ))}
                       <td className="py-2 px-3 text-center"><RpnBadge rpn={e.rpn || 0} cls={e.criticalityClass} /></td>
                       <td className="py-2 px-3"><Badge className={`text-xs ${rpnBg(e.criticalityClass || "low")}`}>{rpnLabel(e.criticalityClass || "low")}</Badge></td>
-                      <td className="py-2 px-3 text-xs max-w-36 truncate text-slate-600">{e.recommendedActions || "—"}</td>
+                      <td className="py-2 px-3 text-xs max-w-36 truncate text-ink-soft">{e.recommendedActions || "—"}</td>
                       <td className="py-2 px-3">
                         <Badge className={`text-xs ${e.status === "closed" ? "bg-green-100 text-green-700" : e.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
                           {e.status === "closed" ? "Clôturé" : e.status === "in_progress" ? "En cours" : "Ouvert"}
@@ -509,7 +509,7 @@ export default function FmeaPage() {
                     return (
                       <div key={key} className="bg-white rounded-lg p-3 border">
                         <label className="text-xs font-semibold text-slate-700">{label}</label>
-                        <p className="text-xs text-slate-400 mb-2">{desc}</p>
+                        <p className="text-xs text-ink-mute mb-2">{desc}</p>
                         <div className="flex items-center gap-3">
                           <span className="text-2xl font-black w-8 text-center" style={{ color: rpnColor(val * val) }}>{val}</span>
                           <input type="range" min="1" max="10" value={val}
@@ -522,7 +522,7 @@ export default function FmeaPage() {
                 </div>
                 <div className="flex items-center gap-4 p-3 bg-white rounded-lg border">
                   <div>
-                    <span className="text-xs text-slate-500">RPN calculé</span>
+                    <span className="text-xs text-ink-mute">RPN calculé</span>
                     <p className="text-3xl font-black" style={{ color: rpnColor((editingEntry.severity || 5) * (editingEntry.occurrence || 5) * (editingEntry.detection || 5)) }}>
                       {(editingEntry.severity || 5) * (editingEntry.occurrence || 5) * (editingEntry.detection || 5)}
                     </p>

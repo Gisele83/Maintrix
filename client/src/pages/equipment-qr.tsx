@@ -109,12 +109,12 @@ export default function EquipmentQR() {
               <QrCode className="w-6 h-6 text-ink" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">QR Code Équipements</h1>
-              <p className="text-slate-400">Générez et imprimez des QR codes pour un accès rapide aux fiches équipements</p>
+              <h1 className="text-2xl font-bold text-ink">QR Code Équipements</h1>
+              <p className="text-ink-mute">Générez et imprimez des QR codes pour un accès rapide aux fiches équipements</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="border-white/20 text-slate-300" onClick={printAllQR}>
+            <Button variant="outline" className="border-rule text-ink-soft" onClick={printAllQR}>
               <Printer className="w-4 h-4 mr-2" /> Imprimer tout
             </Button>
           </div>
@@ -122,26 +122,26 @@ export default function EquipmentQR() {
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-mute" />
             <Input placeholder="Rechercher un équipement..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9" />
           </div>
           <div className="flex gap-1">
             <Button size="sm" variant={viewMode === "grid" ? "default" : "outline"} onClick={() => setViewMode("grid")}
-              className={viewMode === "grid" ? "bg-blue-600" : "border-white/10 text-slate-300"}>
+              className={viewMode === "grid" ? "bg-blue-600" : "border-rule text-ink-soft"}>
               <Grid3X3 className="w-4 h-4" />
             </Button>
             <Button size="sm" variant={viewMode === "list" ? "default" : "outline"} onClick={() => setViewMode("list")}
-              className={viewMode === "list" ? "bg-blue-600" : "border-white/10 text-slate-300"}>
+              className={viewMode === "list" ? "bg-blue-600" : "border-rule text-ink-soft"}>
               <List className="w-4 h-4" />
             </Button>
           </div>
-          <Badge variant="outline" className="text-slate-400 border-white/10">{filtered.length} équipements</Badge>
+          <Badge variant="outline" className="text-ink-mute border-rule">{filtered.length} équipements</Badge>
         </div>
 
-        <Card className="bg-slate-900/60 border-white/10">
+        <Card className="bg-paper-deep border-rule">
           <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm flex items-center gap-2">
+            <CardTitle className="text-ink text-sm flex items-center gap-2">
               <Smartphone className="w-4 h-4 text-signal-light" />
               Comment utiliser les QR codes
             </CardTitle>
@@ -153,11 +153,11 @@ export default function EquipmentQR() {
                 { step: "2", title: "Scannez", desc: "Utilisez l'app mobile Maintrix pour scanner le QR code", icon: ScanLine },
                 { step: "3", title: "Accédez", desc: "Accédez instantanément à la fiche complète de l'équipement", icon: Eye }
               ].map((s, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-lg">
                   <div className="w-8 h-8 rounded-full bg-signal-deep/20 text-signal-light flex items-center justify-center text-sm font-bold shrink-0">{s.step}</div>
                   <div>
-                    <p className="text-sm font-medium text-white">{s.title}</p>
-                    <p className="text-xs text-slate-400">{s.desc}</p>
+                    <p className="text-sm font-medium text-ink">{s.title}</p>
+                    <p className="text-xs text-ink-mute">{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -172,22 +172,22 @@ export default function EquipmentQR() {
             
             if (viewMode === "list") {
               return (
-                <Card key={eq.id} className="bg-slate-900/60 border-white/10 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                <Card key={eq.id} className="bg-paper-deep border-rule hover:bg-white transition-colors cursor-pointer"
                   onClick={() => setSelectedEquipment(item)}>
                   <CardContent className="p-4 flex items-center gap-4">
                     <div className="bg-white p-2 rounded-lg shrink-0">
                       <QRCodeSVG value={qrValue} size={60} level="M" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium">{eq.equipmentName}</p>
-                      <p className="text-xs text-slate-400">{eq.equipmentId} · {eq.equipmentType}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <p className="text-ink font-medium">{eq.equipmentName}</p>
+                      <p className="text-xs text-ink-mute">{eq.equipmentId} · {eq.equipmentType}</p>
+                      <p className="text-xs text-ink-mute flex items-center gap-1">
                         <MapPin className="w-3 h-3" /> {eq.location || 'N/A'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${statusColors[eq.operationalState] || 'bg-gray-500'}`} />
-                      <span className="text-xs text-slate-400">{statusLabels[eq.operationalState] || eq.operationalState}</span>
+                      <span className="text-xs text-ink-mute">{statusLabels[eq.operationalState] || eq.operationalState}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -195,7 +195,7 @@ export default function EquipmentQR() {
             }
 
             return (
-              <Card key={eq.id} className="bg-slate-900/60 border-white/10 hover:bg-slate-800/60 transition-colors cursor-pointer"
+              <Card key={eq.id} className="bg-paper-deep border-rule hover:bg-white transition-colors cursor-pointer"
                 onClick={() => setSelectedEquipment(item)}>
                 <CardContent className="p-4 text-center">
                   <div className="bg-white p-3 rounded-lg inline-block mb-3">
@@ -203,13 +203,13 @@ export default function EquipmentQR() {
                   </div>
                   <div className="flex items-center justify-center gap-1.5 mb-1">
                     <div className={`w-2 h-2 rounded-full ${statusColors[eq.operationalState] || 'bg-gray-500'}`} />
-                    <p className="text-sm font-medium text-white truncate">{eq.equipmentName}</p>
+                    <p className="text-sm font-medium text-ink truncate">{eq.equipmentName}</p>
                   </div>
-                  <p className="text-xs text-slate-400">{eq.equipmentId}</p>
-                  <p className="text-xs text-slate-500 flex items-center justify-center gap-1 mt-1">
+                  <p className="text-xs text-ink-mute">{eq.equipmentId}</p>
+                  <p className="text-xs text-ink-mute flex items-center justify-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> {eq.location || 'N/A'}
                   </p>
-                  <Badge variant="outline" className="text-[10px] text-slate-400 border-white/10 mt-2">{eq.criticalityLevel}</Badge>
+                  <Badge variant="outline" className="text-[10px] text-ink-mute border-rule mt-2">{eq.criticalityLevel}</Badge>
                 </CardContent>
               </Card>
             );
@@ -218,16 +218,16 @@ export default function EquipmentQR() {
 
         {filtered.length === 0 && (
           <div className="text-center py-12">
-            <QrCode className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-            <p className="text-white font-medium">Aucun équipement trouvé</p>
-            <p className="text-sm text-slate-400">Modifiez votre recherche pour trouver des équipements</p>
+            <QrCode className="w-12 h-12 text-ink-soft mx-auto mb-3" />
+            <p className="text-ink font-medium">Aucun équipement trouvé</p>
+            <p className="text-sm text-ink-mute">Modifiez votre recherche pour trouver des équipements</p>
           </div>
         )}
 
         <Dialog open={!!selectedEquipment} onOpenChange={() => setSelectedEquipment(null)}>
-          <DialogContent className="bg-slate-900 border-white/10 max-w-md">
+          <DialogContent className="bg-paper-deep border-rule max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-white">QR Code - {selectedEquipment?.equipment?.equipmentName}</DialogTitle>
+              <DialogTitle className="text-ink">QR Code - {selectedEquipment?.equipment?.equipmentName}</DialogTitle>
             </DialogHeader>
             {selectedEquipment && (
               <div className="space-y-4">
@@ -243,20 +243,20 @@ export default function EquipmentQR() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between p-2 bg-slate-800/50 rounded">
-                    <span className="text-xs text-slate-400">ID</span>
-                    <span className="text-xs text-white">{selectedEquipment.equipment.equipmentId}</span>
+                  <div className="flex justify-between p-2 bg-white rounded">
+                    <span className="text-xs text-ink-mute">ID</span>
+                    <span className="text-xs text-ink">{selectedEquipment.equipment.equipmentId}</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-slate-800/50 rounded">
-                    <span className="text-xs text-slate-400">Type</span>
-                    <span className="text-xs text-white">{selectedEquipment.equipment.equipmentType}</span>
+                  <div className="flex justify-between p-2 bg-white rounded">
+                    <span className="text-xs text-ink-mute">Type</span>
+                    <span className="text-xs text-ink">{selectedEquipment.equipment.equipmentType}</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-slate-800/50 rounded">
-                    <span className="text-xs text-slate-400">Localisation</span>
-                    <span className="text-xs text-white">{selectedEquipment.equipment.location || 'N/A'}</span>
+                  <div className="flex justify-between p-2 bg-white rounded">
+                    <span className="text-xs text-ink-mute">Localisation</span>
+                    <span className="text-xs text-ink">{selectedEquipment.equipment.location || 'N/A'}</span>
                   </div>
-                  <div className="flex justify-between p-2 bg-slate-800/50 rounded">
-                    <span className="text-xs text-slate-400">Criticité</span>
+                  <div className="flex justify-between p-2 bg-white rounded">
+                    <span className="text-xs text-ink-mute">Criticité</span>
                     <Badge className={`text-xs ${selectedEquipment.equipment.criticalityLevel === 'critical' ? 'bg-red-500/20 text-red-400' : selectedEquipment.equipment.criticalityLevel === 'high' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
                       {selectedEquipment.equipment.criticalityLevel}
                     </Badge>
@@ -278,7 +278,7 @@ export default function EquipmentQR() {
                   }}>
                     <Download className="w-4 h-4 mr-2" /> Télécharger SVG
                   </Button>
-                  <Button variant="outline" className="border-white/20 text-slate-300" onClick={() => {
+                  <Button variant="outline" className="border-rule text-ink-soft" onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/equipment/${selectedEquipment.equipment.id}`);
                     toast({ title: "Copié", description: "Lien copié dans le presse-papier" });
                   }}>

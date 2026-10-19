@@ -82,7 +82,7 @@ const STATUSES = [
   { value: "submitted", label: "En attente", icon: Clock, color: "bg-yellow-100 text-yellow-700" },
   { value: "approved", label: "Approuvé", icon: CheckCircle2, color: "bg-blue-100 text-blue-700" },
   { value: "active", label: "Actif", icon: PlayCircle, color: "bg-green-100 text-green-700" },
-  { value: "completed", label: "Clôturé", icon: CheckCircle2, color: "bg-slate-100 text-slate-600" },
+  { value: "completed", label: "Clôturé", icon: CheckCircle2, color: "bg-slate-100 text-ink-soft" },
   { value: "rejected", label: "Rejeté", icon: XCircle, color: "bg-red-100 text-red-700" },
   { value: "cancelled", label: "Annulé", icon: XCircle, color: "bg-gray-100 text-gray-500" },
 ];
@@ -223,7 +223,7 @@ export default function PermitToWork() {
         { action: "activate", label: "Démarrer les travaux", color: "bg-green-600 hover:bg-green-700" },
         { action: "reject", label: "Rejeter", color: "bg-red-600 hover:bg-red-700" },
       ];
-      case "active": return [{ action: "complete", label: "Clôturer", color: "bg-slate-700 hover:bg-slate-800" }];
+      case "active": return [{ action: "complete", label: "Clôturer", color: "bg-paper-deep hover:bg-white" }];
       default: return [];
     }
   };
@@ -259,7 +259,7 @@ export default function PermitToWork() {
               Permis de Travail
             </h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Permit-to-Work — Contrôle des travaux à risque</p>
+          <p className="text-ink-mute ml-14 text-sm">Permit-to-Work — Contrôle des travaux à risque</p>
         </div>
         <Button
           onClick={() => setShowCreate(true)}
@@ -284,7 +284,7 @@ export default function PermitToWork() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-800">{value}</p>
-                <p className="text-xs text-slate-500">{label}</p>
+                <p className="text-xs text-ink-mute">{label}</p>
               </div>
             </CardContent>
           </Card>
@@ -301,9 +301,9 @@ export default function PermitToWork() {
               filterType === value ? bg + " shadow-md scale-105" : "bg-white border-slate-200 hover:border-slate-300"
             }`}
           >
-            <Icon className={`h-5 w-5 ${filterType === value ? color : "text-slate-400"}`} />
-            <span className="text-xs font-medium text-slate-600 text-center leading-tight">{label}</span>
-            <span className={`text-xs font-bold ${filterType === value ? color : "text-slate-400"}`}>
+            <Icon className={`h-5 w-5 ${filterType === value ? color : "text-ink-mute"}`} />
+            <span className="text-xs font-medium text-ink-soft text-center leading-tight">{label}</span>
+            <span className={`text-xs font-bold ${filterType === value ? color : "text-ink-mute"}`}>
               {stats?.byType?.[value] ?? 0}
             </span>
           </button>
@@ -313,7 +313,7 @@ export default function PermitToWork() {
       {/* ── Filters bar ── */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input
             placeholder="Rechercher un permis..."
             value={searchTerm}
@@ -323,7 +323,7 @@ export default function PermitToWork() {
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-44 bg-white">
-            <Filter className="h-4 w-4 mr-2 text-slate-400" />
+            <Filter className="h-4 w-4 mr-2 text-ink-mute" />
             <SelectValue placeholder="Statut" />
           </SelectTrigger>
           <SelectContent>
@@ -336,13 +336,13 @@ export default function PermitToWork() {
       {/* ── Permits list ── */}
       {isLoading ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-ink-mute" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Lock className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun permis</h3>
-          <p className="text-slate-400 text-sm mb-6">Créez votre premier permis de travail pour commencer</p>
+          <Lock className="h-12 w-12 text-ink-soft mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink-soft mb-1">Aucun permis</h3>
+          <p className="text-ink-mute text-sm mb-6">Créez votre premier permis de travail pour commencer</p>
           <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
             <Plus className="h-4 w-4" /> Nouveau permis
           </Button>
@@ -366,7 +366,7 @@ export default function PermitToWork() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-xs font-mono text-slate-500">{permit.permitNumber}</span>
+                          <span className="text-xs font-mono text-ink-mute">{permit.permitNumber}</span>
                           <Badge className={statusConf.color + " text-xs"}>{statusConf.label}</Badge>
                           <Badge className={typeConf.badge + " text-xs"}>{typeConf.label}</Badge>
                           <Badge className={riskConf.color + " text-xs"}>Risque {riskConf.label}</Badge>
@@ -374,17 +374,17 @@ export default function PermitToWork() {
                         <h3 className="font-semibold text-slate-800 truncate">{permit.title}</h3>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                           {permit.location && (
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="text-xs text-ink-mute flex items-center gap-1">
                               <MapPin className="h-3 w-3" />{permit.location}
                             </span>
                           )}
                           {permit.requestedByName && (
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="text-xs text-ink-mute flex items-center gap-1">
                               <Users className="h-3 w-3" />{permit.requestedByName}
                             </span>
                           )}
                           {permit.plannedStart && (
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="text-xs text-ink-mute flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(permit.plannedStart).toLocaleDateString("fr-FR")}
                             </span>
@@ -440,7 +440,7 @@ export default function PermitToWork() {
                           field.value === value ? bg + " shadow" : "bg-white border-slate-200 hover:border-slate-300"
                         }`}
                       >
-                        <Icon className={`h-4 w-4 ${field.value === value ? color : "text-slate-400"}`} />
+                        <Icon className={`h-4 w-4 ${field.value === value ? color : "text-ink-mute"}`} />
                         <span className="text-xs font-medium">{label}</span>
                       </button>
                     ))}
@@ -515,7 +515,7 @@ export default function PermitToWork() {
               {/* Hazards */}
               <FormField control={form.control} name="hazards" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dangers identifiés <span className="text-slate-400 text-xs">(un par ligne)</span></FormLabel>
+                  <FormLabel>Dangers identifiés <span className="text-ink-mute text-xs">(un par ligne)</span></FormLabel>
                   <FormControl>
                     <Textarea placeholder={"Risque d'incendie\nFumées toxiques\nProjections métalliques"} rows={3} {...field} />
                   </FormControl>
@@ -526,7 +526,7 @@ export default function PermitToWork() {
               {/* Authorized personnel */}
               <FormField control={form.control} name="authorizedPersonnel" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Personnel autorisé <span className="text-slate-400 text-xs">(un par ligne)</span></FormLabel>
+                  <FormLabel>Personnel autorisé <span className="text-ink-mute text-xs">(un par ligne)</span></FormLabel>
                   <FormControl>
                     <Textarea placeholder={"Jean Dupont — Soudeur\nMarie Martin — Chef d'équipe"} rows={2} {...field} />
                   </FormControl>
@@ -572,7 +572,7 @@ export default function PermitToWork() {
                     </div>
                     <div className="flex-1">
                       <DialogTitle className="text-lg">{selectedPermit.title}</DialogTitle>
-                      <p className="text-xs text-slate-500 font-mono">{selectedPermit.permitNumber}</p>
+                      <p className="text-xs text-ink-mute font-mono">{selectedPermit.permitNumber}</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       <Badge className={statusConf.color}><StatusIcon className="h-3 w-3 mr-1" />{statusConf.label}</Badge>
@@ -585,16 +585,16 @@ export default function PermitToWork() {
                   {/* Metadata */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {selectedPermit.location && (
-                      <div><span className="text-slate-500">Lieu</span><p className="font-medium">{selectedPermit.location}</p></div>
+                      <div><span className="text-ink-mute">Lieu</span><p className="font-medium">{selectedPermit.location}</p></div>
                     )}
                     {selectedPermit.requestedByName && (
-                      <div><span className="text-slate-500">Demandeur</span><p className="font-medium">{selectedPermit.requestedByName}</p></div>
+                      <div><span className="text-ink-mute">Demandeur</span><p className="font-medium">{selectedPermit.requestedByName}</p></div>
                     )}
                     {selectedPermit.approvedByName && (
-                      <div><span className="text-slate-500">Approuvé par</span><p className="font-medium">{selectedPermit.approvedByName}</p></div>
+                      <div><span className="text-ink-mute">Approuvé par</span><p className="font-medium">{selectedPermit.approvedByName}</p></div>
                     )}
                     {selectedPermit.plannedStart && (
-                      <div><span className="text-slate-500">Période prévue</span>
+                      <div><span className="text-ink-mute">Période prévue</span>
                         <p className="font-medium">
                           {new Date(selectedPermit.plannedStart).toLocaleString("fr-FR")}
                           {selectedPermit.plannedEnd && ` → ${new Date(selectedPermit.plannedEnd).toLocaleString("fr-FR")}`}
@@ -602,10 +602,10 @@ export default function PermitToWork() {
                       </div>
                     )}
                     {selectedPermit.equipment && (
-                      <div><span className="text-slate-500">Équipement</span><p className="font-medium">{selectedPermit.equipment.name}</p></div>
+                      <div><span className="text-ink-mute">Équipement</span><p className="font-medium">{selectedPermit.equipment.name}</p></div>
                     )}
                     {selectedPermit.workOrder && (
-                      <div><span className="text-slate-500">Ordre de travail</span><p className="font-medium">{selectedPermit.workOrder.orderNumber}</p></div>
+                      <div><span className="text-ink-mute">Ordre de travail</span><p className="font-medium">{selectedPermit.workOrder.orderNumber}</p></div>
                     )}
                   </div>
 
@@ -615,7 +615,7 @@ export default function PermitToWork() {
                       <Separator />
                       <div>
                         <h4 className="font-semibold text-slate-700 mb-2">Description des travaux</h4>
-                        <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">{selectedPermit.description}</p>
+                        <p className="text-sm text-ink-soft bg-slate-50 p-3 rounded-lg">{selectedPermit.description}</p>
                       </div>
                     </>
                   )}
@@ -627,7 +627,7 @@ export default function PermitToWork() {
                       <div>
                         <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
                           <ClipboardList className="h-4 w-4 text-blue-600" /> Checklist de sécurité
-                          <span className="text-xs text-slate-400 font-normal">
+                          <span className="text-xs text-ink-mute font-normal">
                             ({(selectedPermit.checklistItems || []).filter(i => i.checked).length}/{(selectedPermit.checklistItems || []).length} vérifiés)
                           </span>
                         </h4>
@@ -639,7 +639,7 @@ export default function PermitToWork() {
                                 onCheckedChange={checked => handleChecklist(selectedPermit, idx, !!checked)}
                                 disabled={!['active', 'approved'].includes(selectedPermit.status)}
                               />
-                              <span className={`text-sm ${item.checked ? "line-through text-slate-400" : "text-slate-700"}`}>
+                              <span className={`text-sm ${item.checked ? "line-through text-ink-mute" : "text-slate-700"}`}>
                                 {item.label}
                               </span>
                               {item.checked && <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto" />}
@@ -661,7 +661,7 @@ export default function PermitToWork() {
                           </h4>
                           <ul className="space-y-1">
                             {(selectedPermit.hazards || []).map((h, i) => (
-                              <li key={i} className="text-sm text-slate-600 flex items-center gap-2">
+                              <li key={i} className="text-sm text-ink-soft flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />{h}
                               </li>
                             ))}
@@ -674,7 +674,7 @@ export default function PermitToWork() {
                             </h4>
                             <ul className="space-y-1">
                               {(selectedPermit.safetyEquipment || []).map((s: string, i: number) => (
-                                <li key={i} className="text-sm text-slate-600 flex items-center gap-2">
+                                <li key={i} className="text-sm text-ink-soft flex items-center gap-2">
                                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />{s}
                                 </li>
                               ))}
@@ -764,10 +764,10 @@ export default function PermitToWork() {
             <AlertDialogDescription asChild>
               <div>
                 {actionDialog?.type === "approve" && (
-                  <p className="text-sm text-slate-600 mb-3">Confirmez que toutes les conditions de sécurité ont été vérifiées.</p>
+                  <p className="text-sm text-ink-soft mb-3">Confirmez que toutes les conditions de sécurité ont été vérifiées.</p>
                 )}
                 {actionDialog?.type === "activate" && (
-                  <p className="text-sm text-slate-600 mb-3">Confirmez que tous les EPI sont en place et la checklist est vérifiée.</p>
+                  <p className="text-sm text-ink-soft mb-3">Confirmez que tous les EPI sont en place et la checklist est vérifiée.</p>
                 )}
                 {(["reject", "complete"].includes(actionDialog?.type || "")) && (
                   <div className="mt-3">
@@ -792,7 +792,7 @@ export default function PermitToWork() {
               className={`text-white ${
                 actionDialog?.type === "reject" || actionDialog?.type === "cancel" ? "bg-red-600 hover:bg-red-700" :
                 actionDialog?.type === "approve" || actionDialog?.type === "activate" ? "bg-green-600 hover:bg-green-700" :
-                "bg-slate-700 hover:bg-slate-800"
+                "bg-paper-deep hover:bg-white"
               }`}
               disabled={actionDialog?.type === "reject" && !actionNote.trim()}
               onClick={() => {

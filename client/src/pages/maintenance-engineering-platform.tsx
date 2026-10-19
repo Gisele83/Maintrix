@@ -137,7 +137,7 @@ export default function MaintenanceEngineeringPlatformPage() {
             Ce n'est plus une GMAO — c'est une plateforme d'ingénierie de maintenance à 8 piliers.
             La GMAO en est un pilier parmi d'autres, pas le socle unique.
           </p>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-ink-mute mt-1">
             {available} / {PILLARS.length} piliers ont du code réel aujourd'hui —
             voir <span className="font-mono">ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md</span> pour le détail.
           </p>
@@ -150,7 +150,7 @@ export default function MaintenanceEngineeringPlatformPage() {
               <Card key={pillar.key} className={pillar.status === "a_construire" ? "border-dashed border-gray-300 bg-gray-50/50" : ""}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <Icon className={`w-6 h-6 ${pillar.status === "disponible" ? "text-blue-600" : "text-gray-400"}`} />
+                    <Icon className={`w-6 h-6 ${pillar.status === "disponible" ? "text-blue-600" : "text-ink-mute"}`} />
                     {pillar.status === "disponible" ? (
                       <Badge className="bg-green-100 text-green-700">Disponible</Badge>
                     ) : (
@@ -163,7 +163,7 @@ export default function MaintenanceEngineeringPlatformPage() {
                   <CardDescription className="text-xs">{pillar.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-xs text-gray-400">{pillar.statusDetail}</p>
+                  <p className="text-xs text-ink-mute">{pillar.statusDetail}</p>
                   {pillar.links.length > 0 ? (
                     <div className="flex flex-col gap-1.5">
                       {pillar.links.map(link => (
@@ -188,7 +188,7 @@ export default function MaintenanceEngineeringPlatformPage() {
 
                   {pillar.connections.length > 0 && (
                     <div className="pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-1.5">
+                      <div className="flex items-center gap-1 text-[10px] text-ink-mute mb-1.5">
                         <Link2 className="w-3 h-3" />
                         Connecté avec
                       </div>

@@ -150,6 +150,9 @@ export function registerMultiAssetRoutes(app: Express) {
 
       // Calculer l'IMCA pour chaque équipement (en parallèle avec limite de concurrence)
       const assetInputs: AssetInput[] = [];
+      // Équipements écartés faute d IMCA calculable : ils doivent remonter,
+      // sinon un parc à moitié analysé passe pour un parc entièrement analysé.
+      const equipementsSansIMCA: string[] = [];
       const batchSize = 5;
       for (let i = 0; i < allEquipment.length; i += batchSize) {
         const batch = allEquipment.slice(i, i + batchSize);
@@ -163,8 +166,18 @@ export function registerMultiAssetRoutes(app: Express) {
           const eq = batch[j];
           const settled = results[j];
           const imcaResult = settled.status === "fulfilled" ? settled.value : null;
-          const imca = imcaResult?.IMCA ?? 70;
-          const alert = imcaResult?.alertLevel ?? "ok";
+          // ⚠️ Un calcul d IMCA en échec donnait 70 et un niveau « ok ». Deux
+          // inventions au même endroit : une santé moyenne et une absence
+          // d alerte, pour un équipement sur lequel RIEN n a pu être calculé.
+          // L optimiseur répartissait ensuite un budget sur la foi de ces
+          // nombres. Un équipement dont on ne sait rien n est pas un
+          // équipement qui va bien. 2026-10-19.
+          if (imcaResult === null) {
+            equipementsSansIMCA.push(eq.name ?? `équipement #${eq.id}`);
+            continue;
+          }
+          const imca = imcaResult.IMCA;
+          const alert = imcaResult.alertLevel;
 
           // Estimer le coût de référence selon le niveau de criticité
           const costByCriticality: Record<string, number> = {
@@ -199,8 +212,21 @@ export function registerMultiAssetRoutes(app: Express) {
 
       const result = optimizeMultiAsset(assetInputs, constraints, undefined, arbitrationWeights);
 
+      // Si plus aucun équipement n est analysable, l optimisation n a pas
+      // d objet : mieux vaut le dire que rendre un résultat vide.
+      if (assetInputs.length === 0) {
+        return res.json({
+          message: "Aucun équipement analysable : l IMCA n a pu être calculé sur aucun actif du registre.",
+          totalEquipment: allEquipment.length,
+          equipementsSansIMCA,
+          result: null,
+        });
+      }
+
       res.json({
         totalEquipment: allEquipment.length,
+        equipementsAnalyses: assetInputs.length,
+        equipementsSansIMCA,
         ...result,
         computedAt: new Date().toISOString(),
       });

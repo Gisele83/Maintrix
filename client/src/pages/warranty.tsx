@@ -42,7 +42,7 @@ const TYPE_CFG: Record<string, { label: string; color: string }> = {
   service: { label: "Service", color: "bg-indigo-100 text-indigo-700" },
   performance: { label: "Performance", color: "bg-orange-100 text-orange-700" },
 };
-const CLAIM_STATUS: Record<string, string> = { open:"bg-blue-100 text-blue-700", in_progress:"bg-yellow-100 text-yellow-700", approved:"bg-green-100 text-green-700", rejected:"bg-red-100 text-red-700", closed:"bg-slate-100 text-slate-500" };
+const CLAIM_STATUS: Record<string, string> = { open:"bg-blue-100 text-blue-700", in_progress:"bg-yellow-100 text-yellow-700", approved:"bg-green-100 text-green-700", rejected:"bg-red-100 text-red-700", closed:"bg-slate-100 text-ink-mute" };
 const CLAIM_LABEL: Record<string, string> = { open:"Ouvert", in_progress:"En cours", approved:"Approuvé", rejected:"Rejeté", closed:"Clôturé" };
 const fmtEur = (n: any) => n != null ? `${Number(n).toLocaleString("fr-FR",{maximumFractionDigits:0})} €` : "—";
 
@@ -135,7 +135,7 @@ export default function WarrantyPage() {
             <div className="p-2.5 rounded-xl bg-paper-deep"><ShieldCheck className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Gestion des Garanties</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Suivi des garanties équipements · Gestion des réclamations</p>
+          <p className="text-ink-mute ml-14 text-sm">Suivi des garanties équipements · Gestion des réclamations</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2"><Plus className="h-4 w-4" />Nouvelle garantie</Button>
       </div>
@@ -150,7 +150,7 @@ export default function WarrantyPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
             <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -158,18 +158,18 @@ export default function WarrantyPage() {
       {stats?.expiring && stats.expiring.length > 0 && (
         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
           <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Garanties expirant dans les 90 jours</h3>
-          <div className="flex flex-wrap gap-2">{stats.expiring.map((e: any, i: number) => (<div key={i} className="bg-white rounded-lg border border-amber-200 px-3 py-1.5 text-sm"><span className="font-medium">{e.title}</span>{e.equipment_name && <span className="text-slate-500 ml-1">({e.equipment_name})</span>}<span className="text-amber-700 ml-2 text-xs">{new Date(e.extended_warranty_end || e.warranty_end).toLocaleDateString("fr-FR")}</span></div>))}</div>
+          <div className="flex flex-wrap gap-2">{stats.expiring.map((e: any, i: number) => (<div key={i} className="bg-white rounded-lg border border-amber-200 px-3 py-1.5 text-sm"><span className="font-medium">{e.title}</span>{e.equipment_name && <span className="text-ink-mute ml-1">({e.equipment_name})</span>}<span className="text-amber-700 ml-2 text-xs">{new Date(e.extended_warranty_end || e.warranty_end).toLocaleDateString("fr-FR")}</span></div>))}</div>
         </div>
       )}
 
       <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
+        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-44 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tous statuts</SelectItem>{Object.entries(STATUS_CFG).map(([v,c]) => <SelectItem key={v} value={v}>{c.label}</SelectItem>)}</SelectContent></Select>
       </div>
 
-      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><ShieldCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucune garantie enregistrée</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer la première garantie</Button></div>
+        <div className="text-center py-16"><ShieldCheck className="h-12 w-12 text-ink-soft mx-auto mb-4" /><h3 className="text-lg font-semibold text-ink-soft">Aucune garantie enregistrée</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer la première garantie</Button></div>
       ) : (
         <div className="grid gap-3">
           {filtered.map(w => {
@@ -185,13 +185,13 @@ export default function WarrantyPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className="text-xs font-mono text-slate-400">{w.warrantyNumber}</span>
+                          <span className="text-xs font-mono text-ink-mute">{w.warrantyNumber}</span>
                           <StatusBadge status={w.computedStatus} />
                           <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
                           {w.openClaims ? <Badge className="bg-orange-100 text-orange-700 text-xs">{w.openClaims} réclamation{w.openClaims > 1 ? "s" : ""} ouverte{w.openClaims > 1 ? "s" : ""}</Badge> : null}
                         </div>
                         <h3 className="font-semibold text-slate-800">{w.title}</h3>
-                        <div className="flex items-center gap-4 text-xs text-slate-500 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-4 text-xs text-ink-mute mt-0.5 flex-wrap">
                           {w.equipmentName && <span>{w.equipmentName}</span>}
                           {w.supplierName && <span>{w.supplierName}</span>}
                           <span>Échéance: <span className={`font-medium ${w.computedStatus === "expired" ? "text-red-600" : w.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-green-700"}`}>{new Date(endDate).toLocaleDateString("fr-FR")}</span></span>
@@ -244,7 +244,7 @@ export default function WarrantyPage() {
             <DialogHeader>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-green-200">
                 <ShieldCheck className="h-6 w-6 text-green-600" />
-                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.warrantyNumber}</p></div>
+                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.warrantyNumber}</p></div>
                 <StatusBadge status={selected.computedStatus} />
               </div>
             </DialogHeader>
@@ -265,7 +265,7 @@ export default function WarrantyPage() {
                     { l: "Début garantie", v: new Date(selected.warrantyStart).toLocaleDateString("fr-FR") },
                     { l: "Fin garantie", v: new Date(selected.warrantyEnd).toLocaleDateString("fr-FR") },
                     { l: "Fin garantie étendue", v: selected.extendedWarrantyEnd ? new Date(selected.extendedWarrantyEnd).toLocaleDateString("fr-FR") : null },
-                  ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-slate-500">{l}</p><p className="font-medium">{v}</p></div>))}
+                  ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>))}
                 </div>
                 {selected.coverageDescription && <div className="bg-green-50 border border-green-200 rounded-lg p-3"><p className="text-xs text-green-700 font-medium mb-1">Couverture</p><p className="text-sm">{selected.coverageDescription}</p></div>}
                 {selected.exclusions && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-700 font-medium mb-1">Exclusions</p><p className="text-sm">{selected.exclusions}</p></div>}
@@ -273,14 +273,14 @@ export default function WarrantyPage() {
               </TabsContent>
               <TabsContent value="claims" className="space-y-3 mt-4">
                 <Button size="sm" onClick={() => setShowClaim(true)} className="bg-green-600 text-white gap-2"><Plus className="h-4 w-4" />Déclarer une réclamation</Button>
-                {(selected.claims || []).length === 0 ? <p className="text-slate-400 text-sm text-center py-8">Aucune réclamation</p>
+                {(selected.claims || []).length === 0 ? <p className="text-ink-mute text-sm text-center py-8">Aucune réclamation</p>
                 : (
                   <div className="space-y-3">{[...(selected.claims || [])].reverse().map((c, i) => (
                     <div key={i} className="bg-white border rounded-xl p-3">
                       <div className="flex items-center gap-2 mb-1">
-                        {c.claimNumber && <span className="text-xs font-mono text-slate-400">{c.claimNumber}</span>}
+                        {c.claimNumber && <span className="text-xs font-mono text-ink-mute">{c.claimNumber}</span>}
                         <Badge className={CLAIM_STATUS[c.status] + " text-xs"}>{CLAIM_LABEL[c.status]}</Badge>
-                        <span className="text-xs text-slate-500 ml-auto">{new Date(c.date).toLocaleDateString("fr-FR")}</span>
+                        <span className="text-xs text-ink-mute ml-auto">{new Date(c.date).toLocaleDateString("fr-FR")}</span>
                         {c.amount && <span className="text-xs font-bold text-blue-600">{fmtEur(c.amount)}</span>}
                       </div>
                       <p className="text-sm">{c.description}</p>

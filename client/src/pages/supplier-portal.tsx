@@ -40,7 +40,7 @@ const TYPE_CFG: Record<string, { label: string; color: string }> = {
 };
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
   active: { label: "Actif", color: "bg-green-100 text-green-700" },
-  inactive: { label: "Inactif", color: "bg-slate-100 text-slate-500" },
+  inactive: { label: "Inactif", color: "bg-slate-100 text-ink-mute" },
   blacklisted: { label: "Blacklisté", color: "bg-red-100 text-red-700" },
   pending_approval: { label: "En attente", color: "bg-yellow-100 text-yellow-700" },
 };
@@ -49,7 +49,7 @@ const fmtEur = (n: any) => n != null ? `${Number(n).toLocaleString("fr-FR",{maxi
 function StarRating({ rating, onChange }: { rating?: number; onChange?: (v: number) => void }) {
   return (
     <div className="flex gap-0.5">{[1,2,3,4,5].map(s => (
-      <Star key={s} className={`h-4 w-4 ${(rating || 0) >= s ? "fill-yellow-400 text-yellow-400" : "text-slate-300"} ${onChange ? "cursor-pointer" : ""}`} onClick={() => onChange?.(s)} />
+      <Star key={s} className={`h-4 w-4 ${(rating || 0) >= s ? "fill-yellow-400 text-yellow-400" : "text-ink-soft"} ${onChange ? "cursor-pointer" : ""}`} onClick={() => onChange?.(s)} />
     ))}</div>
   );
 }
@@ -130,7 +130,7 @@ export default function SupplierPortalPage() {
             <div className="p-2.5 rounded-xl bg-paper-deep"><Building2 className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Portail Fournisseurs</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Gestion des fournisseurs, sous-traitants et prestataires</p>
+          <p className="text-ink-mute ml-14 text-sm">Gestion des fournisseurs, sous-traitants et prestataires</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2"><Plus className="h-4 w-4" />Nouveau fournisseur</Button>
       </div>
@@ -145,7 +145,7 @@ export default function SupplierPortalPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
             <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -160,13 +160,13 @@ export default function SupplierPortalPage() {
 
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
+        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-40 bg-white"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tous statuts</SelectItem>{Object.entries(STATUS_CFG).map(([v,c]) => <SelectItem key={v} value={v}>{c.label}</SelectItem>)}</SelectContent></Select>
       </div>
 
-      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><Building2 className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun fournisseur référencé</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Ajouter le premier</Button></div>
+        <div className="text-center py-16"><Building2 className="h-12 w-12 text-ink-soft mx-auto mb-4" /><h3 className="text-lg font-semibold text-ink-soft mb-1">Aucun fournisseur référencé</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Ajouter le premier</Button></div>
       ) : (
         <div className="grid gap-3">
           {filtered.map(s => {
@@ -181,13 +181,13 @@ export default function SupplierPortalPage() {
                       <div className="p-2.5 rounded-xl bg-paper-deep shadow-sm shrink-0"><Building2 className="h-5 w-5 text-signal-deep" /></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className="text-xs font-mono text-slate-400">{s.supplierCode}</span>
+                          <span className="text-xs font-mono text-ink-mute">{s.supplierCode}</span>
                           <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
                           <Badge className={statusConf.color + " text-xs"}>{statusConf.label}</Badge>
                           {contractExpiring && <Badge className="bg-orange-100 text-orange-700 text-xs">⏰ Contrat bientôt échu</Badge>}
                         </div>
                         <h3 className="font-semibold text-slate-800">{s.name}</h3>
-                        <div className="flex items-center gap-4 mt-0.5 flex-wrap text-xs text-slate-500">
+                        <div className="flex items-center gap-4 mt-0.5 flex-wrap text-xs text-ink-mute">
                           {s.city && <span><MapPin className="h-3 w-3 inline mr-0.5" />{s.city}</span>}
                           {s.contactName && <span>{s.contactName}</span>}
                           {s.contactPhone && <span>{s.contactPhone}</span>}
@@ -243,7 +243,7 @@ export default function SupplierPortalPage() {
             <DialogHeader>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-rule">
                 <Building2 className="h-6 w-6 text-signal-deep" />
-                <div className="flex-1"><DialogTitle>{selected.name}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.supplierCode}</p></div>
+                <div className="flex-1"><DialogTitle>{selected.name}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.supplierCode}</p></div>
                 <div className="flex gap-2 flex-wrap">
                   {Object.keys(STATUS_CFG).map(s => (
                     <Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={`text-xs ${selected.status === s ? "bg-signal-deep text-white" : ""}`} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s].label}</Button>
@@ -267,15 +267,15 @@ export default function SupplierPortalPage() {
                     { l: "TVA intracommunautaire", v: selected.vatNumber },
                     { l: "Site web", v: selected.website },
                     { l: "Délai paiement", v: selected.paymentTermsDays ? `${selected.paymentTermsDays} jours` : null },
-                  ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-slate-500">{l}</p><p className="font-medium">{v}</p></div>))}
+                  ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>))}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 mb-2">Note globale</p>
-                  <div className="flex items-center gap-3"><StarRating rating={selected.rating} onChange={v => updateMut.mutate({ id: selected.id, data: { rating: v } })} /><span className="text-sm text-slate-500">{selected.rating ? `${selected.rating}/5` : "Non noté"}</span></div>
+                  <div className="flex items-center gap-3"><StarRating rating={selected.rating} onChange={v => updateMut.mutate({ id: selected.id, data: { rating: v } })} /><span className="text-sm text-ink-mute">{selected.rating ? `${selected.rating}/5` : "Non noté"}</span></div>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-700 mb-2">Spécialités</p>
-                  <div className="flex flex-wrap gap-2 mb-2">{(selected.specialties || []).map((sp, i) => <Badge key={i} variant="outline">{sp}<button className="ml-1 text-slate-400 hover:text-red-500" onClick={() => updateMut.mutate({ id: selected.id, data: { specialties: selected.specialties.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
+                  <div className="flex flex-wrap gap-2 mb-2">{(selected.specialties || []).map((sp, i) => <Badge key={i} variant="outline">{sp}<button className="ml-1 text-ink-mute hover:text-red-500" onClick={() => updateMut.mutate({ id: selected.id, data: { specialties: selected.specialties.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
                   <div className="flex gap-2"><Input value={newSpecialty} onChange={e => setNewSpecialty(e.target.value)} placeholder="Ajouter une spécialité..." className="max-w-xs" onKeyDown={e => { if (e.key === "Enter" && newSpecialty) { updateMut.mutate({ id: selected.id, data: { specialties: [...(selected.specialties || []), newSpecialty] } }); setNewSpecialty(""); } }} /><Button size="sm" variant="outline" onClick={() => { if (newSpecialty) { updateMut.mutate({ id: selected.id, data: { specialties: [...(selected.specialties || []), newSpecialty] } }); setNewSpecialty(""); } }}>Ajouter</Button></div>
                 </div>
                 <div>
@@ -293,7 +293,7 @@ export default function SupplierPortalPage() {
                     { l: "Dépenses totales", v: fmtEur(selected.totalSpend), c: "text-signal-deep" },
                     { l: "Ponctualité livraison", v: selected.onTimeDeliveryPct != null ? `${selected.onTimeDeliveryPct}%` : "—", c: "text-green-600" },
                     { l: "Score qualité", v: selected.qualityScore != null ? `${selected.qualityScore}/100` : "—", c: "text-teal-600" },
-                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-4 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-slate-500 mt-1">{l}</p></div>))}
+                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-4 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute mt-1">{l}</p></div>))}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-sm font-medium">Ponctualité (%)</label><Input type="number" min="0" max="100" className="mt-1" defaultValue={selected.onTimeDeliveryPct || ""} onBlur={e => updateMut.mutate({ id: selected.id, data: { onTimeDeliveryPct: parseFloat(e.target.value) || null } })} /></div>
@@ -312,7 +312,7 @@ export default function SupplierPortalPage() {
                     { l: "Assurance expiration", v: selected.insuranceExpiry ? new Date(selected.insuranceExpiry).toLocaleDateString("fr-FR") : null },
                     { l: "Montant assurance", v: fmtEur(selected.insuranceAmount) },
                     { l: "Délai paiement", v: selected.paymentTermsDays ? `${selected.paymentTermsDays} jours` : null },
-                  ].filter(i => i.v && i.v !== "—").map(({ l, v }) => (<div key={l}><p className="text-xs text-slate-500">{l}</p><p className="font-medium">{v}</p></div>))}
+                  ].filter(i => i.v && i.v !== "—").map(({ l, v }) => (<div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>))}
                 </div>
               </TabsContent>
             </Tabs>

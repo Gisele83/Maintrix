@@ -174,7 +174,7 @@ export default function CalibrationPage() {
             </div>
             <h1 className="text-3xl font-bold text-ink">Gestion des Calibrations</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Étalonnage et traçabilité des instruments de mesure · ISO 9001 / ISO 17025</p>
+          <p className="text-ink-mute ml-14 text-sm">Étalonnage et traçabilité des instruments de mesure · ISO 9001 / ISO 17025</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle calibration
@@ -192,7 +192,7 @@ export default function CalibrationPage() {
           <Card key={label} className="border-0 shadow-md cursor-pointer transition-all">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -208,7 +208,7 @@ export default function CalibrationPage() {
             {stats.upcoming.map((u, i) => (
               <div key={i} className="bg-white rounded-lg border border-amber-200 px-3 py-1.5 text-sm">
                 <span className="font-medium">{u.instrument_name}</span>
-                {u.instrument_tag && <span className="text-slate-500 ml-1">({u.instrument_tag})</span>}
+                {u.instrument_tag && <span className="text-ink-mute ml-1">({u.instrument_tag})</span>}
                 <span className="text-amber-700 ml-2 text-xs">{new Date(u.next_calibration_date).toLocaleDateString("fr-FR")}</span>
               </div>
             ))}
@@ -219,7 +219,7 @@ export default function CalibrationPage() {
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input placeholder="Rechercher un instrument..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -240,11 +240,11 @@ export default function CalibrationPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <FlaskConical className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucun instrument enregistré</h3>
+          <FlaskConical className="h-12 w-12 text-ink-soft mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink-soft mb-1">Aucun instrument enregistré</h3>
           <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Enregistrer le premier instrument
           </Button>
@@ -265,17 +265,17 @@ export default function CalibrationPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className="text-xs font-mono text-slate-400">{cal.calibrationNumber}</span>
+                          <span className="text-xs font-mono text-ink-mute">{cal.calibrationNumber}</span>
                           <StatusBadge status={cal.computedStatus} />
                           <Badge className={`${RESULT_CONFIG[cal.result]?.color} text-xs`}>{RESULT_CONFIG[cal.result]?.label}</Badge>
                           {cal.outOfService && <Badge className="bg-gray-200 text-gray-600 text-xs">Hors service</Badge>}
                         </div>
                         <h3 className="font-semibold text-slate-800 truncate">{cal.instrumentName}</h3>
-                        <div className="flex items-center gap-4 text-xs text-slate-500 mt-0.5 flex-wrap">
+                        <div className="flex items-center gap-4 text-xs text-ink-mute mt-0.5 flex-wrap">
                           {cal.instrumentTag && <span className="font-mono">{cal.instrumentTag}</span>}
                           {cal.instrumentType && <span>{cal.instrumentType}</span>}
                           {cal.location && <span>{cal.location}</span>}
-                          <span className={`font-medium ${overdue ? "text-red-600" : "text-slate-600"}`}>
+                          <span className={`font-medium ${overdue ? "text-red-600" : "text-ink-soft"}`}>
                             Prochaine: {new Date(cal.nextCalibrationDate).toLocaleDateString("fr-FR")}
                             {cal.daysUntilDue !== undefined && (
                               <span className="ml-1">({overdue ? `${Math.abs(cal.daysUntilDue)}j retard` : `dans ${cal.daysUntilDue}j`})</span>
@@ -413,7 +413,7 @@ export default function CalibrationPage() {
                 <FlaskConical className="h-6 w-6 text-teal-600" />
                 <div className="flex-1">
                   <DialogTitle>{selected.instrumentName}</DialogTitle>
-                  <p className="text-xs text-slate-500 font-mono">{selected.calibrationNumber}{selected.instrumentTag ? ` · ${selected.instrumentTag}` : ""}</p>
+                  <p className="text-xs text-ink-mute font-mono">{selected.calibrationNumber}{selected.instrumentTag ? ` · ${selected.instrumentTag}` : ""}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <StatusBadge status={selected.computedStatus} />
@@ -445,16 +445,16 @@ export default function CalibrationPage() {
                     { l: "Tolérance", v: selected.tolerancePct ? `${selected.tolerancePct}%` : null },
                     { l: "Intervalle", v: `${selected.calibrationIntervalDays} jours` },
                   ].filter(i => i.v).map(({ l, v }) => (
-                    <div key={l}><p className="text-xs text-slate-500">{l}</p><p className="font-medium text-sm">{v}</p></div>
+                    <div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium text-sm">{v}</p></div>
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500">Date de calibration</p>
+                    <p className="text-xs text-ink-mute">Date de calibration</p>
                     <p className="font-semibold">{new Date(selected.calibrationDate).toLocaleDateString("fr-FR")}</p>
                   </div>
                   <div className={`rounded-lg p-3 ${(selected.daysUntilDue || 0) < 0 ? "bg-red-50" : (selected.daysUntilDue || 0) <= 30 ? "bg-yellow-50" : "bg-green-50"}`}>
-                    <p className="text-xs text-slate-500">Prochaine calibration</p>
+                    <p className="text-xs text-ink-mute">Prochaine calibration</p>
                     <p className="font-semibold">{new Date(selected.nextCalibrationDate).toLocaleDateString("fr-FR")}</p>
                     {selected.daysUntilDue !== undefined && (
                       <p className="text-xs font-medium mt-0.5" style={{ color: (selected.daysUntilDue < 0) ? "#ef4444" : "#16a34a" }}>
@@ -463,7 +463,7 @@ export default function CalibrationPage() {
                     )}
                   </div>
                 </div>
-                {selected.notes && <div className="bg-slate-50 rounded-lg p-3 text-sm"><p className="text-xs text-slate-500 mb-1">Observations</p>{selected.notes}</div>}
+                {selected.notes && <div className="bg-slate-50 rounded-lg p-3 text-sm"><p className="text-xs text-ink-mute mb-1">Observations</p>{selected.notes}</div>}
                 {selected.correctiveAction && <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm"><p className="text-xs text-orange-600 mb-1 font-medium">Action corrective</p>{selected.correctiveAction}</div>}
                 <div className="flex items-center gap-3">
                   <Switch checked={selected.outOfService} onCheckedChange={v => updateMutation.mutate({ id: selected.id, data: { outOfService: v } })} />
@@ -495,10 +495,10 @@ export default function CalibrationPage() {
                     <div key={key}>
                       <h4 className={`text-sm font-semibold text-slate-700 mb-2 p-2 rounded-lg border ${color}`}>{label}</h4>
                       {measurements.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-4">Aucune mesure enregistrée</p>
+                        <p className="text-xs text-ink-mute text-center py-4">Aucune mesure enregistrée</p>
                       ) : (
                         <table className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
-                          <thead><tr className="bg-slate-50">{["Point", "Nominal", "Mesuré", "Écart", "Unité", "Résultat"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-slate-600">{h}</th>)}</tr></thead>
+                          <thead><tr className="bg-slate-50">{["Point", "Nominal", "Mesuré", "Écart", "Unité", "Résultat"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft">{h}</th>)}</tr></thead>
                           <tbody>
                             {measurements.map((m, i) => (
                               <tr key={i} className="border-t">
@@ -508,7 +508,7 @@ export default function CalibrationPage() {
                                 <td className="py-1.5 px-3 text-xs" style={{ color: m.deviation && Math.abs(m.deviation) > 0 ? (m.pass ? "#16a34a" : "#ef4444") : undefined }}>
                                   {m.deviation != null ? (m.deviation > 0 ? "+" : "") + m.deviation : "—"}
                                 </td>
-                                <td className="py-1.5 px-3 text-xs text-slate-500">{m.unit || "—"}</td>
+                                <td className="py-1.5 px-3 text-xs text-ink-mute">{m.unit || "—"}</td>
                                 <td className="py-1.5 px-3">
                                   {m.pass != null && <Badge className={m.pass ? "bg-green-100 text-green-700 text-xs" : "bg-red-100 text-red-700 text-xs"}>{m.pass ? "" : ""}</Badge>}
                                 </td>
@@ -538,7 +538,7 @@ export default function CalibrationPage() {
                   )}
                   {selected.standardUsed && (
                     <div className="col-span-2 bg-slate-50 rounded-xl p-4 border">
-                      <p className="text-xs text-slate-500 mb-1">Étalon de référence utilisé</p>
+                      <p className="text-xs text-ink-mute mb-1">Étalon de référence utilisé</p>
                       <p className="font-medium">{selected.standardUsed}</p>
                     </div>
                   )}

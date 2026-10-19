@@ -350,7 +350,7 @@ export default function LearningDashboard() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="p-2 bg-signal-deep rounded-lg">
-                  <Sigma className="w-5 h-5 text-white" />
+                  <Sigma className="w-5 h-5 text-ink" />
                 </div>
                 <div>
                   <span className="text-signal-deep font-bold">ISC 4D + Φ_i — Agrégation Fédérée</span>
@@ -383,22 +383,22 @@ export default function LearningDashboard() {
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-rule text-center">
                     <div className="text-3xl font-black text-signal-deep">{(iscSummary.avgPhi * 100).toFixed(0)}%</div>
                     <div className="text-xs font-semibold text-signal-deep mt-1">Φ_i moyen</div>
-                    <div className="text-xs text-gray-400">Pertinence globale</div>
+                    <div className="text-xs text-ink-mute">Pertinence globale</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-emerald-100 text-center">
                     <div className="text-3xl font-black text-emerald-700">{(iscSummary.avgFiabilite * 100).toFixed(0)}%</div>
                     <div className="text-xs font-semibold text-emerald-500 mt-1">Fiabilité</div>
-                    <div className="text-xs text-gray-400">eff. + succès + consistance</div>
+                    <div className="text-xs text-ink-mute">eff. + succès + consistance</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-100 text-center">
                     <div className="text-3xl font-black text-amber-700">{(iscSummary.avgMaturite * 100).toFixed(0)}%</div>
                     <div className="text-xs font-semibold text-amber-500 mt-1">Maturité</div>
-                    <div className="text-xs text-gray-400">confirmations + âge + diversité</div>
+                    <div className="text-xs text-ink-mute">confirmations + âge + diversité</div>
                   </div>
                   <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-100 text-center">
                     <div className="text-3xl font-black text-blue-700">4D</div>
                     <div className="text-xs font-semibold text-blue-500 mt-1">Dimensions ISC</div>
-                    <div className="text-xs text-gray-400">D1·D2·D3·D4</div>
+                    <div className="text-xs text-ink-mute">D1·D2·D3·D4</div>
                   </div>
                 </div>
 

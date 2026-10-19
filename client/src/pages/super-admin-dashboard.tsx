@@ -425,21 +425,21 @@ export default function SuperAdminDashboard() {
                     setLocation('/');
                   }}
                   title="Ouvre l'interface utilisateur. La connexion à un compte de locataire reste nécessaire."
-                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
                   <Users className="w-4 h-4" />
                   Interface utilisateur
                 </button>
                 <button
                   onClick={() => setLocation('/email-diagnostic')}
-                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
                   <Mail className="w-4 h-4" />
                   Courriels
                 </button>
                 <button
                   onClick={logout}
-                  className="inline-flex items-center gap-2 h-9 px-3 border border-white/25 text-sm text-paper hover:bg-paper-deep transition-colors"
+                  className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-paper hover:bg-paper-deep transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   Déconnexion

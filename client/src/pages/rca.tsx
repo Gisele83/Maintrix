@@ -184,7 +184,7 @@ export default function RcaPage() {
               Analyse des Causes Racines
             </h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Root Cause Analysis — 5 Pourquoi · Ishikawa · FMEA</p>
+          <p className="text-ink-mute ml-14 text-sm">Root Cause Analysis — 5 Pourquoi · Ishikawa · FMEA</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle RCA
@@ -202,7 +202,7 @@ export default function RcaPage() {
           <Card key={label} className="border-0 shadow-md overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -215,7 +215,7 @@ export default function RcaPage() {
             <div className={`p-2 rounded-lg bg-paper-deep ${color}`}><Icon className="h-4 w-4 text-ink" /></div>
             <div>
               <p className="text-lg font-bold text-slate-800">{stats?.byMethodology?.[value] ?? 0}</p>
-              <p className="text-xs text-slate-500">{label}</p>
+              <p className="text-xs text-ink-mute">{label}</p>
             </div>
           </div>
         ))}
@@ -224,7 +224,7 @@ export default function RcaPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input placeholder="Rechercher une RCA..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -245,12 +245,12 @@ export default function RcaPage() {
 
       {/* RCA List */}
       {isLoading ? (
-        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <Fish className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune analyse RCA</h3>
-          <p className="text-slate-400 text-sm mb-6">Créez une première analyse de causes racines</p>
+          <Fish className="h-12 w-12 text-ink-soft mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink-soft mb-1">Aucune analyse RCA</h3>
+          <p className="text-ink-mute text-sm mb-6">Créez une première analyse de causes racines</p>
           <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
             <Plus className="h-4 w-4" /> Nouvelle RCA
           </Button>
@@ -276,13 +276,13 @@ export default function RcaPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-xs font-mono text-slate-500">{rca.rcaNumber}</span>
+                          <span className="text-xs font-mono text-ink-mute">{rca.rcaNumber}</span>
                           <Badge className={statusConf.color + " text-xs"}><StatusIcon className="h-3 w-3 mr-1" />{statusConf.label}</Badge>
                           <Badge className={methodConf.badge + " text-xs"}>{methodConf.label}</Badge>
                           <Badge className={sevConf.color + " text-xs"}>{sevConf.label}</Badge>
                         </div>
                         <h3 className="font-semibold text-slate-800 truncate">{rca.title}</h3>
-                        <div className="flex items-center gap-4 mt-2 flex-wrap text-xs text-slate-500">
+                        <div className="flex items-center gap-4 mt-2 flex-wrap text-xs text-ink-mute">
                           {rca.equipmentName && <span>{rca.equipmentName}</span>}
                           {rca.failureDate && <span>{new Date(rca.failureDate).toLocaleDateString("fr-FR")}</span>}
                           {rca.estimatedLoss && <span className="text-red-600 font-medium">{Number(rca.estimatedLoss).toLocaleString("fr-FR")} {rca.currency}</span>}
@@ -293,7 +293,7 @@ export default function RcaPage() {
                           )}
                         </div>
                         {rca.rootCause && (
-                          <p className="mt-2 text-xs text-slate-600 bg-slate-50 px-2 py-1 rounded border-l-2 border-rule truncate">
+                          <p className="mt-2 text-xs text-ink-soft bg-slate-50 px-2 py-1 rounded border-l-2 border-rule truncate">
                             <span className="font-medium text-signal-deep">Cause racine:</span> {rca.rootCause}
                           </p>
                         )}
@@ -414,7 +414,7 @@ export default function RcaPage() {
                 </div>
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
-                  <p className="text-xs text-slate-500 font-mono">{selected.rcaNumber}</p>
+                  <p className="text-xs text-ink-mute font-mono">{selected.rcaNumber}</p>
                 </div>
                 <div className="flex gap-2">
                   <Badge className={getStatus(selected.status).color}>{getStatus(selected.status).label}</Badge>
@@ -449,7 +449,7 @@ export default function RcaPage() {
 
               {/* ── 5 Whys ── */}
               <TabsContent value="whys" className="space-y-4 mt-4">
-                <div className="text-sm text-slate-500 mb-2">Renseignez chaque étape jusqu'à la cause racine</div>
+                <div className="text-sm text-ink-mute mb-2">Renseignez chaque étape jusqu'à la cause racine</div>
                 <WhyChainEditor chain={selected.whyChain || []} onSave={saveWhyChain} isSaving={updateMutation.isPending} />
                 <Separator />
                 <div className="grid grid-cols-2 gap-4">
@@ -552,7 +552,7 @@ function WhyChainEditor({ chain, onSave, isSaving }: { chain: WhyStep[]; onSave:
               className={`text-sm transition-colors ${step.answer ? "border-rule bg-paper-deep/30" : ""}`}
               placeholder="Réponse / explication..." />
           </div>
-          {i < local.length - 1 && <ArrowRight className="h-5 w-5 text-slate-400 mt-3 shrink-0" />}
+          {i < local.length - 1 && <ArrowRight className="h-5 w-5 text-ink-mute mt-3 shrink-0" />}
         </div>
       ))}
       <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-signal-deep hover:bg-signal-deep text-white gap-2">

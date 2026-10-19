@@ -118,7 +118,7 @@ export default function DigitalTwinPage() {
         </Card>
 
         {selectedId && isFetching && !twinData && (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-ink-mute" /></div>
         )}
 
         {twinData && (
@@ -155,7 +155,7 @@ export default function DigitalTwinPage() {
                     )}
                   </>
                 ) : (
-                  <p className="text-sm text-gray-400">Aucun modèle physique disponible pour ce type d'équipement ({selectedEquipment?.equipmentType}).</p>
+                  <p className="text-sm text-ink-mute">Aucun modèle physique disponible pour ce type d'équipement ({selectedEquipment?.equipmentType}).</p>
                 )}
               </CardContent>
             </Card>

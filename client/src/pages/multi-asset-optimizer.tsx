@@ -40,7 +40,7 @@ interface FleetResult {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const ACTION_COLOR: Record<string, string> = {
-  none: "bg-slate-700/60 text-slate-400",
+  none: "bg-paper-deep text-ink-mute",
   inspection: "bg-blue-500/20 text-blue-300",
   preventive: "bg-amber-500/20 text-amber-300",
   corrective: "bg-orange-500/20 text-orange-300",
@@ -99,14 +99,14 @@ function AllocationRow({ d, rank }: { d: AllocationDecision; rank: number }) {
   const [open, setOpen] = useState(false);
   const isIntervention = d.selectedAction.type !== "none";
   return (
-    <div className={`rounded-xl border p-3 transition-all ${isIntervention ? SCORE_BG(d.currentIMCA) : "border-slate-700/40 bg-slate-800/30"}`}>
+    <div className={`rounded-xl border p-3 transition-all ${isIntervention ? SCORE_BG(d.currentIMCA) : "border-rule bg-white"}`}>
       <div className="flex items-start gap-3 cursor-pointer" onClick={() => setOpen(!open)}>
-        <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-slate-400 flex-shrink-0 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-paper-deep flex items-center justify-center text-[10px] text-ink-mute flex-shrink-0 mt-0.5">
           {rank}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-white truncate">{d.equipmentName}</span>
+            <span className="text-sm font-semibold text-ink truncate">{d.equipmentName}</span>
             {d.isMandatory && <Badge className="bg-red-500/20 text-red-300 text-[10px] px-1.5 py-0">Obligatoire</Badge>}
           </div>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -118,23 +118,23 @@ function AllocationRow({ d, rank }: { d: AllocationDecision; rank: number }) {
             </span>
             {isIntervention && (
               <>
-                <span className="text-[10px] text-slate-400">{FMT(d.selectedAction.cost)}€</span>
+                <span className="text-[10px] text-ink-mute">{FMT(d.selectedAction.cost)}€</span>
                 <span className="text-[10px] text-emerald-400">+{d.gainIMCA} pts IMCA</span>
               </>
             )}
           </div>
         </div>
-        <div className="flex-shrink-0 text-slate-500">
+        <div className="flex-shrink-0 text-ink-mute">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </div>
       </div>
       {open && (
-        <div className="mt-3 ml-9 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono text-slate-400 border-t border-slate-700/40 pt-3">
-          <div><span className="text-slate-500">Coût</span><br />{FMT(d.selectedAction.cost)} €</div>
-          <div><span className="text-slate-500">Techniciens</span><br />{d.selectedAction.techDays} j</div>
-          <div><span className="text-slate-500">Immobilisation</span><br />{d.selectedAction.duration} j</div>
-          <div><span className="text-slate-500">ROI</span><br />{d.roi.toFixed(2)} pts/k€</div>
-          <div className="col-span-4 text-slate-500 italic">{d.selectedAction.description}</div>
+        <div className="mt-3 ml-9 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono text-ink-mute border-t border-rule pt-3">
+          <div><span className="text-ink-mute">Coût</span><br />{FMT(d.selectedAction.cost)} €</div>
+          <div><span className="text-ink-mute">Techniciens</span><br />{d.selectedAction.techDays} j</div>
+          <div><span className="text-ink-mute">Immobilisation</span><br />{d.selectedAction.duration} j</div>
+          <div><span className="text-ink-mute">ROI</span><br />{d.roi.toFixed(2)} pts/k€</div>
+          <div className="col-span-4 text-ink-mute italic">{d.selectedAction.description}</div>
         </div>
       )}
     </div>
@@ -147,7 +147,7 @@ function SummaryBar({ result, label, color }: { result: OptResult; label: string
   return (
     <div className={`rounded-xl border p-4 space-y-3 ${color}`}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-300">{label}</span>
+        <span className="text-xs font-semibold text-ink-soft">{label}</span>
         <Badge className={result.feasible ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-300"}>
           {result.feasible ? "Faisable" : "Infaisable"}
         </Badge>
@@ -159,10 +159,10 @@ function SummaryBar({ result, label, color }: { result: OptResult; label: string
           ["Interventions", `${interventions.length}`, `/ ${result.allocations.length} actifs`],
           ["Techniciens", `${result.usedTechDays.toFixed(1)} j`, `${result.solverTimeMs}ms`],
         ].map(([lbl, val, sub]) => (
-          <div key={lbl as string} className="bg-slate-900/40 rounded-lg p-2">
-            <p className="text-[10px] text-slate-500">{lbl}</p>
-            <p className="text-sm font-bold text-white">{val}</p>
-            <p className="text-[10px] text-slate-500">{sub}</p>
+          <div key={lbl as string} className="bg-paper-deep rounded-lg p-2">
+            <p className="text-[10px] text-ink-mute">{lbl}</p>
+            <p className="text-sm font-bold text-ink">{val}</p>
+            <p className="text-[10px] text-ink-mute">{sub}</p>
           </div>
         ))}
       </div>
@@ -205,8 +205,8 @@ export default function MultiAssetOptimizerPage() {
                 <Target className="w-6 h-6 text-signal-light" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-white">Optimiseur Multi-Actifs</h1>
-                <p className="text-sm text-slate-400">
+                <h1 className="text-2xl font-black text-ink">Optimiseur Multi-Actifs</h1>
+                <p className="text-sm text-ink-mute">
                   Multiple Choice Knapsack · DP exact · Greedy ROI · Front de Pareto
                 </p>
               </div>
@@ -214,7 +214,7 @@ export default function MultiAssetOptimizerPage() {
             <Button
               onClick={() => refetch()}
               disabled={isLoading}
-              className="bg-signal-deep/80 hover:bg-signal-deep text-white gap-2"
+              className="bg-signal-deep/80 hover:bg-signal-deep text-ink gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               Recalculer
@@ -224,12 +224,12 @@ export default function MultiAssetOptimizerPage() {
 
         {/* ── Controls ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-5 space-y-4">
-            <div className="flex items-center gap-2 text-slate-300 font-semibold text-sm">
+          <div className="rounded-xl border border-rule bg-white p-5 space-y-4">
+            <div className="flex items-center gap-2 text-ink-soft font-semibold text-sm">
               <DollarSign className="w-4 h-4 text-amber-400" /> Budget total disponible
             </div>
             <div>
-              <div className="flex justify-between text-xs text-slate-500 mb-2">
+              <div className="flex justify-between text-xs text-ink-mute mb-2">
                 <span>5 000 €</span>
                 <span className="text-amber-300 font-bold text-base">{FMT(budget)} €</span>
                 <span>200 000 €</span>
@@ -241,7 +241,7 @@ export default function MultiAssetOptimizerPage() {
                 className="w-full"
               />
               {fleetData && (
-                <p className="text-[10px] text-slate-500 mt-2">
+                <p className="text-[10px] text-ink-mute mt-2">
                   Budget min obligatoire : {FMT(fleetData.mandatoryBudget)} € ·
                   Utilisation actuelle : {fleetData.optimal.budgetUtilization.toFixed(0)}%
                 </p>
@@ -249,12 +249,12 @@ export default function MultiAssetOptimizerPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-5 space-y-4">
-            <div className="flex items-center gap-2 text-slate-300 font-semibold text-sm">
+          <div className="rounded-xl border border-rule bg-white p-5 space-y-4">
+            <div className="flex items-center gap-2 text-ink-soft font-semibold text-sm">
               <Users className="w-4 h-4 text-blue-400" /> Ressources techniciens (jours)
             </div>
             <div>
-              <div className="flex justify-between text-xs text-slate-500 mb-2">
+              <div className="flex justify-between text-xs text-ink-mute mb-2">
                 <span>5 j</span>
                 <span className="text-blue-300 font-bold text-base">{maxTechDays} j</span>
                 <span>100 j</span>
@@ -266,7 +266,7 @@ export default function MultiAssetOptimizerPage() {
                 className="w-full"
               />
               {fleetData && (
-                <p className="text-[10px] text-slate-500 mt-2">
+                <p className="text-[10px] text-ink-mute mt-2">
                   Consommation optimale : {fleetData.optimal.usedTechDays.toFixed(1)} j ·
                   Greedy : {fleetData.greedy.usedTechDays.toFixed(1)} j
                 </p>
@@ -279,15 +279,15 @@ export default function MultiAssetOptimizerPage() {
         {fleetData && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: "Actifs analysés", value: fleetData.summary.nAssets, icon: Layers, color: "text-slate-300" },
+              { label: "Actifs analysés", value: fleetData.summary.nAssets, icon: Layers, color: "text-ink-soft" },
               { label: "Interventions planifiées", value: fleetData.summary.nInterventions, icon: Wrench, color: "text-amber-300" },
               { label: "Gain fleet IMCA", value: `+${fleetData.summary.totalFleetGain} pts`, icon: TrendingUp, color: "text-emerald-300" },
               { label: "Critiques couverts", value: `${fleetData.summary.criticalCovered}`, icon: Shield, color: "text-red-300" },
             ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 flex items-center gap-3">
+              <div key={label} className="rounded-xl border border-rule bg-white p-4 flex items-center gap-3">
                 <Icon className={`w-8 h-8 ${color} flex-shrink-0`} />
                 <div>
-                  <p className="text-[11px] text-slate-500">{label}</p>
+                  <p className="text-[11px] text-ink-mute">{label}</p>
                   <p className={`text-xl font-black ${color}`}>{value}</p>
                 </div>
               </div>
@@ -308,8 +308,8 @@ export default function MultiAssetOptimizerPage() {
                 onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   activeTab === id
-                    ? "bg-signal-deep text-white"
-                    : "bg-slate-800/60 text-slate-400 hover:text-white border border-slate-700/50"
+                    ? "bg-signal-deep text-ink"
+                    : "bg-white text-ink-mute hover:text-ink border border-rule"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" /> {label}
@@ -318,20 +318,41 @@ export default function MultiAssetOptimizerPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center h-40 rounded-xl border border-slate-700 bg-slate-800/30">
+            <div className="flex items-center justify-center h-40 rounded-xl border border-rule bg-white">
               <RefreshCw className="w-6 h-6 text-signal-light animate-spin" />
-              <span className="ml-3 text-slate-400">Optimisation en cours…</span>
+              <span className="ml-3 text-ink-mute">Optimisation en cours…</span>
             </div>
           ) : !fleetData ? (
-            <div className="flex items-center justify-center h-40 rounded-xl border border-slate-700 bg-slate-800/30">
-              <span className="text-slate-400">Cliquer sur Recalculer pour lancer l'optimisation</span>
+            <div className="flex items-center justify-center h-40 rounded-xl border border-rule bg-white">
+              <span className="text-ink-mute">Cliquer sur Recalculer pour lancer l'optimisation</span>
+            </div>
+          ) : !fleetData.optimal ? (
+            /* ⚠️ LA PAGE N'AFFICHAIT RIEN DU TOUT.
+               Sans équipement au registre, le serveur répond
+               `{ message, result: null }` — un objet, donc `fleetData` est
+               bien défini et la branche `!fleetData` ne se déclenche pas. Le
+               rendu passait alors au cas « pareto » et lisait
+               `fleetData.paretoFront`, qui vaut `undefined` : plus aucun
+               contenu, et pas un mot d'explication. L'écran paraissait cassé
+               alors que le serveur avait répondu correctement.
+               Signalé le 2026-10-19. */
+            <div className="rounded-xl border border-rule bg-white p-8 text-center space-y-3">
+              <Layers className="w-8 h-8 text-ink-mute mx-auto" />
+              <p className="text-ink font-medium">
+                {(fleetData as any).message ?? "Aucun résultat d'optimisation"}
+              </p>
+              <p className="text-sm text-ink-soft max-w-lg mx-auto">
+                L'optimiseur répartit un budget entre plusieurs équipements selon le gain
+                de santé attendu. Il lui faut donc un parc : enregistrez vos équipements
+                dans le module Équipements, puis revenez ici.
+              </p>
             </div>
           ) : activeTab === "pareto" ? (
             /* ── Pareto tab ──────────────────────────────────────────────── */
-            <div className="rounded-2xl border border-rule/20 bg-slate-800/30 p-6 space-y-6">
+            <div className="rounded-2xl border border-rule/20 bg-white p-6 space-y-6">
               <div>
-                <h3 className="text-sm font-semibold text-slate-300 mb-1">Front de Pareto — Efficacité marginale des investissements</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="text-sm font-semibold text-ink-soft mb-1">Front de Pareto — Efficacité marginale des investissements</h3>
+                <p className="text-xs text-ink-mute">
                   Courbe gain IMCA pondéré ↔ budget (25 niveaux · Greedy ROI).
                   La ligne verticale jaune indique le budget actuel.
                 </p>
@@ -342,7 +363,7 @@ export default function MultiAssetOptimizerPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-slate-500 border-b border-slate-700/50">
+                    <tr className="text-ink-mute border-b border-rule">
                       <th className="text-left pb-2 font-normal">Budget</th>
                       <th className="text-right pb-2 font-normal">Gain pondéré</th>
                       <th className="text-right pb-2 font-normal">Gain IMCA brut</th>
@@ -351,7 +372,7 @@ export default function MultiAssetOptimizerPage() {
                   </thead>
                   <tbody>
                     {fleetData.paretoFront.filter((_, i) => i % 3 === 0 || i === fleetData.paretoFront.length - 1).map((p, i) => (
-                      <tr key={i} className={`border-b border-slate-700/20 ${Math.abs(p.budget - budget) < budget * 0.1 ? "text-amber-300" : "text-slate-300"}`}>
+                      <tr key={i} className={`border-b border-rule ${Math.abs(p.budget - budget) < budget * 0.1 ? "text-amber-300" : "text-ink-soft"}`}>
                         <td className="py-1.5 font-mono">{FMT(Math.round(p.budget))} €</td>
                         <td className="py-1.5 text-right font-mono">{p.totalGain.toFixed(1)}</td>
                         <td className="py-1.5 text-right font-mono">{p.unweightedGain} pts</td>
@@ -363,7 +384,7 @@ export default function MultiAssetOptimizerPage() {
               </div>
 
               {/* Comparison summary */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-700/40 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-rule pt-4">
                 <SummaryBar result={fleetData.optimal} label="DP-MCKP (Optimal)" color="border-rule bg-signal-deep" />
                 <SummaryBar result={fleetData.greedy} label="Greedy ROI" color="border-amber-500/30 bg-amber-500/5" />
               </div>
@@ -379,17 +400,17 @@ export default function MultiAssetOptimizerPage() {
               />
 
               {/* Explanation */}
-              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-xs text-slate-400 italic">
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-xs text-ink-mute italic">
                 {activeResult.explanation}
               </div>
 
               {/* Budget bar */}
-              <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-4 space-y-2">
-                <div className="flex justify-between text-xs text-slate-400">
+              <div className="rounded-xl border border-rule bg-white p-4 space-y-2">
+                <div className="flex justify-between text-xs text-ink-mute">
                   <span>Budget utilisé</span>
                   <span className="font-mono">{FMT(activeResult.totalCost)} € / {FMT(budget)} €</span>
                 </div>
-                <div className="h-3 rounded-full bg-slate-700/60 overflow-hidden">
+                <div className="h-3 rounded-full bg-paper-deep overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${activeResult.budgetUtilization > 95 ? "bg-red-500" : activeResult.budgetUtilization > 75 ? "bg-amber-500" : "bg-emerald-500"}`}
                     style={{ width: `${Math.min(100, activeResult.budgetUtilization)}%` }}
@@ -409,7 +430,7 @@ export default function MultiAssetOptimizerPage() {
 
               {/* Allocation list */}
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-300">
+                <h3 className="text-sm font-semibold text-ink-soft">
                   Allocations par actif — {activeResult.allocations.length} équipements
                 </h3>
                 {/* Sort: interventions first, then by gain desc */}
@@ -429,7 +450,7 @@ export default function MultiAssetOptimizerPage() {
                     <AlertTriangle className="w-4 h-4" /> Actifs non couverts par le budget
                   </div>
                   {activeResult.skippedAssets.map(s => (
-                    <p key={s.equipmentId} className="text-xs text-slate-400">
+                    <p key={s.equipmentId} className="text-xs text-ink-mute">
                       • {s.equipmentName} — {s.reason}
                     </p>
                   ))}

@@ -72,7 +72,7 @@ const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg:
   task_assigned:     { label: "Tâche affectée",        icon: ClipboardList,  color: "text-blue-600",    bg: "bg-blue-50 border-blue-200" },
   maintenance_due:   { label: "Maintenance planifiée", icon: Calendar,       color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
   work_order_update: { label: "Mise à jour OT",        icon: Wrench,         color: "text-signal-deep",  bg: "bg-paper-deep border-rule" },
-  system:            { label: "Système",               icon: Info,           color: "text-slate-500",   bg: "bg-slate-50 border-slate-200" },
+  system:            { label: "Système",               icon: Info,           color: "text-ink-mute",   bg: "bg-slate-50 border-slate-200" },
 };
 
 const SEV_DOT: Record<string, string> = {
@@ -140,13 +140,13 @@ function PushSettingsPanel() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${push.isSubscribed ? "bg-emerald-100" : "bg-slate-100"}`}>
-                {push.isSubscribed ? <BellRing className="w-5 h-5 text-emerald-600" /> : <BellOff className="w-5 h-5 text-slate-400" />}
+                {push.isSubscribed ? <BellRing className="w-5 h-5 text-emerald-600" /> : <BellOff className="w-5 h-5 text-ink-mute" />}
               </div>
               <div>
                 <div className="font-semibold text-slate-800">
                   {push.isSubscribed ? "Notifications actives" : "Notifications désactivées"}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-ink-mute">
                   {!push.isSupported
                     ? "Navigateur non supporté"
                     : push.permission === "denied"
@@ -197,7 +197,7 @@ function PushSettingsPanel() {
               <Icon className={`w-4 h-4 ${color} flex-shrink-0 mt-0.5`} />
               <div>
                 <div className="text-sm font-medium text-slate-700">{label}</div>
-                <div className="text-xs text-slate-400">{desc}</div>
+                <div className="text-xs text-ink-mute">{desc}</div>
               </div>
             </div>
           ))}
@@ -229,10 +229,10 @@ function PushSettingsPanel() {
           <CardContent className="space-y-2">
             {devices.map((d) => (
               <div key={d.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
-                <Smartphone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                <Smartphone className="w-4 h-4 text-ink-mute flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-slate-700 truncate">{d.deviceName}</div>
-                  <div className="text-[10px] text-slate-400">Dernière activité : {timeAgo(d.lastUsedAt)}</div>
+                  <div className="text-[10px] text-ink-mute">Dernière activité : {timeAgo(d.lastUsedAt)}</div>
                 </div>
                 <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0" />
               </div>
@@ -273,9 +273,9 @@ function NotifItem({
             <span className="text-sm font-semibold text-slate-800 leading-snug">{notif.title}</span>
             <Badge className={`text-[10px] px-1.5 py-0 ${cfg.bg} ${cfg.color} border`}>{cfg.label}</Badge>
           </div>
-          <p className="text-xs text-slate-600 leading-relaxed mb-2">{notif.body}</p>
+          <p className="text-xs text-ink-soft leading-relaxed mb-2">{notif.body}</p>
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1 text-[11px] text-slate-400">
+            <span className="flex items-center gap-1 text-[11px] text-ink-mute">
               <Clock className="w-3 h-3" />
               {timeAgo(notif.createdAt)}
             </span>
@@ -291,7 +291,7 @@ function NotifItem({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-[11px] px-2 text-slate-500 hover:text-emerald-600"
+                  className="h-6 text-[11px] px-2 text-ink-mute hover:text-emerald-600"
                   onClick={() => onRead(notif.id)}
                 >
                   <CheckCircle className="w-3 h-3" />
@@ -300,7 +300,7 @@ function NotifItem({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 text-[11px] px-2 text-slate-400 hover:text-rose-500"
+                className="h-6 text-[11px] px-2 text-ink-mute hover:text-rose-500"
                 onClick={() => onDismiss(notif.id)}
               >
                 <X className="w-3 h-3" />
@@ -365,7 +365,7 @@ export default function MobileNotificationsPage() {
     items.length === 0 ? (
       <div className="text-center py-12">
         <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-        <p className="text-slate-500 text-sm">Aucune notification dans cette catégorie</p>
+        <p className="text-ink-mute text-sm">Aucune notification dans cette catégorie</p>
       </div>
     ) : (
       <div className="space-y-3">
@@ -403,7 +403,7 @@ export default function MobileNotificationsPage() {
                 </h1>
               </div>
             </div>
-            <p className="text-slate-500 text-sm">
+            <p className="text-ink-mute text-sm">
               Alertes critiques, affectations de tâches et rappels de maintenance en temps réel
             </p>
           </div>
@@ -414,7 +414,7 @@ export default function MobileNotificationsPage() {
                 size="sm"
                 onClick={() => readAllMutation.mutate()}
                 disabled={readAllMutation.isPending}
-                className="border-slate-200 text-slate-600 rounded-xl text-xs"
+                className="border-slate-200 text-ink-soft rounded-xl text-xs"
               >
                 <CheckCheck className="w-4 h-4 mr-1.5" />
                 Tout lire
@@ -425,7 +425,7 @@ export default function MobileNotificationsPage() {
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="border-slate-200 text-slate-600 rounded-xl"
+              className="border-slate-200 text-ink-soft rounded-xl"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -442,7 +442,7 @@ export default function MobileNotificationsPage() {
           ].map(({ label, val, color, bg }) => (
             <div key={label} className={`${bg} border rounded-2xl p-4 text-center`}>
               <div className={`text-2xl font-bold ${color}`}>{val}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+              <div className="text-xs text-ink-mute mt-0.5">{label}</div>
             </div>
           ))}
         </div>
@@ -513,7 +513,7 @@ export default function MobileNotificationsPage() {
           <div className="space-y-5">
             <div className="bg-white border border-slate-200 rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-4">
-                <Settings className="w-4 h-4 text-slate-600" />
+                <Settings className="w-4 h-4 text-ink-soft" />
                 <h3 className="text-sm font-semibold text-slate-700">Paramètres push</h3>
               </div>
               <PushSettingsPanel />
@@ -521,7 +521,7 @@ export default function MobileNotificationsPage() {
 
             {/* Quick links */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Accès rapides</h3>
+              <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider mb-3">Accès rapides</h3>
               {[
                 { href: "/work-orders", icon: ClipboardList, label: "Mes ordres de travail", color: "text-blue-600" },
                 { href: "/mobile-notifications", icon: AlertTriangle, label: "Alertes actives", color: "text-rose-600" },
@@ -532,7 +532,7 @@ export default function MobileNotificationsPage() {
                   <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white transition-colors cursor-pointer">
                     <Icon className={`w-4 h-4 ${color}`} />
                     <span className="text-sm text-slate-700">{label}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 ml-auto" />
+                    <ArrowRight className="w-3.5 h-3.5 text-ink-mute ml-auto" />
                   </div>
                 </Link>
               ))}

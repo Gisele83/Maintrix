@@ -46,7 +46,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module GMAO</CardTitle>
-                    <Badge variant="secondary" className="bg-white/15 text-white border-white/30">
+                    <Badge variant="secondary" className="bg-white/15 text-ink border-rule">
                       Planification & Interventions
                     </Badge>
                   </div>
@@ -122,7 +122,7 @@ export default function ModulesOverview() {
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-2">Module Diagnostic IA</CardTitle>
-                    <Badge variant="secondary" className="bg-white/15 text-white border-white/30">
+                    <Badge variant="secondary" className="bg-white/15 text-ink border-rule">
                       Intelligence Artificielle
                     </Badge>
                   </div>
@@ -195,7 +195,7 @@ export default function ModulesOverview() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertTriangle className="w-8 h-8 text-white" />
+                  <AlertTriangle className="w-8 h-8 text-ink" />
                 </div>
                 <h3 className="font-semibold text-green-800 mb-2">Détection Automatique</h3>
                 <p className="text-sm text-gray-600">
@@ -205,7 +205,7 @@ export default function ModulesOverview() {
               
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Brain className="w-8 h-8 text-white" />
+                  <Brain className="w-8 h-8 text-ink" />
                 </div>
                 <h3 className="font-semibold text-blue-800 mb-2">Diagnostic Intelligent</h3>
                 <p className="text-sm text-gray-600">
@@ -215,7 +215,7 @@ export default function ModulesOverview() {
               
               <div className="text-center">
                 <div className="w-16 h-16 bg-signal-deep rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-white" />
+                  <CheckCircle className="w-8 h-8 text-ink" />
                 </div>
                 <h3 className="font-semibold text-signal-deep mb-2">Action GMAO</h3>
                 <p className="text-sm text-gray-600">

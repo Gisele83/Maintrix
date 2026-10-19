@@ -605,7 +605,7 @@ export default function TenantPermissions() {
                             
                             <div className="flex items-center gap-2">
                               {module.isCore ? (
-                                <Lock className="w-4 h-4 text-gray-400" />
+                                <Lock className="w-4 h-4 text-ink-mute" />
                               ) : (
                                 <Switch defaultChecked={true} />
                               )}

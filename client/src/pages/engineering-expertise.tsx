@@ -219,11 +219,11 @@ function RcmTab() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-gray-500 flex items-center gap-1"><ArrowRight className="w-3 h-3" />{a.functionDescription}</p>
-              <p className="text-xs text-gray-400 mt-1">{a.reasoning}</p>
+              <p className="text-xs text-ink-mute mt-1">{a.reasoning}</p>
             </CardContent>
           </Card>
         ))}
-        {(analyses ?? []).length === 0 && <p className="text-sm text-gray-400">Aucune analyse RCM enregistrée.</p>}
+        {(analyses ?? []).length === 0 && <p className="text-sm text-ink-mute">Aucune analyse RCM enregistrée.</p>}
       </div>
     </div>
   );

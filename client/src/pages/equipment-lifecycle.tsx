@@ -133,7 +133,7 @@ function EquipmentDetail({ equipmentId, stages }: { equipmentId: number; stages:
   });
 
   if (isLoading || !data) {
-    return <p className="text-sm text-gray-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Chargement du cycle de vie…</p>;
+    return <p className="text-sm text-ink-mute flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Chargement du cycle de vie…</p>;
   }
 
   const currentIndex = stages.findIndex(s => s.key === data.currentStage);
@@ -158,14 +158,14 @@ function EquipmentDetail({ equipmentId, stages }: { equipmentId: number; stages:
                   <Badge variant="outline" className={`text-[11px] ${isCurrent ? ACTIVE_COLOR : isPast ? REACHED_COLOR : TERMINAL_COLOR}`}>
                     {s.label}
                   </Badge>
-                  {i < stages.length - 1 && <ArrowRight className="w-3 h-3 text-gray-300 mx-0.5" />}
+                  {i < stages.length - 1 && <ArrowRight className="w-3 h-3 text-ink-soft mx-0.5" />}
                 </div>
               );
             })}
           </div>
 
           {data.allowedNextStages.length === 0 ? (
-            <p className="text-xs text-gray-400">Étape terminale — aucune transition possible.</p>
+            <p className="text-xs text-ink-mute">Étape terminale — aucune transition possible.</p>
           ) : (
             <div className="space-y-2 pt-2 border-t border-gray-100">
               <Label className="text-xs">Motif de la transition (optionnel)</Label>
@@ -194,16 +194,16 @@ function EquipmentDetail({ equipmentId, stages }: { equipmentId: number; stages:
           <CardTitle className="text-sm flex items-center gap-2"><History className="w-4 h-4" />Historique des transitions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {data.history.length === 0 && <p className="text-xs text-gray-400">Aucune transition enregistrée pour cet équipement.</p>}
+          {data.history.length === 0 && <p className="text-xs text-ink-mute">Aucune transition enregistrée pour cet équipement.</p>}
           {data.history.map((t) => (
             <div key={t.id} className="flex items-center justify-between text-xs border-b border-gray-100 pb-2 last:border-0">
               <div>
                 <span className="font-medium">{t.fromStage}</span>
-                <ArrowRight className="w-3 h-3 inline mx-1 text-gray-400" />
+                <ArrowRight className="w-3 h-3 inline mx-1 text-ink-mute" />
                 <span className="font-medium">{t.toStage}</span>
                 {t.reason && <span className="text-gray-500"> — {t.reason}</span>}
               </div>
-              <span className="text-gray-400 flex-shrink-0 ml-2">{new Date(t.transitionedAt).toLocaleString("fr-FR")}</span>
+              <span className="text-ink-mute flex-shrink-0 ml-2">{new Date(t.transitionedAt).toLocaleString("fr-FR")}</span>
             </div>
           ))}
         </CardContent>

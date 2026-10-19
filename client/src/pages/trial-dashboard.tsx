@@ -391,7 +391,7 @@ export default function TrialDashboard() {
             {license?.status !== "active" && (
               <Card className="bg-ink border-0 text-white">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-white">Passez à un plan complet</CardTitle>
+                  <CardTitle className="text-ink">Passez à un plan complet</CardTitle>
                   <CardDescription className="text-blue-100">
                     Accès illimité à toutes les fonctionnalités industrielles.
                   </CardDescription>
@@ -400,7 +400,7 @@ export default function TrialDashboard() {
                   <Link href="/subscription">
                     <Button
                       variant="outline"
-                      className="w-full border-white/50 bg-white hover:bg-white text-ink hover:text-ink"
+                      className="w-full border-rule bg-white hover:bg-white text-ink hover:text-ink"
                     >
                       <Zap className="h-4 w-4 mr-2" />
                       Voir les offres

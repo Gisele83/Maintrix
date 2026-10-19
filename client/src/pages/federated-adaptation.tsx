@@ -284,18 +284,18 @@ function SiteCard({
   );
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+    <div className="rounded-xl border border-rule bg-white/5 overflow-hidden">
       {/* Header */}
       <div className="p-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-white truncate">{profile.tenantName}</span>
-            <Badge variant="outline" className="text-xs border-white/20 text-white/60">
+            <span className="font-semibold text-ink truncate">{profile.tenantName}</span>
+            <Badge variant="outline" className="text-xs border-rule text-ink/60">
               {profile.nCases} cas · {profile.nPatterns} patterns
             </Badge>
           </div>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="text-xs text-white/50">{profile.daysActive}j actif</span>
+            <span className="text-xs text-ink/50">{profile.daysActive}j actif</span>
             {profile.specializations.slice(0, 2).map(s => (
               <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 bg-signal-deep/20 text-signal-light border-rule/30">
                 {s.replace(/_w$|_p$/, "")}
@@ -305,7 +305,7 @@ function SiteCard({
         </div>
         <button
           onClick={() => setExpanded(e => !e)}
-          className="text-white/40 hover:text-white transition-colors text-xs"
+          className="text-ink/40 hover:text-ink transition-colors text-xs"
         >
           {expanded ? "▲ Réduire" : "▼ Détails"}
         </button>
@@ -316,8 +316,8 @@ function SiteCard({
         {/* Maturité */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
-            <span className="text-white/50">Maturité M(s)</span>
-            <span className="text-white font-mono font-medium">{(profile.maturityScore * 100).toFixed(0)}%</span>
+            <span className="text-ink/50">Maturité M(s)</span>
+            <span className="text-ink font-mono font-medium">{(profile.maturityScore * 100).toFixed(0)}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
@@ -330,7 +330,7 @@ function SiteCard({
         {/* Lambda */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
-            <span className="text-white/50">Mélange λ(s)</span>
+            <span className="text-ink/50">Mélange λ(s)</span>
             <span className={`font-mono font-bold ${lambdaColor(profile.mixingCoefficient)}`}>
               {profile.mixingCoefficient.toFixed(3)}
             </span>
@@ -346,8 +346,8 @@ function SiteCard({
         {/* Contribution globale */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
-            <span className="text-white/50">Contribution</span>
-            <span className="text-white font-mono text-xs">{(aggregationWeight * 100).toFixed(1)}%</span>
+            <span className="text-ink/50">Contribution</span>
+            <span className="text-ink font-mono text-xs">{(aggregationWeight * 100).toFixed(1)}%</span>
           </div>
           <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
@@ -360,15 +360,15 @@ function SiteCard({
 
       {/* Expanded: lambda curve + radar */}
       {expanded && (
-        <div className="border-t border-white/10 p-4 space-y-4 bg-white/3">
+        <div className="border-t border-rule p-4 space-y-4 bg-white/3">
           <div>
-            <div className="text-xs text-white/50 mb-1">
+            <div className="text-xs text-ink/50 mb-1">
               Couplage adaptatif entre le modèle global et le modèle local du site
             </div>
             <LambdaCurve current={profile.maturityScore} />
           </div>
           <div>
-            <div className="text-xs text-white/50 mb-2">
+            <div className="text-xs text-ink/50 mb-2">
               Modèle · <span className="text-blue-400">■ global</span> &nbsp;
               <span className="text-signal-light">■ local</span> &nbsp;
               <span className="text-green-400">▪ personnalisé θ̂(s)</span>
@@ -382,13 +382,13 @@ function SiteCard({
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-white/5 p-2.5 space-y-0.5">
-              <div className="text-white/40">Modèle global (1 − λ)</div>
+              <div className="text-ink/40">Modèle global (1 − λ)</div>
               <div className="text-blue-300 font-mono font-bold">
                 {((1 - profile.mixingCoefficient) * 100).toFixed(1)}%
               </div>
             </div>
             <div className="rounded-lg bg-white/5 p-2.5 space-y-0.5">
-              <div className="text-white/40">Modèle local (λ)</div>
+              <div className="text-ink/40">Modèle local (λ)</div>
               <div className="text-signal-light font-mono font-bold">
                 {(profile.mixingCoefficient * 100).toFixed(1)}%
               </div>
@@ -443,10 +443,10 @@ export default function FederatedAdaptationPage() {
                   <Brain className="w-5 h-5 text-ink" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">
+                  <h1 className="text-2xl font-bold text-ink tracking-tight">
                     Adaptation Locale Différentielle
                   </h1>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-ink/50">
                     Préservation de la spécialisation des sites matures · Apprentissage Fédéré Adaptatif
                   </p>
                 </div>
@@ -525,15 +525,15 @@ export default function FederatedAdaptationPage() {
                 suffix: "",
               },
             ].map(({ label, value, icon: Icon, color, suffix }) => (
-              <Card key={label} className="border-white/10 bg-white/5">
+              <Card key={label} className="border-rule bg-white/5">
                 <CardContent className="p-4">
                   <div className={`w-8 h-8 rounded-lg bg-paper-deep ${color} flex items-center justify-center mb-2 shadow-md`}>
                     <Icon className="w-4 h-4 text-ink" />
                   </div>
-                  <div className="text-2xl font-bold text-white font-mono">
+                  <div className="text-2xl font-bold text-ink font-mono">
                     {value}{suffix}
                   </div>
-                  <div className="text-xs text-white/50 mt-0.5">{label}</div>
+                  <div className="text-xs text-ink/50 mt-0.5">{label}</div>
                 </CardContent>
               </Card>
             ))}
@@ -542,11 +542,11 @@ export default function FederatedAdaptationPage() {
 
         {/* Main tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white/5 border border-white/10 mb-6">
-            <TabsTrigger value="sites" className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-white/60">
+          <TabsList className="bg-white/5 border border-rule mb-6">
+            <TabsTrigger value="sites" className="data-[state=active]:bg-white/15 data-[state=active]:text-ink text-ink/60">
               <Network className="w-4 h-4 mr-2" />Profils des sites
             </TabsTrigger>
-            <TabsTrigger value="specialization" className="data-[state=active]:bg-white/15 data-[state=active]:text-white text-white/60">
+            <TabsTrigger value="specialization" className="data-[state=active]:bg-white/15 data-[state=active]:text-ink text-ink/60">
               <BarChart3 className="w-4 h-4 mr-2" />Rapport SPI
             </TabsTrigger>
           </TabsList>
@@ -560,9 +560,9 @@ export default function FederatedAdaptationPage() {
                 ))}
               </div>
             ) : sites.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
-                <Brain className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                <div className="text-white/40 text-sm">
+              <div className="rounded-xl border border-rule bg-white/5 p-12 text-center">
+                <Brain className="w-12 h-12 text-ink/20 mx-auto mb-3" />
+                <div className="text-ink/40 text-sm">
                   Aucun site actif — créez des tenants et des sessions diagnostiques pour alimenter l'apprentissage fédéré.
                 </div>
               </div>
@@ -611,7 +611,7 @@ export default function FederatedAdaptationPage() {
                 {specData?.summary && (
                   <div className="flex flex-wrap gap-3">
                     {[
-                      { label: "Génériques", count: specData.summary.nGeneric, color: "bg-slate-500/20 text-slate-300 border-slate-500/30" },
+                      { label: "Génériques", count: specData.summary.nGeneric, color: "bg-slate-500/20 text-ink-soft border-rule" },
                       { label: "Émergents", count: specData.summary.nEmerging, color: "bg-amber-500/20 text-amber-300 border-amber-500/30" },
                       { label: "Spécialisés", count: specData.summary.nSpecialized, color: "bg-signal-deep/20 text-signal-light border-rule/30" },
                       { label: "Artefacts", count: specData.summary.nArtefact, color: "bg-red-500/20 text-red-300 border-red-500/30" },
@@ -627,18 +627,18 @@ export default function FederatedAdaptationPage() {
                 )}
 
                 {/* SPI table */}
-                <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                <div className="rounded-xl border border-rule bg-white/5 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-white/10 bg-white/5">
-                          <th className="text-left p-3 text-white/50 font-medium text-xs">Site</th>
-                          <th className="text-center p-3 text-white/50 font-medium text-xs">M(s)</th>
-                          <th className="text-center p-3 text-white/50 font-medium text-xs">λ(s)</th>
-                          <th className="text-center p-3 text-white/50 font-medium text-xs">SPI</th>
-                          <th className="text-center p-3 text-white/50 font-medium text-xs">Dim. spécialisées</th>
-                          <th className="text-left p-3 text-white/50 font-medium text-xs">Dominante</th>
-                          <th className="text-center p-3 text-white/50 font-medium text-xs">Statut</th>
+                        <tr className="border-b border-rule bg-white/5">
+                          <th className="text-left p-3 text-ink/50 font-medium text-xs">Site</th>
+                          <th className="text-center p-3 text-ink/50 font-medium text-xs">M(s)</th>
+                          <th className="text-center p-3 text-ink/50 font-medium text-xs">λ(s)</th>
+                          <th className="text-center p-3 text-ink/50 font-medium text-xs">SPI</th>
+                          <th className="text-center p-3 text-ink/50 font-medium text-xs">Dim. spécialisées</th>
+                          <th className="text-left p-3 text-ink/50 font-medium text-xs">Dominante</th>
+                          <th className="text-center p-3 text-ink/50 font-medium text-xs">Statut</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
@@ -648,11 +648,11 @@ export default function FederatedAdaptationPage() {
                           return (
                             <tr key={row.tenantId} className="hover:bg-white/5 transition-colors">
                               <td className="p-3">
-                                <div className="font-medium text-white text-xs">{row.tenantName}</div>
-                                <div className="text-white/30 text-xs font-mono">{row.tenantId.slice(0, 8)}</div>
+                                <div className="font-medium text-ink text-xs">{row.tenantName}</div>
+                                <div className="text-ink/30 text-xs font-mono">{row.tenantId.slice(0, 8)}</div>
                               </td>
                               <td className="p-3 text-center">
-                                <div className="font-mono font-bold text-white text-xs">{(row.maturity * 100).toFixed(0)}%</div>
+                                <div className="font-mono font-bold text-ink text-xs">{(row.maturity * 100).toFixed(0)}%</div>
                                 <Progress value={row.maturity * 100} className="h-1 mt-1 w-16 mx-auto" />
                               </td>
                               <td className="p-3 text-center">
@@ -664,11 +664,11 @@ export default function FederatedAdaptationPage() {
                                 <span className={`font-mono font-bold text-sm ${spiClr}`}>
                                   {row.spi.toFixed(3)}
                                 </span>
-                                <div className="text-white/30 text-xs">{spiLbl}</div>
+                                <div className="text-ink/30 text-xs">{spiLbl}</div>
                               </td>
                               <td className="p-3 text-center">
-                                <span className="text-white font-mono text-lg font-bold">{row.nSpecializedDims}</span>
-                                <span className="text-white/40 text-xs">/12</span>
+                                <span className="text-ink font-mono text-lg font-bold">{row.nSpecializedDims}</span>
+                                <span className="text-ink/40 text-xs">/12</span>
                               </td>
                               <td className="p-3">
                                 <Badge variant="secondary" className="text-xs bg-signal-deep/20 text-signal-light border-rule/30 font-mono">
@@ -685,7 +685,7 @@ export default function FederatedAdaptationPage() {
                         })}
                         {(specData?.spiReport ?? []).length === 0 && (
                           <tr>
-                            <td colSpan={7} className="p-8 text-center text-white/30 text-sm">
+                            <td colSpan={7} className="p-8 text-center text-ink/30 text-sm">
                               Aucune donnée — déclenchez une agrégation pour alimenter le rapport SPI.
                             </td>
                           </tr>

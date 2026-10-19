@@ -170,7 +170,7 @@ function TeamTab() {
 
   return (
     <div className="space-y-4 mt-4">
-      {isLoading && <p className="text-sm text-gray-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Évaluation des 11 agents en cours…</p>}
+      {isLoading && <p className="text-sm text-ink-mute flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Évaluation des 11 agents en cours…</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {(agents ?? []).map((a) => <AgentCard key={a.domain} agent={a} />)}
       </div>
@@ -259,7 +259,7 @@ function ArbitrationTab() {
 
   return (
     <div className="space-y-4 mt-4">
-      {isLoading && <p className="text-sm text-gray-400 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Arbitrage en cours…</p>}
+      {isLoading && <p className="text-sm text-ink-mute flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Arbitrage en cours…</p>}
 
       <Card className="bg-blue-50 border-blue-100">
         <CardHeader className="pb-2">
@@ -299,7 +299,7 @@ function ArbitrationTab() {
           );
         })}
         {data && data.priorities.length === 0 && (
-          <p className="text-sm text-gray-400">Aucune priorité — tous les domaines sont nominaux.</p>
+          <p className="text-sm text-ink-mute">Aucune priorité — tous les domaines sont nominaux.</p>
         )}
       </div>
     </div>

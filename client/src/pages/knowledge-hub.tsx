@@ -111,7 +111,7 @@ export default function KnowledgeHubPage() {
             </div>
             {searchResults !== null && (
               <div className="space-y-2">
-                {searchResults.length === 0 && <p className="text-sm text-gray-400">Aucun résultat.</p>}
+                {searchResults.length === 0 && <p className="text-sm text-ink-mute">Aucun résultat.</p>}
                 {searchResults.map(r => (
                   <div key={r.document.id} className="flex items-center justify-between border border-gray-100 rounded-lg p-3">
                     <div>
@@ -125,7 +125,7 @@ export default function KnowledgeHubPage() {
                       <Badge className={r.matchType === "semantic" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}>
                         {r.matchType === "semantic" ? "sémantique" : "mot-clé"}
                       </Badge>
-                      <p className="text-xs text-gray-400 mt-1">score {r.score}</p>
+                      <p className="text-xs text-ink-mute mt-1">score {r.score}</p>
                     </div>
                   </div>
                 ))}
@@ -188,7 +188,7 @@ export default function KnowledgeHubPage() {
               </CardContent>
             </Card>
           ))}
-          {(documents ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-3">Aucun document dans le Knowledge Hub.</p>}
+          {(documents ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-3">Aucun document dans le Knowledge Hub.</p>}
         </div>
       </div>
     </div>

@@ -246,14 +246,14 @@ export default function KnowledgeGraphPage() {
                       <div key={edge.id} className="flex items-center justify-between text-sm border-b border-gray-100 py-2 last:border-0">
                         <span>
                           <span className="font-medium">{from?.label ?? "?"}</span>
-                          <GitBranch className="w-3 h-3 inline mx-1.5 text-gray-400" />
+                          <GitBranch className="w-3 h-3 inline mx-1.5 text-ink-mute" />
                           <span className="font-medium">{to?.label ?? "?"}</span>
-                          <span className="text-gray-400 ml-1.5">({edge.relationType})</span>
+                          <span className="text-ink-mute ml-1.5">({edge.relationType})</span>
                         </span>
                         <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger>
-                              <Info className="w-3.5 h-3.5 text-gray-400" />
+                              <Info className="w-3.5 h-3.5 text-ink-mute" />
                             </TooltipTrigger>
                             <TooltipContent>Poids : {edge.weight.toFixed(2)}</TooltipContent>
                           </Tooltip>

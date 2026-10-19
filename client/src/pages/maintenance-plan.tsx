@@ -41,16 +41,16 @@ interface Plan {
 interface PlanStats { total: number; approved: number; totalTasks: any; completedTasks: any; budgetAllocated: any; budgetSpent: any; }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  draft: { label: "Brouillon", color: "bg-slate-100 text-slate-600" },
+  draft: { label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
   in_review: { label: "En révision", color: "bg-blue-100 text-blue-700" },
   approved: { label: "Approuvé", color: "bg-green-100 text-green-700" },
   closed: { label: "Clôturé", color: "bg-gray-200 text-gray-500" },
 };
 const TASK_STATUS: Record<string, { label: string; color: string }> = {
-  planned: { label: "Planifiée", color: "bg-slate-100 text-slate-600" },
+  planned: { label: "Planifiée", color: "bg-slate-100 text-ink-soft" },
   in_progress: { label: "En cours", color: "bg-blue-100 text-blue-700" },
   completed: { label: "Réalisée", color: "bg-green-100 text-green-700" },
-  cancelled: { label: "Annulée", color: "bg-gray-200 text-gray-400" },
+  cancelled: { label: "Annulée", color: "bg-gray-200 text-ink-mute" },
   postponed: { label: "Reportée", color: "bg-yellow-100 text-yellow-700" },
 };
 const TASK_TYPES = ["preventive","corrective","inspection","calibration","lubrication","cleaning","replacement","overhaul"];
@@ -166,7 +166,7 @@ export default function MaintenancePlanPage() {
             <div className="p-2.5 rounded-xl bg-paper-deep"><CalendarCheck className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Plan de Maintenance Annuel</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Planification et suivi des opérations de maintenance préventive</p>
+          <p className="text-ink-mute ml-14 text-sm">Planification et suivi des opérations de maintenance préventive</p>
         </div>
         <div className="flex gap-2">
           <Select value={year} onValueChange={setYear}><SelectTrigger className="w-28 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
@@ -184,18 +184,18 @@ export default function MaintenancePlanPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
             <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
 
       <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><Input placeholder="Rechercher un plan..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
+        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" /><Input placeholder="Rechercher un plan..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
       </div>
 
-      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><CalendarCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun plan de maintenance pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier plan</Button></div>
+        <div className="text-center py-16"><CalendarCheck className="h-12 w-12 text-ink-soft mx-auto mb-4" /><h3 className="text-lg font-semibold text-ink-soft">Aucun plan de maintenance pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier plan</Button></div>
       ) : (
         <div className="grid gap-4">
           {filtered.map(p => {
@@ -206,20 +206,20 @@ export default function MaintenancePlanPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-slate-400">{p.planNumber}</span>
+                        <span className="text-xs font-mono text-ink-mute">{p.planNumber}</span>
                         <Badge className={sc.color + " text-xs"}>{sc.label}</Badge>
                         <Badge variant="outline" className="text-xs">{p.fiscalYear}</Badge>
-                        {p.department && <span className="text-xs text-slate-500">{p.department}</span>}
+                        {p.department && <span className="text-xs text-ink-mute">{p.department}</span>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{p.title}</h3>
                       <div className="mt-2 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs text-slate-500"><span>Avancement: {p.completionPct}%</span><span className="font-medium">{p.completedTasks}/{p.totalTasks} tâches</span></div>
+                        <div className="flex items-center justify-between text-xs text-ink-mute"><span>Avancement: {p.completionPct}%</span><span className="font-medium">{p.completedTasks}/{p.totalTasks} tâches</span></div>
                         <Progress value={p.completionPct} className="h-2.5" />
                       </div>
                       <div className="flex gap-4 mt-2 text-xs flex-wrap">
                         {p.inProgressTasks > 0 && <span className="text-blue-600">{p.inProgressTasks} en cours</span>}
                         {p.overdueTasks > 0 && <span className="text-red-600">{p.overdueTasks} en retard</span>}
-                        <span className="text-slate-500">{fmtEur(p.budgetAllocated)}</span>
+                        <span className="text-ink-mute">{fmtEur(p.budgetAllocated)}</span>
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => openDetail(p)}><Eye className="h-4 w-4 mr-1" />Planifier</Button>
@@ -258,7 +258,7 @@ export default function MaintenancePlanPage() {
             <DialogHeader>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-cyan-200">
                 <CalendarCheck className="h-6 w-6 text-cyan-600" />
-                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.planNumber} · {selected.fiscalYear}</p></div>
+                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.planNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
                   {Object.keys(STATUS_CFG).map(s => (<Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={`text-xs ${selected.status === s ? "bg-cyan-600 text-white" : ""}`} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s].label}</Button>))}
                 </div>
@@ -272,7 +272,7 @@ export default function MaintenancePlanPage() {
                 { l: "Réalisées", v: selected.completedTasks, c: "text-green-700" },
                 { l: "En cours", v: selected.inProgressTasks, c: "text-blue-700" },
                 { l: "En retard", v: selected.overdueTasks, c: "text-red-600" },
-              ].map(({ l, v, c }) => (<div key={l} className="bg-white border rounded-xl p-3 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-slate-500">{l}</p></div>))}
+              ].map(({ l, v, c }) => (<div key={l} className="bg-white border rounded-xl p-3 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute">{l}</p></div>))}
             </div>
             <div className="mb-2"><div className="flex justify-between text-sm mb-1"><span>Avancement global</span><span className="font-bold text-cyan-700">{selected.completionPct}%</span></div><Progress value={selected.completionPct} className="h-3" /></div>
 
@@ -331,7 +331,7 @@ export default function MaintenancePlanPage() {
             )}
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {displayedTasks.length === 0 ? <p className="text-slate-400 text-sm text-center py-6">Aucune tâche{filterMonth > 0 ? ` en ${MONTHS[filterMonth-1]}` : ""}</p>
+              {displayedTasks.length === 0 ? <p className="text-ink-mute text-sm text-center py-6">Aucune tâche{filterMonth > 0 ? ` en ${MONTHS[filterMonth-1]}` : ""}</p>
               : displayedTasks.map((task, i) => {
                 const realIdx = selected.tasks.indexOf(task);
                 const ts = TASK_STATUS[task.status] || TASK_STATUS.planned;
@@ -344,9 +344,9 @@ export default function MaintenancePlanPage() {
                         <Badge className={ts.color + " text-xs"}>{ts.label}</Badge>
                         <Badge className={`${PRIORITY_CFG[task.priority]} text-xs`}>{PRIORITY_LABELS[task.priority]}</Badge>
                         <Badge variant="outline" className="text-xs">{MONTHS[task.plannedMonth - 1]}{task.plannedWeek ? ` S${task.plannedWeek}` : ""}</Badge>
-                        {task.equipmentName && <span className="text-xs text-slate-500">{task.equipmentName}</span>}
-                        {task.assignedTo && <span className="text-xs text-slate-500">{task.assignedTo}</span>}
-                        {task.estimatedHours && <span className="text-xs text-slate-500">⏱{task.estimatedHours}h</span>}
+                        {task.equipmentName && <span className="text-xs text-ink-mute">{task.equipmentName}</span>}
+                        {task.assignedTo && <span className="text-xs text-ink-mute">{task.assignedTo}</span>}
+                        {task.estimatedHours && <span className="text-xs text-ink-mute">⏱{task.estimatedHours}h</span>}
                         {task.estimatedCost && <span className="text-xs text-blue-600">{fmtEur(task.estimatedCost)}</span>}
                         {isOverdue && <Badge className="bg-red-100 text-red-700 text-xs">Retard</Badge>}
                       </div>

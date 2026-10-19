@@ -151,7 +151,7 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
       <div className="bg-white rounded-2xl w-full max-w-md">
         <div className="p-6 border-b border-slate-100">
           <h3 className="text-lg font-bold text-slate-800">Créer un ordre de travail</h3>
-          <p className="text-sm text-slate-500 mt-1">{rec.equipmentName}</p>
+          <p className="text-sm text-ink-mute mt-1">{rec.equipmentName}</p>
         </div>
         <div className="p-6 space-y-4">
           <div>
@@ -160,15 +160,15 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
           </div>
           <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">Durée estimée</span>
+              <span className="text-ink-mute">Durée estimée</span>
               <span className="font-medium text-slate-800">{formatDuration(rec.estimatedDuration)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Coût estimé</span>
+              <span className="text-ink-mute">Coût estimé</span>
               <span className="font-medium text-slate-800">{rec.estimatedCost.toLocaleString("fr-FR")} €</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Priorité</span>
+              <span className="text-ink-mute">Priorité</span>
               <Badge className={PRIORITY_CONFIG[rec.priority].badge}>{PRIORITY_CONFIG[rec.priority].label}</Badge>
             </div>
           </div>
@@ -215,15 +215,15 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
             </div>
           </div>
           <div className="flex-shrink-0 text-right">
-            <div className="text-xs font-medium text-slate-500 whitespace-nowrap">{daysUntil(rec.suggestedDate)}</div>
-            <div className="text-xs text-slate-400">{formatDate(rec.suggestedDate)}</div>
+            <div className="text-xs font-medium text-ink-mute whitespace-nowrap">{daysUntil(rec.suggestedDate)}</div>
+            <div className="text-xs text-ink-mute">{formatDate(rec.suggestedDate)}</div>
           </div>
         </div>
 
         {/* Equipment info */}
-        <div className="flex items-center gap-3 mb-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3 mb-3 text-xs text-ink-mute">
           <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" />{rec.location}</span>
-          <span className="text-slate-300">·</span>
+          <span className="text-ink-soft">·</span>
           <span>{rec.equipmentType}</span>
         </div>
 
@@ -233,21 +233,21 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
             <div className={`text-base font-bold ${rec.kpis.failureRisk >= 50 ? "text-rose-600" : rec.kpis.failureRisk >= 25 ? "text-amber-600" : "text-emerald-600"}`}>
               {rec.kpis.failureRisk}%
             </div>
-            <div className="text-[10px] text-slate-500 leading-tight">Risque panne</div>
+            <div className="text-[10px] text-ink-mute leading-tight">Risque panne</div>
           </div>
           <div className="bg-slate-50 rounded-lg p-2 text-center">
             <div className="text-base font-bold text-slate-700">{rec.kpis.mtbfDays}j</div>
-            <div className="text-[10px] text-slate-500 leading-tight">MTBF</div>
+            <div className="text-[10px] text-ink-mute leading-tight">MTBF</div>
           </div>
           <div className="bg-slate-50 rounded-lg p-2 text-center">
             <div className="text-base font-bold text-slate-700">{rec.kpis.daysSinceLastMaintenance}j</div>
-            <div className="text-[10px] text-slate-500 leading-tight">Depuis dernière MP</div>
+            <div className="text-[10px] text-ink-mute leading-tight">Depuis dernière MP</div>
           </div>
         </div>
 
         {/* Confidence bar */}
         <div className="mb-3">
-          <div className="flex justify-between text-xs text-slate-500 mb-1">
+          <div className="flex justify-between text-xs text-ink-mute mb-1">
             <span>Confiance de l'analyse</span>
             <span className="font-medium text-slate-700">{rec.confidence}%</span>
           </div>
@@ -255,7 +255,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
         </div>
 
         {/* Cost + duration */}
-        <div className="flex gap-3 text-xs text-slate-500 mb-4">
+        <div className="flex gap-3 text-xs text-ink-mute mb-4">
           <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{formatDuration(rec.estimatedDuration)}</span>
           <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" />{rec.estimatedCost.toLocaleString("fr-FR")} €</span>
         </div>
@@ -293,7 +293,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
               </div>
               <ol className="space-y-1">
                 {rec.actions.map((a, i) => (
-                  <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
+                  <li key={i} className="text-xs text-ink-soft flex items-start gap-2">
                     <span className="w-4 h-4 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center flex-shrink-0 font-bold" style={{ fontSize: "9px" }}>{i + 1}</span>
                     {a}
                   </li>
@@ -302,7 +302,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
             </div>
 
             {/* Completion rate */}
-            <div className="flex justify-between items-center text-xs text-slate-500">
+            <div className="flex justify-between items-center text-xs text-ink-mute">
               <span>Taux complétion MP historique</span>
               <span className={`font-semibold ${rec.kpis.completionRate >= 80 ? "text-emerald-600" : rec.kpis.completionRate >= 60 ? "text-amber-600" : "text-rose-600"}`}>
                 {rec.kpis.completionRate}%
@@ -374,7 +374,7 @@ export default function MaintenanceRecommendations() {
             <Brain className="w-8 h-8 text-ink" />
           </div>
           <h2 className="text-xl font-semibold text-slate-700 mb-2">Analyse en cours…</h2>
-          <p className="text-slate-500 text-sm">Analyse de l'historique des équipements, OT et plans de maintenance</p>
+          <p className="text-ink-mute text-sm">Analyse de l'historique des équipements, OT et plans de maintenance</p>
         </div>
       </div>
     );
@@ -397,13 +397,13 @@ export default function MaintenanceRecommendations() {
               </div>
               <h1 className="text-2xl font-bold text-slate-800">Recommandations de maintenance</h1>
             </div>
-            <p className="text-slate-500 text-sm ml-13">
+            <p className="text-ink-mute text-sm ml-13">
               Recommandations personnalisées basées sur l'historique, l'usage et les données IoT de vos équipements
             </p>
           </div>
           <div className="flex items-center gap-3">
             {data && (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-ink-mute">
                 Analysé {meta?.equipmentAnalyzed} équipements · {meta?.workOrdersAnalyzed} OT
               </div>
             )}
@@ -412,7 +412,7 @@ export default function MaintenanceRecommendations() {
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="border-slate-200 text-slate-600 rounded-xl"
+              className="border-slate-200 text-ink-soft rounded-xl"
             >
               <RefreshCw className={`w-4 h-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
               Actualiser
@@ -434,7 +434,7 @@ export default function MaintenanceRecommendations() {
             <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-ink rounded-2xl p-5 text-white shadow-blue-500/20">
               <div className="text-3xl font-extrabold mb-1">{summary.totalRecommendations}</div>
               <div className="text-blue-100 text-sm">Recommandations</div>
-              <div className="mt-3 text-xs text-blue-200">Confiance moyenne : <span className="text-white font-semibold">{summary.avgConfidence}%</span></div>
+              <div className="mt-3 text-xs text-blue-200">Confiance moyenne : <span className="text-ink font-semibold">{summary.avgConfidence}%</span></div>
             </div>
             {[
               { label: "Critiques", val: summary.critical, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" },
@@ -444,7 +444,7 @@ export default function MaintenanceRecommendations() {
             ].map(({ label, val, color, bg, border }) => (
               <div key={label} className={`${bg} border ${border} rounded-2xl p-4 text-center`}>
                 <div className={`text-2xl font-bold ${color}`}>{val}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+                <div className="text-xs text-ink-mute mt-0.5">{label}</div>
               </div>
             ))}
           </div>
@@ -468,7 +468,7 @@ export default function MaintenanceRecommendations() {
         {/* ── Filters ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-mute" />
             <Input
               className="pl-9 rounded-xl border-slate-200"
               placeholder="Rechercher un équipement, lieu…"
@@ -481,7 +481,7 @@ export default function MaintenanceRecommendations() {
               <button
                 key={p}
                 onClick={() => setFilterPriority(p)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterPriority === p ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
+                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterPriority === p ? "bg-blue-600 text-white border-blue-600" : "bg-white text-ink-soft border-slate-200 hover:border-slate-300"}`}
               >
                 {p === "all" ? "Tous" : PRIORITY_CONFIG[p as keyof typeof PRIORITY_CONFIG].label}
               </button>
@@ -492,7 +492,7 @@ export default function MaintenanceRecommendations() {
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterType === t ? "bg-signal-deep text-white border-rule" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"}`}
+                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterType === t ? "bg-signal-deep text-white border-rule" : "bg-white text-ink-soft border-slate-200 hover:border-slate-300"}`}
               >
                 {t === "all" ? "Tout type" : TYPE_CONFIG[t]?.label || t}
               </button>
@@ -509,7 +509,7 @@ export default function MaintenanceRecommendations() {
             <h3 className="text-lg font-semibold text-slate-700 mb-2">
               {recommendations.length === 0 ? "Aucune recommandation générée" : "Aucun résultat"}
             </h3>
-            <p className="text-slate-500 text-sm max-w-md mx-auto">
+            <p className="text-ink-mute text-sm max-w-md mx-auto">
               {recommendations.length === 0
                 ? "Tous vos équipements semblent à jour. Ajoutez des équipements et des historiques d'OT pour obtenir des recommandations personnalisées."
                 : "Essayez de modifier vos filtres de recherche."}
@@ -565,7 +565,7 @@ export default function MaintenanceRecommendations() {
 
         {/* ── Bottom Info ──────────────────────────────────────── */}
         {data && (
-          <div className="mt-10 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-4 text-xs text-slate-500">
+          <div className="mt-10 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-4 text-xs text-ink-mute">
             <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />
               Équipements analysés : <strong className="text-slate-700">{meta?.equipmentAnalyzed}</strong>
             </span>

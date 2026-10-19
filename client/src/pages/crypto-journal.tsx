@@ -32,7 +32,7 @@ const DOMAIN_COLOR: Record<string, string> = {
   PTW_DOMAIN:      "bg-red-500/20 text-red-300 border-red-500/30",
   GMAO_DOMAIN:     "bg-blue-500/20 text-blue-300 border-blue-500/30",
   IMCA_DOMAIN:     "bg-signal-deep/20 text-signal-light border-rule/30",
-  SYSTEM_DOMAIN:   "bg-slate-500/20 text-slate-300 border-slate-500/30",
+  SYSTEM_DOMAIN:   "bg-slate-500/20 text-ink-soft border-rule",
   SECURITY_DOMAIN: "bg-amber-500/20 text-amber-300 border-amber-500/30",
 };
 const DOMAIN_LABEL: Record<string, string> = {
@@ -78,9 +78,9 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
         </div>
       )}
 
-      <div className={`rounded-xl border p-4 transition-all cursor-pointer hover:bg-slate-800/40 ${
+      <div className={`rounded-xl border p-4 transition-all cursor-pointer hover:bg-white ${
         isValid
-          ? "border-emerald-500/20 bg-slate-800/20"
+          ? "border-emerald-500/20 bg-white"
           : "border-red-500/40 bg-red-500/5"
       }`} onClick={() => setOpen(!open)}>
 
@@ -94,10 +94,10 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
 
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${DOMAIN_COLOR[entry.domain] ?? "bg-slate-700 text-slate-300"}`}>
+              <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${DOMAIN_COLOR[entry.domain] ?? "bg-paper-deep text-ink-soft"}`}>
                 {DOMAIN_LABEL[entry.domain] ?? entry.domain}
               </span>
-              <span className="text-sm font-semibold text-white">
+              <span className="text-sm font-semibold text-ink">
                 {ACTION_VERB[entry.action] ?? entry.action}
               </span>
               {!isValid && (
@@ -105,10 +105,10 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
               )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono text-slate-500">
-              <span>Entité : <span className="text-slate-400">{entry.entityId}</span></span>
-              <span>Acteur : <span className="text-slate-400">{entry.actorName}</span></span>
-              <span>Date : <span className="text-slate-400">{FMT_DATE(entry.createdAt)}</span></span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono text-ink-mute">
+              <span>Entité : <span className="text-ink-mute">{entry.entityId}</span></span>
+              <span>Acteur : <span className="text-ink-mute">{entry.actorName}</span></span>
+              <span>Date : <span className="text-ink-mute">{FMT_DATE(entry.createdAt)}</span></span>
               <div className="flex items-center gap-1">
                 {isValid ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <XCircle className="w-3 h-3 text-red-400" />}
                 <span className={isValid ? "text-emerald-400" : "text-red-400"}>{isValid ? "Hash valide" : "Hash invalide"}</span>
@@ -117,34 +117,34 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
 
             {/* Hash display */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[9px] font-mono">
-              <span className="text-slate-600">prev: <span className="text-slate-500">{entry.prevHashShort ?? H_SHORT(entry.previousHash)}</span></span>
-              <span className="text-slate-600">hash: <span className="text-emerald-600/80">{entry.hashShort ?? H_SHORT(entry.entryHash)}</span></span>
+              <span className="text-ink-soft">prev: <span className="text-ink-mute">{entry.prevHashShort ?? H_SHORT(entry.previousHash)}</span></span>
+              <span className="text-ink-soft">hash: <span className="text-emerald-600/80">{entry.hashShort ?? H_SHORT(entry.entryHash)}</span></span>
             </div>
           </div>
 
-          <div className="text-slate-600 flex-shrink-0">
+          <div className="text-ink-soft flex-shrink-0">
             {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </div>
         </div>
 
         {/* Expanded detail */}
         {open && (
-          <div className="mt-4 ml-12 space-y-3 border-t border-slate-700/40 pt-3">
+          <div className="mt-4 ml-12 space-y-3 border-t border-rule pt-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Hash SHA-256 complet</p>
+                <p className="text-[10px] text-ink-mute mb-1">Hash SHA-256 complet</p>
                 <p className="text-[9px] font-mono text-emerald-500/80 break-all">{entry.entryHash}</p>
               </div>
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Hash précédent</p>
-                <p className="text-[9px] font-mono text-slate-500 break-all">{entry.previousHash}</p>
+                <p className="text-[10px] text-ink-mute mb-1">Hash précédent</p>
+                <p className="text-[9px] font-mono text-ink-mute break-all">{entry.previousHash}</p>
               </div>
             </div>
 
             {entry.payload && Object.keys(entry.payload).length > 0 && (
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Snapshot payload (immuable)</p>
-                <pre className="text-[9px] font-mono text-slate-400 bg-slate-900/60 rounded-lg p-2 overflow-x-auto max-h-32">
+                <p className="text-[10px] text-ink-mute mb-1">Snapshot payload (immuable)</p>
+                <pre className="text-[9px] font-mono text-ink-mute bg-paper-deep rounded-lg p-2 overflow-x-auto max-h-32">
                   {JSON.stringify(entry.payload, null, 2)}
                 </pre>
               </div>
@@ -152,8 +152,8 @@ function Block({ entry, prevEntry, isFirst }: { entry: JournalEntry; prevEntry?:
 
             {entry.metadata && Object.keys(entry.metadata).length > 0 && (
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Métadonnées contextuelles</p>
-                <pre className="text-[9px] font-mono text-slate-500 bg-slate-900/40 rounded-lg p-2 overflow-x-auto">
+                <p className="text-[10px] text-ink-mute mb-1">Métadonnées contextuelles</p>
+                <pre className="text-[9px] font-mono text-ink-mute bg-paper-deep rounded-lg p-2 overflow-x-auto">
                   {JSON.stringify(entry.metadata, null, 2)}
                 </pre>
               </div>
@@ -213,8 +213,8 @@ export default function CryptoJournalPage() {
                 <Lock className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-white">Journal Cryptographique</h1>
-                <p className="text-sm text-slate-400">
+                <h1 className="text-2xl font-black text-ink">Journal Cryptographique</h1>
+                <p className="text-sm text-ink-mute">
                   Enclavement SHA-256 · Append-only · Domaine PTW isolé · Vérification d'intégrité
                 </p>
               </div>
@@ -222,7 +222,7 @@ export default function CryptoJournalPage() {
             <div className="flex gap-2">
               <Button
                 onClick={() => { refetchChain(); refetchStats(); }}
-                className="bg-slate-700/80 hover:bg-slate-700 text-white gap-2"
+                className="bg-paper-deep hover:bg-paper-deep text-ink gap-2"
                 size="sm"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingChain ? "animate-spin" : ""}`} />
@@ -259,7 +259,7 @@ export default function CryptoJournalPage() {
                   : `Altération détectée au bloc #${verifyData.firstTamperedAt} — ${verifyData.firstTamperedEntry?.action}`
                 }
               </p>
-              <p className="text-[11px] text-slate-400 mt-1 font-mono">
+              <p className="text-[11px] text-ink-mute mt-1 font-mono">
                 Genesis : {H_SHORT(verifyData.genesisHash)} ·
                 Dernier : {H_SHORT(verifyData.latestHash)} ·
                 Vérifié : {FMT_DATE(verifyData.verifiedAt)}
@@ -271,23 +271,23 @@ export default function CryptoJournalPage() {
         {/* ── Stats KPIs ────────────────────────────────────────────────── */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
-              <p className="text-[11px] text-slate-500">Total entrées</p>
-              <p className="text-2xl font-black text-white">{stats.totalEntries}</p>
-              <p className="text-[10px] font-mono text-slate-600">seq #{stats.latestSequence}</p>
+            <div className="rounded-xl border border-rule bg-white p-4">
+              <p className="text-[11px] text-ink-mute">Total entrées</p>
+              <p className="text-2xl font-black text-ink">{stats.totalEntries}</p>
+              <p className="text-[10px] font-mono text-ink-soft">seq #{stats.latestSequence}</p>
             </div>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-              <p className="text-[11px] text-slate-500">Hash genesis</p>
+              <p className="text-[11px] text-ink-mute">Hash genesis</p>
               <p className="text-[10px] font-mono text-emerald-400 mt-1 break-all">{H_SHORT(stats.genesisHash)}</p>
             </div>
             <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-              <p className="text-[11px] text-slate-500">Dernier hash</p>
+              <p className="text-[11px] text-ink-mute">Dernier hash</p>
               <p className="text-[10px] font-mono text-cyan-400 mt-1 break-all">{H_SHORT(stats.latestHash)}</p>
             </div>
-            <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
-              <p className="text-[11px] text-slate-500">Domaines actifs</p>
-              <p className="text-2xl font-black text-white">{stats.domains.filter(d => d.count > 0).length}</p>
-              <p className="text-[10px] text-slate-500">/ {stats.domains.length} configurés</p>
+            <div className="rounded-xl border border-rule bg-white p-4">
+              <p className="text-[11px] text-ink-mute">Domaines actifs</p>
+              <p className="text-2xl font-black text-ink">{stats.domains.filter(d => d.count > 0).length}</p>
+              <p className="text-[10px] text-ink-mute">/ {stats.domains.length} configurés</p>
             </div>
           </div>
         )}
@@ -301,13 +301,13 @@ export default function CryptoJournalPage() {
                 onClick={() => setDomainFilter(domainFilter === d.domain ? "ALL" : d.domain)}
                 className={`rounded-xl border p-3 text-left transition-all ${
                   domainFilter === d.domain
-                    ? (DOMAIN_COLOR[d.domain] ?? "bg-slate-700 text-white border-slate-600") + " ring-1 ring-current"
-                    : "border-slate-700/50 bg-slate-800/30 hover:bg-slate-800/60"
+                    ? (DOMAIN_COLOR[d.domain] ?? "bg-paper-deep text-white border-rule") + " ring-1 ring-current"
+                    : "border-rule bg-white hover:bg-white"
                 }`}
               >
-                <p className="text-[10px] text-slate-500">{DOMAIN_LABEL[d.domain] ?? d.domain}</p>
-                <p className="text-lg font-black text-white">{d.count}</p>
-                {d.latest && <p className="text-[9px] text-slate-600 truncate">{d.latest.action.replace("PTW:", "")}</p>}
+                <p className="text-[10px] text-ink-mute">{DOMAIN_LABEL[d.domain] ?? d.domain}</p>
+                <p className="text-lg font-black text-ink">{d.count}</p>
+                {d.latest && <p className="text-[9px] text-ink-soft truncate">{d.latest.action.replace("PTW:", "")}</p>}
               </button>
             ))}
           </div>
@@ -316,29 +316,29 @@ export default function CryptoJournalPage() {
         {/* ── Chain viewer ──────────────────────────────────────────────── */}
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-ink-soft flex items-center gap-2">
               <Link2 className="w-4 h-4 text-emerald-400" />
               Chaîne cryptographique — {domainFilter === "ALL" ? "Tous domaines" : DOMAIN_LABEL[domainFilter] ?? domainFilter}
-              {chain.length > 0 && <span className="text-slate-500 font-normal">({chain.length} derniers blocs)</span>}
+              {chain.length > 0 && <span className="text-ink-mute font-normal">({chain.length} derniers blocs)</span>}
             </h2>
             {domainFilter !== "ALL" && (
-              <button onClick={() => setDomainFilter("ALL")} className="text-[11px] text-slate-500 hover:text-white underline">
+              <button onClick={() => setDomainFilter("ALL")} className="text-[11px] text-ink-mute hover:text-ink underline">
                 Afficher tous les domaines
               </button>
             )}
           </div>
 
           {loadingChain ? (
-            <div className="flex items-center justify-center h-32 rounded-xl border border-slate-700 bg-slate-800/20">
+            <div className="flex items-center justify-center h-32 rounded-xl border border-rule bg-white">
               <RefreshCw className="w-5 h-5 text-emerald-400 animate-spin" />
-              <span className="ml-3 text-slate-400">Chargement de la chaîne…</span>
+              <span className="ml-3 text-ink-mute">Chargement de la chaîne…</span>
             </div>
           ) : chain.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 rounded-xl border border-dashed border-slate-700 bg-slate-800/10 text-center p-6 space-y-3">
-              <Lock className="w-10 h-10 text-slate-600" />
+            <div className="flex flex-col items-center justify-center h-48 rounded-xl border border-dashed border-rule bg-white text-center p-6 space-y-3">
+              <Lock className="w-10 h-10 text-ink-soft" />
               <div>
-                <p className="text-slate-400 font-medium">Aucune entrée dans ce domaine</p>
-                <p className="text-slate-600 text-sm">
+                <p className="text-ink-mute font-medium">Aucune entrée dans ce domaine</p>
+                <p className="text-ink-soft text-sm">
                   Le journal se remplira automatiquement lors des mutations PTW.
                 </p>
               </div>
@@ -378,10 +378,10 @@ export default function CryptoJournalPage() {
         </div>
 
         {/* ── Scientific formulas ───────────────────────────────────────── */}
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-5">
+        <div className="rounded-2xl border border-rule bg-white p-5">
           <button
             onClick={() => setShowFormulas(!showFormulas)}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-300 w-full text-left"
+            className="flex items-center gap-2 text-sm font-semibold text-ink-soft w-full text-left"
           >
             <FlaskConical className="w-4 h-4 text-emerald-400" />
             Formulation cryptographique — SHA-256 Hash-Chaining
@@ -415,10 +415,10 @@ export default function CryptoJournalPage() {
                   lines: ["Résistance aux collisions (SHA-256: 2^128)", "Imputabilité : actorName dénormalisé", "Append-only : aucun UPDATE/DELETE applicatif"],
                 },
               ].map(({ color, label, lines }) => (
-                <div key={label} className="rounded-lg bg-slate-900/60 border border-slate-700/50 p-3">
+                <div key={label} className="rounded-lg bg-paper-deep border border-rule p-3">
                   <div className={`${color} font-bold mb-1`}>{label}</div>
                   {lines.map((l, i) => (
-                    <div key={i} className={i === 0 ? "text-slate-400" : "text-slate-500"}>{l}</div>
+                    <div key={i} className={i === 0 ? "text-ink-mute" : "text-ink-mute"}>{l}</div>
                   ))}
                 </div>
               ))}

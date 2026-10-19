@@ -207,7 +207,7 @@ export default function OeePage() {
               OEE — Efficacité Globale
             </h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Overall Equipment Effectiveness · Disponibilité × Performance × Qualité</p>
+          <p className="text-ink-mute ml-14 text-sm">Overall Equipment Effectiveness · Disponibilité × Performance × Qualité</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle saisie
@@ -217,13 +217,13 @@ export default function OeePage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3">
-          <Calendar className="h-4 w-4 text-slate-400" />
+          <Calendar className="h-4 w-4 text-ink-mute" />
           <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="border-0 w-32 p-0 text-sm" />
-          <span className="text-slate-400">→</span>
+          <span className="text-ink-mute">→</span>
           <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="border-0 w-32 p-0 text-sm" />
         </div>
         <div className="relative">
-          <Filter className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Filter className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input placeholder="ID équipement..." value={filterEquip} onChange={e => setFilterEquip(e.target.value)} className="pl-9 w-40 bg-white" />
         </div>
       </div>
@@ -233,22 +233,22 @@ export default function OeePage() {
         <div className="bg-paper-deep p-4">
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <div className="text-center">
-              <p className="text-slate-400 text-xs mb-1">OEE</p>
+              <p className="text-ink-mute text-xs mb-1">OEE</p>
               <OEEGauge value={avgOee} size={100} />
               <Badge className={`mt-1 text-xs ${avgOee >= 0.85 ? "bg-green-500" : avgOee >= 0.65 ? "bg-yellow-500" : "bg-red-500"} text-white`}>
                 {oeeLabel(avgOee)}
               </Badge>
             </div>
-            <div className="text-white text-2xl font-light">=</div>
+            <div className="text-ink text-2xl font-light">=</div>
             {[
               { label: "Disponibilité", value: stats?.avgAvailability, color: "from-blue-500 to-indigo-600" },
               { label: "Performance", value: stats?.avgPerformance, color: " " },
               { label: "Qualité", value: stats?.avgQuality, color: " to-rose-600" },
             ].map(({ label, value, color }, i) => (
               <div key={label} className="flex items-center gap-4">
-                {i > 0 && <span className="text-slate-400 text-2xl">×</span>}
+                {i > 0 && <span className="text-ink-mute text-2xl">×</span>}
                 <div className="text-center">
-                  <p className="text-slate-400 text-xs mb-1">{label}</p>
+                  <p className="text-ink-mute text-xs mb-1">{label}</p>
                   <OEEGauge value={Number(value || 0)} size={90} />
                 </div>
               </div>
@@ -268,7 +268,7 @@ export default function OeePage() {
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -285,7 +285,7 @@ export default function OeePage() {
           </CardHeader>
           <CardContent>
             {trendData.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Pas encore de données</div>
+              <div className="h-40 flex items-center justify-center text-ink-mute text-sm">Pas encore de données</div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trendData}>
@@ -317,7 +317,7 @@ export default function OeePage() {
           </CardHeader>
           <CardContent>
             {equipData.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Pas encore de données</div>
+              <div className="h-40 flex items-center justify-center text-ink-mute text-sm">Pas encore de données</div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={equipData} layout="vertical">
@@ -340,7 +340,7 @@ export default function OeePage() {
       {/* Calculator */}
       <Card className="border-0 shadow-md mb-8 bg-ink text-white">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
+          <CardTitle className="text-base font-semibold text-ink flex items-center gap-2">
             <Gauge className="h-4 w-4" /> Calculateur OEE en temps réel
           </CardTitle>
         </CardHeader>
@@ -355,8 +355,8 @@ export default function OeePage() {
               { key: "defectiveUnits", label: "Défauts", unit: "pcs" },
             ].map(({ key, label, unit }) => (
               <div key={key}>
-                <label className="text-slate-400 text-xs">{label}</label>
-                <Input type="number" className="bg-slate-700 border-slate-600 text-white mt-1"
+                <label className="text-ink-mute text-xs">{label}</label>
+                <Input type="number" className="bg-paper-deep border-rule text-ink mt-1"
                   value={(liveCalc as any)[key]}
                   onChange={e => setLiveCalc(prev => ({ ...prev, [key]: Number(e.target.value) }))} />
               </div>
@@ -379,7 +379,7 @@ export default function OeePage() {
                     <p className={`font-bold ${highlight ? "text-2xl" : "text-xl"}`} style={{ color: oeeColor(value) }}>
                       {pct(value)}%
                     </p>
-                    <p className="text-slate-400 text-xs">{label}</p>
+                    <p className="text-ink-mute text-xs">{label}</p>
                   </div>
                 ))}
               </div>
@@ -395,9 +395,9 @@ export default function OeePage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center h-24 items-center"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
+            <div className="flex justify-center h-24 items-center"><Loader2 className="h-6 w-6 animate-spin text-ink-mute" /></div>
           ) : records.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
+            <div className="text-center py-12 text-ink-mute">
               <Gauge className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p>Aucun enregistrement — saisissez vos premières données OEE</p>
             </div>
@@ -407,14 +407,14 @@ export default function OeePage() {
                 <thead>
                   <tr className="border-b border-slate-100">
                     {["Date", "Équipement", "Poste", "Disponib.", "Perf.", "Qualité", "OEE", "Actions"].map(h => (
-                      <th key={h} className="text-left py-2 px-3 text-slate-500 font-medium text-xs">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-ink-mute font-medium text-xs">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {records.slice(0, 50).map(r => (
                     <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="py-2 px-3 font-mono text-xs text-slate-600">
+                      <td className="py-2 px-3 font-mono text-xs text-ink-soft">
                         {new Date(r.recordDate).toLocaleDateString("fr-FR")}
                       </td>
                       <td className="py-2 px-3 text-slate-700 font-medium">
@@ -554,7 +554,7 @@ function Separator2({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="h-px bg-slate-200 flex-1" />
-      <span className="text-xs text-slate-500 font-medium">{label}</span>
+      <span className="text-xs text-ink-mute font-medium">{label}</span>
       <div className="h-px bg-slate-200 flex-1" />
     </div>
   );

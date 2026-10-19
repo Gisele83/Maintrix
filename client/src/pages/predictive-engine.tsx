@@ -101,7 +101,7 @@ export default function PredictiveEnginePage() {
                 <Badge className={RISK_COLOR[result.riskLevel]}>Risque {result.riskLevel}</Badge>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{result.healthScore}<span className="text-base text-gray-400">/100</span></div>
+                <div className="text-3xl font-bold">{result.healthScore}<span className="text-base text-ink-mute">/100</span></div>
                 <p className="text-xs text-gray-500">Health Score</p>
               </CardContent>
             </Card>
@@ -113,10 +113,10 @@ export default function PredictiveEnginePage() {
                     <p><span className="text-gray-500">Modèle :</span> {result.rul.result?.recommendedModel}</p>
                     <p><span className="text-gray-500">Médiane :</span> {Math.round(result.rul.result?.recommended?.median ?? 0)}h</p>
                     <p><span className="text-gray-500">P10 (pessimiste) :</span> {Math.round(result.rul.result?.recommended?.confidenceIntervals?.p10 ?? 0)}h</p>
-                    <p className="text-xs text-gray-400">{result.rul.nReadings} lectures IoT utilisées</p>
+                    <p className="text-xs text-ink-mute">{result.rul.nReadings} lectures IoT utilisées</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">{result.rul.message}</p>
+                  <p className="text-sm text-ink-mute">{result.rul.message}</p>
                 )}
               </StageCard>
 
@@ -136,7 +136,7 @@ export default function PredictiveEnginePage() {
                     <p className="text-sm text-green-600">Aucune anomalie détectée (agent health score : {result.anomaly.agentHealthScore})</p>
                   )
                 ) : (
-                  <p className="text-sm text-gray-400">{result.anomaly.message}</p>
+                  <p className="text-sm text-ink-mute">{result.anomaly.message}</p>
                 )}
               </StageCard>
 
@@ -148,7 +148,7 @@ export default function PredictiveEnginePage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-gray-400">Aucune panne anticipée.</p>
+                  <p className="text-sm text-ink-mute">Aucune panne anticipée.</p>
                 )}
               </StageCard>
 
@@ -159,7 +159,7 @@ export default function PredictiveEnginePage() {
                     <p className="text-gray-500">{result.autoWorkOrder.reason}</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400">{result.autoWorkOrder.reason}</p>
+                  <p className="text-sm text-ink-mute">{result.autoWorkOrder.reason}</p>
                 )}
               </StageCard>
             </div>
@@ -171,7 +171,7 @@ export default function PredictiveEnginePage() {
                   <ul className="text-sm space-y-1">
                     {result.recommendations.map((r: any, i: number) => (
                       <li key={i} className="flex items-center gap-1">
-                        <ArrowRight className="w-3 h-3 text-gray-400" />{r.action ?? JSON.stringify(r)}
+                        <ArrowRight className="w-3 h-3 text-ink-mute" />{r.action ?? JSON.stringify(r)}
                       </li>
                     ))}
                   </ul>

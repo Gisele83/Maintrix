@@ -21,11 +21,11 @@ const statusConfig: Record<string, { color: string; bg: string; icon: any; label
   healthy: { color: "text-green-400", bg: "bg-green-500/10 border-green-500/30", icon: CheckCircle, label: "Sain" },
   warning: { color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/30", icon: AlertTriangle, label: "Attention" },
   critical: { color: "text-red-400", bg: "bg-red-500/10 border-red-500/30", icon: XCircle, label: "Critique" },
-  offline: { color: "text-gray-400", bg: "bg-gray-500/10 border-gray-500/30", icon: Minus, label: "Hors ligne" }
+  offline: { color: "text-ink-mute", bg: "bg-gray-500/10 border-gray-500/30", icon: Minus, label: "Hors ligne" }
 };
 
 const trendIcons: Record<string, any> = { improving: TrendingUp, declining: TrendingDown, stable: Minus };
-const trendColors: Record<string, string> = { improving: "text-green-400", declining: "text-red-400", stable: "text-slate-400" };
+const trendColors: Record<string, string> = { improving: "text-green-400", declining: "text-red-400", stable: "text-ink-mute" };
 
 const COLORS = ['#22c55e', '#eab308', '#ef4444', '#6b7280'];
 
@@ -74,13 +74,13 @@ export default function MachineHealth() {
             <Heart className="w-6 h-6 text-ink" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Scoring Santé Machines</h1>
-            <p className="text-slate-400">Indice de santé et évaluation des risques en temps réel</p>
+            <h1 className="text-2xl font-bold text-ink">Scoring Santé Machines</h1>
+            <p className="text-ink-mute">Indice de santé et évaluation des risques en temps réel</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-slate-900/60 border-white/10 md:col-span-1">
+          <Card className="bg-paper-deep border-rule md:col-span-1">
             <CardContent className="p-4 flex flex-col items-center justify-center">
               <div className="relative w-24 h-24 mb-2">
                 <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -91,11 +91,11 @@ export default function MachineHealth() {
                     strokeLinecap="round" transform="rotate(-90 50 50)" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-white">{summary.averageScore}</span>
-                  <span className="text-[10px] text-slate-400">/100</span>
+                  <span className="text-2xl font-bold text-ink">{summary.averageScore}</span>
+                  <span className="text-[10px] text-ink-mute">/100</span>
                 </div>
               </div>
-              <p className="text-xs text-slate-400">Score moyen</p>
+              <p className="text-xs text-ink-mute">Score moyen</p>
             </CardContent>
           </Card>
           {[
@@ -104,14 +104,14 @@ export default function MachineHealth() {
             { icon: XCircle, label: "Critique", value: summary.critical, color: "from-red-500 to-rose-600" },
             { icon: Minus, label: "Hors ligne", value: summary.offline, color: "from-gray-500 to-slate-600" }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10">
+            <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-5 h-5 text-ink" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs text-slate-400">{stat.label}</p>
+                  <p className="text-xl font-bold text-ink">{stat.value}</p>
+                  <p className="text-xs text-ink-mute">{stat.label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -119,7 +119,7 @@ export default function MachineHealth() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-800/50 border border-white/10">
+          <TabsList className="bg-white border border-rule">
             <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
             <TabsTrigger value="equipment">Équipements</TabsTrigger>
             <TabsTrigger value="recommendations">Recommandations IA</TabsTrigger>
@@ -127,9 +127,9 @@ export default function MachineHealth() {
 
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-900/60 border-white/10">
+              <Card className="bg-paper-deep border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white text-sm">Répartition par état de santé</CardTitle>
+                  <CardTitle className="text-ink text-sm">Répartition par état de santé</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
@@ -145,9 +145,9 @@ export default function MachineHealth() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-900/60 border-white/10">
+              <Card className="bg-paper-deep border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white text-sm">Score de santé par équipement</CardTitle>
+                  <CardTitle className="text-ink text-sm">Score de santé par équipement</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
@@ -173,27 +173,27 @@ export default function MachineHealth() {
               const config = statusConfig[eq.status] || statusConfig.healthy;
               const TrendIcon = trendIcons[eq.trend] || Minus;
               return (
-                <Card key={eq.id} className={`bg-slate-900/60 border ${config.bg} cursor-pointer hover:bg-slate-800/60 transition-colors`}
+                <Card key={eq.id} className={`bg-paper-deep border ${config.bg} cursor-pointer hover:bg-white transition-colors`}
                   onClick={() => setSelectedEquipment(selectedEquipment?.id === eq.id ? null : eq)}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="relative">
-                          <div className="w-14 h-14 rounded-xl bg-slate-800/50 flex items-center justify-center">
+                          <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center">
                             <Gauge className={`w-7 h-7 ${config.color}`} />
                           </div>
-                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center`}>
+                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-paper-deep flex items-center justify-center`}>
                             <TrendIcon className={`w-3 h-3 ${trendColors[eq.trend]}`} />
                           </div>
                         </div>
                         <div>
-                          <p className="text-white font-medium">{eq.equipmentName}</p>
-                          <p className="text-xs text-slate-400">{eq.equipmentType} · {eq.location || 'N/A'}</p>
+                          <p className="text-ink font-medium">{eq.equipmentName}</p>
+                          <p className="text-xs text-ink-mute">{eq.equipmentType} · {eq.location || 'N/A'}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="outline" className={`text-xs ${config.color} border-current`}>
                               {config.label}
                             </Badge>
-                            <Badge variant="outline" className="text-xs text-slate-400 border-slate-600">
+                            <Badge variant="outline" className="text-xs text-ink-mute border-rule">
                               Risque: {eq.riskLevel}
                             </Badge>
                           </div>
@@ -206,23 +206,23 @@ export default function MachineHealth() {
                           </div>
                           <span className={`text-2xl font-bold ${config.color}`}>{eq.healthScore}</span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-ink-mute mt-1">
                           {eq.recentFailures} panne(s) · {eq.pendingWorkOrders} OT en attente
                         </p>
                       </div>
                     </div>
 
                     {selectedEquipment?.id === eq.id && eq.recommendations.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                        <p className="text-xs font-medium text-slate-300 flex items-center gap-1">
+                      <div className="mt-4 pt-4 border-t border-rule space-y-2">
+                        <p className="text-xs font-medium text-ink-soft flex items-center gap-1">
                           <Brain className="w-3 h-3 text-signal-light" /> Recommandations IA
                         </p>
                         {eq.recommendations.map((rec: any, i: number) => (
-                          <div key={i} className="flex items-start gap-2 p-2 bg-slate-800/50 rounded-lg">
+                          <div key={i} className="flex items-start gap-2 p-2 bg-white rounded-lg">
                             <Zap className={`w-4 h-4 mt-0.5 shrink-0 ${rec.priority === 'critical' ? 'text-red-400' : rec.priority === 'high' ? 'text-orange-400' : 'text-blue-400'}`} />
                             <div>
-                              <p className="text-xs text-white">{rec.message}</p>
-                              <Badge className="text-[10px] mt-1 bg-slate-700/50 text-slate-300">{rec.type}</Badge>
+                              <p className="text-xs text-ink">{rec.message}</p>
+                              <Badge className="text-[10px] mt-1 bg-paper-deep text-ink-soft">{rec.type}</Badge>
                             </div>
                           </div>
                         ))}
@@ -235,13 +235,13 @@ export default function MachineHealth() {
           </TabsContent>
 
           <TabsContent value="recommendations" className="space-y-4">
-            <Card className="bg-slate-900/60 border-white/10">
+            <Card className="bg-paper-deep border-rule">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-ink flex items-center gap-2">
                   <Brain className="w-5 h-5 text-signal-light" />
                   Recommandations d'Actions IA
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-ink-mute">
                   Actions recommandées basées sur l'analyse des données de maintenance et le scoring santé
                 </CardDescription>
               </CardHeader>
@@ -255,25 +255,25 @@ export default function MachineHealth() {
                   const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
                   return (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
                 }).map((rec: any) => (
-                  <div key={rec.key} className={`p-4 rounded-lg border ${rec.priority === 'critical' ? 'bg-red-950/20 border-red-500/30' : rec.priority === 'high' ? 'bg-orange-950/20 border-orange-500/30' : 'bg-slate-800/30 border-white/10'}`}>
+                  <div key={rec.key} className={`p-4 rounded-lg border ${rec.priority === 'critical' ? 'bg-red-950/20 border-red-500/30' : rec.priority === 'high' ? 'bg-orange-950/20 border-orange-500/30' : 'bg-white border-rule'}`}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Badge className={`${rec.priority === 'critical' ? 'bg-red-500/20 text-red-400' : rec.priority === 'high' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
                           {rec.priority}
                         </Badge>
-                        <span className="text-sm font-medium text-white">{rec.equipmentName}</span>
-                        <span className="text-xs text-slate-500">Score: {rec.healthScore}/100</span>
+                        <span className="text-sm font-medium text-ink">{rec.equipmentName}</span>
+                        <span className="text-xs text-ink-mute">Score: {rec.healthScore}/100</span>
                       </div>
-                      <Badge variant="outline" className="text-xs text-slate-400 border-white/10">{rec.type}</Badge>
+                      <Badge variant="outline" className="text-xs text-ink-mute border-rule">{rec.type}</Badge>
                     </div>
-                    <p className="text-sm text-slate-300">{rec.message}</p>
+                    <p className="text-sm text-ink-soft">{rec.message}</p>
                   </div>
                 ))}
                 {equipment.filter((eq: any) => eq.recommendations.length > 0).length === 0 && (
                   <div className="text-center py-8">
                     <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                    <p className="text-white font-medium">Tous les équipements sont en bon état</p>
-                    <p className="text-sm text-slate-400">Aucune action recommandée pour le moment</p>
+                    <p className="text-ink font-medium">Tous les équipements sont en bon état</p>
+                    <p className="text-sm text-ink-mute">Aucune action recommandée pour le moment</p>
                   </div>
                 )}
               </CardContent>

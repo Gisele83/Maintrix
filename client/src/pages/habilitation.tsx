@@ -198,7 +198,7 @@ export default function HabilitationPage() {
             </div>
             <h1 className="text-3xl font-bold text-ink">Habilitations Techniciens</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Certifications, qualifications et compétences réglementaires</p>
+          <p className="text-ink-mute ml-14 text-sm">Certifications, qualifications et compétences réglementaires</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2">
           <Plus className="h-4 w-4" /> Nouvelle habilitation
@@ -216,7 +216,7 @@ export default function HabilitationPage() {
           <Card key={label} className="border-0 shadow-md">
             <CardContent className="p-4 flex items-center gap-4">
               <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -233,7 +233,7 @@ export default function HabilitationPage() {
               <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-amber-200 px-3 py-2">
                 <UserCheck className="h-4 w-4 text-amber-600 shrink-0" />
                 <span className="font-medium text-sm">{e.technician_name}</span>
-                <span className="text-slate-500 text-sm flex-1">{e.title}</span>
+                <span className="text-ink-mute text-sm flex-1">{e.title}</span>
                 <Badge variant="outline" className="text-xs">{e.habilitation_type}</Badge>
                 <span className="text-amber-700 font-medium text-sm">{new Date(e.expiry_date).toLocaleDateString("fr-FR")}</span>
               </div>
@@ -245,7 +245,7 @@ export default function HabilitationPage() {
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap items-center">
         <div className="relative flex-1 min-w-60">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" />
           <Input placeholder="Rechercher technicien, habilitation..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -269,11 +269,11 @@ export default function HabilitationPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
-          <UserCheck className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-600 mb-1">Aucune habilitation enregistrée</h3>
+          <UserCheck className="h-12 w-12 text-ink-soft mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-ink-soft mb-1">Aucune habilitation enregistrée</h3>
           <Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4">
             <Plus className="h-4 w-4" /> Créer la première habilitation
           </Button>
@@ -290,7 +290,7 @@ export default function HabilitationPage() {
                   <div className="p-2 rounded-lg bg-indigo-100"><UserCheck className="h-4 w-4 text-indigo-600" /></div>
                   <h3 className="font-semibold text-slate-800">{tech}</h3>
                   {techHabs[0]?.department && <Badge variant="outline" className="text-xs">{techHabs[0].department}</Badge>}
-                  <span className="text-xs text-slate-500 ml-auto">{techHabs.length} habilitation{techHabs.length > 1 ? "s" : ""}</span>
+                  <span className="text-xs text-ink-mute ml-auto">{techHabs.length} habilitation{techHabs.length > 1 ? "s" : ""}</span>
                   {expired > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{expired} expirée{expired > 1 ? "s" : ""}</Badge>}
                   {expiring > 0 && <Badge className="bg-yellow-100 text-yellow-700 text-xs">⏰ {expiring} bientôt</Badge>}
                 </div>
@@ -308,7 +308,7 @@ export default function HabilitationPage() {
                             <StatusBadge status={h.computedStatus} />
                             {h.isPermanent ? <Badge className="bg-blue-100 text-blue-700 text-xs">Permanent</Badge> :
                               h.expiryDate ? <DaysProgress days={h.daysUntilExpiry} alertDays={h.renewalAlertDays} /> : null}
-                            {h.certificateNumber && <span className="text-xs text-slate-400">{h.certificateNumber}</span>}
+                            {h.certificateNumber && <span className="text-xs text-ink-mute">{h.certificateNumber}</span>}
                           </div>
                         </div>
                       </div>
@@ -333,12 +333,12 @@ export default function HabilitationPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-xs font-mono text-slate-400">{h.habilitationNumber}</span>
+                        <span className="text-xs font-mono text-ink-mute">{h.habilitationNumber}</span>
                         <StatusBadge status={h.computedStatus} />
                         {h.isPermanent && <Badge className="bg-blue-100 text-blue-700 text-xs">Permanent</Badge>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{h.title}</h3>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap text-xs text-slate-500">
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap text-xs text-ink-mute">
                         <span className="font-medium text-slate-700">{h.technicianName}</span>
                         {h.department && <span>{h.department}</span>}
                         <Badge variant="outline" className="text-xs">{h.habilitationType}</Badge>
@@ -465,8 +465,8 @@ export default function HabilitationPage() {
                 <Award className={`h-6 w-6 mt-0.5 ${selected.computedStatus === "expired" ? "text-red-600" : selected.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-indigo-600"}`} />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
-                  <p className="text-sm text-slate-600 mt-0.5">{selected.technicianName}{selected.department ? ` · ${selected.department}` : ""}</p>
-                  <p className="text-xs text-slate-400 font-mono">{selected.habilitationNumber}</p>
+                  <p className="text-sm text-ink-soft mt-0.5">{selected.technicianName}{selected.department ? ` · ${selected.department}` : ""}</p>
+                  <p className="text-xs text-ink-mute font-mono">{selected.habilitationNumber}</p>
                 </div>
                 <StatusBadge status={selected.computedStatus} />
               </div>
@@ -492,17 +492,17 @@ export default function HabilitationPage() {
                     { l: "Lieu formation", v: selected.trainingLocation },
                     { l: "Email", v: selected.technicianEmail },
                   ].filter(i => i.v).map(({ l, v }) => (
-                    <div key={l}><p className="text-xs text-slate-500">{l}</p><p className="font-medium">{v}</p></div>
+                    <div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>
                   ))}
                 </div>
-                {selected.scope && <div className="bg-slate-50 rounded-lg p-3"><p className="text-xs text-slate-500 mb-1">Périmètre</p><p className="text-sm">{selected.scope}</p></div>}
+                {selected.scope && <div className="bg-slate-50 rounded-lg p-3"><p className="text-xs text-ink-mute mb-1">Périmètre</p><p className="text-sm">{selected.scope}</p></div>}
                 {selected.restrictions && <div className="bg-orange-50 border border-orange-200 rounded-lg p-3"><p className="text-xs text-orange-600 font-medium mb-1">Restrictions</p><p className="text-sm">{selected.restrictions}</p></div>}
               </TabsContent>
 
               <TabsContent value="validity" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 rounded-xl p-4 border">
-                    <p className="text-xs text-slate-500">Date de délivrance</p>
+                    <p className="text-xs text-ink-mute">Date de délivrance</p>
                     <p className="text-xl font-bold text-slate-800">{new Date(selected.issueDate).toLocaleDateString("fr-FR")}</p>
                   </div>
                   {selected.isPermanent ? (
@@ -512,21 +512,21 @@ export default function HabilitationPage() {
                     </div>
                   ) : selected.expiryDate ? (
                     <div className={`rounded-xl p-4 border ${selected.computedStatus === "expired" ? "bg-red-50 border-red-200" : selected.computedStatus === "expiring_soon" ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}`}>
-                      <p className="text-xs text-slate-500">Date d'expiration</p>
+                      <p className="text-xs text-ink-mute">Date d'expiration</p>
                       <p className="text-xl font-bold">{new Date(selected.expiryDate).toLocaleDateString("fr-FR")}</p>
                       <DaysProgress days={selected.daysUntilExpiry} alertDays={selected.renewalAlertDays} />
                     </div>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-3">
-                  <span className="text-sm text-slate-600">Alerte renouvellement:</span>
+                  <span className="text-sm text-ink-soft">Alerte renouvellement:</span>
                   <span className="font-semibold">{selected.renewalAlertDays} jours avant expiration</span>
                 </div>
               </TabsContent>
 
               <TabsContent value="history" className="space-y-4 mt-4">
                 {(selected.renewalHistory || []).length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-8">Aucun renouvellement enregistré</p>
+                  <p className="text-ink-mute text-sm text-center py-8">Aucun renouvellement enregistré</p>
                 ) : (
                   <div className="space-y-3">
                     {[...(selected.renewalHistory || [])].reverse().map((r, i) => (
@@ -535,13 +535,13 @@ export default function HabilitationPage() {
                           <RefreshCw className="h-4 w-4 text-indigo-500" />
                           <span className="text-sm font-medium">Renouvellement du {new Date(r.date).toLocaleDateString("fr-FR")}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                        <div className="grid grid-cols-2 gap-2 text-xs text-ink-mute">
                           <span>Nouveau départ: {new Date(r.issueDate).toLocaleDateString("fr-FR")}</span>
                           {r.expiryDate && <span>Nouveau terme: {new Date(r.expiryDate).toLocaleDateString("fr-FR")}</span>}
                           {r.previousExpiry && <span>Ancien terme: {new Date(r.previousExpiry).toLocaleDateString("fr-FR")}</span>}
                           {r.certificateNumber && <span>Certificat: {r.certificateNumber}</span>}
                         </div>
-                        {r.notes && <p className="text-xs text-slate-400 mt-1">{r.notes}</p>}
+                        {r.notes && <p className="text-xs text-ink-mute mt-1">{r.notes}</p>}
                       </div>
                     ))}
                   </div>
@@ -567,7 +567,7 @@ export default function HabilitationPage() {
         <Dialog open={showRenew} onOpenChange={setShowRenew}>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5 text-indigo-600" />Renouveler l'habilitation</DialogTitle></DialogHeader>
-            <p className="text-sm text-slate-500">{selected.title} — {selected.technicianName}</p>
+            <p className="text-sm text-ink-mute">{selected.title} — {selected.technicianName}</p>
             <Form {...renewForm}>
               <form onSubmit={renewForm.handleSubmit(d => renewMutation.mutate({ id: selected.id, data: d }))} className="space-y-3 mt-2">
                 <FormField control={renewForm.control} name="issueDate" render={({ field }) => (

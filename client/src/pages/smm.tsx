@@ -44,7 +44,7 @@ const SEVERITY_BADGE: Record<string, string> = {
   mineure: "bg-yellow-100 text-yellow-700", majeure: "bg-orange-100 text-orange-700", critique: "bg-red-100 text-red-700",
 };
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600", published: "bg-green-100 text-green-700", archived: "bg-gray-100 text-gray-400",
+  draft: "bg-gray-100 text-gray-600", published: "bg-green-100 text-green-700", archived: "bg-gray-100 text-ink-mute",
   planned: "bg-gray-100 text-gray-600", in_progress: "bg-blue-100 text-blue-700", completed: "bg-green-100 text-green-700",
   ouverte: "bg-red-100 text-red-700", en_traitement: "bg-blue-100 text-blue-700", cloturee: "bg-green-100 text-green-700",
   a_faire: "bg-gray-100 text-gray-600", en_cours: "bg-blue-100 text-blue-700", terminee: "bg-green-100 text-green-700", verifiee: "bg-emerald-100 text-emerald-700",
@@ -164,7 +164,7 @@ function DocumentsTab() {
             </CardContent>
           </Card>
         ))}
-        {(documents ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-2">Aucun document.</p>}
+        {(documents ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucun document.</p>}
       </div>
     </div>
   );
@@ -215,7 +215,7 @@ function ChecklistsTab() {
             <CardContent><p className="text-xs text-gray-500">{c.items.length} item(s)</p></CardContent>
           </Card>
         ))}
-        {(checklists ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-2">Aucune checklist.</p>}
+        {(checklists ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucune checklist.</p>}
       </div>
     </div>
   );
@@ -278,7 +278,7 @@ function AuditsTab() {
             <CardContent><p className="text-xs text-gray-500">{a.auditType} {a.score !== null ? `— score ${a.score}%` : ""}</p></CardContent>
           </Card>
         ))}
-        {(audits ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-2">Aucun audit.</p>}
+        {(audits ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucun audit.</p>}
       </div>
     </div>
   );
@@ -356,7 +356,7 @@ function NonConformitiesTab() {
             </CardHeader>
             <CardContent className="space-y-2">
               {nc.description && <p className="text-xs text-gray-500">{nc.description}</p>}
-              <p className="text-xs text-gray-400 flex items-center gap-1">
+              <p className="text-xs text-ink-mute flex items-center gap-1">
                 {nc.source === "controle_qualite" && <AlertTriangle className="w-3 h-3 text-orange-500" />}
                 Source : {nc.source === "controle_qualite" ? "Contrôle qualité (Maintenance Execution)" : nc.source}
               </p>
@@ -371,7 +371,7 @@ function NonConformitiesTab() {
             </CardContent>
           </Card>
         ))}
-        {(ncs ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-2">Aucune non-conformité.</p>}
+        {(ncs ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucune non-conformité.</p>}
       </div>
     </div>
   );
@@ -434,7 +434,7 @@ function ImprovementActionsTab() {
             <CardContent><Badge variant="outline" className="text-xs">{a.actionType}</Badge></CardContent>
           </Card>
         ))}
-        {(actions ?? []).length === 0 && <p className="text-sm text-gray-400 col-span-2">Aucune action.</p>}
+        {(actions ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucune action.</p>}
       </div>
     </div>
   );

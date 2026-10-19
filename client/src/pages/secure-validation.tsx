@@ -182,10 +182,10 @@ export default function SecureValidation() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-ink">
               Système de Validation Multi-Niveaux
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
+            <p className="text-gray-600 dark:text-ink-soft mt-1">
               Interface sécurisée pour la validation des demandes
             </p>
           </div>
@@ -210,19 +210,19 @@ export default function SecureValidation() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Nom complet</p>
+                <p className="text-sm text-gray-600 dark:text-ink-mute">Nom complet</p>
                 <p className="font-medium">{user.firstName} {user.lastName}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Matricule</p>
+                <p className="text-sm text-gray-600 dark:text-ink-mute">Matricule</p>
                 <p className="font-medium font-mono">{user.matricule}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Département</p>
+                <p className="text-sm text-gray-600 dark:text-ink-mute">Département</p>
                 <p className="font-medium">{user.department}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Niveau de validation</p>
+                <p className="text-sm text-gray-600 dark:text-ink-mute">Niveau de validation</p>
                 <Badge variant="outline" className="mt-1">
                   Niveau {user.validationLevel} - {getLevelDescription(user.validationLevel)}
                 </Badge>
@@ -264,7 +264,7 @@ export default function SecureValidation() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="font-semibold">{order.orderNumber}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{order.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-ink-mute">{order.description}</p>
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-lg">{order.totalAmount} EUR</p>
@@ -274,7 +274,7 @@ export default function SecureValidation() {
                           </div>
                         </div>
                         
-                        <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className="flex justify-between items-center text-sm text-gray-600 dark:text-ink-mute mb-3">
                           <span>Demandé par: {order.requestedBy}</span>
                           <span>Type: {order.documentType === 'purchase_order' ? 'Bon de commande' : 'Lettre de commande'}</span>
                         </div>
@@ -350,14 +350,14 @@ export default function SecureValidation() {
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="font-semibold">{workOrder.orderNumber}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{workOrder.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-ink-mute">{workOrder.description}</p>
                           </div>
                           <Badge variant={getPriorityColor(workOrder.priority)}>
                             {workOrder.priority}
                           </Badge>
                         </div>
                         
-                        <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className="flex justify-between items-center text-sm text-gray-600 dark:text-ink-mute mb-3">
                           <span>Assigné à: {workOrder.assignedTo}</span>
                           <span>Équipement: {workOrder.equipmentType}</span>
                         </div>

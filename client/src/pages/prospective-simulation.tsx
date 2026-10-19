@@ -107,28 +107,28 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
               </span>
             )}
           </div>
-          {isExpanded ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+          {isExpanded ? <ChevronDown className="w-4 h-4 text-ink-mute" /> : <ChevronRight className="w-4 h-4 text-ink-mute" />}
         </div>
         <h3 className={`font-bold text-sm ${cfg.color} mb-1`}>{scenario.label}</h3>
-        <p className="text-xs text-slate-500 line-clamp-2">{scenario.description}</p>
+        <p className="text-xs text-ink-mute line-clamp-2">{scenario.description}</p>
 
         {/* Key metrics row */}
         <div className="grid grid-cols-3 gap-2 mt-3">
           <div className="text-center">
             <div className={`text-base font-black ${cfg.color}`}>{fmt(scenario.cost.total)}</div>
-            <div className="text-[10px] text-slate-500">Coût total</div>
+            <div className="text-[10px] text-ink-mute">Coût total</div>
           </div>
           <div className="text-center">
-            <div className={`text-base font-black ${scenario.failureProbability30d > 30 ? "text-red-400" : "text-slate-300"}`}>
+            <div className={`text-base font-black ${scenario.failureProbability30d > 30 ? "text-red-400" : "text-ink-soft"}`}>
               {scenario.failureProbability30d.toFixed(1)}%
             </div>
-            <div className="text-[10px] text-slate-500">Défaillance 30j</div>
+            <div className="text-[10px] text-ink-mute">Défaillance 30j</div>
           </div>
           <div className="text-center">
-            <div className={`text-base font-black ${scenario.oeeAverageLoss > 10 ? "text-amber-400" : "text-slate-300"}`}>
+            <div className={`text-base font-black ${scenario.oeeAverageLoss > 10 ? "text-amber-400" : "text-ink-soft"}`}>
               -{scenario.oeeAverageLoss.toFixed(1)}pt
             </div>
-            <div className="text-[10px] text-slate-500">OEE moyen</div>
+            <div className="text-[10px] text-ink-mute">OEE moyen</div>
           </div>
         </div>
 
@@ -136,32 +136,32 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
         <div className="mt-3 h-14">
           <SparkLine data={scenario.degradationCurve} color={cfg.dotColor} height={56} showAxis />
         </div>
-        <div className="flex justify-between text-[10px] text-slate-600 mt-1 px-2">
+        <div className="flex justify-between text-[10px] text-ink-soft mt-1 px-2">
           <span>J0</span><span>J30</span><span>J60</span><span>J90</span>
         </div>
       </div>
 
       {/* Expanded detail */}
       {isExpanded && (
-        <div className="border-t border-slate-700/40 p-4 space-y-4">
+        <div className="border-t border-rule p-4 space-y-4">
           {/* IMCA journey */}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-slate-800/60 p-2">
-              <div className="text-xs text-slate-500">IMCA actuel</div>
+            <div className="rounded-lg bg-white p-2">
+              <div className="text-xs text-ink-mute">IMCA actuel</div>
               <div className={`text-lg font-black`} style={{ color: imcaColor(scenario.imcaAtDecision) }}>{scenario.imcaAtDecision.toFixed(0)}</div>
             </div>
-            <div className="rounded-lg bg-slate-800/60 p-2 flex items-center justify-center">
-              <ChevronRight className="w-4 h-4 text-slate-600" />
+            <div className="rounded-lg bg-white p-2 flex items-center justify-center">
+              <ChevronRight className="w-4 h-4 text-ink-soft" />
             </div>
-            <div className="rounded-lg bg-slate-800/60 p-2">
-              <div className="text-xs text-slate-500">IMCA J+90</div>
+            <div className="rounded-lg bg-white p-2">
+              <div className="text-xs text-ink-mute">IMCA J+90</div>
               <div className={`text-lg font-black`} style={{ color: imcaColor(scenario.imcaAtEnd) }}>{scenario.imcaAtEnd.toFixed(0)}</div>
             </div>
           </div>
 
           {/* Cost breakdown */}
           <div className="space-y-1">
-            <p className="text-xs text-slate-400 font-semibold">Décomposition des coûts</p>
+            <p className="text-xs text-ink-mute font-semibold">Décomposition des coûts</p>
             {[
               { label: "Maintenance", val: scenario.cost.maintenance, color: "bg-blue-500" },
               { label: "Arrêts/Production", val: scenario.cost.downtime, color: "bg-amber-500" },
@@ -169,8 +169,8 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
             ].map(({ label, val, color }) => (
               <div key={label} className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${color}`} />
-                <span className="text-xs text-slate-500 flex-1">{label}</span>
-                <span className="text-xs font-semibold text-slate-300">{fmt(val)}</span>
+                <span className="text-xs text-ink-mute flex-1">{label}</span>
+                <span className="text-xs font-semibold text-ink-soft">{fmt(val)}</span>
               </div>
             ))}
           </div>
@@ -178,9 +178,9 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
           {/* Failure probability */}
           <div className="grid grid-cols-2 gap-2">
             {[["30j", scenario.failureProbability30d], ["90j", scenario.failureProbability90d]].map(([horizon, prob]) => (
-              <div key={horizon as string} className="rounded-lg bg-slate-800/60 p-2">
-                <div className="text-xs text-slate-500">P(défaillance {horizon})</div>
-                <div className={`text-base font-bold ${(prob as number) > 20 ? "text-red-400" : "text-slate-300"}`}>
+              <div key={horizon as string} className="rounded-lg bg-white p-2">
+                <div className="text-xs text-ink-mute">P(défaillance {horizon})</div>
+                <div className={`text-base font-bold ${(prob as number) > 20 ? "text-red-400" : "text-ink-soft"}`}>
                   {(prob as number).toFixed(1)}%
                 </div>
               </div>
@@ -192,13 +192,13 @@ function ScenarioCard({ scenario, isRecommended, isExpanded, onToggle }: {
             <div>
               <p className="text-xs text-emerald-400 font-semibold mb-1">Avantages</p>
               <ul className="space-y-1">
-                {scenario.pros.map((p, i) => <li key={i} className="text-xs text-slate-400 flex gap-1"><span className="text-emerald-500 flex-shrink-0">+</span>{p}</li>)}
+                {scenario.pros.map((p, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-emerald-500 flex-shrink-0">+</span>{p}</li>)}
               </ul>
             </div>
             <div>
               <p className="text-xs text-red-400 font-semibold mb-1">Inconvénients</p>
               <ul className="space-y-1">
-                {scenario.cons.map((c, i) => <li key={i} className="text-xs text-slate-400 flex gap-1"><span className="text-red-500 flex-shrink-0">−</span>{c}</li>)}
+                {scenario.cons.map((c, i) => <li key={i} className="text-xs text-ink-mute flex gap-1"><span className="text-red-500 flex-shrink-0">−</span>{c}</li>)}
               </ul>
             </div>
           </div>
@@ -228,18 +228,18 @@ function ComparisonTable({ data }: { data: SimResult }) {
     { label: "Score global", ranking: data.comparisonMatrix.overallRanking, format: () => "" },
   ];
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-800/30 overflow-hidden">
-      <div className="p-4 border-b border-slate-700/50">
+    <div className="rounded-2xl border border-rule bg-white overflow-hidden">
+      <div className="p-4 border-b border-rule">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-signal-light" />
-          <span className="text-sm font-bold text-white">Matrice de comparaison</span>
+          <span className="text-sm font-bold text-ink">Matrice de comparaison</span>
         </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-slate-700/50">
-              <th className="text-left p-3 text-slate-500 font-medium">Critère</th>
+            <tr className="border-b border-rule">
+              <th className="text-left p-3 text-ink-mute font-medium">Critère</th>
               {(["IMMEDIATE", "DEFERRED", "NO_INTERVENTION"] as ScenarioType[]).map(s => (
                 <th key={s} className={`text-center p-3 font-semibold ${scenarioConfig[s].color}`}>{scenarioLabel[s]}</th>
               ))}
@@ -247,14 +247,14 @@ function ComparisonTable({ data }: { data: SimResult }) {
           </thead>
           <tbody>
             {rows.map(row => (
-              <tr key={row.label} className="border-b border-slate-700/30">
-                <td className="p-3 text-slate-400">{row.label}</td>
+              <tr key={row.label} className="border-b border-rule">
+                <td className="p-3 text-ink-mute">{row.label}</td>
                 {(["IMMEDIATE", "DEFERRED", "NO_INTERVENTION"] as ScenarioType[]).map(s => {
                   const rank = row.ranking.indexOf(s);
                   return (
                     <td key={s} className="p-3 text-center">
                       <span className="mr-1">{medals[rank] ?? ""}</span>
-                      <span className={rank === 0 ? "text-white font-bold" : "text-slate-500"}>
+                      <span className={rank === 0 ? "text-white font-bold" : "text-ink-mute"}>
                         {row.format(s)}
                       </span>
                     </td>
@@ -278,12 +278,12 @@ function FleetRow({ item, onSelect }: { item: FleetItem; onSelect: () => void })
     <div onClick={onSelect} className={`flex items-center gap-3 rounded-xl border ${cfg.border} ${cfg.bg} p-3 cursor-pointer hover:opacity-90 transition-all`}>
       <UrgIcon className={`w-4 h-4 flex-shrink-0 ${cfg.color}`} />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{item.equipmentName}</p>
-        <p className="text-xs text-slate-500">{scenarioLabel[item.recommendedScenario]} · {fmt(item.immediateCost)}</p>
+        <p className="text-sm font-semibold text-ink truncate">{item.equipmentName}</p>
+        <p className="text-xs text-ink-mute">{scenarioLabel[item.recommendedScenario]} · {fmt(item.immediateCost)}</p>
       </div>
       <div className="text-right flex-shrink-0">
         <div className={`text-sm font-bold ${cfg.color}`}>{cfg.label}</div>
-        <div className="text-xs text-slate-500">IMCA {item.currentIMCA}</div>
+        <div className="text-xs text-ink-mute">IMCA {item.currentIMCA}</div>
       </div>
     </div>
   );
@@ -330,8 +330,8 @@ export default function ProspectiveSimulationPage() {
               <FlaskConical className="w-6 h-6 text-cyan-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white">Simulation Prospective</h1>
-              <p className="text-sm text-slate-400">Comparaison formelle Immédiat / Différé / Non-intervention avant toute décision autonome</p>
+              <h1 className="text-2xl font-black text-ink">Simulation Prospective</h1>
+              <p className="text-sm text-ink-mute">Comparaison formelle Immédiat / Différé / Non-intervention avant toute décision autonome</p>
             </div>
           </div>
         </div>
@@ -339,46 +339,46 @@ export default function ProspectiveSimulationPage() {
         {/* Defer days selector */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-slate-500" />
-            <span className="text-xs text-slate-400">Horizon du report (scénario Différé) :</span>
+            <Clock className="w-4 h-4 text-ink-mute" />
+            <span className="text-xs text-ink-mute">Horizon du report (scénario Différé) :</span>
           </div>
           <Select value={deferDays} onValueChange={v => { setDeferDays(v); }}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-300 h-8 w-32 text-xs">
+            <SelectTrigger className="bg-white border-rule text-ink-soft h-8 w-32 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectContent className="bg-white border-rule">
               {["7", "14", "21", "30", "45", "60"].map(v => (
-                <SelectItem key={v} value={v} className="text-slate-300">J+{v} jours</SelectItem>
+                <SelectItem key={v} value={v} className="text-ink-soft">J+{v} jours</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" onClick={() => refetchFleet()} className="text-slate-400 hover:text-white h-8">
+          <Button variant="ghost" size="sm" onClick={() => refetchFleet()} className="text-ink-mute hover:text-ink h-8">
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
         </div>
 
         {/* Fleet KPIs */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-4 text-center">
-            <div className="text-3xl font-black text-white mb-1">{fleet?.totalEquipment ?? "–"}</div>
-            <div className="text-xs text-slate-400">Actifs simulés</div>
+          <div className="rounded-2xl border border-rule bg-white p-4 text-center">
+            <div className="text-3xl font-black text-ink mb-1">{fleet?.totalEquipment ?? "–"}</div>
+            <div className="text-xs text-ink-mute">Actifs simulés</div>
           </div>
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center">
             <div className="text-3xl font-black text-red-400 mb-1">{fleet?.criticalCount ?? "–"}</div>
-            <div className="text-xs text-slate-400">Urgence critique</div>
+            <div className="text-xs text-ink-mute">Urgence critique</div>
           </div>
           <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-center">
             <div className="text-3xl font-black text-cyan-400 mb-1">{deferDays}j</div>
-            <div className="text-xs text-slate-400">Horizon report simulé</div>
+            <div className="text-xs text-ink-mute">Horizon report simulé</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left — Fleet list */}
           <div className="space-y-4">
-            <h2 className="text-sm font-bold text-white">Classement par urgence — Flotte</h2>
+            <h2 className="text-sm font-bold text-ink">Classement par urgence — Flotte</h2>
             {fleetLoading ? (
-              <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-xl bg-slate-800/40 animate-pulse" />)}</div>
+              <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-xl bg-white animate-pulse" />)}</div>
             ) : fleet?.results && fleet.results.length > 0 ? (
               <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                 {fleet.results.map(item => (
@@ -387,22 +387,22 @@ export default function ProspectiveSimulationPage() {
               </div>
             ) : equipList && equipList.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs text-slate-500">Sélectionner un équipement :</p>
+                <p className="text-xs text-ink-mute">Sélectionner un équipement :</p>
                 {equipList.slice(0, 10).map(e => (
                   <button key={e.id} onClick={() => setSelectedId(e.id)}
-                    className="w-full flex items-center justify-between rounded-xl border border-slate-700 bg-slate-800/40 px-4 py-2.5 hover:border-cyan-500/50 transition-colors text-left">
-                    <span className="text-sm text-slate-300">{e.name}</span>
+                    className="w-full flex items-center justify-between rounded-xl border border-rule bg-white px-4 py-2.5 hover:border-cyan-500/50 transition-colors text-left">
+                    <span className="text-sm text-ink-soft">{e.name}</span>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs border-slate-600 text-slate-500">{e.criticalityLevel}</Badge>
-                      <ChevronRight className="w-4 h-4 text-slate-600" />
+                      <Badge variant="outline" className="text-xs border-rule text-ink-mute">{e.criticalityLevel}</Badge>
+                      <ChevronRight className="w-4 h-4 text-ink-soft" />
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-8 text-center">
-                <Cpu className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm">Aucun équipement disponible.</p>
+              <div className="rounded-xl border border-rule bg-white p-8 text-center">
+                <Cpu className="w-8 h-8 text-ink-soft mx-auto mb-3" />
+                <p className="text-ink-mute text-sm">Aucun équipement disponible.</p>
               </div>
             )}
           </div>
@@ -410,22 +410,22 @@ export default function ProspectiveSimulationPage() {
           {/* Right — Simulation detail */}
           <div>
             {simLoading ? (
-              <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-40 rounded-xl bg-slate-800/40 animate-pulse" />)}</div>
+              <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-40 rounded-xl bg-white animate-pulse" />)}</div>
             ) : sim ? (
               <div className="space-y-4">
                 {/* Equipment header */}
-                <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-4">
+                <div className="rounded-2xl border border-rule bg-white p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <p className="font-bold text-white">{sim.equipmentName}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Criticité : <span className="text-slate-300 capitalize">{sim.criticalityLevel}</span> ·
+                      <p className="font-bold text-ink">{sim.equipmentName}</p>
+                      <p className="text-xs text-ink-mute mt-0.5">
+                        Criticité : <span className="text-ink-soft capitalize">{sim.criticalityLevel}</span> ·
                         Taux de dégradation : <span className="text-amber-400">{sim.currentDegradationRate.toFixed(3)} IMCA/j</span>
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-3xl font-black" style={{ color: imcaColor(sim.currentIMCA) }}>{sim.currentIMCA}</div>
-                      <div className="text-xs text-slate-500">IMCA actuel</div>
+                      <div className="text-xs text-ink-mute">IMCA actuel</div>
                     </div>
                   </div>
                 </div>
@@ -438,16 +438,16 @@ export default function ProspectiveSimulationPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-sm font-bold ${urgCfg.color}`}>Urgence {urgCfg.label}</span>
-                          <span className="text-xs text-slate-500">— Confiance : {Math.round(rec.confidence * 100)}%</span>
+                          <span className="text-xs text-ink-mute">— Confiance : {Math.round(rec.confidence * 100)}%</span>
                           {rec.autonomyCompatible
                             ? <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full px-2">Autonomie compatible</span>
                             : <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full px-2">Approbation humaine requise</span>}
                         </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">{rec.rationale}</p>
+                        <p className="text-xs text-ink-soft leading-relaxed">{rec.rationale}</p>
                         {rec.decisionDeadline && (
-                          <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                          <p className="text-xs text-ink-mute mt-2 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            Délai de décision : <span className="text-slate-300">{new Date(rec.decisionDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                            Délai de décision : <span className="text-ink-soft">{new Date(rec.decisionDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</span>
                           </p>
                         )}
                       </div>
@@ -471,12 +471,12 @@ export default function ProspectiveSimulationPage() {
 
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/30 p-12 text-center h-full flex flex-col items-center justify-center min-h-[400px]">
+              <div className="rounded-2xl border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center min-h-[400px]">
                 <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 mb-4">
                   <FlaskConical className="w-10 h-10 text-cyan-400" />
                 </div>
-                <p className="text-slate-300 font-semibold mb-2">Sélectionnez un équipement</p>
-                <p className="text-slate-500 text-sm max-w-xs">La simulation compare les trois scénarios décisionnels (Immédiat / Différé / Non-intervention) sur un horizon de 90 jours avec modèle de Weibull calibré.</p>
+                <p className="text-ink-soft font-semibold mb-2">Sélectionnez un équipement</p>
+                <p className="text-ink-mute text-sm max-w-xs">La simulation compare les trois scénarios décisionnels (Immédiat / Différé / Non-intervention) sur un horizon de 90 jours avec modèle de Weibull calibré.</p>
               </div>
             )}
           </div>

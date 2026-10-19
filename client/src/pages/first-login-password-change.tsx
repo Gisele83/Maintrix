@@ -153,15 +153,15 @@ export default function FirstLoginPasswordChange() {
 
   return (
     <div className="min-h-screen bg-paper-deep flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-white/5 border-white/10">
+      <Card className="w-full max-w-md bg-white/5 border-rule">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-paper-deep rounded-full flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-ink" />
           </div>
-          <CardTitle className="text-2xl font-bold text-white">
+          <CardTitle className="text-2xl font-bold text-ink">
             Première connexion
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-ink-mute">
             Vous devez changer votre mot de passe par défaut pour accéder à la plateforme
           </CardDescription>
         </CardHeader>
@@ -169,8 +169,8 @@ export default function FirstLoginPasswordChange() {
         <CardContent className="space-y-6">
           {/* Informations utilisateur */}
           <div className="p-3 bg-white/5 rounded-lg border border-orange-500/30">
-            <div className="text-sm text-gray-400">Utilisateur connecté:</div>
-            <div className="text-white font-medium">{firstLoginData.email}</div>
+            <div className="text-sm text-ink-mute">Utilisateur connecté:</div>
+            <div className="text-ink font-medium">{firstLoginData.email}</div>
             <div className="text-xs text-gray-500">Nom d'utilisateur: {firstLoginData.username}</div>
             {firstLoginData.passwordExpiresAt && (
               <div className="text-xs text-yellow-400 mt-1">
@@ -182,7 +182,7 @@ export default function FirstLoginPasswordChange() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Mot de passe actuel */}
             <div>
-              <Label htmlFor="currentPassword" className="text-white">
+              <Label htmlFor="currentPassword" className="text-ink">
                 Mot de passe temporaire *
               </Label>
               <div className="relative">
@@ -191,7 +191,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.current ? "text" : "password"}
                   value={formData.currentPassword}
                   onChange={(e) => setFormData({...formData, currentPassword: e.target.value})}
-                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
+                  className="bg-white/10 border-rule text-ink placeholder-white/50 pr-10"
                   placeholder="Mot de passe reçu du super-admin"
                   required
                 />
@@ -202,14 +202,14 @@ export default function FirstLoginPasswordChange() {
                   className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                   onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
                 >
-                  {showPasswords.current ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                  {showPasswords.current ? <EyeOff className="h-4 w-4 text-ink-mute" /> : <Eye className="h-4 w-4 text-ink-mute" />}
                 </Button>
               </div>
             </div>
 
             {/* Nouveau mot de passe */}
             <div>
-              <Label htmlFor="newPassword" className="text-white">
+              <Label htmlFor="newPassword" className="text-ink">
                 Nouveau mot de passe *
               </Label>
               <div className="relative">
@@ -218,7 +218,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.new ? "text" : "password"}
                   value={formData.newPassword}
                   onChange={(e) => setFormData({...formData, newPassword: e.target.value})}
-                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
+                  className="bg-white/10 border-rule text-ink placeholder-white/50 pr-10"
                   placeholder="Choisissez un mot de passe sécurisé"
                   required
                 />
@@ -229,7 +229,7 @@ export default function FirstLoginPasswordChange() {
                   className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                   onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
                 >
-                  {showPasswords.new ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                  {showPasswords.new ? <EyeOff className="h-4 w-4 text-ink-mute" /> : <Eye className="h-4 w-4 text-ink-mute" />}
                 </Button>
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function FirstLoginPasswordChange() {
             {/* Critères de mot de passe */}
             {formData.newPassword && (
               <div className="space-y-2">
-                <div className="text-sm text-gray-400">Critères de sécurité :</div>
+                <div className="text-sm text-ink-mute">Critères de sécurité :</div>
                 <div className="space-y-1">
                   {Object.entries({
                     'Au moins 8 caractères': passwordRequirements.length,
@@ -246,7 +246,7 @@ export default function FirstLoginPasswordChange() {
                     'Un chiffre': passwordRequirements.number,
                     'Un caractère spécial (@$!%*?&)': passwordRequirements.special
                   }).map(([requirement, met]) => (
-                    <div key={requirement} className={`flex items-center gap-2 text-xs ${met ? 'text-green-400' : 'text-gray-400'}`}>
+                    <div key={requirement} className={`flex items-center gap-2 text-xs ${met ? 'text-green-400' : 'text-ink-mute'}`}>
                       {met ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                       {requirement}
                     </div>
@@ -257,7 +257,7 @@ export default function FirstLoginPasswordChange() {
 
             {/* Confirmation mot de passe */}
             <div>
-              <Label htmlFor="confirmPassword" className="text-white">
+              <Label htmlFor="confirmPassword" className="text-ink">
                 Confirmer le mot de passe *
               </Label>
               <div className="relative">
@@ -266,7 +266,7 @@ export default function FirstLoginPasswordChange() {
                   type={showPasswords.confirm ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                  className="bg-white/10 border-white/25 text-white placeholder-white/50 pr-10"
+                  className="bg-white/10 border-rule text-ink placeholder-white/50 pr-10"
                   placeholder="Tapez à nouveau votre mot de passe"
                   required
                 />
@@ -277,7 +277,7 @@ export default function FirstLoginPasswordChange() {
                   className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                   onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
                 >
-                  {showPasswords.confirm ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                  {showPasswords.confirm ? <EyeOff className="h-4 w-4 text-ink-mute" /> : <Eye className="h-4 w-4 text-ink-mute" />}
                 </Button>
               </div>
               {formData.confirmPassword && !passwordsMatch && (

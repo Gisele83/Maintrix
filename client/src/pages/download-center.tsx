@@ -146,7 +146,7 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
             <Lock className="h-4 w-4 text-blue-500" />
             <div className="text-left">
               <p className="text-sm font-medium text-slate-700">{file.label}</p>
-              <p className="text-xs text-slate-400">{file.filename}</p>
+              <p className="text-xs text-ink-mute">{file.filename}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -168,29 +168,29 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
       {file.url !== "#" ? (
         <a href={file.url} download={file.filename !== "com.maintrix.app" && file.filename !== "com.maintrix.ios" && file.filename !== "app.maintrix.io"} target={file.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
           <div className="flex items-center gap-3">
-            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-slate-500 shrink-0" />}
+            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
             <div className="text-left">
               <p className="text-sm font-medium text-slate-800">{file.label}</p>
-              <p className="text-xs text-slate-400">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
+              <p className="text-xs text-ink-mute">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
           </div>
         </a>
       ) : (
         <span className="flex w-full items-center justify-between">
           <div className="flex items-center gap-3">
-            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-slate-500 shrink-0" />}
+            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
             <div className="text-left">
               <p className="text-sm font-medium text-slate-800">{file.label}</p>
-              <p className="text-xs text-slate-400">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
+              <p className="text-xs text-ink-mute">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
           </div>
         </span>
       )}
@@ -214,10 +214,10 @@ export default function DownloadCenterPage() {
           <Badge className="mb-6 bg-blue-500/20 text-blue-300 border-blue-500/30 text-sm px-4 py-1.5">
             Version {VERSION} — {RELEASE_DATE}
           </Badge>
-          <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
+          <h1 className="text-5xl font-bold text-ink mb-4 tracking-tight">
             Télécharger <span className="text-ink">Maintrix</span>
           </h1>
-          <p className="text-xl text-slate-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-ink-mute mb-8 max-w-2xl mx-auto">
             Disponible sur toutes vos plateformes — Windows, macOS, Linux, Android et iOS. Une seule licence, tous vos appareils.
           </p>
 
@@ -248,7 +248,7 @@ export default function DownloadCenterPage() {
                 <button
                   key={p.id}
                   onClick={() => setActivePlatform(p.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all ${activePlatform === p.id ? "bg-ink text-paper border-ink" : "bg-white/5 text-slate-300 border-white/10 hover:bg-white"}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border transition-all ${activePlatform === p.id ? "bg-ink text-paper border-ink" : "bg-white/5 text-ink-soft border-rule hover:bg-white"}`}
                 >
                   <Icon className="h-4 w-4" />
                   {p.name}
@@ -264,20 +264,20 @@ export default function DownloadCenterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Download panel */}
           <div className="lg:col-span-2">
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-rule">
               <CardHeader>
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl bg-paper-deep ${platform.bg}`}>
                     <PlatformIcon className="h-7 w-7 text-ink" />
                   </div>
                   <div>
-                    <CardTitle className="text-white text-xl">{platform.name}</CardTitle>
-                    <p className="text-slate-400 text-sm">Version {VERSION} · {RELEASE_DATE}</p>
+                    <CardTitle className="text-ink text-xl">{platform.name}</CardTitle>
+                    <p className="text-ink-mute text-sm">Version {VERSION} · {RELEASE_DATE}</p>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-slate-400 text-sm mb-4">Choisissez le fichier adapté à votre configuration :</p>
+                <p className="text-ink-mute text-sm mb-4">Choisissez le fichier adapté à votre configuration :</p>
                 {platform.files.map((file, i) => (
                   <DownloadButton key={i} file={file} isSubscribed={isSubscribed} />
                 ))}
@@ -285,9 +285,9 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Installation steps */}
-            <Card className="bg-white/5 border-white/10 mt-4">
+            <Card className="bg-white/5 border-rule mt-4">
               <CardHeader>
-                <CardTitle className="text-white text-base flex items-center gap-2">
+                <CardTitle className="text-ink text-base flex items-center gap-2">
                   <Package className="h-5 w-5 text-blue-400" />
                   Guide d'installation
                 </CardTitle>
@@ -297,7 +297,7 @@ export default function DownloadCenterPage() {
                   {platform.installSteps.map((step, i) => (
                     <li key={i} className="flex gap-3 items-start">
                       <span className={`shrink-0 w-6 h-6 rounded-full bg-paper-deep ${platform.bg} text-ink text-xs flex items-center justify-center font-bold`}>{i + 1}</span>
-                      <p className="text-slate-300 text-sm pt-0.5">{step}</p>
+                      <p className="text-ink-soft text-sm pt-0.5">{step}</p>
                     </li>
                   ))}
                 </ol>
@@ -308,9 +308,9 @@ export default function DownloadCenterPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Requirements */}
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-rule">
               <CardHeader>
-                <CardTitle className="text-white text-base flex items-center gap-2">
+                <CardTitle className="text-ink text-base flex items-center gap-2">
                   <Cpu className="h-5 w-5 text-signal-light" />
                   Configuration requise
                 </CardTitle>
@@ -318,7 +318,7 @@ export default function DownloadCenterPage() {
               <CardContent>
                 <ul className="space-y-2">
                   {platform.requirements.map((req, i) => (
-                    <li key={i} className="flex gap-2 items-start text-sm text-slate-300">
+                    <li key={i} className="flex gap-2 items-start text-sm text-ink-soft">
                       <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                       {req}
                     </li>
@@ -328,9 +328,9 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Features */}
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-rule">
               <CardHeader>
-                <CardTitle className="text-white text-base flex items-center gap-2">
+                <CardTitle className="text-ink text-base flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-400" />
                   Inclus dans toutes les versions
                 </CardTitle>
@@ -342,8 +342,8 @@ export default function DownloadCenterPage() {
                       <Icon className="h-4 w-4 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-white text-sm font-medium">{label}</p>
-                      <p className="text-slate-400 text-xs">{desc}</p>
+                      <p className="text-ink text-sm font-medium">{label}</p>
+                      <p className="text-ink-mute text-xs">{desc}</p>
                     </div>
                   </div>
                 ))}
@@ -351,13 +351,13 @@ export default function DownloadCenterPage() {
             </Card>
 
             {/* Version info */}
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-white/5 border-rule">
               <CardContent className="p-4">
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-slate-400">Version</span><span className="text-white font-mono">{VERSION}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Date de sortie</span><span className="text-white">{RELEASE_DATE}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Licence</span><span className="text-emerald-400">SaaS · Multi-plateforme</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Mises à jour</span><span className="text-blue-400">Automatiques</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Version</span><span className="text-ink font-mono">{VERSION}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Date de sortie</span><span className="text-ink">{RELEASE_DATE}</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Licence</span><span className="text-emerald-400">SaaS · Multi-plateforme</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Mises à jour</span><span className="text-blue-400">Automatiques</span></div>
                 </div>
                 <a href="#changelog" className="mt-4 flex items-center gap-1 text-xs text-blue-400 hover:underline">
                   <ExternalLink className="h-3 w-3" /> Voir les notes de version
@@ -369,8 +369,8 @@ export default function DownloadCenterPage() {
             <Card className="bg-paper-deep border-blue-500/30">
               <CardContent className="p-4 text-center">
                 <Globe className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <p className="text-white font-semibold text-sm mb-1">Version Web toujours disponible</p>
-                <p className="text-slate-400 text-xs mb-3">Sans installation, depuis n'importe quel navigateur</p>
+                <p className="text-ink font-semibold text-sm mb-1">Version Web toujours disponible</p>
+                <p className="text-ink-mute text-xs mb-3">Sans installation, depuis n'importe quel navigateur</p>
                 <Link href={isSubscribed ? "/gmao-dashboard" : "/register"}>
                   <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white w-full">
                     {isSubscribed ? "Accéder à l'application" : "Essayer gratuitement"}
@@ -384,7 +384,7 @@ export default function DownloadCenterPage() {
 
         {/* Changelog section */}
         <div id="changelog" className="mt-10">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
             <Clock className="h-5 w-5 text-blue-400" />
             Notes de version — v{VERSION}
           </h2>
@@ -394,15 +394,15 @@ export default function DownloadCenterPage() {
               { tag: "Amélioré", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", items: ["Performance du moteur de diagnostic IA", "Synchronisation hors-ligne sur mobile", "Tableau de bord GMAO unifié", "Module calibration & habilitations"] },
               { tag: "Corrigé", color: "bg-amber-500/20 text-amber-300 border-amber-500/30", items: ["Limitation de requêtes en développement", "Affichage des modules dans la navigation", "Synchronisation des alertes IoT", "Rapports PDF sur macOS"] },
             ].map(({ tag, color, items }) => (
-              <Card key={tag} className="bg-white/5 border-white/10">
+              <Card key={tag} className="bg-white/5 border-rule">
                 <CardHeader className="pb-2">
                   <Badge className={`${color} border text-xs w-fit`}>{tag}</Badge>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1.5">
                     {items.map((item, i) => (
-                      <li key={i} className="text-slate-300 text-sm flex gap-2">
-                        <span className="text-slate-500 shrink-0">·</span>{item}
+                      <li key={i} className="text-ink-soft text-sm flex gap-2">
+                        <span className="text-ink-mute shrink-0">·</span>{item}
                       </li>
                     ))}
                   </ul>

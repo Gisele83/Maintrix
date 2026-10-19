@@ -177,7 +177,7 @@ export default function CognitiveInfrastructure() {
             <h1 className="text-3xl font-bold text-slate-800">
               Supervision & Controle Adaptatif
             </h1>
-            <p className="text-slate-500 mt-1">Systeme a modelisation causale dynamique — 5 modules cooperatifs — Autonomie graduee</p>
+            <p className="text-ink-mute mt-1">Systeme a modelisation causale dynamique — 5 modules cooperatifs — Autonomie graduee</p>
           </div>
           <div className="flex items-center gap-3">
             <Badge className={`${kernelStatus?.isRunning ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-100 text-red-700 border border-red-200'} text-sm px-3 py-1`}>
@@ -220,7 +220,7 @@ export default function CognitiveInfrastructure() {
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
               <Cpu className="w-5 h-5 text-signal-deep" /> Architecture a 5 modules cooperatifs
             </h2>
-            <p className="text-sm text-slate-500">Chaque module du systeme de supervision et controle adaptatif est operationnel et interconnecte.</p>
+            <p className="text-sm text-ink-mute">Chaque module du systeme de supervision et controle adaptatif est operationnel et interconnecte.</p>
 
             <div className="grid gap-3">
               {MODULE_CONFIG.map((mod, idx) => {
@@ -229,18 +229,18 @@ export default function CognitiveInfrastructure() {
                   <Card key={mod.id} className={`${mod.bgColor} shadow-sm`}>
                     <CardContent className="flex items-center gap-4 py-4">
                       <div className={`w-12 h-12 rounded-lg ${mod.color} shadow-sm flex items-center justify-center`}>
-                        <Icon className="w-6 h-6 text-white" />
+                        <Icon className="w-6 h-6 text-ink" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500 font-bold uppercase">Module ({mod.id})</span>
-                          <ChevronRight className="w-3 h-3 text-slate-400" />
+                          <span className="text-xs text-ink-mute font-bold uppercase">Module ({mod.id})</span>
+                          <ChevronRight className="w-3 h-3 text-ink-mute" />
                           <span className="font-semibold text-slate-800">{mod.title}</span>
                         </div>
-                        <p className="text-sm text-slate-600 mt-0.5">{mod.description}</p>
+                        <p className="text-sm text-ink-soft mt-0.5">{mod.description}</p>
                         <div className="flex gap-2 mt-2 flex-wrap">
                           {mod.metrics.map((m, i) => (
-                            <Badge key={i} className="bg-white text-slate-600 border border-slate-200 text-xs">{m}</Badge>
+                            <Badge key={i} className="bg-white text-ink-soft border border-slate-200 text-xs">{m}</Badge>
                           ))}
                         </div>
                       </div>
@@ -254,7 +254,7 @@ export default function CognitiveInfrastructure() {
             <Card className="bg-white border border-slate-200 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-slate-800 flex items-center gap-2"><Activity className="w-5 h-5 text-sky-600" /> Boucle fermee industrielle</CardTitle>
-                <CardDescription className="text-slate-500">Les 5 modules cooperent dans une boucle a 6 phases continues</CardDescription>
+                <CardDescription className="text-ink-mute">Les 5 modules cooperent dans une boucle a 6 phases continues</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -275,7 +275,7 @@ export default function CognitiveInfrastructure() {
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
               <Target className="w-5 h-5 text-emerald-600" /> 3 Objectifs cooperatifs
             </h2>
-            <p className="text-sm text-slate-500">Les 5 modules cooperent pour atteindre ces 3 objectifs fondamentaux de supervision industrielle.</p>
+            <p className="text-sm text-ink-mute">Les 5 modules cooperent pour atteindre ces 3 objectifs fondamentaux de supervision industrielle.</p>
 
             <div className="grid gap-4">
               {COOPERATIVE_OBJECTIVES.map((obj, idx) => {
@@ -288,7 +288,7 @@ export default function CognitiveInfrastructure() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-slate-800 text-lg">{obj.title}</h3>
-                        <p className="text-sm text-slate-600 mt-1">{obj.description}</p>
+                        <p className="text-sm text-ink-soft mt-1">{obj.description}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -304,33 +304,33 @@ export default function CognitiveInfrastructure() {
               <Card className="bg-blue-50 border border-blue-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Cpu className="w-4 h-4 text-blue-600" /> Agents Equipement</CardTitle>
-                  <CardDescription className="text-slate-500">Perception locale, memoire par machine</CardDescription>
+                  <CardDescription className="text-ink-mute">Perception locale, memoire par machine</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-blue-600">{kernelStatus?.agents?.byType?.equipment || 0}</div>
-                  <p className="text-sm text-slate-500 mt-1">Un agent par equipement surveille</p>
+                  <p className="text-sm text-ink-mute mt-1">Un agent par equipement surveille</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-sky-50 border border-sky-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Network className="w-4 h-4 text-sky-600" /> Agents Site</CardTitle>
-                  <CardDescription className="text-slate-500">Coordination locale, prevention cascade</CardDescription>
+                  <CardDescription className="text-ink-mute">Coordination locale, prevention cascade</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-sky-600">{kernelStatus?.agents?.byType?.site || 0}</div>
-                  <p className="text-sm text-slate-500 mt-1">Correlation inter-equipements</p>
+                  <p className="text-sm text-ink-mute mt-1">Correlation inter-equipements</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-paper-deep border border-rule shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Globe className="w-4 h-4 text-signal-deep" /> Agent Global</CardTitle>
-                  <CardDescription className="text-slate-500">Apprentissage federe inter-sites</CardDescription>
+                  <CardDescription className="text-ink-mute">Apprentissage federe inter-sites</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-3xl font-bold text-signal-deep">{kernelStatus?.agents?.byType?.global || 0}</div>
-                  <p className="text-sm text-slate-500 mt-1">Diffusion patterns globaux</p>
+                  <p className="text-sm text-ink-mute mt-1">Diffusion patterns globaux</p>
                 </CardContent>
               </Card>
             </div>
@@ -352,7 +352,7 @@ export default function CognitiveInfrastructure() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge className={agent.status === 'active' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-100 text-red-700 border border-red-200'}>{agent.status}</Badge>
-                          <span className="text-xs text-slate-500">Events: {agent.processedEvents}</span>
+                          <span className="text-xs text-ink-mute">Events: {agent.processedEvents}</span>
                         </div>
                       </div>
                     ))}
@@ -368,9 +368,9 @@ export default function CognitiveInfrastructure() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4">
-                    <div><span className="text-slate-500 text-sm">Sites</span><div className="text-xl font-bold text-slate-800">{globalLearning.siteCount}</div></div>
-                    <div><span className="text-slate-500 text-sm">Equipements</span><div className="text-xl font-bold text-slate-800">{globalLearning.totalEquipment}</div></div>
-                    <div><span className="text-slate-500 text-sm">Patterns</span><div className="text-xl font-bold text-slate-800">{globalLearning.patternsDiscovered}</div></div>
+                    <div><span className="text-ink-mute text-sm">Sites</span><div className="text-xl font-bold text-slate-800">{globalLearning.siteCount}</div></div>
+                    <div><span className="text-ink-mute text-sm">Equipements</span><div className="text-xl font-bold text-slate-800">{globalLearning.totalEquipment}</div></div>
+                    <div><span className="text-ink-mute text-sm">Patterns</span><div className="text-xl font-bold text-slate-800">{globalLearning.patternsDiscovered}</div></div>
                   </div>
                 </CardContent>
               </Card>
@@ -379,7 +379,7 @@ export default function CognitiveInfrastructure() {
 
           <TabsContent value="autonomy" className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><ArrowUpDown className="w-5 h-5 text-amber-600" /> 6 niveaux d'autonomie graduee</h2>
-            <p className="text-sm text-slate-500">Le module decisionnel (d) utilise ces niveaux pour determiner le degre d'autonomie des actions correctives.</p>
+            <p className="text-sm text-ink-mute">Le module decisionnel (d) utilise ces niveaux pour determiner le degre d'autonomie des actions correctives.</p>
 
             <div className="grid gap-3">
               {autonomy?.levels?.map((level: any) => {
@@ -393,7 +393,7 @@ export default function CognitiveInfrastructure() {
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-slate-800">{level.name}</div>
-                        <div className="text-sm text-slate-500">{level.description}</div>
+                        <div className="text-sm text-ink-mute">{level.description}</div>
                       </div>
                       {isCurrent ? (
                         <Badge className="bg-signal-deep text-white">ACTUEL</Badge>
@@ -401,7 +401,7 @@ export default function CognitiveInfrastructure() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                          className="border-slate-300 text-ink-soft hover:bg-slate-50"
                           onClick={() => setAutonomyMutation.mutate(level.level)}
                           disabled={setAutonomyMutation.isPending}
                         >
@@ -417,7 +417,7 @@ export default function CognitiveInfrastructure() {
 
           <TabsContent value="knowledge" className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Database className="w-5 h-5 text-rose-600" /> Modele causal — Graphe de connaissances</h2>
-            <p className="text-sm text-slate-500">Module (c) : modelisation causale structurant les relations entre parametres et defaillances.</p>
+            <p className="text-sm text-ink-mute">Module (c) : modelisation causale structurant les relations entre parametres et defaillances.</p>
 
             {/* ⚠️ Ces 49 nœuds et 50 relations ne proviennent PAS des données du
                 locataire : c'est un référentiel d'ingénierie livré avec la
@@ -441,13 +441,13 @@ export default function CognitiveInfrastructure() {
                   <Card className="bg-white border border-slate-200 shadow-sm">
                     <CardContent className="pt-4">
                       <div className="text-3xl font-bold text-rose-600">{kgStats.totalNodes}</div>
-                      <p className="text-sm text-slate-500">Noeuds causaux (5 types)</p>
+                      <p className="text-sm text-ink-mute">Noeuds causaux (5 types)</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-white border border-slate-200 shadow-sm">
                     <CardContent className="pt-4">
                       <div className="text-3xl font-bold text-sky-600">{kgStats.totalEdges}</div>
-                      <p className="text-sm text-slate-500">Relations ponderees (7 types)</p>
+                      <p className="text-sm text-ink-mute">Relations ponderees (7 types)</p>
                     </CardContent>
                   </Card>
                   <Card className="bg-white border border-slate-200 shadow-sm">
@@ -457,7 +457,7 @@ export default function CognitiveInfrastructure() {
                           référentiel. Intitulée « confiance », elle se lisait comme une
                           précision de modèle — « notre IA est fiable à 78 % ». */}
                       <div className="text-3xl font-bold text-emerald-600">{(kgStats.avgConfidence * 100).toFixed(0)}%</div>
-                      <p className="text-sm text-slate-500">Poids moyen attribué aux relations</p>
+                      <p className="text-sm text-ink-mute">Poids moyen attribué aux relations</p>
                       <p className="text-xs text-ink-mute mt-1">
                         Valeurs d'expert du référentiel, non mesurées sur votre parc
                       </p>
@@ -514,13 +514,13 @@ export default function CognitiveInfrastructure() {
 
           <TabsContent value="reasoning" className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Brain className="w-5 h-5 text-signal-deep" /> Raisonnement causal & Simulation</h2>
-            <p className="text-sm text-slate-500">Interrogez le module de modelisation causale (c) avec des symptomes ou simulez des conditions hypothetiques.</p>
+            <p className="text-sm text-ink-mute">Interrogez le module de modelisation causale (c) avec des symptomes ou simulez des conditions hypothetiques.</p>
 
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="bg-white border border-slate-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Target className="w-4 h-4 text-sky-600" /> Raisonnement par symptomes</CardTitle>
-                  <CardDescription className="text-slate-500">Parcours du graphe causal : Symptome → Cause → Intervention</CardDescription>
+                  <CardDescription className="text-ink-mute">Parcours du graphe causal : Symptome → Cause → Intervention</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Input
@@ -546,7 +546,7 @@ export default function CognitiveInfrastructure() {
                             <Badge className={d.confidence > 0.7 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}>{(d.confidence * 100).toFixed(0)}%</Badge>
                           </div>
                           {d.evidence?.map((e: string, j: number) => (
-                            <p key={j} className="text-xs text-slate-500 mt-1">{e}</p>
+                            <p key={j} className="text-xs text-ink-mute mt-1">{e}</p>
                           ))}
                         </div>
                       ))}
@@ -561,7 +561,7 @@ export default function CognitiveInfrastructure() {
                       {(reasoningMutation.data as any).recommendedActions?.map((a: any, i: number) => (
                         <div key={i} className="p-2 bg-emerald-50 rounded border border-emerald-200 text-sm">
                           <span className="text-emerald-700 font-medium">{a.action}</span>
-                          <span className="text-slate-500 ml-2">({a.duration}min, {a.cost}EUR)</span>
+                          <span className="text-ink-mute ml-2">({a.duration}min, {a.cost}EUR)</span>
                         </div>
                       ))}
                     </div>
@@ -572,21 +572,21 @@ export default function CognitiveInfrastructure() {
               <Card className="bg-white border border-slate-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-base text-slate-800 flex items-center gap-2"><Zap className="w-4 h-4 text-amber-600" /> Simulation What-If</CardTitle>
-                  <CardDescription className="text-slate-500">Simulez des conditions pour predire les defaillances en cascade</CardDescription>
+                  <CardDescription className="text-ink-mute">Simulez des conditions pour predire les defaillances en cascade</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-slate-500 font-medium">Equipment ID</label>
+                      <label className="text-xs text-ink-mute font-medium">Equipment ID</label>
                       <Input className="border-slate-300 text-slate-800" value={whatIfEquipmentId} onChange={e => setWhatIfEquipmentId(e.target.value)} />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500 font-medium">Hausse temperature (C)</label>
+                      <label className="text-xs text-ink-mute font-medium">Hausse temperature (C)</label>
                       <Input className="border-slate-300 text-slate-800" value={whatIfTempIncrease} onChange={e => setWhatIfTempIncrease(e.target.value)} />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500 font-medium">Hausse vibration (mm/s)</label>
+                    <label className="text-xs text-ink-mute font-medium">Hausse vibration (mm/s)</label>
                     <Input className="border-slate-300 text-slate-800" value={whatIfVibIncrease} onChange={e => setWhatIfVibIncrease(e.target.value)} />
                   </div>
                   <Button
@@ -600,25 +600,25 @@ export default function CognitiveInfrastructure() {
                   {whatIfMutation.data && (
                     <div className="mt-4 space-y-2 p-3 bg-slate-50 rounded border border-slate-200">
                       <div className="flex justify-between">
-                        <span className="text-sm text-slate-600">Probabilite de defaillance</span>
+                        <span className="text-sm text-ink-soft">Probabilite de defaillance</span>
                         <span className="font-bold text-red-600">{((whatIfMutation.data as any).failureProbability * 100).toFixed(0)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-slate-600">Temps avant defaillance</span>
+                        <span className="text-sm text-ink-soft">Temps avant defaillance</span>
                         <span className="font-bold text-amber-600">{(whatIfMutation.data as any).estimatedTimeToFailure}h</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-slate-600">Impact financier</span>
+                        <span className="text-sm text-ink-soft">Impact financier</span>
                         <span className="font-bold text-orange-600">{(whatIfMutation.data as any).costImplication}EUR</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-slate-600">Tendance risque</span>
+                        <span className="text-sm text-ink-soft">Tendance risque</span>
                         <Badge className={(whatIfMutation.data as any).riskChange === 'INCREASED' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-700 border border-emerald-200'}>
                           {(whatIfMutation.data as any).riskChange}
                         </Badge>
                       </div>
                       <div className="mt-2">
-                        <span className="text-xs text-slate-500 font-medium">Actions recommandees:</span>
+                        <span className="text-xs text-ink-mute font-medium">Actions recommandees:</span>
                         {(whatIfMutation.data as any).recommendedActions?.map((a: string, i: number) => (
                           <p key={i} className="text-sm text-emerald-700 mt-1">• {a}</p>
                         ))}
@@ -632,7 +632,7 @@ export default function CognitiveInfrastructure() {
 
           <TabsContent value="governance" className="space-y-4">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><Shield className="w-5 h-5 text-emerald-600" /> Gouvernance & Tracabilite decisionnelle</h2>
-            <p className="text-sm text-slate-500">Journal d'audit du module decisionnel (d) — tracabilite conforme ISO 55000 / CCTP.</p>
+            <p className="text-sm text-ink-mute">Journal d'audit du module decisionnel (d) — tracabilite conforme ISO 55000 / CCTP.</p>
 
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="bg-white border border-slate-200 shadow-sm">
@@ -644,11 +644,11 @@ export default function CognitiveInfrastructure() {
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-sm text-slate-800">{p.name}</span>
                           <div className="flex gap-2">
-                            <Badge className={p.enabled ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}>{p.enabled ? 'Active' : 'Inactive'}</Badge>
-                            <Badge className="bg-slate-100 text-slate-600 border border-slate-200">P{p.priority}</Badge>
+                            <Badge className={p.enabled ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-ink-mute border border-slate-200'}>{p.enabled ? 'Active' : 'Inactive'}</Badge>
+                            <Badge className="bg-slate-100 text-ink-soft border border-slate-200">P{p.priority}</Badge>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">{p.description}</p>
+                        <p className="text-xs text-ink-mute mt-1">{p.description}</p>
                         {p.requiresApproval && <Badge className="bg-amber-50 text-amber-700 border border-amber-200 text-xs mt-1">Approbation requise</Badge>}
                       </div>
                     ))}
@@ -660,18 +660,18 @@ export default function CognitiveInfrastructure() {
                 <CardHeader><CardTitle className="text-base text-slate-800">Journal d'audit decisionnel</CardTitle></CardHeader>
                 <CardContent>
                   {auditLog?.auditLog?.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-8">Aucune decision enregistree. Le journal se remplira au fur et a mesure que le systeme prend des decisions automatiques.</p>
+                    <p className="text-sm text-ink-mute text-center py-8">Aucune decision enregistree. Le journal se remplira au fur et a mesure que le systeme prend des decisions automatiques.</p>
                   ) : (
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {auditLog?.auditLog?.map((entry: any, i: number) => (
                         <div key={i} className="p-2 bg-slate-50 rounded border border-slate-100 text-sm">
                           <div className="flex justify-between">
-                            <span className="font-mono text-xs text-slate-600">{entry.diagnosisId}</span>
+                            <span className="font-mono text-xs text-ink-soft">{entry.diagnosisId}</span>
                             <Badge className={entry.decision === 'approved' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : entry.decision === 'escalated' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}>
                               {entry.decision}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">{entry.evidenceSummary}</p>
+                          <p className="text-xs text-ink-mute mt-1">{entry.evidenceSummary}</p>
                         </div>
                       ))}
                     </div>
@@ -693,7 +693,7 @@ function MetricCard({ icon, label, value }: { icon: any; label: string; value: n
         {icon}
         <div>
           <div className="text-lg font-bold text-slate-800">{value}</div>
-          <div className="text-xs text-slate-500">{label}</div>
+          <div className="text-xs text-ink-mute">{label}</div>
         </div>
       </CardContent>
     </Card>

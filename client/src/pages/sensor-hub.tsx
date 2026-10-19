@@ -103,11 +103,11 @@ export default function SensorHub() {
               <Radio className="w-6 h-6 text-ink" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Hub Capteurs IoT</h1>
-              <p className="text-slate-400">Connexion capteurs, monitoring temps réel et maintenance basée données</p>
+              <h1 className="text-2xl font-bold text-ink">Hub Capteurs IoT</h1>
+              <p className="text-ink-mute">Connexion capteurs, monitoring temps réel et maintenance basée données</p>
             </div>
           </div>
-          <Button variant="outline" onClick={() => refetch()} className="border-white/20 text-slate-300">
+          <Button variant="outline" onClick={() => refetch()} className="border-rule text-ink-soft">
             <RefreshCw className="w-4 h-4 mr-2" /> Rafraîchir
           </Button>
         </div>
@@ -120,14 +120,14 @@ export default function SensorHub() {
             { icon: AlertTriangle, label: "En alarme", value: summary.alarming, color: "from-red-500 to-rose-600" },
             { icon: Database, label: "Protocoles", value: summary.protocols?.length || 0, color: " " }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10">
+            <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-4 h-4 text-ink" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-white">{stat.value}</p>
-                  <p className="text-[10px] text-slate-400">{stat.label}</p>
+                  <p className="text-lg font-bold text-ink">{stat.value}</p>
+                  <p className="text-[10px] text-ink-mute">{stat.label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -136,7 +136,7 @@ export default function SensorHub() {
 
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-mute" />
             <Input placeholder="Rechercher un capteur..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9" />
           </div>
@@ -148,7 +148,7 @@ export default function SensorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-800/50 border border-white/10">
+          <TabsList className="bg-white border border-rule">
             <TabsTrigger value="live">Monitoring Live</TabsTrigger>
             <TabsTrigger value="analytics">Analyse Données</TabsTrigger>
             <TabsTrigger value="types">Par Type</TabsTrigger>
@@ -162,7 +162,7 @@ export default function SensorHub() {
                 const percentage = Math.min(100, (sensor.value / sensor.threshold) * 100);
                 
                 return (
-                  <Card key={sensor.id} className={`bg-slate-900/60 border ${sensor.isAlarm ? 'border-red-500/30 animate-pulse' : sensor.isOnline ? 'border-white/10' : 'border-gray-600/30 opacity-60'} cursor-pointer hover:bg-slate-800/60 transition-all`}
+                  <Card key={sensor.id} className={`bg-paper-deep border ${sensor.isAlarm ? 'border-red-500/30 animate-pulse' : sensor.isOnline ? 'border-rule' : 'border-gray-600/30 opacity-60'} cursor-pointer hover:bg-white transition-all`}
                     onClick={() => setSelectedSensor(selectedSensor?.id === sensor.id ? null : sensor)}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -171,8 +171,8 @@ export default function SensorHub() {
                             <SensorIcon className="w-4 h-4 text-ink" />
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-white">{sensorLabels[sensor.sensorType]}</p>
-                            <p className="text-[10px] text-slate-400">{sensor.equipmentName}</p>
+                            <p className="text-xs font-medium text-ink">{sensorLabels[sensor.sensorType]}</p>
+                            <p className="text-[10px] text-ink-mute">{sensor.equipmentName}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -181,20 +181,20 @@ export default function SensorHub() {
                           ) : (
                             <WifiOff className="w-3.5 h-3.5 text-red-400" />
                           )}
-                          <Badge variant="outline" className="text-[9px] text-slate-400 border-white/10">{sensor.protocol}</Badge>
+                          <Badge variant="outline" className="text-[9px] text-ink-mute border-rule">{sensor.protocol}</Badge>
                         </div>
                       </div>
 
                       <div className="text-center mb-3">
                         <p className={`text-2xl font-bold ${sensor.isAlarm ? 'text-red-400' : 'text-white'}`}>
-                          {sensor.value} <span className="text-xs text-slate-400">{sensor.unit}</span>
+                          {sensor.value} <span className="text-xs text-ink-mute">{sensor.unit}</span>
                         </p>
-                        <p className="text-[10px] text-slate-500">Seuil: {sensor.threshold} {sensor.unit}</p>
+                        <p className="text-[10px] text-ink-mute">Seuil: {sensor.threshold} {sensor.unit}</p>
                       </div>
 
                       <Progress value={Math.min(percentage, 100)} className={`h-1.5 mb-2 ${sensor.isAlarm ? '[&>div]:bg-red-500' : percentage > 80 ? '[&>div]:bg-yellow-500' : '[&>div]:bg-green-500'}`} />
 
-                      <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <div className="flex items-center justify-between text-[10px] text-ink-mute">
                         <span className="flex items-center gap-1">
                           <Battery className="w-3 h-3" /> {sensor.batteryLevel}%
                         </span>
@@ -204,7 +204,7 @@ export default function SensorHub() {
                       </div>
 
                       {selectedSensor?.id === sensor.id && (
-                        <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="mt-3 pt-3 border-t border-rule">
                           <p className="text-xs text-ink-mute">
                             Historique indisponible : les relevés ne sont pas encore archivés.
                             Seule la valeur courante est mesurée.
@@ -219,13 +219,13 @@ export default function SensorHub() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <Card className="bg-slate-900/60 border-white/10">
+            <Card className="bg-paper-deep border-rule">
               <CardHeader>
-                <CardTitle className="text-white text-sm flex items-center gap-2">
+                <CardTitle className="text-ink text-sm flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-cyan-400" />
                   Maintenance Basée sur les Données
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-ink-mute">
                   Analyse des données capteurs pour optimiser les stratégies de maintenance
                 </CardDescription>
               </CardHeader>
@@ -236,11 +236,11 @@ export default function SensorHub() {
                     { title: "Taux de connectivité", value: summary.online, total: summary.totalSensors, color: "text-green-400", desc: "Capteurs transmettant des données" },
                     { title: "Couverture capteurs", value: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, total: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, color: "text-blue-400", desc: "Équipements monitorés" }
                   ].map((metric, i) => (
-                    <Card key={i} className="bg-slate-800/30 border-white/5">
+                    <Card key={i} className="bg-white border-rule">
                       <CardContent className="p-4 text-center">
-                        <p className={`text-3xl font-bold ${metric.color}`}>{metric.value}<span className="text-sm text-slate-400">/{metric.total}</span></p>
-                        <p className="text-sm text-white mt-1">{metric.title}</p>
-                        <p className="text-xs text-slate-500">{metric.desc}</p>
+                        <p className={`text-3xl font-bold ${metric.color}`}>{metric.value}<span className="text-sm text-ink-mute">/{metric.total}</span></p>
+                        <p className="text-sm text-ink mt-1">{metric.title}</p>
+                        <p className="text-xs text-ink-mute">{metric.desc}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -267,7 +267,7 @@ export default function SensorHub() {
               const avgValue = typeSensors.reduce((sum: number, s: any) => sum + s.value, 0) / (typeSensors.length || 1);
               
               return (
-                <Card key={stat.type} className="bg-slate-900/60 border-white/10">
+                <Card key={stat.type} className="bg-paper-deep border-rule">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -275,19 +275,19 @@ export default function SensorHub() {
                           <SensorIcon className="w-5 h-5 text-ink" />
                         </div>
                         <div>
-                          <p className="text-white font-medium">{stat.label}</p>
-                          <p className="text-xs text-slate-400">{stat.count} capteurs · {stat.alarming} en alarme</p>
+                          <p className="text-ink font-medium">{stat.label}</p>
+                          <p className="text-xs text-ink-mute">{stat.count} capteurs · {stat.alarming} en alarme</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-white">{Math.round(avgValue * 10) / 10}</p>
-                        <p className="text-xs text-slate-400">Moyenne</p>
+                        <p className="text-lg font-bold text-ink">{Math.round(avgValue * 10) / 10}</p>
+                        <p className="text-xs text-ink-mute">Moyenne</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {typeSensors.slice(0, 4).map((s: any) => (
-                        <div key={s.id} className={`p-2 rounded-lg text-center ${s.isAlarm ? 'bg-red-950/30 border border-red-500/20' : 'bg-slate-800/30'}`}>
-                          <p className="text-xs text-slate-400 truncate">{s.equipmentName}</p>
+                        <div key={s.id} className={`p-2 rounded-lg text-center ${s.isAlarm ? 'bg-red-950/30 border border-red-500/20' : 'bg-white'}`}>
+                          <p className="text-xs text-ink-mute truncate">{s.equipmentName}</p>
                           <p className={`text-sm font-bold ${s.isAlarm ? 'text-red-400' : 'text-white'}`}>{s.value} {s.unit}</p>
                         </div>
                       ))}

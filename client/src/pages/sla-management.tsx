@@ -77,8 +77,8 @@ export default function SLAManagement() {
             <Timer className="w-6 h-6 text-ink" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">SLA Automatisés</h1>
-            <p className="text-slate-400">Suivi en temps réel des engagements de niveau de service</p>
+            <h1 className="text-2xl font-bold text-ink">SLA Automatisés</h1>
+            <p className="text-ink-mute">Suivi en temps réel des engagements de niveau de service</p>
           </div>
         </div>
 
@@ -89,25 +89,25 @@ export default function SLAManagement() {
             { icon: AlertTriangle, label: "À risque", value: summary.atRisk, color: "from-yellow-500 to-amber-600", sub: "Délai de réponse dépassé" },
             { icon: XCircle, label: "En dépassement", value: summary.breached, color: "from-red-500 to-rose-600", sub: "SLA non respectés" }
           ].map((stat, i) => (
-            <Card key={i} className="bg-slate-900/60 border-white/10">
+            <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className={`w-10 h-10 rounded-lg bg-paper-deep ${stat.color} flex items-center justify-center`}>
                     <stat.icon className="w-5 h-5 text-ink" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-xs text-slate-400">{stat.label}</p>
+                    <p className="text-2xl font-bold text-ink">{stat.value}</p>
+                    <p className="text-xs text-ink-mute">{stat.label}</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500">{stat.sub}</p>
+                <p className="text-xs text-ink-mute">{stat.sub}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-slate-800/50 border border-white/10">
+          <TabsList className="bg-white border border-rule">
             <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
             <TabsTrigger value="rules">Règles SLA</TabsTrigger>
             <TabsTrigger value="tracking">Suivi détaillé</TabsTrigger>
@@ -115,9 +115,9 @@ export default function SLAManagement() {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-900/60 border-white/10">
+              <Card className="bg-paper-deep border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white text-sm">Répartition conformité SLA</CardTitle>
+                  <CardTitle className="text-ink text-sm">Répartition conformité SLA</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
@@ -133,9 +133,9 @@ export default function SLAManagement() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-900/60 border-white/10">
+              <Card className="bg-paper-deep border-rule">
                 <CardHeader>
-                  <CardTitle className="text-white text-sm">Performance par niveau de priorité</CardTitle>
+                  <CardTitle className="text-ink text-sm">Performance par niveau de priorité</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
@@ -152,9 +152,9 @@ export default function SLAManagement() {
               </Card>
             </div>
 
-            <Card className="bg-slate-900/60 border-white/10">
+            <Card className="bg-paper-deep border-rule">
               <CardHeader>
-                <CardTitle className="text-white text-sm">Jauge de conformité globale</CardTitle>
+                <CardTitle className="text-ink text-sm">Jauge de conformité globale</CardTitle>
               </CardHeader>
               <CardContent className="flex items-center justify-center">
                 <div className="relative w-48 h-48">
@@ -166,8 +166,8 @@ export default function SLAManagement() {
                       strokeLinecap="round" transform="rotate(-90 100 100)" />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-white">{summary.complianceRate}%</span>
-                    <span className="text-xs text-slate-400">Conformité SLA</span>
+                    <span className="text-3xl font-bold text-ink">{summary.complianceRate}%</span>
+                    <span className="text-xs text-ink-mute">Conformité SLA</span>
                   </div>
                 </div>
               </CardContent>
@@ -176,33 +176,33 @@ export default function SLAManagement() {
 
           <TabsContent value="rules" className="space-y-4">
             {data?.rules?.map((rule: any) => (
-              <Card key={rule.id} className="bg-slate-900/60 border-white/10">
+              <Card key={rule.id} className="bg-paper-deep border-rule">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${rule.priority === 'critical' ? 'bg-red-500' : rule.priority === 'high' ? 'bg-orange-500' : rule.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
                       <div>
-                        <p className="text-white font-medium">{rule.name}</p>
-                        <p className="text-xs text-slate-400">Priorité : {rule.priority}</p>
+                        <p className="text-ink font-medium">{rule.name}</p>
+                        <p className="text-xs text-ink-mute">Priorité : {rule.priority}</p>
                       </div>
                     </div>
-                    <Badge className="bg-slate-800 text-slate-300 border-white/10">Automatique</Badge>
+                    <Badge className="bg-white text-ink-soft border-rule">Automatique</Badge>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-white rounded-lg p-3 text-center">
                       <Clock className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-white">{rule.responseTime}h</p>
-                      <p className="text-xs text-slate-400">Temps de réponse</p>
+                      <p className="text-lg font-bold text-ink">{rule.responseTime}h</p>
+                      <p className="text-xs text-ink-mute">Temps de réponse</p>
                     </div>
-                    <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-white rounded-lg p-3 text-center">
                       <Zap className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-white">{rule.resolutionTime}h</p>
-                      <p className="text-xs text-slate-400">Temps de résolution</p>
+                      <p className="text-lg font-bold text-ink">{rule.resolutionTime}h</p>
+                      <p className="text-xs text-ink-mute">Temps de résolution</p>
                     </div>
-                    <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-white rounded-lg p-3 text-center">
                       <ArrowUp className="w-5 h-5 text-orange-400 mx-auto mb-1" />
-                      <p className="text-lg font-bold text-white">{rule.escalationAfter}h</p>
-                      <p className="text-xs text-slate-400">Escalade après</p>
+                      <p className="text-lg font-bold text-ink">{rule.escalationAfter}h</p>
+                      <p className="text-xs text-ink-mute">Escalade après</p>
                     </div>
                   </div>
                 </CardContent>
@@ -212,13 +212,13 @@ export default function SLAManagement() {
 
           <TabsContent value="tracking" className="space-y-3">
             {data?.metrics?.slice(0, 20).map((metric: any) => (
-              <Card key={metric.workOrderId} className={`bg-slate-900/60 border ${metric.complianceStatus === 'breached' ? 'border-red-500/30' : metric.complianceStatus === 'at_risk' ? 'border-yellow-500/30' : 'border-white/10'}`}>
+              <Card key={metric.workOrderId} className={`bg-paper-deep border ${metric.complianceStatus === 'breached' ? 'border-red-500/30' : metric.complianceStatus === 'at_risk' ? 'border-yellow-500/30' : 'border-rule'}`}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-10 rounded-full ${metric.complianceStatus === 'breached' ? 'bg-red-500' : metric.complianceStatus === 'at_risk' ? 'bg-yellow-500' : 'bg-green-500'}`} />
                     <div>
-                      <p className="text-sm font-medium text-white">{metric.title}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm font-medium text-ink">{metric.title}</p>
+                      <p className="text-xs text-ink-mute">
                         OT #{metric.workOrderId} · {metric.slaRule} · {metric.hoursElapsed}h écoulées
                       </p>
                     </div>

@@ -825,7 +825,7 @@ export default function SmartDiagnostic() {
                                       <Brain className="h-6 w-6 text-ink" />
                                     </div>
                                     <div>
-                                      <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                                      <h3 className="text-ink font-bold text-lg flex items-center gap-2">
                                         Analyse Approfondie Claude
                                         <span className="text-xs bg-white px-2 py-0.5 rounded-full font-normal">
                                           claude-sonnet-4
@@ -837,7 +837,7 @@ export default function SmartDiagnostic() {
                                   {!isLoadingAiDeepAnalysis && lastDiagnosticInput && (
                                     <button
                                       onClick={() => runAiDeepAnalysis(lastDiagnosticInput, diagnosticResults, contextSignals)}
-                                      className="text-white/70 hover:text-white transition-colors"
+                                      className="text-ink/70 hover:text-ink transition-colors"
                                       title="Relancer l'analyse"
                                     >
                                       <RefreshCw className="h-4 w-4" />
@@ -1067,7 +1067,7 @@ export default function SmartDiagnostic() {
                                     )}
 
                                     {/* Footer */}
-                                    <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t">
+                                    <div className="flex items-center justify-between text-xs text-ink-mute pt-2 border-t">
                                       <span className="flex items-center gap-1">
                                         <Sparkles className="h-3 w-3" />
                                         Analyse par claude-sonnet-4-20250514
@@ -1090,7 +1090,7 @@ export default function SmartDiagnostic() {
                 <TabsContent value="repair" className="mt-0">
                   <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
-                      <Wrench className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                      <Wrench className="h-16 w-16 mx-auto text-ink-mute mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         Procédures de Réparation
                       </h3>
@@ -1133,7 +1133,7 @@ export default function SmartDiagnostic() {
                 <TabsContent value="history" className="mt-0">
                   <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
-                      <History className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                      <History className="h-16 w-16 mx-auto text-ink-mute mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         Historique des Diagnostics
                       </h3>
@@ -1172,7 +1172,7 @@ export default function SmartDiagnostic() {
                 <TabsContent value="reporting" className="mt-0">
                   <Card className="bg-white border border-gray-200">
                     <CardContent className="p-8 text-center">
-                      <Bug className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                      <Bug className="h-16 w-16 mx-auto text-ink-mute mb-4" />
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         Rapports Diagnostiques
                       </h3>
@@ -1464,7 +1464,7 @@ export default function SmartDiagnostic() {
                 </div>
               ) : diagnosticHistory.length === 0 ? (
                 <div className="text-center py-8">
-                  <History className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                  <History className="h-16 w-16 mx-auto text-ink-mute mb-4" />
                   <p className="text-gray-600">Aucun diagnostic dans l'historique</p>
                 </div>
               ) : (

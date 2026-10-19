@@ -82,7 +82,15 @@ export default {
         paper: { DEFAULT: "#F4F7FA", deep: "#E6EDF3" },
         ink: { DEFAULT: "#011535", soft: "#3A4A60", mute: "#56657A" },
         rule: "#D3DCE5",
-        signal: { DEFAULT: "#0077A8", light: "#00B9F2", deep: "#005A80" },
+        // ⚠️ « signal » valait #0077A8, soit 4,23:1 sur `paper-deep` — sous le
+        // seuil de 4,5:1 exigé pour du texte. C’était le SEUL jeton de la
+        // palette à échouer, et seulement sur ce fond-là : 5,00 sur blanc,
+        // 4,65 sur `paper`. Le défaut est donc resté invisible jusqu’à ce que
+        // les fonds `paper-deep` se multiplient. Mesuré le 2026-10-19.
+        //
+        // Assombri de 10 % à teinte constante : 5,00:1 sur `paper-deep`, et le
+        // texte blanc des boutons y gagne aussi (5,00 → 5,91).
+        signal: { DEFAULT: "#006B97", light: "#00B9F2", deep: "#005A80" },
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

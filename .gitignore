@@ -50,3 +50,4 @@ certbot-webroot/.well-known/
 
 # Documents de travail (audits, rapports)
 Audit_Technique_Maintrix.docx
+captures/

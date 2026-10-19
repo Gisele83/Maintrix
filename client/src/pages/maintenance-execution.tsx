@@ -246,7 +246,7 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
                             <Circle className="w-3.5 h-3.5" />
                           )}
                         </div>
-                        {idx < STEP_ORDER.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-gray-300 mx-1" />}
+                        {idx < STEP_ORDER.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-ink-soft mx-1" />}
                       </div>
                     );
                   })}
@@ -485,7 +485,7 @@ function AttachmentsUploader({ executionId, stepId }: { executionId: number; ste
                 <img src={a.url} alt={a.caption ?? ""} className="w-16 h-16 object-cover rounded border border-gray-200" />
               ) : (
                 <div className="w-16 h-16 flex items-center justify-center rounded border border-gray-200 bg-gray-50">
-                  <FileIcon className="w-6 h-6 text-gray-400" />
+                  <FileIcon className="w-6 h-6 text-ink-mute" />
                 </div>
               )}
             </a>

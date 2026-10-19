@@ -32,7 +32,7 @@ interface BudgetStats { total: number; totalAllocated: number; totalSpent: numbe
 interface Transaction { id: number; transactionType: string; amount: number; description: string; supplierName?: string; transactionDate: string; category?: string; reference?: string; }
 
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  draft: { label: "Brouillon", color: "bg-slate-100 text-slate-600" },
+  draft: { label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
   in_review: { label: "En révision", color: "bg-blue-100 text-blue-700" },
   approved: { label: "Approuvé", color: "bg-green-100 text-green-700" },
   closed: { label: "Clôturé", color: "bg-gray-200 text-gray-500" },
@@ -142,7 +142,7 @@ export default function BudgetPage() {
             <div className="p-2.5 rounded-xl bg-paper-deep"><Wallet className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Gestion de Budget</h1>
           </div>
-          <p className="text-slate-500 ml-14 text-sm">Suivi des budgets de maintenance, CAPEX et dépenses</p>
+          <p className="text-ink-mute ml-14 text-sm">Suivi des budgets de maintenance, CAPEX et dépenses</p>
         </div>
         <div className="flex gap-2">
           <Select value={year} onValueChange={setYear}><SelectTrigger className="w-28 bg-white"><SelectValue /></SelectTrigger><SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select>
@@ -160,7 +160,7 @@ export default function BudgetPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
             <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-lg font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-slate-500">{label}</p></div>
+            <div><p className="text-lg font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -168,10 +168,10 @@ export default function BudgetPage() {
       {/* Charts */}
       {(pieData.length > 0 || monthlyData.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">Répartition par type</CardTitle></CardHeader>
+          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Répartition par type</CardTitle></CardHeader>
             <CardContent><ResponsiveContainer width="100%" height={180}><RePie><Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${Math.round(percent * 100)}%`}>{pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip formatter={(v: any) => fmtEur(Number(v))} /></RePie></ResponsiveContainer></CardContent>
           </Card>
-          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-600">Dépenses mensuelles</CardTitle></CardHeader>
+          <Card className="border-0 shadow-md"><CardHeader className="pb-2"><CardTitle className="text-sm text-ink-soft">Dépenses mensuelles</CardTitle></CardHeader>
             <CardContent><ResponsiveContainer width="100%" height={180}><BarChart data={monthlyData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" /><XAxis dataKey="month" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip formatter={(v: any) => fmtEur(Number(v))} /><Bar dataKey="total" fill="#6366f1" radius={[3,3,0,0]} /></BarChart></ResponsiveContainer></CardContent>
           </Card>
         </div>
@@ -179,12 +179,12 @@ export default function BudgetPage() {
 
       {/* Filters + List */}
       <div className="flex gap-3 mb-4">
-        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
+        <div className="relative flex-1 min-w-60"><Search className="absolute left-3 top-2.5 h-4 w-4 text-ink-mute" /><Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-white" /></div>
       </div>
 
-      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
+      {isLoading ? <div className="flex justify-center h-48 items-center"><Loader2 className="h-8 w-8 animate-spin text-ink-mute" /></div>
       : filtered.length === 0 ? (
-        <div className="text-center py-16"><Wallet className="h-12 w-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-semibold text-slate-600">Aucun budget pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier budget</Button></div>
+        <div className="text-center py-16"><Wallet className="h-12 w-12 text-ink-soft mx-auto mb-4" /><h3 className="text-lg font-semibold text-ink-soft">Aucun budget pour {year}</h3><Button onClick={() => setShowCreate(true)} className="bg-ink text-white gap-2 mt-4"><Plus className="h-4 w-4" />Créer le premier budget</Button></div>
       ) : (
         <div className="grid gap-4">
           {filtered.map(b => {
@@ -196,21 +196,21 @@ export default function BudgetPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className="text-xs font-mono text-slate-400">{b.budgetNumber}</span>
+                        <span className="text-xs font-mono text-ink-mute">{b.budgetNumber}</span>
                         <Badge className={statusConf.color + " text-xs"}>{statusConf.label}</Badge>
                         <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
                         <Badge variant="outline" className="text-xs">{b.fiscalYear}</Badge>
-                        {b.department && <span className="text-xs text-slate-500">{b.department}</span>}
+                        {b.department && <span className="text-xs text-ink-mute">{b.department}</span>}
                       </div>
                       <h3 className="font-semibold text-slate-800">{b.title}</h3>
                       <div className="mt-2 space-y-1">
-                        <div className="flex items-center justify-between text-xs text-slate-500">
+                        <div className="flex items-center justify-between text-xs text-ink-mute">
                           <span>Consommation: {b.consumptionPct}%</span>
                           <span className={`font-bold ${pctColor(b.consumptionPct)}`}>{fmtEur(b.totalSpent)} / {fmtEur(b.totalAllocated)}</span>
                         </div>
                         <Progress value={b.consumptionPct} className="h-2" />
                       </div>
-                      <div className="flex gap-4 mt-2 text-xs text-slate-500 flex-wrap">
+                      <div className="flex gap-4 mt-2 text-xs text-ink-mute flex-wrap">
                         <span className="text-orange-600">Engagements: {fmtEur(b.totalCommitted)}</span>
                         <span className="text-green-600">Disponible: {fmtEur(b.availableBudget)}</span>
                         <span>Provision: {b.contingencyPct}% ({fmtEur(b.contingency)})</span>
@@ -253,7 +253,7 @@ export default function BudgetPage() {
             <DialogHeader>
               <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-emerald-200">
                 <Wallet className="h-6 w-6 text-emerald-600" />
-                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-slate-500 font-mono">{selected.budgetNumber} · {selected.fiscalYear}</p></div>
+                <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.budgetNumber} · {selected.fiscalYear}</p></div>
                 <div className="flex gap-2">
                   {["draft","in_review","approved","closed"].map(s => (
                     <Button key={s} variant={selected.status === s ? "default" : "outline"} size="sm" className={selected.status === s ? "bg-emerald-600 text-white text-xs" : "text-xs"} onClick={() => updateMut.mutate({ id: selected.id, data: { status: s } })}>{STATUS_CFG[s]?.label}</Button>
@@ -271,7 +271,7 @@ export default function BudgetPage() {
                     { l: "Dépensé", v: fmtEur(selected.totalSpent), c: "text-red-600" },
                     { l: "Engagé", v: fmtEur(selected.totalCommitted), c: "text-orange-600" },
                     { l: "Disponible", v: fmtEur(selected.availableBudget), c: "text-green-700" },
-                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-3 text-center"><p className="text-xs text-slate-500">{l}</p><p className={`text-xl font-bold ${c}`}>{v}</p></div>))}
+                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-3 text-center"><p className="text-xs text-ink-mute">{l}</p><p className={`text-xl font-bold ${c}`}>{v}</p></div>))}
                 </div>
                 <div><div className="flex justify-between text-sm mb-1"><span>Consommation</span><span className={`font-bold ${pctColor(selected.consumptionPct)}`}>{selected.consumptionPct}%</span></div><Progress value={selected.consumptionPct} className="h-3" /></div>
                 {selected.notes && <div className="bg-slate-50 p-3 rounded-lg text-sm">{selected.notes}</div>}
@@ -291,13 +291,13 @@ export default function BudgetPage() {
                 )}
                 <div className="overflow-x-auto rounded-xl border">
                   <table className="w-full text-sm">
-                    <thead><tr className="bg-slate-50 border-b">{["Catégorie","Description","Alloué","Dépensé","Engagé","Disponible","Consommation"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-slate-600 whitespace-nowrap">{h}</th>)}</tr></thead>
+                    <thead><tr className="bg-slate-50 border-b">{["Catégorie","Description","Alloué","Dépensé","Engagé","Disponible","Consommation"].map(h => <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft whitespace-nowrap">{h}</th>)}</tr></thead>
                     <tbody>{(selected.lines || []).map((l, i) => {
                       const avail = (l.allocated || 0) - (l.spent || 0) - (l.committed || 0);
                       const pct = l.allocated > 0 ? Math.round((l.spent / l.allocated) * 100) : 0;
                       return (<tr key={i} className="border-b hover:bg-slate-50">
                         <td className="py-2 px-3 font-medium">{l.category}</td>
-                        <td className="py-2 px-3 text-slate-500 text-xs">{l.description || "—"}</td>
+                        <td className="py-2 px-3 text-ink-mute text-xs">{l.description || "—"}</td>
                         <td className="py-2 px-3 text-blue-700 font-medium">{fmtEur(l.allocated)}</td>
                         <td className="py-2 px-3 text-red-600">{fmtEur(l.spent)}</td>
                         <td className="py-2 px-3 text-orange-600">{fmtEur(l.committed)}</td>
@@ -315,11 +315,11 @@ export default function BudgetPage() {
                   {((selected as any).transactions || []).map((tx: Transaction) => (
                     <div key={tx.id} className="flex items-center gap-3 bg-white border rounded-xl px-4 py-2.5">
                       <div className={`w-2 h-2 rounded-full ${tx.transactionType === "expense" ? "bg-red-500" : tx.transactionType === "commitment" ? "bg-orange-400" : tx.transactionType === "refund" ? "bg-green-500" : "bg-slate-400"}`} />
-                      <div className="flex-1"><p className="text-sm font-medium">{tx.description}</p><p className="text-xs text-slate-500">{tx.category} · {tx.supplierName} · {new Date(tx.transactionDate).toLocaleDateString("fr-FR")}</p></div>
+                      <div className="flex-1"><p className="text-sm font-medium">{tx.description}</p><p className="text-xs text-ink-mute">{tx.category} · {tx.supplierName} · {new Date(tx.transactionDate).toLocaleDateString("fr-FR")}</p></div>
                       <span className={`font-bold ${tx.transactionType === "expense" ? "text-red-600" : tx.transactionType === "refund" ? "text-green-600" : "text-orange-600"}`}>{tx.transactionType === "refund" ? "+" : "-"}{fmtEur(tx.amount)}</span>
                     </div>
                   ))}
-                  {!((selected as any).transactions?.length) && <p className="text-slate-400 text-sm text-center py-8">Aucune transaction</p>}
+                  {!((selected as any).transactions?.length) && <p className="text-ink-mute text-sm text-center py-8">Aucune transaction</p>}
                 </div>
               </TabsContent>
             </Tabs>

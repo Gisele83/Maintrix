@@ -182,7 +182,7 @@ export default function CommunicationIntegrations() {
             <h1 className="text-3xl font-bold text-ink">
               Intégrations Communication
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-gray-500 dark:text-ink-mute mt-1">
               Connectez vos plateformes pour recevoir des alertes instantanées et collaborer
             </p>
           </div>
@@ -341,7 +341,7 @@ export default function CommunicationIntegrations() {
             ) : channels.length === 0 ? (
               <Card className="border-0">
                 <CardContent className="p-12 text-center">
-                  <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <MessageSquare className="h-16 w-16 text-ink-soft mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun canal configuré</h3>
                   <p className="text-gray-500 mb-6">Ajoutez votre premier canal pour recevoir des alertes instantanées sur vos plateformes préférées.</p>
                   <Button onClick={() => setShowAddDialog(true)} className="bg-ink text-white">
@@ -371,8 +371,8 @@ export default function CommunicationIntegrations() {
                       </CardHeader>
                       <CardContent className="pt-0 space-y-3">
                         <div className="flex items-center gap-1.5">
-                          {channel.isEnabled ? <Wifi className="h-3.5 w-3.5 text-green-500" /> : <WifiOff className="h-3.5 w-3.5 text-gray-400" />}
-                          <span className={`text-xs ${channel.isEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+                          {channel.isEnabled ? <Wifi className="h-3.5 w-3.5 text-green-500" /> : <WifiOff className="h-3.5 w-3.5 text-ink-mute" />}
+                          <span className={`text-xs ${channel.isEnabled ? 'text-green-600' : 'text-ink-mute'}`}>
                             {channel.isEnabled ? 'Actif' : 'Désactivé'}
                           </span>
                         </div>
@@ -461,7 +461,7 @@ export default function CommunicationIntegrations() {
                           <p className="text-xs text-gray-500">{channelCount} canal{channelCount !== 1 ? 'x' : ''} configuré{channelCount !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{platform.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-ink-mute mb-4">{platform.description}</p>
                       {platformStats && (
                         <div className="flex gap-4 text-xs">
                           <span className="text-green-600">{platformStats.sent} envoyés</span>

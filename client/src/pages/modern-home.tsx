@@ -259,7 +259,7 @@ export default function ModernHome() {
                   <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
                     <div>
                       <div className="text-sm text-slate-700 font-medium">{label}</div>
-                      <div className="text-xs text-slate-400">{sub}</div>
+                      <div className="text-xs text-ink-mute">{sub}</div>
                     </div>
                     <span className="text-2xl font-bold text-ink">{value}</span>
                   </div>
@@ -285,13 +285,13 @@ export default function ModernHome() {
             <CardContent>
               <div className="space-y-2">
                 {recentActivity.length === 0 ? (
-                  <div className="text-sm text-slate-400 text-center py-6">Aucune activité récente</div>
+                  <div className="text-sm text-ink-mute text-center py-6">Aucune activité récente</div>
                 ) : (
                   recentActivity.map((item) => (
                     <div key={item.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100/80 transition-colors">
                       <div className={`w-2 h-2 ${item.dot} rounded-full flex-shrink-0`} />
                       <span className="text-sm text-slate-700 flex-1 truncate">{item.text}</span>
-                      <span className="text-xs text-slate-400 whitespace-nowrap">{item.time}</span>
+                      <span className="text-xs text-ink-mute whitespace-nowrap">{item.time}</span>
                     </div>
                   ))
                 )}
@@ -335,7 +335,7 @@ export default function ModernHome() {
         {/* Admin link */}
         <div className="flex justify-center mt-10">
           <Link href="/admin-login">
-            <button className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1">
+            <button className="text-xs text-ink-mute hover:text-ink-soft transition-colors px-3 py-1">
               Administration Plateforme
             </button>
           </Link>

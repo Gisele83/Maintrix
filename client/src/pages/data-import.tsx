@@ -322,7 +322,7 @@ export default function DataImport() {
                     </p>
                     <Button 
                       disabled
-                      className="bg-gray-400 text-white text-sm"
+                      className="bg-gray-400 text-ink text-sm"
                     >
                       Fonctionnalité désactivée
                     </Button>
