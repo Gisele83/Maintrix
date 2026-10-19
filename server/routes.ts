@@ -203,7 +203,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 📧 PRIORITÉ 1: ROUTES D'AUTHENTIFICATION ENTERPRISE (AVANT le middleware d'auth global)
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
 
-  // 🔓 ROUTES PDF PUBLIQUES (sans authentification) - AVANT le middleware d'auth global
+  // ═══════════════════════════════════════════════════════════════════
+  // ROUTES PDF — SESSION EXIGÉE, COMME PARTOUT AILLEURS
+  // ═══════════════════════════════════════════════════════════════════
+  // Ces trois routes étaient commentées « ROUTES PDF PUBLIQUES (sans
+  // authentification) », et c'est exactement ce qu'elles étaient : enregistrées
+  // avant `app.use('/api', requireAuthentication)` et hors du préfixe `/api`,
+  // seul préfixe où le middleware de locataire est monté (voir
+  // `enableMultiTenantSecurity` dans server/tenant-integration.ts), elles
+  // n'étaient atteintes par AUCUN contrôle. `blockPublicAccess`, posé juste
+  // après, ne protège rien : il n'ajoute que des en-têtes anti-indexation.
+  //
+  // Deux conséquences opposées, les deux mesurées :
+  //
+  //   • /pdf/monthly-reports/:id servait à un appelant anonyme — sans compte,
+  //     sans cookie — le rapport mensuel n° N, donc les coûts de maintenance
+  //     agrégés du locataire à qui il appartient, à qui devinait un entier
+  //     séquentiel. HTTP 200, 7 443 octets, montants en clair.
+  //
+  //   • /pdf/maintenance-reports/:id et /pdf/comprehensive-report, elles,
+  //     appelaient `tenantRequis()` — qui lit `req.tenantId`. Rien ne le
+  //     posant ici, elles répondaient 401 à TOUT LE MONDE, propriétaire
+  //     compris. Les trois boutons de téléchargement du client étaient donc
+  //     inopérants, sans que rien ne le signale.
+  //
+  // Autrement dit, la place de ces routes rendait le cloisonnement soit
+  // inexistant, soit total. Le correctif ne consiste pas à ajouter un contrôle
+  // dans chaque route, mais à résoudre la session sur `/pdf` comme elle l'est
+  // sur `/api` : `requireAuthentication` valide le cookie `sessionToken` et
+  // pose `req.tenantId` (voir validateSession), ce qui rend les appels
+  // `tenantRequis()` existants effectifs au lieu d'être des 401 garantis.
+  //
+  // Le cookie arrive bien jusqu'ici : le client ouvre ces URL par
+  // `window.open()` vers la même origine, une navigation same-site que
+  // `SameSite=strict` n'empêche pas. Ces routes sont en GET, donc hors du
+  // champ du contrôle CSRF, qui ne vise que les méthodes non sûres.
+  //
+  // Ce middleware est monté AVANT les trois routes, et non après : l'ordre
+  // d'enregistrement est ce qui décide, et c'est précisément cet ordre qui
+  // avait créé le trou.
+  app.use('/pdf', EnterpriseAuthMiddleware.requireAuthentication);
+
   app.get("/pdf/maintenance-reports/:id", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
@@ -268,22 +308,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ⚠️ Cette route n'exigeait RIEN : ni session, ni locataire. Enregistrée
-  // avant les middlewares d'authentification et hors du préfixe /api, elle
-  // servait à tout appelant anonyme le rapport mensuel n° N — donc les coûts de
+  // ⚠️ Cette route n'exigeait RIEN : ni session, ni locataire. Elle servait à
+  // tout appelant anonyme le rapport mensuel n° N — donc les coûts de
   // maintenance agrégés du locataire à qui il appartient — à qui en devinait le
-  // numéro, un entier séquentiel. C'était la seule des fuites recensées à être
-  // exploitable sans aucun compte.
-  //
-  // ⚠️ CONSÉQUENCE ASSUMÉE : rien ne pose `req.tenantId` en dehors de /api (le
-  // middleware tenant est monté sur ce seul préfixe, voir
-  // server/tenant-integration.ts). Exiger le locataire rend donc cette route
-  // inaccessible — 401 — exactement comme l'est déjà sa jumelle
-  // /pdf/maintenance-reports/:id, qui appelle `tenantRequis` depuis plus
-  // longtemps. Le bouton de téléchargement du client s'en trouve inopérant,
-  // mais un 401 lisible vaut mieux qu'un PDF des dépenses d'autrui servi à un
-  // inconnu. Rétablir ces deux téléchargements demande de résoudre la session
-  // sur /pdf aussi : c'est un autre chantier, pas un cloisonnement.
+  // numéro, un entier séquentiel. C'était la seule fuite du lot exploitable
+  // sans aucun compte. Le `tenantRequis()` ci-dessous la ferme, et le
+  // middleware monté sur `/pdf` en amont fait qu'il discrimine réellement les
+  // locataires au lieu de refuser tout le monde.
   app.get("/pdf/monthly-reports/:id", async (req, res) => {
     try {
       const reportId = parseInt(req.params.id);
@@ -3094,15 +3125,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sector: z.string().optional()
   })), async (req, res) => {
     try {
+      // ⚠️ `equipmentId` arrive du CORPS de la requête, et rien ne vérifiait à
+      // qui cet équipement appartient : l'analyse des capteurs qu'en tire
+      // `performAdvancedDiagnosis` lisait donc les relevés de n'importe quel
+      // locataire à qui en devinait le numéro. Le locataire de la session est
+      // désormais transmis, et c'est lui qui borne cette lecture.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { equipmentType, symptoms, urgency, equipmentId, zone, sector } = req.body;
-      
+
       console.log('🔬 Performing advanced reliability-optimized diagnostic...');
-      
+
       // Use advanced diagnostic optimizer
       const advancedResult = await advancedDiagnosticOptimizer.performAdvancedDiagnosis({
         equipmentType,
         symptoms,
         equipmentId,
+        tenantId,
         urgency,
         context: { zone, sector }
       });
