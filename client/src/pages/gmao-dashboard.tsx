@@ -869,19 +869,57 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {/* Équipements uniquement */}
+        {/* ⚠️ Ces trois onglets n'avaient AUCUN titre de niveau 1 : l'en-tête
+            de la GMAO ne vit que dans la branche « Vue d'ensemble », et les
+            composants montés ici n'en portent pas — celui des équipements
+            s'en passe justement pour ne pas faire doublon quand il est
+            intégré. Résultat mesuré : trois onglets sur cinq sans `<h1>`,
+            donc sans titre pour un lecteur d'écran, et rien à l'écran qui
+            rappelle où l'on se trouve une fois l'en-tête disparu. */}
         {!showAdminModal && activeTab === "equipment" && (
-          <EquipmentManagement />
+          <EquipmentManagement
+            enTete={
+              <EnTetePage
+                surTitre="GMAO"
+                titre="Équipements"
+                phrase="Le registre du parc : identification, emplacement, criticité et état de service."
+              />
+            }
+          />
         )}
 
-        {/* Ordres de travail uniquement */}
         {!showAdminModal && activeTab === "work-orders" && (
-          <WorkOrderManagement />
+          <div className="space-y-6">
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Ordres de travail"
+              phrase="Les interventions en cours, leur priorité et leur responsable."
+              actionsSecondaires={
+                <ActionSecondaire href="/work-orders">
+                  <ArrowUpRight className="w-4 h-4" />
+                  Vue complète
+                </ActionSecondaire>
+              }
+            />
+            <WorkOrderManagement />
+          </div>
         )}
 
-        {/* Inventaire uniquement */}
         {!showAdminModal && activeTab === "inventory" && (
-          <InventorySimple />
+          <div className="space-y-6">
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Inventaire"
+              phrase="Les pièces détachées, leurs seuils de réapprovisionnement et leur emplacement."
+              actionsSecondaires={
+                <ActionSecondaire href="/inventaire">
+                  <ArrowUpRight className="w-4 h-4" />
+                  Vue complète
+                </ActionSecondaire>
+              }
+            />
+            <InventorySimple />
+          </div>
         )}
         
         {/* ══════════════════════════════════════════════════════════

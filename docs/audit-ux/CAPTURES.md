@@ -187,3 +187,41 @@ fragments `from-…` / `to-…` restés sans `bg-gradient-to-*` ne posaient plus
 une correction de secours leur avait donné à toutes le même gris. « Expirent ≤ 30j » est à
 nouveau ambre, « Expirées » rouge, et les deux tuiles de dénombrement restent neutres —
 elles ne décrivent aucun état.
+
+### Équipements — 
+[](captures/apres-equipements.jpg)
+
+**Cet écran avait échappé au premier passage de l'étape D**, et pour une raison
+instructive : il n'est pas un fichier de  mais un COMPOSANT,
+, branché directement sur les routes
+ et  depuis . La boucle qui
+posait le gabarit parcourait les pages ; elle ne pouvait pas le voir. Vérification
+faite, c'était le seul composant dans ce cas.
+
+Deux conséquences, mesurées :
+
+- **aucune barre de navigation** — alors que le registre du parc est la destination de
+  la tuile « Équipements » de la GMAO ET de celle de l'écran d'ingénierie : on y
+  arrivait en un clic, on n'en repartait plus ;
+- **aucun ** — son titre était un , précisément parce que le composant
+  sert aussi d'onglet à l'intérieur de la GMAO, où un titre de niveau 1 aurait fait
+  doublon.
+
+La page  résout les deux sans casser l'usage en onglet : elle
+pose le gabarit et le titre, et passe l'en-tête au composant par une propriété
+. L'onglet de la GMAO passe le sien, la page autonome le sien.
+
+**Au passage :** les onglets « Ordres de travail », « Équipements » et « Inventaire » de
+la GMAO n'avaient eux non plus aucun  — l'en-tête de la GMAO ne vit que dans la
+branche « Vue d'ensemble ». Trois onglets sur cinq étaient donc sans titre pour un
+lecteur d'écran, et sans repère à l'écran une fois l'en-tête disparu. Les cinq en ont un
+désormais, vérifié onglet par onglet.
+
+### Maintenance préventive — 
+Dernière page du produit sans  : son titre était un , c'est-à-dire
+un , posé dans une bannière centrée de douze unités de hauteur — une icône de
+48 px sur deux halos flous superposés, un titre en 36 px, une accroche en 20 px. Elle
+occupait le premier écran entier, et le premier intitulé réellement visible était une
+valeur de donnée (« Graissage Moteur Principal »). Remplacée par l'en-tête commun : les
+cinq chiffres du parc (5 plans, 4 actifs, 1 en retard, 94 % de réalisation) sont
+maintenant au-dessus de la ligne de flottaison.

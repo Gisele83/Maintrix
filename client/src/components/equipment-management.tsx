@@ -53,7 +53,16 @@ interface Equipment {
   createdAt?: string;
 }
 
-export function EquipmentManagement() {
+interface EquipmentManagementProps {
+  /**
+   * En-tête fourni par l'appelant. La page autonome passe un `EnTetePage`
+   * complet ; l'onglet « Équipements » de la GMAO n'en passe aucun, parce
+   * que la GMAO porte déjà le sien.
+   */
+  enTete?: React.ReactNode;
+}
+
+export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -229,22 +238,31 @@ export function EquipmentManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header and Actions */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-ink">Gestion des Équipements</h2>
-          <p className="text-ink-soft">Gérez vos équipements industriels et leurs informations</p>
-        </div>
+      {/* ══════════════════════════════════════════════════════════
+          EN-TÊTE
+          ══════════════════════════════════════════════════════════
+          Cet écran se monte à DEUX endroits : comme page autonome
+          (`/equipment-management`) et comme onglet de la GMAO. Son titre
+          était un `<h2>` — la page n'avait donc aucun `<h1>`, et un lecteur
+          d'écran n'y trouvait pas de titre de niveau 1. En onglet, à
+          l'inverse, ce même titre faisait doublon avec celui de la GMAO.
+          D'où `enTete` : la page autonome passe son propre `EnTetePage`,
+          l'onglet n'en met pas. */}
+      {enTete}
+
+      <div className="flex justify-end">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => form.reset()}>
+            <Button onClick={() => form.reset()} className="bg-ink text-paper hover:bg-signal">
               <Plus className="w-4 h-4 mr-2" />
-              Nouvel Équipement
+              Nouvel équipement
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Ajouter un Nouvel Équipement</DialogTitle>
+              <DialogTitle className="font-serif text-title font-medium text-ink">
+                Ajouter un équipement
+              </DialogTitle>
             </DialogHeader>
             <EquipmentForm
               form={form}
@@ -256,15 +274,17 @@ export function EquipmentManagement() {
         </Dialog>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex space-x-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute w-4 h-4" />
+      {/* Recherche */}
+      <div className="border border-rule bg-white p-5">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute w-4 h-4" aria-hidden="true" />
           <Input
+            id="recherche-equipements"
+            aria-label="Rechercher un équipement"
             placeholder="Rechercher par nom, code ou type d'équipement..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-rule"
           />
         </div>
       </div>

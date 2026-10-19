@@ -36,7 +36,7 @@ import PredictiveEnginePage from "@/pages/predictive-engine";
 import EngineeringExpertisePage from "@/pages/engineering-expertise";
 import MultiAgentTeamPage from "@/pages/multi-agent-team";
 import EquipmentLifecyclePage from "@/pages/equipment-lifecycle";
-import { EquipmentManagement } from "@/components/equipment-management";
+import EquipmentPage from "@/pages/equipment";
 import PreventiveMaintenance from "@/pages/preventive-maintenance";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
@@ -227,10 +227,10 @@ function Router() {
         {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}
       </Route>
       <Route path="/equipment">
-        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+        {(params) => <ProtectedRoute component={EquipmentPage} {...params} />}
       </Route>
       <Route path="/equipment-management">
-        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+        {(params) => <ProtectedRoute component={EquipmentPage} {...params} />}
       </Route>
       <Route path="/work-orders">
         {(params) => <ProtectedRoute component={WorkOrders} {...params} />}

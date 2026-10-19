@@ -495,29 +495,24 @@ export default function PreventiveMaintenance() {
   return (
     <AppShell filAriane={[{ libelle: "GMAO", href: "/gmao" }, { libelle: "Maintenance préventive" }]} largeur="large">
     <div className="space-y-6">
-      <div className="container mx-auto p-6 space-y-8">
-        {/* Header Section */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-paper-deep rounded-none blur-3xl"></div>
-          <Card className="relative bg-white dark:bg-paper-deep border-0 rounded-none">
-            <CardHeader className="text-center py-12">
-              <div className="flex items-center justify-center mb-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-paper-deep rounded-none blur-lg opacity-50"></div>
-                  <div className="relative bg-paper-deep p-4 rounded-none">
-                    <Calendar className="h-12 w-12 text-ink" />
-                  </div>
-                </div>
-              </div>
-              <CardTitle className="text-4xl font-bold text-ink mb-4">
-                Maintenance Préventive
-              </CardTitle>
-              <p className="text-xl text-ink-soft dark:text-ink-soft max-w-2xl mx-auto">
-                Planification et suivi des maintenances préventives avec optimisation prédictive
-              </p>
-            </CardHeader>
-          </Card>
-        </div>
+      <div className="space-y-8">
+        {/* ══════════════════════════════════════════════════════════
+            EN-TÊTE
+            ══════════════════════════════════════════════════════════
+            C'était une bannière centrée de douze unités de hauteur : une
+            icône de 48 px posée sur deux halos flous superposés, un titre
+            en 36 px et une accroche en 20 px. Elle occupait le premier
+            écran entier sans rien dire d'utile, et — plus gênant — elle
+            n'employait AUCUN `<h1>` : son titre était un `CardTitle`,
+            c'est-à-dire un `<div>`. La page était la dernière du produit
+            sans titre de niveau 1, et son premier intitulé visible était
+            une valeur de donnée (« Graissage Moteur Principal »).
+            Même en-tête que partout ailleurs. */}
+        <EnTetePage
+          surTitre="GMAO"
+          titre="Maintenance préventive"
+          phrase="Les plans d'entretien périodiques et leurs échéances."
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
