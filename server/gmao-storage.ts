@@ -827,21 +827,32 @@ export class GMAOStorage {
   }
 
   // IoT Sensor Data Methods
-  async getIotSensorData(equipmentId?: number, sensorType?: string, limit: number = 1000): Promise<IotSensorData[]> {
-    const conditions = [];
+  /**
+   * Relevés de capteurs d'UN locataire.
+   *
+   * `equipmentId` reste facultatif — lire tout le parc du demandeur est un
+   * besoin légitime — mais `tenantId` ne l'est plus. C'est la conjonction des
+   * deux qui faisait la fuite : appelée sans équipement par
+   * `GET /api/iot-data`, cette méthode partait sans AUCUNE condition et rendait
+   * les relevés de toute l'instance.
+   */
+  async getIotSensorData(tenantId: string, equipmentId?: number, sensorType?: string, limit: number = 1000): Promise<IotSensorData[]> {
+    const conditions = [eq(iotSensorData.tenantId, tenantId)];
     if (equipmentId) conditions.push(eq(iotSensorData.equipmentId, equipmentId));
     if (sensorType) conditions.push(eq(iotSensorData.sensorType, sensorType));
 
+    // Plus de branche « aucune condition » : le locataire est toujours là.
     return await db.select().from(iotSensorData)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(limit);
   }
 
   // Get alerts for equipment
-  async getAlerts(equipmentId?: number, limit: number = 50): Promise<any[]> {
+  // Dérive des relevés : son cloisonnement est celui de la lecture appelée.
+  async getAlerts(tenantId: string, equipmentId?: number, limit: number = 50): Promise<any[]> {
     // For now, generate mock alerts based on recent sensor data
-    const sensorData = await this.getIotSensorData(equipmentId, undefined, 20);
+    const sensorData = await this.getIotSensorData(tenantId, equipmentId, undefined, 20);
     const alerts: any[] = [];
     let alertId = 1;
     
@@ -887,9 +898,30 @@ export class GMAOStorage {
     return sensorData;
   }
 
-  async getLatestSensorData(equipmentId: number): Promise<IotSensorData[]> {
+  /**
+   * Résout le locataire d'un équipement, pour les chemins d'INGESTION qui ne
+   * connaissent que lui.
+   *
+   * Le connecteur IoT reçoit des trames portant un identifiant d'équipement et
+   * rien d'autre : il n'a pas de session, donc pas de locataire. Plutôt que de
+   * laisser chaque LECTURE redériver le rattachement par jointure — ce qui est
+   * précisément l'oubli qui a produit la fuite — on le résout une fois, à
+   * l'écriture. Rend `undefined` pour un équipement inconnu, que l'appelant
+   * doit traiter comme un refus d'écrire : un relevé sans locataire connu ne
+   * doit pas entrer en base.
+   */
+  async resoudreLocataireEquipement(equipmentId: number): Promise<string | undefined> {
+    const [equipement] = await db
+      .select({ tenantId: equipmentRegistry.tenantId })
+      .from(equipmentRegistry)
+      .where(eq(equipmentRegistry.id, equipmentId))
+      .limit(1);
+    return equipement?.tenantId;
+  }
+
+  async getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]> {
     return await db.select().from(iotSensorData)
-      .where(eq(iotSensorData.equipmentId, equipmentId))
+      .where(and(eq(iotSensorData.equipmentId, equipmentId), eq(iotSensorData.tenantId, tenantId)))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(10);
   }
@@ -944,12 +976,17 @@ export class GMAOStorage {
     const equipmentIds = equipmentList.map(e => e.id);
 
     // 2. Get latest sensor data per equipment (last 200 readings)
+    // La liste d'équipements vient déjà d'une requête filtrée par locataire,
+    // mais la condition est posée explicitement : un cloisonnement qui repose
+    // sur la provenance d'une variable se perd au premier remaniement.
     const sensorDataRaw = equipmentIds.length > 0
       ? await db.select().from(iotSensorData)
-          .where(equipmentIds.length === 1
-            ? eq(iotSensorData.equipmentId, equipmentIds[0])
-            : or(...equipmentIds.map(id => eq(iotSensorData.equipmentId, id)))
-          )
+          .where(and(
+            eq(iotSensorData.tenantId, tenantId),
+            equipmentIds.length === 1
+              ? eq(iotSensorData.equipmentId, equipmentIds[0])
+              : or(...equipmentIds.map(id => eq(iotSensorData.equipmentId, id)))!,
+          ))
           .orderBy(desc(iotSensorData.timestamp))
           .limit(500)
       : [];
@@ -1264,6 +1301,7 @@ export class GMAOStorage {
             : 'normal';
 
           await db.insert(iotSensorData).values({
+            tenantId,
             equipmentId: eq.id,
             sensorType: s.type,
             sensorId: s.sensorId,
@@ -1646,47 +1684,76 @@ export class GMAOStorage {
       laborCost: laborCost.toString(),
       partsCost: partsCost.toString(),
       status: "draft",
-      ...reportData
+      ...reportData,
+      // Le locataire vient de la SESSION, jamais du corps de la requête, et il
+      // est posé après l'étalement de `reportData` : un client qui enverrait
+      // `tenantId` — ou un `equipmentId` appartenant à autrui — ne peut pas
+      // détourner le rattachement du rapport.
+      tenantId,
     };
 
     const [report] = await db.insert(maintenanceReports).values(reportDataComplete).returning();
 
     // Auto-approve if no issues
     if (!reportData.safetyIncidents && !reportData.followUpRequired) {
-      await this.approveMaintenanceReport(report.id, reportData.technician || "System");
+      await this.approveMaintenanceReport(report.id, tenantId, reportData.technician || "System");
     }
 
     console.log(`Maintenance report ${reportNumber} generated for work order ${workOrderId}`);
     return report;
   }
 
-  // Get maintenance reports
-  async getMaintenanceReports(filters?: {
+  /**
+   * Rapports de maintenance d'UN locataire.
+   *
+   * `tenantId` est un paramètre positionnel obligatoire, et non une entrée de
+   * plus dans `filters`. C'est délibéré : la fuite corrigée ici n'était pas un
+   * filtre mal écrit, c'était un filtre ABSENT. Tant que le cloisonnement reste
+   * optionnel, il se fait oublier sans que rien ne le signale — exactement ce
+   * qui s'est produit. Obligatoire, le compilateur refuse tout appelant qui
+   * l'omet, et un futur écran ne peut plus naître en lisant le parc entier.
+   */
+  async getMaintenanceReports(tenantId: string, filters?: {
     equipmentId?: number;
     reportType?: string;
     status?: string;
     startDate?: Date;
     endDate?: Date;
   }): Promise<MaintenanceReport[]> {
-    const conditions = [];
+    const conditions = [eq(maintenanceReports.tenantId, tenantId)];
     if (filters?.equipmentId) conditions.push(eq(maintenanceReports.equipmentId, filters.equipmentId));
     if (filters?.reportType) conditions.push(eq(maintenanceReports.reportType, filters.reportType));
     if (filters?.status) conditions.push(eq(maintenanceReports.status, filters.status));
     if (filters?.startDate) conditions.push(gte(maintenanceReports.createdAt, filters.startDate));
     if (filters?.endDate) conditions.push(lte(maintenanceReports.createdAt, filters.endDate));
 
+    // `conditions` contient au minimum le locataire : il n'y a plus de branche
+    // « aucune condition », qui était le chemin par lequel la requête partait
+    // sans le moindre WHERE.
     return db.select().from(maintenanceReports)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(maintenanceReports.createdAt));
   }
 
-  async getMaintenanceReportById(id: number): Promise<MaintenanceReport | undefined> {
-    const [report] = await db.select().from(maintenanceReports).where(eq(maintenanceReports.id, id));
+  /**
+   * Un rapport par son identifiant, dans la limite du locataire demandeur.
+   *
+   * Les identifiants sont des entiers séquentiels communs à toute l'instance :
+   * sans cette condition, une route qui sert le rapport n° N le sert à qui en
+   * devine le numéro — description de panne, diagnostic, technicien et coûts
+   * compris.
+   */
+  async getMaintenanceReportById(id: number, tenantId: string): Promise<MaintenanceReport | undefined> {
+    const [report] = await db.select().from(maintenanceReports)
+      .where(and(eq(maintenanceReports.id, id), eq(maintenanceReports.tenantId, tenantId)));
     return report;
   }
 
   // Approve maintenance report
-  async approveMaintenanceReport(reportId: number, approvedBy: string): Promise<MaintenanceReport> {
+  // Une écriture se cloisonne comme une lecture : sans le locataire au WHERE,
+  // approuver le rapport n° N d'autrui ne demandait que d'en connaître le
+  // numéro.
+  async approveMaintenanceReport(reportId: number, tenantId: string, approvedBy: string): Promise<MaintenanceReport> {
     const [report] = await db
       .update(maintenanceReports)
       .set({
@@ -1695,7 +1762,7 @@ export class GMAOStorage {
         approvalDate: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(maintenanceReports.id, reportId))
+      .where(and(eq(maintenanceReports.id, reportId), eq(maintenanceReports.tenantId, tenantId)))
       .returning();
     return report;
   }
@@ -1733,7 +1800,16 @@ export class GMAOStorage {
       }, 0) / completedWOs.length : 0;
 
     // Calculate maintenance KPIs
-    const maintenanceReportsInPeriod = await this.getMaintenanceReports({
+    //
+    // ⚠️ Cet appel se faisait SANS locataire. Les quatre indicateurs de coût
+    // calculés plus bas — `totalMaintenanceCost`, `laborCost`, `partsCost` et
+    // `costPerWorkOrder` — additionnaient donc les rapports de TOUS les
+    // locataires de l'instance, pendant que le reste du rapport (parc, ordres
+    // de travail, alertes) était correctement restreint à `tenantId`. Un
+    // locataire voyait les dépenses des autres mêlées aux siennes, et son coût
+    // par intervention — somme globale divisée par SES seules interventions —
+    // ne voulait rien dire.
+    const maintenanceReportsInPeriod = await this.getMaintenanceReports(tenantId, {
       startDate: periodStart,
       endDate: periodEnd
     });
@@ -1835,6 +1911,9 @@ export class GMAOStorage {
 
     const monthlyReportData: InsertMonthlyReport = {
       reportNumber,
+      // Sans ce rattachement, des agrégats justement calculés resteraient
+      // lisibles par tous via GET /api/monthly-reports.
+      tenantId,
       month,
       year,
       periodStart,
@@ -1884,14 +1963,20 @@ export class GMAOStorage {
   }
 
   // Get monthly reports
-  async getMonthlyReports(year?: number): Promise<MonthlyReport[]> {
+  // `tenantId` obligatoire, pour la même raison que sur les rapports
+  // d'intervention : un filtre facultatif se fait oublier.
+  async getMonthlyReports(tenantId: string, year?: number): Promise<MonthlyReport[]> {
+    const conditions = [eq(monthlyReports.tenantId, tenantId)];
+    if (year) conditions.push(eq(monthlyReports.year, year));
+
     return db.select().from(monthlyReports)
-      .where(year ? eq(monthlyReports.year, year) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(monthlyReports.year), desc(monthlyReports.month));
   }
 
-  async getMonthlyReportById(id: number): Promise<MonthlyReport | undefined> {
-    const [report] = await db.select().from(monthlyReports).where(eq(monthlyReports.id, id));
+  async getMonthlyReportById(id: number, tenantId: string): Promise<MonthlyReport | undefined> {
+    const [report] = await db.select().from(monthlyReports)
+      .where(and(eq(monthlyReports.id, id), eq(monthlyReports.tenantId, tenantId)));
     return report;
   }
 

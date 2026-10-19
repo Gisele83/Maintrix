@@ -180,7 +180,7 @@ export class PredictiveMaintenanceEngine {
       }
 
       // Get recent sensor data
-      const sensorData = await gmaoStorage.getLatestSensorData(equipmentId);
+      const sensorData = await gmaoStorage.getLatestSensorData(equipmentId, tenantId);
       
       // Get equipment model
       const model = this.models.get(equipment.equipmentType);

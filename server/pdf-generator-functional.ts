@@ -5,9 +5,24 @@ import { Response } from 'express';
  *
  * Un rapport qui écrit « 0,0 h » là où il ne sait rien affirme une
  * performance catastrophique. « N/D » n'affirme rien, ce qui est la vérité.
+ *
+ * ⚠️ Cette fonction n'acceptait que `undefined`, alors que ses deux appelants
+ * lui passent `null` : `/pdf/comprehensive-report` déclare explicitement
+ * `availability: null, mtbf: null, mttr: null, oee: null` — des grandeurs qui
+ * exigent un historique que ce rapport ne rassemble pas — et
+ * `/pdf/monthly-reports/:id` passe le résultat de `nombreOuNull()`. Les deux
+ * routes plantaient donc en `Cannot read properties of null (reading
+ * 'toFixed')`, en HTTP 500.
+ *
+ * Personne ne l'avait vu parce que ces deux routes répondaient 401 à TOUT LE
+ * MONDE : leur `tenantRequis()` lisait un `req.tenantId` que rien ne posait
+ * hors de `/api`. Le refus systématique masquait le plantage, et le compilateur
+ * ne pouvait rien dire — `sendComprehensiveReportHTML(res, reportData: any)`
+ * reçoit son argument en `any`. Résoudre la session sur `/pdf` a rendu les
+ * routes atteignables, et ce défaut visible du même coup.
  */
-function valeurOuND(valeur: number | undefined, unite: string): string {
-  return valeur === undefined ? 'N/D' : `${valeur.toFixed(1)}${unite}`;
+function valeurOuND(valeur: number | null | undefined, unite: string): string {
+  return valeur === null || valeur === undefined ? 'N/D' : `${valeur.toFixed(1)}${unite}`;
 }
 
 
@@ -678,7 +693,12 @@ export class PDFGeneratorFunctional {
                   <div>MTTR</div>
                 </div>
                 <div class="kpi-card">
-                  <div class="kpi-value">${reportData.kpis.oee.toFixed(1)}%</div>
+                  <!-- Quatrième KPI du même bloc, resté en .toFixed() brut quand
+                       ses trois voisins passaient par valeurOuND. La route
+                       déclare pourtant oee à null au même titre que les autres :
+                       ce seul oubli faisait planter tout le rapport en HTTP 500,
+                       sans que personne le voie — la route répondait 401. -->
+                  <div class="kpi-value">${valeurOuND(reportData.kpis.oee, "%")}</div>
                   <div>OEE</div>
                 </div>
               </div>

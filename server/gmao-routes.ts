@@ -909,10 +909,17 @@ export function registerGMAORoutes(app: Express) {
   // ============= IOT SENSOR DATA ROUTES =============
   
   // Get IoT sensor data
+  //
+  // ⚠️ Appelée sans `equipmentId` — ce que fait l'écran quand il veut « tous les
+  // relevés » — cette route rendait les capteurs de TOUTE l'instance : la
+  // méthode de stockage n'avait alors plus aucune condition à poser.
   app.get("/api/iot-data", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { equipmentId, sensorType, limit } = req.query;
       const data = await gmaoStorage.getIotSensorData(
+        tenantId,
         equipmentId ? parseInt(equipmentId as string) : undefined,
         sensorType as string,
         limit ? parseInt(limit as string) : undefined
@@ -927,8 +934,12 @@ export function registerGMAORoutes(app: Express) {
   // Create IoT sensor data
   app.post("/api/iot-data", async (req, res) => {
     try {
-      const data = insertIotSensorDataSchema.parse(req.body);
-      const sensorData = await gmaoStorage.createIotSensorData(data);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      // Le locataire vient de la session et est posé APRÈS l'analyse du corps :
+      // un client qui enverrait `tenantId` ne peut pas écrire chez autrui.
+      const data = insertIotSensorDataSchema.parse({ ...req.body, tenantId });
+      const sensorData = await gmaoStorage.createIotSensorData({ ...data, tenantId });
       res.status(201).json(sensorData);
     } catch (error) {
       console.error("Error creating IoT data:", error);
@@ -937,10 +948,14 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get latest sensor data for equipment
+  // L'identifiant d'équipement vient de l'URL : sans condition de locataire,
+  // lire les capteurs d'autrui ne demandait que d'en deviner le numéro.
   app.get("/api/equipment/:equipmentId/sensor-data", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId);
-      const data = await gmaoStorage.getLatestSensorData(equipmentId);
+      const data = await gmaoStorage.getLatestSensorData(equipmentId, tenantId);
       res.json(data);
     } catch (error) {
       console.error("Error fetching sensor data:", error);
@@ -1373,7 +1388,9 @@ export function registerGMAORoutes(app: Express) {
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
 
-      const report = await gmaoStorage.getMaintenanceReportById(reportId);
+      // Le locataire était déjà exigé ici, mais seulement pour enrichir le PDF
+      // : la lecture du rapport lui-même l'ignorait. On le lui passe.
+      const report = await gmaoStorage.getMaintenanceReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport de maintenance introuvable" });
       }
@@ -1394,10 +1411,18 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get maintenance reports — real data from DB
+  //
+  // ⚠️ Cette route n'exigeait AUCUN locataire et n'en transmettait aucun : elle
+  // renvoyait les rapports de toute l'instance au composant
+  // client/src/components/maintenance-reports.tsx, qui les affiche tels quels
+  // (technicien, description de l'intervention, coût total). C'était la fuite
+  // la plus directe des cinq, et la seule visible à l'œil nu dans l'écran.
   app.get("/api/maintenance-reports", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { reportType, status, equipmentId } = req.query;
-      const reports = await gmaoStorage.getMaintenanceReports({
+      const reports = await gmaoStorage.getMaintenanceReports(tenantId, {
         ...(reportType && { reportType: reportType as string }),
         ...(status && { status: status as string }),
         ...(equipmentId && { equipmentId: parseInt(equipmentId as string) }),
@@ -1432,8 +1457,10 @@ export function registerGMAORoutes(app: Express) {
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "ID de rapport invalide" });
       }
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
-      const report = await gmaoStorage.getMonthlyReportById(reportId);
+      const report = await gmaoStorage.getMonthlyReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport mensuel introuvable" });
       }
@@ -1448,10 +1475,17 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get monthly reports — real data from DB
+  //
+  // ⚠️ Même absence de contrôle que sur /api/maintenance-reports, pour des
+  // données plus condensées encore : chaque ligne porte les coûts de
+  // maintenance AGRÉGÉS d'un mois. L'écran les affiche en évidence
+  // (« Coût total », « Main d'œuvre », « Pièces », « Coût / intervention »).
   app.get("/api/monthly-reports", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const year = req.query.year ? parseInt(req.query.year as string) : undefined;
-      const reports = await gmaoStorage.getMonthlyReports(year);
+      const reports = await gmaoStorage.getMonthlyReports(tenantId, year);
       res.json(reports);
     } catch (error) {
       console.error("Error fetching monthly reports:", error);

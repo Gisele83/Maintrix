@@ -11,7 +11,8 @@
 import type { Express } from "express";
 import { db } from "./db";
 import { iotSensorData, equipmentRegistry } from "@shared/schema";
-import { eq, gte, desc } from "drizzle-orm";
+import { and, eq, gte, desc } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
 import {
   computeSeriesJSD,
   slidingWindowJSD,
@@ -111,8 +112,24 @@ export function registerJSDRoutes(app: Express) {
    * GET /api/jsd/equipment/:id
    * Analyse JSD complète de l'historique IoT d'un équipement
    */
+  // ⚠️ DEUX DÉFAUTS, DONT UN QUI N'EST PAS UNE FUITE.
+  //
+  // Cette route recevait un `equipmentId`, le renvoyait dans sa réponse — et ne
+  // s'en servait JAMAIS dans la requête : la seule condition était la fenêtre
+  // temporelle. La dérive annoncée pour un équipement était donc calculée sur
+  // les relevés MÊLÉS de tout le parc, de tous les locataires de l'instance,
+  // puis étiquetée du nom de cet équipement. Le nombre affiché ne mesurait rien
+  // — ni la dérive de l'équipement demandé, ni celle d'aucun autre.
+  //
+  // Les deux conditions manquantes sont donc rétablies ensemble, et il faut les
+  // deux : l'équipement pour que le résultat ait un sens, le locataire pour
+  // qu'il ne traverse pas les cloisons. La limite de 2 000 lignes aggravait la
+  // confusion : elle tronquait un mélange, donc le résultat dépendait aussi du
+  // volume inséré par les autres.
   app.get("/api/jsd/equipment/:id", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.id);
       const windowDays = parseInt((req.query.windowDays as string) ?? "30");
       const windowSize = parseInt((req.query.windowSize as string) ?? "20");
@@ -130,7 +147,11 @@ export function registerJSDRoutes(app: Express) {
           timestamp: iotSensorData.timestamp,
         })
         .from(iotSensorData)
-        .where(gte(iotSensorData.timestamp, cutoff))
+        .where(and(
+          eq(iotSensorData.tenantId, tenantId),
+          eq(iotSensorData.equipmentId, equipmentId),
+          gte(iotSensorData.timestamp, cutoff),
+        ))
         .orderBy(iotSensorData.timestamp)
         .limit(2000);
 
@@ -203,8 +224,13 @@ export function registerJSDRoutes(app: Express) {
    * GET /api/jsd/global-status
    * État de dérive conceptuelle global de tous les équipements (last 24h IoT data)
    */
-  app.get("/api/jsd/global-status", async (_req, res) => {
+  // Lecture en masse assumée — c'est l'objet de cette route — mais elle couvrait
+  // toute l'instance : « l'état global » rendu à un locataire agrégeait la
+  // dérive des capteurs de tous les autres.
+  app.get("/api/jsd/global-status", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const cutoff24h = new Date(Date.now() - 24 * 3_600_000);
 
       const rows = await db
@@ -214,7 +240,10 @@ export function registerJSDRoutes(app: Express) {
           timestamp: iotSensorData.timestamp,
         })
         .from(iotSensorData)
-        .where(gte(iotSensorData.timestamp, cutoff24h))
+        .where(and(
+          eq(iotSensorData.tenantId, tenantId),
+          gte(iotSensorData.timestamp, cutoff24h),
+        ))
         .orderBy(iotSensorData.timestamp)
         .limit(5000);
 

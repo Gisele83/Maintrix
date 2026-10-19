@@ -87,7 +87,9 @@ export class AdvancedDiagnosticOptimizer {
   /**
    * 3. FUSION MULTI-CAPTEURS AVEC PONDÉRATION ADAPTATIVE
    */
-  private async analyzeSensorTrends(equipmentId: number, timeWindow: number = 24): Promise<{
+  // `tenantId` est exigé : l'équipement arrive du corps de la requête HTTP, et
+  // rien ne garantissait qu'il appartienne au demandeur.
+  private async analyzeSensorTrends(equipmentId: number, tenantId: string, timeWindow: number = 24): Promise<{
     trends: any[];
     anomalyScore: number;
     degradationIndicators: string[];
@@ -99,6 +101,7 @@ export class AdvancedDiagnosticOptimizer {
       const sensorData = await db.select()
         .from(iotSensorData)
         .where(and(
+          eq(iotSensorData.tenantId, tenantId),
           eq(iotSensorData.equipmentId, equipmentId),
           gte(iotSensorData.timestamp, cutoffTime)
         ))
@@ -246,6 +249,9 @@ export class AdvancedDiagnosticOptimizer {
     equipmentType: string;
     symptoms: string;
     equipmentId?: number;
+    // Obligatoire, et non optionnel : la lecture des capteurs en dépend, et un
+    // champ facultatif se fait oublier par l'appelant suivant.
+    tenantId: string;
     urgency: string;
     context?: any;
   }): Promise<AdvancedDiagnostic> {
@@ -261,7 +267,7 @@ export class AdvancedDiagnosticOptimizer {
       
       // 3. Analyse des capteurs IoT
       const sensorAnalysis = data.equipmentId ? 
-        await this.analyzeSensorTrends(data.equipmentId) : 
+        await this.analyzeSensorTrends(data.equipmentId, data.tenantId) : 
         { trends: [], anomalyScore: 0, degradationIndicators: [], confidence: 0 };
       
       // 4. Analyse contextuelle (maintenance récente, âge équipement)
