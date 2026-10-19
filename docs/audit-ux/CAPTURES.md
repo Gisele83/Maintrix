@@ -156,8 +156,8 @@ locataire `TENANT_ALPHA` authentifié en `admin`), à 1440 px de large, page ent
 
 ## Étape D — harmonisation des autres écrans
 
-Deux exemples représentatifs des 45 écrans repris. Il n'existe pas de capture « avant »
-pour eux : l'étape D a été engagée après la validation, sur l'état déjà commité.
+Exemples représentatifs des 46 écrans repris. Il n'existe pas de capture « avant » pour
+eux : l'étape D a été engagée après la validation, sur l'état déjà commité.
 
 ### Ordres de travail — `/work-orders`
 
@@ -188,40 +188,54 @@ une correction de secours leur avait donné à toutes le même gris. « Expirent
 nouveau ambre, « Expirées » rouge, et les deux tuiles de dénombrement restent neutres —
 elles ne décrivent aucun état.
 
-### Équipements — 
-[](captures/apres-equipements.jpg)
+### Équipements — `/equipment-management`
+
+[`captures/apres-equipements.jpg`](captures/apres-equipements.jpg)
 
 **Cet écran avait échappé au premier passage de l'étape D**, et pour une raison
-instructive : il n'est pas un fichier de  mais un COMPOSANT,
-, branché directement sur les routes
- et  depuis . La boucle qui
-posait le gabarit parcourait les pages ; elle ne pouvait pas le voir. Vérification
-faite, c'était le seul composant dans ce cas.
+instructive : il n'est pas un fichier de `pages/` mais un COMPOSANT,
+`components/equipment-management.tsx`, branché directement sur les routes `/equipment` et
+`/equipment-management` depuis `App.tsx`. La boucle qui posait le gabarit parcourait les
+pages ; elle ne pouvait pas le rencontrer. Vérification faite, c'était le seul composant
+dans ce cas.
 
 Deux conséquences, mesurées :
 
-- **aucune barre de navigation** — alors que le registre du parc est la destination de
-  la tuile « Équipements » de la GMAO ET de celle de l'écran d'ingénierie : on y
-  arrivait en un clic, on n'en repartait plus ;
-- **aucun ** — son titre était un , précisément parce que le composant
-  sert aussi d'onglet à l'intérieur de la GMAO, où un titre de niveau 1 aurait fait
-  doublon.
+- **aucune barre de navigation** — alors que le registre du parc est la destination de la
+  tuile « Équipements » de la GMAO **et** de celle de l'écran d'ingénierie : on y arrivait
+  en un clic, on n'en repartait plus ;
+- **aucun titre de niveau 1** — son titre était un `<h2>`, précisément parce que le
+  composant sert aussi d'onglet à l'intérieur de la GMAO, où un `<h1>` aurait fait doublon.
 
-La page  résout les deux sans casser l'usage en onglet : elle
-pose le gabarit et le titre, et passe l'en-tête au composant par une propriété
-. L'onglet de la GMAO passe le sien, la page autonome le sien.
+La page `pages/equipment.tsx` résout les deux sans casser l'usage en onglet : elle pose le
+gabarit et le titre, et passe l'en-tête au composant par une propriété `enTete`. L'onglet
+de la GMAO passe le sien, la page autonome le sien.
 
-**Au passage :** les onglets « Ordres de travail », « Équipements » et « Inventaire » de
-la GMAO n'avaient eux non plus aucun  — l'en-tête de la GMAO ne vit que dans la
-branche « Vue d'ensemble ». Trois onglets sur cinq étaient donc sans titre pour un
+**Au passage :** les onglets « Ordres de travail », « Équipements » et « Inventaire » de la
+GMAO n'avaient eux non plus aucun titre de niveau 1 — l'en-tête de la GMAO ne vit que dans
+la branche « Vue d'ensemble ». Trois onglets sur cinq étaient donc sans titre pour un
 lecteur d'écran, et sans repère à l'écran une fois l'en-tête disparu. Les cinq en ont un
 désormais, vérifié onglet par onglet.
 
-### Maintenance préventive — 
-Dernière page du produit sans  : son titre était un , c'est-à-dire
-un , posé dans une bannière centrée de douze unités de hauteur — une icône de
-48 px sur deux halos flous superposés, un titre en 36 px, une accroche en 20 px. Elle
-occupait le premier écran entier, et le premier intitulé réellement visible était une
+### Maintenance préventive — `/preventive-maintenance`
+
+Dernière page du produit sans titre de niveau 1 : son intitulé était un `CardTitle`,
+c'est-à-dire un `<div>`, posé dans une bannière centrée de douze unités de hauteur — une
+icône de 48 px sur deux halos flous superposés, un titre en 36 px, une accroche en 20 px.
+Elle occupait le premier écran entier, et le premier intitulé réellement visible était une
 valeur de donnée (« Graissage Moteur Principal »). Remplacée par l'en-tête commun : les
-cinq chiffres du parc (5 plans, 4 actifs, 1 en retard, 94 % de réalisation) sont
-maintenant au-dessus de la ligne de flottaison.
+chiffres du parc (5 plans, 4 actifs, 1 en retard, 94 % de réalisation) passent au-dessus
+de la ligne de flottaison.
+
+---
+
+## Mesure finale, sur 46 routes
+
+| Vérification | Résultat |
+|---|---|
+| Écrans rendant une page blanche | **0** |
+| Écrans sans barre de navigation | **0** |
+| Écrans sans titre de niveau 1 | **0** |
+| Écrans à plusieurs titres de niveau 1 | **0** |
+| Textes sous le seuil WCAG AA (fond composé) | **0** |
+| Débordement horizontal à 1440 px | **0** |
