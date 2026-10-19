@@ -457,7 +457,7 @@ export default function Training() {
           {selectedPath && (
             <Card className="border-0 bg-paper-deep">
               <CardHeader>
-                <CardTitle className="text-etat-encours-texte dark:text-blue-200">
+                <CardTitle className="text-etat-encours-texte">
                   Modules du {learningPaths.find(p => p.id === selectedPath)?.title}
                 </CardTitle>
               </CardHeader>
@@ -466,7 +466,7 @@ export default function Training() {
                   {getModulesByPath(selectedPath).map((module) => {
                     const IconComponent = module.icon;
                     return (
-                      <div key={module.id} className="bg-white dark:bg-etat-encours-vif p-4 rounded-lg">
+                      <div key={module.id} className="bg-white p-4 rounded-lg">
                         <div className="flex items-center space-x-2 mb-2">
                           <IconComponent className="w-5 h-5 text-primary" />
                           <span className="font-medium">{module.title}</span>
@@ -602,14 +602,14 @@ export default function Training() {
         {/* Certification Section */}
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte dark:text-yellow-200">
+            <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte">
               <Award className="w-6 h-6" />
               <span>Certifications Disponibles</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white dark:bg-etat-alerte-vif rounded-lg">
+              <div className="text-center p-4 bg-white rounded-lg">
                 <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Technicien Certifié</h3>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -629,7 +629,7 @@ export default function Training() {
                   Commencer
                 </Button>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-etat-alerte-vif rounded-lg">
+              <div className="text-center p-4 bg-white rounded-lg">
                 <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Expert IA</h3>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -649,7 +649,7 @@ export default function Training() {
                   Commencer
                 </Button>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-etat-alerte-vif rounded-lg">
+              <div className="text-center p-4 bg-white rounded-lg">
                 <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Administrateur</h3>
                 <p className="text-sm text-muted-foreground mb-3">

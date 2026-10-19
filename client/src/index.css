@@ -42,28 +42,44 @@
   --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
 }
 
-.dark {
-  --background: hsl(215, 28%, 9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(215, 25%, 15%);
-  --muted-foreground: hsl(215, 10%, 65%);
-  --popover: hsl(215, 25%, 12%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(215, 25%, 12%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(215, 20%, 20%);
-  --input: hsl(215, 20%, 20%);
-  --primary: hsl(194, 100%, 47%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(215, 25%, 15%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(215, 25%, 15%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(4, 79%, 65%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(194, 100%, 47%);
-  --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
-}
+/* ═══════════════════════════════════════════════════════════════
+   LE THÈME SOMBRE A ÉTÉ RETIRÉ — et pourquoi
+   ═══════════════════════════════════════════════════════════════
+   Un bloc `.dark` redéfinissait ici vingt variables de la bibliothèque
+   (--background, --foreground, --card, --border…). Il ne pouvait pas
+   fonctionner, et la mesure l'a confirmé le 19/10/2026 :
+
+   Les jetons de la CHARTE — paper, ink, rule, signal, etat — sont
+   déclarés dans tailwind.config.ts comme des valeurs hexadécimales
+   littérales, pas comme des variables CSS. Ils ne peuvent donc PAS
+   changer avec le thème. Vérifié à la sonde : `bg-paper`, `text-ink` et
+   `border-rule` rendent rigoureusement les mêmes rgb(244,247,250),
+   rgb(1,21,53) et rgb(211,220,229) dans les deux thèmes.
+
+   Or toute la refonte repose sur ces jetons. En sombre, le fond de page
+   et la barre de navigation passaient au bleu nuit pendant que chaque
+   carte restait blanche et chaque texte restait encre. Résultat mesuré
+   sur douze écrans : 241 textes sur 800 sous le seuil WCAG AA, avec des
+   rapports descendant à 1,04:1 — c'est-à-dire invisibles. /budget : 63 %
+   des textes. /work-orders : 44 %. /smart-diagnostic : 40 %.
+
+   Pire, ce n'était pas réservé à qui cliquait le bouton :
+   `getInitialTheme()` retombait sur `prefers-color-scheme`. Un visiteur
+   dont le système est en sombre — cas courant — arrivait dans cet état
+   dès sa PREMIÈRE visite, sans avoir rien demandé.
+
+   Une vraie réparation aurait demandé : convertir 26 jetons de charte en
+   variables CSS et choisir pour chacun une valeur sombre dont le
+   contraste soit validé ; tokeniser 467 `bg-white` ; traiter 110
+   couleurs littérales passées aux graphiques, que Recharts n'accepte pas
+   autrement ; réauditer 454 variantes `dark:` une par une ; revérifier
+   86 écrans. Soit un chantier de la taille de l'harmonisation complète,
+   pour une fonction que la charte validée ne demande pas — elle dit
+   « bleu marine, fond gris très clair » — et dont une campagne
+   précédente avait déjà éloigné 56 pages.
+
+   Le thème sombre reste donc possible, mais il se construira sur des
+   jetons variabilisés, délibérément, pas sur ce reliquat. */
 
 /* ═══════════════════════════════════════════════════════════════
    BARRE DE DÉFILEMENT

@@ -57,7 +57,7 @@ export function LicenseBanner() {
   const getBannerConfig = () => {
     if (status === "expired" || status === "suspended") {
       return {
-        bg: "bg-etat-critique-vif dark:bg-etat-critique-vif",
+        bg: "bg-etat-critique-vif",
         text: "text-white",
         icon: <XCircle className="h-4 w-4 flex-shrink-0" />,
         message: "Votre accès a expiré. Souscrivez pour continuer à utiliser Maintrix.",
@@ -69,8 +69,8 @@ export function LicenseBanner() {
       return {
         // L'orange est conservé — c'est bien une urgence — mais en filet plutôt
         // qu'en aplat pleine largeur, pour ne pas dominer toute la page.
-        bg: "bg-etat-alerte-fond border-b-2 border-etat-alerte-filet dark:bg-orange-950",
-        text: "text-etat-alerte-texte dark:text-orange-100",
+        bg: "bg-etat-alerte-fond border-b-2 border-etat-alerte-filet",
+        text: "text-etat-alerte-texte",
         icon: <AlertTriangle className="h-4 w-4 flex-shrink-0" />,
         message: `Période de grâce — ${gracePeriodDaysRemaining} jour(s) restant(s) avant interruption du service.`,
         cta: "Renouveler",
@@ -79,7 +79,7 @@ export function LicenseBanner() {
     }
     if (isTrialActive && trialDaysRemaining <= 3) {
       return {
-        bg: "bg-etat-critique-vif dark:bg-etat-critique-vif",
+        bg: "bg-etat-critique-vif",
         text: "text-white",
         icon: <Clock className="h-4 w-4 flex-shrink-0" />,
         message: `Essai gratuit — expire dans ${trialDaysRemaining} jour(s). Passez à un abonnement pour ne pas perdre l'accès.`,
@@ -90,8 +90,8 @@ export function LicenseBanner() {
     if (isTrialActive && trialDaysRemaining <= 7) {
       return {
         // Information, pas alarme : filet ambre sur fond clair.
-        bg: "bg-etat-alerte-fond border-b border-etat-alerte-filet dark:bg-amber-950",
-        text: "text-etat-alerte-texte dark:text-amber-100",
+        bg: "bg-etat-alerte-fond border-b border-etat-alerte-filet",
+        text: "text-etat-alerte-texte",
         icon: <Clock className="h-4 w-4 flex-shrink-0" />,
         message: `Période d'essai — ${trialDaysRemaining} jour(s) restant(s) sur 30.`,
         cta: "Voir les plans",
@@ -148,11 +148,11 @@ export function LicenseStatusWidget() {
   const { status, isTrialActive, trialDaysRemaining, plan } = licenseData;
 
   const statusConfig = {
-    active: { icon: <CheckCircle className="h-3.5 w-3.5 text-etat-nominal-texte" />, label: `Actif · ${plan}`, color: "text-etat-nominal-texte dark:text-etat-nominal-texte" },
-    trial: { icon: <Clock className="h-3.5 w-3.5 text-etat-encours-texte" />, label: `Essai · J-${trialDaysRemaining}`, color: "text-etat-encours-texte dark:text-etat-encours-texte" },
-    grace: { icon: <AlertTriangle className="h-3.5 w-3.5 text-etat-alerte-texte" />, label: "Grâce", color: "text-etat-alerte-texte dark:text-etat-alerte-texte" },
-    expired: { icon: <XCircle className="h-3.5 w-3.5 text-etat-critique-texte" />, label: "Expiré", color: "text-etat-critique-texte dark:text-etat-critique-texte" },
-    suspended: { icon: <XCircle className="h-3.5 w-3.5 text-etat-critique-texte" />, label: "Suspendu", color: "text-etat-critique-texte dark:text-etat-critique-texte" },
+    active: { icon: <CheckCircle className="h-3.5 w-3.5 text-etat-nominal-texte" />, label: `Actif · ${plan}`, color: "text-etat-nominal-texte" },
+    trial: { icon: <Clock className="h-3.5 w-3.5 text-etat-encours-texte" />, label: `Essai · J-${trialDaysRemaining}`, color: "text-etat-encours-texte" },
+    grace: { icon: <AlertTriangle className="h-3.5 w-3.5 text-etat-alerte-texte" />, label: "Grâce", color: "text-etat-alerte-texte" },
+    expired: { icon: <XCircle className="h-3.5 w-3.5 text-etat-critique-texte" />, label: "Expiré", color: "text-etat-critique-texte" },
+    suspended: { icon: <XCircle className="h-3.5 w-3.5 text-etat-critique-texte" />, label: "Suspendu", color: "text-etat-critique-texte" },
   };
 
   const cfg = statusConfig[status] || statusConfig.trial;

@@ -167,9 +167,14 @@ export default function ValidationDashboard({
     }
   };
 
-  const getDocumentTypeIcon = (documentType?: string) => {
-    return documentType === "command_letter" ? "" : "";
-  };
+  /**
+   * ⚠️ Les deux branches renvoyaient la chaîne vide : le numéro de commande
+   * s'affichait précédé d'un espace, sans aucun repère de type. On rend un
+   * libellé court, lisible aussi par un lecteur d'écran — ce qu'une icône
+   * seule n'aurait pas fait.
+   */
+  const libelleTypeDocument = (documentType?: string) =>
+    documentType === "command_letter" ? "Lettre" : "Bon";
 
   return (
     <div className="space-y-6">
@@ -320,7 +325,7 @@ export default function ValidationDashboard({
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-lg">
-                              {getDocumentTypeIcon(purchaseOrder.documentType)} {purchaseOrder.orderNumber}
+                              <span className="font-mono text-xs text-ink-mute mr-1.5">{libelleTypeDocument(purchaseOrder.documentType)}</span>{purchaseOrder.orderNumber}
                             </h3>
                             <Badge className={`${getPriorityColor(purchaseOrder.priority)} text-white`}>
                               {purchaseOrder.priority}

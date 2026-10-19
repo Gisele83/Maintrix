@@ -243,10 +243,10 @@ export default function DataImportExport() {
       <div className="container mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-ink dark:text-ink mb-4">
+          <h1 className="text-4xl font-bold text-ink mb-4">
             Import/Export de Données GMAO
           </h1>
-          <p className="text-xl text-ink-soft dark:text-ink-soft max-w-3xl mx-auto">
+          <p className="text-xl text-ink-soft max-w-3xl mx-auto">
             Gérez vos données GMAO : importez vos équipements, historiques de maintenance, 
             pièces détachées et exportez vos données pour analyse externe.
           </p>
@@ -344,14 +344,14 @@ export default function DataImportExport() {
                 </CardHeader>
                 <CardContent>
                   <div 
-                    className="border-2 border-dashed border-rule dark:border-gray-600 rounded-lg p-6 text-center hover:border-etat-encours-filet transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-rule rounded-lg p-6 text-center hover:border-etat-encours-filet transition-colors cursor-pointer"
                     onClick={triggerFileInput}
                   >
                     <Upload className="w-12 h-12 mx-auto text-ink-mute mb-4" />
-                    <p className="text-lg font-medium text-ink-soft dark:text-ink-soft mb-2">
+                    <p className="text-lg font-medium text-ink-soft mb-2">
                       Cliquez pour sélectionner un fichier
                     </p>
-                    <p className="text-sm text-ink-mute dark:text-ink-mute">
+                    <p className="text-sm text-ink-mute">
                       Formats supportés: CSV, Excel (.xlsx)
                     </p>
                     <input
@@ -457,7 +457,7 @@ export default function DataImportExport() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <p className="text-sm text-ink-soft dark:text-ink-mute">
+                      <p className="text-sm text-ink-soft">
                         Exporter les données {dataType.label.toLowerCase()}
                       </p>
                       <div className="flex space-x-2">
@@ -506,7 +506,7 @@ export default function DataImportExport() {
                 ) : importHistory && importHistory.length > 0 ? (
                   <div className="space-y-4">
                     {importHistory.map((item) => (
-                      <div key={item.id} className="border rounded-lg p-4 hover:bg-paper dark:hover:bg-ink transition-colors">
+                      <div key={item.id} className="border rounded-lg p-4 hover:bg-paper transition-colors">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-3">
                             <div className="text-sm font-medium capitalize">
@@ -523,7 +523,7 @@ export default function DataImportExport() {
                         </div>
                         
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-ink-soft dark:text-ink-mute">
+                          <span className="text-ink-soft">
                             {item.filename}
                           </span>
                           <span className="font-medium">
@@ -562,7 +562,7 @@ export default function DataImportExport() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-medium mb-3">Import de Données</h4>
-                <ul className="space-y-2 text-sm text-ink-soft dark:text-ink-mute">
+                <ul className="space-y-2 text-sm text-ink-soft">
                   <li>• Téléchargez d'abord un template pour voir le format requis</li>
                   <li>• Remplissez votre fichier en respectant les colonnes</li>
                   <li>• Uploadez votre fichier au format CSV ou Excel</li>
@@ -571,7 +571,7 @@ export default function DataImportExport() {
               </div>
               <div>
                 <h4 className="font-medium mb-3">Export de Données</h4>
-                <ul className="space-y-2 text-sm text-ink-soft dark:text-ink-mute">
+                <ul className="space-y-2 text-sm text-ink-soft">
                   <li>• Sélectionnez le type de données à exporter</li>
                   <li>• Choisissez le format (CSV pour analyse, Excel pour présentation)</li>
                   <li>• Le fichier sera téléchargé automatiquement</li>

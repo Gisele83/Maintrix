@@ -540,7 +540,7 @@ export default function CalibrationPage() {
                                 </td>
                                 <td className="py-1.5 px-3 text-xs text-ink-mute">{m.unit || "—"}</td>
                                 <td className="py-1.5 px-3">
-                                  {m.pass != null && <Badge className={m.pass ? "bg-etat-nominal-fond text-etat-nominal-texte text-xs" : "bg-etat-critique-fond text-etat-critique-texte text-xs"}>{m.pass ? "" : ""}</Badge>}
+                                  {m.pass != null && <Badge className={m.pass ? "bg-etat-nominal-fond text-etat-nominal-texte text-xs" : "bg-etat-critique-fond text-etat-critique-texte text-xs"}>{m.pass ? "Conforme" : "Hors tolérance"}</Badge>}
                                 </td>
                               </tr>
                             ))}

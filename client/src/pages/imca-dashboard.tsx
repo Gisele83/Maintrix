@@ -210,7 +210,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
           <p className="text-lg font-bold text-ink">
             {((r.jsDivergence ?? r.klDivergence) || 0).toFixed(4)}
             <span className="text-xs text-ink-mute ml-1">
-              {(r.jsDivergence ?? 0) < 0.10 ? "" : (r.jsDivergence ?? 0) < 0.22 ? "" : (r.jsDivergence ?? 0) < 0.38 ? "" : ""}
+              {(r.jsDivergence ?? 0) < 0.10 ? "dérive négligeable" : (r.jsDivergence ?? 0) < 0.22 ? "dérive modérée" : (r.jsDivergence ?? 0) < 0.38 ? "dérive marquée" : "dérive sévère"}
             </span>
           </p>
         </div>

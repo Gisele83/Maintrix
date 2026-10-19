@@ -30,27 +30,27 @@ export function TrialBanner({
   };
   
   const planColors = {
-    pro: "bg-etat-encours-fond dark:bg-blue-950 border-etat-encours-filet dark:border-blue-800",
-    business: "bg-etat-nominal-fond dark:bg-green-950 border-etat-nominal-filet dark:border-green-800", 
-    enterprise: "bg-paper-deep dark:bg-ink border-rule dark:border-rule"
+    pro: "bg-etat-encours-fond border-etat-encours-filet",
+    business: "bg-etat-nominal-fond border-etat-nominal-filet", 
+    enterprise: "bg-paper-deep border-rule"
   };
   
   const PlanIcon = planIcons[planType];
   
   if (!isTrialActive) {
     return (
-      <Card className="mb-6 border-etat-critique-filet dark:border-red-800 bg-etat-critique-fond dark:bg-red-950">
+      <Card className="mb-6 border-etat-critique-filet bg-etat-critique-fond">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-etat-critique-fond dark:bg-etat-critique-vif rounded-lg">
-                <Clock className="h-5 w-5 text-etat-critique-texte dark:text-etat-critique-texte" />
+              <div className="p-2 bg-etat-critique-fond rounded-lg">
+                <Clock className="h-5 w-5 text-etat-critique-texte" />
               </div>
               <div>
-                <h3 className="font-medium text-etat-critique-texte dark:text-red-100">
+                <h3 className="font-medium text-etat-critique-texte">
                   Période d'essai expirée
                 </h3>
-                <p className="text-sm text-etat-critique-texte dark:text-etat-critique-texte">
+                <p className="text-sm text-etat-critique-texte">
                   Contactez l'administrateur pour accéder à Maintrix
                 </p>
               </div>
@@ -69,8 +69,8 @@ export function TrialBanner({
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white dark:bg-black/20 rounded-lg">
-              <Gift className="h-5 w-5 text-etat-nominal-texte dark:text-etat-nominal-texte" />
+            <div className="p-2 bg-white rounded-lg">
+              <Gift className="h-5 w-5 text-etat-nominal-texte" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function TrialBanner({
             className="h-2"
           />
           {usagePercentage > 80 && (
-            <p className="text-xs text-etat-alerte-texte dark:text-etat-alerte-texte">
+            <p className="text-xs text-etat-alerte-texte">
               Utilisation élevée - Pensez à vous abonner pour ne pas perdre l'accès
             </p>
           )}
@@ -126,16 +126,16 @@ export function TrialBanner({
         
         {/* Fonctionnalités de l'essai */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-          <div className="flex items-center gap-1 text-etat-nominal-texte dark:text-etat-nominal-texte">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Smart Diagnostic
           </div>
-          <div className="flex items-center gap-1 text-etat-nominal-texte dark:text-etat-nominal-texte">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Smart GMAO
           </div>
-          <div className="flex items-center gap-1 text-etat-nominal-texte dark:text-etat-nominal-texte">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             IA Avancée
           </div>
-          <div className="flex items-center gap-1 text-etat-nominal-texte dark:text-etat-nominal-texte">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Export données
           </div>
         </div>

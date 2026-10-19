@@ -220,21 +220,21 @@ export default function GMAODashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
-      case 'in_progress': return 'bg-etat-encours-fond text-etat-encours-texte dark:bg-etat-encours-vif dark:text-etat-encours-texte';
-      case 'completed': return 'bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-etat-nominal-texte';
-      case 'cancelled': return 'bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-etat-critique-texte';
-      default: return 'bg-paper-deep text-ink dark:bg-ink dark:text-ink-soft';
+      case 'pending': return 'bg-etat-alerte-fond text-etat-alerte-texte';
+      case 'in_progress': return 'bg-etat-encours-fond text-etat-encours-texte';
+      case 'completed': return 'bg-etat-nominal-fond text-etat-nominal-texte';
+      case 'cancelled': return 'bg-etat-critique-fond text-etat-critique-texte';
+      default: return 'bg-paper-deep text-ink';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-etat-critique-texte';
-      case 'high': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
-      case 'medium': return 'bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-etat-alerte-texte';
-      case 'low': return 'bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-etat-nominal-texte';
-      default: return 'bg-paper-deep text-ink dark:bg-ink dark:text-ink-soft';
+      case 'urgent': return 'bg-etat-critique-fond text-etat-critique-texte';
+      case 'high': return 'bg-etat-alerte-fond text-etat-alerte-texte';
+      case 'medium': return 'bg-etat-alerte-fond text-etat-alerte-texte';
+      case 'low': return 'bg-etat-nominal-fond text-etat-nominal-texte';
+      default: return 'bg-paper-deep text-ink';
     }
   };
 

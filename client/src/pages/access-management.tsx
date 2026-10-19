@@ -153,8 +153,8 @@ export default function AccessManagement() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-paper-deep dark:bg-signal-deep rounded-lg">
-              <Shield className="h-6 w-6 text-signal-deep dark:text-signal-light" />
+            <div className="p-2 bg-paper-deep rounded-lg">
+              <Shield className="h-6 w-6 text-signal-deep" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">

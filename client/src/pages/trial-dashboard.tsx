@@ -12,6 +12,7 @@ import {
   RefreshCw, ArrowRight, Shield
 } from "lucide-react";
 import { Link } from "wouter";
+import { ETAT } from "@/lib/etats";
 
 interface LicenseStatus {
   status: "trial" | "active" | "grace" | "expired" | "suspended";
@@ -117,15 +118,25 @@ export default function TrialDashboard() {
     : license?.status === "grace" ? AlertCircle
     : Gift;
 
-  const statusColor = license?.status === "active" ? "text-etat-nominal-texte dark:text-etat-nominal-texte"
-    : license?.status === "expired" || license?.status === "suspended" ? "text-etat-critique-texte dark:text-etat-critique-texte"
-    : license?.status === "grace" ? "text-etat-alerte-texte dark:text-etat-alerte-texte"
-    : "text-etat-encours-texte dark:text-etat-encours-texte";
+  const statusColor = license?.status === "active" ? "text-etat-nominal-texte"
+    : license?.status === "expired" || license?.status === "suspended" ? "text-etat-critique-texte"
+    : license?.status === "grace" ? "text-etat-alerte-texte"
+    : "text-etat-encours-texte";
 
-  const statusBg = license?.status === "active" ? " dark: dark:"
-    : license?.status === "expired" || license?.status === "suspended" ? " dark: dark:"
-    : license?.status === "grace" ? " dark: dark:"
-    : " dark: dark:";
+  /**
+   * ⚠️ Ce fond était à l'origine une paire de fragments de dégradé —
+   * `from-green-50 to-emerald-50` — sans le `bg-gradient-to-*` qui les
+   * aurait activés : aucun fond n'était donc posé, quel que soit le statut
+   * de la licence. La passe d'harmonisation a retiré les fragments morts
+   * mais a laissé les préfixes `dark:` orphelins, si bien que la chaîne
+   * valait littéralement « dark: dark: ». Deux défauts successifs au même
+   * endroit, et aucun des deux ne lève d'erreur : une classe absente laisse
+   * simplement hériter du fond parent.
+   */
+  const statusBg = license?.status === "active" ? ETAT.nominal.fond
+    : license?.status === "expired" || license?.status === "suspended" ? ETAT.critique.fond
+    : license?.status === "grace" ? ETAT.alerte.fond
+    : ETAT.encours.fond;
 
   return (
     <div className="min-h-screen bg-paper-deep">
@@ -135,8 +146,8 @@ export default function TrialDashboard() {
         {/* Page header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-etat-encours-fond dark:bg-etat-encours-vif rounded-lg">
-              <Gift className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
+            <div className="p-2 bg-etat-encours-fond rounded-lg">
+              <Gift className="h-6 w-6 text-etat-encours-texte" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">
@@ -216,8 +227,8 @@ export default function TrialDashboard() {
                 {license?.isGracePeriodActive && (
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-etat-alerte-texte dark:text-etat-alerte-texte font-medium">Période de grâce</span>
-                      <span className="text-etat-alerte-texte dark:text-etat-alerte-texte">{license.gracePeriodDaysRemaining} / {license.gracePeriodDays} jours</span>
+                      <span className="text-etat-alerte-texte font-medium">Période de grâce</span>
+                      <span className="text-etat-alerte-texte">{license.gracePeriodDaysRemaining} / {license.gracePeriodDays} jours</span>
                     </div>
                     <Progress
                       value={((license.gracePeriodDays - license.gracePeriodDaysRemaining) / license.gracePeriodDays) * 100}
@@ -228,7 +239,7 @@ export default function TrialDashboard() {
 
                 {/* Warning message */}
                 {license?.warningMessage && (
-                  <div className="flex items-center gap-2 p-3 bg-etat-alerte-fond dark:bg-etat-alerte-fond border border-etat-alerte-filet dark:border-yellow-800 rounded-lg text-sm text-etat-alerte-texte dark:text-yellow-200">
+                  <div className="flex items-center gap-2 p-3 bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg text-sm text-etat-alerte-texte">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
                     <span>{license.warningMessage.replace(/^[]\s*/, "")}</span>
                   </div>
@@ -236,22 +247,22 @@ export default function TrialDashboard() {
 
                 {/* Stat boxes */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white rounded-lg">
                     <Users className="h-5 w-5 mx-auto mb-1 text-etat-encours-texte" />
                     <div className="text-lg font-bold">{license?.currentUsers ?? 0}</div>
                     <div className="text-xs text-muted-foreground">Utilisateurs</div>
                   </div>
-                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white rounded-lg">
                     <Shield className="h-5 w-5 mx-auto mb-1 text-signal-deep" />
                     <div className="text-lg font-bold">{license?.maxUsers && license.maxUsers > 10000 ? "∞" : (license?.maxUsers ?? "—")}</div>
                     <div className="text-xs text-muted-foreground">Max autorisés</div>
                   </div>
-                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white rounded-lg">
                     <Wifi className="h-5 w-5 mx-auto mb-1 text-etat-nominal-texte" />
                     <div className="text-lg font-bold">{license?.gracePeriodDays ?? 7}j</div>
                     <div className="text-xs text-muted-foreground">Grâce offline</div>
                   </div>
-                  <div className="text-center p-3 bg-white dark:bg-black/20 rounded-lg">
+                  <div className="text-center p-3 bg-white rounded-lg">
                     <Calendar className="h-5 w-5 mx-auto mb-1 text-etat-alerte-texte" />
                     <div className="text-lg font-bold">
                       {license?.lastLicenseCheckAt

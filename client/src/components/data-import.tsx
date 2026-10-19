@@ -286,12 +286,12 @@ export function DataImport() {
       {/* Instructions */}
       <Card className="border-0 bg-paper-deep">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte dark:text-amber-200">
+          <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte">
             <AlertCircle className="w-5 h-5" />
             <span>Instructions d'Importation</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-etat-alerte-texte dark:text-etat-alerte-texte">
+        <CardContent className="space-y-4 text-etat-alerte-texte">
           <div className="space-y-2">
             <h4 className="font-medium">Préparation des données :</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
@@ -343,12 +343,12 @@ export function DataImport() {
             )}
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-etat-nominal-fond dark:bg-green-950 p-3 rounded">
-                <div className="font-medium text-etat-nominal-texte dark:text-green-200">Succès</div>
+              <div className="bg-etat-nominal-fond p-3 rounded">
+                <div className="font-medium text-etat-nominal-texte">Succès</div>
                 <div className="text-2xl font-bold text-etat-nominal-texte">{importResults.success}</div>
               </div>
-              <div className="bg-etat-critique-fond dark:bg-red-950 p-3 rounded">
-                <div className="font-medium text-etat-critique-texte dark:text-red-200">Erreurs</div>
+              <div className="bg-etat-critique-fond p-3 rounded">
+                <div className="font-medium text-etat-critique-texte">Erreurs</div>
                 <div className="text-2xl font-bold text-etat-critique-texte">{importResults.errors?.length || 0}</div>
               </div>
             </div>

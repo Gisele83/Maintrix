@@ -193,7 +193,7 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
                   key={lesson.id}
                   className={`flex items-center justify-between p-4 rounded-lg border ${
                     completedLessons.has(lesson.id)
-                      ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                      ? 'bg-green-50 border-green-200'
                       : 'bg-muted'
                   }`}
                 >
@@ -248,17 +248,17 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
         {/* Assessment Preview */}
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-orange-800 dark:text-orange-200">
+            <CardTitle className="flex items-center space-x-2 text-orange-800">
               <Award className="w-5 h-5" />
               <span>Évaluation finale</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-orange-700 dark:text-orange-300 mb-4">
+            <p className="text-orange-700 mb-4">
               {moduleContent.finalAssessment.description}
             </p>
             <div className="flex items-center justify-between">
-              <div className="text-sm text-orange-600 dark:text-orange-400">
+              <div className="text-sm text-orange-600">
                 {moduleContent.finalAssessment.questions.length} questions • Score minimum: 80%
               </div>
               <Button
@@ -306,16 +306,16 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
       <div className="max-w-4xl mx-auto space-y-6">
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-orange-800 dark:text-orange-200">
+            <CardTitle className="flex items-center space-x-2 text-orange-800">
               <Award className="w-6 h-6" />
               <span>{moduleContent.finalAssessment.title}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-orange-700 dark:text-orange-300">
+            <p className="text-orange-700">
               {moduleContent.finalAssessment.description}
             </p>
-            <div className="mt-4 text-sm text-orange-600 dark:text-orange-400">
+            <div className="mt-4 text-sm text-orange-600">
               Score minimum requis: 80% • {moduleContent.finalAssessment.questions.length} questions
             </div>
           </CardContent>
@@ -351,8 +351,8 @@ export function ModuleViewer({ moduleId, onComplete, onExit }: ModuleViewerProps
                   {showResults && (
                     <div className={`p-4 rounded-lg ${
                       assessmentAnswers[questionIndex] === question.correct
-                        ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
-                        : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
                     }`}>
                       <div className="font-semibold mb-2">
                         {assessmentAnswers[questionIndex] === question.correct ? 'Correct' : 'Incorrect'}

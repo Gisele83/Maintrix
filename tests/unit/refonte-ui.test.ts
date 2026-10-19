@@ -154,6 +154,83 @@ describe('Classes de couleur réellement générées', () => {
   });
 });
 
+describe('Thème sombre — retiré', () => {
+  // Le thème sombre ne pouvait pas fonctionner : les jetons de la charte
+  // (paper, ink, rule, signal, etat) sont des valeurs hexadécimales
+  // littérales dans `tailwind.config.ts`, donc insensibles au thème. Vérifié
+  // à la sonde : `bg-paper` rend le même rgb(244, 247, 250) dans les deux.
+  // En sombre, la page passait au bleu nuit pendant que chaque carte restait
+  // blanche : 241 textes sur 800 sous le seuil AA, jusqu'à 1,04:1.
+  // Et ce n'était pas réservé à qui cliquait : `getInitialTheme` retombait
+  // sur `prefers-color-scheme`.
+
+  it('aucune bascule de thème ne subsiste dans la navigation', () => {
+    const nav = readFileSync(join(CLIENT, 'components', 'modern-navigation.tsx'), 'utf8');
+    expect(nav).not.toMatch(/useTheme|toggleTheme/);
+  });
+
+  it('la feuille de style ne redéfinit plus de palette sombre', () => {
+    const css = readFileSync(join(CLIENT, 'index.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).not.toMatch(/^\.dark\s*\{/m);
+  });
+
+  it('aucune variante `dark:` ne subsiste dans le code applicatif', () => {
+    // Elles ne peuvent plus s'appliquer, la classe `.dark` n'étant jamais
+    // posée. Les garder revient à laisser le code affirmer que le produit a
+    // un thème sombre. `components/ui/` est la bibliothèque : on n'y touche
+    // pas, elle resservira le jour où un vrai thème sombre sera construit.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      if (/[\\/]components[\\/]ui[\\/]/.test(fichier)) continue;
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/\bdark:/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});
+
+describe('Classes et libellés dégénérés', () => {
+  // Trois défauts de cette famille ont été trouvés, dont un que la passe
+  // d'harmonisation elle-même avait produit. Aucun ne lève d'erreur : une
+  // classe absente laisse hériter du parent, un libellé vide rend une
+  // pastille colorée et muette. Seule la lecture du rendu les révèle.
+
+  it('aucune chaîne de classes réduite à des préfixes `dark:` orphelins', () => {
+    // `statusBg` valait littéralement « dark: dark: » : les fragments de
+    // dégradé avaient été retirés, les préfixes étaient restés.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/["'`]\s*(dark:\s*)+["'`]/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('aucun ternaire d\'affichage dont toutes les branches sont vides', () => {
+    // Une pastille d'étalonnage affichait une couleur et AUCUN texte, quelle
+    // que soit la conformité ; l'indicateur de dérive de l'IMCA ne rendait
+    // rien dans ses quatre branches. Illisible pour qui ne distingue pas le
+    // vert du rouge, et muet pour un lecteur d'écran.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        // Au moins deux branches littérales vides qui se suivent dans un
+        // ternaire rendu entre accolades JSX.
+        if (/\?\s*""\s*:\s*(?:[^?:]*\?\s*)?""/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});
+
 describe('Contenus techniques internes', () => {
   it('aucun nom de fichier Markdown n\'est affiché à l\'utilisateur', () => {
     // La page d'ingénierie renvoyait l'utilisateur vers

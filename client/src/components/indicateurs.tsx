@@ -63,7 +63,7 @@ export function RangeeIndicateurs({ children, colonnes = 4 }: { children: React.
 }
 
 /**
- * Pastille d'état. Remplace les `bg-red-100 text-red-800 dark:bg-red-900…`
+ * Pastille d'état. Remplace les `bg-red-100 text-red-800`
  * dispersés dans le code, et les fragments de dégradé orphelins qui ne
  * produisaient plus aucune couleur du tout.
  */

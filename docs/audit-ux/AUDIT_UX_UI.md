@@ -121,7 +121,7 @@ visible qui dégrade la confiance ou l'accessibilité ; **P2** = cohérence et d
 | **P1-1** | **La barre de défilement de toute l'application est un dégradé bleu → violet.** Règle active mesurée : `::-webkit-scrollbar-thumb { background: linear-gradient(rgb(59,130,246), rgb(139,92,246)); border-radius: 4px }`. Visible sous les onglets de la GMAO et du tableau de bord, dans chaque modale et chaque tableau défilant. C'est la signature visuelle exacte que la charte interdit. | `client/src/index.css` l. 196-210 | Capture zoomée + inspection des règles CSS |
 | **P1-2** | **~200 lignes de CSS décoratif mort** toujours livrées : `glass-morphism`, `gradient-text-animate` (dégradé bleu/violet/rose/ambre animé), `card-hover` (soulèvement de 12 px et mise à l'échelle), `btn-professional` (balayage brillant), `animate-float` (rotation flottante), `gradient-border` (dégradé animé). **Zéro composant ne les utilise.** Elles restent une invitation permanente à réintroduire ce que la charte proscrit. | `client/src/index.css` | `grep` : 0 usage pour chacune des 11 classes |
 | **P1-3** | **95 fragments de dégradé orphelins sur 20 pages.** Les chaînes `from-red-500 to-rose-600` subsistent sans le `bg-gradient-to-*` qui les activerait : elles ne posent plus aucun fond. Dans `calibration.tsx`, les quatre tuiles d'état (En retard / Bientôt échus / Conformes / Hors service) reçoivent toutes `bg-paper-deep` et **plus aucune distinction de couleur**. Le retrait des dégradés a supprimé l'information d'état au lieu de la reporter sur un aplat. | `asset-lifecycle`, `budget`, `calibration`, `client-portal`, `communication-integrations`, `download-center`, `federated-adaptation`, `fmea`, `habilitation`, `machine-health`, `maintenance-plan`, `oee`, `permit-to-work`, `rca`, `sensor-hub`, `sla-management`, `smart-alerts`, `supplier-portal`, `trial-dashboard`, `warranty` | 3 à 7 éléments orphelins détectés par page dans le DOM |
-| **P1-4** | **Le thème sombre est toujours proposé et il est inutilisable.** Le bouton « Passer au thème sombre » est présent dans la barre. En sombre, **16 des 83 textes** testés sur la GMAO passent sous le seuil AA, dont **les cinq entrées de la navigation principale à 2,01:1** (`rgb(58,74,96)` sur `rgb(1,21,53)`). 481 variantes `dark:` subsistent dans 24 fichiers, incohérentes depuis le passage de 56 pages au thème clair. | `modern-navigation.tsx` l. 255-260 ; 24 fichiers | Mesure de contraste sur fond composé |
+| **P1-4** ✅ | *(clos le 19/10 — thème sombre retiré, voir 5.5)* **Le thème sombre était toujours proposé et il était inutilisable.** Le bouton « Passer au thème sombre » est présent dans la barre. En sombre, **16 des 83 textes** testés sur la GMAO passent sous le seuil AA, dont **les cinq entrées de la navigation principale à 2,01:1** (`rgb(58,74,96)` sur `rgb(1,21,53)`). 481 variantes `dark:` subsistent dans 24 fichiers, incohérentes depuis le passage de 56 pages au thème clair. | `modern-navigation.tsx` l. 255-260 ; 24 fichiers | Mesure de contraste sur fond composé |
 | **P1-5** | **Contrastes sous le seuil AA sur fond composé.** Relevés : `/predictive-insights` « Faible » 1,62:1, « Benchmark » 1,64:1, « Valeur actuelle » 2,17:1 ; `/modules-overview` deux titres à 1,53:1 (encre sur encre) ; `/localhost-diagnostic` bouton « Relancer le Diagnostic » **1,18:1** (blanc sur blanc cassé) ; `/sensor-hub` « LoRaWAN » 1,53:1 ; `/oee` « Temps planifié (min) » 3,05:1 — **texte sombre sur fond bleu nuit**, vestige de la migration ; `/gmao` légende « Préventif » 2,28:1. | voir colonne « où » | Calcul de ratio sur la couleur **composée**, pas déclarée |
 | **P1-6** | **Défaut d'accessibilité systémique sur les onglets.** Le déclencheur d'onglet inactif de la bibliothèque rend `rgb(103,113,126)` sur `rgb(240,242,244)` = **4,41:1**, juste sous les 4,5:1 requis. Un seul jeton en cause, mais il échoue sur `/smm`, `/documentation`, `/data-import-export`, `/engineering-expertise`, `/multi-agent-team`, `/preventive-maintenance`. | jeton partagé `components/ui/tabs.tsx` | Mesure répétée, même valeur |
 | **P1-7** | **Focus clavier invisible sur la navigation principale.** Les cinq déclencheurs de groupe (Exploitation, IA & Diagnostic, Optimisation, Sécurité, Ressources) ne changent ni `outline` ni `box-shadow` au focus. WCAG 2.4.7. | `modern-navigation.tsx` | 5 éléments sur 40 testés |
@@ -420,13 +420,106 @@ tuiles identiques. `registreDepuisLibelle` déduit le registre du libellé et ch
 retrouve sa couleur ; un libellé qu'aucune règle ne reconnaît reste neutre, car mieux vaut
 une tuile muette qu'une tuile qui affirme la mauvaise chose.
 
-### 5.5 Recette — ce qui est vérifié et ce qui ne l'est pas
+### 5.5 Le thème sombre — retiré, et pourquoi
+
+**Décision prise le 19 octobre 2026, sur demande d'arbitrage de l'utilisateur
+(« répare-le ou retire le bouton »). Le thème sombre est retiré.**
+
+#### Il ne pouvait pas fonctionner
+
+Le bloc `.dark` de `index.css` redéfinissait vingt variables de la bibliothèque
+(`--background`, `--foreground`, `--card`, `--border`…). Mais les jetons de la **charte**
+— `paper`, `ink`, `rule`, `signal`, `etat` — sont déclarés dans `tailwind.config.ts`
+comme des **valeurs hexadécimales littérales**, pas comme des variables CSS. Ils ne
+peuvent donc pas changer avec le thème. Vérifié à la sonde dans le navigateur :
+
+| Classe | En thème clair | En thème sombre |
+|---|---|---|
+| `bg-paper` | `rgb(244, 247, 250)` | `rgb(244, 247, 250)` |
+| `text-ink` | `rgb(1, 21, 53)` | `rgb(1, 21, 53)` |
+| `border-rule` | `rgb(211, 220, 229)` | `rgb(211, 220, 229)` |
+
+Or **toute la refonte repose sur ces jetons**. En sombre, le fond de page et la barre de
+navigation passaient au bleu nuit pendant que chaque carte restait blanche et chaque
+texte restait encre.
+
+#### L'étendue des dégâts, mesurée
+
+Sur douze écrans, **241 textes sur 800 sous le seuil WCAG AA** — 30 %, avec des rapports
+descendant à **1,04:1**, c'est-à-dire invisibles.
+
+| Écran | Textes sous le seuil |
+|---|---|
+| `/budget` | **63 %** |
+| `/work-orders` | **44 %** |
+| `/smart-diagnostic` | **40 %** |
+| `/dashboard` | 26 % |
+| `/oee` | 24 % |
+
+#### Ce n'était pas réservé à qui cliquait le bouton
+
+`getInitialTheme()` retombait sur `prefers-color-scheme: dark`. **Un visiteur dont le
+système est en thème sombre — cas très courant — arrivait dans cet état dès sa première
+visite, sans avoir rien demandé et sans savoir comment en sortir.** C'est ce point qui
+fait basculer la décision : il ne s'agissait pas d'une option dégradée que l'on choisit,
+mais de l'expérience par défaut d'une partie des utilisateurs.
+
+#### Ce qu'une vraie réparation aurait coûté
+
+| À faire | Volume |
+|---|---|
+| Jetons de charte à convertir en variables CSS, avec une valeur sombre dont le contraste soit validé pour chacun | **26** |
+| Occurrences de `bg-white` à tokeniser (une carte blanche reste blanche en sombre) | **467** |
+| Couleurs littérales passées aux graphiques, que Recharts n'accepte pas autrement | **110** |
+| Variantes `dark:` à réauditer une par une | **454** |
+| Écrans à revérifier en sombre | **86** |
+
+Soit un chantier de la taille de l'harmonisation complète — pour une fonction que la
+charte validée ne demande pas (elle dit « bleu marine, fond gris très clair ») et dont une
+campagne précédente avait déjà éloigné 56 pages.
+
+#### Ce qui a été retiré
+
+La bascule des deux barres (bureau et mobile), le crochet `hooks/use-theme.ts`, le bloc
+`.dark` de la feuille de style, et **441 variantes `dark:`** devenues inapplicables dans
+le code applicatif. Les deux variantes de `components/ui/` sont conservées : c'est la
+bibliothèque, elle resservira le jour où un vrai thème sombre sera construit — sur des
+jetons variabilisés, délibérément.
+
+Vérifié dans le pire cas : système en thème sombre **et** `maintrix-theme: dark` encore
+mémorisé d'une visite précédente. La classe `.dark` n'est plus jamais posée, le fond
+reste `rgb(249, 250, 251)`, et aucune bascule n'apparaît dans la barre.
+
+#### Quatre défauts trouvés en retirant les `dark:`
+
+Le nettoyage a mis au jour des chaînes de classes dégénérées, qu'aucune erreur ne
+signale — une classe absente laisse simplement hériter du parent :
+
+1. **`trial-dashboard.tsx`** — `statusBg` valait littéralement `" dark: dark:"`. À
+   l'origine des fragments de dégradé orphelins ; **la passe d'harmonisation les a
+   retirés sans rien mettre à la place, et a laissé les préfixes.** Deux défauts
+   successifs au même endroit, dont le second est de mon fait.
+2. **`oee.tsx`** — `oeeBg` renvoyait `""` dans ses trois branches. Même cause : le badge
+   de qualité OEE s'affichait **toujours de la même couleur**, quel que soit le niveau.
+   Également introduit par la passe d'harmonisation.
+3. **`calibration.tsx`** — la pastille de conformité d'un point de mesure affichait une
+   couleur et **aucun texte**, quelle que soit la conformité. Illisible pour qui ne
+   distingue pas le vert du rouge, muette pour un lecteur d'écran. *Antérieur à la
+   refonte.*
+4. **`validation-dashboard-simple.tsx`** — le repère de type de document renvoyait la
+   chaîne vide dans ses deux branches : le numéro de commande s'affichait précédé d'un
+   espace. *Antérieur à la refonte.*
+
+Cinq nouveaux garde-fous couvrent ces familles, dont deux qui auraient attrapé mes
+propres erreurs.
+
+### 5.6 Recette — ce qui est vérifié et ce qui ne l'est pas
 
 | Barrière | Résultat |
 |---|---|
 | `npm run check` | **vert** |
 | `npm run check:tests` | **vert** |
-| Tests unitaires | **24 suites, 179 tests verts**, dont 24 garde-fous de refonte |
+| Tests unitaires | **24 suites, 184 tests verts**, dont 29 garde-fous de refonte |
 | Tests d'intégration | **10 suites, 96 tests verts**, 4 ignorés, 7 à écrire |
 | Rendu, navigation, débordement | **68 routes mesurées au navigateur : 0 anomalie** |
 | Contraste WCAG AA sur fond composé | **68 routes : 0 texte sous le seuil** |
@@ -447,8 +540,7 @@ une tuile muette qu'une tuile qui affirme la mauvaise chose.
 Hors périmètre de ce chantier, à arbitrer séparément :
 
 1. **Découper le bundle** par `lazy()` sur les 82 pages importées en statique.
-2. **Trancher sur le thème sombre** : le réparer ou retirer le bouton. En l'état il dégrade
-   l'image du produit en un clic.
+2. ~~**Trancher sur le thème sombre**~~ — **fait le 19/10/2026 : retiré.** Voir 5.5.
 3. **Retirer les pages de développement** de la table de routage (`/localhost-diagnostic`,
    `/enterprise-auth-test`, `/payment-test`, `/email-diagnostic`).
 4. **Remonter la GMAO dans la navigation principale** avec ses sous-entrées (ordres de

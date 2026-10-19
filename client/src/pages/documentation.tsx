@@ -681,19 +681,19 @@ export default function Documentation() {
             {/* Quick Start Section */}
             <Card className="border-0 bg-paper-deep">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-etat-nominal-texte dark:text-green-200">
+                <CardTitle className="flex items-center space-x-2 text-etat-nominal-texte">
                   <Play className="w-5 h-5" />
                   <span>Démarrage Rapide</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-etat-nominal-texte dark:text-etat-nominal-texte">
+                <p className="text-etat-nominal-texte">
                   Nouveau sur Maintrix ? Suivez ces étapes pour être opérationnel en 15 minutes :
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
+                    className="text-center p-4 bg-white rounded-lg h-auto hover:bg-etat-nominal-fond transition-colors"
                     onClick={() => handleWatchVideo("intro-video", "Vidéo d'introduction Maintrix")}
                   >
                     <div>
@@ -703,7 +703,7 @@ export default function Documentation() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
+                    className="text-center p-4 bg-white rounded-lg h-auto hover:bg-etat-nominal-fond transition-colors"
                     onClick={() => {
                       toast({
                         title: "Diagnostic démarré",
@@ -719,7 +719,7 @@ export default function Documentation() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-center p-4 bg-white dark:bg-etat-nominal-vif rounded-lg h-auto hover:bg-etat-nominal-fond dark:hover:bg-etat-nominal-vif transition-colors"
+                    className="text-center p-4 bg-white rounded-lg h-auto hover:bg-etat-nominal-fond transition-colors"
                     onClick={() => {
                       toast({
                         title: "GMAO ouvert",

@@ -160,26 +160,26 @@ export default function UserProfiles() {
   const getRoleBadgeColor = (role: string | null) => {
     switch (role) {
       case "admin":
-        return "bg-etat-critique-fond text-etat-critique-texte dark:bg-etat-critique-vif dark:text-red-200";
+        return "bg-etat-critique-fond text-etat-critique-texte";
       case "supervisor":
-        return "bg-etat-encours-fond text-etat-encours-texte dark:bg-etat-encours-vif dark:text-blue-200";
+        return "bg-etat-encours-fond text-etat-encours-texte";
       case "technician":
-        return "bg-etat-nominal-fond text-etat-nominal-texte dark:bg-etat-nominal-vif dark:text-green-200";
+        return "bg-etat-nominal-fond text-etat-nominal-texte";
       default:
-        return "bg-paper-deep text-ink dark:bg-ink dark:text-gray-200";
+        return "bg-paper-deep text-ink";
     }
   };
 
   const getExperienceBadgeColor = (level: string | null) => {
     switch (level) {
       case "expert":
-        return "bg-paper-deep text-signal-deep dark:bg-signal-deep dark:text-signal-light";
+        return "bg-paper-deep text-signal-deep";
       case "intermediate":
-        return "bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-yellow-200";
+        return "bg-etat-alerte-fond text-etat-alerte-texte";
       case "beginner":
-        return "bg-etat-alerte-fond text-etat-alerte-texte dark:bg-etat-alerte-vif dark:text-orange-200";
+        return "bg-etat-alerte-fond text-etat-alerte-texte";
       default:
-        return "bg-paper-deep text-ink dark:bg-ink dark:text-gray-200";
+        return "bg-paper-deep text-ink";
     }
   };
 
@@ -197,7 +197,7 @@ export default function UserProfiles() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestion des Profils Utilisateur</h1>
-          <p className="text-ink-soft dark:text-ink-mute">
+          <p className="text-ink-soft">
             Gérez les profils et les permissions des utilisateurs du système Maintrix
           </p>
         </div>
@@ -427,8 +427,8 @@ export default function UserProfiles() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 rounded-full bg-etat-encours-fond dark:bg-etat-encours-vif flex items-center justify-center">
-                    <User className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
+                  <div className="h-12 w-12 rounded-full bg-etat-encours-fond flex items-center justify-center">
+                    <User className="h-6 w-6 text-etat-encours-texte" />
                   </div>
                   <div>
                     <CardTitle className="text-lg">
@@ -543,11 +543,11 @@ export default function UserProfiles() {
           {editingProfile && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-                <div className="bg-paper dark:bg-ink p-3 rounded-lg border">
-                  <div className="text-sm font-medium text-ink-soft dark:text-ink-mute mb-1">
+                <div className="bg-paper p-3 rounded-lg border">
+                  <div className="text-sm font-medium text-ink-soft mb-1">
                     Nom d'utilisateur
                   </div>
-                  <div className="text-ink-soft dark:text-ink-mute">
+                  <div className="text-ink-soft">
                     {editingProfile.username}
                   </div>
                   <div className="text-xs text-ink-mute mt-1">

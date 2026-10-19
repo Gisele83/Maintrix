@@ -252,8 +252,8 @@ export default function SupportChatbot() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-etat-encours-fond dark:bg-etat-encours-vif rounded-lg">
-              <Bot className="h-6 w-6 text-etat-encours-texte dark:text-etat-encours-texte" />
+            <div className="p-2 bg-etat-encours-fond rounded-lg">
+              <Bot className="h-6 w-6 text-etat-encours-texte" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">
@@ -303,7 +303,7 @@ export default function SupportChatbot() {
                         <div className={`rounded-lg p-3 ${
                           message.type === 'user'
                             ? 'bg-etat-encours-vif text-white'
-                            : 'bg-paper-deep dark:bg-ink text-foreground'
+                            : 'bg-paper-deep text-foreground'
                         }`}>
                           <div className="whitespace-pre-wrap">{message.content}</div>
                         </div>
@@ -355,7 +355,7 @@ export default function SupportChatbot() {
                       <div className="w-8 h-8 rounded-full bg-etat-nominal-fond text-etat-nominal-texte flex items-center justify-center">
                         <Bot className="h-4 w-4" />
                       </div>
-                      <div className="bg-paper-deep dark:bg-ink rounded-lg p-3">
+                      <div className="bg-paper-deep rounded-lg p-3">
                         <div className="flex gap-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>

@@ -186,10 +186,10 @@ export default function SecureValidation() {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-ink dark:text-ink">
+            <h1 className="text-3xl font-bold text-ink">
               Système de Validation Multi-Niveaux
             </h1>
-            <p className="text-ink-soft dark:text-ink-soft mt-1">
+            <p className="text-ink-soft mt-1">
               Interface sécurisée pour la validation des demandes
             </p>
           </div>
@@ -214,19 +214,19 @@ export default function SecureValidation() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-ink-soft dark:text-ink-mute">Nom complet</p>
+                <p className="text-sm text-ink-soft">Nom complet</p>
                 <p className="font-medium">{user.firstName} {user.lastName}</p>
               </div>
               <div>
-                <p className="text-sm text-ink-soft dark:text-ink-mute">Matricule</p>
+                <p className="text-sm text-ink-soft">Matricule</p>
                 <p className="font-medium font-mono">{user.matricule}</p>
               </div>
               <div>
-                <p className="text-sm text-ink-soft dark:text-ink-mute">Département</p>
+                <p className="text-sm text-ink-soft">Département</p>
                 <p className="font-medium">{user.department}</p>
               </div>
               <div>
-                <p className="text-sm text-ink-soft dark:text-ink-mute">Niveau de validation</p>
+                <p className="text-sm text-ink-soft">Niveau de validation</p>
                 <Badge variant="outline" className="mt-1">
                   Niveau {user.validationLevel} - {getLevelDescription(user.validationLevel)}
                 </Badge>
@@ -264,11 +264,11 @@ export default function SecureValidation() {
                 ) : (
                   <div className="space-y-4">
                     {pendingOrders.map((order: ValidationItem) => (
-                      <div key={order.id} className="border rounded-lg p-4 bg-white dark:bg-ink">
+                      <div key={order.id} className="border rounded-lg p-4 bg-white">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="font-semibold">{order.orderNumber}</h4>
-                            <p className="text-sm text-ink-soft dark:text-ink-mute">{order.description}</p>
+                            <p className="text-sm text-ink-soft">{order.description}</p>
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-lg">{order.totalAmount} EUR</p>
@@ -278,7 +278,7 @@ export default function SecureValidation() {
                           </div>
                         </div>
                         
-                        <div className="flex justify-between items-center text-sm text-ink-soft dark:text-ink-mute mb-3">
+                        <div className="flex justify-between items-center text-sm text-ink-soft mb-3">
                           <span>Demandé par: {order.requestedBy}</span>
                           <span>Type: {order.documentType === 'purchase_order' ? 'Bon de commande' : 'Lettre de commande'}</span>
                         </div>
@@ -350,18 +350,18 @@ export default function SecureValidation() {
                 ) : (
                   <div className="space-y-4">
                     {pendingWorkOrders.map((workOrder: any) => (
-                      <div key={workOrder.id} className="border rounded-lg p-4 bg-white dark:bg-ink">
+                      <div key={workOrder.id} className="border rounded-lg p-4 bg-white">
                         <div className="flex justify-between items-start mb-3">
                           <div>
                             <h4 className="font-semibold">{workOrder.orderNumber}</h4>
-                            <p className="text-sm text-ink-soft dark:text-ink-mute">{workOrder.description}</p>
+                            <p className="text-sm text-ink-soft">{workOrder.description}</p>
                           </div>
                           <Badge variant={getPriorityColor(workOrder.priority)}>
                             {workOrder.priority}
                           </Badge>
                         </div>
                         
-                        <div className="flex justify-between items-center text-sm text-ink-soft dark:text-ink-mute mb-3">
+                        <div className="flex justify-between items-center text-sm text-ink-soft mb-3">
                           <span>Assigné à: {workOrder.assignedTo}</span>
                           <span>Équipement: {workOrder.equipmentType}</span>
                         </div>

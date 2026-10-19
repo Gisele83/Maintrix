@@ -64,7 +64,15 @@ interface OeeStats {
 const pct = (v: number | null | undefined) => v ? Math.round(Number(v) * 100) : 0;
 const oeeColor = (v: number) => v >= 0.85 ? "#22c55e" : v >= 0.65 ? "#f59e0b" : "#ef4444";
 const oeeLabel = (v: number) => v >= 0.85 ? "Classe mondiale" : v >= 0.65 ? "Acceptable" : "Critique";
-const oeeBg = (v: number) => v >= 0.85 ? "" : v >= 0.65 ? "" : "";
+/**
+ * ⚠️ Cette fonction renvoyait des fragments de dégradé —
+ * `from-green-500 to-emerald-600` — sans le `bg-gradient-to-*` qui les
+ * aurait activés. La passe d'harmonisation les a retirés, à juste titre,
+ * mais sans rien mettre à la place : le badge de qualité s'affichait
+ * ensuite TOUJOURS de la même couleur, quel que soit l'OEE. Il porte
+ * désormais le registre d'état correspondant.
+ */
+const oeeRegistre = (v: number): RegistreEtat => v >= 0.85 ? "nominal" : v >= 0.65 ? "alerte" : "critique";
 const shiftLabel: Record<string, string> = { day: "Matin", evening: "Après-midi", night: "Nuit", all: "Journée" };
 
 // ─── Form Schema ──────────────────────────────────────────────────────────────
@@ -444,7 +452,7 @@ export default function OeePage() {
                       <td className="py-2 px-3">
                         <div className="flex items-center gap-2">
                           <span className="text-base font-bold" style={{ color: oeeColor(r.oee) }}>{pct(r.oee)}%</span>
-                          <Badge className={`text-xs text-white bg-ink ${oeeBg(r.oee)}`}>
+                          <Badge className={`text-xs ${ETAT[oeeRegistre(r.oee)].puce}`}>
                             {oeeLabel(r.oee)}
                           </Badge>
                         </div>

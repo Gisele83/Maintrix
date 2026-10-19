@@ -186,7 +186,7 @@ export default function CommunicationIntegrations() {
             <h1 className="text-3xl font-bold text-ink">
               Intégrations Communication
             </h1>
-            <p className="text-ink-mute dark:text-ink-mute mt-1">
+            <p className="text-ink-mute mt-1">
               Connectez vos plateformes pour recevoir des alertes instantanées et collaborer
             </p>
           </div>
@@ -418,7 +418,7 @@ export default function CommunicationIntegrations() {
                 ) : (
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {deliveryLogs.map((log) => (
-                      <div key={log.id} className="flex items-center gap-3 p-3 bg-paper dark:bg-ink rounded-lg">
+                      <div key={log.id} className="flex items-center gap-3 p-3 bg-paper rounded-lg">
                         {log.status === 'sent' ? (
                           <CheckCircle className="h-4 w-4 text-etat-nominal-texte shrink-0" />
                         ) : (
@@ -465,7 +465,7 @@ export default function CommunicationIntegrations() {
                           <p className="text-xs text-ink-mute">{channelCount} canal{channelCount !== 1 ? 'x' : ''} configuré{channelCount !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-ink-soft dark:text-ink-mute mb-4">{platform.description}</p>
+                      <p className="text-sm text-ink-soft mb-4">{platform.description}</p>
                       {platformStats && (
                         <div className="flex gap-4 text-xs">
                           <span className="text-etat-nominal-texte">{platformStats.sent} envoyés</span>
@@ -478,7 +478,7 @@ export default function CommunicationIntegrations() {
                         </Button>
                       </div>
 
-                      <div className="mt-4 p-3 bg-paper dark:bg-ink rounded-lg">
+                      <div className="mt-4 p-3 bg-paper rounded-lg">
                         <p className="text-xs font-medium mb-2">Guide de configuration:</p>
                         {platform.value === 'slack' && (
                           <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">

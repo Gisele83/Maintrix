@@ -516,56 +516,56 @@ export default function PreventiveMaintenance() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
+          <Card className="bg-white border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">Total Plans</p>
-                  <p className="text-3xl font-bold text-ink dark:text-ink">{totalPlans}</p>
+                  <p className="text-sm font-medium text-ink-soft">Total Plans</p>
+                  <p className="text-3xl font-bold text-ink">{totalPlans}</p>
                 </div>
-                <div className="bg-etat-encours-fond dark:bg-etat-encours-fond p-3 rounded-none">
+                <div className="bg-etat-encours-fond p-3 rounded-none">
                   <Calendar className="h-8 w-8 text-etat-encours-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
+          <Card className="bg-white border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">Actifs</p>
+                  <p className="text-sm font-medium text-ink-soft">Actifs</p>
                   <p className="text-3xl font-bold text-etat-nominal-texte">{activePlans}</p>
                 </div>
-                <div className="bg-etat-nominal-fond dark:bg-etat-nominal-fond p-3 rounded-none">
+                <div className="bg-etat-nominal-fond p-3 rounded-none">
                   <CheckCircle className="h-8 w-8 text-etat-nominal-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
+          <Card className="bg-white border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">En Retard</p>
+                  <p className="text-sm font-medium text-ink-soft">En Retard</p>
                   <p className="text-3xl font-bold text-etat-critique-texte">{overduePlans}</p>
                 </div>
-                <div className="bg-etat-critique-fond dark:bg-etat-critique-fond p-3 rounded-none">
+                <div className="bg-etat-critique-fond p-3 rounded-none">
                   <AlertTriangle className="h-8 w-8 text-etat-critique-texte" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
+          <Card className="bg-white border-0 rounded-none">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ink-soft dark:text-ink-mute">Taux Réalisation</p>
+                  <p className="text-sm font-medium text-ink-soft">Taux Réalisation</p>
                   <p className="text-3xl font-bold text-etat-encours-texte">{avgCompletionRate}%</p>
                 </div>
-                <div className="bg-etat-encours-fond dark:bg-etat-encours-fond p-3 rounded-none">
+                <div className="bg-etat-encours-fond p-3 rounded-none">
                   <Activity className="h-8 w-8 text-etat-encours-texte" />
                 </div>
               </div>
@@ -574,14 +574,14 @@ export default function PreventiveMaintenance() {
         </div>
 
         {/* Main Content */}
-        <Card className="bg-white dark:bg-paper-deep border-0 rounded-none">
+        <Card className="bg-white border-0 rounded-none">
           <CardHeader>
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
               <div>
-                <CardTitle className="text-2xl font-bold text-ink dark:text-ink">
+                <CardTitle className="text-2xl font-bold text-ink">
                   Plans de Maintenance
                 </CardTitle>
-                <p className="text-ink-soft dark:text-ink-mute mt-1">
+                <p className="text-ink-soft mt-1">
                   Gestion et planification des maintenances préventives
                 </p>
               </div>
@@ -613,7 +613,7 @@ export default function PreventiveMaintenance() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-rule rounded-lg bg-white dark:bg-white dark:border-rule"
+                className="px-4 py-2 border border-rule rounded-lg bg-white"
               >
                 <option value="all">Tous les statuts</option>
                 <option value="active">Actif</option>
@@ -640,20 +640,20 @@ export default function PreventiveMaintenance() {
                     const daysUntilNext = getDaysUntilNext(plan.nextExecution);
                     
                     return (
-                      <Card key={plan.id} className="bg-white dark:bg-white border border-rule dark:border-rule transition-all duration-300">
+                      <Card key={plan.id} className="bg-white border border-rule transition-all duration-300">
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="bg-etat-encours-fond dark:bg-etat-encours-fond p-2 rounded-lg">
+                                <div className="bg-etat-encours-fond p-2 rounded-lg">
                                   {getTypeIcon(plan.type)}
                                 </div>
                                 <div>
-                                  <h3 className="font-semibold text-ink dark:text-ink text-lg">{plan.name}</h3>
-                                  <p className="text-sm text-ink-soft dark:text-ink-mute">{plan.equipmentName}</p>
+                                  <h3 className="font-semibold text-ink text-lg">{plan.name}</h3>
+                                  <p className="text-sm text-ink-soft">{plan.equipmentName}</p>
                                 </div>
                               </div>
-                              <p className="text-ink-soft dark:text-ink-mute mb-3">{plan.description}</p>
+                              <p className="text-ink-soft mb-3">{plan.description}</p>
                             </div>
                             <div className="flex gap-2">
                               <Badge variant={statusConfig.variant}>
@@ -667,12 +667,12 @@ export default function PreventiveMaintenance() {
 
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                             <div className="text-sm">
-                              <span className="text-ink-soft dark:text-ink-mute">Fréquence:</span>
-                              <p className="font-medium text-ink dark:text-ink">{plan.frequency}</p>
+                              <span className="text-ink-soft">Fréquence:</span>
+                              <p className="font-medium text-ink">{plan.frequency}</p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-ink-soft dark:text-ink-mute">Prochaine maintenance:</span>
-                              <p className="font-medium text-ink dark:text-ink">
+                              <span className="text-ink-soft">Prochaine maintenance:</span>
+                              <p className="font-medium text-ink">
                                 {new Date(plan.nextExecution).toLocaleDateString('fr-FR')}
                                 {daysUntilNext <= 7 && (
                                   <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
@@ -686,23 +686,23 @@ export default function PreventiveMaintenance() {
                               </p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-ink-soft dark:text-ink-mute">Technicien:</span>
-                              <p className="font-medium text-ink dark:text-ink">{plan.assignedTechnician}</p>
+                              <span className="text-ink-soft">Technicien:</span>
+                              <p className="font-medium text-ink">{plan.assignedTechnician}</p>
                             </div>
                             <div className="text-sm">
-                              <span className="text-ink-soft dark:text-ink-mute">Durée estimée:</span>
-                              <p className="font-medium text-ink dark:text-ink">{plan.estimatedDuration}h</p>
+                              <span className="text-ink-soft">Durée estimée:</span>
+                              <p className="font-medium text-ink">{plan.estimatedDuration}h</p>
                             </div>
                           </div>
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                               <div className="text-sm">
-                                <span className="text-ink-soft dark:text-ink-mute">Taux de réalisation:</span>
+                                <span className="text-ink-soft">Taux de réalisation:</span>
                                 <span className="ml-2 font-semibold text-etat-encours-texte">{plan.completionRate}%</span>
                               </div>
                               <div className="text-sm">
-                                <span className="text-ink-soft dark:text-ink-mute">Coût estimé:</span>
+                                <span className="text-ink-soft">Coût estimé:</span>
                                 <span className="ml-2 font-semibold text-etat-nominal-texte">{plan.cost}€</span>
                               </div>
                             </div>
@@ -738,7 +738,7 @@ export default function PreventiveMaintenance() {
                 <div className="space-y-6">
                   {/* Calendar Header */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-ink dark:text-ink">
+                    <h3 className="text-xl font-semibold text-ink">
                       Calendrier de Maintenance - {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                     </h3>
                     <div className="flex gap-2">
@@ -760,12 +760,12 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Calendar Grid */}
-                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-6">
                       <div className="grid grid-cols-7 gap-2">
                         {/* Days of week header */}
                         {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((day) => (
-                          <div key={day} className="p-2 text-center text-sm font-medium text-ink-soft dark:text-ink-mute">
+                          <div key={day} className="p-2 text-center text-sm font-medium text-ink-soft">
                             {day}
                           </div>
                         ))}
@@ -787,9 +787,9 @@ export default function PreventiveMaintenance() {
                           return (
                             <div
                               key={i}
-                              className={`p-2 min-h-[80px] border border-rule dark:border-rule rounded-lg cursor-pointer hover:bg-paper dark:hover:bg-paper-deep transition-colors ${
+                              className={`p-2 min-h-[80px] border border-rule rounded-lg cursor-pointer hover:bg-paper transition-colors ${
                                 !isCurrentMonth ? 'opacity-50' : ''
-                              } ${isToday ? 'bg-etat-encours-fond dark:bg-etat-encours-fond border-etat-encours-filet' : ''}`}
+                              } ${isToday ? 'bg-etat-encours-fond border-etat-encours-filet' : ''}`}
                               onClick={() => {
                                 toast({
                                   title: "Date sélectionnée",
@@ -797,7 +797,7 @@ export default function PreventiveMaintenance() {
                                 });
                               }}
                             >
-                              <div className="text-sm font-medium text-ink dark:text-ink">
+                              <div className="text-sm font-medium text-ink">
                                 {date.getDate()}
                               </div>
                               {hasEvent && isCurrentMonth && (
@@ -815,21 +815,21 @@ export default function PreventiveMaintenance() {
                   </Card>
 
                   {/* Legend */}
-                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-4">
-                      <h4 className="font-medium text-ink dark:text-ink mb-3">Légende</h4>
+                      <h4 className="font-medium text-ink mb-3">Légende</h4>
                       <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-etat-encours-vif rounded"></div>
-                          <span className="text-sm text-ink-soft dark:text-ink-mute">Maintenance planifiée</span>
+                          <span className="text-sm text-ink-soft">Maintenance planifiée</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-etat-nominal-vif rounded"></div>
-                          <span className="text-sm text-ink-soft dark:text-ink-mute">Maintenance terminée</span>
+                          <span className="text-sm text-ink-soft">Maintenance terminée</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 bg-etat-critique-vif rounded"></div>
-                          <span className="text-sm text-ink-soft dark:text-ink-mute">Maintenance en retard</span>
+                          <span className="text-sm text-ink-soft">Maintenance en retard</span>
                         </div>
                       </div>
                     </CardContent>
@@ -841,7 +841,7 @@ export default function PreventiveMaintenance() {
                 <div className="space-y-6">
                   {/* Analytics Header */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold text-ink dark:text-ink">
+                    <h3 className="text-xl font-semibold text-ink">
                       Analyses et Métriques de Performance
                     </h3>
                     <div className="flex gap-2">
@@ -891,9 +891,9 @@ export default function PreventiveMaintenance() {
                   {/* Charts Section */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Performance Trends */}
-                    <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
+                    <Card className="bg-white border border-rule">
                       <CardContent className="p-6">
-                        <h4 className="text-lg font-semibold text-ink dark:text-ink mb-4">
+                        <h4 className="text-lg font-semibold text-ink mb-4">
                           Tendances de Performance
                         </h4>
                         <div className="space-y-4">
@@ -915,9 +915,9 @@ export default function PreventiveMaintenance() {
                     </Card>
 
                     {/* Equipment Health Distribution */}
-                    <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
+                    <Card className="bg-white border border-rule">
                       <CardContent className="p-6">
-                        <h4 className="text-lg font-semibold text-ink dark:text-ink mb-4">
+                        <h4 className="text-lg font-semibold text-ink mb-4">
                           Distribution Santé Équipements
                         </h4>
                         <div className="space-y-4">
@@ -930,11 +930,11 @@ export default function PreventiveMaintenance() {
                             <div key={item.status} className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className={`w-4 h-4 ${CHART_COLOR[item.color].bg500} rounded-full`}></div>
-                                <span className="text-sm text-ink-soft dark:text-ink-mute">{item.status}</span>
+                                <span className="text-sm text-ink-soft">{item.status}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-ink dark:text-ink">{item.count}</span>
-                                <div className="w-20 bg-paper-deep dark:bg-paper-deep rounded-full h-2">
+                                <span className="text-sm font-bold text-ink">{item.count}</span>
+                                <div className="w-20 bg-paper-deep rounded-full h-2">
                                   <div
                                     className={`${CHART_COLOR[item.color].bg500} h-2 rounded-full`}
                                     style={{ width: `${(item.count / 27) * 100}%` }}
@@ -949,17 +949,17 @@ export default function PreventiveMaintenance() {
                   </div>
 
                   {/* Maintenance Schedule Analysis */}
-                  <Card className="bg-white dark:bg-white border border-rule dark:border-rule">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-6">
-                      <h4 className="text-lg font-semibold text-ink dark:text-ink mb-4">
+                      <h4 className="text-lg font-semibold text-ink mb-4">
                         Analyse Planning Maintenance
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-3">
-                          <h5 className="font-medium text-ink dark:text-ink">Cette Semaine</h5>
+                          <h5 className="font-medium text-ink">Cette Semaine</h5>
                           <div className="space-y-2">
                             {['Lundi: 3 maintenances', 'Mercredi: 2 maintenances', 'Vendredi: 1 maintenance'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft dark:text-ink-mute">
+                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft">
                                 <div className="w-2 h-2 bg-etat-encours-vif rounded-full"></div>
                                 {item}
                               </div>
@@ -968,10 +968,10 @@ export default function PreventiveMaintenance() {
                         </div>
                         
                         <div className="space-y-3">
-                          <h5 className="font-medium text-ink dark:text-ink">Prochaine Semaine</h5>
+                          <h5 className="font-medium text-ink">Prochaine Semaine</h5>
                           <div className="space-y-2">
                             {['Mardi: 2 maintenances', 'Jeudi: 4 maintenances', 'Samedi: 1 maintenance'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft dark:text-ink-mute">
+                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft">
                                 <div className="w-2 h-2 bg-etat-nominal-vif rounded-full"></div>
                                 {item}
                               </div>
@@ -980,10 +980,10 @@ export default function PreventiveMaintenance() {
                         </div>
                         
                         <div className="space-y-3">
-                          <h5 className="font-medium text-ink dark:text-ink">En Retard</h5>
+                          <h5 className="font-medium text-ink">En Retard</h5>
                           <div className="space-y-2">
                             {['Moteur Principal: 2 jours', 'Pompe Hydraulique: 1 jour'].map((item, i) => (
-                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft dark:text-ink-mute">
+                              <div key={i} className="flex items-center gap-2 text-sm text-ink-soft">
                                 <div className="w-2 h-2 bg-etat-critique-vif rounded-full"></div>
                                 {item}
                               </div>
@@ -1002,8 +1002,8 @@ export default function PreventiveMaintenance() {
         {/* Add Plan Modal Placeholder */}
         {showAddModal && (
           <Card className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-white p-6 rounded-none max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-ink dark:text-ink mb-4">
+            <div className="bg-white p-6 rounded-none max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-ink mb-4">
                 Nouveau Plan de Maintenance
               </h3>
               <div className="space-y-4">
@@ -1102,8 +1102,8 @@ export default function PreventiveMaintenance() {
         {/* Edit Plan Modal */}
         {showEditModal && selectedPlan && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white dark:bg-white p-6 rounded-none max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-ink dark:text-ink mb-4">
+            <div className="bg-white p-6 rounded-none max-w-md w-full mx-4">
+              <h3 className="text-xl font-semibold text-ink mb-4">
                 Modifier le Plan de Maintenance
               </h3>
               <div className="space-y-4">

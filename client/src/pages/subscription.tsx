@@ -54,11 +54,11 @@ const PLAN_ICONS: Record<string, React.ComponentType<any>> = {
 };
 
 const STATUS_CONFIG = {
-  trial: { label: "Essai gratuit", variant: "secondary" as const, icon: Gift, color: "text-etat-encours-texte dark:text-etat-encours-texte", bg: "bg-etat-encours-fond dark:bg-blue-950" },
-  active: { label: "Abonnement actif", variant: "default" as const, icon: CheckCircle, color: "text-etat-nominal-texte dark:text-etat-nominal-texte", bg: "bg-etat-nominal-fond dark:bg-green-950" },
-  grace: { label: "Période de grâce", variant: "outline" as const, icon: AlertTriangle, color: "text-etat-alerte-texte dark:text-etat-alerte-texte", bg: "bg-etat-alerte-fond dark:bg-orange-950" },
-  expired: { label: "Expiré", variant: "destructive" as const, icon: XCircle, color: "text-etat-critique-texte dark:text-etat-critique-texte", bg: "bg-etat-critique-fond dark:bg-red-950" },
-  suspended: { label: "Suspendu", variant: "destructive" as const, icon: XCircle, color: "text-etat-critique-texte dark:text-etat-critique-texte", bg: "bg-etat-critique-fond dark:bg-red-950" },
+  trial: { label: "Essai gratuit", variant: "secondary" as const, icon: Gift, color: "text-etat-encours-texte", bg: "bg-etat-encours-fond" },
+  active: { label: "Abonnement actif", variant: "default" as const, icon: CheckCircle, color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond" },
+  grace: { label: "Période de grâce", variant: "outline" as const, icon: AlertTriangle, color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond" },
+  expired: { label: "Expiré", variant: "destructive" as const, icon: XCircle, color: "text-etat-critique-texte", bg: "bg-etat-critique-fond" },
+  suspended: { label: "Suspendu", variant: "destructive" as const, icon: XCircle, color: "text-etat-critique-texte", bg: "bg-etat-critique-fond" },
 };
 
 function StatusCard({ license }: { license: LicenseStatus }) {
@@ -69,7 +69,7 @@ function StatusCard({ license }: { license: LicenseStatus }) {
   const trialProgress = Math.min(100, (trialUsed / trialTotal) * 100);
 
   return (
-    <Card className={`border-2 ${license.status === "active" ? "border-etat-nominal-filet dark:border-green-800" : license.status === "expired" || license.status === "suspended" ? "border-etat-critique-filet dark:border-red-800" : "border-etat-encours-filet dark:border-blue-800"}`}>
+    <Card className={`border-2 ${license.status === "active" ? "border-etat-nominal-filet" : license.status === "expired" || license.status === "suspended" ? "border-etat-critique-filet" : "border-etat-encours-filet"}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -103,12 +103,12 @@ function StatusCard({ license }: { license: LicenseStatus }) {
 
         {/* Grace period info */}
         {license.isGracePeriodActive && (
-          <div className="p-3 bg-etat-alerte-fond dark:bg-orange-950 border border-etat-alerte-filet dark:border-orange-800 rounded-lg">
-            <div className="flex items-center gap-2 text-etat-alerte-texte dark:text-etat-alerte-texte">
+          <div className="p-3 bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg">
+            <div className="flex items-center gap-2 text-etat-alerte-texte">
               <AlertTriangle className="h-4 w-4" />
               <span className="text-sm font-medium">Période de grâce active</span>
             </div>
-            <p className="text-xs text-etat-alerte-texte dark:text-etat-alerte-texte mt-1">
+            <p className="text-xs text-etat-alerte-texte mt-1">
               {license.gracePeriodDaysRemaining} jour(s) restant(s) avant interruption du service.
               {license.gracePeriodEnd && ` Fin le ${new Date(license.gracePeriodEnd).toLocaleDateString("fr-FR")}.`}
             </p>
@@ -117,12 +117,12 @@ function StatusCard({ license }: { license: LicenseStatus }) {
 
         {/* Expired warning */}
         {(license.status === "expired" || license.status === "suspended") && (
-          <div className="p-3 bg-etat-critique-fond dark:bg-red-950 border border-etat-critique-filet dark:border-red-800 rounded-lg">
-            <div className="flex items-center gap-2 text-etat-critique-texte dark:text-etat-critique-texte">
+          <div className="p-3 bg-etat-critique-fond border border-etat-critique-filet rounded-lg">
+            <div className="flex items-center gap-2 text-etat-critique-texte">
               <XCircle className="h-4 w-4" />
               <span className="text-sm font-medium">Accès interrompu</span>
             </div>
-            <p className="text-xs text-etat-critique-texte dark:text-etat-critique-texte mt-1">
+            <p className="text-xs text-etat-critique-texte mt-1">
               Votre période d'accès est terminée. Souscrivez à un plan pour rétablir l'accès.
             </p>
           </div>
@@ -130,13 +130,13 @@ function StatusCard({ license }: { license: LicenseStatus }) {
 
         {/* Active subscription */}
         {license.status === "active" && (
-          <div className="p-3 bg-etat-nominal-fond dark:bg-green-950 border border-etat-nominal-filet dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 text-etat-nominal-texte dark:text-etat-nominal-texte">
+          <div className="p-3 bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg">
+            <div className="flex items-center gap-2 text-etat-nominal-texte">
               <CheckCircle className="h-4 w-4" />
               <span className="text-sm font-medium">Abonnement actif — Plan {license.plan.toUpperCase()}</span>
             </div>
             {license.subscriptionId && (
-              <p className="text-xs text-etat-nominal-texte dark:text-etat-nominal-texte mt-1">ID : {license.subscriptionId}</p>
+              <p className="text-xs text-etat-nominal-texte mt-1">ID : {license.subscriptionId}</p>
             )}
           </div>
         )}
@@ -183,7 +183,7 @@ function PlanCard({ plan, current, onSelect }: { plan: Plan; current: boolean; o
   const Icon = PLAN_ICONS[plan.id] || Zap;
 
   return (
-    <Card className={`relative flex flex-col transition-all duration-200 ${ plan.highlighted ? "border-2 border-etat-encours-filet dark:border-etat-encours-filet shadow-blue-100 dark:shadow-blue-900/30 shadow-none" : "border hover:border-etat-encours-filet dark:hover:border-blue-700" } ${current ? "ring-2 ring-green-400 dark:ring-green-600" : ""}`}>
+    <Card className={`relative flex flex-col transition-all duration-200 ${ plan.highlighted ? "border-2 border-etat-encours-filet shadow-blue-100 shadow-none" : "border hover:border-etat-encours-filet" } ${current ? "ring-2 ring-green-400" : ""}`}>
       {plan.highlighted && (
         <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
           <Badge className="bg-etat-encours-vif text-white shadow-sm px-3">
@@ -193,15 +193,15 @@ function PlanCard({ plan, current, onSelect }: { plan: Plan; current: boolean; o
       )}
       {current && (
         <div className="absolute -top-3.5 right-4">
-          <Badge variant="outline" className="bg-etat-nominal-fond dark:bg-green-950 border-etat-nominal-filet text-etat-nominal-texte dark:text-etat-nominal-texte text-xs px-2">
+          <Badge variant="outline" className="bg-etat-nominal-fond border-etat-nominal-filet text-etat-nominal-texte text-xs px-2">
             Plan actuel
           </Badge>
         </div>
       )}
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className={`p-2 rounded-lg ${plan.highlighted ? "bg-etat-encours-fond dark:bg-etat-encours-vif" : "bg-muted"}`}>
-            <Icon className={`h-5 w-5 ${plan.highlighted ? "text-etat-encours-texte dark:text-etat-encours-texte" : "text-muted-foreground"}`} />
+          <div className={`p-2 rounded-lg ${plan.highlighted ? "bg-etat-encours-fond" : "bg-muted"}`}>
+            <Icon className={`h-5 w-5 ${plan.highlighted ? "text-etat-encours-texte" : "text-muted-foreground"}`} />
           </div>
           <CardTitle className="text-xl">{plan.name}</CardTitle>
         </div>
@@ -298,7 +298,7 @@ export default function SubscriptionPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Page header */}
         <div className="mb-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-etat-encours-fond dark:bg-etat-encours-vif text-etat-encours-texte dark:text-etat-encours-texte text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-etat-encours-fond text-etat-encours-texte text-sm font-medium mb-4">
             <Crown className="h-4 w-4" />
             Abonnements & Licences
           </div>
@@ -389,7 +389,7 @@ export default function SubscriptionPage() {
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div className="h-2 bg-etat-encours-vif rounded-full" style={{ width: "70%" }} />
                   </div>
-                  <span className="text-sm font-bold text-etat-encours-texte dark:text-etat-encours-texte">
+                  <span className="text-sm font-bold text-etat-encours-texte">
                     {licenseStatus?.gracePeriodDays ?? 7} jours
                   </span>
                 </div>
@@ -464,7 +464,7 @@ export default function SubscriptionPage() {
                     <tr className="border-b">
                       <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Fonctionnalité</th>
                       <th className="text-center py-3 px-3 font-medium">Pro</th>
-                      <th className="text-center py-3 px-3 font-medium text-etat-encours-texte dark:text-etat-encours-texte">Business</th>
+                      <th className="text-center py-3 px-3 font-medium text-etat-encours-texte">Business</th>
                       <th className="text-center py-3 pl-3 font-medium">Entreprise</th>
                     </tr>
                   </thead>
