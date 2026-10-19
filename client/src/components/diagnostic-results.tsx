@@ -138,17 +138,17 @@ export function DiagnosticResults({
 
   if (isLoading) {
     return (
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <Lightbulb className="text-carbon-orange" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <Lightbulb className="text-etat-alerte-texte" />
             <span>{t("diagnosticSuggestions", language)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-carbon-blue"></div>
-            <p className="text-carbon-gray-70 mt-2">{t("analyzing", language)}</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-signal"></div>
+            <p className="text-ink-soft mt-2">{t("analyzing", language)}</p>
           </div>
         </CardContent>
       </Card>
@@ -157,17 +157,17 @@ export function DiagnosticResults({
 
   if (suggestions.length === 0) {
     return (
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <Lightbulb className="text-carbon-orange" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <Lightbulb className="text-etat-alerte-texte" />
             <span>{t("diagnosticSuggestions", language)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="text-center py-8">
-            <Lightbulb className="text-carbon-gray-50 text-4xl mb-4 mx-auto" />
-            <p className="text-carbon-gray-70">{t("enterInfoForDiagnosis", language)}</p>
+            <Lightbulb className="text-ink-mute text-4xl mb-4 mx-auto" />
+            <p className="text-ink-soft">{t("enterInfoForDiagnosis", language)}</p>
           </div>
         </CardContent>
       </Card>
@@ -230,15 +230,15 @@ export function DiagnosticResults({
         </Card>
       )}
 
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-                <Lightbulb className="text-carbon-orange" />
+              <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+                <Lightbulb className="text-etat-alerte-texte" />
                 <span>{t("diagnosticSuggestions", language)}</span>
               </CardTitle>
-              <p className="text-carbon-gray-70 text-sm mt-1">
+              <p className="text-ink-soft text-sm mt-1">
                 Top {suggestions.length} diagnostic(s) — moteur hybride (règles + historique + IA)
               </p>
             </div>
@@ -345,11 +345,11 @@ export function DiagnosticResults({
               const sourceBadge = getSourceBadge(suggestion.source);
 
               return (
-                <div key={index} className="border border-carbon-gray-20 rounded-lg p-6 transition-all duration-200 bg-white">
+                <div key={index} className="border border-rule rounded-lg p-6 transition-all duration-200 bg-white">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3 flex-wrap gap-1">
-                      <span className="text-lg font-bold text-carbon-gray-50 mr-1">#{index + 1}</span>
-                      <h4 className="font-semibold text-carbon-gray-90 text-lg">{suggestion.diagnosis}</h4>
+                      <span className="text-lg font-bold text-ink-mute mr-1">#{index + 1}</span>
+                      <h4 className="font-semibold text-ink text-lg">{suggestion.diagnosis}</h4>
                       <Badge className={`${sourceBadge.color} text-xs`}>
                         {sourceBadge.icon}
                         {sourceBadge.label}
@@ -365,7 +365,7 @@ export function DiagnosticResults({
                       <Badge className={`${getConfidenceColor(suggestion.confidence)} text-white text-xs px-3 py-1 rounded-full font-medium`}>
                         {suggestion.confidence}% {t("confidence", language)}
                       </Badge>
-                      <span className="text-xs text-carbon-gray-50">
+                      <span className="text-xs text-ink-mute">
                         Confiance: {getConfidenceLabel(suggestion.confidence)}
                       </span>
                     </div>
@@ -383,7 +383,7 @@ export function DiagnosticResults({
 
                   {suggestion.explanationFactors && suggestion.explanationFactors.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5 uppercase tracking-wide">Preuves et facteurs d'appui</h5>
+                      <h5 className="text-xs font-semibold text-ink-soft mb-1.5 uppercase tracking-wide">Preuves et facteurs d'appui</h5>
                       <div className="space-y-1.5">
                         {suggestion.explanationFactors.map((factor, fi) => (
                           <div
@@ -406,8 +406,8 @@ export function DiagnosticResults({
                   )}
 
                   <div className="mb-4">
-                    <h5 className="font-semibold text-carbon-gray-90 mb-2">Solution recommandée</h5>
-                    <p className="text-sm text-carbon-gray-70 bg-carbon-gray-10 p-3 rounded-md leading-relaxed">{suggestion.solution}</p>
+                    <h5 className="font-semibold text-ink mb-2">Solution recommandée</h5>
+                    <p className="text-sm text-ink-soft bg-paper p-3 rounded-md leading-relaxed">{suggestion.solution}</p>
                   </div>
 
                   {suggestion.repairSteps && suggestion.repairSteps.length > 0 && (
@@ -443,7 +443,7 @@ export function DiagnosticResults({
 
                   {suggestion.tools && suggestion.tools.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5">Outillage nécessaire</h5>
+                      <h5 className="text-xs font-semibold text-ink-soft mb-1.5">Outillage nécessaire</h5>
                       <div className="flex flex-wrap gap-1">
                         {suggestion.tools.map((tool, ti) => (
                           <Badge key={ti} variant="outline" className="text-xs">{tool}</Badge>
@@ -455,36 +455,36 @@ export function DiagnosticResults({
                   {suggestion.aiInsights && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-1">
-                        <Brain className="text-carbon-blue w-4 h-4" />
-                        <span className="text-sm font-medium text-carbon-blue">{t("aiInsights", language)}</span>
+                        <Brain className="text-signal w-4 h-4" />
+                        <span className="text-sm font-medium text-signal">{t("aiInsights", language)}</span>
                       </div>
-                      <p className="text-xs text-carbon-gray-70">{suggestion.aiInsights}</p>
+                      <p className="text-xs text-ink-soft">{suggestion.aiInsights}</p>
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     {suggestion.riskLevel && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
+                      <div className="text-center p-2 bg-paper rounded">
                         <AlertTriangle className={`w-4 h-4 mx-auto mb-1 ${
                           suggestion.riskLevel === "Élevé" ? "text-red-500" : 
                           suggestion.riskLevel === "Moyen" ? "text-orange-500" : "text-green-500"
                         }`} />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("riskLevel", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.riskLevel}</div>
+                        <div className="text-xs font-medium text-ink">{t("riskLevel", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.riskLevel}</div>
                       </div>
                     )}
                     {suggestion.costEstimate && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Euro className="w-4 h-4 mx-auto mb-1 text-carbon-blue" />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("costEstimate", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.costEstimate}</div>
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Euro className="w-4 h-4 mx-auto mb-1 text-signal" />
+                        <div className="text-xs font-medium text-ink">{t("costEstimate", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.costEstimate}</div>
                       </div>
                     )}
                     {suggestion.duration && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Zap className="w-4 h-4 mx-auto mb-1 text-carbon-orange" />
-                        <div className="text-xs font-medium text-carbon-gray-90">Durée</div>
-                        <div className="text-xs text-carbon-gray-70">
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Zap className="w-4 h-4 mx-auto mb-1 text-etat-alerte-texte" />
+                        <div className="text-xs font-medium text-ink">Durée</div>
+                        <div className="text-xs text-ink-soft">
                           {suggestion.duration > 60 ? 
                             `${Math.floor(suggestion.duration / 60)}h ${suggestion.duration % 60}m` : 
                             `${suggestion.duration}m`
@@ -493,17 +493,17 @@ export function DiagnosticResults({
                       </div>
                     )}
                     {suggestion.difficulty && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
+                      <div className="text-center p-2 bg-paper rounded">
                         <Target className="w-4 h-4 mx-auto mb-1 text-signal-deep" />
-                        <div className="text-xs font-medium text-carbon-gray-90">Difficulté</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.difficulty}</div>
+                        <div className="text-xs font-medium text-ink">Difficulté</div>
+                        <div className="text-xs text-ink-soft">{suggestion.difficulty}</div>
                       </div>
                     )}
                     {!suggestion.difficulty && suggestion.matchingCases > 0 && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Lightbulb className="w-4 h-4 mx-auto mb-1 text-carbon-gray-50" />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("cases", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.matchingCases}</div>
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Lightbulb className="w-4 h-4 mx-auto mb-1 text-ink-mute" />
+                        <div className="text-xs font-medium text-ink">{t("cases", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.matchingCases}</div>
                       </div>
                     )}
                   </div>
@@ -511,13 +511,13 @@ export function DiagnosticResults({
                   {suggestion.predictiveTips && suggestion.predictiveTips.length > 0 && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-2">
-                        <Wrench className="text-carbon-green w-4 h-4" />
-                        <span className="text-sm font-medium text-carbon-green">{t("predictiveMaintenance", language)}</span>
+                        <Wrench className="text-etat-nominal-texte w-4 h-4" />
+                        <span className="text-sm font-medium text-etat-nominal-texte">{t("predictiveMaintenance", language)}</span>
                       </div>
-                      <ul className="text-xs text-carbon-gray-70 space-y-1">
+                      <ul className="text-xs text-ink-soft space-y-1">
                         {suggestion.predictiveTips.map((tip, tipIndex) => (
                           <li key={tipIndex} className="flex items-start">
-                            <span className="text-carbon-green mr-2">•</span>
+                            <span className="text-etat-nominal-texte mr-2">•</span>
                             {tip}
                           </li>
                         ))}
@@ -525,10 +525,10 @@ export function DiagnosticResults({
                     </div>
                   )}
 
-                  <div className="flex space-x-2 pt-4 border-t border-carbon-gray-20">
+                  <div className="flex space-x-2 pt-4 border-t border-rule">
                     <Button
                       onClick={() => suggestion.caseId && onStartRepair(suggestion.caseId)}
-                      className="flex-1 bg-carbon-blue text-white hover:bg-blue-700 transition-colors"
+                      className="flex-1 bg-ink text-paper hover:bg-signal transition-colors"
                     >
                       <Wrench className="w-4 h-4 mr-2" />
                       Commencer la réparation
@@ -547,7 +547,7 @@ export function DiagnosticResults({
                     <Button
                       onClick={() => onSaveDiagnostic(suggestion)}
                       variant="outline"
-                      className="border-carbon-gray-30 text-carbon-gray-90 hover:bg-carbon-gray-10"
+                      className="border-rule text-ink hover:bg-paper"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       Sauvegarder

@@ -1,28 +1,22 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { 
-  Factory, Wrench, Package, CalendarCheck, Bell, BarChart3, 
-  AlertTriangle, Clock, CheckCircle, TrendingUp, Activity,
-  Cog, Users, Smartphone, Brain, Database, Zap, Plus, 
-  Search, Filter, Eye, Edit, Trash2, ShoppingCart, Target,
-  PieChart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight, ArrowDownRight,
+import {
+  Factory, Wrench, Package, CalendarCheck, Bell, BarChart3,
+  AlertTriangle, TrendingUp, Activity, Cog, Smartphone, Brain, Zap, Plus,
+  ShoppingCart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight,
   Heart, Timer, Radio, QrCode, ExternalLink, Shield, Fish,
-  FlaskConical, UserCheck, Building2, ShieldCheck, Wallet, Download
+  FlaskConical, UserCheck, Building2, ShieldCheck
 } from "lucide-react";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ModernNavigation } from "@/components/modern-navigation";
-import { useLanguage } from "@/hooks/use-language";
-import { t } from "@/lib/i18n";
+import { EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, IndicateurCalcule, PuceEtat, PointEtat } from "@/components/indicateurs";
+import { ETAT, registreStatutOT, registrePriorite, registreGravite } from "@/lib/etats";
 import { ProcurementDashboard } from "@/components/procurement-dashboard";
 import { EquipmentManagement } from "@/components/equipment-management";
 import { WorkOrderManagement } from "@/components/work-order-management";
@@ -111,13 +105,44 @@ interface GMAODashboardData {
 type GMAOTab = "overview" | "work-orders" | "equipment" | "inventory" | "alerts";
 type AdminTab = "maintenance" | "history" | "procurement" | "reports" | "analytics" | "health-dashboard" | "validation" | "company-config";
 
+/**
+ * Libellés français des statuts et priorités renvoyés par le serveur.
+ * Ils étaient traduits en ligne, dans trois chaînes ternaires différentes
+ * qui ne couvraient pas les mêmes cas : « cancelled » s'affichait tel quel
+ * dans une liste et « Annulé » dans une autre.
+ */
+const LIBELLE_STATUT_OT: Record<string, string> = {
+  pending: "En attente",
+  in_progress: "En cours",
+  completed: "Terminé",
+  cancelled: "Annulé",
+};
+
+const LIBELLE_PRIORITE: Record<string, string> = {
+  urgent: "Urgent",
+  high: "Haute",
+  medium: "Moyenne",
+  low: "Basse",
+};
+
+/**
+ * Couleurs de séries du graphique d'activité. Trois teintes, reprises des
+ * jetons d'état : le préventif est nominal, le correctif est en cours,
+ * l'urgent est critique. Recharts n'accepte pas de classe Tailwind, d'où
+ * les valeurs littérales — elles doivent rester synchronisées avec
+ * `tailwind.config.ts`.
+ */
+const COULEUR_SERIE = {
+  preventif: "#2E7D4F",
+  correctif: "#006B97",
+  urgent: "#C0392B",
+} as const;
+
 export default function GMAODashboard() {
-  const { language } = useLanguage();
   const [activeTab, setActiveTab] = useState<GMAOTab>("overview");
   const [activeAdminTab, setActiveAdminTab] = useState<AdminTab | null>(null);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [showAlertsModal, setShowAlertsModal] = useState(false);
 
   // Fetch GMAO dashboard data
   const { data: dashboardData, isLoading, isError } = useQuery<GMAODashboardData>({
@@ -162,7 +187,7 @@ export default function GMAODashboard() {
     },
     {
       id: "work-orders" as GMAOTab,
-      label: "Ordres de Travail",
+      label: "Ordres de travail",
       icon: Wrench,
     },
     {
@@ -183,14 +208,14 @@ export default function GMAODashboard() {
   ];
 
   const adminTabs = [
-    { id: "maintenance" as AdminTab, label: "Maintenance Préventive", icon: CalendarCheck },
+    { id: "maintenance" as AdminTab, label: "Maintenance préventive", icon: CalendarCheck },
     { id: "history" as AdminTab, label: "Historique", icon: FileText },
     { id: "procurement" as AdminTab, label: "Achats", icon: ShoppingCart },
     { id: "reports" as AdminTab, label: "Rapports", icon: BarChart3 },
     { id: "analytics" as AdminTab, label: "Analytiques", icon: TrendingUp },
-    { id: "health-dashboard" as AdminTab, label: "Santé Équipements", icon: Activity },
-    { id: "validation" as AdminTab, label: "Validation Multi-Niveaux", icon: ClipboardCheck },
-    { id: "company-config" as AdminTab, label: "Configuration Entreprise", icon: Cog },
+    { id: "health-dashboard" as AdminTab, label: "Santé des équipements", icon: Activity },
+    { id: "validation" as AdminTab, label: "Validation multi-niveaux", icon: ClipboardCheck },
+    { id: "company-config" as AdminTab, label: "Configuration de l'entreprise", icon: Cog },
   ];
 
   const getStatusColor = (status: string) => {
@@ -310,13 +335,20 @@ export default function GMAODashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error state */}
+        {/* Échec de chargement. Aucun chiffre n'est affiché en dessous tant
+            que la réponse n'est pas arrivée : les écrans qui comblent le vide
+            avec des valeurs de repli font croire à des données réelles. */}
         {isError && (
-          <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+          <div className="mb-6 flex items-start gap-3 border border-etat-critique-filet bg-etat-critique-fond px-5 py-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-etat-critique-texte" aria-hidden="true" />
             <div>
-              <p className="font-semibold text-sm">Erreur de chargement du tableau de bord</p>
-              <p className="text-xs text-red-500 mt-0.5">Impossible de récupérer les données GMAO. Vérifiez votre connexion et réessayez.</p>
+              <p className="text-sm font-medium text-etat-critique-texte">
+                Les données de la GMAO n'ont pas pu être chargées
+              </p>
+              <p className="text-sm text-etat-critique-texte mt-0.5">
+                Vérifiez votre connexion, puis rechargez la page. Aucun indicateur n'est affiché
+                tant que les données réelles ne sont pas disponibles.
+              </p>
             </div>
           </div>
         )}
@@ -329,31 +361,25 @@ export default function GMAODashboard() {
                 Un titre, une date, deux actions. La version précédente
                 enfermait cela dans un grand cadre teinté qui n'apportait
                 rien et repoussait les chiffres sous la ligne de flottaison. */}
-            <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-rule">
-              <div>
-                <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
-                <h1 className="font-serif text-page font-medium text-ink mt-1.5">Vue d'ensemble</h1>
-                <p className="text-sm text-ink-soft mt-1 first-letter:uppercase">
-                  {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}
-                  className="inline-flex items-center gap-2 h-10 px-4 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors"
-                >
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Vue d'ensemble"
+              phrase={new Date()
+                .toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+                .replace(/^./, (c) => c.toUpperCase())}
+              actionsSecondaires={
+                <ActionSecondaire onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}>
                   <BarChart3 className="w-4 h-4" />
                   Rapports
-                </button>
-                <button
-                  onClick={() => setActiveTab("work-orders")}
-                  className="inline-flex items-center gap-2 h-10 px-4 bg-ink text-paper text-sm font-medium hover:bg-signal transition-colors"
-                >
+                </ActionSecondaire>
+              }
+              action={
+                <ActionPrincipale onClick={() => setActiveTab("work-orders")}>
                   <Plus className="w-4 h-4" />
                   Nouvel ordre de travail
-                </button>
-              </div>
-            </div>
+                </ActionPrincipale>
+              }
+            />
 
             {/* ══════════════════════════════════════════════════════════
                 INDICATEURS
@@ -363,85 +389,72 @@ export default function GMAODashboard() {
                 faire. Les quatre cartes étaient auparavant des aplats
                 sombres identiques, ornés d'un disque blanc décoratif : la
                 couleur ne disait rien, et rien ne distinguait « 0 alerte »
-                de « 12 alertes ». */}
+                de « 12 alertes ».
+                Le gabarit est désormais partagé (`components/indicateurs`),
+                pour que ces quatre tuiles soient rigoureusement identiques
+                à celles de l'écran d'ingénierie — et chaque tuile mène à
+                l'écran qui permet d'agir, ce qui manquait. */}
             {(() => {
               const c = dashboardData?.contexte;
               /** Assemble les précisions non nulles ; à défaut, une phrase neutre. */
               const detail = (parts: Array<[number, string]>, aDefaut: string) => {
                 const dits = parts.filter(([n]) => n > 0).map(([n, libelle]) => `${n} ${libelle}`);
-                return dits.length ? dits.join(' · ') : aDefaut;
+                return dits.length ? dits.join(" · ") : aDefaut;
               };
-              const indicateurs = [
-                {
-                  cle: 'equipements',
-                  libelle: 'Équipements',
-                  valeur: dashboardData?.equipmentCount || 0,
-                  detail: detail(
-                    [
-                      [c?.equipementsIndisponibles || 0, 'indisponible(s)'],
-                      [c?.equipementsAjoutesCeMois || 0, 'ajouté(s) ce mois'],
-                    ],
-                    (dashboardData?.equipmentCount || 0) > 0 ? 'tous en service' : 'parc à déclarer',
-                  ),
-                  icone: Factory,
-                  alerte: (c?.equipementsIndisponibles || 0) > 0,
-                },
-                {
-                  cle: 'ot',
-                  libelle: 'Ordres de travail',
-                  valeur: dashboardData?.activeWorkOrdersCount || 0,
-                  detail: detail(
-                    [
-                      [c?.otUrgents || 0, 'urgent(s)'],
-                      [c?.otEnRetard || 0, 'en retard'],
-                      [dashboardData?.pendingWorkOrdersCount || 0, 'en attente'],
-                    ],
-                    'rien en cours',
-                  ),
-                  icone: Wrench,
-                  alerte: (c?.otEnRetard || 0) > 0 || (c?.otUrgents || 0) > 0,
-                },
-                {
-                  cle: 'alertes',
-                  libelle: 'Alertes critiques',
-                  valeur: dashboardData?.criticalAlertsCount || 0,
-                  detail: detail(
-                    [[c?.alertesDernieres24h || 0, 'depuis 24 h']],
-                    (dashboardData?.criticalAlertsCount || 0) > 0 ? 'à traiter sans délai' : 'aucune en cours',
-                  ),
-                  icone: AlertTriangle,
-                  alerte: (dashboardData?.criticalAlertsCount || 0) > 0,
-                },
-                {
-                  cle: 'stock',
-                  libelle: 'Stock sous seuil',
-                  valeur: dashboardData?.lowStockPartsCount || 0,
-                  detail: detail(
-                    [[c?.piecesEnRupture || 0, 'en rupture']],
-                    (dashboardData?.lowStockPartsCount || 0) > 0 ? 'à réapprovisionner' : 'aucun seuil franchi',
-                  ),
-                  icone: Package,
-                  alerte: (c?.piecesEnRupture || 0) > 0,
-                },
-              ];
-
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
-                  {indicateurs.map((kpi) => (
-                    <div key={kpi.cle} className="bg-white p-5 relative">
-                      <span
-                        className={`absolute left-0 top-0 bottom-0 w-0.5 ${kpi.alerte ? 'bg-amber-500' : 'bg-transparent'}`}
-                        aria-hidden="true"
-                      />
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-mono text-eyebrow uppercase text-ink-mute">{kpi.libelle}</p>
-                        <kpi.icone className="w-4 h-4 text-ink-mute shrink-0" />
-                      </div>
-                      <p className="font-serif text-4xl text-ink mt-3 leading-none">{kpi.valeur}</p>
-                      <p className="text-sm text-ink-soft mt-2">{kpi.detail}</p>
-                    </div>
-                  ))}
-                </div>
+                <RangeeIndicateurs>
+                  <Indicateur
+                    libelle="Équipements"
+                    valeur={dashboardData?.equipmentCount ?? "—"}
+                    precision={detail(
+                      [
+                        [c?.equipementsIndisponibles || 0, "indisponible(s)"],
+                        [c?.equipementsAjoutesCeMois || 0, "ajouté(s) ce mois"],
+                      ],
+                      (dashboardData?.equipmentCount || 0) > 0 ? "tous en service" : "parc à déclarer",
+                    )}
+                    icone={Factory}
+                    alerte={(c?.equipementsIndisponibles || 0) > 0}
+                    href="/equipment-management"
+                  />
+                  <Indicateur
+                    libelle="Ordres de travail"
+                    valeur={dashboardData?.activeWorkOrdersCount ?? "—"}
+                    precision={detail(
+                      [
+                        [c?.otUrgents || 0, "urgent(s)"],
+                        [c?.otEnRetard || 0, "en retard"],
+                        [dashboardData?.pendingWorkOrdersCount || 0, "en attente"],
+                      ],
+                      "rien en cours",
+                    )}
+                    icone={Wrench}
+                    alerte={(c?.otEnRetard || 0) > 0 || (c?.otUrgents || 0) > 0}
+                    href="/work-orders"
+                  />
+                  <Indicateur
+                    libelle="Alertes critiques"
+                    valeur={dashboardData?.criticalAlertsCount ?? "—"}
+                    precision={detail(
+                      [[c?.alertesDernieres24h || 0, "depuis 24 h"]],
+                      (dashboardData?.criticalAlertsCount || 0) > 0 ? "à traiter sans délai" : "aucune en cours",
+                    )}
+                    icone={AlertTriangle}
+                    alerte={(dashboardData?.criticalAlertsCount || 0) > 0}
+                    href="/smart-alerts"
+                  />
+                  <Indicateur
+                    libelle="Stock sous seuil"
+                    valeur={dashboardData?.lowStockPartsCount ?? "—"}
+                    precision={detail(
+                      [[c?.piecesEnRupture || 0, "en rupture"]],
+                      (dashboardData?.lowStockPartsCount || 0) > 0 ? "à réapprovisionner" : "aucun seuil franchi",
+                    )}
+                    icone={Package}
+                    alerte={(c?.piecesEnRupture || 0) > 0}
+                    href="/inventaire"
+                  />
+                </RangeeIndicateurs>
               );
             })()}
 
@@ -585,407 +598,274 @@ export default function GMAODashboard() {
                 items: [
                   { icon: Zap, label: 'Intégrations', href: '/advanced-integrations' },
                   { icon: Bell, label: 'Communications', href: '/communication-integrations' },
-                  { icon: Download, label: 'Application à installer', href: '/download' },
+                  // ⚠️ « Application à installer » occupait la troisième case.
+                  // C'est une formulation de notice d'installation, pas un
+                  // module de maintenance — et elle était nommément visée par
+                  // la demande de l'utilisateur. L'écran de téléchargement
+                  // reste accessible par « Ressources → Télécharger » dans la
+                  // barre de navigation, où il est à sa place.
+                  { icon: Smartphone, label: 'Application mobile', href: '/download' },
                 ],
               },
             ].map((section) => (
               <div key={section.groupe}>
                 <p className="font-mono text-eyebrow uppercase text-ink-mute mb-3">{section.groupe}</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-rule border border-rule">
+                {/* Le nombre de colonnes suit le nombre d'entrées : une grille
+                    figée à six colonnes laissait trois cases grises vides sous
+                    « Données et échanges », que rien n'expliquait. */}
+                <div
+                  className={`grid grid-cols-2 md:grid-cols-3 gap-px bg-rule border border-rule ${
+                    section.items.length >= 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-3'
+                  }`}
+                >
                   {section.items.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                      <div className="group bg-white h-full p-4 cursor-pointer transition-colors hover:bg-paper">
-                        <item.icon className="w-5 h-5 text-ink-mute group-hover:text-signal transition-colors" />
-                        <span className="block text-sm text-ink mt-3 leading-snug">{item.label}</span>
-                      </div>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="group bg-white h-full p-4 transition-colors hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
+                    >
+                      <item.icon className="w-5 h-5 text-ink-mute group-hover:text-signal transition-colors" />
+                      <span className="block text-sm text-ink mt-3 leading-snug">{item.label}</span>
                     </Link>
                   ))}
                 </div>
               </div>
             ))}
 
-            {/* Main Content Grid */}
+            {/* ══════════════════════════════════════════════════════════
+                ACTIVITÉ DU JOUR
+                ══════════════════════════════════════════════════════════
+                Cette moitié de page parlait une autre langue que celle du
+                haut : boîtes teintées à coins arrondis, pastilles rondes de
+                couleur, disques d'icônes bleu, vert et turquoise, et trois
+                cartes voisines dont deux portaient une ombre et la
+                troisième non. Deux vocabulaires visuels sur un même écran
+                suffisent à faire paraître l'outil assemblé à la hâte.
+                Tout passe au filet, au chiffre en romain et aux jetons
+                d'état partagés de lib/etats.ts. */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Work Orders Status - Enhanced */}
-              <Card className="lg:col-span-1 border border-rule shadow-none">
-                <CardHeader className="border-b border-rule bg-paper">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
-                      <PieChart className="w-5 h-5 text-primary" />
-                      Répartition des OT
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {dashboardData?.workOrdersByStatus && Object.entries(dashboardData.workOrdersByStatus).map(([status, count]) => {
-                      const total = Object.values(dashboardData.workOrdersByStatus).reduce((a, b) => a + b, 0);
-                      const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
-                      const statusConfig: Record<string, { color: string; bgColor: string; label: string }> = {
-                        pending: { color: 'bg-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30', label: 'En attente' },
-                        in_progress: { color: 'bg-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30', label: 'En cours' },
-                        completed: { color: 'bg-emerald-500', bgColor: 'bg-emerald-100 dark:bg-emerald-900/30', label: 'Terminé' },
-                        cancelled: { color: 'bg-gray-400', bgColor: 'bg-gray-100 dark:bg-gray-800', label: 'Annulé' }
-                      };
-                      const config = statusConfig[status] || { color: 'bg-gray-400', bgColor: 'bg-gray-100', label: status };
-                      
-                      return (
-                        <div key={status} className={`p-3 rounded-lg ${config.bgColor}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${config.color}`} />
-                              <span className="font-medium text-sm">{config.label}</span>
-                            </div>
-                            <span className="text-lg font-bold">{count}</span>
-                          </div>
-                          <Progress value={percentage} className="h-1.5" />
-                          <p className="text-xs text-muted-foreground mt-1">{percentage}% du total</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Work Orders - Enhanced */}
-              <Card className="lg:col-span-2 border border-rule shadow-none">
-                <CardHeader className="border-b border-rule bg-paper">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
-                      <Wrench className="w-5 h-5 text-primary" />
-                      Ordres de Travail Récents
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setActiveTab("work-orders")}>
-                      Voir tout
-                      <Eye className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="space-y-3">
-                    {dashboardData?.recentWorkOrders?.slice(0, 5).map((order, index) => (
-                      <div 
-                        key={order.id} 
-                        className={`flex items-center justify-between p-4 border transition-colors hover:bg-paper ${
-                          index === 0 ? 'bg-paper border-rule' : 'bg-white border-rule'
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-lg ${
-                            order.priority === 'urgent' ? 'bg-red-100 dark:bg-red-900/30' :
-                            order.priority === 'high' ? 'bg-orange-100 dark:bg-orange-900/30' :
-                            'bg-blue-100 dark:bg-blue-900/30'
-                          }`}>
-                            <Wrench className={`w-4 h-4 ${
-                              order.priority === 'urgent' ? 'text-red-600' :
-                              order.priority === 'high' ? 'text-orange-600' :
-                              'text-blue-600'
-                            }`} />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{order.title}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-2">
-                              <span>#{order.orderNumber}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+              {/* Répartition des ordres de travail */}
+              <section className="lg:col-span-1 border border-rule bg-white" aria-labelledby="titre-repartition">
+                <h2 id="titre-repartition" className="font-serif text-title font-medium text-ink px-5 py-4 border-b border-rule">
+                  Répartition des ordres
+                </h2>
+                <div className="p-5">
+                  {dashboardData?.workOrdersByStatus && Object.keys(dashboardData.workOrdersByStatus).length > 0 ? (
+                    <ul className="space-y-4">
+                      {Object.entries(dashboardData.workOrdersByStatus).map(([statut, nombre]) => {
+                        const total = Object.values(dashboardData.workOrdersByStatus).reduce((a, b) => a + b, 0);
+                        const part = total > 0 ? Math.round((nombre / total) * 100) : 0;
+                        const registre = registreStatutOT(statut);
+                        return (
+                          <li key={statut}>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2 text-sm text-ink">
+                                <PointEtat registre={registre} />
+                                {LIBELLE_STATUT_OT[statut] ?? statut}
                               </span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={getPriorityColor(order.priority)} variant="secondary">
-                            {order.priority === 'urgent' ? 'Urgent' : 
-                             order.priority === 'high' ? 'Haute' :
-                             order.priority === 'medium' ? 'Moyenne' : 'Basse'}
-                          </Badge>
-                          <Badge className={getStatusColor(order.status)} variant="outline">
-                            {order.status === 'pending' ? 'En attente' :
-                             order.status === 'in_progress' ? 'En cours' :
-                             order.status === 'completed' ? 'Terminé' : order.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    )) || (
-                      <div className="text-center py-8">
-                        <Wrench className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-muted-foreground">Aucun ordre de travail récent</p>
-                        <Button variant="link" size="sm" onClick={() => setActiveTab("work-orders")} className="mt-2">
-                          Créer un ordre de travail
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Access Section */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card 
-                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
-                onClick={() => setActiveTab("equipment")}
-              >
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors">
-                    <Factory className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <h3 className="font-semibold text-sm">Équipements</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Gérer les actifs</p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
-                onClick={() => { setShowAdminModal(true); setActiveAdminTab("maintenance"); }}
-              >
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30 mb-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/50 transition-colors">
-                    <CalendarCheck className="w-6 h-6 text-green-600" />
-                  </div>
-                  <h3 className="font-semibold text-sm">Préventif</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Plans de maintenance</p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
-                onClick={() => setActiveTab("inventory")}
-              >
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-paper-deep dark:bg-signal-deep/30 mb-3 group-hover:bg-signal-deep dark:group-hover:bg-signal-deep/50 transition-colors">
-                    <Package className="w-6 h-6 text-signal-deep" />
-                  </div>
-                  <h3 className="font-semibold text-sm">Inventaire</h3>
-                  <p className="text-xs text-muted-foreground mt-1">Stock et pièces</p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer transition-colors hover:bg-paper hover:border-ink group"
-                onClick={() => { setShowAdminModal(true); setActiveAdminTab("health-dashboard"); }}
-              >
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className="p-3 rounded-full bg-teal-100 dark:bg-teal-900/30 mb-3 group-hover:bg-teal-200 dark:group-hover:bg-teal-800/50 transition-colors">
-                    <Activity className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <h3 className="font-semibold text-sm">Santé</h3>
-                  <p className="text-xs text-muted-foreground mt-1">État des équipements</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Charts and Statistics Section */}
-            {/* Un graphique plat à zéro est honnête — encore faut-il dire
-                pourquoi. Sans cette phrase, on croit à une panne d'affichage
-                plutôt qu'à un parc qui n'a pas encore servi. */}
-            {aucuneActivite && (
-              <div className="border border-rule bg-paper rounded px-4 py-3 text-sm text-ink-soft">
-                <span className="font-medium text-ink">Aucune intervention enregistrée à ce jour.</span>{" "}
-                Les courbes ci-dessous resteront à zéro tant qu'aucun ordre de travail
-                n'aura été créé. Elles reflètent vos données, et rien d'autre.
-              </div>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Work Orders Trend Chart */}
-              <Card className="border border-rule shadow-none">
-                <CardHeader className="border-b border-rule bg-paper">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                      Évolution des OT (6 derniers mois)
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <AreaChart
-                      data={evolutionSixMois}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient id="colorTermines" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0.1}/>
-                        </linearGradient>
-                        <linearGradient id="colorEnCours" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis dataKey="mois" className="text-xs" />
-                      <YAxis className="text-xs" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px'
-                        }} 
-                      />
-                      <Area type="monotone" dataKey="termines" name="Terminés" stroke="#22c55e" fillOpacity={1} fill="url(#colorTermines)" />
-                      <Area type="monotone" dataKey="enCours" name="En cours" stroke="#3b82f6" fillOpacity={1} fill="url(#colorEnCours)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Equipment by Type Pie Chart */}
-              <Card className="border border-rule shadow-none">
-                <CardHeader className="border-b border-rule bg-paper">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
-                      <PieChart className="w-5 h-5 text-primary" />
-                      Répartition par Type d'Équipement
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <RechartsPieChart>
-                      <Pie
-                        data={dashboardData?.equipmentByType 
-                          ? Object.entries(dashboardData.equipmentByType).map(([name, value]) => ({
-                              name: name.charAt(0).toUpperCase() + name.slice(1),
-                              value
-                            }))
-                          : [
-                              { name: 'Moteurs', value: 12 },
-                              { name: 'Pompes', value: 8 },
-                              { name: 'Compresseurs', value: 5 },
-                              { name: 'Convoyeurs', value: 6 },
-                              { name: 'Autres', value: 4 }
-                            ]
-                        }
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        labelLine={false}
-                      >
-                        {[
-                          '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'
-                        ].map((color, index) => (
-                          <Cell key={`cell-${index}`} fill={color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          borderColor: 'hsl(var(--border))',
-                          borderRadius: '8px'
-                        }} 
-                      />
-                    </RechartsPieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Performance Indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="border border-rule border-l-4 border-l-emerald-600 shadow-none">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Taux de résolution</p>
-                      <p className="text-2xl font-bold text-emerald-600">{pourcent(indicateurs?.tauxResolution)}</p>
-                      <div className="mt-1 text-xs text-ink-mute">
-                        {indicateurs?.tauxResolution == null
-                          ? 'aucune intervention enregistrée'
-                          : `sur ${indicateurs.totalInterventions} intervention(s)`}
-                      </div>
-                    </div>
-                    <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                      <CheckCircle className="w-6 h-6 text-emerald-600" />
-                    </div>
-                  </div>
-                  <Progress value={jauge(indicateurs?.tauxResolution)} className="h-2 mt-3" />
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-md border-l-4 border-l-blue-500">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">MTTR (temps moyen de réparation)</p>
-                      <p className="text-2xl font-bold text-blue-600">{heures(indicateurs?.mttrHeures)}</p>
-                      <div className="mt-1 text-xs text-ink-mute">
-                        {indicateurs?.mttrHeures == null
-                          ? 'aucun correctif clos avec sa durée réelle'
-                          : 'moyenne des correctifs clos'}
-                      </div>
-                    </div>
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                      <Clock className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                  {/* Une durée n'a pas de maximum : la jauge serait arbitraire. */}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-md border-l-4 border-l-amber-500">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Part du préventif</p>
-                      <p className="text-2xl font-bold text-amber-600">{pourcent(indicateurs?.tauxPreventif)}</p>
-                      <div className="mt-1 text-xs text-ink-mute">
-                        {indicateurs?.tauxPreventif == null
-                          ? 'aucune intervention enregistrée'
-                          : 'des interventions créées'}
-                      </div>
-                    </div>
-                    <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                      <CalendarCheck className="w-6 h-6 text-amber-600" />
-                    </div>
-                  </div>
-                  <Progress value={jauge(indicateurs?.tauxPreventif)} className="h-2 mt-3" />
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Monthly Statistics Bar Chart */}
-            <Card className="border border-rule shadow-none">
-              <CardHeader className="border-b border-rule bg-paper">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="font-serif text-title font-medium flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-primary" />
-                    Statistiques Mensuelles des Interventions
-                  </CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    Année {new Date().getFullYear()}
-                  </Badge>
+                              <span className="font-serif text-xl text-ink leading-none">{nombre}</span>
+                            </div>
+                            <div className="mt-2 h-1 bg-paper-deep" role="presentation">
+                              <div className={`h-full ${ETAT[registre].filet}`} style={{ width: `${part}%` }} />
+                            </div>
+                            <p className="text-xs text-ink-mute mt-1">{part} % du total</p>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-ink-soft">Aucun ordre de travail enregistré.</p>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart
-                    data={evolutionDouzeMois}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+              </section>
+
+              {/* Ordres de travail récents */}
+              <section className="lg:col-span-2 border border-rule bg-white" aria-labelledby="titre-recents">
+                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-rule">
+                  <h2 id="titre-recents" className="font-serif text-title font-medium text-ink">
+                    Derniers ordres de travail
+                  </h2>
+                  <button
+                    onClick={() => setActiveTab("work-orders")}
+                    className="inline-flex items-center gap-1 text-sm text-ink-soft hover:text-signal transition-colors"
                   >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="mois" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        borderColor: 'hsl(var(--border))',
-                        borderRadius: '8px'
-                      }} 
+                    Voir tout
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {dashboardData?.recentWorkOrders && dashboardData.recentWorkOrders.length > 0 ? (
+                  <ul>
+                    {dashboardData.recentWorkOrders.slice(0, 5).map((ordre) => (
+                      <li key={ordre.id} className="border-b border-rule last:border-b-0">
+                        <Link
+                          href="/work-orders"
+                          className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm text-ink truncate">{ordre.title}</span>
+                            <span className="block font-mono text-xs text-ink-mute mt-0.5">
+                              {ordre.orderNumber}
+                              {ordre.equipmentName && ` · ${ordre.equipmentName}`}
+                              {ordre.createdAt && ` · ${new Date(ordre.createdAt).toLocaleDateString("fr-FR")}`}
+                            </span>
+                          </span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            <PuceEtat registre={registrePriorite(ordre.priority)}>
+                              {LIBELLE_PRIORITE[ordre.priority] ?? ordre.priority}
+                            </PuceEtat>
+                            <PuceEtat registre={registreStatutOT(ordre.status)}>
+                              {LIBELLE_STATUT_OT[ordre.status] ?? ordre.status}
+                            </PuceEtat>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="px-5 py-8">
+                    <p className="text-sm text-ink-soft">Aucun ordre de travail enregistré.</p>
+                    <button
+                      onClick={() => setActiveTab("work-orders")}
+                      className="inline-flex items-center gap-2 h-10 px-4 mt-4 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Créer un ordre de travail
+                    </button>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* ⚠️ Une bande « Accès rapide » de quatre cartes — Équipements,
+                Préventif, Inventaire, Santé — occupait ici toute la largeur,
+                chacune ornée d'un disque de couleur. Les quatre destinations
+                figurent déjà dans les onglets de la page ET dans la grille
+                de modules ci-dessus : c'était le troisième chemin vers les
+                mêmes écrans. Retirée le 19/10/2026. */}
+
+            {/* ══════════════════════════════════════════════════════════
+                INDICATEURS CALCULÉS
+                ══════════════════════════════════════════════════════════
+                Trois mesures, et la phrase qui dit d'où elles viennent.
+                Quand la mesure n'existe pas, on écrit « — » : une jauge à
+                zéro laisse croire à une performance nulle, ce qui est faux
+                et injuste pour le locataire. */}
+            <section aria-labelledby="titre-indicateurs">
+              <h2 id="titre-indicateurs" className="font-mono text-eyebrow uppercase text-ink-mute mb-3">
+                Indicateurs de maintenance
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <IndicateurCalcule
+                  libelle="Taux de résolution"
+                  valeur={pourcent(indicateurs?.tauxResolution)}
+                  origine={
+                    indicateurs?.tauxResolution == null
+                      ? "aucune intervention enregistrée"
+                      : `sur ${indicateurs.totalInterventions} intervention(s)`
+                  }
+                  jauge={indicateurs?.tauxResolution ?? null}
+                />
+                <IndicateurCalcule
+                  libelle="Temps moyen de réparation"
+                  valeur={heures(indicateurs?.mttrHeures)}
+                  origine={
+                    indicateurs?.mttrHeures == null
+                      ? "aucun correctif clos avec sa durée réelle"
+                      : "moyenne des correctifs clos"
+                  }
+                  /* Une durée n'a pas de maximum : la jauge serait arbitraire. */
+                  jauge={null}
+                />
+                <IndicateurCalcule
+                  libelle="Part du préventif"
+                  valeur={pourcent(indicateurs?.tauxPreventif)}
+                  origine={
+                    indicateurs?.tauxPreventif == null
+                      ? "aucune intervention enregistrée"
+                      : "des interventions créées"
+                  }
+                  jauge={indicateurs?.tauxPreventif ?? null}
+                />
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                ACTIVITÉ SUR DOUZE MOIS
+                ══════════════════════════════════════════════════════════
+                Deux graphiques traçaient la MÊME série : une aire sur six
+                mois, puis des barres sur douze. On garde les douze mois,
+                qui portent la saisonnalité. Les aplats en dégradé des
+                aires ont disparu avec le premier. */}
+            {aucuneActivite && (
+              <p className="border border-rule bg-paper px-5 py-4 text-sm text-ink-soft">
+                <span className="font-medium text-ink">Aucune intervention enregistrée à ce jour.</span>{" "}
+                La courbe ci-dessous restera à zéro tant qu'aucun ordre de travail n'aura été créé.
+                Elle reflète vos données, et rien d'autre.
+              </p>
+            )}
+            <section className="border border-rule bg-white" aria-labelledby="titre-activite">
+              <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-rule">
+                <h2 id="titre-activite" className="font-serif text-title font-medium text-ink">
+                  Activité sur douze mois
+                </h2>
+                <span className="font-mono text-eyebrow uppercase text-ink-mute">Interventions créées</span>
+              </div>
+              <div className="p-5">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={evolutionDouzeMois} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="2 2" stroke="#D3DCE5" vertical={false} />
+                    <XAxis dataKey="mois" tick={{ fontSize: 12, fill: "#56657A" }} axisLine={{ stroke: "#D3DCE5" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: "#56657A" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip
+                      cursor={{ fill: "#F4F7FA" }}
+                      contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#D3DCE5", borderRadius: 0, fontSize: 13 }}
                     />
-                    <Legend />
-                    <Bar dataKey="preventif" name="Préventif" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="correctif" name="Correctif" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="urgent" name="Urgent" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    <Legend wrapperStyle={{ fontSize: 13, color: "#3A4A60" }} />
+                    <Bar dataKey="preventif" name="Préventif" fill={COULEUR_SERIE.preventif} />
+                    <Bar dataKey="correctif" name="Correctif" fill={COULEUR_SERIE.correctif} />
+                    <Bar dataKey="urgent" name="Urgent" fill={COULEUR_SERIE.urgent} />
                   </BarChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════════════════════
+                RÉPARTITION DU PARC
+                ══════════════════════════════════════════════════════════
+                ⚠️ Ce camembert retombait sur un jeu de données fabriqué —
+                « Moteurs 12, Pompes 8, Compresseurs 5, Convoyeurs 6,
+                Autres 4 » — dès que dashboardData était absent, c'est-à-dire
+                PRÉCISÉMENT en cas d'échec de l'API : la page affichait alors
+                son bandeau rouge d'erreur et, juste en dessous, 35
+                équipements qui n'existent pas. Le camembert à sept teintes
+                cède en outre la place à des barres : sur un parc réel, un
+                nombre se lit, une part d'anneau se devine. */}
+            {dashboardData?.equipmentByType && Object.keys(dashboardData.equipmentByType).length > 0 && (
+              <section className="border border-rule bg-white" aria-labelledby="titre-parc-type">
+                <h2 id="titre-parc-type" className="font-serif text-title font-medium text-ink px-5 py-4 border-b border-rule">
+                  Répartition du parc par type
+                </h2>
+                <ul className="divide-y divide-rule">
+                  {Object.entries(dashboardData.equipmentByType)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([type, nombre]) => {
+                      const total = Object.values(dashboardData.equipmentByType).reduce((a, b) => a + b, 0);
+                      const part = total > 0 ? Math.round((nombre / total) * 100) : 0;
+                      return (
+                        <li key={type} className="flex items-center gap-4 px-5 py-3">
+                          <span className="text-sm text-ink w-48 shrink-0 truncate first-letter:uppercase">{type}</span>
+                          <span className="flex-1 h-1.5 bg-paper-deep" role="presentation">
+                            <span className="block h-full bg-signal" style={{ width: `${part}%` }} />
+                          </span>
+                          <span className="font-serif text-lg text-ink w-10 text-right shrink-0">{nombre}</span>
+                          <span className="font-mono text-xs text-ink-mute w-12 text-right shrink-0">{part} %</span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </section>
+            )}
           </div>
         )}
 
@@ -1004,11 +884,64 @@ export default function GMAODashboard() {
           <InventorySimple />
         )}
         
-        {/* Alertes uniquement */}
+        {/* ══════════════════════════════════════════════════════════
+            ALERTES
+            ══════════════════════════════════════════════════════════
+            Cet onglet — l'un des cinq de la navigation principale de la
+            GMAO — affichait « Gestion des alertes système en cours de
+            développement », alors que l'écran `/smart-alerts` existe et
+            fonctionne. Annoncer un chantier à un industriel qui évalue
+            l'outil est le plus sûr moyen de perdre sa confiance.
+            On montre donc les alertes réellement remontées par l'API du
+            tableau de bord, et on renvoie vers l'écran complet. */}
         {!showAdminModal && activeTab === "alerts" && (
-          <div className="text-center py-8">
-            <h2 className="text-2xl font-bold">Centre d'Alertes</h2>
-            <p className="text-gray-600 mt-2">Gestion des alertes système en cours de développement</p>
+          <div className="space-y-6">
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Alertes"
+              phrase="Les remontées des équipements et des capteurs qui demandent une décision."
+              action={
+                <ActionPrincipale href="/smart-alerts">
+                  <Bell className="w-4 h-4" />
+                  Centre d'alertes
+                </ActionPrincipale>
+              }
+            />
+
+            {dashboardData?.recentAlerts && dashboardData.recentAlerts.length > 0 ? (
+              <ul className="border border-rule bg-white">
+                {dashboardData.recentAlerts.map((alerte) => (
+                  <li key={alerte.id} className="border-b border-rule last:border-b-0 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">{alerte.title}</p>
+                        {alerte.message && (
+                          <p className="text-sm text-ink-soft mt-1">{alerte.message}</p>
+                        )}
+                        <p className="font-mono text-xs text-ink-mute mt-2">
+                          {alerte.alertType}
+                          {alerte.createdAt &&
+                            ` · ${new Date(alerte.createdAt).toLocaleString("fr-FR")}`}
+                        </p>
+                      </div>
+                      <PuceEtat registre={registreGravite(alerte.severity)}>{alerte.severity}</PuceEtat>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EtatVide
+                icone={Bell}
+                titre="Aucune alerte en cours"
+                phrase="Les alertes apparaissent ici dès qu'un seuil est franchi sur un équipement ou qu'un capteur sort de sa plage nominale."
+                action={
+                  <ActionSecondaire href="/sensor-hub">
+                    <Radio className="w-4 h-4" />
+                    Configurer les capteurs
+                  </ActionSecondaire>
+                }
+              />
+            )}
           </div>
         )}
 
@@ -1034,102 +967,57 @@ export default function GMAODashboard() {
 
         {showAdminModal && activeAdminTab === "analytics" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Analytiques et KPI</h2>
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Indicateurs"
+              phrase="Ce que la plateforme mesure sur votre parc, et ce qu'elle ne mesure pas encore."
+              action={
+                <ActionPrincipale onClick={() => setShowAnalyticsModal(true)}>
+                  <BarChart3 className="w-4 h-4" />
+                  Analyses détaillées
+                </ActionPrincipale>
+              }
+            />
 
-            {/* Performance Trends */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    Tendances de Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* ⚠️ Ces trois taux étaient écrits en dur. « Efficacité » et
-                      « satisfaction » n'ont aucune source dans cette base ; le
-                      taux préventif, lui, se calcule vraiment. */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Part du préventif</span>
-                      <span className="font-medium">{pourcent(indicateurs?.tauxPreventif)}</span>
-                    </div>
-                    <Progress value={jauge(indicateurs?.tauxPreventif)} className="h-2" />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="border border-rule bg-white p-5">
+                <h3 className="font-serif text-title font-medium text-ink">Part du préventif</h3>
+                {/* ⚠️ « Efficacité maintenance » et « satisfaction qualité »
+                    étaient écrites en dur. Elles n'ont aucune source dans
+                    cette base ; le taux préventif, lui, se calcule vraiment. */}
+                <p className={`font-serif text-3xl mt-3 leading-none ${indicateurs?.tauxPreventif == null ? 'text-ink-mute' : 'text-ink'}`}>
+                  {pourcent(indicateurs?.tauxPreventif)}
+                </p>
+                <p className="text-sm text-ink-soft mt-2">
+                  {indicateurs?.tauxPreventif == null
+                    ? 'aucune intervention enregistrée'
+                    : `des ${indicateurs.totalInterventions} intervention(s) créées`}
+                </p>
+                {indicateurs?.tauxPreventif != null && (
+                  <div className="mt-3 h-1 bg-paper-deep" role="presentation">
+                    <div className="h-full bg-signal" style={{ width: `${jauge(indicateurs.tauxPreventif)}%` }} />
+                  </div>
+                )}
+                <p className="text-sm text-ink-mute mt-4 pt-4 border-t border-rule">
+                  L'efficacité de la maintenance et la satisfaction qualité ne sont pas encore
+                  mesurées par la plateforme.
+                </p>
+              </div>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-ink-mute">Efficacité maintenance</span>
-                      <span className="font-medium text-ink-mute">—</span>
-                    </div>
-                    {NON_MESURE}
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-ink-mute">Satisfaction qualité</span>
-                      <span className="font-medium text-ink-mute">—</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Objectifs vs Réalisé
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* ⚠️ Cibles ET mesures étaient inventées : « disponibilité
-                      94,7 % pour une cible de 95 % », « MTBF 168 h », « budget
-                      47,2 k€ sur 50 k€ ». Aucune cible n'est configurable dans
-                      Maintrix aujourd'hui, et aucune de ces mesures n'existe. */}
-                  <div className="space-y-2 text-sm text-ink-soft">
-                    <p>Aucun objectif n'est défini pour cette organisation.</p>
-                    <p className="text-ink-mute">
-                      Disponibilité, MTBF et budget ne sont pas encore mesurés par la
-                      plateforme : aucun chiffre ne peut être affiché ici.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Analytics Actions */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center py-8">
-                    <BarChart3 className="w-12 h-12 mx-auto text-blue-600 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Analyses Détaillées</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Rapports avancés, prédictions IA et recommandations
-                    </p>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setShowAnalyticsModal(true)}
-                    >
-                      Voir les analyses
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center py-8">
-                    <PieChart className="w-12 h-12 mx-auto text-signal-deep mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Tableaux de Bord</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Visualisations interactives et métriques temps réel
-                    </p>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setShowAnalyticsModal(true)}
-                    >
-                      Voir les graphiques
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="border border-rule bg-white p-5">
+                <h3 className="font-serif text-title font-medium text-ink">Objectifs</h3>
+                {/* ⚠️ Cibles ET mesures étaient inventées : « disponibilité
+                    94,7 % pour une cible de 95 % », « MTBF 168 h », « budget
+                    47,2 k€ sur 50 k€ ». Aucune cible n'est configurable dans
+                    Maintrix aujourd'hui, et aucune de ces mesures n'existe. */}
+                <div className="space-y-2 text-sm text-ink-soft mt-3">
+                  <p>Aucun objectif n'est défini pour cette organisation.</p>
+                  <p className="text-ink-mute">
+                    Disponibilité, MTBF et budget ne sont pas encore mesurés : aucun écart à une
+                    cible ne peut être affiché ici.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1163,63 +1051,22 @@ export default function GMAODashboard() {
         )}
       </main>
 
-      {/* Alerts Modal */}
-      <Dialog open={showAlertsModal} onOpenChange={setShowAlertsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Toutes les Alertes
-            </DialogTitle>
-            <DialogDescription>
-              Centre de gestion des alertes et notifications IoT
-            </DialogDescription>
-          </DialogHeader>
+      {/* ⚠️ Une modale « Toutes les alertes » occupait ici 45 lignes. Elle
+          était elle aussi inatteignable — rien n'appelait
+          `setShowAlertsModal(true)` — et son contenu faisait doublon avec
+          l'onglet « Alertes », qui affiche désormais les mêmes alertes à
+          plat, sans boîte de dialogue à ouvrir. Retirée le 19/10/2026. */}
 
-          <div className="space-y-4">
-            {dashboardData?.recentAlerts?.map((alert) => (
-              <Card key={alert.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold">{alert.title}</h4>
-                      <p className="text-sm text-muted-foreground">{alert.message}</p>
-                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                        <span>#{alert.id}</span>
-                        <span>•</span>
-                        <span>{alert.createdAt ? new Date(alert.createdAt).toLocaleString('fr-FR') : 'N/A'}</span>
-                      </div>
-                    </div>
-                    <Badge className={`${
-                      alert.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
-                      alert.severity === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300' :
-                      alert.severity === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                    }`}>
-                      {alert.severity}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            )) || (
-              <p className="text-center py-8 text-muted-foreground">
-                Aucune alerte disponible
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Analytics Modal */}
+      {/* Analyses détaillées */}
       <Dialog open={showAnalyticsModal} onOpenChange={setShowAnalyticsModal}>
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Analyses Détaillées de Performance
+            <DialogTitle className="font-serif text-title font-medium text-ink flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-ink-mute" />
+              Analyses détaillées
             </DialogTitle>
-            <DialogDescription>
-              Rapports avancés, prédictions IA et recommandations pour optimiser la maintenance
+            <DialogDescription className="text-ink-soft">
+              Ce que la plateforme mesure aujourd'hui sur votre parc, et ce qu'elle ne mesure pas encore.
             </DialogDescription>
           </DialogHeader>
 
@@ -1231,48 +1078,45 @@ export default function GMAODashboard() {
                   <h3 className="text-lg font-semibold">Efficacité Globale</h3>
                   <Gauge className="w-5 h-5 text-blue-600" />
                 </div>
-                <div className="space-y-3">
-                  {/* OEE, disponibilité et performance ne sont calculés nulle
-                      part : ces trois taux étaient des constantes. */}
-                  <div className="flex justify-between">
-                    <span className="text-sm text-ink-mute">OEE (Overall Equipment Effectiveness)</span>
-                    <span className="font-medium text-ink-mute">—</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">Taux d'utilisation</span>
-                    <span className="font-medium">85.2%</span>
-                  </div>
-                  <Progress value={85.2} className="h-2" />
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">Taux de performance</span>
-                    <span className="font-medium">92.1%</span>
-                  </div>
-                  <Progress value={92.1} className="h-2" />
+                {/* ⚠️ OEE, taux d'utilisation et taux de performance ne sont
+                    calculés nulle part dans cette base. Les deux derniers
+                    étaient écrits en dur — « 85,2 % » et « 92,1 % », avec
+                    leurs jauges — juste à côté d'un OEE honnêtement laissé à
+                    « — ». La passe de nettoyage du 11/10 avait traité la
+                    première ligne et laissé les deux suivantes. */}
+                <div className="space-y-2 text-sm text-ink-soft">
+                  <p>Aucun de ces trois taux n'est mesuré sur cet environnement.</p>
+                  <p className="text-ink-mute">
+                    L'efficacité globale se calcule à partir des temps d'ouverture, d'arrêt et
+                    de cadence des équipements. Ces relevés ne sont pas encore collectés.
+                  </p>
+                  <Link href="/oee" className="inline-flex items-center gap-1 text-signal hover:underline">
+                    Saisir les données OEE
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </Card>
 
               <Card className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Coûts & Budget</h3>
-                  <DollarSign className="w-5 h-5 text-green-600" />
+                  <h3 className="font-serif text-title font-medium text-ink">Coûts et budget</h3>
+                  <DollarSign className="w-5 h-5 text-ink-mute" />
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Coût par heure productive</span>
-                    <span className="font-medium">€127</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">Économies préventif vs correctif</span>
-                    <span className="font-medium text-green-600">€12.3K</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm">ROI maintenance prédictive</span>
-                    <span className="font-medium text-green-600">+24%</span>
-                  </div>
+                {/* ⚠️ « Coût par heure productive 127 € », « Économies
+                    préventif vs correctif 12,3 k€ », « ROI maintenance
+                    prédictive +24 % » : trois constantes. Un ROI annoncé à un
+                    industriel sur un chiffre inventé est la faute la plus
+                    coûteuse que puisse commettre cet écran. */}
+                <div className="space-y-2 text-sm text-ink-soft">
+                  <p>Aucun coût de maintenance n'est rattaché aux interventions.</p>
+                  <p className="text-ink-mute">
+                    Les coûts se calculent à partir des heures passées, des pièces consommées et
+                    des prestations externes renseignées sur chaque ordre de travail.
+                  </p>
+                  <Link href="/budget" className="inline-flex items-center gap-1 text-signal hover:underline">
+                    Ouvrir le budget
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </Card>
 
@@ -1295,72 +1139,34 @@ export default function GMAODashboard() {
               </Card>
             </div>
 
-            {/* Detailed Analytics Charts */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Analyse des Tendances</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">Amélioration continue</p>
-                      <p className="text-sm text-muted-foreground">MTBF en hausse de 12% sur 3 mois</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <Activity className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="font-medium">Optimisation des coûts</p>
-                      <p className="text-sm text-muted-foreground">Réduction de 8% des coûts de maintenance</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 p-3 bg-paper-deep rounded-lg">
-                    <Brain className="w-5 h-5 text-signal-deep" />
-                    <div>
-                      <p className="font-medium">IA Performance</p>
-                      <p className="text-sm text-muted-foreground">Modèles prédictifs améliorés de 15%</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Recommandations Prioritaires</h3>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
-                      1
-                    </div>
-                    <div>
-                      <p className="font-medium text-yellow-900">Optimiser planning préventif</p>
-                      <p className="text-sm text-yellow-800">Réduire MTTR de 15% avec planification avancée</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
-                      2
-                    </div>
-                    <div>
-                      <p className="font-medium text-blue-900">Formation équipes</p>
-                      <p className="text-sm text-blue-800">Améliorer compétences sur équipements critiques</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
-                      3
-                    </div>
-                    <div>
-                      <p className="font-medium text-green-900">Expansion IoT</p>
-                      <p className="text-sm text-green-800">Ajouter capteurs sur 3 équipements critiques</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
+            {/* ⚠️ Deux cartes ont été retirées ici le 19/10/2026.
+                « Analyse des tendances » affichait trois constats écrits en
+                dur — « MTBF en hausse de 12 % sur 3 mois », « réduction de
+                8 % des coûts de maintenance », « modèles prédictifs
+                améliorés de 15 % » — présentés comme des mesures de
+                l'installation du client. Aucune de ces trois valeurs n'a de
+                source dans cette base, et le MTBF n'y est même pas calculé.
+                « Recommandations prioritaires » listait trois conseils
+                numérotés, eux aussi fixes, identiques pour tous les
+                locataires : « réduire MTTR de 15 % », « ajouter des capteurs
+                sur 3 équipements critiques ». Des recommandations réelles
+                existent — elles vivent sur /maintenance-recommendations et
+                dérivent des données du locataire. */}
+            <Card className="p-6">
+              <h3 className="font-serif text-title font-medium text-ink mb-2">Tendances et recommandations</h3>
+              <p className="text-sm text-ink-soft max-w-2xl">
+                Les tendances de fiabilité et les recommandations d'intervention se construisent à
+                partir de l'historique des ordres de travail et des relevés de capteurs. Elles sont
+                présentées sur leur écran dédié, avec le détail de ce qui les justifie.
+              </p>
+              <Link
+                href="/maintenance-recommendations"
+                className="inline-flex items-center gap-1 text-sm text-signal hover:underline mt-3"
+              >
+                Voir les recommandations
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+            </Card>
 
             {/* ⚠️ Une carte « Comparaison Sectorielle » annonçait « votre
                 disponibilité 94,7 %, +2,1 % vs secteur », « votre MTBF 168 h,
@@ -1374,66 +1180,16 @@ export default function GMAODashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Alerts Modal */}
-      <Dialog open={showAlertsModal} onOpenChange={setShowAlertsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Centre d'Alertes Intelligent
-            </DialogTitle>
-            <DialogDescription>
-              Notifications temps réel et alertes prédictives basées sur l'IA
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Alert Summary */}
-            <div className="grid md:grid-cols-4 gap-4">
-              <Card className="p-4 border-l-4 border-l-red-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Critiques</p>
-                    <p className="text-2xl font-bold text-red-600">3</p>
-                  </div>
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-              </Card>
-              
-              <Card className="p-4 border-l-4 border-l-yellow-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Importantes</p>
-                    <p className="text-2xl font-bold text-yellow-600">7</p>
-                  </div>
-                  <AlertTriangle className="w-6 h-6 text-yellow-600" />
-                </div>
-              </Card>
-              
-              <Card className="p-4 border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Prédictives</p>
-                    <p className="text-2xl font-bold text-blue-600">5</p>
-                  </div>
-                  <Brain className="w-6 h-6 text-blue-600" />
-                </div>
-              </Card>
-              
-              <Card className="p-4 border-l-4 border-l-green-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Résolues</p>
-                    <p className="text-2xl font-bold text-green-600">12</p>
-                  </div>
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </Card>
-            </div>
-
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* ⚠️ Une SECONDE modale « Centre d'Alertes Intelligent » occupait
+          ici une soixantaine de lignes, pilotée par le MÊME état
+          `showAlertsModal` que la modale « Toutes les alertes »
+          ci-dessus : les deux se seraient affichées l'une sur l'autre.
+          Elle affichait quatre compteurs écrits en dur — 3 critiques,
+          7 importantes, 5 prédictives, 12 résolues — qu'aucun locataire
+          n'avait produits. Et elle était inatteignable :
+          `setShowAlertsModal(true)` n'est appelé nulle part. Code mort
+          et chiffres inventés, retirés le 19/10/2026. Les alertes réelles
+          sont dans l'onglet « Alertes » et sur /smart-alerts. */}
     </div>
   );
 }

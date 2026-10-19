@@ -1,217 +1,395 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 import {
   Boxes, Wrench, Gauge, ClipboardList, BookOpen, Box, Brain, BarChart3,
-  ArrowRight, Network, Construction, Link2,
+  ArrowRight, Lock, ChevronDown, Factory, AlertTriangle, Package, Fish, Plus, CalendarCheck,
 } from "lucide-react";
 import { useEntitlements } from "@/hooks/useEntitlements";
-import { PlatformEditionBadge } from "@/components/platform-edition-badge";
-import { PillarCollaborationMap } from "@/components/pillar-collaboration-map";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs } from "@/components/indicateurs";
 
-interface Pillar {
-  key: string;
-  title: string;
-  description: string;
-  icon: any;
-  status: "disponible" | "a_construire";
-  statusDetail: string;
-  links: { label: string; href: string }[];
-  /**
-   * Domaines avec lesquels ce pilier collabore réellement (échanges de données vérifiés dans le
-   * code, pas une supposition) — voir chaque fichier:ligne cité dans le plan
-   * eager-wandering-thimble.md. Jamais présenté comme une "dépendance", toujours comme une
-   * collaboration fonctionnelle.
-   */
-  connections: string[];
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * INGÉNIERIE DE MAINTENANCE
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * Cet écran était un document d'architecture : 497 mots de texte, aucune
+ * requête, aucune donnée. Il s'ouvrait sur une dénégation (« Ce n'est plus
+ * une GMAO — c'est une plateforme d'ingénierie de maintenance à 8 piliers »)
+ * suivie d'un état d'avancement du développement (« 8 / 8 piliers ont du
+ * code réel aujourd'hui — voir ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md
+ * pour le détail »). Chaque carte portait ensuite son propre journal de
+ * chantier : « CRUD équipements opérationnel », « Cœur historique de
+ * Maintrix », « les 5 briques (Health Score → RUL → Anomaly → Failure
+ * Prediction → OT auto) tournent maintenant ensemble », « embeddings
+ * OpenAI », « consulté par le pipeline diagnostic avant l'appel à Claude ».
+ *
+ * Ce sont des notes d'équipe de développement. Un ingénieur de maintenance
+ * qui ouvre cet écran ne cherche pas à savoir ce qui a été codé : il cherche
+ * l'état de son parc et l'outil qui lui permet d'agir.
+ *
+ * La page devient donc un espace de travail : l'état réel du parc en haut,
+ * les méthodes d'ingénierie et leur volume réel au milieu, les domaines en
+ * accès direct en bas. Le détail d'architecture est replié derrière un
+ * dépliant pour qui le cherche — il n'ouvre plus l'écran.
+ */
+
+interface Domaine {
+  cle: string;
+  titre: string;
+  /** UNE ligne. Ce qu'on vient y faire, pas comment c'est construit. */
+  resume: string;
+  icone: React.ComponentType<{ className?: string }>;
+  liens: { libelle: string; href: string }[];
 }
 
-const PILLARS: Pillar[] = [
+const DOMAINES: Domaine[] = [
   {
-    key: "actifs",
-    title: "Gestion des actifs",
-    description: "Registre des équipements et cycle de vie (acquisition → exploitation → fin de vie).",
-    icon: Boxes,
-    status: "disponible",
-    statusDetail: "CRUD équipements opérationnel — cycle de vie ISO 55000 complet non encore construit.",
-    links: [{ label: "Ouvrir", href: "/asset-lifecycle" }],
-    connections: ["digital_twin", "ia", "apm", "analytics"],
-  },
-  {
-    key: "gmao",
-    title: "GMAO",
-    description: "Ordres de travail, planification, exécution terrain (Réception → ... → REX).",
-    icon: Wrench,
-    status: "disponible",
-    statusDetail: "Cœur historique de Maintrix, désormais un pilier parmi d'autres.",
-    links: [
-      { label: "Tableau de bord", href: "/gmao-dashboard" },
-      { label: "Ordres de travail", href: "/work-orders" },
-      { label: "Maintenance Execution", href: "/maintenance-execution" },
+    cle: "actifs",
+    titre: "Gestion des actifs",
+    resume: "Registre des équipements, de l'acquisition à la réforme.",
+    icone: Boxes,
+    liens: [
+      { libelle: "Équipements", href: "/equipment-management" },
+      { libelle: "Cycle de vie", href: "/asset-lifecycle" },
     ],
-    connections: ["apm", "ia", "smm", "analytics"],
   },
   {
-    key: "apm",
-    title: "APM — Asset Performance Management",
-    description: "Health Score, RUL, détection d'anomalies, prédiction de panne, OT automatique — pipeline unifié.",
-    icon: Gauge,
-    status: "disponible",
-    statusDetail: "Predictive Maintenance Engine unifié : les 5 briques (Health Score → RUL → Anomaly → Failure Prediction → OT auto) tournent maintenant ensemble. Le RUL stochastique est désormais recoupé avec celui du Digital Twin quand un jumeau existe pour l'équipement.",
-    links: [
-      { label: "Predictive Engine", href: "/predictive-engine" },
-      { label: "Health Score (legacy)", href: "/machine-health" },
+    cle: "gmao",
+    titre: "GMAO",
+    resume: "Ordres de travail, planification et exécution sur le terrain.",
+    icone: Wrench,
+    liens: [
+      { libelle: "Vue d'ensemble", href: "/gmao" },
+      { libelle: "Ordres de travail", href: "/work-orders" },
+      { libelle: "Exécution", href: "/maintenance-execution" },
     ],
-    connections: ["gmao", "actifs", "digital_twin"],
   },
   {
-    key: "smm",
-    title: "SMM — Système de Management de Maintenance",
-    description: "Manuels qualité, procédures, checklists, audits, non-conformités, amélioration continue.",
-    icon: ClipboardList,
-    status: "disponible",
-    statusDetail: "Non-conformités auto-créées depuis un contrôle qualité échoué en Maintenance Execution ; procédures publiées synchronisées vers le Knowledge Graph.",
-    links: [{ label: "Ouvrir", href: "/smm" }],
-    connections: ["gmao", "ia"],
-  },
-  {
-    key: "knowledge_hub",
-    title: "Engineering Knowledge Hub",
-    description: "Schémas, plans, notices, bulletins techniques, normes IEC/ISO, procédures SAEM.",
-    icon: BookOpen,
-    status: "disponible",
-    statusDetail: "Recherche sémantique (embeddings OpenAI) avec repli automatique par mots-clés ; consulté par le pipeline diagnostic avant l'appel à Claude.",
-    links: [{ label: "Ouvrir", href: "/knowledge-hub" }],
-    connections: ["ia"],
-  },
-  {
-    key: "digital_twin",
-    title: "Digital Twin",
-    description: "Jumeau numérique par équipement — propriété de l'actif, pas seulement une fonction IA.",
-    icon: Box,
-    status: "disponible",
-    statusDetail: "Un jumeau par équipement (calibration propre + capteurs IoT réels), consulté par le pipeline diagnostic. Déviation critique → création automatique d'un OT GMAO ; RUL du jumeau recoupé par l'APM.",
-    links: [{ label: "Ouvrir", href: "/digital-twin" }],
-    connections: ["actifs", "ia", "gmao", "apm"],
-  },
-  {
-    key: "ia",
-    title: "IA",
-    description: "Pipeline diagnostic hybride (règles + historique + graphe causal + Claude), assistant conversationnel.",
-    icon: Brain,
-    status: "disponible",
-    statusDetail: "Le graphe de connaissances alimente désormais réellement le diagnostic.",
-    links: [
-      { label: "Diagnostic", href: "/smart-diagnostic" },
-      { label: "Assistant IA", href: "/ai-assistant" },
-      { label: "Knowledge Graph", href: "/knowledge-graph" },
+    cle: "apm",
+    titre: "Performance des actifs",
+    resume: "Santé des machines, durée de vie restante, prédiction de panne.",
+    icone: Gauge,
+    liens: [
+      { libelle: "Maintenance prédictive", href: "/predictive-engine" },
+      { libelle: "Santé des machines", href: "/machine-health" },
     ],
-    connections: ["actifs", "digital_twin", "gmao", "knowledge_hub", "smm", "analytics"],
   },
   {
-    key: "analytics",
-    title: "Analytics",
-    description: "KPIs, rapports de maintenance, tableaux de bord consolidés.",
-    icon: BarChart3,
-    status: "disponible",
-    statusDetail: "Reporting opérationnel existant, désormais enrichi des statistiques réelles de diagnostic IA (sessions, confiance, taux de complétion).",
-    links: [{ label: "Ouvrir", href: "/advanced-reporting" }],
-    connections: ["gmao", "actifs", "ia"],
+    cle: "smm",
+    titre: "Management de la maintenance",
+    resume: "Procédures, contrôles qualité, non-conformités et audits.",
+    icone: ClipboardList,
+    liens: [{ libelle: "Ouvrir", href: "/smm" }],
+  },
+  {
+    cle: "knowledge_hub",
+    titre: "Documentation technique",
+    resume: "Schémas, notices, bulletins techniques et normes IEC/ISO.",
+    icone: BookOpen,
+    liens: [{ libelle: "Ouvrir", href: "/knowledge-hub" }],
+  },
+  {
+    cle: "digital_twin",
+    titre: "Jumeau numérique",
+    resume: "Un modèle par équipement, alimenté par les relevés de capteurs.",
+    icone: Box,
+    liens: [{ libelle: "Ouvrir", href: "/digital-twin" }],
+  },
+  {
+    cle: "ia",
+    titre: "Diagnostic assisté",
+    resume: "Hypothèses de panne, assistant de maintenance, graphe de causalité.",
+    icone: Brain,
+    liens: [
+      { libelle: "Diagnostic", href: "/smart-diagnostic" },
+      { libelle: "Assistant", href: "/ai-assistant" },
+      { libelle: "Graphe de causalité", href: "/knowledge-graph" },
+    ],
+  },
+  {
+    cle: "analytics",
+    titre: "Indicateurs et rapports",
+    resume: "Tableaux de bord consolidés et rapports de maintenance.",
+    icone: BarChart3,
+    liens: [{ libelle: "Ouvrir", href: "/advanced-reporting" }],
   },
 ];
 
+/** Enchaînement des domaines, replié par défaut. */
+const ENCHAINEMENT = [
+  "Actif", "Surveillance", "Détection d'anomalie", "Ordre de travail",
+  "Exécution", "Contrôle qualité", "Retour d'expérience", "Documentation",
+  "Diagnostic", "Maintenance prédictive", "Indicateurs",
+];
+
+interface ParcGMAO {
+  equipmentCount: number;
+  activeWorkOrdersCount: number;
+  pendingWorkOrdersCount: number;
+  criticalAlertsCount: number;
+  lowStockPartsCount: number;
+  contexte?: {
+    equipementsIndisponibles: number;
+    otEnRetard: number;
+    otUrgents: number;
+    preventifSous7Jours: number;
+    piecesEnRupture: number;
+  };
+}
+
+interface MethodesIngenierie {
+  expertRules: { count: number };
+  rca: { count: number };
+  fmea: { count: number };
+  rcm: { count: number };
+}
+
 export default function MaintenanceEngineeringPlatformPage() {
-  const available = PILLARS.filter(p => p.status === "disponible").length;
-  const { enabledDomains, minEditionFor } = useEntitlements();
+  const { enabledDomains, minEditionFor, isLoading: chargeLicence } = useEntitlements();
+  const [detailOuvert, setDetailOuvert] = useState(false);
+
+  // L'écran affiche l'état réel du parc : c'est la seule chose qui justifie
+  // de l'ouvrir chaque matin. Les deux requêtes existent déjà et sont
+  // cloisonnées par locataire côté serveur.
+  const { data: parc } = useQuery<ParcGMAO>({ queryKey: ["/api/gmao-dashboard"] });
+  const { data: methodes } = useQuery<MethodesIngenierie>({
+    queryKey: ["/api/engineering-expertise/overview"],
+  });
+
+  const c = parc?.contexte;
+  /** Assemble les précisions non nulles ; à défaut, une phrase neutre. */
+  const precision = (parts: Array<[number, string]>, aDefaut: string) => {
+    const dits = parts.filter(([n]) => n > 0).map(([n, libelle]) => `${n} ${libelle}`);
+    return dits.length ? dits.join(" · ") : aDefaut;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Network className="w-6 h-6 text-blue-600" />
-            Maintenance Engineering Platform
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Ce n'est plus une GMAO — c'est une plateforme d'ingénierie de maintenance à 8 piliers.
-            La GMAO en est un pilier parmi d'autres, pas le socle unique.
-          </p>
-          <p className="text-sm text-ink-mute mt-1">
-            {available} / {PILLARS.length} piliers ont du code réel aujourd'hui —
-            voir <span className="font-mono">ARCHITECTURE_CIBLE_INGENIEUR_MAINTENANCE.md</span> pour le détail.
-          </p>
-        </div>
+    <AppShell filAriane={[{ libelle: "Ingénierie de maintenance" }]}>
+      <div className="space-y-8">
+        <EnTetePage
+          surTitre="Plateforme"
+          titre="Ingénierie de maintenance"
+          phrase="Les méthodes, les référentiels et les outils qui gouvernent la maintenance du parc."
+          actionsSecondaires={
+            <ActionSecondaire href="/maintenance-plan">
+              <CalendarCheck className="w-4 h-4" />
+              Plan de maintenance
+            </ActionSecondaire>
+          }
+          action={
+            <ActionPrincipale href="/rca">
+              <Plus className="w-4 h-4" />
+              Nouvelle analyse
+            </ActionPrincipale>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {PILLARS.map((pillar) => {
-            const Icon = pillar.icon;
-            return (
-              <Card key={pillar.key} className={pillar.status === "a_construire" ? "border-dashed border-gray-300 bg-gray-50/50" : ""}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Icon className={`w-6 h-6 ${pillar.status === "disponible" ? "text-blue-600" : "text-ink-mute"}`} />
-                    {pillar.status === "disponible" ? (
-                      <Badge className="bg-green-100 text-green-700">Disponible</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-gray-500 border-gray-300">
-                        <Construction className="w-3 h-3 mr-1" />À construire
-                      </Badge>
-                    )}
-                  </div>
-                  <CardTitle className="text-base mt-2">{pillar.title}</CardTitle>
-                  <CardDescription className="text-xs">{pillar.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-ink-mute">{pillar.statusDetail}</p>
-                  {pillar.links.length > 0 ? (
-                    <div className="flex flex-col gap-1.5">
-                      {pillar.links.map(link => (
-                        <Link key={link.href} href={link.href}>
-                          <Button variant="outline" size="sm" className="w-full justify-between text-xs">
-                            {link.label}
-                            <ArrowRight className="w-3 h-3" />
-                          </Button>
+        {/* ══════════════════════════════════════════════════════════
+            LE PARC AUJOURD'HUI
+            ══════════════════════════════════════════════════════════
+            Quatre chiffres mesurés, chacun suivi de ce qu'il implique.
+            Chaque tuile mène à l'écran qui permet d'agir : un indicateur
+            qu'on ne peut pas suivre d'un clic n'est qu'une décoration. */}
+        <section aria-labelledby="titre-parc">
+          <h2 id="titre-parc" className="font-mono text-eyebrow uppercase text-ink-mute mb-3">
+            Le parc aujourd'hui
+          </h2>
+          <RangeeIndicateurs>
+            <Indicateur
+              libelle="Équipements"
+              valeur={parc?.equipmentCount ?? "—"}
+              precision={precision(
+                [[c?.equipementsIndisponibles ?? 0, "indisponible(s)"]],
+                (parc?.equipmentCount ?? 0) > 0 ? "tous en service" : "parc à déclarer",
+              )}
+              icone={Factory}
+              alerte={(c?.equipementsIndisponibles ?? 0) > 0}
+              href="/equipment-management"
+            />
+            <Indicateur
+              libelle="Ordres de travail"
+              valeur={parc?.activeWorkOrdersCount ?? "—"}
+              precision={precision(
+                [
+                  [c?.otUrgents ?? 0, "urgent(s)"],
+                  [c?.otEnRetard ?? 0, "en retard"],
+                  [parc?.pendingWorkOrdersCount ?? 0, "en attente"],
+                ],
+                "rien en cours",
+              )}
+              icone={Wrench}
+              alerte={(c?.otEnRetard ?? 0) > 0 || (c?.otUrgents ?? 0) > 0}
+              href="/work-orders"
+            />
+            <Indicateur
+              libelle="Alertes critiques"
+              valeur={parc?.criticalAlertsCount ?? "—"}
+              precision={
+                (parc?.criticalAlertsCount ?? 0) > 0 ? "à traiter sans délai" : "aucune en cours"
+              }
+              icone={AlertTriangle}
+              alerte={(parc?.criticalAlertsCount ?? 0) > 0}
+              href="/smart-alerts"
+            />
+            <Indicateur
+              libelle="Préventif sous 7 jours"
+              valeur={c?.preventifSous7Jours ?? "—"}
+              precision={
+                (c?.preventifSous7Jours ?? 0) > 0 ? "à planifier cette semaine" : "aucune échéance proche"
+              }
+              icone={CalendarCheck}
+              alerte={(c?.preventifSous7Jours ?? 0) > 0}
+              href="/maintenance-plan"
+            />
+          </RangeeIndicateurs>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════
+            MÉTHODES D'INGÉNIERIE
+            ══════════════════════════════════════════════════════════
+            Ce que l'ingénieur a réellement produit, compté en base. Un
+            volume à zéro reste affiché : c'est une information, et il mène
+            vers l'écran qui permet de créer la première analyse. */}
+        <section aria-labelledby="titre-methodes">
+          <h2 id="titre-methodes" className="font-mono text-eyebrow uppercase text-ink-mute mb-3">
+            Méthodes d'ingénierie
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-rule border border-rule">
+            {[
+              { libelle: "Analyses de causes racines", valeur: methodes?.rca.count, href: "/rca", icone: Fish },
+              { libelle: "AMDEC", valeur: methodes?.fmea.count, href: "/fmea", icone: AlertTriangle },
+              { libelle: "Maintenance basée fiabilité", valeur: methodes?.rcm.count, href: "/engineering-expertise", icone: ClipboardList },
+              { libelle: "Règles de diagnostic", valeur: methodes?.expertRules.count, href: "/engineering-expertise", icone: Brain },
+            ].map((m) => (
+              <Link
+                key={m.libelle}
+                href={m.href}
+                className="bg-white p-5 group transition-colors hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-mono text-eyebrow uppercase text-ink-mute">{m.libelle}</p>
+                  <m.icone className="w-4 h-4 text-ink-mute shrink-0" />
+                </div>
+                <p className="font-serif text-3xl text-ink mt-3 leading-none">{m.valeur ?? "—"}</p>
+                <span className="inline-flex items-center gap-1 text-sm text-ink-soft mt-2 group-hover:text-signal transition-colors">
+                  Ouvrir
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════════════
+            DOMAINES
+            ══════════════════════════════════════════════════════════
+            Huit entrées, une ligne de description chacune, et les écrans
+            en accès direct. Le badge de licence n'apparaît QUE lorsqu'un
+            domaine n'est pas compris dans l'abonnement : répéter
+            « Inclus — Starter » sur sept cartes sur huit n'apprenait rien
+            et occupait un tiers de chaque carte. */}
+        <section aria-labelledby="titre-domaines">
+          <h2 id="titre-domaines" className="font-mono text-eyebrow uppercase text-ink-mute mb-3">
+            Domaines
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-px bg-rule border border-rule">
+            {DOMAINES.map((domaine) => {
+              const Icone = domaine.icone;
+              const inclus = chargeLicence || enabledDomains.length === 0 || enabledDomains.includes(domaine.cle);
+              const edition = minEditionFor(domaine.cle);
+              return (
+                <div key={domaine.cle} className="bg-white p-5 flex flex-col">
+                  <Icone className="w-5 h-5 text-ink-mute" />
+                  <h3 className="font-serif text-title font-medium text-ink mt-3">{domaine.titre}</h3>
+                  <p className="text-sm text-ink-soft mt-1.5 flex-1">{domaine.resume}</p>
+
+                  {!inclus && edition && (
+                    <p className="inline-flex items-center gap-1.5 mt-3 text-xs text-ink-mute">
+                      <Lock className="w-3 h-3 shrink-0" />
+                      Nécessite l'édition {edition.displayName}
+                    </p>
+                  )}
+
+                  <ul className="mt-4 border-t border-rule">
+                    {domaine.liens.map((lien) => (
+                      <li key={lien.href} className="border-b border-rule last:border-b-0">
+                        <Link
+                          href={lien.href}
+                          className="flex items-center justify-between gap-2 py-2 text-sm text-ink-soft hover:text-signal transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
+                        >
+                          {lien.libelle}
+                          <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                         </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" className="w-full text-xs" disabled>
-                      Pas encore disponible
-                    </Button>
-                  )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
-                  <PlatformEditionBadge
-                    included={enabledDomains.includes(pillar.key)}
-                    edition={minEditionFor(pillar.key)}
-                  />
+        {/* ══════════════════════════════════════════════════════════
+            ENCHAÎNEMENT — replié
+            ══════════════════════════════════════════════════════════
+            L'information est utile à qui prend ses marques, inutile tous
+            les autres jours. Divulgation progressive : un dépliant, pas
+            un bandeau permanent en haut de page. */}
+        <section className="border border-rule bg-white">
+          <button
+            type="button"
+            onClick={() => setDetailOuvert((v) => !v)}
+            aria-expanded={detailOuvert}
+            className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
+          >
+            <span className="text-sm font-medium text-ink">Comment ces domaines s'enchaînent</span>
+            <ChevronDown
+              className={`w-4 h-4 text-ink-mute shrink-0 transition-transform ${detailOuvert ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
+          </button>
+          {detailOuvert && (
+            <div className="px-5 pb-5 border-t border-rule pt-4">
+              <p className="text-sm text-ink-soft mb-4 max-w-3xl">
+                Du signal capté sur l'équipement jusqu'aux indicateurs, chaque étape alimente la
+                suivante : une anomalie détectée crée un ordre de travail, dont l'exécution produit
+                un retour d'expérience qui enrichit le diagnostic.
+              </p>
+              <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
+                {ENCHAINEMENT.map((etape, i) => (
+                  <li key={etape} className="flex items-center gap-2">
+                    <span className="text-sm text-ink-soft bg-paper-deep border border-rule px-2.5 py-1 whitespace-nowrap">
+                      {etape}
+                    </span>
+                    {i < ENCHAINEMENT.length - 1 && (
+                      <ArrowRight className="w-3.5 h-3.5 text-ink-mute shrink-0" aria-hidden="true" />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </section>
 
-                  {pillar.connections.length > 0 && (
-                    <div className="pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-1 text-[10px] text-ink-mute mb-1.5">
-                        <Link2 className="w-3 h-3" />
-                        Connecté avec
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {pillar.connections.map(key => {
-                          const target = PILLARS.find(p => p.key === key);
-                          return (
-                            <span key={key} className="text-[10px] text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">
-                              {target?.title ?? key}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <PillarCollaborationMap />
+        {/* Stock sous seuil : rangé ici parce qu'il concerne la préparation
+            des interventions, pas le pilotage du parc. */}
+        {(parc?.lowStockPartsCount ?? 0) > 0 && (
+          <Link
+            href="/inventaire"
+            className="flex items-center gap-3 border border-rule bg-white px-5 py-4 text-sm transition-colors hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
+          >
+            <Package className="w-4 h-4 text-ink-mute shrink-0" aria-hidden="true" />
+            <span className="text-ink">
+              <span className="font-medium">{parc?.lowStockPartsCount}</span> référence(s) sous le
+              seuil de réapprovisionnement
+              {(c?.piecesEnRupture ?? 0) > 0 && `, dont ${c?.piecesEnRupture} en rupture`}.
+            </span>
+            <ArrowRight className="w-3.5 h-3.5 text-ink-mute ml-auto shrink-0" aria-hidden="true" />
+          </Link>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -208,9 +208,16 @@ function TrainingGapsPanel() {
           <GraduationCap className="w-4 h-4 text-signal-deep" />
           Training Agent — pont TechLearn
         </CardTitle>
+        {/* ⚠️ Ce message nommait les deux variables d'environnement manquantes
+            — TECHLEARN_API_URL et TECHLEARN_SERVICE_TOKEN — et rassurait
+            l'utilisateur sur le fait que « la détection reste 100 % réelle
+            côté Maintrix ». C'est une note d'exploitation destinée à
+            l'administrateur du serveur, pas au responsable de maintenance qui
+            lit cet écran : il n'a ni accès au serveur ni moyen d'agir dessus.
+            On lui dit ce que cela change POUR LUI. */}
         <CardDescription className="text-xs">
-          {bridgeStatus && !bridgeStatus.configured && "TechLearn non configuré (TECHLEARN_API_URL / TECHLEARN_SERVICE_TOKEN absents) — la détection reste 100% réelle côté Maintrix, seule la recommandation de TP externe est indisponible."}
-          {bridgeStatus?.configured && "Connecté à TechLearn (LearnSmartHub)."}
+          {bridgeStatus && !bridgeStatus.configured && "La liaison avec le catalogue de formation n'est pas activée : les écarts de compétence sont détectés, mais aucune formation ne peut être recommandée. Votre administrateur peut activer cette liaison."}
+          {bridgeStatus?.configured && "Liaison active avec le catalogue de formation."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

@@ -217,8 +217,15 @@ export function ModernNavigation() {
               return (
                 <DropdownMenu key={group.label}>
                   <DropdownMenuTrigger asChild>
+                    {/* ⚠️ `outline-none` supprimait l'indicateur de focus sans
+                        rien proposer à la place : les cinq déclencheurs de
+                        groupe — c'est-à-dire l'essentiel de la navigation —
+                        ne changeaient NI contour NI ombre quand on les
+                        atteignait au clavier (mesuré : 5 éléments sur 40).
+                        WCAG 2.4.7. On supprime le contour par défaut au clic,
+                        mais on le rend au focus clavier. */}
                     <button
-                      className={`flex items-center gap-1.5 px-3 h-16 border-b-2 text-sm outline-none transition-colors whitespace-nowrap shrink-0 ${
+                      className={`flex items-center gap-1.5 px-3 h-16 border-b-2 text-sm outline-none transition-colors whitespace-nowrap shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal ${
                         isGroupActive ? 'text-ink border-signal dark:text-paper' : 'text-ink-soft border-transparent hover:text-ink hover:border-rule dark:text-paper/70 dark:hover:text-paper'
                       }`}
                     >

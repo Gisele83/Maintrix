@@ -107,13 +107,13 @@ export function CaseReporting() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-carbon-orange text-white">{t("pending", language)}</Badge>;
+        return <Badge className="bg-etat-alerte-fond text-etat-alerte-texte border border-etat-alerte-filet hover:bg-etat-alerte-fond">{t("pending", language)}</Badge>;
       case "analyzing":
-        return <Badge className="bg-carbon-blue text-white">{t("analyzing", language)}</Badge>;
+        return <Badge className="bg-etat-encours-fond text-etat-encours-texte border border-etat-encours-filet hover:bg-etat-encours-fond">{t("analyzing", language)}</Badge>;
       case "resolved":
-        return <Badge className="bg-carbon-green text-white">{t("resolved", language)}</Badge>;
+        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte border border-etat-nominal-filet hover:bg-etat-nominal-fond">{t("resolved", language)}</Badge>;
       default:
-        return <Badge className="bg-carbon-gray-50 text-carbon-gray-90">{status}</Badge>;
+        return <Badge className="bg-paper-deep text-ink">{status}</Badge>;
     }
   };
 
@@ -135,13 +135,13 @@ export function CaseReporting() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Report Form */}
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <Bug className="text-carbon-orange" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <Bug className="text-etat-alerte-texte" />
             <span>{t("reportUnhandledCase", language)}</span>
           </CardTitle>
-          <p className="text-carbon-gray-70 text-sm">
+          <p className="text-ink-soft text-sm">
             {t("enrichKnowledgeBase", language)}
           </p>
         </CardHeader>
@@ -151,7 +151,7 @@ export function CaseReporting() {
             {/* Equipment Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+                <Label className="text-sm font-medium text-ink mb-2">
                   {t("equipmentTypeRequired", language)}
                 </Label>
                 <Select onValueChange={(value) => form.setValue("equipmentType", value)}>
@@ -167,36 +167,36 @@ export function CaseReporting() {
                   </SelectContent>
                 </Select>
                 {form.formState.errors.equipmentType && (
-                  <p className="text-carbon-red text-sm mt-1">
+                  <p className="text-etat-critique-texte text-sm mt-1">
                     {form.formState.errors.equipmentType.message}
                   </p>
                 )}
               </div>
               <div>
-                <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+                <Label className="text-sm font-medium text-ink mb-2">
                   {t("equipmentId", language)}
                 </Label>
                 <Input
                   placeholder={t("equipmentIdPlaceholder", language)}
                   {...form.register("equipmentId")}
-                  className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
+                  className="border-rule focus:ring-signal focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* Problem Description */}
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label className="text-sm font-medium text-ink mb-2">
                 {t("problemDescriptionRequired", language)}
               </Label>
               <Textarea
                 rows={4}
                 placeholder={t("problemPlaceholder", language)}
                 {...form.register("description")}
-                className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
+                className="border-rule focus:ring-signal focus:border-transparent"
               />
               {form.formState.errors.description && (
-                <p className="text-carbon-red text-sm mt-1">
+                <p className="text-etat-critique-texte text-sm mt-1">
                   {form.formState.errors.description.message}
                 </p>
               )}
@@ -204,20 +204,20 @@ export function CaseReporting() {
 
             {/* Attempted Solutions */}
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label className="text-sm font-medium text-ink mb-2">
                 {t("attemptedSolutions", language)}
               </Label>
               <Textarea
                 rows={3}
                 placeholder={t("attemptedSolutionsPlaceholder", language)}
                 {...form.register("attemptedSolutions")}
-                className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
+                className="border-rule focus:ring-signal focus:border-transparent"
               />
             </div>
 
             {/* Impact */}
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label className="text-sm font-medium text-ink mb-2">
                 {t("productionImpact", language)}
               </Label>
               <RadioGroup
@@ -226,19 +226,19 @@ export function CaseReporting() {
                 className="space-y-2"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="low" id="low" className="text-carbon-green" />
+                  <RadioGroupItem value="low" id="low" className="text-etat-nominal-texte" />
                   <Label htmlFor="low" className="text-sm">
                     {t("lowImpact", language)}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="medium" id="medium" className="text-carbon-orange" />
+                  <RadioGroupItem value="medium" id="medium" className="text-etat-alerte-texte" />
                   <Label htmlFor="medium" className="text-sm">
                     {t("mediumImpact", language)}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="high" id="high" className="text-carbon-red" />
+                  <RadioGroupItem value="high" id="high" className="text-etat-critique-texte" />
                   <Label htmlFor="high" className="text-sm">
                     {t("highImpact", language)}
                   </Label>
@@ -249,7 +249,7 @@ export function CaseReporting() {
             {/* Additional Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+                <Label className="text-sm font-medium text-ink mb-2">
                   {t("zone", language)}
                 </Label>
                 <Select onValueChange={(value) => form.setValue("zone", value)}>
@@ -266,26 +266,26 @@ export function CaseReporting() {
                 </Select>
               </div>
               <div>
-                <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+                <Label className="text-sm font-medium text-ink mb-2">
                   {t("contact", language)}
                 </Label>
                 <Input
                   placeholder={t("contactPlaceholder", language)}
                   {...form.register("contact")}
-                  className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
+                  className="border-rule focus:ring-signal focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* File Upload */}
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label className="text-sm font-medium text-ink mb-2">
                 {t("attachments", language)}
               </Label>
-              <div className="border-2 border-dashed border-carbon-gray-20 rounded-lg p-6 text-center hover:border-carbon-blue transition-colors duration-200">
-                <Upload className="text-carbon-gray-50 text-2xl mb-2 mx-auto" />
-                <p className="text-sm text-carbon-gray-70 mb-2">{t("dragDropFiles", language)}</p>
-                <p className="text-xs text-carbon-gray-50">{t("fileTypes", language)}</p>
+              <div className="border-2 border-dashed border-rule rounded-lg p-6 text-center hover:border-signal transition-colors duration-200">
+                <Upload className="text-ink-mute text-2xl mb-2 mx-auto" />
+                <p className="text-sm text-ink-soft mb-2">{t("dragDropFiles", language)}</p>
+                <p className="text-xs text-ink-mute">{t("fileTypes", language)}</p>
                 <input
                   type="file"
                   multiple
@@ -303,7 +303,7 @@ export function CaseReporting() {
               {selectedFiles.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {selectedFiles.map((file, index) => (
-                    <p key={index} className="text-sm text-carbon-gray-70">
+                    <p key={index} className="text-sm text-ink-soft">
                       {file.name} ({Math.round(file.size / 1024)} KB)
                     </p>
                   ))}
@@ -315,7 +315,7 @@ export function CaseReporting() {
             <Button
               type="submit"
               disabled={submitReportMutation.isPending}
-              className="w-full bg-carbon-orange text-white hover:bg-orange-600 transition-colors duration-200 font-medium"
+              className="w-full bg-ink text-paper hover:bg-signal transition-colors duration-200 font-medium"
             >
               <NotebookPen className="w-4 h-4 mr-2" />
               {submitReportMutation.isPending ? t("loading", language) : t("sendReport", language)}
@@ -325,13 +325,13 @@ export function CaseReporting() {
       </Card>
 
       {/* Reported Cases */}
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <List className="text-carbon-blue" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <List className="text-signal" />
             <span>{t("recentReportedCases", language)}</span>
           </CardTitle>
-          <p className="text-carbon-gray-70 text-sm">
+          <p className="text-ink-soft text-sm">
             {t("reportTrackingSubtitle", language)}
           </p>
         </CardHeader>
@@ -339,22 +339,22 @@ export function CaseReporting() {
         <CardContent className="p-6">
           <div className="space-y-4">
             {reportedCases.length === 0 ? (
-              <div className="text-center py-8 text-carbon-gray-70">
+              <div className="text-center py-8 text-ink-soft">
                 Aucun cas signalé récemment
               </div>
             ) : (
               reportedCases.slice(0, 5).map((reportedCase: any) => (
-                <div key={reportedCase.id} className="border border-carbon-gray-20 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                <div key={reportedCase.id} className="border border-rule rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="font-medium text-carbon-gray-90">
+                      <h4 className="font-medium text-ink">
                         {reportedCase.equipmentId} - {reportedCase.description.substring(0, 50)}...
                       </h4>
-                      <p className="text-sm text-carbon-gray-70">{reportedCase.equipmentType}</p>
+                      <p className="text-sm text-ink-soft">{reportedCase.equipmentType}</p>
                     </div>
                     {getStatusBadge(reportedCase.status)}
                   </div>
-                  <div className="flex items-center justify-between text-xs text-carbon-gray-50">
+                  <div className="flex items-center justify-between text-xs text-ink-mute">
                     <span>{formatDate(reportedCase.createdAt)}</span>
                     <span>ID: #RPT-{reportedCase.id.toString().padStart(3, '0')}</span>
                   </div>
@@ -364,23 +364,23 @@ export function CaseReporting() {
           </div>
 
           {/* Statistics */}
-          <div className="mt-6 pt-6 border-t border-carbon-gray-20">
-            <h4 className="font-medium text-carbon-gray-90 mb-3">{t("reportStatistics", language)}</h4>
+          <div className="mt-6 pt-6 border-t border-rule">
+            <h4 className="font-medium text-ink mb-3">{t("reportStatistics", language)}</h4>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-carbon-blue">
+                <div className="text-2xl font-bold text-signal">
                   {reportedCases.filter((c: any) => c.status === "pending").length}
                 </div>
-                <div className="text-xs text-carbon-gray-70">{t("inProgress", language)}</div>
+                <div className="text-xs text-ink-soft">{t("inProgress", language)}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-carbon-green">
+                <div className="text-2xl font-bold text-etat-nominal-texte">
                   {reportedCases.filter((c: any) => c.status === "resolved").length}
                 </div>
-                <div className="text-xs text-carbon-gray-70">{t("resolved", language)}</div>
+                <div className="text-xs text-ink-soft">{t("resolved", language)}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-carbon-orange">
+                <div className="text-2xl font-bold text-etat-alerte-texte">
                   {reportedCases.filter((c: any) => {
                     const caseDate = new Date(c.createdAt);
                     const thisMonth = new Date();
@@ -388,7 +388,7 @@ export function CaseReporting() {
                            caseDate.getFullYear() === thisMonth.getFullYear();
                   }).length}
                 </div>
-                <div className="text-xs text-carbon-gray-70">{t("thisMonth", language)}</div>
+                <div className="text-xs text-ink-soft">{t("thisMonth", language)}</div>
               </div>
             </div>
           </div>
