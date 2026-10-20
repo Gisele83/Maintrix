@@ -137,22 +137,6 @@ function nd(valeur: number | undefined, decimales = 1): string {
   return valeur === undefined ? 'N/D' : valeur.toFixed(decimales);
 }
 
-
-/**
- * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
- *
- * ⚠️ Le code faisait `parseFloat(x?.toString() ?? "0")` : une valeur
- * délibérément absente redevenait zéro. Pour un MTBF, zéro se lit « tombe en
- * panne en permanence » ; pour une disponibilité, « jamais disponible ».
- * L'absence doit traverser.
- */
-function nombreOuNull(valeur: unknown): number | undefined {
-  if (valeur === null || valeur === undefined || valeur === "") return undefined;
-  const n = Number(valeur);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-
 // Middleware pour une meilleure gestion des erreurs JSON
 function jsonErrorHandler(err: any, req: any, res: any, next: any) {
   if (err instanceof SyntaxError && 'body' in err) {
@@ -204,219 +188,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
 
   // ═══════════════════════════════════════════════════════════════════
-  // ROUTES PDF — SESSION EXIGÉE, COMME PARTOUT AILLEURS
+  // LE PRÉFIXE /pdf N'EXISTE PLUS — UN SEUL CHEMIN PAR DOCUMENT
   // ═══════════════════════════════════════════════════════════════════
-  // Ces trois routes étaient commentées « ROUTES PDF PUBLIQUES (sans
-  // authentification) », et c'est exactement ce qu'elles étaient : enregistrées
-  // avant `app.use('/api', requireAuthentication)` et hors du préfixe `/api`,
-  // seul préfixe où le middleware de locataire est monté (voir
-  // `enableMultiTenantSecurity` dans server/tenant-integration.ts), elles
-  // n'étaient atteintes par AUCUN contrôle. `blockPublicAccess`, posé juste
-  // après, ne protège rien : il n'ajoute que des en-têtes anti-indexation.
+  // Trois gestionnaires vivaient ici : `/pdf/maintenance-reports/:id`,
+  // `/pdf/monthly-reports/:id` et `/pdf/comprehensive-report`. Chacun avait un
+  // jumeau déjà authentifié sous `/api`. Ils sont supprimés, et le préfixe avec
+  // eux. Ce qui a décidé, mesuré sur la grappe de test avec deux locataires aux
+  // montants sans chiffre commun (Alpha 4242 €, Beta 8181 €) :
   //
-  // Deux conséquences opposées, les deux mesurées :
+  //   • RAPPORT D'INTERVENTION — `/pdf/maintenance-reports/:id` et
+  //     `/api/maintenance-reports/:id/pdf` rendaient le MÊME document, à
+  //     l'octet près (9 394 octets, empreinte SHA-256 égale). Le premier
+  //     construisait son `reportData` à la main, le second appelle le
+  //     constructeur partagé `buildMaintenanceReportPDFData` : deux écritures
+  //     du même objet, champ par champ. Rien à trancher, seulement une copie à
+  //     retirer.
   //
-  //   • /pdf/monthly-reports/:id servait à un appelant anonyme — sans compte,
-  //     sans cookie — le rapport mensuel n° N, donc les coûts de maintenance
-  //     agrégés du locataire à qui il appartient, à qui devinait un entier
-  //     séquentiel. HTTP 200, 7 443 octets, montants en clair.
+  //   • BILAN MENSUEL — même constat, même empreinte (7 773 octets). La copie
+  //     manuelle embarquait en plus son propre `nombreOuNull()`, doublon de
+  //     celui de server/gmao-routes.ts ; il disparaît avec elle.
   //
-  //   • /pdf/maintenance-reports/:id et /pdf/comprehensive-report, elles,
-  //     appelaient `tenantRequis()` — qui lit `req.tenantId`. Rien ne le
-  //     posant ici, elles répondaient 401 à TOUT LE MONDE, propriétaire
-  //     compris. Les trois boutons de téléchargement du client étaient donc
-  //     inopérants, sans que rien ne le signale.
+  //   • RAPPORT COMPLET — les deux documents DIFFÉRAIENT (4 768 contre 11 469
+  //     octets), et c'est le seul cas qui demandait un choix produit. Relevé
+  //     champ par champ, `/api/comprehensive-report/pdf` est un sur-ensemble :
+  //     il CALCULE disponibilité (99,3 %), MTBF (24 h) et MTTR (2,5 h) par
+  //     `computeGmaoReportKpis` sur les ordres de travail du locataire, là où
+  //     `/pdf` imprimait « N/D » pour les quatre, et il ajoute le détail des
+  //     coûts (main d'œuvre, pièces, sous-traitance, coût par OT), que `/pdf`
+  //     n'avait pas du tout.
   //
-  // Autrement dit, la place de ces routes rendait le cloisonnement soit
-  // inexistant, soit total. Le correctif ne consiste pas à ajouter un contrôle
-  // dans chaque route, mais à résoudre la session sur `/pdf` comme elle l'est
-  // sur `/api` : `requireAuthentication` valide le cookie `sessionToken` et
-  // pose `req.tenantId` (voir validateSession), ce qui rend les appels
-  // `tenantRequis()` existants effectifs au lieu d'être des 401 garantis.
+  //     `/pdf` ne portait que deux champs absents du jumeau, et l'un des deux
+  //     était MAL NOMMÉ : « Utilisation budget : 67 % » valait
+  //     `completedWorkOrders / totalWorkOrders` — 2/3 — soit exactement le
+  //     « Score de performance : 66,67 % » que le jumeau affiche sous son vrai
+  //     nom. Aucun budget n'entrait dans ce calcul. Ce champ n'est donc pas
+  //     repris : le reprendre serait reprendre une étiquette fausse.
+  //     Le second, « Alertes critiques », est un vrai chiffre cloisonné : il
+  //     est, lui, porté sur le document canonique (voir
+  //     `/api/comprehensive-report/pdf`).
   //
-  // Le cookie arrive bien jusqu'ici : le client ouvre ces URL par
-  // `window.open()` vers la même origine, une navigation same-site que
-  // `SameSite=strict` n'empêche pas. Ces routes sont en GET, donc hors du
-  // champ du contrôle CSRF, qui ne vise que les méthodes non sûres.
+  //     La phrase que `/pdf` affichait pour justifier ses « N/D » —
+  //     « Disponibilité, MTBF, MTTR et OEE exigent un historique
+  //     d'interventions datées que ce rapport ne rassemble pas » — était vraie
+  //     de CE gestionnaire, pas du produit : le service de KPI rassemble cet
+  //     historique, sur le même locataire, et le mesure. Ce n'étaient donc pas
+  //     deux documents légitimement distincts, mais un document avec deux
+  //     implémentations, dont la plus ancienne avait renoncé.
   //
-  // Ce middleware est monté AVANT les trois routes, et non après : l'ordre
-  // d'enregistrement est ce qui décide, et c'est précisément cet ordre qui
-  // avait créé le trou.
-  app.use('/pdf', EnterpriseAuthMiddleware.requireAuthentication);
-
-  app.get("/pdf/maintenance-reports/:id", async (req, res) => {
-    try {
-      const reportId = parseInt(req.params.id);
-      if (isNaN(reportId)) {
-        return res.status(400).json({ message: "ID de rapport invalide" });
-      }
-
-      // Le locataire est exigé AVANT la lecture, et non après : l'ordre
-      // précédent lisait le rapport d'autrui puis refusait la requête — la
-      // donnée était déjà sortie de la base, et seul le hasard de l'ordre des
-      // instructions l'empêchait d'atteindre la réponse.
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMaintenanceReportById(reportId, tenantId);
-      if (!report) {
-        return res.status(404).json({ message: "Rapport de maintenance introuvable" });
-      }
-
-      // Enrich with work order + equipment data
-      const [workOrder, equipment] = await Promise.all([
-        report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
-        report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
-      ]);
-
-      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-      const startDate = report.startTime ? new Date(report.startTime) : new Date();
-      const parts = Array.isArray(report.partsUsed)
-        ? (report.partsUsed as any[]).map((p: any) => ({ name: p.partNumber || p.name || "Pièce", quantity: p.quantity ?? 1, unitCost: parseFloat(p.cost ?? p.unitCost ?? 0) }))
-        : [];
-      const recs: string[] = [];
-      if (report.followUpNotes) recs.push(report.followUpNotes);
-      if (report.qualityNotes) recs.push(report.qualityNotes);
-
-      const reportData = {
-        reportNumber: report.reportNumber,
-        equipment: (equipment as any)?.equipmentName || `Équipement #${report.equipmentId ?? "—"}`,
-        description: report.workDescription || report.actionsTaken || "—",
-        technician: report.technician || "—",
-        date: `${startDate.getDate()} ${MOIS[startDate.getMonth()]} ${startDate.getFullYear()}`,
-        duration: report.actualDuration ?? report.plannedDuration ?? 0,
-        status: report.status || "draft",
-        priority: (workOrder as any)?.priority || "normal",
-        workOrderNumber: (workOrder as any)?.orderNumber || `WO-${report.workOrderId ?? report.id}`,
-        interventionType: report.interventionType || "repair",
-        partsUsed: parts,
-        laborCost: parseFloat(report.laborCost?.toString() ?? "0"),
-        totalCost: parseFloat(report.totalCost?.toString() ?? "0"),
-        nextMaintenanceDate: report.followUpDate ? new Date(report.followUpDate).toLocaleDateString("fr-FR") : undefined,
-        recommendations: recs,
-        supervisor: report.supervisor ?? undefined,
-        actualDuration: report.actualDuration ?? undefined,
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMaintenanceReportHTML(res, reportData);
-    } catch (error: any) {
-      console.error("Error generating PDF maintenance report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport PDF" });
-    }
-  });
-
-  // ⚠️ Cette route n'exigeait RIEN : ni session, ni locataire. Elle servait à
-  // tout appelant anonyme le rapport mensuel n° N — donc les coûts de
-  // maintenance agrégés du locataire à qui il appartient — à qui en devinait le
-  // numéro, un entier séquentiel. C'était la seule fuite du lot exploitable
-  // sans aucun compte. Le `tenantRequis()` ci-dessous la ferme, et le
-  // middleware monté sur `/pdf` en amont fait qu'il discrimine réellement les
-  // locataires au lieu de refuser tout le monde.
-  app.get("/pdf/monthly-reports/:id", async (req, res) => {
-    try {
-      const reportId = parseInt(req.params.id);
-      if (isNaN(reportId)) {
-        return res.status(400).json({ message: "ID de rapport invalide" });
-      }
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMonthlyReportById(reportId, tenantId);
-      if (!report) {
-        return res.status(404).json({ message: "Rapport mensuel introuvable" });
-      }
-
-      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-      const stats = (report.statisticsData as any) || {};
-      const equipmentByType: Record<string, number> = stats.equipmentByType || {};
-      const equipmentStats = Object.entries(equipmentByType).map(([name, count]) => ({
-        equipmentName: name,
-        interventionCount: count as number,
-        totalDowntime: 0,
-      }));
-
-      const reportData = {
-        reportNumber: report.reportNumber,
-        month: MOIS[(report.month ?? 1) - 1] ?? String(report.month),
-        year: report.year ?? new Date().getFullYear(),
-        totalInterventions: report.totalWorkOrders ?? 0,
-        completedInterventions: report.completedWorkOrders ?? 0,
-        pendingInterventions: Math.max(0, (report.totalWorkOrders ?? 0) - (report.completedWorkOrders ?? 0)),
-        totalCost: parseFloat(report.totalMaintenanceCost?.toString() ?? "0"),
-        averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
-        equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
-        monthlyKPIs: {
-          // L'absence traverse : une grandeur non calculable ne devient pas zéro.
-          availability: nombreOuNull(report.equipmentAvailability),
-          mtbf: nombreOuNull(report.mtbf),
-          mttr: nombreOuNull(report.mttr),
-        },
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMonthlyReportHTML(res, reportData);
-    } catch (error: any) {
-      console.error("Error generating PDF monthly report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport PDF mensuel" });
-    }
-  });
-
-  // Comprehensive report PDF route — real KPIs from DB
-  app.get("/pdf/comprehensive-report", async (req, res) => {
-    try {
-      const { period, department } = req.query;
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const kpis = await gmaoStorage.getDashboardKPIs(tenantId);
-
-      const totalWOs = kpis.activeWorkOrdersCount + kpis.pendingWorkOrdersCount + kpis.completedWorkOrdersCount;
-      const budgetUtilization = totalWOs > 0
-        ? Math.round((kpis.completedWorkOrdersCount / totalWOs) * 100)
-        : 0;
-
-      const comprehensiveReportData = {
-        reportNumber: `CR${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}`,
-        period: period || "month",
-        department: department || "all",
-        generatedAt: new Date().toISOString(),
-        // ⚠️ Ce rapport annonçait « disponibilité 100 % » dès qu'un seul
-        // équipement existait — sans rien mesurer — et des MTBF, MTTR et OEE
-        // à zéro, qui se lisent comme les pires valeurs possibles. Un rapport
-        // porte le nom de l'entreprise et circule : il ne peut pas inventer.
-        // Ces quatre grandeurs demandent un historique que ce rapport ne
-        // rassemble pas ; elles sont donc absentes, et nommées comme telles.
-        kpis: {
-          availability: null,
-          mtbf: null,
-          mttr: null,
-          oee: null,
-        },
-        kpisNonCalcules: "Disponibilité, MTBF, MTTR et OEE exigent un historique "
-          + "d'interventions datées que ce rapport ne rassemble pas. Le module GMAO "
-          + "les calcule à partir des ordres de travail réellement clos.",
-        summary: {
-          totalInterventions: totalWOs,
-          completedInterventions: kpis.completedWorkOrdersCount,
-          budgetUtilization,
-          criticalAlerts: kpis.criticalAlertsCount,
-        },
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendComprehensiveReportHTML(res, comprehensiveReportData);
-    } catch (error: any) {
-      console.error("Error generating comprehensive PDF report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport complet" });
-    }
-  });
+  // POURQUOI RETIRER LE PRÉFIXE, ET PAS SEULEMENT LES ROUTES. `/pdf` était hors
+  // du seul préfixe où `enableMultiTenantSecurity` monte le middleware de
+  // locataire (server/tenant-integration.ts). Il a fallu lui monter
+  // `requireAuthentication` à la main pour que les `tenantRequis()` de ses
+  // routes discriminent au lieu de refuser tout le monde. Tant que le préfixe
+  // existe, toute route `/pdf/...` ajoutée plus tard retombe dans ce piège si
+  // quelqu'un l'enregistre avant ce montage. En le supprimant, les documents ne
+  // sont plus servis que sous `/api`, où le cloisonnement est acquis par
+  // construction.
+  //
+  // Les trois anciennes URL ne sont pas redirigées : une redirection
+  // maintiendrait le préfixe en vie, donc le piège. Les trois appelants du
+  // client ouvraient ces URL par `window.open` depuis des boutons, et visent
+  // désormais les URL `/api` (client/src/components/maintenance-reports.tsx,
+  // client/src/pages/advanced-reporting.tsx).
   
   // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC APRÈS avoir ajouté les routes d'auth
   app.use(blockPublicAccess);
@@ -3187,29 +3020,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Comprehensive Report Export Routes for Advanced Reporting
+  // ═══════════════════════════════════════════════════════════════════
+  // RAPPORT COMPLET GMAO — DOCUMENT CANONIQUE
+  // ═══════════════════════════════════════════════════════════════════
+  // Cette route a remplacé `/pdf/comprehensive-report`, supprimée (voir le
+  // bandeau en tête de ce fichier pour le relevé qui a tranché). Elle hérite
+  // donc du bouton « Export PDF » de l'écran des rapports avancés, et de ce que
+  // ce bouton promet : un rapport COMPLET sur la période choisie.
+  //
+  // Trois ajustements qu'imposait cette reprise, chacun mesuré :
+  //
+  //   1. LA PÉRIODE EST HONORÉE. L'écran envoie `week|month|quarter|year`, que
+  //      le service de KPI n'indexait pas : les quatre choix rendaient le même
+  //      résultat mensuel. Normalisé dans le service, ce qui répare du même
+  //      coup `/api/comprehensive-report/excel`, branché dessus depuis
+  //      toujours. Une période inconnue est désormais REFUSÉE ici plutôt que
+  //      repliée en silence : un rapport dont la période ne veut rien dire ne
+  //      doit pas sortir sous une étiquette qui en annonce une autre.
+  //
+  //   2. LE DOCUMENT DIT SA PÉRIODE. Son en-tête était figé sur « RAPPORT
+  //      MENSUEL » et le mois courant, même pour 365 jours.
+  //
+  //   3. LES DEUX LECTURES NON CLOISONNÉES SONT FERMÉES — voir plus bas.
   app.get("/api/comprehensive-report/pdf", EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
       const { period = 'monthly' } = req.query;
       const tenantId = req.user?.tenantId || req.tenantId;
       if (!tenantId) return res.status(400).json({ error: "Tenant non résolu pour cette requête" });
 
+      const { computeGmaoReportKpis, normaliserPeriode } = await import("./gmao-report-kpi-service");
+      const periode = normaliserPeriode(String(period));
+      if (!periode) {
+        return res.status(400).json({
+          error: "PERIODE_INCONNUE",
+          message: `Période « ${period} » inconnue — attendu : week/weekly, month/monthly, quarter/quarterly ou year/yearly.`,
+        });
+      }
+
+      // ⚠️ `storage.getEquipment()` et `storage.getUserProfiles()` lisent TOUTE
+      // l'instance, sans locataire. `equipmentHealth` recevait donc
+      // `equipmentList.slice(0, 20)` : les vingt premiers équipements de
+      // l'instance, quel que soit leur propriétaire.
+      //
+      // Dans CE document, la fuite restait latente — mesuré : le gabarit de
+      // `PDFGeneratorClientSide` ne rend ni `equipmentHealth` ni
+      // `topEquipmentIssues`, et le nom de l'équipement d'un autre locataire
+      // était bien absent du PDF d'Alpha. Mais la même lecture alimentait
+      // `/api/comprehensive-report/excel`, qui rend, lui, une feuille
+      // « Équipements » : là, la fuite était EFFECTIVE. Mesuré le 2026-10-20,
+      // Alpha exportant son propre classeur — feuille « Équipements »,
+      // 3 lignes, dont `PRESSE-BETA-8181`, l'équipement de Beta. Après
+      // cloisonnement : 2 lignes, celles d'Alpha seul.
+      //
+      // La lecture est donc cloisonnée des deux côtés, par l'accesseur qui
+      // existait déjà. Le faire ici n'est pas une précaution de principe : le
+      // même oubli, derrière un gabarit qui rend la section, sortait déjà.
+      const { gmaoStorage } = await import("./gmao-storage");
       const [tenantWorkOrders, equipment, technicians] = await Promise.all([
         storage.getWorkOrdersByTenant(tenantId),
-        storage.getEquipment(),
+        gmaoStorage.getEquipmentRegistry(tenantId),
         storage.getUserProfiles(),
       ]);
       const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
-      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+      // Les profils n'ont pas d'accesseur cloisonné ; on filtre donc ici. Cette
+      // table ne pouvait pas trahir un inconnu — elle ne sert qu'à nommer les
+      // techniciens assignés aux OT du locataire, qui sont les siens — mais un
+      // filtre explicite vaut mieux qu'une garantie qui tient à l'usage.
+      const technicianNameById = new Map(technicians
+        .filter((t: any) => t.tenantId === tenantId)
+        .map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
 
-      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
-      const kpis = computeGmaoReportKpis(tenantWorkOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+      const kpis = computeGmaoReportKpis(tenantWorkOrders, periode, equipmentNameById, technicianNameById, equipment as any);
+
+      // Seul champ repris de l'ancien `/pdf/comprehensive-report` : un compte
+      // réel, déjà cloisonné par `getDashboardKPIs`.
+      const { criticalAlertsCount } = await gmaoStorage.getDashboardKPIs(tenantId);
 
       const currentDate = new Date();
       const reportData: import("./pdf-generator-client-side").MonthlyReportData = {
-        reportNumber: `GMAO-${period}-${currentDate.toISOString().split('T')[0]}`,
+        reportNumber: `GMAO-${periode}-${currentDate.toISOString().split('T')[0]}`,
         year: currentDate.getFullYear(),
         month: currentDate.getMonth() + 1,
+        periodeLibelle: kpis.periodLabel,
+        criticalAlerts: criticalAlertsCount,
         performanceScore: kpis.performanceScore,
         totalWorkOrders: kpis.totalWorkOrders,
         completedWorkOrders: kpis.completedWorkOrders,
@@ -3262,15 +3155,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const XLSX = await import('xlsx');
 
       // Get data for Excel export — ordres de travail et alertes scopés au tenant authentifié.
+      // ⚠️ C'EST ICI QUE LA LECTURE NON CLOISONNÉE SORTAIT. `storage.getEquipment()`
+      // lisait tout le parc de l'instance, et la feuille « Équipements » de ce
+      // classeur le rend ligne par ligne. Mesuré le 2026-10-20 : Alpha
+      // exportant SON rapport obtenait 3 lignes d'équipements, dont
+      // `PRESSE-BETA-8181` — celui de Beta. Ce n'était pas une fuite latente :
+      // le nom d'un équipement d'autrui quittait l'application dans un fichier
+      // destiné à circuler. Après correction : 2 lignes, celles d'Alpha.
+      //
+      // Le parc est donc lu par l'accesseur cloisonné, et les profils sont
+      // filtrés sur le locataire — comme sur l'export PDF jumeau.
+      const { gmaoStorage: gmaoStorageExcel } = await import("./gmao-storage");
       const workOrders = await storage.getWorkOrdersByTenant(tenantId);
-      const equipment = await storage.getEquipment();
+      const equipment = await gmaoStorageExcel.getEquipmentRegistry(tenantId);
       const alerts = await storage.getAlertsNotifications(tenantId, 100);
       const technicians = await storage.getUserProfiles();
 
       // Enrichissement — WorkOrder ne porte que des clés étrangères (equipmentId, assignedTo),
       // pas les libellés ; construits ici plutôt que de laisser des colonnes "undefined" dans l'export.
       const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
-      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+      const technicianNameById = new Map(technicians
+        .filter((t: any) => t.tenantId === tenantId)
+        .map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
       const lastMaintenanceByEquipment = new Map<number, Date>();
       for (const wo of workOrders) {
         if (wo.status === "completed" && wo.equipmentId && wo.actualEnd) {
@@ -3280,8 +3186,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
-      const kpis = computeGmaoReportKpis(workOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+      // La période du sélecteur est normalisée comme sur l'export PDF : cet
+      // export l'ignorait lui aussi, en silence.
+      const { computeGmaoReportKpis, normaliserPeriode } = await import("./gmao-report-kpi-service");
+      const periodeExcel = normaliserPeriode(String(period));
+      if (!periodeExcel) {
+        return res.status(400).json({
+          error: "PERIODE_INCONNUE",
+          message: `Période « ${period} » inconnue — attendu : week/weekly, month/monthly, quarter/quarterly ou year/yearly.`,
+        });
+      }
+      const kpis = computeGmaoReportKpis(workOrders, periodeExcel, equipmentNameById, technicianNameById, equipment as any);
 
       // Create workbook
       const wb = XLSX.utils.book_new();

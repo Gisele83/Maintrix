@@ -6,20 +6,18 @@ import { Response } from 'express';
  * Un rapport qui écrit « 0,0 h » là où il ne sait rien affirme une
  * performance catastrophique. « N/D » n'affirme rien, ce qui est la vérité.
  *
- * ⚠️ Cette fonction n'acceptait que `undefined`, alors que ses deux appelants
- * lui passent `null` : `/pdf/comprehensive-report` déclare explicitement
- * `availability: null, mtbf: null, mttr: null, oee: null` — des grandeurs qui
- * exigent un historique que ce rapport ne rassemble pas — et
- * `/pdf/monthly-reports/:id` passe le résultat de `nombreOuNull()`. Les deux
- * routes plantaient donc en `Cannot read properties of null (reading
- * 'toFixed')`, en HTTP 500.
+ * ⚠️ Cette fonction n'acceptait que `undefined`, alors que son appelant lui
+ * passe `null` : le bilan mensuel transmet le résultat de `nombreOuNull()`.
+ * La route plantait donc en `Cannot read properties of null (reading
+ * 'toFixed')`, en HTTP 500 — longtemps masqué par un refus 401 systématique.
  *
- * Personne ne l'avait vu parce que ces deux routes répondaient 401 à TOUT LE
- * MONDE : leur `tenantRequis()` lisait un `req.tenantId` que rien ne posait
- * hors de `/api`. Le refus systématique masquait le plantage, et le compilateur
- * ne pouvait rien dire — `sendComprehensiveReportHTML(res, reportData: any)`
- * reçoit son argument en `any`. Résoudre la session sur `/pdf` a rendu les
- * routes atteignables, et ce défaut visible du même coup.
+ * ⚠️ `sendComprehensiveReportHTML()` et son gabarit vivaient aussi ici, pour la
+ * seule route `/pdf/comprehensive-report`, supprimée : le rapport complet est
+ * désormais servi par `/api/comprehensive-report/pdf`, qui calcule réellement
+ * disponibilité, MTBF et MTTR au lieu d'en déclarer quatre `null`. Les deux
+ * méthodes sont donc parties avec elle — 148 lignes de gabarit que plus rien
+ * n'appelait. Ce qui reste ici sert les deux documents dont ce générateur est
+ * le seul producteur : le rapport d'intervention et le bilan mensuel.
  */
 function valeurOuND(valeur: number | null | undefined, unite: string): string {
   return valeur === null || valeur === undefined ? 'N/D' : `${valeur.toFixed(1)}${unite}`;
@@ -104,21 +102,6 @@ export class PDFGeneratorFunctional {
       res.send(htmlContent);
     } catch (error) {
       console.error('Error generating monthly report:', error);
-      throw error;
-    }
-  }
-
-  async sendComprehensiveReportHTML(res: Response, reportData: any) {
-    try {
-      const htmlContent = this.generateComprehensiveReportPDFPage(reportData);
-      
-      // Headers pour affichage navigateur normal
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache');
-      
-      res.send(htmlContent);
-    } catch (error) {
-      console.error('Error generating comprehensive report:', error);
       throw error;
     }
   }
@@ -612,140 +595,6 @@ export class PDFGeneratorFunctional {
                 generateAndDownloadPDF();
               }, 2000);
             });
-          </script>
-        </body>
-      </html>
-    `;
-  }
-
-  private generateComprehensiveReportPDFPage(reportData: any): string {
-    return `
-      <!DOCTYPE html>
-      <html lang="fr">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Rapport Complet GMAO - ${reportData.reportNumber}</title>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-          <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-          <style>
-            * { box-sizing: border-box; }
-            body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-              margin: 0; 
-              padding: 20px;
-              background: #f5f5f5;
-            }
-            .pdf-container { 
-              max-width: 800px; 
-              margin: 0 auto; 
-              background: white;
-              box-shadow: 0 0 20px rgba(0,0,0,0.1);
-              padding: 40px;
-            }
-            .header { 
-              text-align: center; 
-              border-bottom: 3px solid #007bff; 
-              padding-bottom: 20px; 
-              margin-bottom: 30px; 
-            }
-            .kpi-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 20px;
-              margin: 20px 0;
-            }
-            .kpi-card {
-              border: 1px solid #e0e0e0;
-              padding: 20px;
-              border-radius: 8px;
-              text-align: center;
-            }
-            .kpi-value {
-              font-size: 2em;
-              font-weight: bold;
-              color: #007bff;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="pdf-container" id="pdf-content">
-            <div class="header">
-              <h1>📊 Rapport Complet GMAO</h1>
-              <p>Numéro: ${reportData.reportNumber}</p>
-              <p>Période: ${reportData.period} | Département: ${reportData.department}</p>
-              <p>Généré le: ${new Date(reportData.generatedAt).toLocaleDateString('fr-FR')}</p>
-            </div>
-
-            <div class="section">
-              <h2>📈 Indicateurs Clés de Performance</h2>
-              <div class="kpi-grid">
-                <div class="kpi-card">
-                  <div class="kpi-value">${valeurOuND(reportData.kpis.availability, "%")}</div>
-                  <div>Disponibilité</div>
-                </div>
-                <div class="kpi-card">
-                  <div class="kpi-value">${valeurOuND(reportData.kpis.mtbf, "h")}</div>
-                  <div>MTBF</div>
-                </div>
-                <div class="kpi-card">
-                  <div class="kpi-value">${valeurOuND(reportData.kpis.mttr, "h")}</div>
-                  <div>MTTR</div>
-                </div>
-                <div class="kpi-card">
-                  <!-- Quatrième KPI du même bloc, resté en .toFixed() brut quand
-                       ses trois voisins passaient par valeurOuND. La route
-                       déclare pourtant oee à null au même titre que les autres :
-                       ce seul oubli faisait planter tout le rapport en HTTP 500,
-                       sans que personne le voie — la route répondait 401. -->
-                  <div class="kpi-value">${valeurOuND(reportData.kpis.oee, "%")}</div>
-                  <div>OEE</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <h2>📋 Résumé Exécutif</h2>
-              <ul>
-                <li>Total interventions: ${reportData.summary.totalInterventions}</li>
-                <li>Interventions terminées: ${reportData.summary.completedInterventions}</li>
-                <li>Utilisation budget: ${reportData.summary.budgetUtilization}%</li>
-                <li>Alertes critiques: ${reportData.summary.criticalAlerts}</li>
-              </ul>
-            </div>
-
-            <div class="footer">
-              <p>Maintrix - Rapport généré automatiquement</p>
-            </div>
-          </div>
-
-          <script>
-            window.onload = function() {
-              setTimeout(() => {
-                const { jsPDF } = window.jspdf;
-                html2canvas(document.getElementById('pdf-content')).then(canvas => {
-                  const imgData = canvas.toDataURL('image/png');
-                  const pdf = new jsPDF();
-                  const imgWidth = 210;
-                  const pageHeight = 295;
-                  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                  let heightLeft = imgHeight;
-                  let position = 0;
-
-                  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                  heightLeft -= pageHeight;
-
-                  while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                  }
-
-                  pdf.save('rapport-gmao-complet.pdf');
-                });
-              }, 1000);
-            };
           </script>
         </body>
       </html>

@@ -130,25 +130,23 @@ export default function AdvancedReporting() {
   const exportReport = (format: string) => {
     try {
       if (format === 'pdf') {
-        // Create comprehensive report data
-        const reportData = {
-          period: selectedPeriod,
-          department: selectedDepartment,
-          generatedAt: new Date().toISOString(),
-          kpis,
-          budgetSummary,
-          budgetRequests: budgetRequests.slice(0, 10),
-          workOrders: workOrders.slice(0, 20),
-          equipment: equipment.slice(0, 15),
-          alerts: alerts.slice(0, 10)
-        };
-
-        // Download comprehensive GMAO report PDF with cache busting
+        // ⚠️ Un objet `reportData` était construit ici — période, KPI de
+        // l'écran, budgets, vingt ordres de travail, quinze équipements — puis
+        // JAMAIS utilisé : le document est produit côté serveur, qui relit tout
+        // lui-même. Il est supprimé, et avec lui l'illusion que ce qui est
+        // exporté serait ce que l'écran a calculé.
+        //
+        // L'URL visait `/pdf/comprehensive-report`, supprimée. La route retenue
+        // sert un document PLUS COMPLET, et c'est un choix énoncé : elle calcule
+        // disponibilité, MTBF et MTTR sur les ordres de travail du locataire
+        // (mesurés 99,3 %, 24 h, 2,5 h) là où l'ancienne imprimait « N/D » pour
+        // les quatre, et elle ajoute le détail des coûts. Le seul champ que
+        // l'ancienne portait seule et qui vaille — « Alertes critiques » — est
+        // repris. L'autre, « Utilisation budget », ne l'est pas : il valait le
+        // taux d'achèvement des OT sous une étiquette de budget.
         const timestamp = new Date().getTime();
-        const url = `/pdf/comprehensive-report?period=${selectedPeriod}&department=${selectedDepartment}&t=${timestamp}`;
-        
-        console.log('🎯 Opening Comprehensive PDF report:', url); // Debug log
-        
+        const url = `/api/comprehensive-report/pdf?period=${selectedPeriod}&department=${selectedDepartment}&t=${timestamp}`;
+
         // Use window.open instead of download link for better compatibility
         window.open(url, '_blank');
 
