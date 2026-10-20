@@ -324,6 +324,91 @@ Ils sont hors du périmètre frontend et une autre session travaille sur ces fic
    requêtes successives sur le même compte : **12, 13, 11**. Un nombre qui change à chaque
    affichage paraît vivant — c'est pire qu'une constante. La tuile qui l'affichait est
    retirée côté interface ; la route reste à traiter.
-3. **Le préventif à deux tables** (§3.2) reste entier : `preventive_maintenance_plans`
-   contient 12 plans, `maintenance_plans` zéro. Le choix entre les trois options du §9 vous
-   revient.
+3. ~~**Le préventif à deux tables**~~ — **tranché le 20/10/2026, option (a). Voir §12.**
+
+---
+
+## 12. Le préventif à deux tables — option (a), 20 octobre 2026
+
+Décision de l'utilisateur : **ne garder côté interface que l'écran qui lit la table
+réellement alimentée.**
+
+### Laquelle, et pourquoi pas sur le comptage
+
+Un comptage sur un seul locataire de test ne prouve rien : `maintenance_plans` pourrait
+être vide ici et pleine ailleurs. Le critère retenu est **l'intégration au reste du
+système**, qui ne dépend pas du jeu de données :
+
+| | `preventive_maintenance_plans` | `maintenance_plans` |
+|---|---|---|
+| Fichiers serveur la référençant | **6** | 4 |
+| Occurrences | **45** | 12 |
+| « À traiter » de la GMAO (`preventifEnRetard`, `preventifSous7Jours`) | **oui** | non |
+| Agents fonctionnels (`overdue_pm`) | **oui** | non |
+| Import / export de données | **oui** | non |
+| Générateur de données de test | **oui** | non |
+| Quelque chose au-delà de sa propre CRUD | **oui** | **non** |
+
+`maintenance_plans` est un îlot : sa table, ses routes, ses deux écrans, et rien qui la
+relie au tableau de bord, aux agents ou aux imports. Ce qu'un client importe atterrit dans
+l'autre.
+
+**Ce qui tranche définitivement :** le bloc « À traiter » comptait les préventifs en retard
+dans `preventive_maintenance_plans`, puis renvoyait l'utilisateur vers `/maintenance-plan`,
+qui lit `maintenance_plans`. On cliquait sur « 3 préventifs en retard » et on arrivait sur
+une liste vide. Ce parcours est réparé par la même décision.
+
+### Ce qui a été fait
+
+- **`client/src/pages/preventive.tsx`** (nouveau) monte le composant qui lit la table
+  alimentée, dans le gabarit commun, avec titre et fil d'Ariane.
+- **`/preventive`, `/preventive-maintenance` et `/maintenance-plan`** mènent toutes les
+  trois à cet écran. Les signets continuent de fonctionner.
+- Le sous-onglet « Maintenance préventive » de la GMAO monte **le même composant**, avec
+  son propre en-tête. Une implémentation, deux points de montage.
+- **`pages/preventive-maintenance.tsx` (1 172 l.) et `pages/maintenance-plan.tsx`
+  (378 l.) sont supprimées.**
+
+### Analyse d'impact — ce qui est perdu, et ce qui ne l'est pas
+
+| Capacité | Écran conservé | Pages retirées |
+|---|---|---|
+| Créer, modifier, supprimer un plan | oui | oui |
+| Recherche | **oui** | `/maintenance-plan` : non |
+| Filtre par statut | **oui** | `/maintenance-plan` : non |
+| Compteurs d'usage (heures, cycles) | **oui** | `/maintenance-plan` : non |
+| Calendrier, année fiscale | oui | oui |
+| Onglet « Analyses » | non | `/preventive-maintenance` seulement |
+| Statistiques dédiées | non | `/maintenance-plan` seulement |
+
+Les deux capacités perdues portaient sur la table vide. L'onglet « Analyses » portait de
+surcroît, dans son propre code, la mention « Cet export fabriquait ses chiffres » — une
+campagne précédente l'avait déjà neutralisé.
+
+### Vérification
+
+![Avant](captures/preventif-avant-une-seule-table.jpg)
+![Après](captures/preventif-apres-une-seule-table.jpg)
+
+Mesuré après reconstruction : les trois routes servent le même écran, avec un seul `<h1>`
+« Maintenance préventive », la barre de navigation, et **14 plans affichés pour 14 en
+base**. L'ancien titre « Plan de Maintenance Annuel » a disparu de l'interface.
+
+> **Note de méthode.** Ma première vérification portait sur un bundle périmé de douze
+> minutes : l'écran montrait encore l'ancienne page, et j'ai failli conclure que le routage
+> n'avait pas pris. Comparer l'horodatage de `dist/` à celui des sources avant de conclure
+> quoi que ce soit d'une vérification au navigateur.
+
+### Au passage : une page morte aux métriques fabriquées
+
+`pages/maintenance-dashboard.tsx` (878 lignes) n'était importée nulle part — sa route
+redirigeait vers `/gmao` depuis le 11 octobre, parce qu'elle affichait « 156 ordres de
+travail, OEE 87,5 %, MTBF 720 h, 125 800 € de coûts », chiffres que son propre code
+annonçait comme « Sample data ». Le garde-fou écrit pour la moyenne sans population l'a
+rencontrée. Le fichier est supprimé ; la redirection reste pour les signets.
+
+### Ce qui reste ouvert
+
+La **fusion des deux tables** côté serveur. `maintenance_plans` existe toujours, avec ses
+routes et son schéma ; plus aucun écran ne la lit. Tant qu'elle reste, un développeur peut
+la rebrancher sans le savoir. C'est un chantier serveur, hors du périmètre frontend.

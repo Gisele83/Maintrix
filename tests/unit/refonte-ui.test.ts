@@ -373,15 +373,19 @@ describe('GMAO — le cockpit ne se contredit plus', () => {
 });
 
 describe('Maintenance préventive — plus de plans fabriqués', () => {
-  const PREVENTIF = join(CLIENT, 'pages', 'preventive-maintenance.tsx');
-
-  it('les cinq plans de démonstration ont disparu', () => {
-    // Ils n'étaient pas un repli : `[...formattedPlans, ...staticPlans]` les
-    // concaténait aux vrais, donc chaque organisation voyait les mêmes cinq
-    // plans et les mêmes techniciens inventés.
+  it('aucun écran ne concatène de plans de démonstration aux vrais', () => {
+    // `[...formattedPlans, ...staticPlans]` n'était pas un repli : il ajoutait
+    // cinq plans inventés aux plans réels, donc chaque organisation voyait les
+    // mêmes cinq plans et les mêmes techniciens.
+    // La page qui les portait a depuis été retirée (une seule table servie),
+    // mais la règle vaut pour toute l'interface, pas pour un fichier.
     const fautifs: string[] = [];
-    for (const { n, texte } of lignesDeCode(readFileSync(PREVENTIF, 'utf8'))) {
-      if (/\bstaticPlans\b/.test(texte)) fautifs.push(`preventive-maintenance.tsx:${n}`);
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/\bstaticPlans\b|\bstaticData\b|\bdemoPlans\b/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 70)}`);
+        }
+      }
     }
     expect(fautifs).toEqual([]);
   });
@@ -402,13 +406,60 @@ describe('Maintenance préventive — plus de plans fabriqués', () => {
     expect(fautifs).toEqual([]);
   });
 
-  it('une moyenne sans population vaut « — », jamais NaN', () => {
-    // `Math.round(0 / 0)` donnait `NaN`, et l'écran aurait affiché « NaN % ».
-    // Le défaut restait invisible tant que les plans fabriqués garantissaient
-    // un dénominateur non nul.
-    const contenu = readFileSync(PREVENTIF, 'utf8');
-    expect(contenu).toMatch(/totalPlans > 0\s*\?/);
-    expect(contenu).toContain('avgCompletionRate == null');
+  it('aucune moyenne ne divise par une longueur sans la vérifier', () => {
+    // `Math.round(somme / liste.length)` donne `NaN` quand la liste est vide,
+    // et l'écran affiche « NaN % ». Le défaut restait invisible tant que des
+    // plans fabriqués garantissaient un dénominateur non nul : les retirer
+    // l'a découvert. Une moyenne sans population n'existe pas — elle s'écrit
+    // « — », elle ne vaut pas zéro.
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        // Une division par `.length` ou par un total, sans garde ternaire ni
+        // `|| 1` sur la même ligne.
+        if (/\/\s*\w*(\.length|[Tt]otal\w*)\b/.test(texte)
+            && !/\?|\|\|\s*1\b|Math\.max/.test(texte)
+            && /reduce\(|somme|sum/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});
+
+describe('Maintenance planifiée — une seule table servie', () => {
+  // Trois écrans existaient pour la maintenance planifiée, lisant DEUX
+  // tables : `preventive_maintenance_plans` (12 plans, câblée au tableau de
+  // bord, aux agents et aux imports) et `maintenance_plans` (0 plan, îlot
+  // sans aucune intégration). Un plan créé d'un côté était invisible de
+  // l'autre. Seul l'écran lisant la table alimentée subsiste.
+
+  it('aucun écran ne lit plus la table orpheline', () => {
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/["'`]\/api\/maintenance-plans/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('les trois routes mènent au même écran', () => {
+    const app = readFileSync(join(CLIENT, 'App.tsx'), 'utf8');
+    for (const route of ['/preventive', '/preventive-maintenance', '/maintenance-plan']) {
+      const i = app.indexOf(`<Route path="${route}">`);
+      expect(i).toBeGreaterThan(-1);
+      // Le composant servi est nommé dans les deux lignes qui suivent.
+      expect(app.slice(i, i + 220)).toContain('PreventivePage');
+    }
+  });
+
+  it('l\'écran conservé lit bien la table alimentée', () => {
+    const composant = readFileSync(join(CLIENT, 'components', 'preventive-maintenance.tsx'), 'utf8');
+    expect(composant).toContain('/api/preventive-maintenance-plans');
   });
 });
 

@@ -494,7 +494,7 @@ export default function GMAODashboard() {
                 { n: c?.otUrgents || 0, libelle: 'ordre(s) de travail urgent(s)', href: '/work-orders', grave: true },
                 { n: dashboardData?.criticalAlertsCount || 0, libelle: 'alerte(s) critique(s)', href: '/smart-alerts', grave: true },
                 { n: c?.otEnRetard || 0, libelle: 'intervention(s) en retard', href: '/work-orders', grave: true },
-                { n: c?.preventifEnRetard || 0, libelle: 'préventif(s) en retard', href: '/maintenance-plan', grave: true },
+                { n: c?.preventifEnRetard || 0, libelle: 'préventif(s) en retard', href: '/preventive-maintenance', grave: true },
                 // ⚠️ Cette ligne manquait, et c'est elle qui faisait mentir
                 // l'écran. La liste ne couvrait que l'urgent, le retard et les
                 // seuils franchis : un ordre simplement EN ATTENTE n'y
@@ -507,7 +507,7 @@ export default function GMAODashboard() {
                 { n: dashboardData?.pendingWorkOrdersCount || 0, libelle: 'ordre(s) de travail à affecter', href: '/work-orders', grave: false },
                 { n: c?.equipementsIndisponibles || 0, libelle: 'équipement(s) indisponible(s)', href: '/equipment-management', grave: false },
                 { n: c?.piecesEnRupture || 0, libelle: 'référence(s) en rupture', href: '/inventaire', grave: false },
-                { n: c?.preventifSous7Jours || 0, libelle: 'préventif(s) sous 7 jours', href: '/maintenance-plan', grave: false },
+                { n: c?.preventifSous7Jours || 0, libelle: 'préventif(s) sous 7 jours', href: '/preventive-maintenance', grave: false },
               ].filter((point) => point.n > 0);
 
               return (
@@ -565,7 +565,7 @@ export default function GMAODashboard() {
                   {[
                     { n: '01', titre: 'Déclarer un équipement', texte: 'Nom, emplacement, criticité.', href: '/equipment-management' },
                     { n: '02', titre: 'Créer un ordre de travail', texte: 'Une demande, une priorité, un responsable.', href: '/work-orders' },
-                    { n: '03', titre: 'Poser un plan préventif', texte: 'Une échéance calendaire ou au compteur.', href: '/maintenance-plan' },
+                    { n: '03', titre: 'Poser un plan préventif', texte: 'Une échéance calendaire ou au compteur.', href: '/preventive-maintenance' },
                   ].map((etape) => (
                     <li key={etape.n} className="bg-white p-4">
                       <Link href={etape.href}>
@@ -600,7 +600,7 @@ export default function GMAODashboard() {
                   { icon: Bell, label: 'Alertes', href: '/smart-alerts' },
                   { icon: Timer, label: 'Engagements de service', href: '/sla-management' },
                   { icon: QrCode, label: 'Codes QR', href: '/equipment-qr' },
-                  { icon: CalendarCheck, label: 'Plan de maintenance', href: '/maintenance-plan' },
+                  { icon: CalendarCheck, label: 'Maintenance préventive', href: '/preventive-maintenance' },
                 ],
               },
               {
@@ -1015,9 +1015,25 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {/* Admin Tabs - Only show if activeAdminTab is set */}
+        {/* Ce sous-onglet et la page /preventive-maintenance montent le MÊME
+            composant, sur la même table. C'étaient deux codes distincts, sur
+            deux tables distinctes : un plan créé ici était invisible là-bas. */}
         {showAdminModal && activeAdminTab === "maintenance" && (
-          <PreventiveMaintenance />
+          <PreventiveMaintenance
+            enTete={
+              <EnTetePage
+                surTitre="GMAO"
+                titre="Maintenance préventive"
+                phrase="Les plans d'entretien périodiques, leurs échéances et leurs compteurs d'usage."
+                actionsSecondaires={
+                  <ActionSecondaire href="/preventive-maintenance">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Vue complète
+                  </ActionSecondaire>
+                }
+              />
+            }
+          />
         )}
 
         {showAdminModal && activeAdminTab === "history" && (

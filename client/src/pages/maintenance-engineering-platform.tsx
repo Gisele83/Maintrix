@@ -173,7 +173,7 @@ export default function MaintenanceEngineeringPlatformPage() {
           titre="Ingénierie de maintenance"
           phrase="Les méthodes, les référentiels et les outils qui gouvernent la maintenance du parc."
           actionsSecondaires={
-            <ActionSecondaire href="/maintenance-plan">
+            <ActionSecondaire href="/preventive-maintenance">
               <CalendarCheck className="w-4 h-4" />
               Plan de maintenance
             </ActionSecondaire>
@@ -252,7 +252,7 @@ export default function MaintenanceEngineeringPlatformPage() {
               }
               icone={CalendarCheck}
               alerte={(c?.preventifSous7Jours ?? 0) > 0}
-              href="/maintenance-plan"
+              href="/preventive-maintenance"
             />
           </RangeeIndicateurs>
         </section>

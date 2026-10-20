@@ -52,7 +52,16 @@ type MaintenancePlanFormData = z.infer<typeof maintenancePlanSchema>;
 
 
 
-export function PreventiveMaintenance() {
+interface PreventiveMaintenanceProps {
+  /**
+   * En-tête fourni par l'appelant, comme pour la gestion des équipements :
+   * la page autonome passe un `EnTetePage` complet, l'onglet de la GMAO n'en
+   * passe aucun puisque la GMAO porte déjà le sien.
+   */
+  enTete?: React.ReactNode;
+}
+
+export function PreventiveMaintenance({ enTete }: PreventiveMaintenanceProps = {}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -292,12 +301,12 @@ export function PreventiveMaintenance() {
 
   return (
     <div className="space-y-6">
-      {/* Header and Actions */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-ink">Maintenance Préventive</h2>
-          <p className="text-ink-soft">Planifiez et gérez la maintenance préventive de vos équipements</p>
-        </div>
+      {/* L'en-tête vient de l'appelant : la page autonome passe un titre de
+          niveau 1, l'onglet de la GMAO n'en passe aucun. Le composant portait
+          un `<h2>`, si bien que la page n'avait aucun `<h1>`. */}
+      {enTete}
+
+      <div className="flex justify-end items-center">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => form.reset()} data-testid="button-create-maintenance-plan">
