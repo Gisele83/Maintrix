@@ -353,8 +353,14 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // (gmaoStorage.getLatestPredictions, enregistré plus tôt).
 
   // Generate new prediction
+  // ⚠️ L'identifiant d'équipement venait de l'URL et était utilisé tel quel :
+  // rien ne vérifiait à qui il appartient. Prédire sur les capteurs d'un autre
+  // locataire ne demandait que d'en deviner le numéro — et la prédiction
+  // produite était ensuite enregistrée.
   app.post("/api/equipment/:equipmentId/predict", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId);
       const { modelType, predictionHorizon } = req.body;
       
@@ -362,7 +368,7 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
       const sensorData = await db
         .select()
         .from(iotSensorData)
-        .where(eq(iotSensorData.equipmentId, equipmentId))
+        .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId)))
         .orderBy(desc(iotSensorData.timestamp))
         .limit(100);
 

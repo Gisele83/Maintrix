@@ -13,7 +13,7 @@ export function registerEquipmentHealthRoutes(app: Express) {
       
       const healthData = await Promise.all(equipment.map(async (eq) => {
         // Get recent sensor data for this equipment
-        const sensorData = await gmaoStorage.getIotSensorData(eq.id, undefined, 50);
+        const sensorData = await gmaoStorage.getIotSensorData(tenantId, eq.id, undefined, 50);
         
         // Calculate health score based on sensor readings
         const healthScore = calculateHealthScore(sensorData);
@@ -28,7 +28,7 @@ export function registerEquipmentHealthRoutes(app: Express) {
         const predictions = generatePredictions(sensorData, eq);
         
         // Get recent alerts for this equipment
-        const alerts = await gmaoStorage.getAlerts(eq.id);
+        const alerts = await gmaoStorage.getAlerts(tenantId, eq.id);
         
         // Determine overall status
         const status = determineEquipmentStatus(healthScore, sensors);
@@ -72,7 +72,7 @@ export function registerEquipmentHealthRoutes(app: Express) {
       const allAlerts = [];
       
       for (const eq of equipment) {
-        const sensorData = await gmaoStorage.getIotSensorData(eq.id, undefined, 10);
+        const sensorData = await gmaoStorage.getIotSensorData(tenantId, eq.id, undefined, 10);
         const alerts = generateAlertsFromSensorData(eq, sensorData);
         allAlerts.push(...alerts);
       }
@@ -95,7 +95,7 @@ export function registerEquipmentHealthRoutes(app: Express) {
       const equipment = await gmaoStorage.getEquipmentRegistry(tenantId);
 
       const predictions = await Promise.all(equipment.map(async (eq) => {
-        const sensorData = await gmaoStorage.getIotSensorData(eq.id, undefined, 100);
+        const sensorData = await gmaoStorage.getIotSensorData(tenantId, eq.id, undefined, 100);
         return {
           equipmentId: eq.id,
           equipmentName: eq.equipmentName,

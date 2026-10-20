@@ -96,8 +96,14 @@ router.post('/import', upload.single('file'), async (req: Request, res: Response
 });
 
 // Route d'export de données
+//
+// ⚠️ Cette route n'exigeait aucun locataire et n'en transmettait aucun : quel
+// que soit le `type` demandé, le fichier produit couvrait toute l'instance.
 router.get('/export', async (req: Request, res: Response) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const { type, format = 'excel' } = req.query;
     
     if (!type) {
@@ -116,24 +122,24 @@ router.get('/export', async (req: Request, res: Response) => {
 
     switch (type) {
       case 'equipments':
-        buffer = await dataImportExportService.exportEquipments(format as 'csv' | 'excel');
+        buffer = await dataImportExportService.exportEquipments(format as 'csv' | 'excel', tenantId);
         filename = `equipements_${today}.${format === 'csv' ? 'csv' : 'xlsx'}`;
         break;
       case 'maintenance-history':
-        buffer = await dataImportExportService.exportMaintenanceHistory(format as 'csv' | 'excel');
+        buffer = await dataImportExportService.exportMaintenanceHistory(format as 'csv' | 'excel', tenantId);
         filename = `historique_maintenance_${today}.${format === 'csv' ? 'csv' : 'xlsx'}`;
         break;
       case 'spare-parts':
-        buffer = await dataImportExportService.exportSpareParts(format as 'csv' | 'excel');
+        buffer = await dataImportExportService.exportSpareParts(format as 'csv' | 'excel', tenantId);
         filename = `pieces_detachees_${today}.${format === 'csv' ? 'csv' : 'xlsx'}`;
         break;
       case 'iot-data':
         const days = parseInt(req.query.days as string) || 30;
-        buffer = await dataImportExportService.exportIoTData(format as 'csv' | 'excel', days);
+        buffer = await dataImportExportService.exportIoTData(format as 'csv' | 'excel', tenantId, days);
         filename = `donnees_iot_${days}j_${today}.${format === 'csv' ? 'csv' : 'xlsx'}`;
         break;
       case 'work-orders':
-        buffer = await dataImportExportService.exportMaintenanceHistory(format as 'csv' | 'excel');
+        buffer = await dataImportExportService.exportMaintenanceHistory(format as 'csv' | 'excel', tenantId);
         filename = `ordres_travail_${today}.${format === 'csv' ? 'csv' : 'xlsx'}`;
         break;
       default:

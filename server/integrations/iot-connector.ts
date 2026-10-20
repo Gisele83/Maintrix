@@ -186,8 +186,24 @@ export class IoTConnector {
    */
   private async processSensorReading(reading: SensorReading): Promise<void> {
     try {
+      // Le connecteur reçoit des trames : un équipement, pas de session, donc
+      // pas de locataire. C'est le seul chemin du dépôt qui doive le DÉDUIRE —
+      // et c'est pour cela qu'on le déduit ICI, une fois, à l'écriture, au lieu
+      // de laisser chaque lecture le refaire par jointure. Un relevé dont
+      // l'équipement est inconnu n'appartient à personne : on ne l'écrit pas,
+      // plutôt que de le ranger chez un locataire au hasard.
+      const tenantId = await gmaoStorage.resoudreLocataireEquipement(reading.equipmentId);
+      if (!tenantId) {
+        console.warn(
+          `Relevé ignoré : équipement #${reading.equipmentId} introuvable, ` +
+          `locataire indéterminable (capteur ${reading.sensorId}).`,
+        );
+        return;
+      }
+
       // Store sensor data
       const sensorData: InsertIotSensorData = {
+        tenantId,
         equipmentId: reading.equipmentId,
         sensorType: reading.sensorType,
         sensorId: reading.sensorId,

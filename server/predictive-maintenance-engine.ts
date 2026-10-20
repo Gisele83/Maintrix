@@ -65,7 +65,7 @@ async function computeEquipmentRUL(equipmentId: number, tenantId: string, window
   const cutoff = new Date(Date.now() - windowDays * 86_400_000);
   const sensorRows = await db.select({ value: iotSensorData.value, timestamp: iotSensorData.timestamp })
     .from(iotSensorData)
-    .where(and(eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp, cutoff)))
+    .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp, cutoff)))
     .orderBy(iotSensorData.timestamp)
     .limit(5000);
 
@@ -115,14 +115,17 @@ async function computeEquipmentRUL(equipmentId: number, tenantId: string, window
  * Rejoue les dernières lectures capteurs réelles dans l'agent pour rafraîchir sa détection
  * z-score plutôt que de se contenter d'un historique potentiellement périmé.
  */
-async function runRealtimeAnomalyCheck(equipmentId: number) {
+// `tenantId` est remonté jusqu'ici depuis `runPredictiveEngine`, qui l'a déjà :
+// la lecture des capteurs doit être cloisonnée comme les autres, et le déduire
+// de l'équipement serait refaire l'erreur corrigée ailleurs.
+async function runRealtimeAnomalyCheck(equipmentId: number, tenantId: string) {
   const agent = getGlobalAgent().findEquipmentAgent(equipmentId);
   if (!agent) {
     return { available: false as const, detections: [], message: "Équipement non enregistré auprès d'un agent (limite de 20 équipements au démarrage)" };
   }
 
   const latestBySensor = await db.select().from(iotSensorData)
-    .where(eq(iotSensorData.equipmentId, equipmentId))
+    .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId)))
     .orderBy(desc(iotSensorData.timestamp))
     .limit(50);
 
@@ -196,7 +199,7 @@ export async function runPredictiveEngine(equipmentId: number, tenantId: string)
     : { available: false as const, nReadings: rulOutcome.nReadings, message: rulOutcome.message, twinSignal: rulOutcome.twinSignal };
 
   // Étape 3 : Anomaly Detection temps réel
-  const anomalyOutcome = await runRealtimeAnomalyCheck(equipmentId);
+  const anomalyOutcome = await runRealtimeAnomalyCheck(equipmentId, tenantId);
   const anomaly = anomalyOutcome.available
     ? { available: true as const, detections: anomalyOutcome.detections, agentHealthScore: anomalyOutcome.agentHealthScore }
     : { available: false as const, detections: [], message: anomalyOutcome.message };
