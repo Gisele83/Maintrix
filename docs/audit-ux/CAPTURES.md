@@ -239,3 +239,37 @@ de la ligne de flottaison.
 | Écrans à plusieurs titres de niveau 1 | **0** |
 | Textes sous le seuil WCAG AA (fond composé) | **0** |
 | Débordement horizontal à 1440 px | **0** |
+
+---
+
+## Ordres de travail — une seule implémentation (20 octobre 2026)
+
+### L'onglet de la GMAO
+
+| Avant | Après |
+|---|---|
+| ![Avant](captures/ot-avant-onglet-gmao.jpg) | ![Après](captures/ot-apres-onglet-gmao.jpg) |
+
+Deux titres superposés — un `<h1>` « Ordres de travail » puis le `<h2>` « Ordres de
+Travail » du composant —, les valeurs brutes du serveur en guise d'états (`on_hold`,
+`pending`, `high`, `medium`), « Demandeur : Non spécifié » sur chaque vignette, et une
+corbeille rouge sur chacune des 35 cartes, y compris pour un technicien à qui le serveur
+répond 403. L'onglet n'avait ni tuiles d'indicateurs ni filtre de priorité.
+
+Après : un seul titre, des états en français, les quatre tuiles et le filtre de priorité
+repris de la page, et plus aucune corbeille sur la liste — la suppression vit dans la
+fiche, avec une confirmation qui nomme l'ordre, et n'apparaît qu'aux rôles autorisés.
+
+### La page /work-orders
+
+| Avant | Après |
+|---|---|
+| ![Avant](captures/ot-avant-page.jpg) | ![Après](captures/ot-apres-page.jpg) |
+
+La page traduisait déjà les états, mais ne connaissait pas `on_hold` : la première carte
+affichait une pastille grise portant ce texte brut. Elle n'avait ni suppression, ni notes,
+ni création d'équipement en place, et sa création échouait en `400` dès qu'une échéance
+était saisie.
+
+Après : le même composant que l'onglet, l'union des capacités, et l'échéance qui
+s'enregistre — vérifié en base, pas à l'écran.

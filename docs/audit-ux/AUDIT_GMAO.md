@@ -412,3 +412,139 @@ rencontrée. Le fichier est supprimé ; la redirection reste pour les signets.
 La **fusion des deux tables** côté serveur. `maintenance_plans` existe toujours, avec ses
 routes et son schéma ; plus aucun écran ne la lit. Tant qu'elle reste, un développeur peut
 la rebrancher sans le savoir. C'est un chantier serveur, hors du périmètre frontend.
+
+---
+
+## 13. Les ordres de travail à deux implémentations — 20 octobre 2026
+
+Deux écrans servaient les ordres de travail, avec des capacités, un vocabulaire et
+**des contrats de champs différents** :
+
+| | `pages/work-orders.tsx` (638 l.) | `components/work-order-management.tsx` (820 l.) |
+|---|---|---|
+| Monté par | `/work-orders` | onglet « Ordres de travail » de la GMAO |
+| Filtre priorité | oui | **non** |
+| Tuiles d'indicateurs | 4 | **aucune** |
+| Affectation | sélecteur d'utilisateurs | **champ texte libre** |
+| Fiche de détail | oui, 12 champs | **non** |
+| Écart de compétence, cycle de vie | oui | **non** |
+| Suppression | **non** | oui |
+| Création d'équipement en place | **non** | oui |
+| Notes, 7 types d'ordre | **non** | oui |
+| Libellés | français | **valeurs serveur brutes** |
+
+### Ce que la mesure a montré
+
+Relevé dans le DOM de l'onglet GMAO : **deux titres superposés** — un `<h1>` « Ordres de
+travail » suivi du `<h2>` « Ordres de Travail » que le composant portait lui-même — quatre
+valeurs brutes affichées (`pending`, `on_hold`, `high`, `medium`) et **35 boutons de
+suppression** visibles quel que soit le rôle.
+
+Mais le plus grave n'était pas à l'écran. `POST /api/work-orders` ne recopie pas le corps
+reçu : il reconstruit un objet champ par champ. Envoyé le payload **exact** de l'onglet,
+le serveur a répondu `201 Created` — « Ordre de travail créé avec succès » — et enregistré :
+
+| Champ envoyé | Valeur reçue | Valeur enregistrée |
+|---|---|---|
+| `orderType` | `"calibration"` | **`"corrective"`** — réécrit |
+| `requestedBy` | `1` | **`null`** — perdu |
+| `estimatedDuration` | `4` | **`null`** — perdu |
+| `scheduledStart` | `2026-11-15T09:00` | **`null`** — perdu |
+
+Autrement dit : on choisissait « Étalonnage », on saisissait une durée et une date, on
+lisait un message de succès, et l'ordre était correctif, sans échéance et sans durée.
+S'y ajoutaient deux champs texte « Demandeur » et « Assigné à » alors que les colonnes
+sont des clés étrangères numériques : `parseInt("Jean Dupont")` vaut `NaN`, donc la saisie
+était écartée avant même l'envoi. **Affecter un technicien par son nom n'a jamais rien
+enregistré.**
+
+Côté page, deux échecs francs plutôt que des pertes silencieuses :
+
+- `dueDate` rempli → `HTTP 400`, « Expected date, received string » ;
+- description vide → `HTTP 400`, « description Required ».
+
+Or le formulaire n'exigeait que le titre et l'équipement, et proposait un champ « Date
+d'échéance ». **Remplir l'échéance — le geste normal — rendait la création impossible.**
+
+### Un seul dictionnaire
+
+L'onglet écrivait `on_hold` pour « suspendu », la page ne connaissait que `paused` : un
+ordre suspendu depuis l'onglet ressortait sur la page en pastille grise portant le texte
+`on_hold`. `shared/schema.ts` documente `paused` sur la colonne ; c'est la valeur retenue.
+`on_hold` reste reconnu **en lecture** — la colonne est un `varchar` sans contrainte et des
+lignes le portent déjà — mais n'est plus jamais proposé à la saisie. Même mécanique d'alias
+que `shared/roles.ts`, pour la même raison : une valeur inconnue ne lève pas d'erreur, elle
+s'affiche de travers en silence.
+
+Vérifié : sous le filtre « Suspendu », les deux lignes remontent — celle stockée `paused`
+et celle stockée `on_hold`.
+
+### Ce qui a été fait
+
+`components/work-order-management.tsx` est désormais l'unique implémentation. `/work-orders`
+et l'onglet de la GMAO la montent tous deux, chacun avec son en-tête, comme pour les
+équipements et le préventif. L'union des capacités est conservée — et chacune vérifiée :
+
+- la suppression passe du bouton-corbeille de chaque vignette à la fiche de détail, avec une
+  confirmation qui **nomme l'ordre** au lieu d'un `confirm()` anonyme, et n'est affichée
+  qu'aux rôles que le serveur autorise (`auMoins(role, 'technical_director')`, soit
+  directeur technique, administrateur et propriétaire). Vérifié : le technicien ne voit
+  aucun bouton ; l'administrateur supprime, `DELETE → 200` ;
+- la création d'équipement en place, les notes et les sept types d'ordre sont repris ;
+- l'affectation **et** la demande passent par des sélecteurs d'utilisateurs ;
+- le changement de statut complet (suspendre, annuler, affecter) vit dans la fiche ; la
+  vignette ne garde que la transition attendue — « Démarrer », « Terminer ».
+
+### Comment les capacités tiennent sans toucher au serveur
+
+`PUT /api/work-orders/:id` recopie le corps (`{ ...updates }`) puis traduit les alias.
+Vérifié : il accepte `dueDate` en chaîne, `requestedBy`, et les sept valeurs d'`orderType`.
+La création procède donc en deux temps — un `POST` avec ce que POST sait lire, puis, **si et
+seulement si** l'une de ces informations a été saisie, un `PUT` qui la complète. Si le PUT
+échoue, l'ordre existe : le message le dit et rouvre la fiche, au lieu de laisser croire que
+tout a été pris.
+
+S'y est ajouté un défaut trouvé en vérifiant : le champ « Heures estimées » propose un pas
+de 0,5 mais `POST` calcule `parseInt(estimatedHours) * 60` — **3,5 h était enregistré comme
+3 h**. `PUT` fait `Math.round(parseFloat(...) * 60)` et tombe juste ; le complément part donc
+aussi quand la saisie n'est pas un nombre entier d'heures. Vérifié : 2,5 h saisies →
+`estimated_duration = 150`.
+
+### Vérification
+
+Créé par le formulaire, puis relu **en base** et non dans l'interface :
+
+```
+order_type         | calibration          (était : corrective)
+requested_by       | 1                    (était : null)
+estimated_duration | 180                  (était : null)
+scheduled_start    | 2026-12-15 00:00:00  (était : null)
+assigned_to        | 2                    (était : null — NaN)
+```
+
+Un seul `<h1>` sur les deux écrans, zéro valeur brute affichée, zéro corbeille sur la liste,
+les quatre tuiles et le filtre de priorité désormais présents dans l'onglet. 24 suites et
+201 tests unitaires verts, dont 9 nouveaux garde-fous ; 10 suites et 96 tests d'intégration
+verts.
+
+> **Note de méthode.** Les tests d'intégration ont d'abord rendu 75 échecs, puis 36. Aucun
+> n'était une régression : le premier lot venait du limiteur anti-force-brute, déclenché par
+> mes propres tentatives de connexion refusées pendant la vérification au navigateur ; le
+> second, d'un secret super-admin que je n'avais pas transmis au processus de test. Le
+> harnais avant le code — c'est la deuxième fois dans cette campagne.
+>
+> `npm run test:fast` a par ailleurs annoncé **« PASS — 0 test »** : dans un arbre de travail
+> `.claude`, le `testMatch` de jest résout un chemin à séparateurs mélangés et ne trouve
+> aucun fichier, sans que rien ne le signale. Un vert à zéro test n'est pas un vert.
+
+### Ce qui reste ouvert — côté serveur
+
+`POST /api/work-orders` devrait lire `dueDate`, `orderType` et `requestedBy` comme `PUT` le
+fait déjà, et accepter les demi-heures. Le détour en deux écritures appartient au client et
+n'a lieu d'être que tant que ce n'est pas corrigé. Deux autres points relevés au passage :
+
+- `client/src/pages/tenant-permissions.tsx:150` compare encore les rôles par
+  `["admin","director"].includes(...)` — la forme échappe au garde-fou existant, qui ne
+  traque que l'égalité littérale. Et `director` n'existe dans aucun référentiel de rôles ;
+- le même `director` fantôme figure dans le contrôle serveur de la suppression
+  (`gmao-routes.ts:511`), où il ne correspond jamais à rien.

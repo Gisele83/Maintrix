@@ -589,3 +589,147 @@ describe('Navigation et accessibilité', () => {
     expect(fautifs).toEqual([]);
   });
 });
+
+describe('Ordres de travail — une seule implémentation', () => {
+  /*
+   * Deux écrans servaient les ordres de travail : la page /work-orders et
+   * l'onglet de la GMAO, qui montait un composant distinct de 820 lignes.
+   * Mesuré au navigateur le 20/10/2026, l'onglet affichait DEUX titres
+   * superposés et quatre valeurs serveur brutes — « pending », « on_hold »,
+   * « high », « medium » — là où la page traduisait en français.
+   *
+   * Pire que l'affichage : les contrats de champs divergeaient. Le payload
+   * exact de l'onglet, envoyé à POST /api/work-orders, a reçu 201 « créé
+   * avec succès » et enregistré `orderType` réécrit en « corrective »,
+   * `requestedBy`, `estimatedDuration` et `scheduledStart` à null.
+   */
+  const COMPOSANT = join(CLIENT, 'components', 'work-order-management.tsx');
+
+  it('la page et l\'onglet montent le même composant', () => {
+    const page = readFileSync(join(CLIENT, 'pages', 'work-orders.tsx'), 'utf8');
+    const gmao = readFileSync(join(CLIENT, 'pages', 'gmao-dashboard.tsx'), 'utf8');
+    expect(page).toContain('@/components/work-order-management');
+    expect(gmao).toContain('@/components/work-order-management');
+    // La page ne doit pas réimplémenter la liste : elle pose le cadre.
+    expect(page.split('\n').length).toBeLessThan(60);
+  });
+
+  it('les deux hôtes passent leur en-tête au composant', () => {
+    // Sans `enTete`, le composant pose son propre titre et l'onglet en
+    // affichait deux : un <h1> « Ordres de travail » suivi d'un <h2>
+    // « Ordres de Travail ».
+    const page = readFileSync(join(CLIENT, 'pages', 'work-orders.tsx'), 'utf8');
+    const gmao = readFileSync(join(CLIENT, 'pages', 'gmao-dashboard.tsx'), 'utf8');
+    expect(page).toMatch(/<WorkOrderManagement[\s\S]{0,400}enTete=/);
+    expect(gmao).toMatch(/<WorkOrderManagement[\s\S]{0,400}enTete=/);
+  });
+
+  it('aucun statut ni priorité d\'ordre n\'est affiché en valeur brute', () => {
+    /*
+     * `{wo.status}` et `{wo.priority}` rendaient la valeur de la colonne
+     * telle quelle. Le dictionnaire partagé de `lib/etats.ts` est le seul
+     * chemin autorisé vers un libellé.
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    const fautifs: string[] = [];
+    for (const { n, texte } of lignesDeCode(contenu)) {
+      // `value={formulaire.priority}` alimente un <select> : c'est la valeur
+      // de la colonne qui y est attendue, pas un libellé. Seul le rendu en
+      // enfant JSX est fautif, d'où le `{` non précédé d'un `=`.
+      if (/(?<!=)\{\s*\w+\.(status|priority)\s*\}/.test(texte)) {
+        fautifs.push(`work-order-management.tsx:${n} → ${texte.trim().slice(0, 70)}`);
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('le dictionnaire reconnaît la valeur héritée on_hold', () => {
+    /*
+     * L'onglet écrivait `on_hold`, la page ne connaissait que `paused` : un
+     * ordre suspendu depuis l'onglet ressortait en pastille grise portant le
+     * texte `on_hold`. Des lignes le portent déjà en base ; les refuser
+     * afficherait du texte brut à la place d'un état.
+     */
+    const etats = readFileSync(join(CLIENT, 'lib', 'etats.ts'), 'utf8');
+    expect(etats).toContain('on_hold');
+    expect(etats).toMatch(/ALIAS_STATUT_OT/);
+    // `on_hold` ne doit JAMAIS être proposé à la saisie : on lit le tableau
+    // littéral seul, sans le commentaire qui le précède — celui-ci CITE la
+    // valeur héritée pour expliquer pourquoi elle est reconnue en lecture.
+    const debut = etats.indexOf('STATUTS_OT: readonly DefinitionEtatOT[] = [');
+    expect(debut).toBeGreaterThan(-1);
+    const listeSaisie = etats.slice(debut, etats.indexOf('];', debut));
+    expect(listeSaisie).not.toContain('on_hold');
+    expect(listeSaisie).toContain('paused');
+  });
+
+  it('l\'affectation et la demande passent par un sélecteur, jamais par du texte libre', () => {
+    /*
+     * `assigned_to` et `requested_by` sont des clés étrangères numériques
+     * vers user_profiles. L'onglet proposait « Nom du demandeur » en champ
+     * texte, converti par `parseInt` — donc NaN, donc écarté avant l'envoi :
+     * affecter un technicien par son nom n'a jamais rien enregistré.
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    for (const champ of ['ot-assigne', 'ot-demandeur']) {
+      const i = contenu.indexOf(`id="${champ}"`);
+      expect(i).toBeGreaterThan(-1);
+      // L'élément porteur de l'identifiant doit être un <select>.
+      const avant = contenu.slice(Math.max(0, i - 200), i);
+      expect(avant).toContain('<select');
+    }
+  });
+
+  it('la suppression est réservée aux rôles que le serveur autorise', () => {
+    /*
+     * `DELETE /api/work-orders/:id` répond 403 en dessous de directeur
+     * technique. L'onglet montrait pourtant la corbeille à tout le monde —
+     * 35 boutons relevés à l'écran — et un technicien n'obtenait qu'un
+     * « Impossible de supprimer » sans raison.
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    expect(contenu).toMatch(/auMoins\(\s*user\?\.role\s*,\s*['"]technical_director['"]\s*\)/);
+    // Le bloc de suppression est conditionné par ce contrôle.
+    expect(contenu).toMatch(/peutSupprimer\s*&&/);
+  });
+
+  it('la création complète les champs que POST ne sait pas enregistrer', () => {
+    /*
+     * POST reconstruit son objet champ par champ et ignore `dueDate`,
+     * `orderType` et `requestedBy` ; PUT, lui, recopie le corps. Sans ce
+     * complément, l'échéance et le demandeur saisis étaient perdus en
+     * silence, et le type réécrit en « corrective ».
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    const i = contenu.indexOf('const complement');
+    expect(i).toBeGreaterThan(-1);
+    const bloc = contenu.slice(i, i + 1200);
+    for (const champ of ['dueDate', 'requestedBy', 'orderType', 'estimatedHours']) {
+      expect(bloc).toContain(champ);
+    }
+    // L'échec du complément ne doit pas être confondu avec un échec de création.
+    expect(contenu).toContain('ComplementNonEnregistre');
+  });
+
+  it('le formulaire exige la description, que le serveur refuse vide', () => {
+    /*
+     * `description` est `notNull` et le schéma Zod la refuse absente : HTTP
+     * 400 « description Required ». L'ancien formulaire ne contrôlait que le
+     * titre et l'équipement, et affichait l'erreur Zod brute.
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    expect(contenu).toMatch(/!formulaire\.description\.trim\(\)/);
+  });
+
+  it('aucun ordre de travail n\'est envoyé dans la console', () => {
+    // `console.log("Sending work order data:", apiData)` imprimait le
+    // contenu de chaque ordre créé.
+    const fautifs: string[] = [];
+    for (const { n, texte } of lignesDeCode(readFileSync(COMPOSANT, 'utf8'))) {
+      if (/console\.(log|debug|info)/.test(texte)) {
+        fautifs.push(`work-order-management.tsx:${n} → ${texte.trim().slice(0, 70)}`);
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});

@@ -166,3 +166,118 @@ export function registreGravite(gravite: string | undefined | null): RegistreEta
       return "neutre";
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * ORDRES DE TRAVAIL — un seul dictionnaire de statuts et de priorités
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * Deux écrans servaient les ordres de travail, chacun avec son propre
+ * vocabulaire. Mesuré le 20/10/2026 sur le même locataire, au même
+ * instant :
+ *
+ *   • la page /work-orders traduisait six statuts en français et nommait
+ *     « Suspendu » l'état `paused` ;
+ *   • l'onglet de la GMAO affichait la valeur brute du serveur — « pending »,
+ *     « on_hold », « high », « medium » relevés dans le DOM — et écrivait
+ *     `on_hold` pour ce MÊME état suspendu.
+ *
+ * Conséquence : un ordre suspendu depuis l'onglet ressortait sur la page
+ * avec une pastille grise portant le texte `on_hold`, qu'aucun des deux
+ * dictionnaires ne reconnaissait. Deux valeurs pour un seul état métier,
+ * et aucun des deux écrans ne lisait celle de l'autre.
+ *
+ * `paused` est la valeur retenue : c'est celle que `shared/schema.ts`
+ * documente sur la colonne (« pending, assigned, in_progress, paused,
+ * completed, cancelled »). `on_hold` reste reconnu en LECTURE — la colonne
+ * est un varchar sans contrainte, des lignes le portent déjà, et les
+ * refuser afficherait du texte brut à la place d'un état. C'est la même
+ * mécanique d'alias que `shared/roles.ts`, pour la même raison : une valeur
+ * inconnue ne lève jamais d'erreur, elle s'affiche de travers en silence.
+ */
+
+export interface DefinitionEtatOT {
+  /** Valeur stockée en base et comparée dans le code. Jamais traduite. */
+  readonly id: string;
+  readonly libelle: string;
+  readonly registre: RegistreEtat;
+}
+
+/** Statuts proposés à la saisie, dans l'ordre du cycle de vie. */
+export const STATUTS_OT: readonly DefinitionEtatOT[] = [
+  { id: "pending", libelle: "En attente", registre: "alerte" },
+  { id: "assigned", libelle: "Assigné", registre: "encours" },
+  { id: "in_progress", libelle: "En cours", registre: "encours" },
+  { id: "paused", libelle: "Suspendu", registre: "alerte" },
+  { id: "completed", libelle: "Terminé", registre: "nominal" },
+  { id: "cancelled", libelle: "Annulé", registre: "neutre" },
+];
+
+/**
+ * Valeurs héritées, reconnues en lecture et jamais proposées à la saisie.
+ * `on_hold` a été écrit par l'onglet GMAO ; `critical` par la page, dont le
+ * filtre de priorité proposait « Critique » alors que la base stocke
+ * `urgent`.
+ */
+const ALIAS_STATUT_OT: Record<string, string> = {
+  on_hold: "paused",
+  "on-hold": "paused",
+  hold: "paused",
+};
+
+const ALIAS_PRIORITE_OT: Record<string, string> = {
+  critical: "urgent",
+};
+
+/** Priorités proposées à la saisie, de la plus forte à la plus faible. */
+export const PRIORITES_OT: readonly DefinitionEtatOT[] = [
+  { id: "urgent", libelle: "Critique", registre: "critique" },
+  { id: "high", libelle: "Haute", registre: "alerte" },
+  { id: "medium", libelle: "Moyenne", registre: "encours" },
+  { id: "low", libelle: "Faible", registre: "nominal" },
+];
+
+function resoudre(
+  valeur: string | undefined | null,
+  table: readonly DefinitionEtatOT[],
+  alias: Record<string, string>,
+): DefinitionEtatOT | null {
+  if (typeof valeur !== "string" || valeur.trim() === "") return null;
+  const cle = valeur.trim().toLowerCase();
+  const direct = table.find((d) => d.id === cle);
+  if (direct) return direct;
+  const vise = alias[cle];
+  return vise ? (table.find((d) => d.id === vise) ?? null) : null;
+}
+
+export function definitionStatutOT(statut: string | undefined | null): DefinitionEtatOT | null {
+  return resoudre(statut, STATUTS_OT, ALIAS_STATUT_OT);
+}
+
+export function definitionPrioriteOT(priorite: string | undefined | null): DefinitionEtatOT | null {
+  return resoudre(priorite, PRIORITES_OT, ALIAS_PRIORITE_OT);
+}
+
+/**
+ * Libellé affichable d'un statut. Une valeur qu'aucune règle ne reconnaît
+ * est rendue telle quelle : mieux vaut montrer la valeur réelle que de
+ * l'habiller d'un libellé qui serait faux.
+ */
+export function libelleStatutOT(statut: string | undefined | null): string {
+  return definitionStatutOT(statut)?.libelle ?? (statut || "—");
+}
+
+export function libellePrioriteOT(priorite: string | undefined | null): string {
+  return definitionPrioriteOT(priorite)?.libelle ?? (priorite || "—");
+}
+
+/**
+ * Ramène un statut à la valeur canonique, pour comparer sans se soucier de
+ * l'alias : un ordre `on_hold` et un ordre `paused` sont le même état.
+ */
+export function statutCanoniqueOT(statut: string | undefined | null): string | null {
+  return definitionStatutOT(statut)?.id ?? null;
+}
+
+export function prioriteCanoniqueOT(priorite: string | undefined | null): string | null {
+  return definitionPrioriteOT(priorite)?.id ?? null;
+}

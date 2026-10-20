@@ -920,21 +920,27 @@ export default function GMAODashboard() {
           />
         )}
 
+        {/* L'onglet affichait DEUX titres superposés : ce `<h1>` « Ordres de
+            travail », puis le `<h2>` « Ordres de Travail » que le composant
+            portait lui-même. L'en-tête lui est maintenant passé, comme pour
+            les équipements et le préventif — un seul titre, et le composant
+            est exactement celui que sert /work-orders. */}
         {!showAdminModal && activeTab === "work-orders" && (
-          <div className="space-y-6">
-            <EnTetePage
-              surTitre="GMAO"
-              titre="Ordres de travail"
-              phrase="Les interventions en cours, leur priorité et leur responsable."
-              actionsSecondaires={
-                <ActionSecondaire href="/work-orders">
-                  <ArrowUpRight className="w-4 h-4" />
-                  Vue complète
-                </ActionSecondaire>
-              }
-            />
-            <WorkOrderManagement />
-          </div>
+          <WorkOrderManagement
+            enTete={
+              <EnTetePage
+                surTitre="GMAO"
+                titre="Ordres de travail"
+                phrase="Les interventions en cours, leur priorité et leur responsable."
+                actionsSecondaires={
+                  <ActionSecondaire href="/work-orders">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Vue complète
+                  </ActionSecondaire>
+                }
+              />
+            }
+          />
         )}
 
         {!showAdminModal && activeTab === "inventory" && (
