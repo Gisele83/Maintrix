@@ -51,6 +51,8 @@ import {
   History,
   Trash2
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 
 interface SparePart {
   id: number;
@@ -118,6 +120,22 @@ export default function InventorySimple() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui peut supprimer une pièce détachée ?
+   *
+   * `DELETE /api/spare-parts/:id` exige `hasRole(req, 'admin', 'director',
+   * 'technical_director', 'owner')` (gmao-routes.ts:825). Mesuré : technicien
+   * **403**, administrateur 200, propriétaire 200.
+   *
+   * Le magasinier (`procurement`), qui tient ce stock au quotidien, est donc
+   * refusé LUI AUSSI par le serveur : le bouton qu'on lui montrait ne menait
+   * nulle part. Les entrées, sorties et l'historique de stock, eux, ne sont
+   * pas contrôlés par rôle et restent ouverts à tous — on ne masque que ce
+   * que le serveur refuse.
+   */
+  const peutSupprimer = auMoins(user?.role, "technical_director");
 
   // Simple query - pas de complexité
   const { data: spareParts = [], isLoading, error, refetch } = useQuery<SparePart[]>({
@@ -254,9 +272,9 @@ export default function InventorySimple() {
     return (
       <Card className="max-w-2xl mx-auto">
         <CardContent className="p-8 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="w-12 h-12 text-etat-critique-texte mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Erreur de chargement</h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-ink-soft mb-4">
             Impossible de charger les données: {error.message}
           </p>
           <Button onClick={handleRefresh}>
@@ -503,7 +521,7 @@ export default function InventorySimple() {
           <div className="flex space-x-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-mute w-4 h-4" />
                 <Input
                   placeholder="Rechercher par nom ou numéro..."
                   value={searchTerm}
@@ -535,16 +553,16 @@ export default function InventorySimple() {
       {isLoading ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-etat-encours-texte" />
             <p>Chargement des pièces détachées...</p>
           </CardContent>
         </Card>
       ) : filteredParts.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <Package className="w-12 h-12 text-ink-mute mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Aucune pièce trouvée</h3>
-            <p className="text-gray-600">
+            <p className="text-ink-soft">
               {searchTerm || categoryFilter !== "all" 
                 ? "Aucune pièce ne correspond à votre recherche" 
                 : "Commencez par ajouter votre première pièce détachée"}
@@ -565,7 +583,7 @@ export default function InventorySimple() {
                         {part.category}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-ink-soft">
                       <div>
                         <span className="font-medium">Fournisseur:</span> {part.supplier}
                       </div>
@@ -574,7 +592,7 @@ export default function InventorySimple() {
                       </div>
                       <div>
                         <span className="font-medium">Stock:</span> 
-                        <span className={part.currentStock <= part.minStock ? 'text-red-600 font-medium' : ''}>
+                        <span className={part.currentStock <= part.minStock ? 'text-etat-critique-texte font-medium' : ''}>
                           {part.currentStock}
                         </span>
                         /{part.maxStock}
@@ -597,7 +615,7 @@ export default function InventorySimple() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        className="text-etat-nominal-texte hover:text-etat-nominal-texte hover:bg-etat-nominal-fond"
                         onClick={() => setStockMovementModal({
                           isOpen: true,
                           sparePartId: part.id,
@@ -613,7 +631,7 @@ export default function InventorySimple() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-etat-critique-texte hover:text-etat-critique-texte hover:bg-etat-critique-fond"
                         disabled={part.currentStock === 0}
                         onClick={() => setStockMovementModal({
                           isOpen: true,
@@ -630,7 +648,7 @@ export default function InventorySimple() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="text-etat-encours-texte hover:text-etat-encours-texte hover:bg-etat-encours-fond"
                         onClick={() => setStockHistoryModal({
                           isOpen: true,
                           sparePartId: part.id,
@@ -642,16 +660,18 @@ export default function InventorySimple() {
                         Historique
                       </Button>
                       
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
-                        onClick={() => handleDeletePart(part)}
-                        disabled={deletePartMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        {deletePartMutation.isPending ? "Suppression..." : "Supprimer"}
-                      </Button>
+                      {peutSupprimer && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-etat-critique-texte hover:text-etat-critique-texte hover:bg-etat-critique-fond border-etat-critique-filet hover:border-etat-critique-filet"
+                          onClick={() => handleDeletePart(part)}
+                          disabled={deletePartMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          {deletePartMutation.isPending ? "Suppression..." : "Supprimer"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

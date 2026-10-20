@@ -15,11 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModernNavigation } from "@/components/modern-navigation";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 const statusColors: Record<string, string> = {
-  operational: "bg-green-500",
-  maintenance: "bg-yellow-500",
-  offline: "bg-red-500",
+  operational: "bg-etat-nominal-vif",
+  maintenance: "bg-etat-alerte-vif",
+  offline: "bg-etat-critique-vif",
   decommissioned: "bg-gray-500"
 };
 
@@ -44,12 +47,14 @@ export default function EquipmentQR() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
+      <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Codes QR" }]} largeur="large">
+      <div className="space-y-6">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -105,7 +110,7 @@ export default function EquipmentQR() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
               <QrCode className="w-6 h-6 text-ink" />
             </div>
             <div>
@@ -128,11 +133,11 @@ export default function EquipmentQR() {
           </div>
           <div className="flex gap-1">
             <Button size="sm" variant={viewMode === "grid" ? "default" : "outline"} onClick={() => setViewMode("grid")}
-              className={viewMode === "grid" ? "bg-blue-600" : "border-rule text-ink-soft"}>
+              className={viewMode === "grid" ? "bg-etat-encours-vif" : "border-rule text-ink-soft"}>
               <Grid3X3 className="w-4 h-4" />
             </Button>
             <Button size="sm" variant={viewMode === "list" ? "default" : "outline"} onClick={() => setViewMode("list")}
-              className={viewMode === "list" ? "bg-blue-600" : "border-rule text-ink-soft"}>
+              className={viewMode === "list" ? "bg-etat-encours-vif" : "border-rule text-ink-soft"}>
               <List className="w-4 h-4" />
             </Button>
           </div>
@@ -142,7 +147,7 @@ export default function EquipmentQR() {
         <Card className="bg-paper-deep border-rule">
           <CardHeader className="pb-2">
             <CardTitle className="text-ink text-sm flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-signal-light" />
+              <Smartphone className="w-4 h-4 text-signal" />
               Comment utiliser les QR codes
             </CardTitle>
           </CardHeader>
@@ -154,7 +159,7 @@ export default function EquipmentQR() {
                 { step: "3", title: "Accédez", desc: "Accédez instantanément à la fiche complète de l'équipement", icon: Eye }
               ].map((s, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-signal-deep/20 text-signal-light flex items-center justify-center text-sm font-bold shrink-0">{s.step}</div>
+                  <div className="w-8 h-8 rounded-full bg-signal-deep/20 text-signal flex items-center justify-center text-sm font-bold shrink-0">{s.step}</div>
                   <div>
                     <p className="text-sm font-medium text-ink">{s.title}</p>
                     <p className="text-xs text-ink-mute">{s.desc}</p>
@@ -232,7 +237,7 @@ export default function EquipmentQR() {
             {selectedEquipment && (
               <div className="space-y-4">
                 <div className="flex justify-center">
-                  <div className="bg-white p-4 rounded-xl">
+                  <div className="bg-white p-4 rounded-none">
                     <QRCodeSVG
                       id={`qr-detail-${selectedEquipment.equipment.id}`}
                       value={`${window.location.origin}/equipment/${selectedEquipment.equipment.id}`}
@@ -257,7 +262,7 @@ export default function EquipmentQR() {
                   </div>
                   <div className="flex justify-between p-2 bg-white rounded">
                     <span className="text-xs text-ink-mute">Criticité</span>
-                    <Badge className={`text-xs ${selectedEquipment.equipment.criticalityLevel === 'critical' ? 'bg-red-500/20 text-red-400' : selectedEquipment.equipment.criticalityLevel === 'high' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                    <Badge className={`text-xs ${selectedEquipment.equipment.criticalityLevel === 'critical' ? 'bg-etat-critique-fond text-etat-critique-texte' : selectedEquipment.equipment.criticalityLevel === 'high' ? 'bg-etat-alerte-fond text-etat-alerte-texte' : 'bg-etat-encours-fond text-etat-encours-texte'}`}>
                       {selectedEquipment.equipment.criticalityLevel}
                     </Badge>
                   </div>

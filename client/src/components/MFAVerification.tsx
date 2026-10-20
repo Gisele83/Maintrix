@@ -107,7 +107,7 @@ export function MFAVerification({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-blue-600" />
+            <Shield className="w-5 h-5 text-etat-encours-texte" />
             <span>{title}</span>
           </DialogTitle>
           <DialogDescription>
@@ -140,8 +140,8 @@ export function MFAVerification({
           <TabsContent value="totp" className="space-y-4">
             <div className="text-center space-y-4">
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Smartphone className="w-8 h-8 text-blue-600" />
+                <div className="w-16 h-16 bg-etat-encours-fond rounded-full flex items-center justify-center">
+                  <Smartphone className="w-8 h-8 text-etat-encours-texte" />
                 </div>
               </div>
               
@@ -175,8 +175,8 @@ export function MFAVerification({
           <TabsContent value="backup" className="space-y-4">
             <div className="text-center space-y-4">
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-                  <Key className="w-8 h-8 text-amber-600" />
+                <div className="w-16 h-16 bg-etat-alerte-fond rounded-full flex items-center justify-center">
+                  <Key className="w-8 h-8 text-etat-alerte-texte" />
                 </div>
               </div>
               

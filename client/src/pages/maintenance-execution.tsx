@@ -15,6 +15,9 @@ import {
   Search, Wrench, Gauge, ShieldCheck, Truck, BookOpen, PackageCheck, ClipboardCheck, Network,
   Upload as UploadIcon, File as FileIcon,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type StepType = "reception" | "inspection" | "diagnostic" | "reparation" | "essais" | "controle_qualite" | "livraison" | "rex";
@@ -78,11 +81,11 @@ const STEP_META: Record<StepType, { label: string; icon: any }> = {
 };
 
 const STATUS_BADGE: Record<InterventionStep["status"], { label: string; className: string }> = {
-  pending: { label: "En attente", className: "bg-gray-100 text-gray-600" },
-  in_progress: { label: "En cours", className: "bg-blue-100 text-blue-700" },
-  completed: { label: "Terminée", className: "bg-green-100 text-green-700" },
-  rejected: { label: "Rejetée", className: "bg-red-100 text-red-700" },
-  skipped: { label: "Ignorée", className: "bg-gray-100 text-gray-500" },
+  pending: { label: "En attente", className: "bg-paper-deep text-ink-soft" },
+  in_progress: { label: "En cours", className: "bg-etat-encours-fond text-etat-encours-texte" },
+  completed: { label: "Terminée", className: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  rejected: { label: "Rejetée", className: "bg-etat-critique-fond text-etat-critique-texte" },
+  skipped: { label: "Ignorée", className: "bg-paper-deep text-ink-mute" },
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -154,12 +157,13 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
   const currentInProgressStep = executionDetail?.steps.find(s => s.status === "in_progress");
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "GMAO" }, { libelle: "Exécution" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Maintenance Execution</h1>
-            <p className="text-gray-500">Réception → Inspection → Diagnostic → Réparation → Essais → Contrôle Qualité → Livraison → REX</p>
+            <h1 className="text-2xl font-bold text-ink">Maintenance Execution</h1>
+            <p className="text-ink-mute">Réception → Inspection → Diagnostic → Réparation → Essais → Contrôle Qualité → Livraison → REX</p>
           </div>
           <Link href="/knowledge-graph">
             <Button variant="outline" size="sm">
@@ -197,7 +201,7 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
           return (
             <Card>
               <CardContent className="pt-6 flex items-center justify-between">
-                <p className="text-gray-600">
+                <p className="text-ink-soft">
                   {missingEquipment
                     ? "Cet ordre de travail n'a aucun équipement associé — impossible de démarrer une intervention."
                     : "Aucune exécution d'intervention pour cet OT."}
@@ -236,13 +240,13 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
                     return (
                       <div key={stepType} className="flex items-center">
                         <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm ${
-                          isCurrent ? "border-blue-500 bg-blue-50 text-blue-700 font-medium" : "border-gray-200 text-gray-500"
+                          isCurrent ? "border-etat-encours-filet bg-etat-encours-fond text-etat-encours-texte font-medium" : "border-rule text-ink-mute"
                         }`}>
                           <Icon className="w-3.5 h-3.5" />
                           {STEP_META[stepType].label}
                           {lastOfType && (
-                            lastOfType.status === "completed" ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> :
-                            lastOfType.status === "rejected" ? <XCircle className="w-3.5 h-3.5 text-red-500" /> :
+                            lastOfType.status === "completed" ? <CheckCircle2 className="w-3.5 h-3.5 text-etat-nominal-texte" /> :
+                            lastOfType.status === "rejected" ? <XCircle className="w-3.5 h-3.5 text-etat-critique-texte" /> :
                             <Circle className="w-3.5 h-3.5" />
                           )}
                         </div>
@@ -286,8 +290,8 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
             )}
 
             {executionDetail.execution.currentStep === "terminee" && (
-              <Card className="border-green-200 bg-green-50">
-                <CardContent className="pt-6 flex items-center gap-2 text-green-700">
+              <Card className="border-etat-nominal-filet bg-etat-nominal-fond">
+                <CardContent className="pt-6 flex items-center gap-2 text-etat-nominal-texte">
                   <PackageCheck className="w-5 h-5" />
                   Intervention terminée — le graphe de connaissance a été enrichi automatiquement à chaque étape.
                 </CardContent>
@@ -301,7 +305,7 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
                 {executionDetail.steps.map(step => (
                   <div key={step.id} className="flex items-center justify-between text-sm border-b border-gray-100 py-2 last:border-0">
                     <span className="font-medium">{STEP_META[step.stepType].label}</span>
-                    <div className="flex items-center gap-2 text-gray-500">
+                    <div className="flex items-center gap-2 text-ink-mute">
                       {step.durationMinutes !== null && <span>{step.durationMinutes} min</span>}
                       <Badge className={STATUS_BADGE[step.status].className}>{STATUS_BADGE[step.status].label}</Badge>
                     </div>
@@ -313,6 +317,7 @@ export default function MaintenanceExecutionPage({ workOrderId: workOrderIdParam
         )}
       </div>
     </div>
+    </AppShell>
   );
 }
 
@@ -374,7 +379,7 @@ function StepCompletionForm({
       )}
 
       {step.stepType === "diagnostic" && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-mute">
           {step.diagnosticSessionId
             ? `Rattaché à la session de diagnostic #${step.diagnosticSessionId}.`
             : "Aucune session de diagnostic rattachée — l'étape sera complétée sans enrichissement du graphe pour cette étape."}
@@ -482,9 +487,9 @@ function AttachmentsUploader({ executionId, stepId }: { executionId: number; ste
           {attachments!.map(a => (
             <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="block">
               {a.type === "photo" ? (
-                <img src={a.url} alt={a.caption ?? ""} className="w-16 h-16 object-cover rounded border border-gray-200" />
+                <img src={a.url} alt={a.caption ?? ""} className="w-16 h-16 object-cover rounded border border-rule" />
               ) : (
-                <div className="w-16 h-16 flex items-center justify-center rounded border border-gray-200 bg-gray-50">
+                <div className="w-16 h-16 flex items-center justify-center rounded border border-rule bg-paper">
                   <FileIcon className="w-6 h-6 text-ink-mute" />
                 </div>
               )}
@@ -494,7 +499,7 @@ function AttachmentsUploader({ executionId, stepId }: { executionId: number; ste
       )}
       <div className="flex gap-2 items-center">
         <Input placeholder="Légende (optionnel)" value={caption} onChange={e => setCaption(e.target.value)} className="flex-1" />
-        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md cursor-pointer hover:bg-gray-50">
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md cursor-pointer hover:bg-paper">
           {upload.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadIcon className="w-4 h-4" />}
           Ajouter un fichier
           <input
@@ -548,7 +553,7 @@ function EssaisMeasurements({ executionId, stepId }: { executionId: number; step
               <span className="font-medium">{m.measurementType}</span>
               <span>{m.value} {m.unit}</span>
               {m.withinTolerance !== null && (
-                <Badge className={m.withinTolerance ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                <Badge className={m.withinTolerance ? "bg-etat-nominal-fond text-etat-nominal-texte" : "bg-etat-critique-fond text-etat-critique-texte"}>
                   {m.withinTolerance ? "Conforme" : "Hors tolérance"}
                 </Badge>
               )}

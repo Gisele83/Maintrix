@@ -44,18 +44,18 @@ export default function SecurityMFAPage() {
     <div className="container mx-auto p-6 space-y-8 max-w-6xl">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <Shield className="w-8 h-8 text-blue-600" />
+        <Shield className="w-8 h-8 text-etat-encours-texte" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sécurité & Authentification</h1>
-          <p className="text-lg text-gray-600">Gestion de l'authentification multi-facteurs (MFA)</p>
+          <h1 className="text-3xl font-bold text-ink">Sécurité & Authentification</h1>
+          <p className="text-lg text-ink-soft">Gestion de l'authentification multi-facteurs (MFA)</p>
         </div>
       </div>
 
       {/* Alertes de sécurité */}
       {isAdmin && mfaComplianceRate < 80 && (
-        <Alert className="border-amber-200 bg-amber-50">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          <AlertDescription className="text-amber-800">
+        <Alert className="border-etat-alerte-filet bg-etat-alerte-fond">
+          <AlertTriangle className="h-5 w-5 text-etat-alerte-texte" />
+          <AlertDescription className="text-etat-alerte-texte">
             <strong>Attention sécurité :</strong> Seulement {mfaComplianceRate}% des utilisateurs ont activé MFA. 
             Recommandation : rendre MFA obligatoire pour les rôles sensibles.
           </AlertDescription>
@@ -67,11 +67,11 @@ export default function SecurityMFAPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Utilisateurs Total</CardTitle>
+              <CardTitle className="text-sm font-medium text-ink-soft">Utilisateurs Total</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-blue-500" />
+                <Users className="w-5 h-5 text-etat-encours-texte" />
                 <span className="text-2xl font-bold">{stats.totalUsers}</span>
               </div>
             </CardContent>
@@ -79,19 +79,19 @@ export default function SecurityMFAPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">MFA Activé</CardTitle>
+              <CardTitle className="text-sm font-medium text-ink-soft">MFA Activé</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-2xl font-bold text-green-600">{stats.mfaEnabledUsers}</span>
+                <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />
+                <span className="text-2xl font-bold text-etat-nominal-texte">{stats.mfaEnabledUsers}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Administrateurs</CardTitle>
+              <CardTitle className="text-sm font-medium text-ink-soft">Administrateurs</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
@@ -103,16 +103,16 @@ export default function SecurityMFAPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Conformité MFA</CardTitle>
+              <CardTitle className="text-sm font-medium text-ink-soft">Conformité MFA</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-blue-500" />
-                <span className="text-2xl font-bold text-blue-600">{mfaComplianceRate}%</span>
+                <Shield className="w-5 h-5 text-etat-encours-texte" />
+                <span className="text-2xl font-bold text-etat-encours-texte">{mfaComplianceRate}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div className="w-full bg-paper-deep rounded-full h-2 mt-2">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                  className="bg-etat-encours-vif h-2 rounded-full transition-all duration-500" 
                   style={{ width: `${mfaComplianceRate}%` }}
                 ></div>
               </div>
@@ -133,11 +133,11 @@ export default function SecurityMFAPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-blue-600" />
+                <Shield className="w-5 h-5 text-etat-encours-texte" />
                 <span>Qu'est-ce que MFA ?</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-gray-600">
+            <CardContent className="space-y-4 text-sm text-ink-soft">
               <p>
                 L'authentification multi-facteurs (MFA) ajoute une couche de sécurité supplémentaire 
                 en exigeant deux formes d'identification :
@@ -156,11 +156,11 @@ export default function SecurityMFAPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                <AlertTriangle className="w-5 h-5 text-etat-alerte-texte" />
                 <span>Codes de Récupération</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-gray-600">
+            <CardContent className="space-y-3 text-sm text-ink-soft">
               <p>
                 Les codes de récupération vous permettent d'accéder à votre compte si vous 
                 perdez votre téléphone.
@@ -182,7 +182,7 @@ export default function SecurityMFAPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="w-5 h-5 text-green-600" />
+                <Users className="w-5 h-5 text-etat-nominal-texte" />
                 <span>Applications Compatibles</span>
               </CardTitle>
             </CardHeader>
@@ -206,14 +206,14 @@ export default function SecurityMFAPage() {
 
           {/* Politique de sécurité pour admins */}
           {isAdmin && (
-            <Card className="border-red-200">
+            <Card className="border-etat-critique-filet">
               <CardHeader>
-                <CardTitle className="text-red-700 flex items-center space-x-2">
+                <CardTitle className="text-etat-critique-texte flex items-center space-x-2">
                   <AlertTriangle className="w-5 h-5" />
                   <span>Politique Admin</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm text-red-600">
+              <CardContent className="text-sm text-etat-critique-texte">
                 <p>
                   <strong>MFA obligatoire</strong> pour tous les comptes administrateurs et propriétaires.
                 </p>

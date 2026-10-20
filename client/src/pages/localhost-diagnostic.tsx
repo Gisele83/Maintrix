@@ -74,19 +74,19 @@ export default function LocalhostDiagnostic() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'error': return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'checking': return <Wifi className="w-5 h-5 text-blue-500 animate-spin" />;
-      default: return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+      case 'success': return <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />;
+      case 'error': return <XCircle className="w-5 h-5 text-etat-critique-texte" />;
+      case 'checking': return <Wifi className="w-5 h-5 text-etat-encours-texte animate-spin" />;
+      default: return <AlertCircle className="w-5 h-5 text-etat-alerte-texte" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'success': return 'bg-green-100 text-green-800';
-      case 'error': return 'bg-red-100 text-red-800';
-      case 'checking': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      case 'success': return 'bg-etat-nominal-fond text-etat-nominal-texte';
+      case 'error': return 'bg-etat-critique-fond text-etat-critique-texte';
+      case 'checking': return 'bg-etat-encours-fond text-etat-encours-texte';
+      default: return 'bg-etat-alerte-fond text-etat-alerte-texte';
     }
   };
 
@@ -99,13 +99,13 @@ export default function LocalhostDiagnostic() {
           <h1 className="text-4xl font-bold text-ink">
             Diagnostic d'Accès Localhost
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-ink-soft max-w-2xl mx-auto">
             Diagnostic automatique pour résoudre les problèmes d'accès à Maintrix sur localhost:5050
           </p>
         </div>
 
         {/* État du système */}
-        <Card className="border-2 border-blue-100">
+        <Card className="border-2 border-etat-encours-filet">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
@@ -119,7 +119,7 @@ export default function LocalhostDiagnostic() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* Serveur principal */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(diagnosticResults.serverStatus)}
                   <span className="font-medium">Serveur Principal</span>
@@ -131,7 +131,7 @@ export default function LocalhostDiagnostic() {
               </div>
 
               {/* API */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(diagnosticResults.apiStatus)}
                   <span className="font-medium">API Backend</span>
@@ -143,7 +143,7 @@ export default function LocalhostDiagnostic() {
               </div>
 
               {/* Port 5050 */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-paper rounded-lg">
                 <div className="flex items-center gap-2">
                   {getStatusIcon(diagnosticResults.portStatus)}
                   <span className="font-medium">Port 5050</span>
@@ -159,9 +159,9 @@ export default function LocalhostDiagnostic() {
 
         {/* Solutions recommandées */}
         {diagnosticResults.recommendations.length > 0 && (
-          <Card className="border-2 border-yellow-100">
+          <Card className="border-2 border-etat-alerte-filet">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-700">
+              <CardTitle className="flex items-center gap-2 text-etat-alerte-texte">
                 <AlertCircle className="w-5 h-5" />
                 Solutions Recommandées
               </CardTitle>
@@ -172,11 +172,11 @@ export default function LocalhostDiagnostic() {
             <CardContent>
               <div className="space-y-3">
                 {diagnosticResults.recommendations.map((recommendation, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                    <div className="w-6 h-6 bg-yellow-200 rounded-full flex items-center justify-center text-yellow-700 font-bold text-sm">
+                  <div key={index} className="flex items-start gap-3 p-3 bg-etat-alerte-fond rounded-lg">
+                    <div className="w-6 h-6 bg-etat-alerte-fond rounded-full flex items-center justify-center text-etat-alerte-texte font-bold text-sm">
                       {index + 1}
                     </div>
-                    <span className="text-yellow-800">{recommendation}</span>
+                    <span className="text-etat-alerte-texte">{recommendation}</span>
                   </div>
                 ))}
               </div>
@@ -185,9 +185,9 @@ export default function LocalhostDiagnostic() {
         )}
 
         {/* Liens d'accès alternatifs */}
-        <Card className="border-2 border-green-100">
+        <Card className="border-2 border-etat-nominal-filet">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className="flex items-center gap-2 text-etat-nominal-texte">
               <ExternalLink className="w-5 h-5" />
               Liens d'Accès
             </CardTitle>
@@ -200,7 +200,7 @@ export default function LocalhostDiagnostic() {
 
               <Button
                 onClick={() => window.open('http://localhost:5050', '_blank')}
-                className="h-auto p-4 flex flex-col items-start gap-2 bg-blue-600 hover:bg-blue-700"
+                className="h-auto p-4 flex flex-col items-start gap-2 bg-etat-encours-vif hover:bg-etat-encours-vif"
               >
                 <span className="font-semibold">http://localhost:5050</span>
                 <span className="text-xs opacity-90">Accès standard</span>
@@ -212,7 +212,7 @@ export default function LocalhostDiagnostic() {
                 className="h-auto p-4 flex flex-col items-start gap-2"
               >
                 <span className="font-semibold">http://127.0.0.1:5050</span>
-                <span className="text-xs text-gray-600">Alternative IP</span>
+                <span className="text-xs text-ink-soft">Alternative IP</span>
               </Button>
 
               <Button
@@ -224,7 +224,7 @@ export default function LocalhostDiagnostic() {
                   <Download className="w-4 h-4" />
                   <span className="font-semibold">Télécharger</span>
                 </div>
-                <span className="text-xs text-gray-600">Scripts de diagnostic</span>
+                <span className="text-xs text-ink-soft">Scripts de diagnostic</span>
               </Button>
             </div>
           </CardContent>
@@ -241,8 +241,8 @@ export default function LocalhostDiagnostic() {
           <CardContent className="space-y-6">
             
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Pare-feu Windows</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
+              <h3 className="font-semibold text-ink mb-2">Pare-feu Windows</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-ink-soft ml-4">
                 <li>Ouvrez le Panneau de configuration → Système et sécurité</li>
                 <li>Cliquez sur "Pare-feu Windows Defender"</li>
                 <li>Sélectionnez "Paramètres avancés"</li>
@@ -251,8 +251,8 @@ export default function LocalhostDiagnostic() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Antivirus</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
+              <h3 className="font-semibold text-ink mb-2">Antivirus</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-ink-soft ml-4">
                 <li>Ajoutez Maintrix aux exceptions</li>
                 <li>Autorisez les connexions sur le port 5050</li>
                 <li>Désactivez temporairement la protection en temps réel</li>
@@ -260,8 +260,8 @@ export default function LocalhostDiagnostic() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Paramètres Navigateur</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 ml-4">
+              <h3 className="font-semibold text-ink mb-2">Paramètres Navigateur</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-ink-soft ml-4">
                 <li>Videz le cache (Ctrl+F5)</li>
                 <li>Désactivez les extensions</li>
                 <li>Vérifiez les paramètres de proxy</li>

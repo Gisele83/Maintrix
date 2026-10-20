@@ -195,21 +195,21 @@ export default function ValidationDashboard({
 
   const getPriorityBadge = (priority: string) => {
     const colors = {
-      urgent: "bg-red-500 text-white",
-      high: "bg-orange-500 text-white", 
-      medium: "bg-yellow-500 text-black",
-      low: "bg-green-500 text-white"
+      urgent: "bg-etat-critique-vif text-white",
+      high: "bg-etat-alerte-vif text-white", 
+      medium: "bg-etat-alerte-vif text-black",
+      low: "bg-etat-nominal-vif text-white"
     };
     return <Badge className={colors[priority as keyof typeof colors] || "bg-gray-500 text-white"}>{priority}</Badge>;
   };
 
   const getValidationStatusBadge = (status: string) => {
     const colors = {
-      pending: "bg-orange-100 text-orange-800 border-orange-200",
-      level1_validated: "bg-blue-100 text-blue-800 border-blue-200",
+      pending: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+      level1_validated: "bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet",
       level2_validated: "bg-paper-deep text-signal-deep border-rule",
-      fully_validated: "bg-green-100 text-green-800 border-green-200",
-      rejected: "bg-red-100 text-red-800 border-red-200"
+      fully_validated: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",
+      rejected: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet"
     };
     
     const labels = {
@@ -221,7 +221,7 @@ export default function ValidationDashboard({
     };
     
     return (
-      <Badge variant="outline" className={colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800"}>
+      <Badge variant="outline" className={colors[status as keyof typeof colors] || "bg-paper-deep text-ink"}>
         {labels[status as keyof typeof labels] || status}
       </Badge>
     );
@@ -232,9 +232,9 @@ export default function ValidationDashboard({
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune permission de validation</h3>
-            <p className="text-gray-500">Vous n'avez pas les permissions nécessaires pour valider des ordres de travail ou des bons de commande.</p>
+            <AlertCircle className="h-12 w-12 mx-auto text-ink-mute mb-4" />
+            <h3 className="text-lg font-medium text-ink mb-2">Aucune permission de validation</h3>
+            <p className="text-ink-mute">Vous n'avez pas les permissions nécessaires pour valider des ordres de travail ou des bons de commande.</p>
           </div>
         </CardContent>
       </Card>
@@ -279,9 +279,9 @@ export default function ValidationDashboard({
                 <Card>
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <CheckCircle2 className="h-12 w-12 mx-auto text-green-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun ordre en attente</h3>
-                      <p className="text-gray-500">Tous les ordres de travail ont été traités.</p>
+                      <CheckCircle2 className="h-12 w-12 mx-auto text-etat-nominal-texte mb-4" />
+                      <h3 className="text-lg font-medium text-ink mb-2">Aucun ordre en attente</h3>
+                      <p className="text-ink-mute">Tous les ordres de travail ont été traités.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -300,20 +300,20 @@ export default function ValidationDashboard({
                     <CardContent className="space-y-3">
                       <div>
                         <h4 className="font-medium mb-1">{workOrder.title}</h4>
-                        <p className="text-sm text-gray-600">{workOrder.description}</p>
+                        <p className="text-sm text-ink-soft">{workOrder.description}</p>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-1">
-                          <User className="h-4 w-4 text-gray-400" />
+                          <User className="h-4 w-4 text-ink-mute" />
                           <span>Demandeur: {workOrder.requestedBy}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4 text-gray-400" />
+                          <Clock className="h-4 w-4 text-ink-mute" />
                           <span>Durée: {workOrder.estimatedDuration || 0} min</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <Calendar className="h-4 w-4 text-ink-mute" />
                           <span>{new Date(workOrder.createdAt).toLocaleDateString('fr-FR')}</span>
                         </div>
                       </div>
@@ -328,7 +328,7 @@ export default function ValidationDashboard({
                                 setSelectedRecord(workOrder);
                                 setShowValidateModal(true);
                               }}
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                             >
                               <Check className="h-4 w-4 mr-1" />
                               Valider
@@ -361,7 +361,7 @@ export default function ValidationDashboard({
                                 <Button
                                   onClick={() => handleValidation("work_order", workOrder.id, "validate")}
                                   disabled={loading}
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                                 >
                                   <Check className="h-4 w-4 mr-1" />
                                   Valider
@@ -391,7 +391,7 @@ export default function ValidationDashboard({
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <label className="text-sm font-medium">Raison du rejet <span className="text-red-500">*</span></label>
+                                <label className="text-sm font-medium">Raison du rejet <span className="text-etat-critique-texte">*</span></label>
                                 <Textarea
                                   placeholder="Veuillez expliquer la raison du rejet..."
                                   value={validationComments}
@@ -438,9 +438,9 @@ export default function ValidationDashboard({
                 <Card>
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <CheckCircle2 className="h-12 w-12 mx-auto text-green-400 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun bon en attente</h3>
-                      <p className="text-gray-500">Tous les bons de commande ont été traités.</p>
+                      <CheckCircle2 className="h-12 w-12 mx-auto text-etat-nominal-texte mb-4" />
+                      <h3 className="text-lg font-medium text-ink mb-2">Aucun bon en attente</h3>
+                      <p className="text-ink-mute">Tous les bons de commande ont été traités.</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -459,7 +459,7 @@ export default function ValidationDashboard({
                     <CardContent className="space-y-3">
                       <div>
                         <h4 className="font-medium mb-1">Type: {purchaseOrder.orderType}</h4>
-                        <p className="text-lg font-semibold text-green-600">
+                        <p className="text-lg font-semibold text-etat-nominal-texte">
                           {parseFloat(purchaseOrder.totalAmount).toLocaleString('fr-FR', { 
                             style: 'currency', 
                             currency: purchaseOrder.currency 
@@ -469,28 +469,28 @@ export default function ValidationDashboard({
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-1">
-                          <User className="h-4 w-4 text-gray-400" />
+                          <User className="h-4 w-4 text-ink-mute" />
                           <span>Service Achat: {purchaseOrder.requestedBy}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <Calendar className="h-4 w-4 text-ink-mute" />
                           <span>{new Date(purchaseOrder.createdAt).toLocaleDateString('fr-FR')}</span>
                         </div>
                       </div>
                       
-                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <h5 className="font-medium text-blue-800 mb-2">Workflow de Validation</h5>
-                        <div className="text-sm text-blue-700 space-y-1">
+                      <div className="bg-etat-encours-fond p-3 rounded-lg border border-etat-encours-filet">
+                        <h5 className="font-medium text-etat-encours-texte mb-2">Workflow de Validation</h5>
+                        <div className="text-sm text-etat-encours-texte space-y-1">
                           <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-etat-nominal-vif rounded-full"></div>
                             <span>1. Service Achat - Créé</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${validationLevel === 1 ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                            <div className={`w-2 h-2 rounded-full ${validationLevel === 1 ? 'bg-etat-alerte-vif' : 'bg-gray-300'}`}></div>
                             <span>2. Chef de Service Utilisateur - {validationLevel === 1 ? 'En cours' : 'En attente'}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${validationLevel === 2 ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                            <div className={`w-2 h-2 rounded-full ${validationLevel === 2 ? 'bg-etat-alerte-vif' : 'bg-gray-300'}`}></div>
                             <span>3. Directeur Général - {validationLevel === 2 ? 'En cours' : 'En attente'}</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -533,7 +533,7 @@ export default function ValidationDashboard({
                                 setSelectedRecord(purchaseOrder);
                                 setShowValidateModal(true);
                               }}
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                             >
                               <Check className="h-4 w-4 mr-1" />
                               Valider
@@ -566,7 +566,7 @@ export default function ValidationDashboard({
                                 <Button
                                   onClick={() => handleValidation("purchase_order", purchaseOrder.id, "validate")}
                                   disabled={loading}
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                                 >
                                   <Check className="h-4 w-4 mr-1" />
                                   Valider
@@ -596,7 +596,7 @@ export default function ValidationDashboard({
                             </DialogHeader>
                             <div className="space-y-4">
                               <div>
-                                <label className="text-sm font-medium">Raison du rejet <span className="text-red-500">*</span></label>
+                                <label className="text-sm font-medium">Raison du rejet <span className="text-etat-critique-texte">*</span></label>
                                 <Textarea
                                   placeholder="Veuillez expliquer la raison du rejet..."
                                   value={validationComments}
@@ -644,16 +644,16 @@ export default function ValidationDashboard({
             <CardContent>
               <div className="space-y-2">
                 {validationHistory.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">Aucun historique de validation disponible</p>
+                  <p className="text-ink-mute text-center py-8">Aucun historique de validation disponible</p>
                 ) : (
                   validationHistory.map((log) => (
                     <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div className={`p-1 rounded-full ${log.action === 'validate' ? 'bg-green-100' : 'bg-red-100'}`}>
+                        <div className={`p-1 rounded-full ${log.action === 'validate' ? 'bg-etat-nominal-fond' : 'bg-etat-critique-fond'}`}>
                           {log.action === 'validate' ? (
-                            <Check className="h-4 w-4 text-green-600" />
+                            <Check className="h-4 w-4 text-etat-nominal-texte" />
                           ) : (
-                            <X className="h-4 w-4 text-red-600" />
+                            <X className="h-4 w-4 text-etat-critique-texte" />
                           )}
                         </div>
                         <div>
@@ -662,11 +662,11 @@ export default function ValidationDashboard({
                             Niveau {log.validationLevel}
                           </p>
                           {log.comments && (
-                            <p className="text-sm text-gray-600">{log.comments}</p>
+                            <p className="text-sm text-ink-soft">{log.comments}</p>
                           )}
                         </div>
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-ink-mute">
                         {new Date(log.validationDate).toLocaleDateString('fr-FR')}
                       </span>
                     </div>

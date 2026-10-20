@@ -107,8 +107,8 @@ export function DiagnosticResults({
   const [showTrends, setShowTrends] = useState(false);
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "bg-green-600";
-    if (confidence >= 50) return "bg-orange-500";
+    if (confidence >= 80) return "bg-etat-nominal-vif";
+    if (confidence >= 50) return "bg-etat-alerte-vif";
     return "bg-gray-500";
   };
 
@@ -121,34 +121,34 @@ export function DiagnosticResults({
   const getSourceBadge = (source?: string) => {
     switch (source) {
       case 'rules': return { label: 'Règle Expert', color: 'bg-signal-deep text-white', icon: <Shield className="w-3 h-3 mr-1" /> };
-      case 'historical': return { label: 'Historique', color: 'bg-blue-600 text-white', icon: <History className="w-3 h-3 mr-1" /> };
-      case 'failure_memory': return { label: 'Mémoire Pannes', color: 'bg-amber-600 text-white', icon: <Brain className="w-3 h-3 mr-1" /> };
-      case 'ai_structured': return { label: 'IA Claude', color: 'bg-cyan-600 text-white', icon: <Cloud className="w-3 h-3 mr-1" /> };
+      case 'historical': return { label: 'Historique', color: 'bg-etat-encours-vif text-white', icon: <History className="w-3 h-3 mr-1" /> };
+      case 'failure_memory': return { label: 'Mémoire Pannes', color: 'bg-etat-alerte-vif text-white', icon: <Brain className="w-3 h-3 mr-1" /> };
+      case 'ai_structured': return { label: 'IA Claude', color: 'bg-etat-encours-vif text-white', icon: <Cloud className="w-3 h-3 mr-1" /> };
       default: return { label: 'Analyse', color: 'bg-gray-600 text-white', icon: <Target className="w-3 h-3 mr-1" /> };
     }
   };
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'high': return 'border-red-300 bg-red-50 text-red-800';
-      case 'medium': return 'border-orange-300 bg-orange-50 text-orange-800';
-      default: return 'border-gray-300 bg-gray-50 text-gray-700';
+      case 'high': return 'border-etat-critique-filet bg-etat-critique-fond text-etat-critique-texte';
+      case 'medium': return 'border-etat-alerte-filet bg-etat-alerte-fond text-etat-alerte-texte';
+      default: return 'border-rule bg-paper text-ink-soft';
     }
   };
 
   if (isLoading) {
     return (
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <Lightbulb className="text-carbon-orange" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <Lightbulb className="text-etat-alerte-texte" />
             <span>{t("diagnosticSuggestions", language)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-carbon-blue"></div>
-            <p className="text-carbon-gray-70 mt-2">{t("analyzing", language)}</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-signal"></div>
+            <p className="text-ink-soft mt-2">{t("analyzing", language)}</p>
           </div>
         </CardContent>
       </Card>
@@ -157,17 +157,17 @@ export function DiagnosticResults({
 
   if (suggestions.length === 0) {
     return (
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
-          <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-            <Lightbulb className="text-carbon-orange" />
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
+          <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+            <Lightbulb className="text-etat-alerte-texte" />
             <span>{t("diagnosticSuggestions", language)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="text-center py-8">
-            <Lightbulb className="text-carbon-gray-50 text-4xl mb-4 mx-auto" />
-            <p className="text-carbon-gray-70">{t("enterInfoForDiagnosis", language)}</p>
+            <Lightbulb className="text-ink-mute text-4xl mb-4 mx-auto" />
+            <p className="text-ink-soft">{t("enterInfoForDiagnosis", language)}</p>
           </div>
         </CardContent>
       </Card>
@@ -177,17 +177,17 @@ export function DiagnosticResults({
   return (
     <div className="space-y-4">
       {explanationSummary && (
-        <Card className="border border-blue-200 bg-paper-deep shadow-sm">
+        <Card className="border border-etat-encours-filet bg-paper-deep shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
-              <Layers className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Layers className="w-5 h-5 text-etat-encours-texte mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold text-blue-900 text-sm mb-1">Moteur Hybride de Diagnostic</h4>
-                <p className="text-sm text-blue-800">{explanationSummary}</p>
+                <h4 className="font-semibold text-etat-encours-texte text-sm mb-1">Moteur Hybride de Diagnostic</h4>
+                <p className="text-sm text-etat-encours-texte">{explanationSummary}</p>
                 {engineSources && engineSources.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {engineSources.map((source, i) => (
-                      <Badge key={i} variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                      <Badge key={i} variant="secondary" className="bg-etat-encours-fond text-etat-encours-texte text-xs">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {source}
                       </Badge>
@@ -201,27 +201,27 @@ export function DiagnosticResults({
       )}
 
       {contextSignals && contextSignals.length > 0 && (
-        <Card className="border border-amber-200 bg-amber-50/50 shadow-sm">
+        <Card className="border border-etat-alerte-filet bg-etat-alerte-fond/50 shadow-sm">
           <CardContent className="p-4">
-            <h4 className="font-semibold text-amber-900 text-sm mb-2 flex items-center">
+            <h4 className="font-semibold text-etat-alerte-texte text-sm mb-2 flex items-center">
               <Info className="w-4 h-4 mr-2" />
               Signaux Contextuels GMAO
             </h4>
             <div className="space-y-1.5">
               {contextSignals.map((signal, i) => (
                 <div key={i} className="flex items-start space-x-2 text-sm">
-                  <span className="text-amber-600 mt-0.5">
+                  <span className="text-etat-alerte-texte mt-0.5">
                     {signal.type === 'criticality' && <AlertTriangle className="w-3.5 h-3.5" />}
                     {signal.type === 'recent_intervention' && <Clock className="w-3.5 h-3.5" />}
                     {signal.type === 'recurrence' && <TrendingUp className="w-3.5 h-3.5" />}
                     {signal.type === 'operational_state' && <Activity className="w-3.5 h-3.5" />}
                     {signal.type === 'machine_hours' && <Timer className="w-3.5 h-3.5" />}
-                    {signal.type === 'machine_hours_alert' && <AlertTriangle className="w-3.5 h-3.5 text-red-600" />}
+                    {signal.type === 'machine_hours_alert' && <AlertTriangle className="w-3.5 h-3.5 text-etat-critique-texte" />}
                     {signal.type === 'counter_data' && <Gauge className="w-3.5 h-3.5" />}
                   </span>
                   <div>
-                    <span className="font-medium text-amber-800">{signal.label}</span>
-                    <span className="text-amber-700"> — {signal.detail}</span>
+                    <span className="font-medium text-etat-alerte-texte">{signal.label}</span>
+                    <span className="text-etat-alerte-texte"> — {signal.detail}</span>
                   </div>
                 </div>
               ))}
@@ -230,15 +230,15 @@ export function DiagnosticResults({
         </Card>
       )}
 
-      <Card className="border border-carbon-gray-20 shadow-sm">
-        <CardHeader className="border-b border-carbon-gray-20">
+      <Card className="border border-rule shadow-sm">
+        <CardHeader className="border-b border-rule">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-                <Lightbulb className="text-carbon-orange" />
+              <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+                <Lightbulb className="text-etat-alerte-texte" />
                 <span>{t("diagnosticSuggestions", language)}</span>
               </CardTitle>
-              <p className="text-carbon-gray-70 text-sm mt-1">
+              <p className="text-ink-soft text-sm mt-1">
                 Top {suggestions.length} diagnostic(s) — moteur hybride (règles + historique + IA)
               </p>
             </div>
@@ -271,8 +271,8 @@ export function DiagnosticResults({
         
         <CardContent className="p-6">
           {showSimilarIncidents && similarIncidents && similarIncidents.length > 0 && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
-              <h5 className="font-semibold text-slate-900 text-sm mb-3 flex items-center">
+            <div className="bg-paper border border-rule rounded-lg p-4 mb-6">
+              <h5 className="font-semibold text-ink text-sm mb-3 flex items-center">
                 <History className="w-4 h-4 mr-2" />
                 Incidents Similaires Récents
               </h5>
@@ -280,10 +280,10 @@ export function DiagnosticResults({
                 {similarIncidents.map((incident, i) => (
                   <div key={i} className="flex items-center justify-between bg-white p-2.5 rounded border text-sm">
                     <div className="flex-1">
-                      <span className="text-slate-500 text-xs">{incident.date}</span>
-                      <span className="mx-2 text-slate-300">|</span>
-                      <span className="font-medium text-slate-800">{incident.equipmentType}</span>
-                      <p className="text-xs text-slate-600 mt-0.5 truncate">{incident.diagnosis}</p>
+                      <span className="text-ink-mute text-xs">{incident.date}</span>
+                      <span className="mx-2 text-ink-mute">|</span>
+                      <span className="font-medium text-ink">{incident.equipmentType}</span>
+                      <p className="text-xs text-ink-soft mt-0.5 truncate">{incident.diagnosis}</p>
                     </div>
                     <Badge variant="secondary" className="text-xs ml-2">
                       il y a {incident.daysAgo}j
@@ -309,9 +309,9 @@ export function DiagnosticResults({
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className={`text-xs ${
-                        trend.direction === 'increasing' ? 'bg-red-100 text-red-800' : 
-                        trend.direction === 'decreasing' ? 'bg-green-100 text-green-800' : 
-                        'bg-gray-100 text-gray-800'
+                        trend.direction === 'increasing' ? 'bg-etat-critique-fond text-etat-critique-texte' : 
+                        trend.direction === 'decreasing' ? 'bg-etat-nominal-fond text-etat-nominal-texte' : 
+                        'bg-paper-deep text-ink'
                       }`}>
                         {trend.direction === 'increasing' ? 'En hausse' : 
                          trend.direction === 'decreasing' ? 'En baisse' : 'Stable'}
@@ -325,17 +325,17 @@ export function DiagnosticResults({
           )}
 
           {cloudSearchPerformed && (
-            <div className="bg-paper-deep border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="bg-paper-deep border border-etat-encours-filet rounded-lg p-4 mb-6">
               <div className="flex items-center space-x-2 mb-2">
-                <Cloud className="text-blue-500 w-5 h-5" />
-                <span className="font-medium text-blue-800">Recherche Cloud Effectuée</span>
-                <Badge className="bg-blue-500 text-white text-xs">
+                <Cloud className="text-etat-encours-texte w-5 h-5" />
+                <span className="font-medium text-etat-encours-texte">Recherche Cloud Effectuée</span>
+                <Badge className="bg-etat-encours-vif text-white text-xs">
                   <Globe className="w-3 h-3 mr-1" />
                   IA Cloud
                 </Badge>
               </div>
               {cloudInsights && (
-                <p className="text-sm text-blue-700">{cloudInsights}</p>
+                <p className="text-sm text-etat-encours-texte">{cloudInsights}</p>
               )}
             </div>
           )}
@@ -345,17 +345,17 @@ export function DiagnosticResults({
               const sourceBadge = getSourceBadge(suggestion.source);
 
               return (
-                <div key={index} className="border border-carbon-gray-20 rounded-lg p-6 transition-all duration-200 bg-white">
+                <div key={index} className="border border-rule rounded-lg p-6 transition-all duration-200 bg-white">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3 flex-wrap gap-1">
-                      <span className="text-lg font-bold text-carbon-gray-50 mr-1">#{index + 1}</span>
-                      <h4 className="font-semibold text-carbon-gray-90 text-lg">{suggestion.diagnosis}</h4>
+                      <span className="text-lg font-bold text-ink-mute mr-1">#{index + 1}</span>
+                      <h4 className="font-semibold text-ink text-lg">{suggestion.diagnosis}</h4>
                       <Badge className={`${sourceBadge.color} text-xs`}>
                         {sourceBadge.icon}
                         {sourceBadge.label}
                       </Badge>
                       {suggestion.cloudSource && (
-                        <Badge variant="secondary" className="bg-blue-500 text-white text-xs">
+                        <Badge variant="secondary" className="bg-etat-encours-vif text-white text-xs">
                           <Cloud className="w-3 h-3 mr-1" />
                           Cloud
                         </Badge>
@@ -365,25 +365,25 @@ export function DiagnosticResults({
                       <Badge className={`${getConfidenceColor(suggestion.confidence)} text-white text-xs px-3 py-1 rounded-full font-medium`}>
                         {suggestion.confidence}% {t("confidence", language)}
                       </Badge>
-                      <span className="text-xs text-carbon-gray-50">
+                      <span className="text-xs text-ink-mute">
                         Confiance: {getConfidenceLabel(suggestion.confidence)}
                       </span>
                     </div>
                   </div>
 
                   {suggestion.diagnosticReasoning && (
-                    <div className="mb-4 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                      <h5 className="text-sm font-semibold text-indigo-900 mb-1.5 flex items-center">
-                        <HelpCircle className="w-4 h-4 mr-2 text-indigo-600" />
+                    <div className="mb-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-3">
+                      <h5 className="text-sm font-semibold text-etat-encours-texte mb-1.5 flex items-center">
+                        <HelpCircle className="w-4 h-4 mr-2 text-etat-encours-texte" />
                         Pourquoi ce diagnostic ?
                       </h5>
-                      <p className="text-sm text-indigo-800 leading-relaxed">{suggestion.diagnosticReasoning}</p>
+                      <p className="text-sm text-etat-encours-texte leading-relaxed">{suggestion.diagnosticReasoning}</p>
                     </div>
                   )}
 
                   {suggestion.explanationFactors && suggestion.explanationFactors.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5 uppercase tracking-wide">Preuves et facteurs d'appui</h5>
+                      <h5 className="text-xs font-semibold text-ink-soft mb-1.5 uppercase tracking-wide">Preuves et facteurs d'appui</h5>
                       <div className="space-y-1.5">
                         {suggestion.explanationFactors.map((factor, fi) => (
                           <div
@@ -406,17 +406,17 @@ export function DiagnosticResults({
                   )}
 
                   <div className="mb-4">
-                    <h5 className="font-semibold text-carbon-gray-90 mb-2">Solution recommandée</h5>
-                    <p className="text-sm text-carbon-gray-70 bg-carbon-gray-10 p-3 rounded-md leading-relaxed">{suggestion.solution}</p>
+                    <h5 className="font-semibold text-ink mb-2">Solution recommandée</h5>
+                    <p className="text-sm text-ink-soft bg-paper p-3 rounded-md leading-relaxed">{suggestion.solution}</p>
                   </div>
 
                   {suggestion.repairSteps && suggestion.repairSteps.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                      <h5 className="font-semibold text-green-800 text-sm mb-2 flex items-center">
+                    <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3 mb-4">
+                      <h5 className="font-semibold text-etat-nominal-texte text-sm mb-2 flex items-center">
                         <Wrench className="w-4 h-4 mr-2" />
                         Étapes de réparation
                       </h5>
-                      <ol className="text-xs text-green-800 space-y-1 list-decimal list-inside">
+                      <ol className="text-xs text-etat-nominal-texte space-y-1 list-decimal list-inside">
                         {suggestion.repairSteps.map((step, si) => (
                           <li key={si}>{step}</li>
                         ))}
@@ -425,15 +425,15 @@ export function DiagnosticResults({
                   )}
 
                   {suggestion.safetyWarnings && suggestion.safetyWarnings.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                      <h5 className="font-semibold text-red-800 text-sm mb-2 flex items-center">
+                    <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-lg p-3 mb-4">
+                      <h5 className="font-semibold text-etat-critique-texte text-sm mb-2 flex items-center">
                         <AlertTriangle className="w-4 h-4 mr-2" />
                         Avertissements de sécurité
                       </h5>
-                      <ul className="text-xs text-red-700 space-y-1">
+                      <ul className="text-xs text-etat-critique-texte space-y-1">
                         {suggestion.safetyWarnings.map((warn, wi) => (
                           <li key={wi} className="flex items-start">
-                            <span className="text-red-500 mr-2 font-bold">!</span>
+                            <span className="text-etat-critique-texte mr-2 font-bold">!</span>
                             {warn}
                           </li>
                         ))}
@@ -443,7 +443,7 @@ export function DiagnosticResults({
 
                   {suggestion.tools && suggestion.tools.length > 0 && (
                     <div className="mb-4">
-                      <h5 className="text-xs font-semibold text-carbon-gray-70 mb-1.5">Outillage nécessaire</h5>
+                      <h5 className="text-xs font-semibold text-ink-soft mb-1.5">Outillage nécessaire</h5>
                       <div className="flex flex-wrap gap-1">
                         {suggestion.tools.map((tool, ti) => (
                           <Badge key={ti} variant="outline" className="text-xs">{tool}</Badge>
@@ -453,38 +453,38 @@ export function DiagnosticResults({
                   )}
 
                   {suggestion.aiInsights && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-1">
-                        <Brain className="text-carbon-blue w-4 h-4" />
-                        <span className="text-sm font-medium text-carbon-blue">{t("aiInsights", language)}</span>
+                        <Brain className="text-signal w-4 h-4" />
+                        <span className="text-sm font-medium text-signal">{t("aiInsights", language)}</span>
                       </div>
-                      <p className="text-xs text-carbon-gray-70">{suggestion.aiInsights}</p>
+                      <p className="text-xs text-ink-soft">{suggestion.aiInsights}</p>
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                     {suggestion.riskLevel && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
+                      <div className="text-center p-2 bg-paper rounded">
                         <AlertTriangle className={`w-4 h-4 mx-auto mb-1 ${
-                          suggestion.riskLevel === "Élevé" ? "text-red-500" : 
-                          suggestion.riskLevel === "Moyen" ? "text-orange-500" : "text-green-500"
+                          suggestion.riskLevel === "Élevé" ? "text-etat-critique-texte" : 
+                          suggestion.riskLevel === "Moyen" ? "text-etat-alerte-texte" : "text-etat-nominal-texte"
                         }`} />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("riskLevel", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.riskLevel}</div>
+                        <div className="text-xs font-medium text-ink">{t("riskLevel", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.riskLevel}</div>
                       </div>
                     )}
                     {suggestion.costEstimate && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Euro className="w-4 h-4 mx-auto mb-1 text-carbon-blue" />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("costEstimate", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.costEstimate}</div>
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Euro className="w-4 h-4 mx-auto mb-1 text-signal" />
+                        <div className="text-xs font-medium text-ink">{t("costEstimate", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.costEstimate}</div>
                       </div>
                     )}
                     {suggestion.duration && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Zap className="w-4 h-4 mx-auto mb-1 text-carbon-orange" />
-                        <div className="text-xs font-medium text-carbon-gray-90">Durée</div>
-                        <div className="text-xs text-carbon-gray-70">
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Zap className="w-4 h-4 mx-auto mb-1 text-etat-alerte-texte" />
+                        <div className="text-xs font-medium text-ink">Durée</div>
+                        <div className="text-xs text-ink-soft">
                           {suggestion.duration > 60 ? 
                             `${Math.floor(suggestion.duration / 60)}h ${suggestion.duration % 60}m` : 
                             `${suggestion.duration}m`
@@ -493,31 +493,31 @@ export function DiagnosticResults({
                       </div>
                     )}
                     {suggestion.difficulty && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
+                      <div className="text-center p-2 bg-paper rounded">
                         <Target className="w-4 h-4 mx-auto mb-1 text-signal-deep" />
-                        <div className="text-xs font-medium text-carbon-gray-90">Difficulté</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.difficulty}</div>
+                        <div className="text-xs font-medium text-ink">Difficulté</div>
+                        <div className="text-xs text-ink-soft">{suggestion.difficulty}</div>
                       </div>
                     )}
                     {!suggestion.difficulty && suggestion.matchingCases > 0 && (
-                      <div className="text-center p-2 bg-carbon-gray-10 rounded">
-                        <Lightbulb className="w-4 h-4 mx-auto mb-1 text-carbon-gray-50" />
-                        <div className="text-xs font-medium text-carbon-gray-90">{t("cases", language)}</div>
-                        <div className="text-xs text-carbon-gray-70">{suggestion.matchingCases}</div>
+                      <div className="text-center p-2 bg-paper rounded">
+                        <Lightbulb className="w-4 h-4 mx-auto mb-1 text-ink-mute" />
+                        <div className="text-xs font-medium text-ink">{t("cases", language)}</div>
+                        <div className="text-xs text-ink-soft">{suggestion.matchingCases}</div>
                       </div>
                     )}
                   </div>
 
                   {suggestion.predictiveTips && suggestion.predictiveTips.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3 mb-4">
                       <div className="flex items-center space-x-2 mb-2">
-                        <Wrench className="text-carbon-green w-4 h-4" />
-                        <span className="text-sm font-medium text-carbon-green">{t("predictiveMaintenance", language)}</span>
+                        <Wrench className="text-etat-nominal-texte w-4 h-4" />
+                        <span className="text-sm font-medium text-etat-nominal-texte">{t("predictiveMaintenance", language)}</span>
                       </div>
-                      <ul className="text-xs text-carbon-gray-70 space-y-1">
+                      <ul className="text-xs text-ink-soft space-y-1">
                         {suggestion.predictiveTips.map((tip, tipIndex) => (
                           <li key={tipIndex} className="flex items-start">
-                            <span className="text-carbon-green mr-2">•</span>
+                            <span className="text-etat-nominal-texte mr-2">•</span>
                             {tip}
                           </li>
                         ))}
@@ -525,10 +525,10 @@ export function DiagnosticResults({
                     </div>
                   )}
 
-                  <div className="flex space-x-2 pt-4 border-t border-carbon-gray-20">
+                  <div className="flex space-x-2 pt-4 border-t border-rule">
                     <Button
                       onClick={() => suggestion.caseId && onStartRepair(suggestion.caseId)}
-                      className="flex-1 bg-carbon-blue text-white hover:bg-blue-700 transition-colors"
+                      className="flex-1 bg-ink text-paper hover:bg-signal transition-colors"
                     >
                       <Wrench className="w-4 h-4 mr-2" />
                       Commencer la réparation
@@ -539,7 +539,7 @@ export function DiagnosticResults({
                         setFeedbackModalOpen(true);
                       }}
                       variant="outline"
-                      className="border-green-300 text-green-700 hover:bg-green-50"
+                      className="border-etat-nominal-filet text-etat-nominal-texte hover:bg-etat-nominal-fond"
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Feedback
@@ -547,7 +547,7 @@ export function DiagnosticResults({
                     <Button
                       onClick={() => onSaveDiagnostic(suggestion)}
                       variant="outline"
-                      className="border-carbon-gray-30 text-carbon-gray-90 hover:bg-carbon-gray-10"
+                      className="border-rule text-ink hover:bg-paper"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       Sauvegarder

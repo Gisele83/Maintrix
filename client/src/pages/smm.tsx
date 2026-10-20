@@ -14,6 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import {
   ClipboardList, FileText, ShieldCheck, AlertTriangle, Wrench, Plus, Network,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SmmDocument {
@@ -41,25 +44,26 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   procedure: "Procédure", mode_operatoire: "Mode opératoire", instruction: "Instruction",
 };
 const SEVERITY_BADGE: Record<string, string> = {
-  mineure: "bg-yellow-100 text-yellow-700", majeure: "bg-orange-100 text-orange-700", critique: "bg-red-100 text-red-700",
+  mineure: "bg-etat-alerte-fond text-etat-alerte-texte", majeure: "bg-etat-alerte-fond text-etat-alerte-texte", critique: "bg-etat-critique-fond text-etat-critique-texte",
 };
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600", published: "bg-green-100 text-green-700", archived: "bg-gray-100 text-ink-mute",
-  planned: "bg-gray-100 text-gray-600", in_progress: "bg-blue-100 text-blue-700", completed: "bg-green-100 text-green-700",
-  ouverte: "bg-red-100 text-red-700", en_traitement: "bg-blue-100 text-blue-700", cloturee: "bg-green-100 text-green-700",
-  a_faire: "bg-gray-100 text-gray-600", en_cours: "bg-blue-100 text-blue-700", terminee: "bg-green-100 text-green-700", verifiee: "bg-emerald-100 text-emerald-700",
+  draft: "bg-paper-deep text-ink-soft", published: "bg-etat-nominal-fond text-etat-nominal-texte", archived: "bg-paper-deep text-ink-mute",
+  planned: "bg-paper-deep text-ink-soft", in_progress: "bg-etat-encours-fond text-etat-encours-texte", completed: "bg-etat-nominal-fond text-etat-nominal-texte",
+  ouverte: "bg-etat-critique-fond text-etat-critique-texte", en_traitement: "bg-etat-encours-fond text-etat-encours-texte", cloturee: "bg-etat-nominal-fond text-etat-nominal-texte",
+  a_faire: "bg-paper-deep text-ink-soft", en_cours: "bg-etat-encours-fond text-etat-encours-texte", terminee: "bg-etat-nominal-fond text-etat-nominal-texte", verifiee: "bg-etat-nominal-fond text-etat-nominal-texte",
 };
 
 export default function SmmPage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Plateforme" }, { libelle: "Management de la maintenance" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <ClipboardList className="w-6 h-6 text-etat-encours-texte" />
             SMM — Système de Management de Maintenance
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             Manuels, procédures, checklists, audits, non-conformités, amélioration continue.
             Les procédures publiées alimentent automatiquement le Knowledge Graph.
           </p>
@@ -81,6 +85,7 @@ export default function SmmPage() {
         </Tabs>
       </div>
     </div>
+    </AppShell>
   );
 }
 
@@ -154,9 +159,9 @@ function DocumentsTab() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              <p className="text-xs text-gray-500 line-clamp-2">{doc.content}</p>
+              <p className="text-xs text-ink-mute line-clamp-2">{doc.content}</p>
               {doc.documentType === "procedure" && doc.status === "published" && (
-                <p className="text-xs text-blue-600 flex items-center gap-1"><Network className="w-3 h-3" />Dans le Knowledge Graph</p>
+                <p className="text-xs text-etat-encours-texte flex items-center gap-1"><Network className="w-3 h-3" />Dans le Knowledge Graph</p>
               )}
               {doc.status === "draft" && (
                 <Button size="sm" variant="outline" onClick={() => publish.mutate(doc.id)} disabled={publish.isPending}>Publier</Button>
@@ -212,7 +217,7 @@ function ChecklistsTab() {
         {(checklists ?? []).map(c => (
           <Card key={c.id}>
             <CardHeader className="pb-2"><CardTitle className="text-base">{c.title}</CardTitle></CardHeader>
-            <CardContent><p className="text-xs text-gray-500">{c.items.length} item(s)</p></CardContent>
+            <CardContent><p className="text-xs text-ink-mute">{c.items.length} item(s)</p></CardContent>
           </Card>
         ))}
         {(checklists ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucune checklist.</p>}
@@ -275,7 +280,7 @@ function AuditsTab() {
                 <Badge className={STATUS_BADGE[a.status]}>{a.status}</Badge>
               </div>
             </CardHeader>
-            <CardContent><p className="text-xs text-gray-500">{a.auditType} {a.score !== null ? `— score ${a.score}%` : ""}</p></CardContent>
+            <CardContent><p className="text-xs text-ink-mute">{a.auditType} {a.score !== null ? `— score ${a.score}%` : ""}</p></CardContent>
           </Card>
         ))}
         {(audits ?? []).length === 0 && <p className="text-sm text-ink-mute col-span-2">Aucun audit.</p>}
@@ -355,9 +360,9 @@ function NonConformitiesTab() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {nc.description && <p className="text-xs text-gray-500">{nc.description}</p>}
+              {nc.description && <p className="text-xs text-ink-mute">{nc.description}</p>}
               <p className="text-xs text-ink-mute flex items-center gap-1">
-                {nc.source === "controle_qualite" && <AlertTriangle className="w-3 h-3 text-orange-500" />}
+                {nc.source === "controle_qualite" && <AlertTriangle className="w-3 h-3 text-etat-alerte-texte" />}
                 Source : {nc.source === "controle_qualite" ? "Contrôle qualité (Maintenance Execution)" : nc.source}
               </p>
               {nc.status !== "cloturee" && (

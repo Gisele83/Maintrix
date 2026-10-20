@@ -86,7 +86,7 @@ export function ExcelProcessorDemo() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-ink-soft">
           <p><strong>Fichier:</strong> Base_Industrie_120_Cas_Enrichie_1754590391833.xlsx</p>
           <p><strong>Tables:</strong> Équipements, Diagnostics, Interventions, Techniciens, Règles_Symptômes, Procédures_Réparation</p>
           <p><strong>Traitement:</strong> Croisement automatique des données pour enrichir l'historique diagnostic</p>
@@ -111,17 +111,17 @@ export function ExcelProcessorDemo() {
         </Button>
 
         {result && (
-          <div className="mt-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mt-6 p-4 border rounded-lg bg-paper">
             <div className="flex items-center gap-2 mb-3">
               {result.success ? (
                 <>
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-green-800">Traitement réussi</span>
+                  <CheckCircle className="h-5 w-5 text-etat-nominal-texte" />
+                  <span className="font-medium text-etat-nominal-texte">Traitement réussi</span>
                 </>
               ) : (
                 <>
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <span className="font-medium text-red-800">Traitement échoué</span>
+                  <AlertCircle className="h-5 w-5 text-etat-critique-texte" />
+                  <span className="font-medium text-etat-critique-texte">Traitement échoué</span>
                 </>
               )}
             </div>
@@ -151,7 +151,7 @@ export function ExcelProcessorDemo() {
           </div>
         )}
 
-        <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
+        <div className="text-xs text-ink-mute bg-etat-encours-fond p-3 rounded">
           <p><strong>Fonctionnement du système:</strong></p>
           <ul className="list-disc list-inside space-y-1 mt-2">
             <li>Analyse croisée: Équipements → Diagnostics → Procédures</li>

@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Wrench, History, Bug, Brain, GitBranch, Users, Upload, Shield, Factory, ExternalLink, Activity, Sparkles, ChevronRight } from "lucide-react";
+import { Search, Wrench, History, Bug, Upload } from "lucide-react";
 import { Link } from "wouter";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults, type DiagnosticSuggestion } from "@/components/diagnostic-results";
 import { RepairGuidance } from "@/components/repair-guidance";
-import { MaintenanceHistory } from "@/components/maintenance-history";
+import { HistoriqueMaintenance } from "@/components/historique-maintenance";
 import { CaseReporting } from "@/components/case-reporting";
 import { DataImport } from "@/components/data-import";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ModernNavigation from "@/components/modern-navigation";
-import FeatureCards from "@/components/feature-cards";
+// `FeatureCards` était importé ici sans jamais être rendu. Le composant
+// `QuickStats` qu'il contient affiche des chiffres de démonstration écrits
+// en dur (« 24 équipements », « 7 alertes actives ») : l'import mort
+// retiré, plus rien ne risque de le faire réapparaître sur cet écran.
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { t } from "@/lib/i18n";
@@ -93,23 +96,34 @@ export default function Dashboard() {
         endpoint = "/api/diagnostic-advanced-ml";
       }
       
-      console.log("Sending diagnostic data:", data);
       const response = await apiRequest(endpoint, { method: "POST", body: data });
       return response;
     },
     onSuccess: (result: any) => {
-      console.log("ML Diagnostic API response:", result);
-      console.log("Suggestions:", result.suggestions);
       setDiagnosticResults(result.suggestions || []);
       setCurrentSessionId(result.sessionId || null);
       setCloudSearchPerformed(result.cloudSearchPerformed || false);
       setCloudInsights(result.cloudInsights || "");
       setIsAnalyzing(false);
-      const mlType = result.ensembleML ? " (Ensemble ML)" : result.enhancedML ? " (Enhanced ML)" : result.advancedML ? " (Advanced ML)" : result.mlEnabled ? " (ML Enhanced)" : "";
-      const cloudNote = result.cloudSearchPerformed ? " + Recherche Cloud" : "";
+      /**
+       * ⚠️ La notification annonçait « Diagnostic terminé (Ensemble ML) »,
+       * « (Enhanced ML) », « (Advanced ML) » ou « (ML Enhanced) » — soit
+       * exactement le vocabulaire d'algorithme que le formulaire ci-dessus
+       * s'applique à ne plus employer. Un responsable de maintenance ne
+       * choisit pas entre des noms de modèles : il choisit le temps qu'il
+       * accepte d'attendre. On lui rend donc le niveau qu'il a demandé,
+       * dans ses propres mots.
+       */
+      const niveau = NIVEAUX_ANALYSE.find((n) => n.id === niveauAnalyse);
+      const nombre = result.suggestions?.length || 0;
       toast({
-        title: t("success", language),
-        description: `Diagnostic terminé${mlType}${cloudNote} - ${result.suggestions?.length || 0} suggestions trouvées`,
+        title: nombre > 0 ? "Diagnostic terminé" : "Aucune hypothèse trouvée",
+        description:
+          nombre > 0
+            ? `${nombre} hypothèse(s) — analyse ${niveau?.nom.toLowerCase() ?? "standard"}${
+                result.cloudSearchPerformed ? ", documentation externe consultée" : ""
+              }.`
+            : "Précisez les symptômes, ou passez à une analyse plus poussée.",
       });
     },
     onError: () => {
@@ -123,17 +137,16 @@ export default function Dashboard() {
   });
 
   const handleDiagnosticSubmit = (data: any) => {
-    console.log("Raw form data received:", data);
-    console.log("Data type:", typeof data);
-    console.log("JSON stringified data:", JSON.stringify(data));
-    
+    // ⚠️ Cinq `console.log` imprimaient ici le contenu BRUT du formulaire de
+    // diagnostic dans la console du navigateur, y compris sa sérialisation
+    // JSON complète. Les symptômes saisis décrivent l'installation du
+    // client : ils n'ont rien à faire dans un journal de navigateur livré en
+    // production. Retirés le 19/10/2026.
     setIsAnalyzing(true);
     setDiagnosticResults([]);
-    
-    // Ensure data is a plain object, not a string
+
+    // Le formulaire peut remonter une chaîne JSON plutôt qu'un objet.
     const cleanData = typeof data === 'string' ? JSON.parse(data) : data;
-    console.log("Clean data to send:", cleanData);
-    
     diagnosticMutation.mutate(cleanData);
   };
 
@@ -148,7 +161,7 @@ export default function Dashboard() {
       description: "Diagnostic sauvegardé",
     });
     // Invalidate history to refresh the list
-    queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
   };
 
   const tabs = [
@@ -179,20 +192,7 @@ export default function Dashboard() {
     },
   ];
 
-  const utilityLinks = [
-    {
-      href: "/secure-validation",
-      label: "Validation",
-      icon: Factory,
-      description: "Système multi-niveaux"
-    },
-    {
-      href: "/gmao",
-      label: "GMAO", 
-      icon: Factory,
-      description: "Dashboard industriel"
-    }
-  ];
+  // (`utilityLinks` a disparu avec la seconde barre de raccourcis.)
 
   return (
     <div className="min-h-screen bg-paper text-ink font-sans">
@@ -261,32 +261,16 @@ export default function Dashboard() {
               })}
             </div>
             
-            {/* Navigation Links */}
-            <div className="flex items-center space-x-2">
-              {utilityLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link key={link.href} href={link.href}>
-                    <span className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors">
-                      <Icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{link.label}</span>
-                    </span>
-                  </Link>
-                );
-              })}
-              {[
-                { href: '/learning', label: 'Apprentissage', icon: Brain },
-                { href: '/iot-gamification', label: 'Capteurs', icon: Activity },
-                { href: '/profiles', label: 'Profils', icon: Users },
-                { href: '/data-import-export', label: 'Import / Export', icon: Upload },
-              ].map(({ href, label, icon: Icon }) => (
-                <Link key={href} href={href}>
-                  <span className="inline-flex items-center gap-2 h-9 px-3 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors">
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{label}</span>
-                  </span>
-                </Link>
-              ))}            </div>
+            {/* ⚠️ Six raccourcis supplémentaires — Validation, GMAO,
+                Apprentissage, Capteurs, Profils, Import / Export — étaient
+                alignés ici, portant la rangée à ONZE entrées. « Import /
+                Export » se brisait sur deux lignes, le reste partait en
+                défilement horizontal, et la barre de défilement (un dégradé
+                bleu-violet, à l'époque) traversait l'écran juste sous les
+                onglets. Ces six destinations figurent toutes dans la barre
+                de navigation principale, en haut : c'était un second menu
+                qui doublait le premier. Seuls restent ici les cinq onglets
+                du diagnostic, qui sont le travail de cet écran. */}
           </div>
         </div>
       </nav>
@@ -385,10 +369,46 @@ export default function Dashboard() {
         )}
 
         {/* History Section */}
-        {activeTab === "history" && <MaintenanceHistory />}
+        {/* Cet onglet lisait /api/history, dont la réponse bascule en objet
+            d'erreur dès qu'un second locataire possède une session de
+            diagnostic : le tableau de bord rendait alors une page blanche.
+            Il sert maintenant le même écran que /historique. */}
+        {/* L'en-tête passé ici est de niveau 2 : cette page porte déjà son
+            propre <h1> (« Identifier la panne, guider la réparation »), et
+            l'en-tête par défaut du composant en aurait ajouté un second. */}
+        {activeTab === "history" && (
+          <HistoriqueMaintenance
+            enTete={
+              <div className="pb-6 border-b border-rule">
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostic</p>
+                <h2 className="font-serif text-page font-medium text-ink mt-1.5">
+                  Historique de maintenance
+                </h2>
+                <p className="text-sm text-ink-soft mt-1.5 max-w-2xl">
+                  Les interventions réalisées, leur durée, leur coût et les pièces consommées.
+                </p>
+              </div>
+            }
+          />
+        )}
 
         {/* Reporting Section */}
-        {activeTab === "reporting" && <CaseReporting />}
+        {/* En-tête de niveau 2 : cette page porte déjà son propre <h1>. */}
+        {activeTab === "reporting" && (
+          <CaseReporting
+            enTete={
+              <div className="pb-6 border-b border-rule">
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostic</p>
+                <h2 className="font-serif text-page font-medium text-ink mt-1.5">
+                  Signaler un cas
+                </h2>
+                <p className="text-sm text-ink-soft mt-1.5 max-w-2xl">
+                  Les pannes qu'aucun diagnostic n'a su traiter, et ce qu'elles sont devenues.
+                </p>
+              </div>
+            }
+          />
+        )}
 
         {/* Data Import Section */}
         {activeTab === "import" && <DataImport />}

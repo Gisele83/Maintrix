@@ -75,41 +75,41 @@ export default function ForgotPassword() {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <Alert className="border-green-200 bg-green-50">
-              <Mail className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="border-etat-nominal-filet bg-etat-nominal-fond">
+              <Mail className="h-4 w-4 text-etat-nominal-texte" />
+              <AlertDescription className="text-etat-nominal-texte">
                 <strong>Si l'email {submittedEmail} existe dans notre système</strong>, vous recevrez un lien de réinitialisation dans quelques minutes.
               </AlertDescription>
             </Alert>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-3">Étapes suivantes :</h3>
-              <ol className="text-sm text-blue-800 space-y-2">
+            <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-4">
+              <h3 className="font-semibold text-etat-encours-texte mb-3">Étapes suivantes :</h3>
+              <ol className="text-sm text-etat-encours-texte space-y-2">
                 <li className="flex items-start space-x-2">
-                  <span className="font-bold text-blue-600">1.</span>
+                  <span className="font-bold text-etat-encours-texte">1.</span>
                   <span>Vérifiez votre boîte de réception (et vos spams)</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="font-bold text-blue-600">2.</span>
+                  <span className="font-bold text-etat-encours-texte">2.</span>
                   <span>Cliquez sur le lien "Réinitialiser mon mot de passe"</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="font-bold text-blue-600">3.</span>
+                  <span className="font-bold text-etat-encours-texte">3.</span>
                   <span>Choisissez un nouveau mot de passe sécurisé</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="font-bold text-blue-600">4.</span>
+                  <span className="font-bold text-etat-encours-texte">4.</span>
                   <span>Connectez-vous avec vos nouveaux identifiants</span>
                 </li>
               </ol>
             </div>
 
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="font-semibold text-orange-900">Important :</span>
+                <Clock className="h-4 w-4 text-etat-alerte-texte" />
+                <span className="font-semibold text-etat-alerte-texte">Important :</span>
               </div>
-              <p className="text-sm text-orange-800">
+              <p className="text-sm text-etat-alerte-texte">
                 Le lien de réinitialisation <strong>expire dans 1 heure</strong>. 
                 Si vous ne le recevez pas ou s'il expire, vous pouvez refaire une demande.
               </p>
@@ -157,9 +157,9 @@ export default function ForgotPassword() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <Alert className="border-blue-200 bg-blue-50">
-            <Mail className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert className="border-etat-encours-filet bg-etat-encours-fond">
+            <Mail className="h-4 w-4 text-etat-encours-texte" />
+            <AlertDescription className="text-etat-encours-texte">
               <strong>Processus sécurisé :</strong> Un email avec un lien temporaire (valide 1 heure) sera envoyé à votre adresse si elle existe dans notre système.
             </AlertDescription>
           </Alert>
@@ -187,9 +187,9 @@ export default function ForgotPassword() {
                 )}
               />
 
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Sécurité et confidentialité</h4>
-                <ul className="text-sm text-gray-700 space-y-1">
+              <div className="bg-paper border border-rule rounded-lg p-4">
+                <h4 className="font-semibold text-ink mb-2">Sécurité et confidentialité</h4>
+                <ul className="text-sm text-ink-soft space-y-1">
                   <li>• Nous ne révélons jamais si un email existe ou non</li>
                   <li>• Le lien de réinitialisation expire automatiquement</li>
                   <li>• Votre mot de passe actuel reste inchangé jusqu'à utilisation du lien</li>
@@ -224,7 +224,7 @@ export default function ForgotPassword() {
                 Retour à la connexion
               </Button>
             </Link>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-mute">
               Vous vous souvenez de votre mot de passe ? Connectez-vous directement.
             </p>
           </div>

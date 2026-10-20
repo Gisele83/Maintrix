@@ -17,6 +17,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 const sensorIcons: Record<string, any> = {
   temperature: Thermometer, vibration: Activity, pressure: Gauge,
@@ -24,11 +27,11 @@ const sensorIcons: Record<string, any> = {
 };
 
 const sensorColors: Record<string, string> = {
-  temperature: "from-red-500 to-orange-500",
-  vibration: "from-blue-500 to-cyan-500",
-  pressure: "from-green-500 to-emerald-500",
-  humidity: "from-teal-500 to-cyan-500",
-  current: "from-yellow-500 to-amber-500",
+  temperature: "",
+  vibration: "",
+  pressure: "",
+  humidity: "",
+  current: "",
   rpm: " "
 };
 
@@ -54,12 +57,14 @@ export default function SensorHub() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
+      <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Capteurs" }]} largeur="large">
+      <div className="space-y-6">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -99,7 +104,7 @@ export default function SensorHub() {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
               <Radio className="w-6 h-6 text-ink" />
             </div>
             <div>
@@ -114,10 +119,10 @@ export default function SensorHub() {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { icon: Radio, label: "Capteurs", value: summary.totalSensors, color: "from-blue-500 to-cyan-600" },
-            { icon: Wifi, label: "En ligne", value: summary.online, color: "from-green-500 to-emerald-600" },
-            { icon: WifiOff, label: "Hors ligne", value: summary.offline, color: "from-gray-500 to-slate-600" },
-            { icon: AlertTriangle, label: "En alarme", value: summary.alarming, color: "from-red-500 to-rose-600" },
+            { icon: Radio, label: "Capteurs", value: summary.totalSensors, color: "" },
+            { icon: Wifi, label: "En ligne", value: summary.online, color: "" },
+            { icon: WifiOff, label: "Hors ligne", value: summary.offline, color: "" },
+            { icon: AlertTriangle, label: "En alarme", value: summary.alarming, color: "" },
             { icon: Database, label: "Protocoles", value: summary.protocols?.length || 0, color: " " }
           ].map((stat, i) => (
             <Card key={i} className="bg-paper-deep border-rule">
@@ -142,7 +147,7 @@ export default function SensorHub() {
           </div>
           <div className="flex gap-1 flex-wrap">
             {summary.protocols?.map((proto: string) => (
-              <Badge key={proto} variant="outline" className="text-xs text-cyan-400 border-cyan-500/30">{proto}</Badge>
+              <Badge key={proto} variant="outline" className="text-xs text-etat-encours-texte border-etat-encours-filet/30">{proto}</Badge>
             ))}
           </div>
         </div>
@@ -158,11 +163,11 @@ export default function SensorHub() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSensors.map((sensor: any) => {
                 const SensorIcon = sensorIcons[sensor.sensorType] || Activity;
-                const colorGradient = sensorColors[sensor.sensorType] || "from-gray-500 to-slate-600";
+                const colorGradient = sensorColors[sensor.sensorType] || "";
                 const percentage = Math.min(100, (sensor.value / sensor.threshold) * 100);
                 
                 return (
-                  <Card key={sensor.id} className={`bg-paper-deep border ${sensor.isAlarm ? 'border-red-500/30 animate-pulse' : sensor.isOnline ? 'border-rule' : 'border-gray-600/30 opacity-60'} cursor-pointer hover:bg-white transition-all`}
+                  <Card key={sensor.id} className={`bg-paper-deep border ${sensor.isAlarm ? 'border-etat-critique-filet/30 animate-pulse' : sensor.isOnline ? 'border-rule' : 'border-gray-600/30 opacity-60'} cursor-pointer hover:bg-white transition-all`}
                     onClick={() => setSelectedSensor(selectedSensor?.id === sensor.id ? null : sensor)}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -177,22 +182,22 @@ export default function SensorHub() {
                         </div>
                         <div className="flex items-center gap-1">
                           {sensor.isOnline ? (
-                            <Wifi className="w-3.5 h-3.5 text-green-400" />
+                            <Wifi className="w-3.5 h-3.5 text-etat-nominal-texte" />
                           ) : (
-                            <WifiOff className="w-3.5 h-3.5 text-red-400" />
+                            <WifiOff className="w-3.5 h-3.5 text-etat-critique-texte" />
                           )}
                           <Badge variant="outline" className="text-[9px] text-ink-mute border-rule">{sensor.protocol}</Badge>
                         </div>
                       </div>
 
                       <div className="text-center mb-3">
-                        <p className={`text-2xl font-bold ${sensor.isAlarm ? 'text-red-400' : 'text-white'}`}>
+                        <p className={`text-2xl font-bold ${sensor.isAlarm ? 'text-etat-critique-texte' : 'text-white'}`}>
                           {sensor.value} <span className="text-xs text-ink-mute">{sensor.unit}</span>
                         </p>
                         <p className="text-[10px] text-ink-mute">Seuil: {sensor.threshold} {sensor.unit}</p>
                       </div>
 
-                      <Progress value={Math.min(percentage, 100)} className={`h-1.5 mb-2 ${sensor.isAlarm ? '[&>div]:bg-red-500' : percentage > 80 ? '[&>div]:bg-yellow-500' : '[&>div]:bg-green-500'}`} />
+                      <Progress value={Math.min(percentage, 100)} className={`h-1.5 mb-2 ${sensor.isAlarm ? '[&>div]:bg-etat-critique-vif' : percentage > 80 ? '[&>div]:bg-etat-alerte-vif' : '[&>div]:bg-etat-nominal-vif'}`} />
 
                       <div className="flex items-center justify-between text-[10px] text-ink-mute">
                         <span className="flex items-center gap-1">
@@ -222,7 +227,7 @@ export default function SensorHub() {
             <Card className="bg-paper-deep border-rule">
               <CardHeader>
                 <CardTitle className="text-ink text-sm flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-cyan-400" />
+                  <TrendingUp className="w-4 h-4 text-etat-encours-texte" />
                   Maintenance Basée sur les Données
                 </CardTitle>
                 <CardDescription className="text-ink-mute">
@@ -232,9 +237,9 @@ export default function SensorHub() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
-                    { title: "Capteurs en dépassement", value: summary.alarming, total: summary.totalSensors, color: "text-red-400", desc: "Nécessitent une intervention" },
-                    { title: "Taux de connectivité", value: summary.online, total: summary.totalSensors, color: "text-green-400", desc: "Capteurs transmettant des données" },
-                    { title: "Couverture capteurs", value: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, total: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, color: "text-blue-400", desc: "Équipements monitorés" }
+                    { title: "Capteurs en dépassement", value: summary.alarming, total: summary.totalSensors, color: "text-etat-critique-texte", desc: "Nécessitent une intervention" },
+                    { title: "Taux de connectivité", value: summary.online, total: summary.totalSensors, color: "text-etat-nominal-texte", desc: "Capteurs transmettant des données" },
+                    { title: "Couverture capteurs", value: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, total: sensors.length > 0 ? [...new Set(sensors.map((s: any) => s.equipmentId))].length : 0, color: "text-etat-encours-texte", desc: "Équipements monitorés" }
                   ].map((metric, i) => (
                     <Card key={i} className="bg-white border-rule">
                       <CardContent className="p-4 text-center">
@@ -262,7 +267,7 @@ export default function SensorHub() {
           <TabsContent value="types" className="space-y-4">
             {sensorTypeStats.map((stat: any) => {
               const SensorIcon = sensorIcons[stat.type] || Activity;
-              const gradient = sensorColors[stat.type] || "from-gray-500 to-slate-600";
+              const gradient = sensorColors[stat.type] || "";
               const typeSensors = sensors.filter((s: any) => s.sensorType === stat.type);
               const avgValue = typeSensors.reduce((sum: number, s: any) => sum + s.value, 0) / (typeSensors.length || 1);
               
@@ -286,9 +291,9 @@ export default function SensorHub() {
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {typeSensors.slice(0, 4).map((s: any) => (
-                        <div key={s.id} className={`p-2 rounded-lg text-center ${s.isAlarm ? 'bg-red-950/30 border border-red-500/20' : 'bg-white'}`}>
+                        <div key={s.id} className={`p-2 rounded-lg text-center ${s.isAlarm ? 'bg-red-950/30 border border-etat-critique-filet/20' : 'bg-white'}`}>
                           <p className="text-xs text-ink-mute truncate">{s.equipmentName}</p>
-                          <p className={`text-sm font-bold ${s.isAlarm ? 'text-red-400' : 'text-white'}`}>{s.value} {s.unit}</p>
+                          <p className={`text-sm font-bold ${s.isAlarm ? 'text-etat-critique-texte' : 'text-white'}`}>{s.value} {s.unit}</p>
                         </div>
                       ))}
                     </div>

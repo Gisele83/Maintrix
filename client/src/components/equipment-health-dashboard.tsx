@@ -86,24 +86,24 @@ export function EquipmentHealthDashboard() {
 
 
   const getHealthScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-etat-nominal-texte";
+    if (score >= 60) return "text-etat-alerte-texte";
+    return "text-etat-critique-texte";
   };
 
   const getHealthScoreBg = (score: number) => {
-    if (score >= 80) return "bg-green-100";
-    if (score >= 60) return "bg-yellow-100";
-    return "bg-red-100";
+    if (score >= 80) return "bg-etat-nominal-fond";
+    if (score >= 60) return "bg-etat-alerte-fond";
+    return "bg-etat-critique-fond";
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      case 'critical': return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'offline': return <XCircle className="w-5 h-5 text-gray-500" />;
-      default: return <Activity className="w-5 h-5 text-blue-500" />;
+      case 'healthy': return <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5 text-etat-alerte-texte" />;
+      case 'critical': return <XCircle className="w-5 h-5 text-etat-critique-texte" />;
+      case 'offline': return <XCircle className="w-5 h-5 text-ink-mute" />;
+      default: return <Activity className="w-5 h-5 text-etat-encours-texte" />;
     }
   };
 
@@ -176,13 +176,13 @@ export function EquipmentHealthDashboard() {
     return (
       <div className="p-6 space-y-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-paper-deep rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+              <div key={i} className="h-24 bg-paper-deep rounded"></div>
             ))}
           </div>
-          <div className="h-96 bg-gray-200 rounded"></div>
+          <div className="h-96 bg-paper-deep rounded"></div>
         </div>
       </div>
     );
@@ -191,9 +191,15 @@ export function EquipmentHealthDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord Santé Équipements</h1>
-          <p className="text-gray-600 mt-2">Surveillance temps réel et analyse prédictive</p>
+        {/* Titre à l'échelle de la charte, et sans la capitalisation de tous
+            les mots : cet écran est devenu un domaine de plein droit, il ne
+            peut plus garder l'intitulé d'une entrée de menu. */}
+        <div className="min-w-0">
+          <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
+          <h1 className="font-serif text-page font-medium text-ink mt-1.5">Santé des machines</h1>
+          <p className="text-sm text-ink-soft mt-1.5">
+            L'état de chaque équipement, suivi en continu, et ce qu'il annonce.
+          </p>
         </div>
         
         <div className="flex space-x-4">
@@ -250,7 +256,7 @@ export function EquipmentHealthDashboard() {
                       </span>
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{eq.equipmentCode}</p>
+                  <p className="text-sm text-ink-soft">{eq.equipmentCode}</p>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
@@ -265,7 +271,7 @@ export function EquipmentHealthDashboard() {
 
                   {/* Sensor Readings */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-900">Capteurs</h4>
+                    <h4 className="text-sm font-medium text-ink">Capteurs</h4>
                     {eq.sensors.slice(0, 4).map((sensor, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-2">
@@ -288,11 +294,11 @@ export function EquipmentHealthDashboard() {
                   {/* Maintenance Info */}
                   <div className="border-t pt-3 text-sm">
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-600">Dernière maintenance:</span>
+                      <span className="text-ink-soft">Dernière maintenance:</span>
                       <span>{new Date(eq.lastMaintenance).toLocaleDateString('fr-FR')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Prochaine maintenance:</span>
+                      <span className="text-ink-soft">Prochaine maintenance:</span>
                       <span>{new Date(eq.nextMaintenance).toLocaleDateString('fr-FR')}</span>
                     </div>
                   </div>
@@ -306,7 +312,7 @@ export function EquipmentHealthDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Tendances des Métriques Clés</CardTitle>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink-soft">
                 Évolution des paramètres de santé sur la période sélectionnée
               </p>
             </CardHeader>
@@ -428,12 +434,12 @@ export function EquipmentHealthDashboard() {
                       
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-600">Valeur actuelle:</span>
+                          <span className="text-ink-soft">Valeur actuelle:</span>
                           <p className="font-medium">{pred.currentValue}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Prédiction:</span>
-                          <p className={`font-medium ${pred.predictedValue > pred.currentValue ? 'text-red-600' : 'text-green-600'}`}>
+                          <span className="text-ink-soft">Prédiction:</span>
+                          <p className={`font-medium ${pred.predictedValue > pred.currentValue ? 'text-etat-critique-texte' : 'text-etat-nominal-texte'}`}>
                             {pred.predictedValue}
                             {pred.predictedValue > pred.currentValue ? 
                               <TrendingUp className="w-4 h-4 inline ml-1" /> : 
@@ -442,11 +448,11 @@ export function EquipmentHealthDashboard() {
                           </p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Confiance:</span>
+                          <span className="text-ink-soft">Confiance:</span>
                           <p className="font-medium">{pred.confidence}%</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Temps avant panne:</span>
+                          <span className="text-ink-soft">Temps avant panne:</span>
                           <p className="font-medium">{pred.timeToFailure} jours</p>
                         </div>
                       </div>

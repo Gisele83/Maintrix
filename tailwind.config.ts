@@ -91,6 +91,27 @@ export default {
         // Assombri de 10 % à teinte constante : 5,00:1 sur `paper-deep`, et le
         // texte blanc des boutons y gagne aussi (5,00 → 5,91).
         signal: { DEFAULT: "#006B97", light: "#00B9F2", deep: "#005A80" },
+        /**
+         * Couleurs d'ÉTAT — les seules teintes autorisées en dehors de la
+         * charte, parce qu'elles portent une information que rien d'autre ne
+         * porte : « il faut agir », « ça approche », « c'est conforme ».
+         *
+         * Quatre registres, quatre rôles chacun :
+         *   • `fond`   : aplat de tuile ou de pastille ;
+         *   • `texte`  : écrit SUR `fond` — contraste mesuré > 4,5:1 ;
+         *   • `filet`  : bordure de pastille, assez marquée pour se voir ;
+         *   • `vif`    : liseré de carte et point de légende, jamais du texte.
+         *
+         * Le registre « neutre » n'est pas ici : il réutilise `paper-deep`,
+         * `ink-soft` et `rule`, pour qu'un état sans gravité reste muet.
+         * Les chaînes de classes sont assemblées dans `lib/etats.ts`.
+         */
+        etat: {
+          critique: { fond: "#FBE9E7", texte: "#8F2012", filet: "#EFC3BC", vif: "#C0392B" },
+          alerte: { fond: "#FBF0DC", texte: "#79500A", filet: "#E8D3A6", vif: "#B9770E" },
+          nominal: { fond: "#E4F1E8", texte: "#1B5E34", filet: "#BCDAC6", vif: "#2E7D4F" },
+          encours: { fond: "#E1EEF5", texte: "#0F4C68", filet: "#BBD7E5", vif: "#006B97" },
+        },
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

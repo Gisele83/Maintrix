@@ -51,3 +51,9 @@ certbot-webroot/.well-known/
 # Documents de travail (audits, rapports)
 Audit_Technique_Maintrix.docx
 captures/
+# ...sauf les captures avant/après de l'audit UX/UI : ce sont un livrable,
+# et docs/audit-ux/CAPTURES.md y renvoie. Sans cette exception, les liens du
+# rapport pointent vers des fichiers absents du dépôt (constaté le 20/10/2026 :
+# aucune des captures des étapes B et D n'était suivie).
+!docs/audit-ux/captures/
+!docs/audit-ux/captures/*.jpg

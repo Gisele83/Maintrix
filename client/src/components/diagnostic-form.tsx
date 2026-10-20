@@ -399,13 +399,13 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
   };
 
   return (
-    <Card className="border border-carbon-gray-20 shadow-sm">
-      <CardHeader className="border-b border-carbon-gray-20">
-        <CardTitle className="text-xl font-semibold text-carbon-gray-90 flex items-center space-x-2">
-          <Search className="text-carbon-blue" />
-          <span>{language === "fr" ? "Nouveau Diagnostic" : "New Diagnostic"}</span>
+    <Card className="border border-rule shadow-sm">
+      <CardHeader className="border-b border-rule">
+        <CardTitle className="text-xl font-semibold text-ink flex items-center space-x-2">
+          <Search className="text-signal" />
+          <span>{language === "fr" ? "Nouveau diagnostic" : "New Diagnostic"}</span>
         </CardTitle>
-        <p className="text-carbon-gray-70 text-sm">
+        <p className="text-ink-soft text-sm">
           {language === "fr" ? "Décrivez l'équipement et les symptômes observés" : "Describe the equipment and observed symptoms"}
         </p>
       </CardHeader>
@@ -414,13 +414,13 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {/* Equipment Type */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+            <Label htmlFor="diag-type-equipement" className="text-sm font-medium text-ink mb-2">
               {language === "fr" ? "Type d'équipement *" : "Equipment type *"}
             </Label>
             <select
+                id="diag-type-equipement"
               value={form.watch("equipmentType") || ""}
               onChange={(e) => {
-                console.log("Equipment type selected:", e.target.value);
                 form.setValue("equipmentType", e.target.value);
               }}
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -433,7 +433,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               ))}
             </select>
             {form.formState.errors.equipmentType && (
-              <p className="text-carbon-red text-sm mt-1">
+              <p className="text-etat-critique-texte text-sm mt-1">
                 {form.formState.errors.equipmentType.message}
               </p>
             )}
@@ -441,13 +441,13 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
           {/* Equipment ID - Dropdown from database */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+            <Label htmlFor="diag-identifiant-equipement" className="text-sm font-medium text-ink mb-2">
               {language === "fr" ? "Identifiant équipement" : "Equipment ID"}
             </Label>
             <select
+                id="diag-identifiant-equipement"
               value={form.watch("equipmentId") || ""}
               onChange={(e) => {
-                console.log("Equipment ID selected:", e.target.value);
                 form.setValue("equipmentId", e.target.value);
               }}
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -460,7 +460,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               ))}
             </select>
             {!equipmentData?.equipment || equipmentData.equipment.length === 0 && (
-              <p className="text-carbon-gray-50 text-sm mt-1">
+              <p className="text-ink-mute text-sm mt-1">
                 {language === "fr" ? "Chargement des équipements..." : "Loading equipment..."}
               </p>
             )}
@@ -469,13 +469,13 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           {/* Location */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label htmlFor="diag-zone" className="text-sm font-medium text-ink mb-2">
                 {language === "fr" ? "Zone" : "Zone"}
               </Label>
               <select
+                id="diag-zone"
                 value={form.watch("zone") || ""}
                 onChange={(e) => {
-                  console.log("Zone selected:", e.target.value);
                   form.setValue("zone", e.target.value);
                 }}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -489,13 +489,13 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               </select>
             </div>
             <div>
-              <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+              <Label htmlFor="diag-ligne-secteur" className="text-sm font-medium text-ink mb-2">
                 {language === "fr" ? "Ligne/Secteur" : "Line/Sector"}
               </Label>
               <select
+                id="diag-ligne-secteur"
                 value={form.watch("sector") || ""}
                 onChange={(e) => {
-                  console.log("Sector selected:", e.target.value);
                   form.setValue("sector", e.target.value);
                 }}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -512,7 +512,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
           {/* Symptoms - Dynamic based on Equipment Type */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-3">
+            <Label className="text-sm font-medium text-ink mb-3">
               {form.watch("equipmentType") 
                 ? `Symptômes spécifiques - ${equipmentTypes.find(eq => eq.value === form.watch("equipmentType"))?.label || 'Équipement'}`
                 : "Sélectionnez d'abord un type d'équipement"
@@ -523,21 +523,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               <div>
                 {/* Symptômes prioritaires */}
                 <div className="mb-4">
-                  <h4 className="font-medium text-sm text-red-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-critique-texte mb-2 flex items-center">
                     Symptômes critiques
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "high").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-red-50 p-2 rounded border-l-4 border-red-500">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-critique-fond p-2 rounded border-l-4 border-etat-critique-filet">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-red-300 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                          className="border-etat-critique-filet data-[state=checked]:bg-etat-critique-vif data-[state=checked]:border-etat-critique-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm font-medium text-red-800">
+                        <Label htmlFor={symptom.id} className="text-sm font-medium text-etat-critique-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -547,21 +547,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
                 {/* Symptômes moyens */}
                 <div className="mb-4">
-                  <h4 className="font-medium text-sm text-orange-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-alerte-texte mb-2 flex items-center">
                     Symptômes moyens
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "medium").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-orange-50 p-2 rounded">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-alerte-fond p-2 rounded">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-orange-300 data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600"
+                          className="border-etat-alerte-filet data-[state=checked]:bg-etat-alerte-vif data-[state=checked]:border-etat-alerte-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm text-orange-800">
+                        <Label htmlFor={symptom.id} className="text-sm text-etat-alerte-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -571,21 +571,21 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
                 {/* Symptômes mineurs */}
                 <div>
-                  <h4 className="font-medium text-sm text-blue-700 mb-2 flex items-center">
+                  <h4 className="font-medium text-sm text-etat-encours-texte mb-2 flex items-center">
                     ℹSymptômes mineurs
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {currentSymptoms.filter(s => s.priority === "low").map((symptom) => (
-                      <div key={symptom.id} className="flex items-center space-x-2 bg-blue-50 p-2 rounded">
+                      <div key={symptom.id} className="flex items-center space-x-2 bg-etat-encours-fond p-2 rounded">
                         <Checkbox
                           id={symptom.id}
                           checked={selectedSymptoms.includes(symptom.id)}
                           onCheckedChange={(checked) => 
                             handleSymptomChange(symptom.id, checked as boolean)
                           }
-                          className="border-blue-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          className="border-etat-encours-filet data-[state=checked]:bg-etat-encours-vif data-[state=checked]:border-etat-encours-filet"
                         />
-                        <Label htmlFor={symptom.id} className="text-sm text-blue-800">
+                        <Label htmlFor={symptom.id} className="text-sm text-etat-encours-texte">
                           {symptom.label}
                         </Label>
                       </div>
@@ -594,25 +594,31 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
                 </div>
               </div>
             ) : (
-              <div className="text-center p-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <p className="text-gray-600">Veuillez d'abord sélectionner un type d'équipement pour voir les symptômes spécifiques</p>
+              <div className="text-center p-8 bg-paper rounded-lg border-2 border-dashed border-rule">
+                <p className="text-ink-soft">Veuillez d'abord sélectionner un type d'équipement pour voir les symptômes spécifiques</p>
               </div>
             )}
           </div>
 
           {/* Detailed Symptoms Description */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+            {/* Les étiquettes de ce formulaire étaient visuellement présentes
+                mais n'étaient liées à aucun champ : sept contrôles restaient
+                anonymes pour un lecteur d'écran, et cliquer sur l'étiquette ne
+                donnait pas le focus au champ. Chaque `Label` porte désormais
+                son `htmlFor`. */}
+            <Label htmlFor="diag-symptomes" className="text-sm font-medium text-ink mb-2">
               {language === "fr" ? "Symptômes observés *" : "Observed symptoms *"}
             </Label>
             <Textarea
+              id="diag-symptomes"
               placeholder={language === "fr" ? "Décrivez en détail les symptômes et le contexte de la panne..." : "Describe in detail the symptoms and context of the failure..."}
               rows={4}
               {...form.register("symptoms")}
-              className="border-carbon-gray-20 focus:ring-carbon-blue focus:border-transparent"
+              className="border-rule focus:ring-signal focus:border-transparent"
             />
             {form.formState.errors.symptoms && (
-              <p className="text-carbon-red text-sm mt-1">
+              <p className="text-etat-critique-texte text-sm mt-1">
                 {form.formState.errors.symptoms.message}
               </p>
             )}
@@ -620,7 +626,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
 
           {/* Urgency Level */}
           <div>
-            <Label className="text-sm font-medium text-carbon-gray-90 mb-2">
+            <Label className="text-sm font-medium text-ink mb-2">
               {language === "fr" ? "Niveau d'urgence" : "Urgency level"}
             </Label>
             <RadioGroup
@@ -629,20 +635,20 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
               className="flex space-x-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="low" id="low" className="text-carbon-green" />
-                <Label htmlFor="low" className="text-sm text-carbon-green font-medium">
+                <RadioGroupItem value="low" id="low" className="text-etat-nominal-texte" />
+                <Label htmlFor="low" className="text-sm text-etat-nominal-texte font-medium">
                   {language === "fr" ? "Faible" : "Low"}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="medium" id="medium" className="text-carbon-orange" />
-                <Label htmlFor="medium" className="text-sm text-carbon-orange font-medium">
+                <RadioGroupItem value="medium" id="medium" className="text-etat-alerte-texte" />
+                <Label htmlFor="medium" className="text-sm text-etat-alerte-texte font-medium">
                   {language === "fr" ? "Moyen" : "Medium"}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="high" id="high" className="text-carbon-red" />
-                <Label htmlFor="high" className="text-sm text-carbon-red font-medium">
+                <RadioGroupItem value="high" id="high" className="text-etat-critique-texte" />
+                <Label htmlFor="high" className="text-sm text-etat-critique-texte font-medium">
                   {language === "fr" ? "Élevé" : "High"}
                 </Label>
               </div>
@@ -653,7 +659,7 @@ export function DiagnosticForm({ onSubmit, isLoading }: DiagnosticFormProps) {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-carbon-blue text-white hover:bg-blue-700 focus:ring-carbon-blue transition-colors duration-200 font-medium"
+            className="w-full bg-ink text-paper hover:bg-signal focus:ring-signal transition-colors duration-200 font-medium"
           >
             <Search className="w-4 h-4 mr-2" />
             {isLoading ? (language === "fr" ? "Analyse en cours..." : "Analyzing...") : (language === "fr" ? "Analyser et obtenir un diagnostic" : "Analyze and get diagnosis")}

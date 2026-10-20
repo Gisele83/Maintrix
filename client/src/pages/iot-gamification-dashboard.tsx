@@ -59,15 +59,15 @@ interface SystemStatusResponse {
 // IoT Device Status Component
 const IoTDeviceCard = ({ device }: { device: any }) => {
   const getBatteryColor = (level: number) => {
-    if (level > 0.5) return 'text-green-600';
-    if (level > 0.3) return 'text-yellow-600';
-    return 'text-red-600';
+    if (level > 0.5) return 'text-etat-nominal-texte';
+    if (level > 0.3) return 'text-etat-alerte-texte';
+    return 'text-etat-critique-texte';
   };
 
   const getSignalColor = (strength: number) => {
-    if (strength > 0.8) return 'text-green-600';
-    if (strength > 0.5) return 'text-yellow-600';
-    return 'text-red-600';
+    if (strength > 0.8) return 'text-etat-nominal-texte';
+    if (strength > 0.5) return 'text-etat-alerte-texte';
+    return 'text-etat-critique-texte';
   };
 
   return (
@@ -130,23 +130,23 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
 }) => {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'border-red-500 bg-red-50';
-      case 'warning': return 'border-yellow-500 bg-yellow-50';
-      case 'info': return 'border-blue-500 bg-blue-50';
-      default: return 'border-gray-200';
+      case 'critical': return 'border-etat-critique-filet bg-etat-critique-fond';
+      case 'warning': return 'border-etat-alerte-filet bg-etat-alerte-fond';
+      case 'info': return 'border-etat-encours-filet bg-etat-encours-fond';
+      default: return 'border-rule';
     }
   };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case 'critical': return <AlertTriangle className="h-5 w-5 text-red-600" />;
-      case 'warning': return <Clock className="h-5 w-5 text-yellow-600" />;
-      default: return <Activity className="h-5 w-5 text-blue-600" />;
+      case 'critical': return <AlertTriangle className="h-5 w-5 text-etat-critique-texte" />;
+      case 'warning': return <Clock className="h-5 w-5 text-etat-alerte-texte" />;
+      default: return <Activity className="h-5 w-5 text-etat-encours-texte" />;
     }
   };
 
   return (
-    <Card className={`transition-all duration-200 ${getSeverityColor(notification.severity)} ${!notification.isRead ? 'shadow-md' : 'opacity-75'}`}>
+    <Card className={`transition-all duration-200 ${getSeverityColor(notification.severity)} ${!notification.isRead ? 'shadow-none' : 'opacity-75'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
@@ -168,7 +168,7 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-ink-soft">
           {notification.message}
         </p>
         
@@ -184,7 +184,7 @@ const SmartNotificationCard = ({ notification, onMarkRead, onMarkActioned }: {
         
         {notification.estimatedTimeToFailure && (
           <div className="flex items-center space-x-2 text-sm">
-            <Clock className="h-4 w-4 text-orange-500" />
+            <Clock className="h-4 w-4 text-etat-alerte-texte" />
             <span>Temps estimé avant défaillance: {notification.estimatedTimeToFailure}h</span>
           </div>
         )}
@@ -278,6 +278,16 @@ export default function IoTGamificationDashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  /**
+   * Les comptes réels de l'organisation, pour le sélecteur de technicien.
+   * Il proposait auparavant trois employés inventés avec des matricules
+   * inventés, alors que cette route alimente déjà le champ « Assigné à » des
+   * ordres de travail.
+   */
+  const { data: comptes = [] } = useQuery<
+    Array<{ id: number; username?: string; firstName?: string; lastName?: string; email?: string }>
+  >({ queryKey: ['/api/user-profiles'] });
+
   // Mark notification as read
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
@@ -337,7 +347,8 @@ export default function IoTGamificationDashboard() {
   });
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Perception IoT" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -351,11 +362,11 @@ export default function IoTGamificationDashboard() {
         {systemStatus && (
           <div className="flex space-x-4">
             <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${systemStatus.iot?.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`w-3 h-3 rounded-full ${systemStatus.iot?.connected ? 'bg-etat-nominal-vif' : 'bg-etat-critique-vif'}`} />
               <span className="text-sm">IoT: {systemStatus.iot?.devicesCount || 0} capteurs</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
+              <div className="w-3 h-3 rounded-full bg-etat-encours-vif" />
               <span className="text-sm">Gamification: {systemStatus.gamification?.totalUsers || 0} utilisateurs</span>
             </div>
           </div>
@@ -390,13 +401,13 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
+                    <div className="h-3 bg-paper-deep rounded w-1/2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-3 bg-paper-deep rounded w-2/3" />
                     </div>
                   </CardContent>
                 </Card>
@@ -409,7 +420,7 @@ export default function IoTGamificationDashboard() {
               <Card className="col-span-full">
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Activity className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Activity className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucun capteur IoT</h3>
                     <p className="text-muted-foreground">
                       Les capteurs IoT apparaîtront ici une fois connectés
@@ -425,7 +436,7 @@ export default function IoTGamificationDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Gauge className="h-8 w-8 text-blue-600" />
+                  <Gauge className="h-8 w-8 text-etat-encours-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Total Capteurs</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.totalDevices}</p>
@@ -435,7 +446,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                  <CheckCircle className="h-8 w-8 text-etat-nominal-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Actifs</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.activeDevices}</p>
@@ -445,7 +456,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Battery className="h-8 w-8 text-orange-600" />
+                  <Battery className="h-8 w-8 text-etat-alerte-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Batterie Faible</p>
                     <p className="text-2xl font-bold">{iotDevices.summary.lowBatteryDevices}</p>
@@ -477,13 +488,13 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
+                    <div className="h-3 bg-paper-deep rounded w-1/2" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-3 bg-paper-deep rounded w-2/3" />
                     </div>
                   </CardContent>
                 </Card>
@@ -501,7 +512,7 @@ export default function IoTGamificationDashboard() {
               <Card>
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Bell className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Bell className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucune notification</h3>
                     <p className="text-muted-foreground">
                       Les notifications intelligentes apparaîtront ici
@@ -519,14 +530,25 @@ export default function IoTGamificationDashboard() {
             <h2 className="text-xl font-semibold">Progression des Compétences</h2>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">Utilisateur:</span>
-              <select 
-                value={selectedUserId} 
+              {/* ⚠️ Ce sélecteur proposait trois employés inventés, avec des
+                  matricules inventés (MAT001 à MAT003). Il pilote pourtant
+                  les requêtes de compétences et de notifications : on
+                  consultait donc le profil de personnes qui n'existent pas.
+                  Il liste désormais les comptes réels de l'organisation,
+                  par la route que la page des ordres de travail utilise
+                  déjà. */}
+              <select
+                value={selectedUserId}
                 onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                className="px-3 py-1 border rounded-md"
+                aria-label="Choisir le technicien dont on consulte les compétences"
+                className="h-9 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
-                <option value={1}>Jean Dupont (MAT001)</option>
-                <option value={2}>Marie Martin (MAT002)</option>
-                <option value={3}>Pierre Durand (MAT003)</option>
+                {comptes.length === 0 && <option value={selectedUserId}>Aucun compte disponible</option>}
+                {comptes.map((compte) => (
+                  <option key={compte.id} value={compte.id}>
+                    {[compte.firstName, compte.lastName].filter(Boolean).join(" ") || compte.username || compte.email}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -535,7 +557,7 @@ export default function IoTGamificationDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Trophy className="h-8 w-8 text-yellow-600" />
+                  <Trophy className="h-8 w-8 text-etat-alerte-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">Niveau Moyen</p>
                     <p className="text-2xl font-bold">{userSkills.summary.averageLevel.toFixed(1)}</p>
@@ -545,7 +567,7 @@ export default function IoTGamificationDashboard() {
               
               <Card>
                 <CardContent className="flex items-center p-6">
-                  <Star className="h-8 w-8 text-blue-600" />
+                  <Star className="h-8 w-8 text-etat-encours-texte" />
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">XP Total</p>
                     <p className="text-2xl font-bold">{userSkills.summary.totalExperience}</p>
@@ -553,15 +575,19 @@ export default function IoTGamificationDashboard() {
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardContent className="flex items-center p-6">
-                  <Award className="h-8 w-8 text-green-600" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Classement</p>
-                    <p className="text-2xl font-bold">#{userSkills.leaderboard?.position || 'N/A'}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* ⚠️ Une troisième tuile affichait ici le rang du technicien,
+                  « Classement #11 ». Ce nombre est TIRÉ AU SORT à chaque
+                  appel : `server/integrations/gamification-engine.ts` le
+                  produit par `Math.floor(Math.random() * 20) + 1`, avec son
+                  propre commentaire « Mock position ». Vérifié le 20/10/2026
+                  par trois requêtes successives sur le même compte : 12, 13,
+                  puis 11.
+
+                  C'est pire qu'une constante — un nombre qui change donne
+                  l'impression d'être vivant. La tuile est retirée de
+                  l'affichage. Rendre ce classement réel demande un calcul
+                  côté serveur qui n'existe pas : c'est un chantier à part,
+                  signalé dans l'audit. */}
             </div>
           )}
 
@@ -570,12 +596,12 @@ export default function IoTGamificationDashboard() {
               Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <CardHeader>
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-paper-deep rounded w-3/4" />
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="h-3 bg-gray-200 rounded" />
-                      <div className="h-2 bg-gray-200 rounded" />
+                      <div className="h-3 bg-paper-deep rounded" />
+                      <div className="h-2 bg-paper-deep rounded" />
                     </div>
                   </CardContent>
                 </Card>
@@ -588,7 +614,7 @@ export default function IoTGamificationDashboard() {
               <Card className="col-span-full">
                 <CardContent className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Trophy className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <Trophy className="h-12 w-12 mx-auto text-ink-mute mb-4" />
                     <h3 className="text-lg font-medium mb-2">Aucune compétence</h3>
                     <p className="text-muted-foreground">
                       Les compétences apparaîtront après les premières activités
@@ -604,56 +630,38 @@ export default function IoTGamificationDashboard() {
         <TabsContent value="leaderboard" className="space-y-4">
           <h2 className="text-xl font-semibold">Classement des Techniciens</h2>
           
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {[
-                  { position: 1, name: 'Jean Dupont', xp: 2450, level: 6.2, achievements: 12 },
-                  { position: 2, name: 'Marie Martin', xp: 2180, level: 5.8, achievements: 9 },
-                  { position: 3, name: 'Pierre Durand', xp: 1950, level: 5.3, achievements: 8 },
-                ].map((player) => (
-                  <div key={player.position} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        player.position === 1 ? 'bg-yellow-100 text-yellow-800' :
-                        player.position === 2 ? 'bg-gray-100 text-gray-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
-                        {player.position}
-                      </div>
-                      <div>
-                        <p className="font-medium">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Niveau moyen: {player.level}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-6">
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{player.xp} XP</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{player.achievements}</p>
-                        <p className="text-xs text-muted-foreground">Succès</p>
-                      </div>
-                      <Medal className={`h-6 w-6 ${
-                        player.position === 1 ? 'text-yellow-500' :
-                        player.position === 2 ? 'text-gray-500' :
-                        'text-orange-500'
-                      }`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* ══════════════════════════════════════════════════════════
+              ⚠️ TROIS TECHNICIENS INVENTÉS ONT ÉTÉ RETIRÉS ICI.
+              ══════════════════════════════════════════════════════════
+              Ce classement affichait « Jean Dupont — 2 450 XP — niveau 6,2 —
+              12 succès », « Marie Martin », « Pierre Durand », écrits en dur
+              dans le composant. Trois personnes qui n'existent dans aucune
+              organisation, présentées comme le palmarès des techniciens du
+              client.
+
+              La route `/api/gamification/leaderboard` existe, mais elle
+              renvoie exactement les mêmes trois personnes : son code porte le
+              commentaire « Mock leaderboard data ». Brancher l'écran dessus
+              n'aurait donc rien changé — il faut d'abord que le serveur sache
+              calculer ce classement, ce qui est un chantier à part.
+
+              En attendant, l'écran dit ce qu'il en est. Un palmarès inventé
+              de collègues nommés est le pire endroit où laisser une donnée
+              fictive. Retiré le 20/10/2026. */}
+          <EtatVide
+            icone={Medal}
+            titre="Classement indisponible"
+            phrase="Le classement des techniciens demande un historique d'interventions et de compétences acquises que la plateforme ne consolide pas encore. Aucun palmarès n'est affiché tant que ces données n'existent pas."
+          />
         </TabsContent>
       </Tabs>
     </div>
+    </AppShell>
   );
 }
 
 // Import Bell component fix
 import { Bell } from 'lucide-react';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";

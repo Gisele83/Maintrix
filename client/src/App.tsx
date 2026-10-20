@@ -36,8 +36,8 @@ import PredictiveEnginePage from "@/pages/predictive-engine";
 import EngineeringExpertisePage from "@/pages/engineering-expertise";
 import MultiAgentTeamPage from "@/pages/multi-agent-team";
 import EquipmentLifecyclePage from "@/pages/equipment-lifecycle";
-import { EquipmentManagement } from "@/components/equipment-management";
-import PreventiveMaintenance from "@/pages/preventive-maintenance";
+import EquipmentPage from "@/pages/equipment";
+import PreventivePage from "@/pages/preventive";
 import VoiceDiagnostic from "@/pages/voice-diagnostic";
 import ModulesOverview from "@/pages/modules-overview";
 import DataImport from "@/pages/data-import";
@@ -83,7 +83,6 @@ import DownloadCenterPage from "@/pages/download-center";
 import BudgetPage from "@/pages/budget";
 import SupplierPage from "@/pages/supplier-portal";
 import WarrantyPage from "@/pages/warranty";
-import MaintenancePlanPage from "@/pages/maintenance-plan";
 import MaintenanceRecommendations from "@/pages/maintenance-recommendations";
 import MobileNotificationsPage from "@/pages/mobile-notifications";
 import IMCADashboard from "@/pages/imca-dashboard";
@@ -227,10 +226,10 @@ function Router() {
         {(params) => <ProtectedRoute component={AdvancedReporting} {...params} />}
       </Route>
       <Route path="/equipment">
-        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+        {(params) => <ProtectedRoute component={EquipmentPage} {...params} />}
       </Route>
       <Route path="/equipment-management">
-        {(params) => <ProtectedRoute component={EquipmentManagement} {...params} />}
+        {(params) => <ProtectedRoute component={EquipmentPage} {...params} />}
       </Route>
       <Route path="/work-orders">
         {(params) => <ProtectedRoute component={WorkOrders} {...params} />}
@@ -298,8 +297,13 @@ function Router() {
       <Route path="/warranty">
         {(params) => <ProtectedRoute component={WarrantyPage} {...params} />}
       </Route>
+      {/* ⚠️ `/maintenance-plan` servait une page qui lisait la table
+          `maintenance_plans`, orpheline : aucun lien avec le tableau de
+          bord, les agents ni les imports. Un locataire ayant douze plans
+          actifs y voyait une liste vide. La route mène à l'écran qui lit
+          la table réellement alimentée. Voir pages/preventive.tsx. */}
       <Route path="/maintenance-plan">
-        {(params) => <ProtectedRoute component={MaintenancePlanPage} {...params} />}
+        {(params) => <ProtectedRoute component={PreventivePage} {...params} />}
       </Route>
       <Route path="/maintenance-recommendations">
         {(params) => <ProtectedRoute component={MaintenanceRecommendations} {...params} />}
@@ -326,17 +330,20 @@ function Router() {
         {() => <DownloadCenterPage />}
       </Route>
       <Route path="/preventive">
-        {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
+        {(params) => <ProtectedRoute component={PreventivePage} {...params} />}
       </Route>
       <Route path="/preventive-maintenance">
-        {(params) => <ProtectedRoute component={PreventiveMaintenance} {...params} />}
+        {(params) => <ProtectedRoute component={PreventivePage} {...params} />}
       </Route>
-      {/* ⚠️ `maintenance-dashboard` affiche un jeu de métriques entièrement
+      {/* ⚠️ `maintenance-dashboard` affichait un jeu de métriques entièrement
           fabriqué — son propre code le dit : « Sample data - in real app this
           would come from API ». 156 ordres de travail, OEE 87,5 %, MTBF 720 h,
           125 800 € de coûts : des chiffres qu'aucun locataire n'a produits.
-          La page restait pourtant accessible aux testeurs. Elle renvoie au
-          tableau de bord réel tant qu'elle n'est pas branchée. 2026-10-11. */}
+          La page restait pourtant accessible aux testeurs. Elle a renvoyé au
+          tableau de bord réel jusqu'au 20/10/2026, date à laquelle le fichier a
+          été supprimé : plus rien ne l'importait, et laisser 878 lignes de
+          métriques inventées dans le dépôt, c'est laisser quelqu'un les
+          rebrancher. La redirection reste, pour les signets. */}
       <Route path="/maintenance-dashboard">
         <Redirect to="/gmao" />
       </Route>

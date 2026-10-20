@@ -13,6 +13,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BookOpen, GitBranch, ClipboardList, Network, Wrench, ArrowRight, ExternalLink, Loader2,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Overview {
   expertRules: { count: number; description: string };
@@ -35,21 +38,22 @@ const TASK_TYPE_LABELS: Record<string, string> = {
   run_to_failure: "Run-to-failure", redesign: "Reconception",
 };
 const TASK_TYPE_COLOR: Record<string, string> = {
-  condition_based: "bg-green-100 text-green-700", scheduled_restoration: "bg-orange-100 text-orange-700",
-  scheduled_discard: "bg-blue-100 text-blue-700", failure_finding: "bg-paper-deep text-signal-deep",
-  run_to_failure: "bg-gray-100 text-gray-600", redesign: "bg-red-100 text-red-700",
+  condition_based: "bg-etat-nominal-fond text-etat-nominal-texte", scheduled_restoration: "bg-etat-alerte-fond text-etat-alerte-texte",
+  scheduled_discard: "bg-etat-encours-fond text-etat-encours-texte", failure_finding: "bg-paper-deep text-signal-deep",
+  run_to_failure: "bg-paper-deep text-ink-soft", redesign: "bg-etat-critique-fond text-etat-critique-texte",
 };
 
 export default function EngineeringExpertisePage() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Plateforme" }, { libelle: "Expertise d'ingénierie" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-etat-encours-texte" />
             Engineering Expertise
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             Expert Rules, RCA (5 Why / Fishbone / Fault Tree), FMEA/AMDEC, RCM. Ce n'est pas de l'IA générative — c'est de l'ingénierie déterministe, l'expérience capitalisée des ingénieurs.
           </p>
         </div>
@@ -66,6 +70,7 @@ export default function EngineeringExpertisePage() {
         </Tabs>
       </div>
     </div>
+    </AppShell>
   );
 }
 
@@ -75,31 +80,31 @@ function OverviewTab() {
   return (
     <div className="space-y-4 mt-4">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.expertRules.count ?? "—"}</div><p className="text-xs text-gray-500">Règles expertes</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.rca.count ?? "—"}</div><p className="text-xs text-gray-500">Analyses RCA</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.fmea.count ?? "—"}</div><p className="text-xs text-gray-500">AMDEC</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.rcm.count ?? "—"}</div><p className="text-xs text-gray-500">Analyses RCM</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.expertRules.count ?? "—"}</div><p className="text-xs text-ink-mute">Règles expertes</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.rca.count ?? "—"}</div><p className="text-xs text-ink-mute">Analyses RCA</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.fmea.count ?? "—"}</div><p className="text-xs text-ink-mute">AMDEC</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-2xl font-bold">{data?.rcm.count ?? "—"}</div><p className="text-xs text-ink-mute">Analyses RCM</p></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><GitBranch className="w-4 h-4" />RCA — Root Cause Analysis</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-xs text-gray-500">Méthodologies : 5 Why, Fishbone (Ishikawa), FMEA, Fault Tree.</p>
+            <p className="text-xs text-ink-mute">Méthodologies : 5 Why, Fishbone (Ishikawa), FMEA, Fault Tree.</p>
             <Link href="/rca"><Button size="sm" variant="outline" className="w-full justify-between">Ouvrir RCA<ExternalLink className="w-3 h-3" /></Button></Link>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><ClipboardList className="w-4 h-4" />FMEA / AMDEC</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-xs text-gray-500">{data?.fmea.description ?? "Criticité RPN = Sévérité × Occurrence × Détectabilité"}</p>
+            <p className="text-xs text-ink-mute">{data?.fmea.description ?? "Criticité RPN = Sévérité × Occurrence × Détectabilité"}</p>
             <Link href="/fmea"><Button size="sm" variant="outline" className="w-full justify-between">Ouvrir FMEA<ExternalLink className="w-3 h-3" /></Button></Link>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-blue-50 border-blue-100">
-        <CardContent className="pt-6 text-sm text-blue-800 flex items-start gap-2">
+      <Card className="bg-etat-encours-fond border-etat-encours-filet">
+        <CardContent className="pt-6 text-sm text-etat-encours-texte flex items-start gap-2">
           <Network className="w-4 h-4 mt-0.5 flex-shrink-0" />
           Une RCA clôturée avec une cause racine identifiée enrichit automatiquement le
           <Link href="/knowledge-graph" className="underline mx-1">Knowledge Graph</Link>
@@ -115,7 +120,7 @@ function RulesTab() {
 
   return (
     <div className="space-y-3 mt-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-mute">
         {rules?.length ?? 0} règles déterministes — consultées par le pipeline diagnostic (server/diagnostic-rules-engine.ts), pas générées par IA.
       </p>
       {(rules ?? []).map(rule => (
@@ -126,7 +131,7 @@ function RulesTab() {
               <Badge variant="outline">{Math.round(rule.confidence * 100)}% confiance</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs text-gray-600">
+          <CardContent className="space-y-1 text-xs text-ink-soft">
             <p><span className="font-medium">Équipements :</span> {rule.equipmentPatterns.join(", ")}</p>
             <p><span className="font-medium">Symptômes :</span> {rule.symptomPatterns.join(", ")}</p>
             <p><span className="font-medium">Diagnostic :</span> {rule.diagnosis}</p>
@@ -200,9 +205,9 @@ function RcmTab() {
           </div>
 
           {preview && (
-            <div className="rounded-lg border border-gray-200 p-3 space-y-1">
+            <div className="rounded-lg border border-rule p-3 space-y-1">
               <Badge className={TASK_TYPE_COLOR[preview.recommendedTaskType]}>{TASK_TYPE_LABELS[preview.recommendedTaskType]}</Badge>
-              <p className="text-xs text-gray-600">{preview.reasoning}</p>
+              <p className="text-xs text-ink-soft">{preview.reasoning}</p>
             </div>
           )}
         </CardContent>
@@ -218,7 +223,7 @@ function RcmTab() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-gray-500 flex items-center gap-1"><ArrowRight className="w-3 h-3" />{a.functionDescription}</p>
+              <p className="text-xs text-ink-mute flex items-center gap-1"><ArrowRight className="w-3 h-3" />{a.functionDescription}</p>
               <p className="text-xs text-ink-mute mt-1">{a.reasoning}</p>
             </CardContent>
           </Card>

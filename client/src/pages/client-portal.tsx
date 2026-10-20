@@ -15,17 +15,17 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
 const statusColors: Record<string, string> = {
-  operational: "bg-green-500/10 text-green-500 border-green-500/30",
-  maintenance: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30",
-  offline: "bg-red-500/10 text-red-500 border-red-500/30",
-  decommissioned: "bg-gray-500/10 text-gray-500 border-gray-500/30"
+  operational: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",
+  maintenance: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  offline: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",
+  decommissioned: "bg-gray-500/10 text-ink-mute border-gray-500/30"
 };
 
 const priorityColors: Record<string, string> = {
-  critical: "bg-red-500/10 text-red-400",
-  high: "bg-orange-500/10 text-orange-400",
-  medium: "bg-yellow-500/10 text-yellow-400",
-  low: "bg-blue-500/10 text-blue-400"
+  critical: "bg-etat-critique-fond text-etat-critique-texte",
+  high: "bg-etat-alerte-fond text-etat-alerte-texte",
+  medium: "bg-etat-alerte-fond text-etat-alerte-texte",
+  low: "bg-etat-encours-fond text-etat-encours-texte"
 };
 
 const statusLabels: Record<string, string> = {
@@ -42,22 +42,22 @@ const statusLabels: Record<string, string> = {
 function PortalView({ token }: { token: string }) {
   const { data, isLoading, error, refetch } = useQuery<any>({
     queryKey: ['/api/client-portal', token],
-    queryFn: () => fetch(`/api/client-portal/${token}`).then(r => r.json()),
+    queryFn: () => apiRequest(`/api/client-portal/${token}`),
     refetchInterval: 30000
   });
 
   if (isLoading) return (
     <div className="min-h-screen bg-paper-deep flex items-center justify-center">
-      <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
     </div>
   );
 
   if (error || !data) return (
     <div className="min-h-screen bg-paper-deep flex items-center justify-center">
-      <Card className="bg-paper-deep border-red-500/30 max-w-md">
+      <Card className="bg-paper-deep border-etat-critique-filet max-w-md">
         <CardContent className="p-6 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-400">Lien du portail invalide ou expiré.</p>
+          <AlertTriangle className="w-12 h-12 text-etat-critique-texte mx-auto mb-4" />
+          <p className="text-etat-critique-texte">Lien du portail invalide ou expiré.</p>
         </CardContent>
       </Card>
     </div>
@@ -71,7 +71,7 @@ function PortalView({ token }: { token: string }) {
       <div className="border-b border-rule bg-paper-deep">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-paper-deep rounded-none flex items-center justify-center">
               <Shield className="w-5 h-5 text-ink" />
             </div>
             <div>
@@ -88,14 +88,14 @@ function PortalView({ token }: { token: string }) {
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { icon: Factory, label: "Équipements", value: data.totalEquipment, color: "from-blue-500 to-cyan-500" },
-            { icon: Wrench, label: "OT actifs", value: data.activeWorkOrders, color: "from-orange-500 to-amber-500" },
-            { icon: CheckCircle, label: "OT terminés", value: data.completedWorkOrders, color: "from-green-500 to-emerald-500" },
+            { icon: Factory, label: "Équipements", value: data.totalEquipment, color: "" },
+            { icon: Wrench, label: "OT actifs", value: data.activeWorkOrders, color: "" },
+            { icon: CheckCircle, label: "OT terminés", value: data.completedWorkOrders, color: "" },
             { icon: Activity, label: "Taux opérationnel", value: `${operationalRate}%`, color: " " }
           ].map((stat, i) => (
             <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-4 flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
+                <div className={`w-12 h-12 rounded-none bg-paper-deep ${stat.color} flex items-center justify-center shrink-0`}>
                   <stat.icon className="w-6 h-6 text-ink" />
                 </div>
                 <div>
@@ -111,7 +111,7 @@ function PortalView({ token }: { token: string }) {
           <Card className="bg-paper-deep border-rule">
             <CardHeader>
               <CardTitle className="text-ink flex items-center gap-2">
-                <Factory className="w-5 h-5 text-blue-400" />
+                <Factory className="w-5 h-5 text-etat-encours-texte" />
                 État des Équipements
               </CardTitle>
             </CardHeader>
@@ -119,7 +119,7 @@ function PortalView({ token }: { token: string }) {
               {data.equipment?.map((eq: any) => (
                 <div key={eq.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-rule">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${eq.status === 'operational' ? 'bg-green-500' : eq.status === 'maintenance' ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                    <div className={`w-3 h-3 rounded-full ${eq.status === 'operational' ? 'bg-etat-nominal-vif' : eq.status === 'maintenance' ? 'bg-etat-alerte-vif' : 'bg-etat-critique-vif'}`} />
                     <div>
                       <p className="text-sm font-medium text-ink">{eq.name}</p>
                       <p className="text-xs text-ink-mute flex items-center gap-1">
@@ -141,7 +141,7 @@ function PortalView({ token }: { token: string }) {
           <Card className="bg-paper-deep border-rule">
             <CardHeader>
               <CardTitle className="text-ink flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-orange-400" />
+                <Wrench className="w-5 h-5 text-etat-alerte-texte" />
                 Ordres de Travail Récents
               </CardTitle>
             </CardHeader>
@@ -208,7 +208,7 @@ function PortalAdmin() {
     <div className="min-h-screen bg-paper-deep p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
             <ExternalLink className="w-6 h-6 text-ink" />
           </div>
           <div>
@@ -258,7 +258,7 @@ function PortalAdmin() {
               ].map((feature, i) => (
                 <Card key={i} className="bg-white border-rule">
                   <CardContent className="p-4 text-center">
-                    <feature.icon className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                    <feature.icon className="w-8 h-8 text-etat-encours-texte mx-auto mb-2" />
                     <p className="text-sm font-medium text-ink">{feature.title}</p>
                     <p className="text-xs text-ink-mute mt-1">{feature.desc}</p>
                   </CardContent>

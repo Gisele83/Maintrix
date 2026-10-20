@@ -76,7 +76,7 @@ export function OfflineDiagnostic({ onAddPendingAction }: OfflineDiagnosticProps
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            <AlertTriangle className="h-5 w-5 text-etat-alerte-texte" />
             Diagnostic Offline
           </CardTitle>
         </CardHeader>
@@ -166,7 +166,7 @@ export function OfflineDiagnostic({ onAddPendingAction }: OfflineDiagnosticProps
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="h-5 w-5 text-etat-nominal-texte" />
               Résultat du diagnostic offline
             </CardTitle>
           </CardHeader>

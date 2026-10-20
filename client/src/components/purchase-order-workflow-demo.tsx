@@ -13,7 +13,7 @@ const WORKFLOW_STEPS = [
     title: "Création du Bon de Commande",
     description: "Le service achat initie le bon de commande avec les documents justificatifs",
     icon: Building,
-    color: "bg-blue-500",
+    color: "bg-etat-encours-vif",
     status: "completed"
   },
   {
@@ -22,7 +22,7 @@ const WORKFLOW_STEPS = [
     title: "Validation Niveau 1",
     description: "Vérification des besoins et validation technique",
     icon: User,
-    color: "bg-yellow-500",
+    color: "bg-etat-alerte-vif",
     status: "pending"
   },
   {
@@ -40,7 +40,7 @@ const WORKFLOW_STEPS = [
     title: "Impression & Envoi",
     description: "Récupération du bon validé pour impression et envoi au fournisseur",
     icon: Printer,
-    color: "bg-green-500",
+    color: "bg-etat-nominal-vif",
     status: "waiting"
   }
 ];
@@ -111,9 +111,9 @@ export default function PurchaseOrderWorkflowDemo({
               <div key={step.id} className="flex items-center gap-4">
                 <div className={`
                   relative flex items-center justify-center w-12 h-12 rounded-full
-                  ${status === "completed" ? "bg-green-500 text-white" : 
+                  ${status === "completed" ? "bg-etat-nominal-vif text-white" : 
                     status === "active" ? step.color + " text-white animate-pulse" : 
-                    "bg-gray-200 text-gray-400"}
+                    "bg-paper-deep text-ink-mute"}
                 `}>
                   {status === "completed" ? (
                     <Check className="h-6 w-6" />
@@ -121,7 +121,7 @@ export default function PurchaseOrderWorkflowDemo({
                     <Icon className="h-6 w-6" />
                   )}
                   {step.id === 1 && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-etat-encours-vif rounded-full flex items-center justify-center">
                       <span className="text-xs text-white font-bold">1</span>
                     </div>
                   )}
@@ -132,19 +132,19 @@ export default function PurchaseOrderWorkflowDemo({
                     <h4 className="font-semibold">{step.title}</h4>
                     <Badge 
                       variant={status === "completed" ? "default" : status === "active" ? "secondary" : "outline"}
-                      className={status === "active" ? "bg-yellow-100 text-yellow-800" : ""}
+                      className={status === "active" ? "bg-etat-alerte-fond text-etat-alerte-texte" : ""}
                     >
                       {step.role}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{step.description}</p>
+                  <p className="text-sm text-ink-soft">{step.description}</p>
                   
                   {isCurrentUser && (
                     <div className="mt-2 flex gap-2">
                       <Button
                         size="sm"
                         onClick={() => handleStepAction(step.id)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                       >
                         <Check className="h-4 w-4 mr-1" />
                         Valider
@@ -162,7 +162,7 @@ export default function PurchaseOrderWorkflowDemo({
                             <DialogTitle>Bon de Commande PO-2025-001</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="bg-paper p-4 rounded-lg">
                               <h5 className="font-medium mb-2">Détails du Bon de Commande</h5>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div><strong>Numéro:</strong> PO-2025-001</div>
@@ -172,7 +172,7 @@ export default function PurchaseOrderWorkflowDemo({
                               </div>
                             </div>
                             
-                            <div className="bg-blue-50 p-4 rounded-lg">
+                            <div className="bg-etat-encours-fond p-4 rounded-lg">
                               <h5 className="font-medium mb-2">Documents Justificatifs</h5>
                               <div className="space-y-2 text-sm">
                                 <div className="flex items-center gap-2">
@@ -193,7 +193,7 @@ export default function PurchaseOrderWorkflowDemo({
                             <div className="flex justify-end">
                               <Button 
                                 onClick={() => window.open('/api/purchase-orders/1/letterhead', '_blank')}
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-etat-encours-vif hover:bg-etat-encours-vif"
                               >
                                 Voir avec papier en-tête
                               </Button>
@@ -206,16 +206,16 @@ export default function PurchaseOrderWorkflowDemo({
                 </div>
                 
                 {index < WORKFLOW_STEPS.length - 1 && (
-                  <ArrowRight className="h-5 w-5 text-gray-400 ml-4" />
+                  <ArrowRight className="h-5 w-5 text-ink-mute ml-4" />
                 )}
               </div>
             );
           })}
         </div>
         
-        <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <h5 className="font-medium text-amber-800 mb-2">Processus de Validation</h5>
-          <div className="text-sm text-amber-700">
+        <div className="mt-6 p-4 bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg">
+          <h5 className="font-medium text-etat-alerte-texte mb-2">Processus de Validation</h5>
+          <div className="text-sm text-etat-alerte-texte">
             <p><strong>Étape actuelle:</strong> {WORKFLOW_STEPS.find(s => s.id === currentStep)?.title || "Processus terminé"}</p>
             <p><strong>Responsable:</strong> {WORKFLOW_STEPS.find(s => s.id === currentStep)?.role || "Aucun"}</p>
             {currentStep <= 4 && (

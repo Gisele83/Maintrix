@@ -21,6 +21,9 @@ import {
   UserCheck, AlertTriangle, Clock, CheckCircle2, XCircle,
   Award, Zap, Shield, HardHat, Flame, Building2
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface RenewalRecord { date: string; previousExpiry?: string; issueDate: string; expiryDate?: string; certificateNumber?: string; notes?: string; }
@@ -43,9 +46,9 @@ interface HabStats {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; color: string; icon: any }> = {
-  valid:         { label: "Valide",             color: "bg-green-100 text-green-700 border-green-200",  icon: CheckCircle2 },
-  expiring_soon: { label: "Expire bientôt",     color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
-  expired:       { label: "Expirée",            color: "bg-red-100 text-red-700 border-red-200",        icon: XCircle },
+  valid:         { label: "Valide",             color: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",  icon: CheckCircle2 },
+  expiring_soon: { label: "Expire bientôt",     color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", icon: Clock },
+  expired:       { label: "Expirée",            color: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",        icon: XCircle },
 };
 
 const HAB_TYPES = [
@@ -113,7 +116,7 @@ function DaysProgress({ days, alertDays }: { days: number | null | undefined; al
   return (
     <div className="flex items-center gap-2">
       <Progress value={pct} className="h-1.5 flex-1 max-w-24" />
-      <span className={`text-xs font-medium ${days < 0 ? "text-red-600" : days <= alertDays ? "text-yellow-600" : "text-green-600"}`}>
+      <span className={`text-xs font-medium ${days < 0 ? "text-etat-critique-texte" : days <= alertDays ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`}>
         {days < 0 ? `${Math.abs(days)}j expirée` : `${days}j restants`}
       </span>
     </div>
@@ -188,12 +191,13 @@ export default function HabilitationPage() {
   const habTypes = [...new Set(habs.map(h => h.habilitationType))].sort();
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Conformité" }, { libelle: "Habilitations" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <UserCheck className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">Habilitations Techniciens</h1>
@@ -208,15 +212,15 @@ export default function HabilitationPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Habilitations", value: stats?.total ?? 0, icon: Award, color: "from-indigo-500 " },
-          { label: "Techniciens", value: stats?.totalTechnicians ?? 0, icon: UserCheck, color: "from-blue-500 to-indigo-600" },
-          { label: "Expirent ≤ 30j", value: stats?.expiring30d ?? 0, icon: Clock, color: "from-yellow-500 to-orange-500" },
-          { label: "Expirées", value: stats?.expiredCount ?? 0, icon: XCircle, color: "from-red-500 to-rose-600" },
+          { label: "Habilitations", value: stats?.total ?? 0, icon: Award, color: " " },
+          { label: "Techniciens", value: stats?.totalTechnicians ?? 0, icon: UserCheck, color: "" },
+          { label: "Expirent ≤ 30j", value: stats?.expiring30d ?? 0, icon: Clock, color: "" },
+          { label: "Expirées", value: stats?.expiredCount ?? 0, icon: XCircle, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md">
+          <Card key={label} className="border-0 shadow-none">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+              <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -224,18 +228,18 @@ export default function HabilitationPage() {
 
       {/* Alert: expiring soon */}
       {stats?.expiringSoon && stats.expiringSoon.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+        <div className="mb-6 bg-etat-alerte-fond border border-etat-alerte-filet rounded-none p-4">
+          <h3 className="font-semibold text-etat-alerte-texte mb-3 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" /> Habilitations expirant dans les 60 jours
           </h3>
           <div className="space-y-2">
             {stats.expiringSoon.map((e, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-amber-200 px-3 py-2">
-                <UserCheck className="h-4 w-4 text-amber-600 shrink-0" />
+              <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-etat-alerte-filet px-3 py-2">
+                <UserCheck className="h-4 w-4 text-etat-alerte-texte shrink-0" />
                 <span className="font-medium text-sm">{e.technician_name}</span>
                 <span className="text-ink-mute text-sm flex-1">{e.title}</span>
                 <Badge variant="outline" className="text-xs">{e.habilitation_type}</Badge>
-                <span className="text-amber-700 font-medium text-sm">{new Date(e.expiry_date).toLocaleDateString("fr-FR")}</span>
+                <span className="text-etat-alerte-texte font-medium text-sm">{new Date(e.expiry_date).toLocaleDateString("fr-FR")}</span>
               </div>
             ))}
           </div>
@@ -285,28 +289,28 @@ export default function HabilitationPage() {
             const expired = techHabs.filter(h => h.computedStatus === "expired").length;
             const expiring = techHabs.filter(h => h.computedStatus === "expiring_soon").length;
             return (
-              <Card key={tech} className="border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 p-4 border-b bg-slate-50 rounded-t-xl">
-                  <div className="p-2 rounded-lg bg-indigo-100"><UserCheck className="h-4 w-4 text-indigo-600" /></div>
-                  <h3 className="font-semibold text-slate-800">{tech}</h3>
+              <Card key={tech} className="border border-rule shadow-sm">
+                <div className="flex items-center gap-3 p-4 border-b bg-paper rounded-t-xl">
+                  <div className="p-2 rounded-lg bg-etat-encours-fond"><UserCheck className="h-4 w-4 text-etat-encours-texte" /></div>
+                  <h3 className="font-semibold text-ink">{tech}</h3>
                   {techHabs[0]?.department && <Badge variant="outline" className="text-xs">{techHabs[0].department}</Badge>}
                   <span className="text-xs text-ink-mute ml-auto">{techHabs.length} habilitation{techHabs.length > 1 ? "s" : ""}</span>
-                  {expired > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{expired} expirée{expired > 1 ? "s" : ""}</Badge>}
-                  {expiring > 0 && <Badge className="bg-yellow-100 text-yellow-700 text-xs">⏰ {expiring} bientôt</Badge>}
+                  {expired > 0 && <Badge className="bg-etat-critique-fond text-etat-critique-texte text-xs">{expired} expirée{expired > 1 ? "s" : ""}</Badge>}
+                  {expiring > 0 && <Badge className="bg-etat-alerte-fond text-etat-alerte-texte text-xs">⏰ {expiring} bientôt</Badge>}
                 </div>
                 <div className="divide-y">
                   {techHabs.map(h => (
-                    <div key={h.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50">
+                    <div key={h.id} className="flex items-center justify-between px-4 py-3 hover:bg-paper">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-0.5">
                             <span className="font-medium text-sm">{h.title}</span>
                             <Badge variant="outline" className="text-xs">{h.habilitationType}</Badge>
-                            {h.level && <Badge className="bg-indigo-100 text-indigo-700 text-xs">{h.level}</Badge>}
+                            {h.level && <Badge className="bg-etat-encours-fond text-etat-encours-texte text-xs">{h.level}</Badge>}
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
                             <StatusBadge status={h.computedStatus} />
-                            {h.isPermanent ? <Badge className="bg-blue-100 text-blue-700 text-xs">Permanent</Badge> :
+                            {h.isPermanent ? <Badge className="bg-etat-encours-fond text-etat-encours-texte text-xs">Permanent</Badge> :
                               h.expiryDate ? <DaysProgress days={h.daysUntilExpiry} alertDays={h.renewalAlertDays} /> : null}
                             {h.certificateNumber && <span className="text-xs text-ink-mute">{h.certificateNumber}</span>}
                           </div>
@@ -324,25 +328,25 @@ export default function HabilitationPage() {
         // Flat list
         <div className="grid gap-3">
           {filtered.map(h => (
-            <Card key={h.id} className={`border shadow-sm hover:shadow-md transition-all ${h.computedStatus === "expired" ? "border-red-200 bg-red-50/20" : h.computedStatus === "expiring_soon" ? "border-yellow-200" : "border-slate-100"}`}>
+            <Card key={h.id} className={`border shadow-sm hover:shadow-none transition-all ${h.computedStatus === "expired" ? "border-etat-critique-filet bg-etat-critique-fond/20" : h.computedStatus === "expiring_soon" ? "border-etat-alerte-filet" : "border-slate-100"}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className={`p-2.5 rounded-xl shadow-sm shrink-0 ${h.computedStatus === "expired" ? "bg-red-100" : h.computedStatus === "expiring_soon" ? "bg-yellow-100" : "bg-indigo-50"}`}>
-                      <Award className={`h-5 w-5 ${h.computedStatus === "expired" ? "text-red-600" : h.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-indigo-600"}`} />
+                    <div className={`p-2.5 rounded-none shadow-sm shrink-0 ${h.computedStatus === "expired" ? "bg-etat-critique-fond" : h.computedStatus === "expiring_soon" ? "bg-etat-alerte-fond" : "bg-etat-encours-fond"}`}>
+                      <Award className={`h-5 w-5 ${h.computedStatus === "expired" ? "text-etat-critique-texte" : h.computedStatus === "expiring_soon" ? "text-etat-alerte-texte" : "text-etat-encours-texte"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <span className="text-xs font-mono text-ink-mute">{h.habilitationNumber}</span>
                         <StatusBadge status={h.computedStatus} />
-                        {h.isPermanent && <Badge className="bg-blue-100 text-blue-700 text-xs">Permanent</Badge>}
+                        {h.isPermanent && <Badge className="bg-etat-encours-fond text-etat-encours-texte text-xs">Permanent</Badge>}
                       </div>
-                      <h3 className="font-semibold text-slate-800">{h.title}</h3>
+                      <h3 className="font-semibold text-ink">{h.title}</h3>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap text-xs text-ink-mute">
-                        <span className="font-medium text-slate-700">{h.technicianName}</span>
+                        <span className="font-medium text-ink-soft">{h.technicianName}</span>
                         {h.department && <span>{h.department}</span>}
                         <Badge variant="outline" className="text-xs">{h.habilitationType}</Badge>
-                        {h.level && <Badge className="bg-indigo-100 text-indigo-700 text-xs">{h.level}</Badge>}
+                        {h.level && <Badge className="bg-etat-encours-fond text-etat-encours-texte text-xs">{h.level}</Badge>}
                         {h.issuingBody && <span>{h.issuingBody}</span>}
                         {h.certificateNumber && <span>{h.certificateNumber}</span>}
                       </div>
@@ -369,7 +373,7 @@ export default function HabilitationPage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-indigo-600" />Nouvelle habilitation</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><UserCheck className="h-5 w-5 text-etat-encours-texte" />Nouvelle habilitation</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(d => createMutation.mutate(d))} className="space-y-4 mt-2">
@@ -461,8 +465,8 @@ export default function HabilitationPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className={`flex items-start gap-3 p-4 rounded-xl border ${selected.computedStatus === "expired" ? "bg-red-50 border-red-200" : selected.computedStatus === "expiring_soon" ? "bg-yellow-50 border-yellow-200" : "bg-indigo-50 border-indigo-200"}`}>
-                <Award className={`h-6 w-6 mt-0.5 ${selected.computedStatus === "expired" ? "text-red-600" : selected.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-indigo-600"}`} />
+              <div className={`flex items-start gap-3 p-4 rounded-none border ${selected.computedStatus === "expired" ? "bg-etat-critique-fond border-etat-critique-filet" : selected.computedStatus === "expiring_soon" ? "bg-etat-alerte-fond border-etat-alerte-filet" : "bg-etat-encours-fond border-etat-encours-filet"}`}>
+                <Award className={`h-6 w-6 mt-0.5 ${selected.computedStatus === "expired" ? "text-etat-critique-texte" : selected.computedStatus === "expiring_soon" ? "text-etat-alerte-texte" : "text-etat-encours-texte"}`} />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
                   <p className="text-sm text-ink-soft mt-0.5">{selected.technicianName}{selected.department ? ` · ${selected.department}` : ""}</p>
@@ -495,30 +499,30 @@ export default function HabilitationPage() {
                     <div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>
                   ))}
                 </div>
-                {selected.scope && <div className="bg-slate-50 rounded-lg p-3"><p className="text-xs text-ink-mute mb-1">Périmètre</p><p className="text-sm">{selected.scope}</p></div>}
-                {selected.restrictions && <div className="bg-orange-50 border border-orange-200 rounded-lg p-3"><p className="text-xs text-orange-600 font-medium mb-1">Restrictions</p><p className="text-sm">{selected.restrictions}</p></div>}
+                {selected.scope && <div className="bg-paper rounded-lg p-3"><p className="text-xs text-ink-mute mb-1">Périmètre</p><p className="text-sm">{selected.scope}</p></div>}
+                {selected.restrictions && <div className="bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg p-3"><p className="text-xs text-etat-alerte-texte font-medium mb-1">Restrictions</p><p className="text-sm">{selected.restrictions}</p></div>}
               </TabsContent>
 
               <TabsContent value="validity" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 rounded-xl p-4 border">
+                  <div className="bg-paper rounded-none p-4 border">
                     <p className="text-xs text-ink-mute">Date de délivrance</p>
-                    <p className="text-xl font-bold text-slate-800">{new Date(selected.issueDate).toLocaleDateString("fr-FR")}</p>
+                    <p className="text-xl font-bold text-ink">{new Date(selected.issueDate).toLocaleDateString("fr-FR")}</p>
                   </div>
                   {selected.isPermanent ? (
-                    <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                      <p className="text-xs text-blue-500">Validité</p>
-                      <p className="text-xl font-bold text-blue-700">Permanente</p>
+                    <div className="bg-etat-encours-fond rounded-none p-4 border border-etat-encours-filet">
+                      <p className="text-xs text-etat-encours-texte">Validité</p>
+                      <p className="text-xl font-bold text-etat-encours-texte">Permanente</p>
                     </div>
                   ) : selected.expiryDate ? (
-                    <div className={`rounded-xl p-4 border ${selected.computedStatus === "expired" ? "bg-red-50 border-red-200" : selected.computedStatus === "expiring_soon" ? "bg-yellow-50 border-yellow-200" : "bg-green-50 border-green-200"}`}>
+                    <div className={`rounded-none p-4 border ${selected.computedStatus === "expired" ? "bg-etat-critique-fond border-etat-critique-filet" : selected.computedStatus === "expiring_soon" ? "bg-etat-alerte-fond border-etat-alerte-filet" : "bg-etat-nominal-fond border-etat-nominal-filet"}`}>
                       <p className="text-xs text-ink-mute">Date d'expiration</p>
                       <p className="text-xl font-bold">{new Date(selected.expiryDate).toLocaleDateString("fr-FR")}</p>
                       <DaysProgress days={selected.daysUntilExpiry} alertDays={selected.renewalAlertDays} />
                     </div>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-3">
+                <div className="flex items-center gap-3 bg-paper rounded-lg p-3">
                   <span className="text-sm text-ink-soft">Alerte renouvellement:</span>
                   <span className="font-semibold">{selected.renewalAlertDays} jours avant expiration</span>
                 </div>
@@ -530,9 +534,9 @@ export default function HabilitationPage() {
                 ) : (
                   <div className="space-y-3">
                     {[...(selected.renewalHistory || [])].reverse().map((r, i) => (
-                      <div key={i} className="bg-white border border-slate-200 rounded-xl p-3">
+                      <div key={i} className="bg-white border border-rule rounded-none p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <RefreshCw className="h-4 w-4 text-indigo-500" />
+                          <RefreshCw className="h-4 w-4 text-etat-encours-texte" />
                           <span className="text-sm font-medium">Renouvellement du {new Date(r.date).toLocaleDateString("fr-FR")}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-xs text-ink-mute">
@@ -550,7 +554,7 @@ export default function HabilitationPage() {
             </Tabs>
 
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer cette habilitation ?")) deleteMutation.mutate(selected.id); }}>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer cette habilitation ?")) deleteMutation.mutate(selected.id); }}>
                 <Trash2 className="h-4 w-4 mr-1" />Supprimer
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowRenew(true)} className="gap-2">
@@ -566,7 +570,7 @@ export default function HabilitationPage() {
       {showRenew && selected && (
         <Dialog open={showRenew} onOpenChange={setShowRenew}>
           <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5 text-indigo-600" />Renouveler l'habilitation</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-5 w-5 text-etat-encours-texte" />Renouveler l'habilitation</DialogTitle></DialogHeader>
             <p className="text-sm text-ink-mute">{selected.title} — {selected.technicianName}</p>
             <Form {...renewForm}>
               <form onSubmit={renewForm.handleSubmit(d => renewMutation.mutate({ id: selected.id, data: d }))} className="space-y-3 mt-2">
@@ -592,7 +596,7 @@ export default function HabilitationPage() {
                 )} />
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setShowRenew(false)}>Annuler</Button>
-                  <Button type="submit" disabled={renewMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                  <Button type="submit" disabled={renewMutation.isPending} className="bg-etat-encours-vif hover:bg-etat-encours-vif text-white">
                     {renewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}Confirmer
                   </Button>
                 </DialogFooter>
@@ -602,5 +606,6 @@ export default function HabilitationPage() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

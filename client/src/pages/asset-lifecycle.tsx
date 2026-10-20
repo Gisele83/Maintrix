@@ -24,6 +24,9 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LifecycleEvent {
@@ -83,13 +86,13 @@ interface AssetStats {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const STAGES = [
-  { value: "procurement", label: "Approvisionnement", color: "bg-slate-100 text-slate-700", icon: Package },
-  { value: "commissioning", label: "Mise en service", color: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
-  { value: "operation", label: "En exploitation", color: "bg-green-100 text-green-700", icon: Activity },
-  { value: "maintenance", label: "En maintenance", color: "bg-yellow-100 text-yellow-700", icon: Wrench },
-  { value: "degradation", label: "Dégradé", color: "bg-orange-100 text-orange-700", icon: TrendingDown },
-  { value: "decommission", label: "Déclassé", color: "bg-red-100 text-red-700", icon: AlertTriangle },
-  { value: "disposal", label: "Éliminé", color: "bg-gray-100 text-gray-500", icon: Trash2 },
+  { value: "procurement", label: "Approvisionnement", color: "bg-paper-deep text-ink-soft", icon: Package },
+  { value: "commissioning", label: "Mise en service", color: "bg-etat-encours-fond text-etat-encours-texte", icon: CheckCircle2 },
+  { value: "operation", label: "En exploitation", color: "bg-etat-nominal-fond text-etat-nominal-texte", icon: Activity },
+  { value: "maintenance", label: "En maintenance", color: "bg-etat-alerte-fond text-etat-alerte-texte", icon: Wrench },
+  { value: "degradation", label: "Dégradé", color: "bg-etat-alerte-fond text-etat-alerte-texte", icon: TrendingDown },
+  { value: "decommission", label: "Déclassé", color: "bg-etat-critique-fond text-etat-critique-texte", icon: AlertTriangle },
+  { value: "disposal", label: "Éliminé", color: "bg-paper-deep text-ink-mute", icon: Trash2 },
 ];
 const EVENT_TYPES = [
   { value: "purchase", label: "Achat", icon: "" },
@@ -104,10 +107,10 @@ const EVENT_TYPES = [
   { value: "other", label: "Autre", icon: "" },
 ];
 const CRITICALITIES = [
-  { value: "low", label: "Faible", color: "bg-green-100 text-green-700" },
-  { value: "medium", label: "Moyen", color: "bg-yellow-100 text-yellow-700" },
-  { value: "high", label: "Élevé", color: "bg-orange-100 text-orange-700" },
-  { value: "critical", label: "Critique", color: "bg-red-100 text-red-700" },
+  { value: "low", label: "Faible", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "medium", label: "Moyen", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "high", label: "Élevé", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "critical", label: "Critique", color: "bg-etat-critique-fond text-etat-critique-texte" },
 ];
 
 const getStage = (v: string) => STAGES.find(s => s.value === v) || STAGES[2];
@@ -116,10 +119,10 @@ const fmt = (n: number | null | undefined, decimals = 0) => n != null ? Number(n
 const fmtEur = (n: number | null | undefined) => n != null ? `${Number(n).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €` : "—";
 
 function conditionColor(score: number) {
-  if (score >= 80) return "bg-green-500";
-  if (score >= 60) return "bg-yellow-500";
-  if (score >= 40) return "bg-orange-500";
-  return "bg-red-500";
+  if (score >= 80) return "bg-etat-nominal-vif";
+  if (score >= 60) return "bg-etat-alerte-vif";
+  if (score >= 40) return "bg-etat-alerte-vif";
+  return "bg-etat-critique-vif";
 }
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -244,12 +247,13 @@ export default function AssetLifecyclePage() {
   const eventLabel = (type: string) => EVENT_TYPES.find(e => e.value === type)?.label || type;
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Actifs" }, { libelle: "Cycle de vie" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <Package className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
@@ -266,15 +270,15 @@ export default function AssetLifecyclePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Actifs totaux", value: stats?.total ?? 0, icon: Package, color: "from-slate-500 to-slate-600" },
-          { label: "Valeur d'achat", value: fmtEur(stats?.totalAssetValue), icon: DollarSign, color: "from-blue-500 to-indigo-600" },
-          { label: "Valeur actuelle", value: fmtEur(stats?.totalCurrentValue), icon: TrendingDown, color: "from-teal-500 to-cyan-600" },
-          { label: "Coûts maintenance", value: fmtEur(stats?.totalMaintCost), icon: Wrench, color: "from-orange-500 to-amber-600" },
+          { label: "Actifs totaux", value: stats?.total ?? 0, icon: Package, color: "" },
+          { label: "Valeur d'achat", value: fmtEur(stats?.totalAssetValue), icon: DollarSign, color: "" },
+          { label: "Valeur actuelle", value: fmtEur(stats?.totalCurrentValue), icon: TrendingDown, color: "" },
+          { label: "Coûts maintenance", value: fmtEur(stats?.totalMaintCost), icon: Wrench, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md">
+          <Card key={label} className="border-0 shadow-none">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-xl font-bold text-slate-800 leading-tight">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+              <div><p className="text-xl font-bold text-ink leading-tight">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -282,12 +286,12 @@ export default function AssetLifecyclePage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "En exploitation", value: stats?.inOperation ?? 0, color: "text-green-600" },
-          { label: "État moyen", value: `${Math.round(Number(stats?.avgCondition ?? 0))}%`, color: "text-blue-600" },
+          { label: "En exploitation", value: stats?.inOperation ?? 0, color: "text-etat-nominal-texte" },
+          { label: "État moyen", value: `${Math.round(Number(stats?.avgCondition ?? 0))}%`, color: "text-etat-encours-texte" },
           { label: "MTBF moyen", value: `${fmt(stats?.avgMtbf, 1)} h`, color: "text-signal-deep" },
-          { label: "MTTR moyen", value: `${fmt(stats?.avgMttr, 1)} h`, color: "text-orange-600" },
+          { label: "MTTR moyen", value: `${fmt(stats?.avgMttr, 1)} h`, color: "text-etat-alerte-texte" },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
+          <div key={label} className="bg-white rounded-none p-4 shadow-sm border border-slate-100 text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
             <p className="text-xs text-ink-mute mt-1">{label}</p>
           </div>
@@ -300,8 +304,8 @@ export default function AssetLifecyclePage() {
           const cnt = stats?.byStage?.find(s => s.lifecycleStage === value)?.count ?? 0;
           return (
             <button key={value} onClick={() => setFilterStage(filterStage === value ? "all" : value)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all text-sm ${
-                filterStage === value ? `${color} border-current shadow-md scale-105` : "bg-white border-slate-200 hover:border-slate-300"
+              className={`flex items-center gap-2 px-3 py-2 rounded-none border-2 transition-all text-sm ${
+                filterStage === value ? `${color} border-current shadow-none scale-105` : "bg-white border-rule hover:border-rule"
               }`}>
               <Icon className="h-4 w-4" />
               <span className="font-medium">{label}</span>
@@ -346,11 +350,11 @@ export default function AssetLifecyclePage() {
             const hasReplacement = asset.plannedReplacementDate && new Date(asset.plannedReplacementDate) < new Date(Date.now() + 180 * 24 * 3600 * 1000);
 
             return (
-              <Card key={asset.id} className="border border-slate-100 shadow-sm hover:shadow-md transition-all">
+              <Card key={asset.id} className="border border-slate-100 shadow-sm hover:shadow-none transition-all">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`p-2.5 rounded-xl shadow-sm bg-paper-deep`}>
+                      <div className={`p-2.5 rounded-none shadow-sm bg-paper-deep`}>
                         <StageIcon className="h-5 w-5 text-ink" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -358,16 +362,16 @@ export default function AssetLifecyclePage() {
                           <span className="text-xs font-mono text-ink-mute">{asset.assetTag}</span>
                           <Badge className={stage.color + " text-xs"}>{stage.label}</Badge>
                           <Badge className={crit.color + " text-xs"}>{crit.label}</Badge>
-                          {hasReplacement && <Badge className="bg-red-100 text-red-700 text-xs">⏰ Remplacement prévu</Badge>}
+                          {hasReplacement && <Badge className="bg-etat-critique-fond text-etat-critique-texte text-xs">⏰ Remplacement prévu</Badge>}
                         </div>
-                        <h3 className="font-semibold text-slate-800">{asset.name}</h3>
+                        <h3 className="font-semibold text-ink">{asset.name}</h3>
                         <div className="flex items-center gap-4 mt-1 flex-wrap text-xs text-ink-mute">
                           {asset.category && <span><Tag className="h-3 w-3 inline mr-1" />{asset.category}</span>}
                           {asset.manufacturer && <span>{asset.manufacturer}{asset.model ? ` — ${asset.model}` : ""}</span>}
                           {asset.location && <span><MapPin className="h-3 w-3 inline mr-1" />{asset.location}</span>}
-                          {asset.purchaseCost && <span className="text-blue-600 font-medium">{fmtEur(asset.purchaseCost)}</span>}
+                          {asset.purchaseCost && <span className="text-etat-encours-texte font-medium">{fmtEur(asset.purchaseCost)}</span>}
                           {asset.currentValue && asset.purchaseCost && (
-                            <span className="text-teal-600">{fmtEur(asset.currentValue)} actuel</span>
+                            <span className="text-etat-encours-texte">{fmtEur(asset.currentValue)} actuel</span>
                           )}
                         </div>
                         <div className="mt-2 flex items-center gap-2">
@@ -379,8 +383,8 @@ export default function AssetLifecyclePage() {
                             <Progress value={asset.conditionScore} className="h-1.5" />
                           </div>
                           {asset.mtbfHours && <span className="text-xs text-signal-deep">MTBF: {fmt(asset.mtbfHours, 0)}h</span>}
-                          {asset.mttrHours && <span className="text-xs text-orange-600">MTTR: {fmt(asset.mttrHours, 1)}h</span>}
-                          {asset.failureCount ? <span className="text-xs text-red-600">{asset.failureCount} pannes</span> : null}
+                          {asset.mttrHours && <span className="text-xs text-etat-alerte-texte">MTTR: {fmt(asset.mttrHours, 1)}h</span>}
+                          {asset.failureCount ? <span className="text-xs text-etat-critique-texte">{asset.failureCount} pannes</span> : null}
                         </div>
                       </div>
                     </div>
@@ -399,7 +403,7 @@ export default function AssetLifecyclePage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5 text-blue-600" /> Nouvel actif</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5 text-etat-encours-texte" /> Nouvel actif</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
@@ -493,8 +497,8 @@ export default function AssetLifecyclePage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-blue-200">
-                <Package className="h-6 w-6 text-blue-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-encours-filet">
+                <Package className="h-6 w-6 text-etat-encours-texte" />
                 <div className="flex-1">
                   <DialogTitle>{selected.name}</DialogTitle>
                   <p className="text-xs text-ink-mute font-mono">{selected.assetTag}</p>
@@ -550,7 +554,7 @@ export default function AssetLifecyclePage() {
                   <p className="text-xs text-ink-mute mt-1">{selected.conditionScore}% — {selected.conditionScore >= 80 ? "Bon état" : selected.conditionScore >= 60 ? "État acceptable" : selected.conditionScore >= 40 ? "Dégradé" : "Critique"}</p>
                 </div>
                 {selected.notes && (
-                  <div className="bg-slate-50 rounded-lg p-3 text-sm text-ink-soft">{selected.notes}</div>
+                  <div className="bg-paper rounded-lg p-3 text-sm text-ink-soft">{selected.notes}</div>
                 )}
               </TabsContent>
 
@@ -558,14 +562,14 @@ export default function AssetLifecyclePage() {
               <TabsContent value="financial" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
-                    { label: "Valeur d'achat", value: fmtEur(selected.purchaseCost), color: "text-blue-600" },
-                    { label: "Valeur actuelle (estimée)", value: fmtEur(selected.currentValue), color: "text-teal-600" },
+                    { label: "Valeur d'achat", value: fmtEur(selected.purchaseCost), color: "text-etat-encours-texte" },
+                    { label: "Valeur actuelle (estimée)", value: fmtEur(selected.currentValue), color: "text-etat-encours-texte" },
                     { label: "Valeur résiduelle", value: fmtEur(selected.salvageValue), color: "text-ink-soft" },
                     { label: "Durée de vie utile", value: selected.usefulLifeYears ? `${selected.usefulLifeYears} ans` : null, color: "text-signal-deep" },
                     { label: "Méthode d'amortissement", value: selected.depreciationMethod === "linear" ? "Linéaire" : selected.depreciationMethod === "declining" ? "Dégressif" : "Unités de prod.", color: "text-ink-soft" },
-                    { label: "Coûts maintenance cumulés", value: fmtEur(selected.totalMaintenanceCost), color: "text-orange-600" },
+                    { label: "Coûts maintenance cumulés", value: fmtEur(selected.totalMaintenanceCost), color: "text-etat-alerte-texte" },
                   ].filter(i => i.value).map(({ label, value, color }) => (
-                    <div key={label} className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+                    <div key={label} className="bg-white rounded-none p-3 border border-rule shadow-sm">
                       <p className="text-xs text-ink-mute">{label}</p>
                       <p className={`text-xl font-bold mt-1 ${color}`}>{value}</p>
                     </div>
@@ -573,18 +577,18 @@ export default function AssetLifecyclePage() {
                 </div>
                 {/* TCO */}
                 {selected.purchaseCost && selected.totalMaintenanceCost != null && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <h4 className="font-semibold text-blue-800 mb-2">Coût Total de Possession (TCO)</h4>
-                    <p className="text-2xl font-black text-blue-700">
+                  <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-none p-4">
+                    <h4 className="font-semibold text-etat-encours-texte mb-2">Coût Total de Possession (TCO)</h4>
+                    <p className="text-2xl font-black text-etat-encours-texte">
                       {fmtEur(Number(selected.purchaseCost) + Number(selected.totalMaintenanceCost || 0))}
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">Achat + Maintenance cumulée</p>
+                    <p className="text-xs text-etat-encours-texte mt-1">Achat + Maintenance cumulée</p>
                   </div>
                 )}
                 {/* Depreciation chart */}
                 {selected.purchaseCost && selected.usefulLifeYears && (
                   <>
-                    <p className="text-sm font-semibold text-slate-700">Courbe d'amortissement</p>
+                    <p className="text-sm font-semibold text-ink-soft">Courbe d'amortissement</p>
                     <ResponsiveContainer width="100%" height={180}>
                       <AreaChart data={depreciationData(selected)}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -603,12 +607,12 @@ export default function AssetLifecyclePage() {
               <TabsContent value="performance" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "Pannes totales", value: selected.failureCount ?? 0, icon: "", color: "text-red-600" },
-                    { label: "Nb maintenances", value: selected.maintenanceCount ?? 0, icon: "", color: "text-blue-600" },
+                    { label: "Pannes totales", value: selected.failureCount ?? 0, icon: "", color: "text-etat-critique-texte" },
+                    { label: "Nb maintenances", value: selected.maintenanceCount ?? 0, icon: "", color: "text-etat-encours-texte" },
                     { label: "MTBF (h)", value: fmt(selected.mtbfHours, 1), icon: "⏱", color: "text-signal-deep" },
-                    { label: "MTTR (h)", value: fmt(selected.mttrHours, 1), icon: "⌚", color: "text-orange-600" },
+                    { label: "MTTR (h)", value: fmt(selected.mttrHours, 1), icon: "⌚", color: "text-etat-alerte-texte" },
                   ].map(({ label, value, icon, color }) => (
-                    <div key={label} className="bg-white rounded-xl p-4 border shadow-sm text-center">
+                    <div key={label} className="bg-white rounded-none p-4 border shadow-sm text-center">
                       <span className="text-2xl">{icon}</span>
                       <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
                       <p className="text-xs text-ink-mute">{label}</p>
@@ -617,17 +621,17 @@ export default function AssetLifecyclePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-slate-700">MTBF (heures)</label>
+                    <label className="text-sm font-medium text-ink-soft">MTBF (heures)</label>
                     <Input type="number" className="mt-1" defaultValue={selected.mtbfHours || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { mtbfHours: parseFloat(e.target.value) || null } })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-700">MTTR (heures)</label>
+                    <label className="text-sm font-medium text-ink-soft">MTTR (heures)</label>
                     <Input type="number" className="mt-1" defaultValue={selected.mttrHours || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { mttrHours: parseFloat(e.target.value) || null } })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Heures d'arrêt totales</label>
+                    <label className="text-sm font-medium text-ink-soft">Heures d'arrêt totales</label>
                     <Input type="number" className="mt-1" defaultValue={selected.totalDowntimeHours || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { totalDowntimeHours: parseFloat(e.target.value) || null } })} />
                   </div>
@@ -636,7 +640,7 @@ export default function AssetLifecyclePage() {
 
               {/* History / Timeline */}
               <TabsContent value="history" className="space-y-4 mt-4">
-                <Button size="sm" onClick={() => setShowAddEvent(true)} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
+                <Button size="sm" onClick={() => setShowAddEvent(true)} className="bg-etat-encours-vif hover:bg-etat-encours-vif text-white gap-2">
                   <Plus className="h-4 w-4" /> Ajouter un événement
                 </Button>
 
@@ -644,20 +648,20 @@ export default function AssetLifecyclePage() {
                   <p className="text-ink-mute text-sm text-center py-8">Aucun événement enregistré</p>
                 ) : (
                   <div className="relative">
-                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200" />
+                    <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-paper-deep" />
                     <div className="space-y-4">
                       {[...(selected.lifecycleEvents || [])].reverse().map((evt, i) => (
                         <div key={evt.id || i} className="flex items-start gap-4 relative">
-                          <div className="w-10 h-10 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center text-lg shadow-sm shrink-0 z-10">
+                          <div className="w-10 h-10 rounded-full bg-white border-2 border-etat-encours-filet flex items-center justify-center text-lg shadow-sm shrink-0 z-10">
                             {eventIcon(evt.type)}
                           </div>
-                          <div className="flex-1 bg-white rounded-xl p-3 border border-slate-200 shadow-sm">
+                          <div className="flex-1 bg-white rounded-none p-3 border border-rule shadow-sm">
                             <div className="flex items-center gap-2 mb-1">
                               <Badge variant="outline" className="text-xs">{eventLabel(evt.type)}</Badge>
                               <span className="text-xs text-ink-mute">{new Date(evt.date).toLocaleDateString("fr-FR")}</span>
-                              {evt.cost && <span className="text-xs text-orange-600 font-medium">{fmtEur(evt.cost)}</span>}
+                              {evt.cost && <span className="text-xs text-etat-alerte-texte font-medium">{fmtEur(evt.cost)}</span>}
                             </div>
-                            <p className="text-sm text-slate-700">{evt.description}</p>
+                            <p className="text-sm text-ink-soft">{evt.description}</p>
                             {evt.performedBy && <p className="text-xs text-ink-mute mt-1">Par: {evt.performedBy}</p>}
                           </div>
                         </div>
@@ -697,7 +701,7 @@ export default function AssetLifecyclePage() {
                         </div>
                         <DialogFooter>
                           <Button type="button" variant="outline" onClick={() => setShowAddEvent(false)}>Annuler</Button>
-                          <Button type="submit" disabled={addEventMutation.isPending} className="bg-blue-600 text-white">
+                          <Button type="submit" disabled={addEventMutation.isPending} className="bg-etat-encours-vif text-white">
                             {addEventMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Ajouter
                           </Button>
                         </DialogFooter>
@@ -709,7 +713,7 @@ export default function AssetLifecyclePage() {
             </Tabs>
 
             <DialogFooter>
-              <Button variant="ghost" size="sm" className="text-red-600" onClick={() => { if (confirm("Supprimer cet actif ?")) deleteMutation.mutate(selected.id); }}>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte" onClick={() => { if (confirm("Supprimer cet actif ?")) deleteMutation.mutate(selected.id); }}>
                 <Trash2 className="h-4 w-4 mr-1" /> Supprimer
               </Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
@@ -718,5 +722,6 @@ export default function AssetLifecyclePage() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

@@ -159,29 +159,34 @@ export default function ValidationDashboard({
 
   const getPriorityColor = (priority: string) => {
     switch (priority?.toLowerCase()) {
-      case "urgent": return "bg-red-500";
-      case "high": return "bg-orange-500";
-      case "medium": return "bg-yellow-500";
-      case "low": return "bg-green-500";
+      case "urgent": return "bg-etat-critique-vif";
+      case "high": return "bg-etat-alerte-vif";
+      case "medium": return "bg-etat-alerte-vif";
+      case "low": return "bg-etat-nominal-vif";
       default: return "bg-gray-500";
     }
   };
 
-  const getDocumentTypeIcon = (documentType?: string) => {
-    return documentType === "command_letter" ? "" : "";
-  };
+  /**
+   * ⚠️ Les deux branches renvoyaient la chaîne vide : le numéro de commande
+   * s'affichait précédé d'un espace, sans aucun repère de type. On rend un
+   * libellé court, lisible aussi par un lecteur d'écran — ce qu'une icône
+   * seule n'aurait pas fait.
+   */
+  const libelleTypeDocument = (documentType?: string) =>
+    documentType === "command_letter" ? "Lettre" : "Bon";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tableau de Validation</h2>
-          <p className="text-gray-600">
+          <p className="text-ink-soft">
             {userRole} - Niveau {validationLevel}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-ink-soft">
             <Clock className="inline w-4 h-4 mr-1" />
             Mise à jour: {new Date().toLocaleTimeString()}
           </div>
@@ -211,8 +216,8 @@ export default function ValidationDashboard({
               {pendingWorkOrders.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <AlertCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Aucun ordre de travail en attente de validation</p>
+                    <AlertCircle className="w-12 h-12 mx-auto text-ink-mute mb-4" />
+                    <p className="text-ink-soft">Aucun ordre de travail en attente de validation</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -228,8 +233,8 @@ export default function ValidationDashboard({
                             </Badge>
                           </div>
                           <h4 className="font-medium mb-2">{workOrder.title}</h4>
-                          <p className="text-gray-600 mb-3">{workOrder.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <p className="text-ink-soft mb-3">{workOrder.description}</p>
+                          <div className="flex items-center gap-4 text-sm text-ink-mute">
                             <div className="flex items-center gap-1">
                               <User className="w-4 h-4" />
                               {workOrder.requestedBy}
@@ -245,7 +250,7 @@ export default function ValidationDashboard({
                           <Button
                             onClick={() => handleValidation("work_order", workOrder.id, "validate")}
                             disabled={loading}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                           >
                             <Check className="h-4 w-4 mr-1" />
                             Valider
@@ -308,8 +313,8 @@ export default function ValidationDashboard({
               {pendingPurchaseOrders.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <AlertCircle className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-600">Aucun bon de commande en attente de validation</p>
+                    <AlertCircle className="w-12 h-12 mx-auto text-ink-mute mb-4" />
+                    <p className="text-ink-soft">Aucun bon de commande en attente de validation</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -320,7 +325,7 @@ export default function ValidationDashboard({
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-lg">
-                              {getDocumentTypeIcon(purchaseOrder.documentType)} {purchaseOrder.orderNumber}
+                              <span className="font-mono text-xs text-ink-mute mr-1.5">{libelleTypeDocument(purchaseOrder.documentType)}</span>{purchaseOrder.orderNumber}
                             </h3>
                             <Badge className={`${getPriorityColor(purchaseOrder.priority)} text-white`}>
                               {purchaseOrder.priority}
@@ -332,8 +337,8 @@ export default function ValidationDashboard({
                             )}
                           </div>
                           <h4 className="font-medium mb-2">{purchaseOrder.orderType}</h4>
-                          <p className="text-gray-600 mb-3">{purchaseOrder.description}</p>
-                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+                          <p className="text-ink-soft mb-3">{purchaseOrder.description}</p>
+                          <div className="grid grid-cols-2 gap-4 text-sm text-ink-mute">
                             <div className="flex items-center gap-1">
                               <User className="w-4 h-4" />
                               {purchaseOrder.requestedBy}
@@ -354,7 +359,7 @@ export default function ValidationDashboard({
                           <Button
                             onClick={() => handleValidation("purchase_order", purchaseOrder.id, "validate")}
                             disabled={loading}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                           >
                             <Check className="h-4 w-4 mr-1" />
                             Valider
@@ -419,24 +424,24 @@ export default function ValidationDashboard({
             <CardContent>
               <div className="space-y-3">
                 {validationHistory.length === 0 ? (
-                  <p className="text-gray-600 text-center py-4">Aucun historique de validation</p>
+                  <p className="text-ink-soft text-center py-4">Aucun historique de validation</p>
                 ) : (
                   validationHistory.slice(0, 10).map((log) => (
-                    <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <div key={log.id} className="flex items-center justify-between p-3 bg-paper rounded">
                       <div>
                         <span className="font-medium">
                           {log.recordType === "work_order" ? "Ordre de travail" : "Bon de commande"} #{log.recordId}
                         </span>
                         <span className={`ml-2 px-2 py-1 rounded text-xs ${
-                          log.action === "validate" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          log.action === "validate" ? "bg-etat-nominal-fond text-etat-nominal-texte" : "bg-etat-critique-fond text-etat-critique-texte"
                         }`}>
                           {log.action === "validate" ? "Validé" : "Rejeté"}
                         </span>
                         {log.comments && (
-                          <p className="text-sm text-gray-600 mt-1">Raison: {log.comments}</p>
+                          <p className="text-sm text-ink-soft mt-1">Raison: {log.comments}</p>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-ink-mute">
                         {new Date(log.validationDate).toLocaleString()}
                       </div>
                     </div>

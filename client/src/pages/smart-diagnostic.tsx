@@ -51,6 +51,9 @@ import {
   RefreshCw
 } from "lucide-react";
 import { Link } from "wouter";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 type Tab = "diagnostic" | "repair" | "history" | "reporting" | "import";
 
@@ -551,7 +554,7 @@ export default function SmartDiagnostic() {
       title: "Succès",
       description: "Diagnostic sauvegardé avec succès",
     });
-    queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
   };
 
   const tabs = [
@@ -578,22 +581,23 @@ export default function SmartDiagnostic() {
   ];
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Diagnostic" }, { libelle: "Diagnostic assisté" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="bg-white border-b border-rule sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link href="/">
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <Button variant="ghost" size="sm" className="text-ink-soft hover:text-ink">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour Accueil
                 </Button>
               </Link>
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-paper-deep rounded-xl blur-lg opacity-50"></div>
-                  <div className="relative bg-paper-deep p-3 rounded-xl">
+                  <div className="absolute inset-0 bg-paper-deep rounded-none blur-lg opacity-50"></div>
+                  <div className="relative bg-paper-deep p-3 rounded-none">
                     <Brain className="h-8 w-8 text-ink" />
                   </div>
                 </div>
@@ -601,14 +605,14 @@ export default function SmartDiagnostic() {
                   <h1 className="text-2xl font-bold text-ink">
                     Smart Diagnostic IA
                   </h1>
-                  <p className="text-sm text-gray-600">Assistant IA de diagnostic industriel</p>
+                  <p className="text-sm text-ink-soft">Assistant IA de diagnostic industriel</p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="border-green-300 text-green-700">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              <Badge variant="outline" className="border-etat-nominal-filet text-etat-nominal-texte">
+                <div className="w-2 h-2 bg-etat-nominal-vif rounded-full mr-2 animate-pulse"></div>
                 Système actif
               </Badge>
               <Badge variant="outline" className="border-rule text-signal-deep">
@@ -626,53 +630,53 @@ export default function SmartDiagnostic() {
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-none transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
-                <Search className="h-8 w-8 text-blue-600" />
+              <div className="bg-paper-deep p-4 rounded-none mb-4 mx-auto w-fit">
+                <Search className="h-8 w-8 text-etat-encours-texte" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Diagnostic Standard</h3>
-              <p className="text-sm text-gray-600">Analyse IA rapide avec Machine Learning</p>
+              <h3 className="font-semibold text-ink mb-2">Diagnostic Standard</h3>
+              <p className="text-sm text-ink-soft">Analyse IA rapide avec Machine Learning</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-none transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
+              <div className="bg-paper-deep p-4 rounded-none mb-4 mx-auto w-fit">
                 <Zap className="h-8 w-8 text-signal-deep" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Mode Avancé</h3>
-              <p className="text-sm text-gray-600">Réseaux de neurones et SVM</p>
+              <h3 className="font-semibold text-ink mb-2">Mode Avancé</h3>
+              <p className="text-sm text-ink-soft">Réseaux de neurones et SVM</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-none transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
+              <div className="bg-paper-deep p-4 rounded-none mb-4 mx-auto w-fit">
                 <Sparkles className="h-8 w-8 text-signal-deep" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Ensemble ML</h3>
-              <p className="text-sm text-gray-600">Consensus multi-modèles IA</p>
+              <h3 className="font-semibold text-ink mb-2">Ensemble ML</h3>
+              <p className="text-sm text-ink-soft">Consensus multi-modèles IA</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-0 rounded-2xl transition-all duration-300">
+          <Card className="bg-white border-0 rounded-none transition-all duration-300">
             <CardContent className="p-6 text-center">
-              <div className="bg-paper-deep p-4 rounded-xl mb-4 mx-auto w-fit">
-                <Activity className="h-8 w-8 text-green-600" />
+              <div className="bg-paper-deep p-4 rounded-none mb-4 mx-auto w-fit">
+                <Activity className="h-8 w-8 text-etat-nominal-texte" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Temps Réel</h3>
-              <p className="text-sm text-gray-600">Analyse IoT et capteurs</p>
+              <h3 className="font-semibold text-ink mb-2">Temps Réel</h3>
+              <p className="text-sm text-ink-soft">Analyse IoT et capteurs</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content */}
-        <Card className="bg-white border-0 rounded-3xl">
+        <Card className="bg-white border-0 rounded-none">
           <CardContent className="p-0">
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Tab)}>
-              <div className="border-b border-gray-200 px-6 pt-6">
-                <TabsList className="grid w-full grid-cols-4 bg-gray-100/50 rounded-xl p-1">
+              <div className="border-b border-rule px-6 pt-6">
+                <TabsList className="grid w-full grid-cols-4 bg-paper-deep/50 rounded-none p-1">
                   {tabs.map((tab) => (
                     <TabsTrigger 
                       key={tab.id} 
@@ -782,13 +786,13 @@ export default function SmartDiagnostic() {
                         {(diagnosticResults.length > 0 || isAnalyzing) && (
                           <div className="space-y-4">
                           {isAnalyzing && (
-                            <Card className="bg-paper-deep border-blue-200">
+                            <Card className="bg-paper-deep border-etat-encours-filet">
                               <CardContent className="p-6 text-center">
                                 <div className="flex items-center justify-center space-x-3">
                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule"></div>
                                   <div>
-                                    <p className="font-medium text-gray-900">Analyse IA en cours...</p>
-                                    <p className="text-sm text-gray-600">
+                                    <p className="font-medium text-ink">Analyse IA en cours...</p>
+                                    <p className="text-sm text-ink-soft">
                                       {ensembleMode ? "Consensus multi-modèles" : 
                                        advancedMode ? "Réseaux de neurones actifs" : 
                                        "Machine Learning standard"}
@@ -816,12 +820,12 @@ export default function SmartDiagnostic() {
 
                           {/* ═══ CLAUDE AI DEEP ANALYSIS PANEL ═══ */}
                           {(isLoadingAiDeepAnalysis || aiDeepAnalysis) && diagnosticResults.length > 0 && (
-                            <Card className="border-0 rounded-3xl overflow-hidden">
+                            <Card className="border-0 rounded-none overflow-hidden">
                               {/* Header gradient */}
                               <div className="bg-paper-deep px-6 py-4">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
-                                    <div className="bg-white p-2 rounded-xl">
+                                    <div className="bg-white p-2 rounded-none">
                                       <Brain className="h-6 w-6 text-ink" />
                                     </div>
                                     <div>
@@ -831,7 +835,7 @@ export default function SmartDiagnostic() {
                                           claude-sonnet-4
                                         </span>
                                       </h3>
-                                      <p className="text-signal-light text-sm">Diagnostic expert enrichi par IA générative</p>
+                                      <p className="text-signal text-sm">Diagnostic expert enrichi par IA générative</p>
                                     </div>
                                   </div>
                                   {!isLoadingAiDeepAnalysis && lastDiagnosticInput && (
@@ -854,8 +858,8 @@ export default function SmartDiagnostic() {
                                       <Loader2 className="h-8 w-8 text-ink animate-spin absolute top-4 left-4" />
                                     </div>
                                     <div className="text-center">
-                                      <p className="font-semibold text-gray-900">Claude analyse la situation...</p>
-                                      <p className="text-sm text-gray-500 mt-1">Raisonnement expert en cours, veuillez patienter</p>
+                                      <p className="font-semibold text-ink">Claude analyse la situation...</p>
+                                      <p className="text-sm text-ink-mute mt-1">Raisonnement expert en cours, veuillez patienter</p>
                                     </div>
                                     <div className="flex space-x-2">
                                       {[0,1,2].map(i => (
@@ -866,44 +870,44 @@ export default function SmartDiagnostic() {
                                 ) : aiDeepAnalysis && (
                                   <div className="space-y-5">
                                     {/* Criticality banner */}
-                                    <div className={`flex items-center justify-between p-4 rounded-2xl border-2 ${
-                                      aiDeepAnalysis.criticality === 'CRITIQUE' ? 'bg-red-50 border-red-200' :
-                                      aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'bg-orange-50 border-orange-200' :
-                                      aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'bg-yellow-50 border-yellow-200' :
-                                      'bg-green-50 border-green-200'
+                                    <div className={`flex items-center justify-between p-4 rounded-none border-2 ${
+                                      aiDeepAnalysis.criticality === 'CRITIQUE' ? 'bg-etat-critique-fond border-etat-critique-filet' :
+                                      aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'bg-etat-alerte-fond border-etat-alerte-filet' :
+                                      aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'bg-etat-alerte-fond border-etat-alerte-filet' :
+                                      'bg-etat-nominal-fond border-etat-nominal-filet'
                                     }`}>
                                       <div className="flex items-center space-x-3">
                                         <BadgeAlert className={`h-6 w-6 ${
-                                          aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-red-600' :
-                                          aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-orange-600' :
-                                          aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-yellow-600' : 'text-green-600'
+                                          aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-etat-critique-texte' :
+                                          aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-etat-alerte-texte' :
+                                          aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-etat-alerte-texte' : 'text-etat-nominal-texte'
                                         }`} />
                                         <div>
-                                          <p className="font-bold text-gray-900">
+                                          <p className="font-bold text-ink">
                                             Criticité : <span className={
-                                              aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-red-600' :
-                                              aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-orange-600' :
-                                              aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-yellow-600' : 'text-green-600'
+                                              aiDeepAnalysis.criticality === 'CRITIQUE' ? 'text-etat-critique-texte' :
+                                              aiDeepAnalysis.criticality === 'ÉLEVÉE' ? 'text-etat-alerte-texte' :
+                                              aiDeepAnalysis.criticality === 'MODÉRÉE' ? 'text-etat-alerte-texte' : 'text-etat-nominal-texte'
                                             }>{aiDeepAnalysis.criticality}</span>
                                           </p>
-                                          <p className="text-sm text-gray-600">{aiDeepAnalysis.overallAssessment}</p>
+                                          <p className="text-sm text-ink-soft">{aiDeepAnalysis.overallAssessment}</p>
                                         </div>
                                       </div>
                                       <div className="text-right">
-                                        <div className="text-2xl font-bold text-gray-900">{aiDeepAnalysis.criticalityScore}%</div>
-                                        <div className="text-xs text-gray-500">Score risque</div>
+                                        <div className="text-2xl font-bold text-ink">{aiDeepAnalysis.criticalityScore}%</div>
+                                        <div className="text-xs text-ink-mute">Score risque</div>
                                       </div>
                                     </div>
 
                                     {/* Technician summary */}
-                                    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4">
+                                    <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-none p-4">
                                       <div className="flex items-start space-x-3">
-                                        <div className="bg-indigo-100 p-2 rounded-lg mt-0.5">
-                                          <Wrench className="h-4 w-4 text-indigo-600" />
+                                        <div className="bg-etat-encours-fond p-2 rounded-lg mt-0.5">
+                                          <Wrench className="h-4 w-4 text-etat-encours-texte" />
                                         </div>
                                         <div>
-                                          <p className="font-semibold text-indigo-900 mb-1">Résumé pour le technicien</p>
-                                          <p className="text-indigo-800 text-sm leading-relaxed">{aiDeepAnalysis.technicianSummary}</p>
+                                          <p className="font-semibold text-etat-encours-texte mb-1">Résumé pour le technicien</p>
+                                          <p className="text-etat-encours-texte text-sm leading-relaxed">{aiDeepAnalysis.technicianSummary}</p>
                                         </div>
                                       </div>
                                     </div>
@@ -911,26 +915,26 @@ export default function SmartDiagnostic() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       {/* Root cause tree */}
                                       {aiDeepAnalysis.rootCauseTree && (
-                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                        <div className="bg-white border border-rule rounded-none p-4">
                                           <div className="flex items-center space-x-2 mb-3">
-                                            <TreePine className="h-5 w-5 text-emerald-600" />
-                                            <h4 className="font-semibold text-gray-900">Arbre des Causes</h4>
+                                            <TreePine className="h-5 w-5 text-etat-nominal-texte" />
+                                            <h4 className="font-semibold text-ink">Arbre des Causes</h4>
                                           </div>
                                           <div className="space-y-2">
-                                            <div className="bg-red-50 rounded-lg px-3 py-2">
-                                              <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Cause principale</p>
-                                              <p className="text-sm text-gray-800 mt-0.5">{aiDeepAnalysis.rootCauseTree.primaryCause}</p>
+                                            <div className="bg-etat-critique-fond rounded-lg px-3 py-2">
+                                              <p className="text-xs font-medium text-etat-critique-texte uppercase tracking-wide">Cause principale</p>
+                                              <p className="text-sm text-ink mt-0.5">{aiDeepAnalysis.rootCauseTree.primaryCause}</p>
                                             </div>
                                             {aiDeepAnalysis.rootCauseTree.contributingFactors?.map((f: string, i: number) => (
                                               <div key={i} className="flex items-start space-x-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-2 flex-shrink-0" />
-                                                <p className="text-sm text-gray-700">{f}</p>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-etat-alerte-vif mt-2 flex-shrink-0" />
+                                                <p className="text-sm text-ink-soft">{f}</p>
                                               </div>
                                             ))}
                                             {aiDeepAnalysis.rootCauseTree.underlyingMechanisms?.map((m: string, i: number) => (
                                               <div key={i} className="flex items-start space-x-2 ml-2">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-2 flex-shrink-0" />
-                                                <p className="text-xs text-gray-500 italic">{m}</p>
+                                                <p className="text-xs text-ink-mute italic">{m}</p>
                                               </div>
                                             ))}
                                           </div>
@@ -939,20 +943,20 @@ export default function SmartDiagnostic() {
 
                                       {/* Immediate actions */}
                                       {aiDeepAnalysis.immediateActions?.length > 0 && (
-                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                        <div className="bg-white border border-rule rounded-none p-4">
                                           <div className="flex items-center space-x-2 mb-3">
-                                            <ListChecks className="h-5 w-5 text-blue-600" />
-                                            <h4 className="font-semibold text-gray-900">Actions Immédiates</h4>
+                                            <ListChecks className="h-5 w-5 text-etat-encours-texte" />
+                                            <h4 className="font-semibold text-ink">Actions Immédiates</h4>
                                           </div>
                                           <div className="space-y-2">
                                             {aiDeepAnalysis.immediateActions.map((action: any, i: number) => (
-                                              <div key={i} className="flex items-start space-x-3 p-2 bg-blue-50 rounded-lg">
-                                                <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                              <div key={i} className="flex items-start space-x-3 p-2 bg-etat-encours-fond rounded-lg">
+                                                <span className="bg-etat-encours-vif text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                                   {action.priority}
                                                 </span>
                                                 <div className="flex-1 min-w-0">
-                                                  <p className="text-sm font-medium text-gray-800">{action.action}</p>
-                                                  <p className="text-xs text-blue-600 mt-0.5">{action.timeframe}</p>
+                                                  <p className="text-sm font-medium text-ink">{action.action}</p>
+                                                  <p className="text-xs text-etat-encours-texte mt-0.5">{action.timeframe}</p>
                                                 </div>
                                               </div>
                                             ))}
@@ -963,36 +967,36 @@ export default function SmartDiagnostic() {
 
                                     {/* Safety briefing */}
                                     {aiDeepAnalysis.safetyBriefing && (
-                                      <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                                      <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-none p-4">
                                         <div className="flex items-center space-x-2 mb-3">
-                                          <ShieldAlert className="h-5 w-5 text-red-600" />
-                                          <h4 className="font-semibold text-red-900">Briefing Sécurité</h4>
+                                          <ShieldAlert className="h-5 w-5 text-etat-critique-texte" />
+                                          <h4 className="font-semibold text-etat-critique-texte">Briefing Sécurité</h4>
                                           {aiDeepAnalysis.safetyBriefing.lockoutTagout && (
-                                            <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-auto">
+                                            <span className="text-xs bg-etat-critique-vif text-white px-2 py-0.5 rounded-full ml-auto">
                                               CONSIGNATION REQUISE
                                             </span>
                                           )}
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
                                           <div>
-                                            <p className="text-xs font-semibold text-red-700 uppercase mb-1">Risques</p>
+                                            <p className="text-xs font-semibold text-etat-critique-texte uppercase mb-1">Risques</p>
                                             {aiDeepAnalysis.safetyBriefing.risks?.map((r: string, i: number) => (
-                                              <p key={i} className="text-sm text-red-800 flex items-center gap-1">
-                                                <span className="w-1 h-1 rounded-full bg-red-500 flex-shrink-0" />{r}
+                                              <p key={i} className="text-sm text-etat-critique-texte flex items-center gap-1">
+                                                <span className="w-1 h-1 rounded-full bg-etat-critique-vif flex-shrink-0" />{r}
                                               </p>
                                             ))}
                                           </div>
                                           <div>
-                                            <p className="text-xs font-semibold text-red-700 uppercase mb-1">EPI Requis</p>
+                                            <p className="text-xs font-semibold text-etat-critique-texte uppercase mb-1">EPI Requis</p>
                                             {aiDeepAnalysis.safetyBriefing.ppe?.map((p: string, i: number) => (
-                                              <p key={i} className="text-sm text-red-800 flex items-center gap-1">
+                                              <p key={i} className="text-sm text-etat-critique-texte flex items-center gap-1">
                                                 <Shield className="h-3 w-3 flex-shrink-0" />{p}
                                               </p>
                                             ))}
                                           </div>
                                         </div>
                                         {aiDeepAnalysis.safetyBriefing.authorizedPersonnel && (
-                                          <p className="text-xs text-red-600 mt-2 pt-2 border-t border-red-200">
+                                          <p className="text-xs text-etat-critique-texte mt-2 pt-2 border-t border-etat-critique-filet">
                                             Habilitation requise : {aiDeepAnalysis.safetyBriefing.authorizedPersonnel}
                                           </p>
                                         )}
@@ -1002,47 +1006,47 @@ export default function SmartDiagnostic() {
                                     {/* Cost estimate + preventive recommendations */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       {aiDeepAnalysis.costEstimate && (
-                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                        <div className="bg-white border border-rule rounded-none p-4">
                                           <div className="flex items-center space-x-2 mb-3">
                                             <Euro className="h-5 w-5 text-signal-deep" />
-                                            <h4 className="font-semibold text-gray-900">Estimation Coûts</h4>
+                                            <h4 className="font-semibold text-ink">Estimation Coûts</h4>
                                           </div>
                                           <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
-                                              <span className="text-gray-600">Réparation :</span>
-                                              <span className="font-medium text-gray-900">{aiDeepAnalysis.costEstimate.repairCost}</span>
+                                              <span className="text-ink-soft">Réparation :</span>
+                                              <span className="font-medium text-ink">{aiDeepAnalysis.costEstimate.repairCost}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                              <span className="text-gray-600">Prévention :</span>
-                                              <span className="font-medium text-green-600">{aiDeepAnalysis.costEstimate.preventionCost}</span>
+                                              <span className="text-ink-soft">Prévention :</span>
+                                              <span className="font-medium text-etat-nominal-texte">{aiDeepAnalysis.costEstimate.preventionCost}</span>
                                             </div>
                                             <div className="flex justify-between border-t pt-2">
-                                              <span className="text-gray-600">Risque arrêt :</span>
-                                              <span className="font-medium text-red-600">{aiDeepAnalysis.costEstimate.downTimeCost}</span>
+                                              <span className="text-ink-soft">Risque arrêt :</span>
+                                              <span className="font-medium text-etat-critique-texte">{aiDeepAnalysis.costEstimate.downTimeCost}</span>
                                             </div>
                                           </div>
                                         </div>
                                       )}
 
                                       {aiDeepAnalysis.preventiveRecommendations && (
-                                        <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                                        <div className="bg-white border border-rule rounded-none p-4">
                                           <div className="flex items-center space-x-2 mb-3">
-                                            <CalendarCheck className="h-5 w-5 text-teal-600" />
-                                            <h4 className="font-semibold text-gray-900">Recommandations Préventives</h4>
+                                            <CalendarCheck className="h-5 w-5 text-etat-encours-texte" />
+                                            <h4 className="font-semibold text-ink">Recommandations Préventives</h4>
                                           </div>
                                           <div className="space-y-1.5 text-sm">
                                             {aiDeepAnalysis.preventiveRecommendations.shortTerm?.slice(0,2).map((r: string, i: number) => (
-                                              <p key={i} className="flex items-start gap-2 text-orange-700">
+                                              <p key={i} className="flex items-start gap-2 text-etat-alerte-texte">
                                                 <Clock className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />{r}
                                               </p>
                                             ))}
                                             {aiDeepAnalysis.preventiveRecommendations.mediumTerm?.slice(0,1).map((r: string, i: number) => (
-                                              <p key={i} className="flex items-start gap-2 text-blue-700">
+                                              <p key={i} className="flex items-start gap-2 text-etat-encours-texte">
                                                 <TrendingUp className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />{r}
                                               </p>
                                             ))}
                                             {aiDeepAnalysis.nextInspectionDate && (
-                                              <p className="text-xs text-gray-500 pt-1 border-t">
+                                              <p className="text-xs text-ink-mute pt-1 border-t">
                                                 Prochaine inspection : <strong>{aiDeepAnalysis.nextInspectionDate}</strong>
                                               </p>
                                             )}
@@ -1053,7 +1057,7 @@ export default function SmartDiagnostic() {
 
                                     {/* Expert insight */}
                                     {aiDeepAnalysis.expertInsight && (
-                                      <div className="bg-paper-deep border border-rule rounded-2xl p-4">
+                                      <div className="bg-paper-deep border border-rule rounded-none p-4">
                                         <div className="flex items-start space-x-3">
                                           <div className="bg-paper-deep p-2 rounded-lg mt-0.5">
                                             <Lightbulb className="h-4 w-4 text-signal-deep" />
@@ -1088,13 +1092,13 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="repair" className="mt-0">
-                  <Card className="bg-white border border-gray-200">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-8 text-center">
                       <Wrench className="h-16 w-16 mx-auto text-ink-mute mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-semibold text-ink mb-2">
                         Procédures de Réparation
                       </h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-soft mb-6">
                         Guides pas-à-pas pour la réparation d'équipements
                       </p>
                       <Button 
@@ -1131,13 +1135,13 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-0">
-                  <Card className="bg-white border border-gray-200">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-8 text-center">
                       <History className="h-16 w-16 mx-auto text-ink-mute mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-semibold text-ink mb-2">
                         Historique des Diagnostics
                       </h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-soft mb-6">
                         Consultez l'historique complet des analyses IA
                       </p>
                       <Button 
@@ -1170,13 +1174,13 @@ export default function SmartDiagnostic() {
                 </TabsContent>
 
                 <TabsContent value="reporting" className="mt-0">
-                  <Card className="bg-white border border-gray-200">
+                  <Card className="bg-white border border-rule">
                     <CardContent className="p-8 text-center">
                       <Bug className="h-16 w-16 mx-auto text-ink-mute mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-semibold text-ink mb-2">
                         Rapports Diagnostiques
                       </h3>
-                      <p className="text-gray-600 mb-6">
+                      <p className="text-ink-soft mb-6">
                         Génération automatique de rapports d'analyse et de performance IA
                       </p>
                       <Button 
@@ -1218,7 +1222,7 @@ export default function SmartDiagnostic() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-3">
-                <Wrench className="h-6 w-6 text-blue-600" />
+                <Wrench className="h-6 w-6 text-etat-encours-texte" />
                 <span>{getCurrentProcedure()?.title}</span>
                 <Button
                   variant="ghost"
@@ -1234,32 +1238,32 @@ export default function SmartDiagnostic() {
             {getCurrentProcedure() && (
               <div className="space-y-6">
                 {/* Informations générales */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-paper rounded-lg">
                   <div className="flex items-center space-x-2">
-                    <Timer className="h-4 w-4 text-blue-600" />
+                    <Timer className="h-4 w-4 text-etat-encours-texte" />
                     <div>
-                      <p className="text-xs text-gray-500">Durée</p>
+                      <p className="text-xs text-ink-mute">Durée</p>
                       <p className="font-medium">{getCurrentProcedure()?.duration}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <TrendingUp className="h-4 w-4 text-etat-nominal-texte" />
                     <div>
-                      <p className="text-xs text-gray-500">Difficulté</p>
+                      <p className="text-xs text-ink-mute">Difficulté</p>
                       <p className="font-medium">{getCurrentProcedure()?.difficulty}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Euro className="h-4 w-4 text-signal-deep" />
                     <div>
-                      <p className="text-xs text-gray-500">Coût</p>
+                      <p className="text-xs text-ink-mute">Coût</p>
                       <p className="font-medium">{getCurrentProcedure()?.cost}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-red-600" />
+                    <Shield className="h-4 w-4 text-etat-critique-texte" />
                     <div>
-                      <p className="text-xs text-gray-500">Sécurité</p>
+                      <p className="text-xs text-ink-mute">Sécurité</p>
                       <p className="font-medium">{getCurrentProcedure()?.safetyLevel}</p>
                     </div>
                   </div>
@@ -1269,7 +1273,7 @@ export default function SmartDiagnostic() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Progression</h3>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-ink-mute">
                       Étape {currentStep + 1} sur {getCurrentProcedure()?.steps.length}
                     </span>
                   </div>
@@ -1283,13 +1287,13 @@ export default function SmartDiagnostic() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <Card className="p-4">
                     <h4 className="font-semibold mb-3 flex items-center">
-                      <Wrench className="h-4 w-4 mr-2 text-blue-600" />
+                      <Wrench className="h-4 w-4 mr-2 text-etat-encours-texte" />
                       Outils requis
                     </h4>
                     <ul className="space-y-1 text-sm">
                       {getCurrentProcedure()?.tools.map((tool, index) => (
                         <li key={index} className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full mr-2" />
+                          <div className="w-2 h-2 bg-etat-encours-vif rounded-full mr-2" />
                           {tool}
                         </li>
                       ))}
@@ -1297,13 +1301,13 @@ export default function SmartDiagnostic() {
                   </Card>
                   <Card className="p-4">
                     <h4 className="font-semibold mb-3 flex items-center">
-                      <FileText className="h-4 w-4 mr-2 text-green-600" />
+                      <FileText className="h-4 w-4 mr-2 text-etat-nominal-texte" />
                       Matériaux
                     </h4>
                     <ul className="space-y-1 text-sm">
                       {getCurrentProcedure()?.materials.map((material, index) => (
                         <li key={index} className="flex items-center">
-                          <div className="w-2 h-2 bg-green-600 rounded-full mr-2" />
+                          <div className="w-2 h-2 bg-etat-nominal-vif rounded-full mr-2" />
                           {material}
                         </li>
                       ))}
@@ -1319,19 +1323,19 @@ export default function SmartDiagnostic() {
                       key={index} 
                       className={`p-4 transition-all duration-200 ${
                         index === currentStep 
-                          ? 'border-blue-500 bg-blue-50' 
+                          ? 'border-etat-encours-filet bg-etat-encours-fond' 
                           : index < currentStep 
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-200'
+                            ? 'border-etat-nominal-filet bg-etat-nominal-fond'
+                            : 'border-rule'
                       }`}
                     >
                       <div className="flex items-start space-x-4">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                           index === currentStep 
-                            ? 'bg-blue-600 text-white' 
+                            ? 'bg-etat-encours-vif text-white' 
                             : index < currentStep 
-                              ? 'bg-green-600 text-white'
-                              : 'bg-gray-300 text-gray-600'
+                              ? 'bg-etat-nominal-vif text-white'
+                              : 'bg-gray-300 text-ink-soft'
                         }`}>
                           {index < currentStep ? <CheckCircle className="h-4 w-4" /> : index + 1}
                         </div>
@@ -1342,21 +1346,21 @@ export default function SmartDiagnostic() {
                               {step.duration}
                             </Badge>
                           </div>
-                          <p className="text-gray-600 mb-3">{step.description}</p>
+                          <p className="text-ink-soft mb-3">{step.description}</p>
                           
                           {index === currentStep && (
                             <div className="space-y-3 mt-4 p-3 bg-white rounded border">
                               <div className="flex items-start space-x-2">
-                                <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5" />
+                                <AlertTriangle className="h-4 w-4 text-etat-alerte-texte mt-0.5" />
                                 <div>
-                                  <p className="font-medium text-orange-800 text-sm">Sécurité</p>
-                                  <p className="text-sm text-orange-700">{step.safety}</p>
+                                  <p className="font-medium text-etat-alerte-texte text-sm">Sécurité</p>
+                                  <p className="text-sm text-etat-alerte-texte">{step.safety}</p>
                                 </div>
                               </div>
                               <Separator />
                               <div>
                                 <p className="font-medium text-sm mb-1">Détails de l'étape</p>
-                                <p className="text-sm text-gray-600">{step.details}</p>
+                                <p className="text-sm text-ink-soft">{step.details}</p>
                               </div>
                             </div>
                           )}
@@ -1367,7 +1371,7 @@ export default function SmartDiagnostic() {
                 </div>
 
                 {/* Contrôles de navigation */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-paper rounded-lg">
                   <Button
                     variant="outline"
                     onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
@@ -1443,7 +1447,7 @@ export default function SmartDiagnostic() {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-3">
-                <History className="h-6 w-6 text-green-600" />
+                <History className="h-6 w-6 text-etat-nominal-texte" />
                 <span>Historique des Diagnostics</span>
                 <Button
                   variant="ghost"
@@ -1460,37 +1464,37 @@ export default function SmartDiagnostic() {
               {isLoadingHistory ? (
                 <div className="text-center py-8">
                   <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
-                  <p className="text-gray-600">Chargement de l'historique...</p>
+                  <p className="text-ink-soft">Chargement de l'historique...</p>
                 </div>
               ) : diagnosticHistory.length === 0 ? (
                 <div className="text-center py-8">
                   <History className="h-16 w-16 mx-auto text-ink-mute mb-4" />
-                  <p className="text-gray-600">Aucun diagnostic dans l'historique</p>
+                  <p className="text-ink-soft">Aucun diagnostic dans l'historique</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {diagnosticHistory.map((item) => (
-                    <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={item.id} className="p-4 hover:shadow-none transition-shadow">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-4 mb-2">
-                            <h3 className="font-semibold text-gray-900">{item.equipmentType}</h3>
+                            <h3 className="font-semibold text-ink">{item.equipmentType}</h3>
                             <Badge variant={item.status === "Résolu" ? "default" : "secondary"}>
                               {item.status}
                             </Badge>
-                            <span className="text-sm text-gray-500">{item.date}</span>
+                            <span className="text-sm text-ink-mute">{item.date}</span>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">
+                          <p className="text-sm text-ink-soft mb-2">
                             <span className="font-medium">Symptômes:</span> {item.symptoms}
                           </p>
-                          <p className="text-sm text-gray-800">
+                          <p className="text-sm text-ink">
                             <span className="font-medium">Diagnostic:</span> {item.diagnosis}
                           </p>
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-center">
-                            <div className="text-lg font-bold text-blue-600">{item.confidence}%</div>
-                            <div className="text-xs text-gray-500">Confiance</div>
+                            <div className="text-lg font-bold text-etat-encours-texte">{item.confidence}%</div>
+                            <div className="text-xs text-ink-mute">Confiance</div>
                           </div>
                           <Button variant="outline" size="sm">
                             Voir détails
@@ -1504,7 +1508,7 @@ export default function SmartDiagnostic() {
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-mute">
                 {diagnosticHistory.length} diagnostic(s) dans l'historique
               </p>
               <div className="space-x-2">
@@ -1537,5 +1541,6 @@ export default function SmartDiagnostic() {
         </Dialog>
       </main>
     </div>
+    </AppShell>
   );
 }

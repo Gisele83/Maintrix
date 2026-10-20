@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { GitCommitHorizontal, Clock, ArrowRight, Loader2, History } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Stage {
   key: string;
@@ -44,9 +47,9 @@ interface LifecycleDetail {
   history: Transition[];
 }
 
-const TERMINAL_COLOR = "bg-gray-200 text-gray-600 border-gray-300";
-const ACTIVE_COLOR = "bg-blue-600 text-white border-blue-600";
-const REACHED_COLOR = "bg-blue-50 text-blue-700 border-blue-200";
+const TERMINAL_COLOR = "bg-paper-deep text-ink-soft border-rule";
+const ACTIVE_COLOR = "bg-etat-encours-vif text-white border-etat-encours-filet";
+const REACHED_COLOR = "bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet";
 
 export default function EquipmentLifecyclePage() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | null>(null);
@@ -56,14 +59,15 @@ export default function EquipmentLifecyclePage() {
   const { data: equipmentList } = useQuery<Equipment[]>({ queryKey: ["/api/equipment"] });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Actifs" }, { libelle: "Cycle de vie ISO 55000" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <GitCommitHorizontal className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <GitCommitHorizontal className="w-6 h-6 text-etat-encours-texte" />
             Cycle de vie de l'actif — ISO 55000
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             12 étapes, transitions contraintes, historique tracé. La colonne vertébrale temporelle qui relie
             GMAO, Digital Twin, Predictive Engine et Engineering Expertise.
           </p>
@@ -76,9 +80,9 @@ export default function EquipmentLifecyclePage() {
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {(overview?.byStage ?? []).map((s) => (
-                <div key={s.key} className="flex flex-col items-center gap-1 min-w-[90px] rounded-lg border border-gray-200 px-3 py-2">
+                <div key={s.key} className="flex flex-col items-center gap-1 min-w-[90px] rounded-lg border border-rule px-3 py-2">
                   <span className="text-lg font-bold">{s.count}</span>
-                  <span className="text-[11px] text-gray-500 text-center leading-tight">{s.label}</span>
+                  <span className="text-[11px] text-ink-mute text-center leading-tight">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -91,7 +95,7 @@ export default function EquipmentLifecyclePage() {
           </CardHeader>
           <CardContent>
             <select
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-rule px-3 py-2 text-sm"
               value={selectedEquipmentId ?? ""}
               onChange={(e) => setSelectedEquipmentId(e.target.value ? Number(e.target.value) : null)}
             >
@@ -106,6 +110,7 @@ export default function EquipmentLifecyclePage() {
         {selectedEquipmentId && <EquipmentDetail equipmentId={selectedEquipmentId} stages={stages ?? []} />}
       </div>
     </div>
+    </AppShell>
   );
 }
 
@@ -201,7 +206,7 @@ function EquipmentDetail({ equipmentId, stages }: { equipmentId: number; stages:
                 <span className="font-medium">{t.fromStage}</span>
                 <ArrowRight className="w-3 h-3 inline mx-1 text-ink-mute" />
                 <span className="font-medium">{t.toStage}</span>
-                {t.reason && <span className="text-gray-500"> — {t.reason}</span>}
+                {t.reason && <span className="text-ink-mute"> — {t.reason}</span>}
               </div>
               <span className="text-ink-mute flex-shrink-0 ml-2">{new Date(t.transitionedAt).toLocaleString("fr-FR")}</span>
             </div>

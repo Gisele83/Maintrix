@@ -23,6 +23,9 @@ import {
   CheckCircle, XCircle, Wifi, WifiOff, Bell, BarChart3,
   Clock, AlertTriangle, Settings, Hash, Bot
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 type CommunicationChannel = {
   id: number;
@@ -56,17 +59,17 @@ type DeliveryLog = {
 
 const PLATFORMS = [
   { value: "slack", label: "Slack", icon: "", color: " ", description: "Envoyez des alertes vers vos canaux Slack via webhook" },
-  { value: "teams", label: "Microsoft Teams", icon: "", color: "from-blue-500 to-indigo-600", description: "Notifications vers vos équipes Teams via connecteur webhook" },
-  { value: "telegram", label: "Telegram", icon: "", color: "from-sky-400 to-blue-500", description: "Messages instantanés via bot Telegram" },
-  { value: "whatsapp", label: "WhatsApp", icon: "", color: "from-green-500 to-emerald-600", description: "Alertes WhatsApp Business via API webhook" },
-  { value: "webhook", label: "Webhook Personnalisé", icon: "", color: "from-gray-500 to-slate-600", description: "Envoi JSON vers n'importe quelle URL webhook" }
+  { value: "teams", label: "Microsoft Teams", icon: "", color: "", description: "Notifications vers vos équipes Teams via connecteur webhook" },
+  { value: "telegram", label: "Telegram", icon: "", color: "", description: "Messages instantanés via bot Telegram" },
+  { value: "whatsapp", label: "WhatsApp", icon: "", color: "", description: "Alertes WhatsApp Business via API webhook" },
+  { value: "webhook", label: "Webhook Personnalisé", icon: "", color: "", description: "Envoi JSON vers n'importe quelle URL webhook" }
 ];
 
 const SEVERITIES = [
-  { value: "info", label: "Info", color: "bg-blue-100 text-blue-700" },
-  { value: "warning", label: "Warning", color: "bg-amber-100 text-amber-700" },
-  { value: "critical", label: "Critical", color: "bg-red-100 text-red-700" },
-  { value: "emergency", label: "Emergency", color: "bg-red-200 text-red-800" }
+  { value: "info", label: "Info", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "warning", label: "Warning", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "critical", label: "Critical", color: "bg-etat-critique-fond text-etat-critique-texte" },
+  { value: "emergency", label: "Emergency", color: "bg-etat-critique-fond text-etat-critique-texte" }
 ];
 
 const EVENT_TYPES = [
@@ -172,7 +175,8 @@ export default function CommunicationIntegrations() {
   const enabledCount = channels.filter(c => c.isEnabled).length;
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Communications" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/gmao">
@@ -182,7 +186,7 @@ export default function CommunicationIntegrations() {
             <h1 className="text-3xl font-bold text-ink">
               Intégrations Communication
             </h1>
-            <p className="text-gray-500 dark:text-ink-mute mt-1">
+            <p className="text-ink-mute mt-1">
               Connectez vos plateformes pour recevoir des alertes instantanées et collaborer
             </p>
           </div>
@@ -212,7 +216,7 @@ export default function CommunicationIntegrations() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 mt-1">{getPlatformInfo(newChannel.platform).description}</p>
+                  <p className="text-xs text-ink-mute mt-1">{getPlatformInfo(newChannel.platform).description}</p>
                 </div>
 
                 {(newChannel.platform === 'slack' || newChannel.platform === 'teams' || newChannel.platform === 'whatsapp' || newChannel.platform === 'webhook') && (
@@ -227,7 +231,7 @@ export default function CommunicationIntegrations() {
                     <div>
                       <Label>Bot Token</Label>
                       <Input placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" value={newChannel.botToken} onChange={e => setNewChannel(p => ({ ...p, botToken: e.target.value }))} />
-                      <p className="text-xs text-gray-500 mt-1">Obtenez un token via @BotFather sur Telegram</p>
+                      <p className="text-xs text-ink-mute mt-1">Obtenez un token via @BotFather sur Telegram</p>
                     </div>
                     <div>
                       <Label>Chat ID</Label>
@@ -276,46 +280,46 @@ export default function CommunicationIntegrations() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="border-0 shadow-md bg-paper-deep">
+          <Card className="border-0 shadow-none bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg"><MessageSquare className="h-5 w-5 text-blue-600" /></div>
+                <div className="p-2 bg-etat-encours-fond rounded-lg"><MessageSquare className="h-5 w-5 text-etat-encours-texte" /></div>
                 <div>
                   <p className="text-2xl font-bold">{channels.length}</p>
-                  <p className="text-xs text-gray-500">Canaux configurés</p>
+                  <p className="text-xs text-ink-mute">Canaux configurés</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-paper-deep">
+          <Card className="border-0 shadow-none bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg"><Wifi className="h-5 w-5 text-green-600" /></div>
+                <div className="p-2 bg-etat-nominal-fond rounded-lg"><Wifi className="h-5 w-5 text-etat-nominal-texte" /></div>
                 <div>
                   <p className="text-2xl font-bold">{enabledCount}</p>
-                  <p className="text-xs text-gray-500">Canaux actifs</p>
+                  <p className="text-xs text-ink-mute">Canaux actifs</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-paper-deep">
+          <Card className="border-0 shadow-none bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-signal-deep/10 rounded-lg"><Send className="h-5 w-5 text-signal-deep" /></div>
                 <div>
                   <p className="text-2xl font-bold">{stats?.sent || 0}</p>
-                  <p className="text-xs text-gray-500">Messages envoyés</p>
+                  <p className="text-xs text-ink-mute">Messages envoyés</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-md bg-paper-deep">
+          <Card className="border-0 shadow-none bg-paper-deep">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-500/10 rounded-lg"><AlertTriangle className="h-5 w-5 text-red-600" /></div>
+                <div className="p-2 bg-etat-critique-fond rounded-lg"><AlertTriangle className="h-5 w-5 text-etat-critique-texte" /></div>
                 <div>
                   <p className="text-2xl font-bold">{stats?.failed || 0}</p>
-                  <p className="text-xs text-gray-500">Échecs</p>
+                  <p className="text-xs text-ink-mute">Échecs</p>
                 </div>
               </div>
             </CardContent>
@@ -333,8 +337,8 @@ export default function CommunicationIntegrations() {
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3].map(i => (
-                  <Card key={i} className="border-0 shadow-md animate-pulse">
-                    <CardContent className="p-6"><div className="h-32 bg-gray-200 rounded" /></CardContent>
+                  <Card key={i} className="border-0 shadow-none animate-pulse">
+                    <CardContent className="p-6"><div className="h-32 bg-paper-deep rounded" /></CardContent>
                   </Card>
                 ))}
               </div>
@@ -342,8 +346,8 @@ export default function CommunicationIntegrations() {
               <Card className="border-0">
                 <CardContent className="p-12 text-center">
                   <MessageSquare className="h-16 w-16 text-ink-soft mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun canal configuré</h3>
-                  <p className="text-gray-500 mb-6">Ajoutez votre premier canal pour recevoir des alertes instantanées sur vos plateformes préférées.</p>
+                  <h3 className="text-xl font-semibold text-ink-soft mb-2">Aucun canal configuré</h3>
+                  <p className="text-ink-mute mb-6">Ajoutez votre premier canal pour recevoir des alertes instantanées sur vos plateformes préférées.</p>
                   <Button onClick={() => setShowAddDialog(true)} className="bg-ink text-white">
                     <Plus className="h-4 w-4 mr-2" /> Ajouter un canal
                   </Button>
@@ -354,11 +358,11 @@ export default function CommunicationIntegrations() {
                 {channels.map((channel) => {
                   const platform = getPlatformInfo(channel.platform);
                   return (
-                    <Card key={channel.id} className="border-0 shadow-md transition-all">
+                    <Card key={channel.id} className="border-0 shadow-none transition-all">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-xl bg-paper-deep ${platform.color} text-ink text-lg`}>
+                            <div className={`p-2.5 rounded-none bg-paper-deep ${platform.color} text-ink text-lg`}>
                               {platform.icon}
                             </div>
                             <div>
@@ -371,13 +375,13 @@ export default function CommunicationIntegrations() {
                       </CardHeader>
                       <CardContent className="pt-0 space-y-3">
                         <div className="flex items-center gap-1.5">
-                          {channel.isEnabled ? <Wifi className="h-3.5 w-3.5 text-green-500" /> : <WifiOff className="h-3.5 w-3.5 text-ink-mute" />}
-                          <span className={`text-xs ${channel.isEnabled ? 'text-green-600' : 'text-ink-mute'}`}>
+                          {channel.isEnabled ? <Wifi className="h-3.5 w-3.5 text-etat-nominal-texte" /> : <WifiOff className="h-3.5 w-3.5 text-ink-mute" />}
+                          <span className={`text-xs ${channel.isEnabled ? 'text-etat-nominal-texte' : 'text-ink-mute'}`}>
                             {channel.isEnabled ? 'Actif' : 'Désactivé'}
                           </span>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Sévérités:</p>
+                          <p className="text-xs text-ink-mute mb-1">Sévérités:</p>
                           <div className="flex flex-wrap gap-1">
                             {(channel.severityFilter || []).map((s: string) => {
                               const sev = SEVERITIES.find(sv => sv.value === s);
@@ -404,25 +408,25 @@ export default function CommunicationIntegrations() {
           </TabsContent>
 
           <TabsContent value="logs">
-            <Card className="border-0 shadow-md">
+            <Card className="border-0 shadow-none">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5" /> Historique des envois</CardTitle>
               </CardHeader>
               <CardContent>
                 {deliveryLogs.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Aucun envoi enregistré</p>
+                  <p className="text-center text-ink-mute py-8">Aucun envoi enregistré</p>
                 ) : (
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {deliveryLogs.map((log) => (
-                      <div key={log.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div key={log.id} className="flex items-center gap-3 p-3 bg-paper rounded-lg">
                         {log.status === 'sent' ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                          <CheckCircle className="h-4 w-4 text-etat-nominal-texte shrink-0" />
                         ) : (
-                          <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                          <XCircle className="h-4 w-4 text-etat-critique-texte shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{log.title}</p>
-                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <div className="flex items-center gap-2 text-xs text-ink-mute">
                             <span>{getPlatformInfo(log.platform).icon} {getPlatformInfo(log.platform).label}</span>
                             <span>•</span>
                             <Badge variant="outline" className="text-[10px]">{log.severity}</Badge>
@@ -430,7 +434,7 @@ export default function CommunicationIntegrations() {
                             <span>{new Date(log.sentAt).toLocaleString('fr-FR')}</span>
                           </div>
                           {log.errorMessage && (
-                            <p className="text-xs text-red-500 mt-1 truncate">{log.errorMessage}</p>
+                            <p className="text-xs text-etat-critique-texte mt-1 truncate">{log.errorMessage}</p>
                           )}
                         </div>
                         <Badge variant={log.status === 'sent' ? 'default' : 'destructive'} className="text-[10px] shrink-0">
@@ -450,22 +454,22 @@ export default function CommunicationIntegrations() {
                 const channelCount = channels.filter(c => c.platform === platform.value).length;
                 const platformStats = stats?.byPlatform?.[platform.value];
                 return (
-                  <Card key={platform.value} className="border-0 shadow-md transition-all">
+                  <Card key={platform.value} className="border-0 shadow-none transition-all">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 mb-4">
-                        <div className={`p-3 rounded-xl bg-paper-deep ${platform.color} text-ink text-2xl`}>
+                        <div className={`p-3 rounded-none bg-paper-deep ${platform.color} text-ink text-2xl`}>
                           {platform.icon}
                         </div>
                         <div>
                           <h3 className="font-semibold">{platform.label}</h3>
-                          <p className="text-xs text-gray-500">{channelCount} canal{channelCount !== 1 ? 'x' : ''} configuré{channelCount !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-ink-mute">{channelCount} canal{channelCount !== 1 ? 'x' : ''} configuré{channelCount !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-ink-mute mb-4">{platform.description}</p>
+                      <p className="text-sm text-ink-soft mb-4">{platform.description}</p>
                       {platformStats && (
                         <div className="flex gap-4 text-xs">
-                          <span className="text-green-600">{platformStats.sent} envoyés</span>
-                          <span className="text-red-600">{platformStats.failed} échoués</span>
+                          <span className="text-etat-nominal-texte">{platformStats.sent} envoyés</span>
+                          <span className="text-etat-critique-texte">{platformStats.failed} échoués</span>
                         </div>
                       )}
                       <div className="mt-4">
@@ -474,24 +478,24 @@ export default function CommunicationIntegrations() {
                         </Button>
                       </div>
 
-                      <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="mt-4 p-3 bg-paper rounded-lg">
                         <p className="text-xs font-medium mb-2">Guide de configuration:</p>
                         {platform.value === 'slack' && (
-                          <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                          <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">
                             <li>Créez une app Slack sur api.slack.com</li>
                             <li>Activez "Incoming Webhooks"</li>
                             <li>Copiez l'URL webhook générée</li>
                           </ol>
                         )}
                         {platform.value === 'teams' && (
-                          <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                          <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">
                             <li>Ouvrez le canal Teams souhaité</li>
                             <li>Ajoutez le connecteur "Incoming Webhook"</li>
                             <li>Copiez l'URL webhook fournie</li>
                           </ol>
                         )}
                         {platform.value === 'telegram' && (
-                          <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                          <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">
                             <li>Contactez @BotFather sur Telegram</li>
                             <li>Créez un nouveau bot et récupérez le token</li>
                             <li>Ajoutez le bot à votre groupe/canal</li>
@@ -499,14 +503,14 @@ export default function CommunicationIntegrations() {
                           </ol>
                         )}
                         {platform.value === 'whatsapp' && (
-                          <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                          <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">
                             <li>Configurez l'API WhatsApp Business</li>
                             <li>Obtenez votre URL webhook</li>
                             <li>Collez l'URL dans la configuration</li>
                           </ol>
                         )}
                         {platform.value === 'webhook' && (
-                          <ol className="text-xs text-gray-500 space-y-1 list-decimal list-inside">
+                          <ol className="text-xs text-ink-mute space-y-1 list-decimal list-inside">
                             <li>Préparez un endpoint HTTP POST</li>
                             <li>Il recevra un JSON structuré</li>
                             <li>Collez l'URL de votre endpoint</li>
@@ -522,5 +526,6 @@ export default function CommunicationIntegrations() {
         </Tabs>
       </div>
     </div>
+    </AppShell>
   );
 }

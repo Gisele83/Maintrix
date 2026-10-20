@@ -94,10 +94,10 @@ export default function ModernHome() {
     : 0;
 
   const quickStats = [
-    { label: "Équipements Surveillés", value: String(totalEquipment), icon: Cpu, color: "text-blue-600", bg: "bg-blue-100" },
-    { label: "Alertes Actives", value: String(activeAlerts), icon: AlertTriangle, color: activeAlerts > 0 ? "text-red-600" : "text-green-600", bg: activeAlerts > 0 ? "bg-red-100" : "bg-green-100" },
-    { label: "OT en Cours", value: String(openOrders), icon: Wrench, color: "text-orange-600", bg: "bg-orange-100" },
-    { label: "Équipements Sains", value: `${healthyEquipmentPct}%`, icon: TrendingUp, color: "text-green-600", bg: "bg-green-100" },
+    { label: "Équipements Surveillés", value: String(totalEquipment), icon: Cpu, color: "text-etat-encours-texte", bg: "bg-etat-encours-fond" },
+    { label: "Alertes Actives", value: String(activeAlerts), icon: AlertTriangle, color: activeAlerts > 0 ? "text-etat-critique-texte" : "text-etat-nominal-texte", bg: activeAlerts > 0 ? "bg-etat-critique-fond" : "bg-etat-nominal-fond" },
+    { label: "OT en Cours", value: String(openOrders), icon: Wrench, color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond" },
+    { label: "Équipements Sains", value: `${healthyEquipmentPct}%`, icon: TrendingUp, color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond" },
   ];
 
   const recentActivity = [
@@ -106,34 +106,34 @@ export default function ModernHome() {
       text: a.title || a.message || "Alerte équipement",
       time: timeAgo(a.createdAt),
       ts: a.createdAt ? new Date(a.createdAt).getTime() : 0,
-      dot: a.severity === "critical" ? "bg-rose-500" : a.severity === "high" ? "bg-amber-500" : "bg-blue-500",
+      dot: a.severity === "critical" ? "bg-etat-critique-vif" : a.severity === "high" ? "bg-etat-alerte-vif" : "bg-etat-encours-vif",
     })),
     ...(workOrders as any[]).map((o: any) => ({
       id: `wo-${o.id}`,
       text: `${o.title || o.orderNumber || "Ordre de travail"} — ${WORK_ORDER_STATUS_LABEL[o.status] || o.status}`,
       time: timeAgo(o.updatedAt || o.createdAt),
       ts: new Date(o.updatedAt || o.createdAt || 0).getTime(),
-      dot: o.status === "completed" ? "bg-emerald-500" : o.status === "in_progress" ? "bg-signal-deep" : "bg-slate-400",
+      dot: o.status === "completed" ? "bg-etat-nominal-vif" : o.status === "in_progress" ? "bg-signal-deep" : "bg-slate-400",
     })),
   ]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, 5);
 
   const quickModules = [
-    { href: "/gmao", icon: ClipboardList, label: "Ordres de travail", sub: `${openOrders} en cours`, color: "blue", bg: "from-blue-500/15 to-blue-600/5", border: "border-blue-500/25" },
-    { href: "/equipment-management", icon: Settings, label: "Équipements", sub: `${totalEquipment} enregistrés`, color: "emerald", bg: "from-emerald-500/15 to-emerald-600/5", border: "border-emerald-500/25" },
+    { href: "/gmao", icon: ClipboardList, label: "Ordres de travail", sub: `${openOrders} en cours`, color: "blue", bg: "/15/5", border: "border-etat-encours-filet/25" },
+    { href: "/equipment-management", icon: Settings, label: "Équipements", sub: `${totalEquipment} enregistrés`, color: "emerald", bg: "/15/5", border: "border-etat-nominal-filet/25" },
     { href: "/smart-diagnostic", icon: Brain, label: "Diagnostic IA", sub: "Lancer une analyse", color: "violet", bg: " ", border: "border-rule" },
-    { href: "/oee", icon: Gauge, label: "OEE", sub: "Efficacité globale", color: "amber", bg: "from-amber-500/15 to-amber-600/5", border: "border-amber-500/25" },
-    { href: "/rca", icon: GitBranch, label: "Analyse RCA", sub: "Causes racines", color: "rose", bg: "from-rose-500/15 to-rose-600/5", border: "border-rose-500/25" },
-    { href: "/asset-lifecycle", icon: Layers, label: "Actifs", sub: "Cycle de vie", color: "sky", bg: "from-sky-500/15 to-sky-600/5", border: "border-sky-500/25" },
+    { href: "/oee", icon: Gauge, label: "OEE", sub: "Efficacité globale", color: "amber", bg: "/15/5", border: "border-etat-alerte-filet/25" },
+    { href: "/rca", icon: GitBranch, label: "Analyse RCA", sub: "Causes racines", color: "rose", bg: "/15/5", border: "border-etat-critique-filet/25" },
+    { href: "/asset-lifecycle", icon: Layers, label: "Actifs", sub: "Cycle de vie", color: "sky", bg: "/15/5", border: "border-etat-encours-filet/25" },
   ];
 
   return (
     <div className="min-h-screen bg-paper-deep relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-100/30 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-etat-encours-fond/40 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-etat-encours-fond/30 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
       </div>
 
       <ModernNavigation />
@@ -142,15 +142,15 @@ export default function ModernHome() {
 
         {/* ── Trial Banner ────────────────────────────────── */}
         {isTrialActive && trialDays <= 7 && (
-          <div className={`mb-6 rounded-2xl border px-5 py-4 flex items-center justify-between gap-4 ${trialDays <= 3 ? "bg-rose-50 border-rose-200" : "bg-amber-50 border-amber-200"}`}>
+          <div className={`mb-6 rounded-none border px-5 py-4 flex items-center justify-between gap-4 ${trialDays <= 3 ? "bg-etat-critique-fond border-etat-critique-filet" : "bg-etat-alerte-fond border-etat-alerte-filet"}`}>
             <div className="flex items-center gap-3">
-              <Clock className={`w-5 h-5 ${trialDays <= 3 ? "text-rose-500" : "text-amber-500"}`} />
-              <span className={`text-sm font-medium ${trialDays <= 3 ? "text-rose-700" : "text-amber-700"}`}>
+              <Clock className={`w-5 h-5 ${trialDays <= 3 ? "text-etat-critique-texte" : "text-etat-alerte-texte"}`} />
+              <span className={`text-sm font-medium ${trialDays <= 3 ? "text-etat-critique-texte" : "text-etat-alerte-texte"}`}>
                 Essai gratuit — {trialDays} jour{trialDays > 1 ? "s" : ""} restant{trialDays > 1 ? "s" : ""}
               </span>
             </div>
             <Link href="/subscription">
-              <Button size="sm" className={trialDays <= 3 ? "bg-rose-600 hover:bg-rose-500" : "bg-amber-600 hover:bg-amber-500"}>
+              <Button size="sm" className={trialDays <= 3 ? "bg-etat-critique-vif hover:bg-etat-critique-vif" : "bg-etat-alerte-vif hover:bg-etat-alerte-vif"}>
                 Activer un plan
                 <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
               </Button>
@@ -172,7 +172,7 @@ export default function ModernHome() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 bg-white border border-rule px-3 py-2 text-sm text-ink-soft">
-                <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full" aria-hidden="true" />
+                <span className="w-1.5 h-1.5 bg-etat-nominal-vif rounded-full" aria-hidden="true" />
                 Service en fonctionnement
               </div>
               <div className="flex items-center gap-2 bg-white border border-rule px-3 py-2 text-sm text-ink-soft">
@@ -180,7 +180,7 @@ export default function ModernHome() {
                 Mesures en continu
               </div>
               {activeAlerts > 0 && (
-                <div className={`flex items-center gap-2 px-3 py-2 text-sm border ${criticalAlerts > 0 ? "bg-rose-50 border-rose-300 text-rose-800" : "bg-amber-50 border-amber-300 text-amber-900"}`}>
+                <div className={`flex items-center gap-2 px-3 py-2 text-sm border ${criticalAlerts > 0 ? "bg-etat-critique-fond border-etat-critique-filet text-etat-critique-texte" : "bg-etat-alerte-fond border-etat-alerte-filet text-etat-alerte-texte"}`}>
                   <AlertTriangle className="w-4 h-4" />
                   {activeAlerts} alerte{activeAlerts > 1 ? "s" : ""}
                 </div>
@@ -245,7 +245,7 @@ export default function ModernHome() {
           <Card className="border border-rule bg-white shadow-none">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center text-lg text-ink">
-                <TrendingUp className="h-5 w-5 mr-2.5 text-blue-600" />
+                <TrendingUp className="h-5 w-5 mr-2.5 text-etat-encours-texte" />
                 Performance en Temps Réel
               </CardTitle>
             </CardHeader>
@@ -258,14 +258,14 @@ export default function ModernHome() {
                 ].map(({ label, value, sub }) => (
                   <div key={label} className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
                     <div>
-                      <div className="text-sm text-slate-700 font-medium">{label}</div>
+                      <div className="text-sm text-ink-soft font-medium">{label}</div>
                       <div className="text-xs text-ink-mute">{sub}</div>
                     </div>
                     <span className="text-2xl font-bold text-ink">{value}</span>
                   </div>
                 ))}
                 <Link href="/advanced-reporting">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl mt-2">
+                  <Button className="w-full bg-etat-encours-vif hover:bg-etat-encours-vif rounded-none mt-2">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Voir Analytics
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -288,15 +288,15 @@ export default function ModernHome() {
                   <div className="text-sm text-ink-mute text-center py-6">Aucune activité récente</div>
                 ) : (
                   recentActivity.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100/80 transition-colors">
+                    <div key={item.id} className="flex items-center gap-3 p-2.5 bg-paper rounded-lg hover:bg-paper-deep/80 transition-colors">
                       <div className={`w-2 h-2 ${item.dot} rounded-full flex-shrink-0`} />
-                      <span className="text-sm text-slate-700 flex-1 truncate">{item.text}</span>
+                      <span className="text-sm text-ink-soft flex-1 truncate">{item.text}</span>
                       <span className="text-xs text-ink-mute whitespace-nowrap">{item.time}</span>
                     </div>
                   ))
                 )}
                 <Link href="/iot-gamification">
-                  <Button className="w-full bg-signal-deep hover:bg-signal-deep rounded-xl mt-2">
+                  <Button className="w-full bg-signal-deep hover:bg-signal-deep rounded-none mt-2">
                     <Activity className="h-4 w-4 mr-2" />
                     Monitoring IoT
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -320,11 +320,11 @@ export default function ModernHome() {
               <Link key={href} href={href}>
                 <Button
                   variant="outline"
-                  className={`h-20 w-full rounded-xl border border-slate-200 ${ACCENT[color as AccentColor].hoverTile} transition-all`}
+                  className={`h-20 w-full rounded-none border border-rule ${ACCENT[color as AccentColor].hoverTile} transition-all`}
                 >
                   <div className="text-center">
                     <Icon className={`h-5 w-5 mx-auto mb-1.5 ${ACCENT[color as AccentColor].icon600}`} />
-                    <span className="text-sm font-medium text-slate-700">{label}</span>
+                    <span className="text-sm font-medium text-ink-soft">{label}</span>
                   </div>
                 </Button>
               </Link>
