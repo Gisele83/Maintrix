@@ -821,3 +821,84 @@ constaté à l'écran, les autres n'ont pas été revus un par un.
   de type qui masquait le défaut, et le corriger avait fait apparaître sept calculs faux ;
 - aucune `queryFn` ne contourne le contrôle des réponses ;
 - les conversions restent dans un seul module.
+
+---
+
+## 17. Lot 3 — la GMAO en six domaines, 20 octobre 2026
+
+### 17.1 Ce qui était en place
+
+Treize destinations sur **trois** niveaux :
+
+```
+barre :   Vue d'ensemble · Ordres de travail · Équipements · Inventaire · Alertes · [Plus]
+[Plus] →  Maintenance préventive · Historique · Achats · Rapports · Analytiques ·
+          Santé des équipements · Validation multi-niveaux · Configuration de l'entreprise
+```
+
+Ce que « Plus » cachait n'était pas secondaire : la maintenance préventive, les achats,
+les rapports et l'historique, c'est-à-dire la moitié du métier. Un niveau rangé derrière
+un intitulé qui ne promet rien est un niveau que personne n'explore — et huit des treize
+destinations s'y trouvaient.
+
+### 17.2 Ce qui est en place
+
+Les mêmes treize destinations, sur **deux** niveaux :
+
+| Domaine | Écrans |
+|---|---|
+| **Vue d'ensemble** | — |
+| **Actifs** | Équipements · Santé des machines |
+| **Ordres de travail** | Liste et affectation · Alertes |
+| **Planification** | — (maintenance préventive) |
+| **Stocks** | Inventaire · Achats · Validation |
+| **Indicateurs** | Rapports · Analytiques · Historique |
+
+La configuration de l'entreprise quitte la barre des domaines : ce n'est pas un domaine
+d'exploitation. Elle reste accessible, à l'écart, à droite.
+
+Pourquoi ces regroupements : la **santé des machines** est l'état des équipements ; les
+**alertes** se traitent en créant un ordre de travail ; les **achats** et la
+**validation** portent sur ce qui manque en stock ; l'**historique** est de la lecture du
+passé, comme les rapports et les analytiques — pas de l'exploitation.
+
+### 17.3 La navigation est une donnée, plus du balisage
+
+Un seul tableau `DOMAINES` décrit les domaines et leurs écrans. La barre, le second
+niveau et le montage en découlent tous les trois. Un écran ne peut donc plus être déclaré
+sans être atteignable, ni monté sans être déclaré — et un garde-fou compare les deux
+listes.
+
+Trois variables d'état (`activeTab`, `showAdminModal`, `activeAdminTab`) deviennent deux
+(`domaine`, `ecran`).
+
+### 17.4 Trois écrans qui n'avaient pas de titre
+
+« Achats », « Validation » et « Configuration de l'entreprise » ne portaient **aucun
+titre de niveau 1** : leur intitulé était celui du bouton de menu, qui disparaissait dès
+qu'on cliquait dessus. Devenus des écrans de plein droit, ils portent leur en-tête. La
+santé des machines gardait de son côté un « Tableau de Bord Santé Équipements » en
+capitales de menu, désormais à l'échelle de la charte.
+
+### 17.5 Vérification
+
+Les treize destinations ont été ouvertes une à une au navigateur, après reconstruction :
+
+| Mesure | Résultat |
+|---|---|
+| Destinations atteintes | **13 / 13** |
+| Écrans rendant une page blanche | **0** |
+| Écrans sans titre de niveau 1 | **0** |
+| Écrans à plusieurs titres de niveau 1 | **0** |
+| Niveaux de navigation | **3 → 2** |
+
+24 suites et 219 tests unitaires verts, dont 4 nouveaux garde-fous ; 10 suites et 96
+tests d'intégration verts.
+
+### 17.6 Ce que ce lot ne fait pas
+
+Il déplace la navigation, pas les écrans : chaque destination monte le même composant
+qu'avant. Les trois principes du §7 ne sont donc que partiellement tenus — l'union des
+capacités (principe 1) a été faite aux lots précédents pour les ordres de travail,
+l'historique et le préventif ; le branchement du RBAC (principe 2) ne l'est que pour la
+suppression d'un ordre de travail. Le reste demeure ouvert.

@@ -191,9 +191,15 @@ export function EquipmentHealthDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-ink">Tableau de Bord Santé Équipements</h1>
-          <p className="text-ink-soft mt-2">Surveillance temps réel et analyse prédictive</p>
+        {/* Titre à l'échelle de la charte, et sans la capitalisation de tous
+            les mots : cet écran est devenu un domaine de plein droit, il ne
+            peut plus garder l'intitulé d'une entrée de menu. */}
+        <div className="min-w-0">
+          <p className="font-mono text-eyebrow uppercase text-ink-mute">GMAO</p>
+          <h1 className="font-serif text-page font-medium text-ink mt-1.5">Santé des machines</h1>
+          <p className="text-sm text-ink-soft mt-1.5">
+            L'état de chaque équipement, suivi en continu, et ce qu'il annonce.
+          </p>
         </div>
         
         <div className="flex space-x-4">

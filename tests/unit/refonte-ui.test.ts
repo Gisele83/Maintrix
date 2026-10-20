@@ -968,3 +968,65 @@ describe('Ce que le serveur envoie, et ce que l\'écran en fait', () => {
     expect(fautifs).toEqual([]);
   });
 });
+
+describe('GMAO — six domaines sur deux niveaux', () => {
+  /*
+   * La GMAO exposait treize destinations sur TROIS niveaux : cinq onglets,
+   * puis un bouton « Plus » ouvrant un second bandeau de huit entrées. Ce
+   * que « Plus » cachait n'était pas secondaire — maintenance préventive,
+   * achats, rapports, historique : la moitié du métier.
+   *
+   * Les mêmes treize destinations tiennent en six domaines sur deux niveaux.
+   * Vérifié au navigateur après la bascule : treize destinations atteintes,
+   * aucune page blanche, un seul <h1> sur chacune.
+   */
+  const GMAO = join(CLIENT, 'pages', 'gmao-dashboard.tsx');
+
+  it('le niveau caché « Plus » a disparu', () => {
+    const contenu = readFileSync(GMAO, 'utf8');
+    for (const vestige of ['showAdminModal', 'activeAdminTab', 'adminTabs']) {
+      expect(contenu).not.toContain(vestige);
+    }
+  });
+
+  it('les six domaines sont déclarés une seule fois, et c\'est eux qui montent les écrans', () => {
+    const contenu = readFileSync(GMAO, 'utf8');
+    const debut = contenu.indexOf('const DOMAINES');
+    expect(debut).toBeGreaterThan(-1);
+    const bloc = contenu.slice(debut, contenu.indexOf('];', debut));
+    for (const d of ['vue-ensemble', 'actifs', 'ordres', 'planification', 'stocks', 'indicateurs']) {
+      expect(bloc).toContain(`"${d}"`);
+    }
+  });
+
+  it('chaque écran déclaré est monté, et chaque écran monté est déclaré', () => {
+    /*
+     * C'est le contrôle qui compte : un écran déclaré sans montage est une
+     * entrée de menu qui n'ouvre rien ; un écran monté sans déclaration est
+     * un écran devenu inatteignable. Les deux sont silencieux.
+     */
+    const contenu = readFileSync(GMAO, 'utf8');
+    const debut = contenu.indexOf('const DOMAINES');
+    const bloc = contenu.slice(debut, contenu.indexOf('];', debut));
+
+    const declares = new Set<string>();
+    for (const m of bloc.matchAll(/\{ id: "([a-z-]+)", libelle:/g)) declares.add(m[1]);
+
+    const montes = new Set<string>();
+    for (const m of contenu.matchAll(/ecranCourant === "([a-z-]+)"/g)) montes.add(m[1]);
+
+    // Les domaines à écran unique n'ont pas de sous-onglet : on les écarte
+    // des deux côtés en ne comparant que les identifiants d'écrans.
+    const ecransDeclares = [...declares].filter((id) => !['vue-ensemble', 'actifs', 'ordres', 'planification', 'stocks', 'indicateurs'].includes(id));
+
+    expect([...montes].sort()).toEqual(ecransDeclares.sort());
+  });
+
+  it('les treize destinations restent atteignables', () => {
+    // Cinq onglets + huit entrées du menu « Plus » = treize.
+    const contenu = readFileSync(GMAO, 'utf8');
+    const conditions = contenu.match(/domaine === "[a-z-]+"/g) ?? [];
+    const configuration = contenu.match(/\{configurationOuverte && \(/g) ?? [];
+    expect(conditions.length + configuration.length).toBe(13);
+  });
+});

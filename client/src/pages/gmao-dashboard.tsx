@@ -102,8 +102,40 @@ interface GMAODashboardData {
   workOrdersByStatus: Record<string, number>;
 }
 
-type GMAOTab = "overview" | "work-orders" | "equipment" | "inventory" | "alerts";
-type AdminTab = "maintenance" | "history" | "procurement" | "reports" | "analytics" | "health-dashboard" | "validation" | "company-config";
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * SIX DOMAINES, DEUX NIVEAUX
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * La GMAO exposait treize destinations sur TROIS niveaux : cinq onglets en
+ * haut, puis un bouton « Plus » ouvrant un second bandeau de huit entrées.
+ * Ce que contenait « Plus » n'était pas secondaire — on y trouvait la
+ * maintenance préventive, les achats, les rapports et l'historique, c'est-à-
+ * dire la moitié du métier. Un niveau caché derrière un intitulé qui ne
+ * promet rien est un niveau que personne n'explore.
+ *
+ * Les mêmes treize destinations se rangent en six domaines, sur deux
+ * niveaux : le domaine, puis l'écran quand le domaine en compte plusieurs.
+ * Rien n'est retiré, rien ne devient inatteignable — c'est le tracé de la
+ * navigation qui change, pas le périmètre.
+ *
+ * La configuration de l'entreprise n'est pas un domaine d'exploitation :
+ * elle quitte la barre pour une action d'en-tête, à côté du titre.
+ */
+type DomaineGMAO = "vue-ensemble" | "actifs" | "ordres" | "planification" | "stocks" | "indicateurs";
+
+interface EcranDomaine {
+  /** Identifiant interne, utilisé pour le montage. */
+  readonly id: string;
+  readonly libelle: string;
+}
+interface DefinitionDomaine {
+  readonly id: DomaineGMAO;
+  readonly libelle: string;
+  readonly icone: typeof BarChart3;
+  /** Vide quand le domaine ne porte qu'un seul écran : pas de second niveau. */
+  readonly ecrans: readonly EcranDomaine[];
+}
 
 /**
  * Libellés français des statuts et priorités renvoyés par le serveur.
@@ -139,9 +171,9 @@ const COULEUR_SERIE = {
 } as const;
 
 export default function GMAODashboard() {
-  const [activeTab, setActiveTab] = useState<GMAOTab>("overview");
-  const [activeAdminTab, setActiveAdminTab] = useState<AdminTab | null>(null);
-  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [domaine, setDomaine] = useState<DomaineGMAO>("vue-ensemble");
+  const [ecran, setEcran] = useState<string>("");
+  const [configurationOuverte, setConfigurationOuverte] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
 
   // Fetch GMAO dashboard data
@@ -179,44 +211,76 @@ export default function GMAODashboard() {
   const aucuneActivite = !isLoading && evolution.length > 0
     && evolution.every((m) => m.termines + m.enCours + m.preventif + m.correctif === 0);
 
-  const tabs = [
+  /**
+   * Les six domaines, et les écrans que chacun réunit.
+   *
+   * Chaque destination d'avant se retrouve ici — treize en tout. Le tableau
+   * ci-dessous EST la navigation : la barre, le second niveau et le montage
+   * en découlent, de sorte qu'un écran ne peut pas être déclaré sans être
+   * atteignable, ni monté sans être déclaré.
+   *
+   * Répartition, et pourquoi :
+   *   • la santé des machines rejoint les ÉQUIPEMENTS — c'est leur état ;
+   *   • les alertes rejoignent les ORDRES DE TRAVAIL, puisqu'une alerte se
+   *     traite en créant un ordre ;
+   *   • les achats et la validation rejoignent les STOCKS : on commande ce
+   *     qui manque, et la validation porte sur ces commandes ;
+   *   • l'historique rejoint les INDICATEURS, avec les rapports et les
+   *     analytiques : c'est de la lecture du passé, pas de l'exploitation.
+   */
+  const DOMAINES: readonly DefinitionDomaine[] = [
+    { id: "vue-ensemble", libelle: "Vue d'ensemble", icone: BarChart3, ecrans: [] },
     {
-      id: "overview" as GMAOTab,
-      label: "Vue d'ensemble",
-      icon: BarChart3,
+      id: "actifs", libelle: "Actifs", icone: Factory,
+      ecrans: [
+        { id: "equipements", libelle: "Équipements" },
+        { id: "sante", libelle: "Santé des machines" },
+      ],
     },
     {
-      id: "work-orders" as GMAOTab,
-      label: "Ordres de travail",
-      icon: Wrench,
+      id: "ordres", libelle: "Ordres de travail", icone: Wrench,
+      ecrans: [
+        { id: "liste", libelle: "Liste et affectation" },
+        { id: "alertes", libelle: "Alertes" },
+      ],
+    },
+    { id: "planification", libelle: "Planification", icone: CalendarCheck, ecrans: [] },
+    {
+      id: "stocks", libelle: "Stocks", icone: Package,
+      ecrans: [
+        { id: "inventaire", libelle: "Inventaire" },
+        { id: "achats", libelle: "Achats" },
+        { id: "validation", libelle: "Validation" },
+      ],
     },
     {
-      id: "equipment" as GMAOTab,
-      label: "Équipements",
-      icon: Factory,
-    },
-    {
-      id: "inventory" as GMAOTab,
-      label: "Inventaire",
-      icon: Package,
-    },
-    {
-      id: "alerts" as GMAOTab,
-      label: "Alertes",
-      icon: Bell,
+      id: "indicateurs", libelle: "Indicateurs", icone: TrendingUp,
+      ecrans: [
+        { id: "rapports", libelle: "Rapports" },
+        { id: "analytiques", libelle: "Analytiques" },
+        { id: "historique", libelle: "Historique" },
+      ],
     },
   ];
 
-  const adminTabs = [
-    { id: "maintenance" as AdminTab, label: "Maintenance préventive", icon: CalendarCheck },
-    { id: "history" as AdminTab, label: "Historique", icon: FileText },
-    { id: "procurement" as AdminTab, label: "Achats", icon: ShoppingCart },
-    { id: "reports" as AdminTab, label: "Rapports", icon: BarChart3 },
-    { id: "analytics" as AdminTab, label: "Analytiques", icon: TrendingUp },
-    { id: "health-dashboard" as AdminTab, label: "Santé des équipements", icon: Activity },
-    { id: "validation" as AdminTab, label: "Validation multi-niveaux", icon: ClipboardCheck },
-    { id: "company-config" as AdminTab, label: "Configuration de l'entreprise", icon: Cog },
-  ];
+  const domaineCourant = DOMAINES.find((d) => d.id === domaine) ?? DOMAINES[0];
+  /** Écran affiché : celui choisi, sinon le premier du domaine. */
+  const ecranCourant = domaineCourant.ecrans.some((e) => e.id === ecran)
+    ? ecran
+    : (domaineCourant.ecrans[0]?.id ?? "");
+
+  function ouvrirDomaine(id: DomaineGMAO) {
+    setDomaine(id);
+    setEcran("");
+    setConfigurationOuverte(false);
+  }
+
+  /** Saut interne vers un écran précis — utilisé par les raccourcis de la vue d'ensemble. */
+  function allerVers(id: DomaineGMAO, idEcran = "") {
+    setDomaine(id);
+    setEcran(idEcran);
+    setConfigurationOuverte(false);
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -253,78 +317,68 @@ export default function GMAODashboard() {
     <div className="min-h-screen bg-paper">
       <ModernNavigation />
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b border-rule sticky top-16 z-40">
+      {/* ═══ Niveau 1 : les six domaines ═══ */}
+      <nav className="bg-white border-b border-rule sticky top-16 z-40" aria-label="Domaines de la GMAO">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
+          <div className="flex gap-6 overflow-x-auto" role="tablist">
+            {DOMAINES.map((d) => {
+              const Icone = d.icone;
+              const actif = domaine === d.id && !configurationOuverte;
               return (
                 <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setShowAdminModal(false);
-                    setActiveAdminTab(null);
-                  }}
-                  className={`flex items-center space-x-2 px-3 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                    activeTab === tab.id && !showAdminModal
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                  key={d.id}
+                  role="tab"
+                  aria-selected={actif}
+                  onClick={() => ouvrirDomaine(d.id)}
+                  className={`flex items-center gap-2 py-4 border-b-2 text-sm whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal ${
+                    actif
+                      ? "border-signal text-ink font-medium"
+                      : "border-transparent text-ink-soft hover:text-ink"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${
-                    activeTab === tab.id && !showAdminModal ? "text-primary" : "text-muted-foreground"
-                  }`} />
-                  <span>{tab.label}</span>
+                  <Icone className="w-4 h-4" aria-hidden="true" />
+                  <span>{d.libelle}</span>
                 </button>
               );
             })}
-            
-            {/* Menu Plus/Admin */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowAdminModal(!showAdminModal);
-                  if (!showAdminModal) {
-                    setActiveAdminTab("maintenance");
-                  }
-                }}
-                className={`flex items-center space-x-2 px-3 py-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                  showAdminModal
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-                }`}
-              >
-                <Cog className={`w-4 h-4 ${
-                  showAdminModal ? "text-primary" : "text-muted-foreground"
-                }`} />
-                <span>Plus</span>
-              </button>
-            </div>
+
+            {/* La configuration de l'entreprise n'est pas un domaine
+                d'exploitation : elle se tient à l'écart, à droite. */}
+            <button
+              onClick={() => setConfigurationOuverte(true)}
+              aria-selected={configurationOuverte}
+              role="tab"
+              className={`flex items-center gap-2 py-4 ml-auto border-b-2 text-sm whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal ${
+                configurationOuverte
+                  ? "border-signal text-ink font-medium"
+                  : "border-transparent text-ink-mute hover:text-ink"
+              }`}
+            >
+              <Cog className="w-4 h-4" aria-hidden="true" />
+              <span>Configuration</span>
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Menu Admin Dropdown */}
-      {showAdminModal && (
-        <div className="bg-card border-b">
+      {/* ═══ Niveau 2 : l'écran, quand le domaine en compte plusieurs ═══ */}
+      {!configurationOuverte && domaineCourant.ecrans.length > 1 && (
+        <div className="bg-paper border-b border-rule">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex space-x-4 py-3 overflow-x-auto">
-              {adminTabs.map((tab) => {
-                const Icon = tab.icon;
+            <div className="flex gap-5 py-2.5 overflow-x-auto" role="tablist" aria-label={domaineCourant.libelle}>
+              {domaineCourant.ecrans.map((e) => {
+                const actif = ecranCourant === e.id;
                 return (
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveAdminTab(tab.id)}
-                    className={`flex items-center space-x-2 px-3 py-2 rounded-md font-medium text-sm whitespace-nowrap transition-colors ${
-                      activeAdminTab === tab.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    key={e.id}
+                    role="tab"
+                    aria-selected={actif}
+                    onClick={() => setEcran(e.id)}
+                    className={`px-2 py-1 text-sm whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal ${
+                      actif ? "text-ink font-medium border-b-2 border-ink" : "text-ink-soft hover:text-ink"
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
+                    {e.libelle}
                   </button>
                 );
               })}
@@ -353,7 +407,7 @@ export default function GMAODashboard() {
           </div>
         )}
         {/* Vue d'ensemble uniquement */}
-        {!showAdminModal && activeTab === "overview" && (
+        {!configurationOuverte && domaine === "vue-ensemble" && (
           <div className="space-y-6">
             {/* ══════════════════════════════════════════════════════════
                 EN-TÊTE
@@ -368,13 +422,13 @@ export default function GMAODashboard() {
                 .toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
                 .replace(/^./, (c) => c.toUpperCase())}
               actionsSecondaires={
-                <ActionSecondaire onClick={() => { setShowAdminModal(true); setActiveAdminTab("reports"); }}>
+                <ActionSecondaire onClick={() => allerVers("indicateurs", "rapports")}>
                   <BarChart3 className="w-4 h-4" />
                   Rapports
                 </ActionSecondaire>
               }
               action={
-                <ActionPrincipale onClick={() => setActiveTab("work-orders")}>
+                <ActionPrincipale onClick={() => allerVers("ordres", "liste")}>
                   <Plus className="w-4 h-4" />
                   Nouvel ordre de travail
                 </ActionPrincipale>
@@ -718,7 +772,7 @@ export default function GMAODashboard() {
                     Derniers ordres de travail
                   </h2>
                   <button
-                    onClick={() => setActiveTab("work-orders")}
+                    onClick={() => allerVers("ordres", "liste")}
                     className="inline-flex items-center gap-1 text-sm text-ink-soft hover:text-signal transition-colors"
                   >
                     Voir tout
@@ -758,7 +812,7 @@ export default function GMAODashboard() {
                   <div className="px-5 py-8">
                     <p className="text-sm text-ink-soft">Aucun ordre de travail enregistré.</p>
                     <button
-                      onClick={() => setActiveTab("work-orders")}
+                      onClick={() => allerVers("ordres", "liste")}
                       className="inline-flex items-center gap-2 h-10 px-4 mt-4 border border-rule text-sm text-ink-soft hover:text-ink hover:border-ink transition-colors"
                     >
                       <Plus className="w-4 h-4" />
@@ -908,7 +962,7 @@ export default function GMAODashboard() {
             intégré. Résultat mesuré : trois onglets sur cinq sans `<h1>`,
             donc sans titre pour un lecteur d'écran, et rien à l'écran qui
             rappelle où l'on se trouve une fois l'en-tête disparu. */}
-        {!showAdminModal && activeTab === "equipment" && (
+        {!configurationOuverte && domaine === "actifs" && ecranCourant === "equipements" && (
           <EquipmentManagement
             enTete={
               <EnTetePage
@@ -925,7 +979,7 @@ export default function GMAODashboard() {
             portait lui-même. L'en-tête lui est maintenant passé, comme pour
             les équipements et le préventif — un seul titre, et le composant
             est exactement celui que sert /work-orders. */}
-        {!showAdminModal && activeTab === "work-orders" && (
+        {!configurationOuverte && domaine === "ordres" && ecranCourant === "liste" && (
           <WorkOrderManagement
             enTete={
               <EnTetePage
@@ -943,7 +997,7 @@ export default function GMAODashboard() {
           />
         )}
 
-        {!showAdminModal && activeTab === "inventory" && (
+        {!configurationOuverte && domaine === "stocks" && ecranCourant === "inventaire" && (
           <div className="space-y-6">
             <EnTetePage
               surTitre="GMAO"
@@ -970,7 +1024,7 @@ export default function GMAODashboard() {
             l'outil est le plus sûr moyen de perdre sa confiance.
             On montre donc les alertes réellement remontées par l'API du
             tableau de bord, et on renvoie vers l'écran complet. */}
-        {!showAdminModal && activeTab === "alerts" && (
+        {!configurationOuverte && domaine === "ordres" && ecranCourant === "alertes" && (
           <div className="space-y-6">
             <EnTetePage
               surTitre="GMAO"
@@ -1024,7 +1078,7 @@ export default function GMAODashboard() {
         {/* Ce sous-onglet et la page /preventive-maintenance montent le MÊME
             composant, sur la même table. C'étaient deux codes distincts, sur
             deux tables distinctes : un plan créé ici était invisible là-bas. */}
-        {showAdminModal && activeAdminTab === "maintenance" && (
+        {!configurationOuverte && domaine === "planification" && (
           <PreventiveMaintenance
             enTete={
               <EnTetePage
@@ -1045,7 +1099,7 @@ export default function GMAODashboard() {
         {/* L'onglet « Historique » montait une console d'import/export qui
             n'affichait AUCUN historique. Il sert maintenant le même écran que
             /historique, avec son propre en-tête. */}
-        {showAdminModal && activeAdminTab === "history" && (
+        {!configurationOuverte && domaine === "indicateurs" && ecranCourant === "historique" && (
           <HistoriqueMaintenance
             enTete={
               <EnTetePage
@@ -1063,14 +1117,23 @@ export default function GMAODashboard() {
           />
         )}
 
-        {showAdminModal && activeAdminTab === "procurement" && (
+        {/* Ces trois écrans vivaient dans le bandeau « Plus » et n'avaient
+            aucun titre de niveau 1 : leur intitulé était porté par le bouton
+            du menu, qui disparaissait dès qu'on cliquait dessus. Devenus des
+            écrans de plein droit, ils portent leur en-tête. */}
+        {!configurationOuverte && domaine === "stocks" && ecranCourant === "achats" && (
           <div className="space-y-6">
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Achats"
+              phrase="Les demandes d'approvisionnement, les bons de commande et leur suivi fournisseur."
+            />
             <PurchaseOrderCreator />
             <ProcurementDashboard />
           </div>
         )}
 
-        {showAdminModal && activeAdminTab === "reports" && (
+        {!configurationOuverte && domaine === "indicateurs" && ecranCourant === "rapports" && (
           <MaintenanceReports
             enTete={
               <EnTetePage
@@ -1082,7 +1145,7 @@ export default function GMAODashboard() {
           />
         )}
 
-        {showAdminModal && activeAdminTab === "analytics" && (
+        {!configurationOuverte && domaine === "indicateurs" && ecranCourant === "analytiques" && (
           <div className="space-y-6">
             <EnTetePage
               surTitre="GMAO"
@@ -1140,13 +1203,18 @@ export default function GMAODashboard() {
         )}
 
 
-        {showAdminModal && activeAdminTab === "health-dashboard" && (
+        {!configurationOuverte && domaine === "actifs" && ecranCourant === "sante" && (
           <EquipmentHealthDashboard />
         )}
 
-        {showAdminModal && activeAdminTab === "validation" && (
+        {!configurationOuverte && domaine === "stocks" && ecranCourant === "validation" && (
           <div className="space-y-6">
-            <PurchaseOrderWorkflowDemo 
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Validation"
+              phrase="Les commandes et les ordres qui attendent un accord, et le niveau requis pour le donner."
+            />
+            <PurchaseOrderWorkflowDemo
               currentUserRole="Chef de Service"
               validationLevel={1}
             />
@@ -1160,8 +1228,13 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {showAdminModal && activeAdminTab === "company-config" && (
+        {configurationOuverte && (
           <div className="space-y-6">
+            <EnTetePage
+              surTitre="GMAO"
+              titre="Configuration de l'entreprise"
+              phrase="Les seuils de déclenchement et l'en-tête qui figure sur les documents émis."
+            />
             <ThresholdConfiguration />
             <CompanyLetterheadConfig />
           </div>

@@ -328,3 +328,20 @@ colonnes `decimal`, que le pilote PostgreSQL renvoie en chaînes, et `.toFixed()
 chaîne lève une exception. Le défaut ne se déclenchait qu'une fois un bilan réellement
 enregistré — donc jamais sur une base de démonstration. Les valeurs s'affichent maintenant
 à la française : 97,5 %, 310 h, 9 277 €.
+
+---
+
+## La GMAO en six domaines (20 octobre 2026)
+
+| Avant | Après |
+|---|---|
+| ![Avant](captures/ot-avant-onglet-gmao.jpg) | ![Après](captures/gmao-apres-six-domaines.jpg) |
+
+À gauche, la barre d'avant : cinq onglets, puis un bouton « Plus ». Derrière ce « Plus »,
+huit entrées — maintenance préventive, historique, achats, rapports, analytiques, santé
+des équipements, validation, configuration. Soit huit des treize destinations rangées
+sous un intitulé qui ne promet rien.
+
+À droite, les six domaines sur une seule ligne, la configuration mise à l'écart à droite,
+et le second niveau qui n'apparaît que là où un domaine réunit plusieurs écrans. Treize
+destinations, deux niveaux au lieu de trois.
