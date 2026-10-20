@@ -262,7 +262,12 @@ export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/maintenance-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
+      // ⚠️ Visait `/pdf/maintenance-reports/:id`, supprimée. Le document rendu
+      // par cette URL était IDENTIQUE À L'OCTET (empreinte SHA-256 égale,
+      // 9 394 octets mesurés) : l'ancienne route recopiait à la main le
+      // `reportData` que `buildMaintenanceReportPDFData` construit ici. Le
+      // téléchargement est donc le même, servi par un seul chemin de code.
+      const url = `/api/maintenance-reports/${report.id}/pdf?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
       console.log('🚀 [INTERVENTION PDF] ===================================');
       console.log('🚀 [INTERVENTION PDF] Report ID:', report.id);
@@ -318,7 +323,9 @@ export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
     }
   };
 
-  // SUPPRIMÉ: generateInterventionReportHTML - Utilisation des routes PDF publiques uniquement
+  // SUPPRIMÉ : generateInterventionReportHTML — le document vient du serveur,
+  // par `/api/maintenance-reports/:id/pdf`. (Le commentaire disait « routes PDF
+  // publiques » : ces routes ne sont ni publiques, ni distinctes de celles-ci.)
 
   // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
@@ -326,7 +333,11 @@ export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/monthly-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
+      // ⚠️ Même substitution que pour le rapport d'intervention ci-dessus, et
+      // même constat : les deux URL rendaient le même document à l'octet près
+      // (7 773 octets mesurés). L'ancienne `/pdf/monthly-reports/:id` est
+      // supprimée.
+      const url = `/api/monthly-reports/${report.id}/pdf?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
       console.log('📊 [MONTHLY PDF] ===================================');
       console.log('📊 [MONTHLY PDF] Report ID:', report.id);
@@ -382,7 +393,8 @@ export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
     }
   };
 
-  // SUPPRIMÉ: generateMonthlyReportHTML - Utilisation des routes PDF publiques uniquement
+  // SUPPRIMÉ : generateMonthlyReportHTML — le document vient du serveur, par
+  // `/api/monthly-reports/:id/pdf`.
 
   const renderKpiCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => (
     <Card className="p-4">
