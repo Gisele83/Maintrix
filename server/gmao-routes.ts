@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { auMoins } from "@shared/roles";
 import { notifyTaskAssigned } from "./push-notification-service";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
@@ -48,10 +49,26 @@ function requireTenant(req: any, res: any): string | null {
   return tenantId;
 }
 
-// Helper: check that authenticated user has one of the allowed roles
-function hasRole(req: any, ...roles: string[]): boolean {
-  const role = req.user?.role as string | undefined;
-  return !!role && roles.includes(role);
+/**
+ * Le rôle de l'appelant atteint-il le niveau demandé ?
+ *
+ * ⚠️ Remplace un `hasRole(req, ...roles)` qui comparait LITTÉRALEMENT la valeur
+ * de `req.user.role` à une liste écrite à la main —
+ * `'admin', 'director', 'technical_director', 'owner'`. Deux conséquences
+ * mesurées sur la grappe de test :
+ *
+ *   • `director` n'existe dans AUCUN référentiel de rôles, et était pourtant
+ *     accepté : un rôle inconnu du système obtenait le droit de supprimer ;
+ *   • les orthographes déjà présentes en base (`directeur_technique`,
+ *     `administrateur`, `proprietaire`) étaient refusées, alors qu'elles
+ *     désignent des rôles autorisés — un refus d'accès inexplicable.
+ *
+ * `auMoins` normalise les deux côtés avant de comparer, et raisonne par niveau
+ * plutôt que par énumération : `owner` (7) et `admin` (6) sont au-dessus de
+ * `technical_director` (5), donc autorisés sans être nommés.
+ */
+function auMoinsNiveau(req: any, minimum: Parameters<typeof auMoins>[1]): boolean {
+  return auMoins(req.user?.role, minimum);
 }
 
 const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -508,7 +525,7 @@ export function registerGMAORoutes(app: Express) {
   // Delete work order — restricted to admin, director, technical_director
   app.delete("/api/work-orders/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un ordre de travail" });
       }
       const tenantId = requireTenant(req, res);
@@ -671,13 +688,18 @@ export function registerGMAORoutes(app: Express) {
   // Delete preventive maintenance plan
   app.delete("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un plan de maintenance" });
       }
       const tenantId = requireTenant(req, res);
       if (!tenantId) return;
       const id = parseInt(req.params.id);
-      await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
+      // Même contrat que les deux autres suppressions du module : on ne
+      // confirme que ce qui a réellement été supprimé.
+      const supprime = await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
+      if (!supprime) {
+        return res.status(404).json({ message: "Plan de maintenance non trouvé" });
+      }
       res.json({ success: true, message: "Plan de maintenance supprimé avec succès" });
     } catch (error) {
       console.error("Error deleting maintenance plan:", error);
@@ -822,7 +844,7 @@ export function registerGMAORoutes(app: Express) {
   // Delete spare part — restricted to admin/director + tenant check
   app.delete("/api/spare-parts/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer une pièce détachée" });
       }
       const tenantId = requireTenant(req, res);

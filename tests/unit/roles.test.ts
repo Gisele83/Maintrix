@@ -43,6 +43,30 @@ describe('Référentiel des rôles', () => {
     expect(normaliserRole('operator')).toBe('technician');
     // `user` servait de repli sans rôle : le moins privilégié, jamais admin.
     expect(normaliserRole('user')).toBe('viewer');
+    // `director` ne figurait dans aucun référentiel, mais trois contrôles
+    // littéraux l'acceptaient en pair de `technical_director`, et
+    // `PATCH /api/tenant/users/:id/permissions` écrivait n'importe quelle
+    // chaîne : des comptes peuvent le porter en base. On le rattrape au niveau
+    // que ces contrôles lui accordaient, plutôt que d'enfermer dehors un compte
+    // en service.
+    expect(normaliserRole('director')).toBe('technical_director');
+  });
+
+  it('`director` obtient les suppressions, pas la gestion des comptes', () => {
+    // Le seuil des trois suppressions de gmao-routes.ts…
+    expect(auMoins('director', 'technical_director')).toBe(true);
+    // …mais pas celui de la gestion des comptes du locataire, qui est `admin`.
+    // C'est le seul rétrécissement du lot serveur, et il est voulu : un rôle
+    // absent de tout formulaire ne doit pas administrer les comptes.
+    expect(auMoins('director', 'admin')).toBe(false);
+  });
+
+  it('`super_admin` n\'est pas un rôle de locataire', () => {
+    // Il vit hors des locataires et n'est jamais stocké dans
+    // `user_profiles.role` : `normaliserRole` doit le refuser, sans quoi un
+    // administrateur pourrait donner à un compte le nom du rôle de plateforme.
+    expect(normaliserRole('super_admin')).toBeNull();
+    expect(auMoins('super_admin', 'viewer')).toBe(false);
   });
 
   it('rattrape les saisies libres du formulaire super-admin', () => {
