@@ -2518,7 +2518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== GESTION DES MOUVEMENTS DE STOCK ====================
   // Import du gestionnaire de stock
-  const { stockManager } = await import("./stock-management.js");
+  const { stockManager, PieceIntrouvable } = await import("./stock-management.js");
 
   // Route pour sortie de stock (maintenance/réparation)
   app.post("/api/stock/outbound", async (req, res) => {
@@ -2529,12 +2529,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et quantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.outboundForMaintenance(
+        tenantId,
         sparePartId, quantity, workOrderId, equipmentId, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur sortie de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2549,12 +2558,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et quantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.returnToStock(
+        tenantId,
         sparePartId, quantity, workOrderId, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur retour de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2569,12 +2587,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId, quantity et reason sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.inboundStock(
+        tenantId,
         sparePartId, quantity, reason, reference, performedBy, unitCost, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur entrée de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2589,12 +2616,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et newQuantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.adjustStock(
+        tenantId,
         sparePartId, newQuantity, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur ajustement de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2606,9 +2642,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sparePartId = parseInt(req.params.sparePartId);
       const quantity = parseInt(req.params.quantity);
 
-      const availability = await stockManager.checkStockAvailability(sparePartId, quantity);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const availability = await stockManager.checkStockAvailability(tenantId, sparePartId, quantity);
       res.json(availability);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur vérification stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2618,9 +2662,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stock/:sparePartId/history", async (req, res) => {
     try {
       const sparePartId = parseInt(req.params.sparePartId);
-      const history = await stockManager.getMovementHistory(sparePartId);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const history = await stockManager.getMovementHistory(tenantId, sparePartId);
       res.json(history);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur historique stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2629,9 +2681,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route pour alertes de stock bas et recommandations
   app.get("/api/stock/alerts/low-stock", async (req, res) => {
     try {
-      const alertData = await stockManager.generateLowStockAlerts();
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const alertData = await stockManager.generateLowStockAlerts(tenantId);
       res.json(alertData);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur alertes stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2641,9 +2701,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stock/auto-deduction", async (req, res) => {
     try {
       const { workOrderId, partsRequired } = req.body;
-      const result = await stockManager.autoStockDeductionForWorkOrder(workOrderId, partsRequired);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const result = await stockManager.autoStockDeductionForWorkOrder(tenantId, workOrderId, partsRequired);
       res.json(result);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur déduction automatique:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2653,9 +2721,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stock/auto-return", async (req, res) => {
     try {
       const { workOrderId, partsReturned } = req.body;
-      await stockManager.autoStockReturnAfterWorkOrder(workOrderId, partsReturned);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      await stockManager.autoStockReturnAfterWorkOrder(tenantId, workOrderId, partsReturned);
       res.json({ success: true });
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur retour automatique:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2705,12 +2781,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId, quantity et workOrderId sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.reserveStock(
+        tenantId,
         sparePartId, quantity, workOrderId, performedBy
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur réservation stock:", error);
       res.status(500).json({ message: error.message });
     }
