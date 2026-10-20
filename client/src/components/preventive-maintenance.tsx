@@ -14,6 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 import type { PreventiveMaintenancePlan, EquipmentRegistry } from "@shared/schema";
 
 const maintenancePlanSchema = z.object({
@@ -69,6 +71,24 @@ export function PreventiveMaintenance({ enTete }: PreventiveMaintenanceProps = {
   const [selectedPlan, setSelectedPlan] = useState<PreventiveMaintenancePlan | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui peut supprimer un plan préventif ?
+   *
+   * `DELETE /api/preventive-maintenance-plans/:id` exige `hasRole(req, 'admin',
+   * 'director', 'technical_director', 'owner')` (gmao-routes.ts:674). Mesuré
+   * sur la grappe de test : technicien **403**, administrateur 200,
+   * propriétaire 200.
+   *
+   * L'écran montrait pourtant la corbeille à tout le monde — trente-six
+   * boutons relevés avec le compte technicien — et le refus n'arrivait qu'après
+   * la confirmation, sous la forme d'un « Impossible de supprimer » muet sur
+   * sa cause. Le seuil est exprimé par le référentiel et non par une égalité
+   * de chaîne : `owner` est au-dessus d'`admin` et une comparaison littérale
+   * le refuserait, alors que le serveur l'accepte.
+   */
+  const peutSupprimer = auMoins(user?.role, "technical_director");
 
   // Fetch maintenance plans
   const { data: maintenancePlans = [], isLoading } = useQuery<PreventiveMaintenancePlan[]>({
@@ -374,14 +394,19 @@ export function PreventiveMaintenance({ enTete }: PreventiveMaintenanceProps = {
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(plan)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleDelete(plan.id)}
-                      className="text-etat-critique-texte hover:text-etat-critique-texte"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {/* La modification reste ouverte : le serveur ne contrôle
+                        le rôle que sur la suppression. */}
+                    {peutSupprimer && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(plan.id)}
+                        className="text-etat-critique-texte hover:text-etat-critique-texte"
+                        title={`Supprimer le plan « ${plan.planName} »`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>

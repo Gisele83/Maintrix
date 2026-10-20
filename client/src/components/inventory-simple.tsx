@@ -51,6 +51,8 @@ import {
   History,
   Trash2
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 
 interface SparePart {
   id: number;
@@ -118,6 +120,22 @@ export default function InventorySimple() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui peut supprimer une pièce détachée ?
+   *
+   * `DELETE /api/spare-parts/:id` exige `hasRole(req, 'admin', 'director',
+   * 'technical_director', 'owner')` (gmao-routes.ts:825). Mesuré : technicien
+   * **403**, administrateur 200, propriétaire 200.
+   *
+   * Le magasinier (`procurement`), qui tient ce stock au quotidien, est donc
+   * refusé LUI AUSSI par le serveur : le bouton qu'on lui montrait ne menait
+   * nulle part. Les entrées, sorties et l'historique de stock, eux, ne sont
+   * pas contrôlés par rôle et restent ouverts à tous — on ne masque que ce
+   * que le serveur refuse.
+   */
+  const peutSupprimer = auMoins(user?.role, "technical_director");
 
   // Simple query - pas de complexité
   const { data: spareParts = [], isLoading, error, refetch } = useQuery<SparePart[]>({
@@ -642,16 +660,18 @@ export default function InventorySimple() {
                         Historique
                       </Button>
                       
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-etat-critique-texte hover:text-etat-critique-texte hover:bg-etat-critique-fond border-etat-critique-filet hover:border-etat-critique-filet"
-                        onClick={() => handleDeletePart(part)}
-                        disabled={deletePartMutation.isPending}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        {deletePartMutation.isPending ? "Suppression..." : "Supprimer"}
-                      </Button>
+                      {peutSupprimer && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-etat-critique-texte hover:text-etat-critique-texte hover:bg-etat-critique-fond border-etat-critique-filet hover:border-etat-critique-filet"
+                          onClick={() => handleDeletePart(part)}
+                          disabled={deletePartMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          {deletePartMutation.isPending ? "Suppression..." : "Supprimer"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

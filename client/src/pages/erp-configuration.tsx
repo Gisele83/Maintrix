@@ -34,6 +34,8 @@ import {
   Server,
   Network
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { auMoins } from '@shared/roles';
 import { ModernNavigation } from '@/components/modern-navigation';
 import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
@@ -103,6 +105,25 @@ const moduleIcons = {
 export default function ERPConfiguration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui peut reconfigurer les modules du locataire ?
+   *
+   * `GET`/`PUT /api/tenant/modules` et `POST
+   * /api/tenant/apply-sector-template` passent par `adminConfigGuard`
+   * (feature-middleware.ts:101), qui n'accepte que `admin` et `owner`. Mesuré :
+   * technicien **403** sur les trois, administrateur et propriétaire 200.
+   *
+   * Le défaut tenait à la liste des secteurs : elle vient de
+   * `/api/tenant/sector-templates`, qui N'EST PAS contrôlée par rôle (mesuré :
+   * 200 pour le technicien). Les quatre cartes s'affichaient donc pour tout le
+   * monde, avec leur bouton « Sélectionner » qui déclenche l'écriture
+   * réservée — un technicien obtenait quatre fois un 403. L'onglet « Modules
+   * ERP », lui, était déjà aligné : son contenu dépend du `GET` refusé, et son
+   * refus porte déjà une explication lisible.
+   */
+  const peutConfigurer = auMoins(user?.role, 'admin');
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -457,10 +478,24 @@ export default function ERPConfiguration() {
                   Templates par Secteur d'Activité
                 </CardTitle>
                 <CardDescription>
-                  Choisissez un template pré-configuré adapté à votre secteur pour activer automatiquement les modules appropriés
+                  {peutConfigurer
+                    ? "Choisissez un template pré-configuré adapté à votre secteur pour activer automatiquement les modules appropriés"
+                    : "Les secteurs disponibles et les modules qu'ils activent, en consultation."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Dire pourquoi avant que l'utilisateur ne cherche le bouton,
+                    plutôt que de lui laisser découvrir un refus. */}
+                {!peutConfigurer && (
+                  <Alert className="mb-4 border-rule bg-paper-deep">
+                    <Info className="h-4 w-4 text-ink-soft" />
+                    <AlertTitle className="text-ink">Configuration réservée à l'administrateur</AlertTitle>
+                    <AlertDescription className="text-ink-soft">
+                      Changer de secteur reconfigure les modules de toute l'organisation : seuls
+                      l'administrateur et le propriétaire du compte peuvent le faire.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sectorTemplates.map((template) => {
                     const Icon = sectorIcons[template.key as keyof typeof sectorIcons] || Factory;
@@ -488,9 +523,17 @@ export default function ERPConfiguration() {
                             <div className="text-xs text-ink-mute">
                               {template.enabledModules.length} modules inclus
                             </div>
-                            {isSelected ? (
-                              <Button 
-                                size="sm" 
+                            {/* La fiche du secteur reste lisible pour tous :
+                                seule l'écriture est réservée. */}
+                            {!peutConfigurer ? (
+                              isSelected && (
+                                <div className="text-xs text-ink-mute w-full text-center">
+                                  Secteur en service
+                                </div>
+                              )
+                            ) : isSelected ? (
+                              <Button
+                                size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleApplySectorTemplate(template.key);
@@ -501,9 +544,9 @@ export default function ERPConfiguration() {
                                 {applySectorMutation.isPending ? "Application..." : "Appliquer"}
                               </Button>
                             ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleApplySectorTemplate(template.key);

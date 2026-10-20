@@ -22,6 +22,8 @@ import {
   ShieldCheck, AlertTriangle, FileText, Eye, ChevronRight, Loader2,
   ClipboardList, Users, MapPin, Calendar, Lock
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
@@ -123,6 +125,26 @@ type CreateForm = z.infer<typeof createSchema>;
 export default function PermitToWork() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui arbitre un permis — l'approuve ou le rejette ?
+   *
+   * `POST /api/permits/:id/approve` et `/reject` exigent `auMoins(role,
+   * 'team_leader')` (permit-to-work-routes.ts:329 et 360). Mesuré : technicien
+   * **403** sur les deux, administrateur et propriétaire acceptés.
+   *
+   * Le seuil est repris TEL QUEL, et non relevé au niveau des suppressions :
+   * un chef d'équipe, un planificateur, un magasinier et un responsable
+   * maintenance sont au-dessus du seuil, donc autorisés par le serveur.
+   * Masquer leurs boutons leur retirerait une capacité réelle — c'est le
+   * piège inverse, et il est aussi grave que la promesse creuse.
+   *
+   * Les autres transitions (`submit`, `activate`, `complete`, `cancel`) ne
+   * portent AUCUN contrôle de rôle côté serveur : elles restent ouvertes, y
+   * compris au technicien qui exécute les travaux.
+   */
+  const peutArbitrer = auMoins(user?.role, "team_leader");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -215,21 +237,36 @@ export default function PermitToWork() {
   });
 
   // ── Actions available per status ──
+  // L'arbitrage (`approve`, `reject`) est retiré de la liste quand le rôle ne
+  // l'obtiendra pas : le filtre est posé ici, à la source, pour que la carte
+  // et le panneau de détail — les deux seuls appelants — restent d'accord.
+  const ARBITRAGE = new Set(["approve", "reject"]);
   const getActions = (permit: Permit) => {
-    switch (permit.status) {
-      case "draft": return [{ action: "submit", label: "Soumettre", color: "bg-etat-encours-vif hover:bg-etat-encours-vif" }];
-      case "submitted": return [
-        { action: "approve", label: "Approuver", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
-        { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
-      ];
-      case "approved": return [
-        { action: "activate", label: "Démarrer les travaux", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
-        { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
-      ];
-      case "active": return [{ action: "complete", label: "Clôturer", color: "bg-paper-deep hover:bg-white" }];
-      default: return [];
-    }
+    const toutes = (() => {
+      switch (permit.status) {
+        case "draft": return [{ action: "submit", label: "Soumettre", color: "bg-etat-encours-vif hover:bg-etat-encours-vif" }];
+        case "submitted": return [
+          { action: "approve", label: "Approuver", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
+          { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
+        ];
+        case "approved": return [
+          { action: "activate", label: "Démarrer les travaux", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
+          { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
+        ];
+        case "active": return [{ action: "complete", label: "Clôturer", color: "bg-paper-deep hover:bg-white" }];
+        default: return [];
+      }
+    })();
+    return peutArbitrer ? toutes : toutes.filter(a => !ARBITRAGE.has(a.action));
   };
+
+  /**
+   * Le permis attend-il un arbitrage que ce compte n'obtiendra pas ?
+   * Sert à écrire la raison à l'écran, plutôt que de laisser un permis soumis
+   * sans aucune action et sans explication.
+   */
+  const arbitrageAttendu = (permit: Permit) =>
+    !peutArbitrer && (permit.status === "submitted" || permit.status === "approved");
 
   const handleChecklist = (permit: Permit, idx: number, checked: boolean) => {
     const items = (permit.checklistItems || []).map((item, i) => i === idx ? { ...item, checked } : item);
@@ -407,6 +444,11 @@ export default function PermitToWork() {
                           {a.label}
                         </Button>
                       ))}
+                      {arbitrageAttendu(permit) && (
+                        <span className="text-xs text-ink-mute self-center">
+                          Arbitrage réservé au chef d'équipe
+                        </span>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => openDetail(permit)}>
                         <Eye className="h-4 w-4 mr-1" /> Détail
                       </Button>
@@ -734,6 +776,13 @@ export default function PermitToWork() {
                 </div>
 
                 <DialogFooter className="mt-4 gap-2">
+                  {/* Sans cette phrase, un permis soumis s'ouvrirait sur un
+                      panneau sans aucune action, et sans dire pourquoi. */}
+                  {arbitrageAttendu(selectedPermit) && (
+                    <p className="text-sm text-ink-mute mr-auto self-center">
+                      L'approbation et le rejet reviennent au chef d'équipe ou au-dessus.
+                    </p>
+                  )}
                   <Button variant="outline" onClick={() => setShowDetail(false)}>Fermer</Button>
                   {actions.map(a => (
                     <Button
