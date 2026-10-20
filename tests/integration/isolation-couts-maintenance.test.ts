@@ -64,19 +64,20 @@ const MOIS = MAINTENANT.getMonth() + 1;
 const ANNEE = MAINTENANT.getFullYear();
 
 /**
- * Montants d'Alpha : deux interventions, dont une SANS équipement rattaché.
+ * Montants posés par cette suite. Ils ne servent PLUS de valeur attendue — les
+ * attentes sont relues en base, voir `sommesEnBase()` — mais de PLANCHER : ils
+ * garantissent que les sommes comparées ne sont pas vides et que les deux
+ * organisations diffèrent, sans quoi la suite se déclarerait verte en
+ * comparant zéro à zéro.
+ *
+ * Alpha : deux interventions, dont une SANS équipement rattaché.
  *   total 1 000 + 500 = 1 500   main d'œuvre 600 + 300 = 900   pièces 400 + 200 = 600
  */
 const ALPHA_TOTAL = 1500;
-const ALPHA_MO = 900;
-const ALPHA_PIECES = 600;
 const ALPHA_OT_TERMINES = 2;
 
-/** Montant de Beta : une seule intervention, volontairement sans chiffre commun. */
+/** Beta : une seule intervention, volontairement sans chiffre commun avec Alpha. */
 const BETA_TOTAL = 7777;
-
-/** Ce qu'Alpha lisait AVANT correctif : la somme des deux locataires. */
-const SOMME_DES_DEUX = ALPHA_TOTAL + BETA_TOTAL; // 9 277
 
 let alpha: AuthenticatedAgent;
 let beta: AuthenticatedAgent;
@@ -120,6 +121,40 @@ async function insererOrdreTermine(tenantId: string, suffixe: string): Promise<v
 
 let numerosAlpha: string[] = [];
 let numerosBeta: string[] = [];
+
+/** Bornes du mois civil que lira le rapport mensuel. */
+const DEBUT_PERIODE = new Date(ANNEE, MOIS - 1, 1);
+const FIN_PERIODE = new Date(ANNEE, MOIS, 0, 23, 59, 59);
+
+/**
+ * Somme, relue EN BASE, des coûts d'un locataire sur la période du rapport.
+ *
+ * ⚠️ Les montants de cette suite étaient d'abord comparés à des constantes —
+ * 1 500 €, 900 €, 600 €, 7 777 €. Cela supposait que `maintenance_reports` ne
+ * contienne RIEN d'autre pour ces deux locataires sur le mois en cours : une
+ * seule ligne résiduelle, laissée par une exécution interrompue ou par une
+ * mesure manuelle, faisait échouer cinq cas d'un coup — et l'échec ressemblait
+ * à une régression du cloisonnement alors qu'il ne disait que « la base n'est
+ * pas vierge ». Un test doit échouer pour la raison qu'il annonce.
+ *
+ * La propriété vérifiée ne change pas, elle devient seulement exacte : le
+ * rapport mensuel d'un locataire totalise SES rapports, tous ses rapports, et
+ * rien que les siens. On la mesure donc contre la base plutôt que contre des
+ * nombres écrits d'avance, et les fixtures de la suite garantissent seulement
+ * que ces sommes ne sont pas vides et qu'Alpha et Beta diffèrent.
+ */
+async function sommesEnBase(tenantId?: string): Promise<{ total: number; mo: number; pieces: number }> {
+  const conditions = tenantId ? 'tenant_id = $3' : '1 = 1';
+  const { rows } = await pool.query(
+    `SELECT COALESCE(SUM(total_cost), 0)::float8 AS total,
+            COALESCE(SUM(labor_cost), 0)::float8 AS mo,
+            COALESCE(SUM(parts_cost), 0)::float8 AS pieces
+       FROM maintenance_reports
+      WHERE created_at BETWEEN $1 AND $2 AND ${conditions}`,
+    tenantId ? [DEBUT_PERIODE, FIN_PERIODE, tenantId] : [DEBUT_PERIODE, FIN_PERIODE],
+  );
+  return rows[0];
+}
 
 beforeAll(async () => {
   alpha = await authenticateUser(SEEDED.admin, SEEDED.password);
@@ -198,12 +233,23 @@ describe('Indicateurs mensuels : les coûts sont ceux du locataire, et eux seuls
     expect(res.status).toBe(201);
     mensuelAlpha = res.body;
 
-    // Le cœur du constat : avant correctif, cette somme valait 9 277.
-    expect(Number(mensuelAlpha.totalMaintenanceCost)).toBe(ALPHA_TOTAL);
-    expect(Number(mensuelAlpha.totalMaintenanceCost)).not.toBe(SOMME_DES_DEUX);
+    const chezAlpha = await sommesEnBase(SEEDED.tenantAlpha);
+    const toutesOrganisations = await sommesEnBase();
 
-    expect(Number(mensuelAlpha.laborCost)).toBe(ALPHA_MO);
-    expect(Number(mensuelAlpha.partsCost)).toBe(ALPHA_PIECES);
+    // Garde-fou : sans lui, une base vidée rendrait 0 = 0 des deux côtés et la
+    // suite se déclarerait verte sans rien avoir comparé.
+    expect(chezAlpha.total).toBeGreaterThanOrEqual(ALPHA_TOTAL);
+    expect(toutesOrganisations.total).toBeGreaterThan(chezAlpha.total);
+
+    // Le cœur du constat : cette somme valait celle de TOUTES les organisations.
+    expect(Number(mensuelAlpha.totalMaintenanceCost)).toBeCloseTo(chezAlpha.total, 2);
+    expect(Number(mensuelAlpha.totalMaintenanceCost)).not.toBeCloseTo(toutesOrganisations.total, 2);
+
+    expect(Number(mensuelAlpha.laborCost)).toBeCloseTo(chezAlpha.mo, 2);
+    expect(Number(mensuelAlpha.partsCost)).toBeCloseTo(chezAlpha.pieces, 2);
+
+    // Et le montant propre à Beta n'entre pour rien dans le total d'Alpha.
+    expect(Number(mensuelAlpha.totalMaintenanceCost)).toBeLessThan(toutesOrganisations.total);
   });
 
   it("le coût par intervention d'Alpha rapporte SES dépenses à SES interventions", async () => {
@@ -218,15 +264,22 @@ describe('Indicateurs mensuels : les coûts sont ceux du locataire, et eux seuls
     const otTermines = Number(mensuelAlpha.completedWorkOrders);
     expect(otTermines).toBeGreaterThanOrEqual(ALPHA_OT_TERMINES);
 
-    expect(Number(mensuelAlpha.costPerWorkOrder)).toBeCloseTo(ALPHA_TOTAL / otTermines, 2);
-    expect(Number(mensuelAlpha.costPerWorkOrder)).not.toBeCloseTo(SOMME_DES_DEUX / otTermines, 2);
+    const chezAlpha = await sommesEnBase(SEEDED.tenantAlpha);
+    const toutesOrganisations = await sommesEnBase();
+
+    expect(Number(mensuelAlpha.costPerWorkOrder)).toBeCloseTo(chezAlpha.total / otTermines, 2);
+    expect(Number(mensuelAlpha.costPerWorkOrder)).not.toBeCloseTo(toutesOrganisations.total / otTermines, 2);
   });
 
   it("le détail des coûts servi au graphique ne contient pas ceux de Beta", async () => {
     // L'écran trace un camembert « Main d'œuvre / Pièces » à partir de ces deux
     // nombres : ils doivent eux aussi être cloisonnés.
+    const chezAlpha = await sommesEnBase(SEEDED.tenantAlpha);
     const repartition = mensuelAlpha.chartsData?.costBreakdownChart?.data as number[];
-    expect(repartition).toEqual([ALPHA_MO, ALPHA_PIECES]);
+
+    expect(repartition).toHaveLength(2);
+    expect(repartition[0]).toBeCloseTo(chezAlpha.mo, 2);
+    expect(repartition[1]).toBeCloseTo(chezAlpha.pieces, 2);
   });
 
   it("Beta calcule les siens de son côté, sans ceux d'Alpha", async () => {
@@ -234,8 +287,13 @@ describe('Indicateurs mensuels : les coûts sont ceux du locataire, et eux seuls
       .send({ month: MOIS, year: ANNEE, generatedBy: `test-${STAMP}` });
 
     expect(res.status).toBe(201);
-    expect(Number(res.body.totalMaintenanceCost)).toBe(BETA_TOTAL);
-    expect(Number(res.body.totalMaintenanceCost)).not.toBe(SOMME_DES_DEUX);
+
+    const chezBeta = await sommesEnBase(SEEDED.tenantBeta);
+    const toutesOrganisations = await sommesEnBase();
+
+    expect(chezBeta.total).toBeGreaterThanOrEqual(BETA_TOTAL);
+    expect(Number(res.body.totalMaintenanceCost)).toBeCloseTo(chezBeta.total, 2);
+    expect(Number(res.body.totalMaintenanceCost)).not.toBeCloseTo(toutesOrganisations.total, 2);
   });
 
   it("la liste des rapports mensuels d'Alpha ignore ceux de Beta", async () => {
@@ -244,10 +302,16 @@ describe('Indicateurs mensuels : les coûts sont ceux du locataire, et eux seuls
     expect(res.status).toBe(200);
     const lignes = res.body as Array<{ reportNumber: string; totalMaintenanceCost: string | null }>;
 
-    // Aucune ligne rendue à Alpha ne doit porter le montant de Beta.
+    // On vise le rapport que BETA vient d'engendrer, repéré par son montant
+    // relu en base : c'est lui, nommément, qui ne doit pas apparaître chez
+    // Alpha. Comparer à une constante écrite d'avance reviendrait à supposer
+    // que personne d'autre n'a écrit dans la table.
+    const chezBeta = await sommesEnBase(SEEDED.tenantBeta);
+    const toutesOrganisations = await sommesEnBase();
+
     const montants = lignes.map(l => Number(l.totalMaintenanceCost));
-    expect(montants).not.toContain(BETA_TOTAL);
-    expect(montants).not.toContain(SOMME_DES_DEUX);
+    expect(montants).not.toContain(chezBeta.total);
+    expect(montants).not.toContain(toutesOrganisations.total);
   });
 });
 
