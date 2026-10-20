@@ -208,19 +208,30 @@ export default function MaintenanceEngineeringPlatformPage() {
               alerte={(c?.equipementsIndisponibles ?? 0) > 0}
               href="/equipment-management"
             />
+            {/* ⚠️ Même défaut que sur la GMAO, et même correction :
+                `activeWorkOrdersCount` ne compte que `status = 'in_progress'`.
+                Cet écran affichait donc « Ordres de travail : 0 » à un parc
+                qui comptait 26 interventions en attente d'affectation. */}
             <Indicateur
-              libelle="Ordres de travail"
-              valeur={parc?.activeWorkOrdersCount ?? "—"}
+              libelle="Ordres ouverts"
+              valeur={
+                parc ? (parc.pendingWorkOrdersCount ?? 0) + (parc.activeWorkOrdersCount ?? 0) : "—"
+              }
               precision={precision(
                 [
                   [c?.otUrgents ?? 0, "urgent(s)"],
                   [c?.otEnRetard ?? 0, "en retard"],
                   [parc?.pendingWorkOrdersCount ?? 0, "en attente"],
+                  [parc?.activeWorkOrdersCount ?? 0, "en cours"],
                 ],
-                "rien en cours",
+                "aucun ordre ouvert",
               )}
               icone={Wrench}
-              alerte={(c?.otEnRetard ?? 0) > 0 || (c?.otUrgents ?? 0) > 0}
+              alerte={
+                (c?.otEnRetard ?? 0) > 0 ||
+                (c?.otUrgents ?? 0) > 0 ||
+                (parc?.pendingWorkOrdersCount ?? 0) > 0
+              }
               href="/work-orders"
             />
             <Indicateur

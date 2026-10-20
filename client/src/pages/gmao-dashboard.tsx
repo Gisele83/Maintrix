@@ -418,18 +418,40 @@ export default function GMAODashboard() {
                     href="/equipment-management"
                   />
                   <Indicateur
-                    libelle="Ordres de travail"
-                    valeur={dashboardData?.activeWorkOrdersCount ?? "—"}
+                    /**
+                     * ⚠️ Cette tuile s'appelait « Ordres de travail » et
+                     * affichait `activeWorkOrdersCount`, qui ne compte que
+                     * `status = 'in_progress'` — les interventions DÉJÀ
+                     * démarrées. Mesuré le 20/10/2026 sur un locataire ayant
+                     * 26 ordres en attente et aucun démarré : la tuile
+                     * annonçait « 0 », pendant que la même page affichait
+                     * « En attente 26 » un peu plus bas.
+                     *
+                     * Un responsable lisait donc « 0 ordre de travail » devant
+                     * 26 interventions non affectées. Le libellé dit désormais
+                     * ce qu'il compte, et le compte inclut ce qui attend.
+                     */
+                    libelle="Ordres ouverts"
+                    valeur={
+                      dashboardData
+                        ? (dashboardData.pendingWorkOrdersCount || 0) + (dashboardData.activeWorkOrdersCount || 0)
+                        : "—"
+                    }
                     precision={detail(
                       [
                         [c?.otUrgents || 0, "urgent(s)"],
                         [c?.otEnRetard || 0, "en retard"],
                         [dashboardData?.pendingWorkOrdersCount || 0, "en attente"],
+                        [dashboardData?.activeWorkOrdersCount || 0, "en cours"],
                       ],
-                      "rien en cours",
+                      "aucun ordre ouvert",
                     )}
                     icone={Wrench}
-                    alerte={(c?.otEnRetard || 0) > 0 || (c?.otUrgents || 0) > 0}
+                    alerte={
+                      (c?.otEnRetard || 0) > 0 ||
+                      (c?.otUrgents || 0) > 0 ||
+                      (dashboardData?.pendingWorkOrdersCount || 0) > 0
+                    }
                     href="/work-orders"
                   />
                   <Indicateur
@@ -473,6 +495,16 @@ export default function GMAODashboard() {
                 { n: dashboardData?.criticalAlertsCount || 0, libelle: 'alerte(s) critique(s)', href: '/smart-alerts', grave: true },
                 { n: c?.otEnRetard || 0, libelle: 'intervention(s) en retard', href: '/work-orders', grave: true },
                 { n: c?.preventifEnRetard || 0, libelle: 'préventif(s) en retard', href: '/maintenance-plan', grave: true },
+                // ⚠️ Cette ligne manquait, et c'est elle qui faisait mentir
+                // l'écran. La liste ne couvrait que l'urgent, le retard et les
+                // seuils franchis : un ordre simplement EN ATTENTE n'y
+                // apparaissait pas. Un parc avec 26 interventions non
+                // affectées, mais aucune urgente ni en retard, affichait donc
+                // « Aucune urgence, aucun retard. Le parc tourne. »
+                // Affecter ces ordres est pourtant la première décision de la
+                // journée. Non « grave » : ce n'est pas une urgence, mais cela
+                // demande une action.
+                { n: dashboardData?.pendingWorkOrdersCount || 0, libelle: 'ordre(s) de travail à affecter', href: '/work-orders', grave: false },
                 { n: c?.equipementsIndisponibles || 0, libelle: 'équipement(s) indisponible(s)', href: '/equipment-management', grave: false },
                 { n: c?.piecesEnRupture || 0, libelle: 'référence(s) en rupture', href: '/inventaire', grave: false },
                 { n: c?.preventifSous7Jours || 0, libelle: 'préventif(s) sous 7 jours', href: '/maintenance-plan', grave: false },

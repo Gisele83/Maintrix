@@ -272,3 +272,58 @@ Les 13 destinations actuelles et les 21 tuiles trouvent toutes leur place. Le ni
 Chaque lot est un commit isolé, vérifiable à l'écran et réversible seul. Les tests de
 non-régression, d'accessibilité et de navigation s'exécutent à chaque lot, comme aux étapes
 précédentes.
+
+---
+
+## 11. Lots 1 et 2 — faits le 20 octobre 2026
+
+Seuls les deux lots demandés ont été traités. **La réorganisation en six domaines n'a pas
+été engagée.**
+
+### Lot 1 — le compteur contradictoire
+
+| | Avant | Après |
+|---|---|---|
+| Tuile en haut d'écran | « Ordres de travail : **0** » | « Ordres ouverts : **26** » |
+| Ce qu'elle compte | `in_progress` seulement | `pending` + `in_progress` |
+| « À traiter » | « Aucune urgence, aucun retard. Le parc tourne. » | « **26 ordre(s) de travail à affecter** » |
+
+Vérifié sur l'instance : la base contient 26 en attente et 0 en cours, la tuile affiche 26,
+et la mention « Le parc tourne » a disparu. Le même défaut existait sur l'écran
+d'ingénierie de maintenance — corrigé à l'identique.
+
+### Lot 2 — les plans fabriqués
+
+Les cinq plans de `pages/preventive-maintenance.tsx` sont retirés, avec leurs cinq
+techniciens nommés, leurs cinq coûts et leurs cinq taux de réalisation. L'écran affiche
+désormais **0 plan**, ce que contient réellement la table, avec un état vide qui explique
+ce qu'est un plan préventif.
+
+Deux conséquences traitées au passage :
+
+- **`Math.round(0 / 0)` donnait `NaN`** : l'écran aurait affiché « NaN % ». Le défaut était
+  masqué par les plans fabriqués, qui garantissaient un dénominateur non nul. Une moyenne
+  sans population vaut désormais « — ».
+- **Le garde-fou écrit pour ce lot a trouvé les mêmes techniciens inventés ailleurs**, sur
+  l'écran Perception IoT : un « Classement des Techniciens » listant Jean Dupont, Marie
+  Martin et Pierre Durand avec leurs points et leurs niveaux, et un sélecteur proposant
+  trois employés à matricules inventés (MAT001 à MAT003) qui pilotait pourtant les requêtes
+  de compétences. Le classement est remplacé par un état explicite ; le sélecteur liste les
+  comptes réels de l'organisation.
+
+### Trois constats qui appellent une décision serveur
+
+Ils sont hors du périmètre frontend et une autre session travaille sur ces fichiers.
+
+1. **`/api/gamification/leaderboard` est un faux.** Son code porte le commentaire
+   « Mock leaderboard data » et renvoie les mêmes trois personnes inventées. Brancher
+   l'écran dessus n'aurait rien changé.
+2. **Le rang d'un technicien est tiré au sort.**
+   `server/integrations/gamification-engine.ts` :
+   `position: Math.floor(Math.random() * 20) + 1, // Mock position`. Vérifié par trois
+   requêtes successives sur le même compte : **12, 13, 11**. Un nombre qui change à chaque
+   affichage paraît vivant — c'est pire qu'une constante. La tuile qui l'affichait est
+   retirée côté interface ; la route reste à traiter.
+3. **Le préventif à deux tables** (§3.2) reste entier : `preventive_maintenance_plans`
+   contient 12 plans, `maintenance_plans` zéro. Le choix entre les trois options du §9 vous
+   revient.

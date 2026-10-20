@@ -109,107 +109,29 @@ export default function PreventiveMaintenance() {
     completionRate: 0
   }));
 
-  // Sample static data for demo
-  const staticPlans: MaintenancePlan[] = [
-    {
-      id: "1",
-      name: "Graissage Moteur Principal",
-      equipmentId: "EQ001",
-      equipmentName: "Moteur Principal Ligne 1",
-      type: "time",
-      frequency: "Mensuel",
-      description: "Graissage des paliers et vérification des niveaux d'huile",
-      status: "active",
-      priority: "high",
-      lastExecution: "2024-01-15",
-      nextExecution: "2024-02-15",
-      estimatedDuration: 2,
-      assignedTechnician: "Jean Dupont",
-      procedures: ["Arrêt machine", "Graissage paliers", "Contrôle niveau huile", "Redémarrage"],
-      spareParts: ["Graisse EP2", "Huile moteur SAE 30"],
-      cost: 150,
-      completionRate: 98
-    },
-    {
-      id: "2",
-      name: "Maintenance Pompe Hydraulique",
-      equipmentId: "EQ002",
-      equipmentName: "Pompe Hydraulique P-001",
-      type: "condition",
-      frequency: "Selon état",
-      description: "Contrôle des joints et filtration du circuit hydraulique",
-      status: "overdue",
-      priority: "critical",
-      lastExecution: "2024-01-05",
-      nextExecution: "2024-02-05",
-      estimatedDuration: 4,
-      assignedTechnician: "Marie Martin",
-      procedures: ["Arrêt pompe", "Contrôle joints", "Remplacement filtres", "Test pression"],
-      spareParts: ["Joints toriques", "Filtre hydraulique", "Huile hydraulique"],
-      cost: 280,
-      completionRate: 85
-    },
-    {
-      id: "3",
-      name: "Révision Compresseur",
-      equipmentId: "EQ003",
-      equipmentName: "Compresseur Air Principal",
-      type: "usage",
-      frequency: "Toutes les 1000h",
-      description: "Révision complète du compresseur à vis",
-      status: "active",
-      priority: "medium",
-      lastExecution: "2024-01-20",
-      nextExecution: "2024-04-20",
-      estimatedDuration: 8,
-      assignedTechnician: "Pierre Durand",
-      procedures: ["Arrêt compresseur", "Démontage", "Nettoyage", "Remplacement pièces", "Remontage", "Test"],
-      spareParts: ["Kit révision", "Huile compresseur", "Filtre air"],
-      cost: 450,
-      completionRate: 92
-    },
-    {
-      id: "4",
-      name: "Nettoyage Convoyeur",
-      equipmentId: "EQ004",
-      equipmentName: "Convoyeur Ligne 2",
-      type: "time",
-      frequency: "Hebdomadaire",
-      description: "Nettoyage et lubrification du convoyeur",
-      status: "active",
-      priority: "low",
-      lastExecution: "2024-01-22",
-      nextExecution: "2024-01-29",
-      estimatedDuration: 1,
-      assignedTechnician: "Sophie Blanc",
-      procedures: ["Arrêt convoyeur", "Nettoyage bande", "Lubrification chaînes", "Vérification tension"],
-      spareParts: ["Lubrifiant chaîne", "Produit nettoyant"],
-      cost: 50,
-      completionRate: 100
-    },
-    {
-      id: "5",
-      name: "Test Transformateur",
-      equipmentId: "EQ005",
-      equipmentName: "Transformateur TR-001",
-      type: "time",
-      frequency: "Annuel",
-      description: "Tests électriques et thermiques du transformateur",
-      status: "active",
-      priority: "critical",
-      lastExecution: "2023-12-15",
-      nextExecution: "2024-12-15",
-      estimatedDuration: 6,
-      assignedTechnician: "Michel Leroy",
-      procedures: ["Consignation", "Tests isolement", "Thermographie", "Analyse huile", "Rapport"],
-      spareParts: ["Huile transformateur", "Joints"],
-      cost: 800,
-      completionRate: 95
-    }
-  ];
+  /**
+   * ⚠️ CINQ PLANS DE MAINTENANCE ENTIÈREMENT FABRIQUÉS ONT ÉTÉ RETIRÉS ICI.
+   *
+   * Le code les annonçait lui-même : « Sample static data for demo ». Ils
+   * n'étaient pas une valeur de repli — ils étaient CONCATÉNÉS aux vrais,
+   * par « [...formattedPlans, ...staticPlans] », donc affichés en toutes
+   * circonstances, mêlés aux plans réels du client et impossibles à
+   * distinguer.
+   *
+   * Ce qu'ils inventaient : cinq intitulés (« Graissage Moteur Principal »,
+   * « Maintenance Pompe Hydraulique »…), cinq techniciens nommés (Jean
+   * Dupont, Marie Martin, Pierre Durand, Sophie Blanc, Michel Leroy), cinq
+   * coûts (150 à 800 €) et cinq taux de réalisation (85 à 100 %).
+   *
+   * Mesuré le 20/10/2026 : la route /api/maintenance-plans renvoyait ZÉRO
+   * plan pour ce locataire, et l'écran affichait pourtant « 5 plans ·
+   * 4 actifs · 1 en retard · 94 % de réalisation ». Chaque organisation
+   * voyait les mêmes cinq plans et les mêmes deux techniciens.
+   *
+   * L'écran montre désormais ce que contient la base, et rien d'autre.
+   */
 
-  // Combine real and static data for display
-  const allPlans = [...formattedPlans, ...staticPlans];
+  const allPlans = formattedPlans;
   
   const filteredPlans = allPlans.filter(plan => {
     const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -490,7 +412,17 @@ export default function PreventiveMaintenance() {
   const totalPlans = allPlans.length;
   const activePlans = allPlans.filter(p => p.status === "active").length;
   const overduePlans = allPlans.filter(p => p.status === "overdue").length;
-  const avgCompletionRate = Math.round(allPlans.reduce((acc, p) => acc + p.completionRate, 0) / totalPlans);
+  /**
+   * ⚠️ Cette moyenne valait `Math.round(0 / 0)`, soit `NaN`, dès qu'aucun
+   * plan n'existait — l'écran aurait affiché « NaN % ». Le défaut restait
+   * invisible tant que les cinq plans fabriqués garantissaient un
+   * dénominateur non nul : les retirer l'a découvert.
+   * Une moyenne sans population ne vaut pas zéro, elle n'existe pas : on
+   * écrit « — », comme partout ailleurs dans le produit.
+   */
+  const avgCompletionRate = totalPlans > 0
+    ? Math.round(allPlans.reduce((acc, p) => acc + p.completionRate, 0) / totalPlans)
+    : null;
 
   return (
     <AppShell filAriane={[{ libelle: "GMAO", href: "/gmao" }, { libelle: "Maintenance préventive" }]} largeur="large">
@@ -562,8 +494,10 @@ export default function PreventiveMaintenance() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ink-soft">Taux Réalisation</p>
-                  <p className="text-3xl font-bold text-etat-encours-texte">{avgCompletionRate}%</p>
+                  <p className="text-sm font-medium text-ink-soft">Taux de réalisation</p>
+                  <p className={`text-3xl font-bold ${avgCompletionRate == null ? "text-ink-mute" : "text-etat-encours-texte"}`}>
+                    {avgCompletionRate == null ? "—" : `${avgCompletionRate} %`}
+                  </p>
                 </div>
                 <div className="bg-etat-encours-fond p-3 rounded-none">
                   <Activity className="h-8 w-8 text-etat-encours-texte" />
@@ -634,6 +568,24 @@ export default function PreventiveMaintenance() {
 
               <TabsContent value="plans">
                 <div className="space-y-4">
+                  {/* Un écran vide doit dire POURQUOI il l'est et quoi faire.
+                      Tant que cinq plans fabriqués le remplissaient, la
+                      question ne se posait pas. */}
+                  {filteredPlans.length === 0 && (
+                    <EtatVide
+                      icone={Calendar}
+                      titre={
+                        allPlans.length === 0
+                          ? "Aucun plan de maintenance préventive"
+                          : "Aucun plan ne correspond à la recherche"
+                      }
+                      phrase={
+                        allPlans.length === 0
+                          ? "Un plan préventif déclenche une intervention à échéance calendaire ou au compteur, avant la panne. Aucun n'est encore enregistré pour cette organisation."
+                          : "Élargissez la recherche, ou remettez le filtre de statut sur « tous »."
+                      }
+                    />
+                  )}
                   {filteredPlans.map((plan) => {
                     const statusConfig = getStatusBadge(plan.status);
                     const priorityConfig = getPriorityBadge(plan.priority);

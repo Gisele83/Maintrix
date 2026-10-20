@@ -335,6 +335,83 @@ describe('Chiffres affichés sans source', () => {
   });
 });
 
+describe('GMAO — le cockpit ne se contredit plus', () => {
+  // Mesuré le 20/10/2026 sur un locataire ayant 26 ordres en attente et
+  // aucun démarré : l'écran affichait « Ordres de travail : 0 » puis
+  // « Aucune urgence, aucun retard. Le parc tourne. » Deux omissions qui se
+  // composaient — un compteur qui ne comptait que `in_progress`, et une
+  // liste « À traiter » sans ligne pour les ordres en attente.
+
+  const ECRANS_AVEC_COMPTEUR = [
+    join(CLIENT, 'pages', 'gmao-dashboard.tsx'),
+    join(CLIENT, 'pages', 'maintenance-engineering-platform.tsx'),
+  ];
+
+  it('aucun compteur n\'affiche les seuls ordres démarrés sous un libellé général', () => {
+    // `activeWorkOrdersCount` seul comme valeur d'un indicateur est le
+    // défaut : il exclut tout ce qui attend d'être affecté.
+    const fautifs: string[] = [];
+    for (const fichier of ECRANS_AVEC_COMPTEUR) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/valeur=\{[^}]*\bactiveWorkOrdersCount\b[^}]*\}/.test(texte)
+            && !/pendingWorkOrdersCount/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 90)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('« À traiter » couvre les ordres en attente d\'affectation', () => {
+    const contenu = readFileSync(join(CLIENT, 'pages', 'gmao-dashboard.tsx'), 'utf8');
+    const depart = contenu.indexOf('const points = [');
+    const fin = contenu.indexOf('].filter((point) => point.n > 0)', depart);
+    expect(depart).toBeGreaterThan(-1);
+    const liste = contenu.slice(depart, fin);
+    expect(liste).toContain('pendingWorkOrdersCount');
+  });
+});
+
+describe('Maintenance préventive — plus de plans fabriqués', () => {
+  const PREVENTIF = join(CLIENT, 'pages', 'preventive-maintenance.tsx');
+
+  it('les cinq plans de démonstration ont disparu', () => {
+    // Ils n'étaient pas un repli : `[...formattedPlans, ...staticPlans]` les
+    // concaténait aux vrais, donc chaque organisation voyait les mêmes cinq
+    // plans et les mêmes techniciens inventés.
+    const fautifs: string[] = [];
+    for (const { n, texte } of lignesDeCode(readFileSync(PREVENTIF, 'utf8'))) {
+      if (/\bstaticPlans\b/.test(texte)) fautifs.push(`preventive-maintenance.tsx:${n}`);
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('aucun technicien inventé ne subsiste dans l\'interface', () => {
+    const INVENTES = ['Jean Dupont', 'Marie Martin', 'Pierre Durand', 'Sophie Blanc', 'Michel Leroy'];
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        // Un `placeholder=` de formulaire propose un exemple de saisie ; il
+        // n'affirme aucune donnée. Seule une valeur affichée ment.
+        if (/placeholder=/.test(texte)) continue;
+        for (const nom of INVENTES) {
+          if (texte.includes(nom)) fautifs.push(`${relatif(fichier)}:${n} → ${nom}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('une moyenne sans population vaut « — », jamais NaN', () => {
+    // `Math.round(0 / 0)` donnait `NaN`, et l'écran aurait affiché « NaN % ».
+    // Le défaut restait invisible tant que les plans fabriqués garantissaient
+    // un dénominateur non nul.
+    const contenu = readFileSync(PREVENTIF, 'utf8');
+    expect(contenu).toMatch(/totalPlans > 0\s*\?/);
+    expect(contenu).toContain('avgCompletionRate == null');
+  });
+});
+
 describe('Navigation et accessibilité', () => {
   it('les trois écrans refondus affichent la navigation principale', () => {
     // 27 des 33 routes mesurées n'en affichaient aucune : arrivé sur un ordre

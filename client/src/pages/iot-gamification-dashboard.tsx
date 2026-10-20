@@ -278,6 +278,16 @@ export default function IoTGamificationDashboard() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  /**
+   * Les comptes réels de l'organisation, pour le sélecteur de technicien.
+   * Il proposait auparavant trois employés inventés avec des matricules
+   * inventés, alors que cette route alimente déjà le champ « Assigné à » des
+   * ordres de travail.
+   */
+  const { data: comptes = [] } = useQuery<
+    Array<{ id: number; username?: string; firstName?: string; lastName?: string; email?: string }>
+  >({ queryKey: ['/api/user-profiles'] });
+
   // Mark notification as read
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
@@ -520,14 +530,25 @@ export default function IoTGamificationDashboard() {
             <h2 className="text-xl font-semibold">Progression des Compétences</h2>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">Utilisateur:</span>
-              <select 
-                value={selectedUserId} 
+              {/* ⚠️ Ce sélecteur proposait trois employés inventés, avec des
+                  matricules inventés (MAT001 à MAT003). Il pilote pourtant
+                  les requêtes de compétences et de notifications : on
+                  consultait donc le profil de personnes qui n'existent pas.
+                  Il liste désormais les comptes réels de l'organisation,
+                  par la route que la page des ordres de travail utilise
+                  déjà. */}
+              <select
+                value={selectedUserId}
                 onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                className="px-3 py-1 border rounded-md"
+                aria-label="Choisir le technicien dont on consulte les compétences"
+                className="h-9 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
-                <option value={1}>Jean Dupont (MAT001)</option>
-                <option value={2}>Marie Martin (MAT002)</option>
-                <option value={3}>Pierre Durand (MAT003)</option>
+                {comptes.length === 0 && <option value={selectedUserId}>Aucun compte disponible</option>}
+                {comptes.map((compte) => (
+                  <option key={compte.id} value={compte.id}>
+                    {[compte.firstName, compte.lastName].filter(Boolean).join(" ") || compte.username || compte.email}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -554,15 +575,19 @@ export default function IoTGamificationDashboard() {
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardContent className="flex items-center p-6">
-                  <Award className="h-8 w-8 text-etat-nominal-texte" />
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Classement</p>
-                    <p className="text-2xl font-bold">#{userSkills.leaderboard?.position || 'N/A'}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* ⚠️ Une troisième tuile affichait ici le rang du technicien,
+                  « Classement #11 ». Ce nombre est TIRÉ AU SORT à chaque
+                  appel : `server/integrations/gamification-engine.ts` le
+                  produit par `Math.floor(Math.random() * 20) + 1`, avec son
+                  propre commentaire « Mock position ». Vérifié le 20/10/2026
+                  par trois requêtes successives sur le même compte : 12, 13,
+                  puis 11.
+
+                  C'est pire qu'une constante — un nombre qui change donne
+                  l'impression d'être vivant. La tuile est retirée de
+                  l'affichage. Rendre ce classement réel demande un calcul
+                  côté serveur qui n'existe pas : c'est un chantier à part,
+                  signalé dans l'audit. */}
             </div>
           )}
 
@@ -605,51 +630,29 @@ export default function IoTGamificationDashboard() {
         <TabsContent value="leaderboard" className="space-y-4">
           <h2 className="text-xl font-semibold">Classement des Techniciens</h2>
           
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {[
-                  { position: 1, name: 'Jean Dupont', xp: 2450, level: 6.2, achievements: 12 },
-                  { position: 2, name: 'Marie Martin', xp: 2180, level: 5.8, achievements: 9 },
-                  { position: 3, name: 'Pierre Durand', xp: 1950, level: 5.3, achievements: 8 },
-                ].map((player) => (
-                  <div key={player.position} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        player.position === 1 ? 'bg-etat-alerte-fond text-etat-alerte-texte' :
-                        player.position === 2 ? 'bg-paper-deep text-ink' :
-                        'bg-etat-alerte-fond text-etat-alerte-texte'
-                      }`}>
-                        {player.position}
-                      </div>
-                      <div>
-                        <p className="font-medium">{player.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Niveau moyen: {player.level}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-6">
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{player.xp} XP</p>
-                        <p className="text-xs text-muted-foreground">Total</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-medium">{player.achievements}</p>
-                        <p className="text-xs text-muted-foreground">Succès</p>
-                      </div>
-                      <Medal className={`h-6 w-6 ${
-                        player.position === 1 ? 'text-etat-alerte-texte' :
-                        player.position === 2 ? 'text-ink-mute' :
-                        'text-etat-alerte-texte'
-                      }`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {/* ══════════════════════════════════════════════════════════
+              ⚠️ TROIS TECHNICIENS INVENTÉS ONT ÉTÉ RETIRÉS ICI.
+              ══════════════════════════════════════════════════════════
+              Ce classement affichait « Jean Dupont — 2 450 XP — niveau 6,2 —
+              12 succès », « Marie Martin », « Pierre Durand », écrits en dur
+              dans le composant. Trois personnes qui n'existent dans aucune
+              organisation, présentées comme le palmarès des techniciens du
+              client.
+
+              La route `/api/gamification/leaderboard` existe, mais elle
+              renvoie exactement les mêmes trois personnes : son code porte le
+              commentaire « Mock leaderboard data ». Brancher l'écran dessus
+              n'aurait donc rien changé — il faut d'abord que le serveur sache
+              calculer ce classement, ce qui est un chantier à part.
+
+              En attendant, l'écran dit ce qu'il en est. Un palmarès inventé
+              de collègues nommés est le pire endroit où laisser une donnée
+              fictive. Retiré le 20/10/2026. */}
+          <EtatVide
+            icone={Medal}
+            titre="Classement indisponible"
+            phrase="Le classement des techniciens demande un historique d'interventions et de compétences acquises que la plateforme ne consolide pas encore. Aucun palmarès n'est affiché tant que ces données n'existent pas."
+          />
         </TabsContent>
       </Tabs>
     </div>
