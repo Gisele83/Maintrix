@@ -136,7 +136,7 @@ export function ModernNavigation() {
       icon: Shield,
       items: [
         { name: "Journal Cryptographique", href: "/crypto-journal", icon: Shield },
-        ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
+        ...(auMoins(user?.role, "admin") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
         ...(auMoins(user?.role, "admin") ? [{ name: "Santé système", href: "/system-health", icon: Activity }] : []),
       ],
     },

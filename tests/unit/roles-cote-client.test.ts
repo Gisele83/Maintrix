@@ -53,25 +53,27 @@ const LISTE_LITTERALE =
   /\[[^\]\n]*["'`][^\]\n]*\]\s*\.includes\(\s*[A-Za-z_$][\w$]*\??\.role/g;
 
 /**
- * Les deux occurrences connues, et la raison de les laisser en place.
+ * Les écarts tolérés — **aucun**, et c'est le résultat d'une séquence.
  *
- * Elles ne sont pas un oubli : elles RECOPIENT exactement le contrôle du
- * serveur, qui compare lui aussi littéralement à `["admin", "director"]`
- * (tenant-permissions-routes.ts:58 et 173). Mesuré sur la grappe de test,
- * `GET /api/tenant/users` rend 200 à l'administrateur et **403 au
- * propriétaire** : élargir l'interface à `auMoins(role, 'admin')` rouvrirait
- * la promesse creuse qu'on vient de fermer, cette fois au détriment du
- * compte principal de l'organisation.
+ * Deux occurrences avaient été gelées ici : `modern-navigation.tsx` et
+ * `tenant-permissions.tsx`. Elles n'étaient pas un oubli — elles RECOPIAIENT
+ * le contrôle du serveur, qui comparait lui aussi littéralement à
+ * `["admin", "director"]`. Mesuré alors : `GET /api/tenant/users` rendait 200
+ * à l'administrateur et **403 au propriétaire**. Les élargir seules aurait
+ * rouvert la promesse creuse qu'on venait de fermer, cette fois au détriment
+ * du compte principal de l'organisation.
  *
- * `director` n'existe d'ailleurs dans aucun référentiel de rôles : la branche
- * est morte des deux côtés. L'alignement correct demande de corriger le
- * SERVEUR d'abord ; cette liste gèle l'écart en attendant, et fait échouer le
- * test sur toute NOUVELLE occurrence de la même forme.
+ * Le serveur a depuis été repris (lot serveur, `auMoins(role, 'admin')` sur
+ * `GET /api/tenant/users`, `PATCH …/permissions` et `POST /api/tenant/roles`),
+ * et le propriétaire y obtient 200. L'interface a donc pu suivre, et la liste
+ * est vide.
+ *
+ * **Elle doit le rester.** Un écart gelé est une dette dont le test ne se
+ * plaint pas : il la tait. Si une occurrence réapparaît, corrigez-la plutôt
+ * que de l'inscrire ici — et si le serveur l'impose vraiment, écrivez la
+ * mesure qui le prouve dans ce commentaire avant d'ajouter la ligne.
  */
-const ECARTS_GELES = new Set([
-  'client/src/components/modern-navigation.tsx',
-  'client/src/pages/tenant-permissions.tsx',
-]);
+const ECARTS_GELES = new Set<string>([]);
 
 describe('Rôles dans l\'interface', () => {
   it('aucune comparaison littérale de rôle ne subsiste', () => {
@@ -127,6 +129,9 @@ describe('Rôles dans l\'interface', () => {
     ['pages/erp-configuration.tsx', '/api/tenant/modules', 'admin'],
     ['pages/system-health.tsx', '/api/system/health', 'admin'],
     ['pages/user-management.tsx', '/api/enterprise-auth/admin/users', 'admin'],
+    // Le dernier écran à avoir rejoint le référentiel, une fois le serveur
+    // repris : c'est lui qui portait l'un des deux écarts gelés.
+    ['pages/tenant-permissions.tsx', '/api/tenant/users', 'admin'],
   ];
 
   it.each(ACTIONS_GARDEES)(

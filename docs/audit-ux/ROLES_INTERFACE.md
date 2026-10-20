@@ -132,11 +132,12 @@ Il gagne deux contrôles :
    nommés ; le test échoue si l'un perd son garde.
 
 La liste des écarts gelés est *fermée* : si une occurrence disparaît, le test
-échoue aussi, pour qu'elle ne devienne pas une permission dormante.
+échoue aussi, pour qu'elle ne devienne pas une permission dormante. **Elle a
+depuis été vidée** — voir §7.
 
 ---
 
-## 5. Défauts serveur relevés, NON corrigés
+## 5. Défauts serveur relevés, NON corrigés *(par ce lot — tous repris depuis : voir §7)*
 
 Ce lot ne touche ni `server/`, ni `shared/`, ni `migrations/`.
 
@@ -182,3 +183,73 @@ Ce lot ne touche ni `server/`, ni `shared/`, ni `migrations/`.
 * `tests/integration` — **128 tests, 13 suites, tous verts** (4 ignorés,
   7 `todo`), sur une base provisionnée par `drizzle-kit push` + `tests/seed.ts`
   et un serveur dédié.
+
+---
+
+## 7. Suite : les écarts gelés sont levés (3ᵉ lot)
+
+Le §5 ci-dessus listait cinq défauts serveur relevés et non corrigés, et le §4
+expliquait pourquoi deux comparaisons `["admin","director"].includes(…)` avaient été
+**gelées** plutôt que corrigées : elles recopiaient fidèlement un serveur fautif, et
+les élargir seules aurait promis un écran que le serveur refusait.
+
+La séquence est allée à son terme, en trois lots :
+
+| lot | branche | objet |
+|---|---|---|
+| 1 — client | `claude/objective-knuth-66e22f` | l'interface cesse de promettre ce que le serveur refuse |
+| 2 — serveur | `claude/lot-serveur-roles` | les cinq défauts du §5, qualifiés et corrigés |
+| 3 — client | `claude/lot-client-owner` | **ce lot** : les deux écarts gelés sont levés |
+
+### Ce qui change ici
+
+Les deux comparaisons passent à `auMoins(user?.role, 'admin')` — l'entrée
+« Permissions » de la navigation (`modern-navigation.tsx`) et le garde de la page
+(`tenant-permissions.tsx`). `ECARTS_GELES` est **vidée**, et son commentaire explique
+pourquoi elle doit le rester : *un écart gelé est une dette dont le test ne se plaint
+pas — il la tait.* Le garde-fou serait en effet resté vert sans cette reprise.
+
+Le refus, quand il tombe, cesse de mentir : il nommait « les administrateurs et
+directeurs », il nomme l'administrateur et le propriétaire, et il affiche le **libellé**
+du rôle (`libelleRole`) au lieu de son identifiant brut.
+
+### Vérifié par connexion réelle, sur les trois lots fusionnés
+
+Deux comptes, connectés par le formulaire de connexion, sur un arbre portant les trois
+lots et une base provisionnée avec un **vrai compte `owner`** (le seed n'en crée pas) :
+
+| | `owner@maintrix.local` | `tech@maintrix.local` |
+|---|---|---|
+| entrée « Permissions » dans le menu Sécurité | **présente** | absente |
+| page `/tenant-permissions` | **servie** | écran « Accès Non Autorisé » |
+| `GET /api/tenant/users` | **200** | **403** |
+| comptes rendus par l'API | les 3 du locataire | — |
+| comptes **affichés à l'écran** | **les 3, identiques à l'API** | aucun |
+| rôle affiché dans le refus | — | « Technicien » *(libellé, plus l'identifiant)* |
+
+Le contrôle porte sur les **valeurs rendues**, pas sur le seul code : les trois adresses
+servies par `/api/tenant/users` sont celles effectivement présentes dans le DOM. Et le
+technicien n'en voit aucune — l'écran de refus ne laisse rien filtrer.
+
+### Tests
+
+| | lot 1 seul | lots 1+2 | **les trois** |
+|---|---|---|---|
+| `tests/unit` | 227 | 229 | **230** (24 suites) |
+| `tests/integration` | 128 | 145 | **145** (14 suites) |
+| total vert | 355 | 374 | **375** |
+
+Les trois branches fusionnent **sans conflit**. `ECARTS_GELES` est vide et le test
+l'exige : toute nouvelle occurrence de la forme littérale le fera échouer.
+
+### Ordre de fusion
+
+**lot serveur → lot client (1) → ce lot (3).** Ce lot seul, sans le lot serveur,
+rouvrirait exactement le défaut que la séquence ferme : l'interface promettrait au
+propriétaire un écran que le serveur refuserait encore.
+
+Reste ouvert, documenté dans `docs/LOT_SERVEUR_ROLES.md` : deux listes de rôles écrites
+à la main subsistent côté serveur dans `tenant-permissions-routes.ts` (lignes 130-133 et
+405-460). Elles ne gardent aucun accès — elles **calculent un corps de réponse**, donc
+la matrice de permissions affichée par cet écran et le catalogue des rôles qu'il
+propose. C'est le même défaut de fond, déplacé dans l'affichage ; il mérite son lot.

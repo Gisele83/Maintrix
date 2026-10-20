@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { auMoins, libelleRole } from "@shared/roles";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,8 +147,21 @@ export default function TenantPermissions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Vérifier que l'utilisateur a les permissions appropriées
-  if (!user || !["admin", "director"].includes(user.role || "")) {
+  /**
+   * Qui accède à la gestion des permissions ?
+   *
+   * ⚠️ La condition comparait le rôle à `["admin", "director"]`, écrit à la
+   * main. Elle recopiait fidèlement le serveur, qui faisait la même faute —
+   * c'est pourquoi le lot précédent l'avait GELÉE au lieu de la corriger : la
+   * corriger seule aurait promis un écran que le serveur refusait.
+   *
+   * Le serveur a été repris depuis (`auMoins(role, 'admin')` sur
+   * `GET /api/tenant/users`, `PATCH …/permissions` et `POST /api/tenant/roles`).
+   * L'interface peut donc enfin s'aligner : le **propriétaire** du locataire,
+   * niveau 7, retrouve l'écran que la comparaison littérale lui refusait, et
+   * `director` — qui n'existe dans aucun référentiel — cesse de l'obtenir.
+   */
+  if (!auMoins(user?.role, "admin")) {
     return (
       <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Permissions" }]} largeur="large">
       <div className="space-y-6">
@@ -158,10 +172,10 @@ export default function TenantPermissions() {
               <Shield className="w-16 h-16 text-etat-critique-texte mx-auto mb-4" />
               <h1 className="text-2xl font-bold text-ink mb-2">Accès Non Autorisé</h1>
               <p className="text-ink-soft mb-4">
-                Seuls les administrateurs et directeurs peuvent accéder à la gestion des permissions.
+                La gestion des permissions est réservée à l'administrateur et au propriétaire du compte.
               </p>
               <p className="text-sm text-ink-mute">
-                Votre rôle actuel : <span className="font-medium">{user?.role || "Non défini"}</span>
+                Votre rôle actuel : <span className="font-medium">{libelleRole(user?.role)}</span>
               </p>
             </div>
           </div>
