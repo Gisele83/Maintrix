@@ -254,15 +254,44 @@ export function registerEnhancedDiagnosticRoutes(app: Express) {
   /**
    * Statistiques d'utilisation des données agrégées (audit)
    */
-  app.get("/api/data-usage-stats", async (req, res) => {
+  app.get("/api/data-usage-stats", async (req: any, res) => {
     try {
-      const { userId } = req.query;
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
 
-      // Validation permissions admin
+      // ⚠️ LA PERMISSION ÉTAIT ÉVALUÉE SUR UN `userId` FOURNI PAR L'APPELANT.
+      //
+      // Le code lisait `req.query.userId` et le passait à `verifyUserAccess`,
+      // qui vérifie bien que cet utilisateur appartient au locataire de la
+      // session — l'inter-locataires était donc fermé — mais évalue ensuite la
+      // permission DE CET UTILISATEUR-LÀ, quel qu'il soit. Il suffisait de
+      // nommer un collègue mieux doté pour emprunter son droit.
+      //
+      // Mesuré le 2026-10-21, après avoir accordé `view_data_usage_stats` au
+      // seul administrateur (id 1) du locataire Alpha :
+      //
+      //   technicien (id 2), ?userId=2 — le sien    -> 403, correctement refusé
+      //   technicien (id 2), ?userId=1 — l'admin    -> 200, DONNÉES SERVIES
+      //   administrateur (id 1), ?userId=1          -> 200, légitime
+      //   administrateur de Beta, ?userId=1         -> 403, inter-locataires fermé
+      //   anonyme, ?userId=1                        -> 401
+      //
+      // Le défaut était latent sur une installation neuve, `data_access_permissions`
+      // étant vide : la route refusait alors tout le monde, ce qui le rendait
+      // invisible. Il devenait exploitable dès la première permission accordée.
+      //
+      // L'identité vient désormais de la SESSION validée, et le paramètre de
+      // requête est ignoré. Une autorisation ne se demande pas à son porteur.
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          error: "AUTHENTICATION_REQUIRED",
+          message: "Session requise pour lire les statistiques d'usage",
+        });
+      }
+
       const hasAccess = await companyDataAccess.verifyUserAccess(
-        parseInt(userId as string),
+        userId,
         tenantId,
         'view_data_usage_stats'
       );
