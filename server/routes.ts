@@ -93,7 +93,7 @@ import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
 import procurementRoutes from "./procurement-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
-import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
+import { setupCompleteMultiTenantArchitecture, registerTenantScopedRoutes } from "./tenant-integration";
 import { featureService } from "./feature-service.js";
 import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
 import { initializeERPSystem } from "./module-initializer.js";
@@ -4319,6 +4319,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);
+
+  // Routes qui lisent `req.user` et `req.tenantId` : elles DOIVENT être
+  // déclarées ici, après `app.use('/api', requireAuthentication)` et après les
+  // middlewares tenant posés par `setupCompleteMultiTenantArchitecture`.
+  // Enregistrées plus haut, comme elles l'étaient, elles ne voyaient ni l'un ni
+  // l'autre et refusaient tout le monde, administrateur compris.
+  registerTenantScopedRoutes(app);
   
   // Register RBAC routes for role-based access control
   app.use('/api/rbac', EnterpriseAuthMiddleware.requireAuthentication, rbacRoutes);

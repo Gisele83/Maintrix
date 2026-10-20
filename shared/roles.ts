@@ -132,6 +132,14 @@ const ALIAS: Record<string, RoleLocataire> = {
   supervisor: 'team_leader',
   maintainer: 'technician',
   operator: 'technician',
+  // `director` ne figurait dans aucun référentiel, mais les contrôles de
+  // suppression de `gmao-routes.ts` l'acceptaient littéralement, et
+  // `PATCH /api/tenant/users/:id/permissions` écrivait n'importe quelle chaîne
+  // dans `user_profiles.role` : des comptes peuvent donc le porter en base.
+  // Les trois listes littérales le traitaient en pair de `technical_director`,
+  // c'est donc là qu'il est ramené — refuser la valeur enfermerait dehors un
+  // compte en service, ce que ce bloc d'alias existe précisément pour éviter.
+  director: 'technical_director',
   // `user` servait de valeur de repli quand aucun rôle n'était connu : on le
   // traite comme le rôle le moins privilégié, jamais comme un administrateur.
   user: 'viewer',

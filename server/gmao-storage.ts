@@ -578,9 +578,18 @@ export class GMAOStorage {
     return plan;
   }
 
-  async deletePreventiveMaintenancePlan(id: number, tenantId: string): Promise<void> {
-    await db.delete(preventiveMaintenancePlans)
-      .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)));
+  /**
+   * ⚠️ Renvoyait `void` : la route répondait donc « supprimé avec succès » même
+   * quand aucune ligne n'avait été touchée. Mesuré sur un identifiant
+   * inexistant : plan = 200, là où `deleteWorkOrder` et `deleteSparePart`
+   * rendaient 404. L'interface ne pouvait pas distinguer une suppression réelle
+   * d'un coup dans le vide. Même forme que `deleteWorkOrder` désormais.
+   */
+  async deletePreventiveMaintenancePlan(id: number, tenantId: string): Promise<boolean> {
+    const result = await db.delete(preventiveMaintenancePlans)
+      .where(and(eq(preventiveMaintenancePlans.id, id), eq(preventiveMaintenancePlans.tenantId, tenantId)))
+      .returning();
+    return result.length > 0;
   }
 
   // Maintenance Counters Methods - TENANT ISOLATED
