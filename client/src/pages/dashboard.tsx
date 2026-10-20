@@ -5,7 +5,7 @@ import { Link } from "wouter";
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { DiagnosticResults, type DiagnosticSuggestion } from "@/components/diagnostic-results";
 import { RepairGuidance } from "@/components/repair-guidance";
-import { MaintenanceHistory } from "@/components/maintenance-history";
+import { HistoriqueMaintenance } from "@/components/historique-maintenance";
 import { CaseReporting } from "@/components/case-reporting";
 import { DataImport } from "@/components/data-import";
 import { Button } from "@/components/ui/button";
@@ -161,7 +161,7 @@ export default function Dashboard() {
       description: "Diagnostic sauvegardé",
     });
     // Invalidate history to refresh the list
-    queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
   };
 
   const tabs = [
@@ -369,7 +369,28 @@ export default function Dashboard() {
         )}
 
         {/* History Section */}
-        {activeTab === "history" && <MaintenanceHistory />}
+        {/* Cet onglet lisait /api/history, dont la réponse bascule en objet
+            d'erreur dès qu'un second locataire possède une session de
+            diagnostic : le tableau de bord rendait alors une page blanche.
+            Il sert maintenant le même écran que /historique. */}
+        {/* L'en-tête passé ici est de niveau 2 : cette page porte déjà son
+            propre <h1> (« Identifier la panne, guider la réparation »), et
+            l'en-tête par défaut du composant en aurait ajouté un second. */}
+        {activeTab === "history" && (
+          <HistoriqueMaintenance
+            enTete={
+              <div className="pb-6 border-b border-rule">
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostic</p>
+                <h2 className="font-serif text-page font-medium text-ink mt-1.5">
+                  Historique de maintenance
+                </h2>
+                <p className="text-sm text-ink-soft mt-1.5 max-w-2xl">
+                  Les interventions réalisées, leur durée, leur coût et les pièces consommées.
+                </p>
+              </div>
+            }
+          />
+        )}
 
         {/* Reporting Section */}
         {activeTab === "reporting" && <CaseReporting />}

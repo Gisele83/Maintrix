@@ -554,7 +554,7 @@ export default function SmartDiagnostic() {
       title: "Succès",
       description: "Diagnostic sauvegardé avec succès",
     });
-    queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
   };
 
   const tabs = [

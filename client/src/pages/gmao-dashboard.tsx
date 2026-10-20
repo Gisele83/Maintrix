@@ -29,7 +29,7 @@ import { CompanyLetterheadConfig } from "@/components/company-letterhead-config"
 import ThresholdConfiguration from "@/components/threshold-configuration";
 import PurchaseOrderCreator from "@/components/purchase-order-creator";
 import { EquipmentHealthDashboard } from "@/components/equipment-health-dashboard";
-import { HistoryManagement } from "@/components/history-management";
+import { HistoriqueMaintenance } from "@/components/historique-maintenance";
 
 
 interface RecentWorkOrder {
@@ -1042,8 +1042,25 @@ export default function GMAODashboard() {
           />
         )}
 
+        {/* L'onglet « Historique » montait une console d'import/export qui
+            n'affichait AUCUN historique. Il sert maintenant le même écran que
+            /historique, avec son propre en-tête. */}
         {showAdminModal && activeAdminTab === "history" && (
-          <HistoryManagement />
+          <HistoriqueMaintenance
+            enTete={
+              <EnTetePage
+                surTitre="GMAO"
+                titre="Historique"
+                phrase="Les interventions réalisées, leur durée, leur coût et les pièces consommées."
+                actionsSecondaires={
+                  <ActionSecondaire href="/historique">
+                    <ArrowUpRight className="w-4 h-4" />
+                    Vue complète
+                  </ActionSecondaire>
+                }
+              />
+            }
+          />
         )}
 
         {showAdminModal && activeAdminTab === "procurement" && (

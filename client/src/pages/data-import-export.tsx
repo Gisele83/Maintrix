@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { uploadFile } from "@/lib/queryClient";
 import { 
   Upload, 
   Download, 
@@ -44,13 +45,27 @@ interface ImportHistory {
   errors: string[];
 }
 
-const DATA_TYPES = [
+/**
+ * Les types réellement traités par le serveur, et PAS les mêmes dans les deux
+ * sens (server/data-import-export-routes.ts) : l'import n'en connaît que
+ * trois, l'export cinq. Les deux consoles existantes proposaient la même
+ * liste des deux côtés — dont « Utilisateurs », qu'aucune des deux routes ne
+ * traite. Choisir un type non géré ne produisait rien d'utile.
+ */
+const TYPES_EXPORT = [
   { value: 'equipments', label: 'Équipements', icon: Settings },
-  { value: 'maintenance-history', label: 'Historique Maintenance', icon: Clock },
-  { value: 'spare-parts', label: 'Pièces Détachées', icon: Database },
+  { value: 'maintenance-history', label: 'Historique de maintenance', icon: Clock },
+  { value: 'spare-parts', label: 'Pièces détachées', icon: Database },
   { value: 'iot-data', label: 'Données IoT', icon: TrendingUp },
-  { value: 'work-orders', label: 'Ordres de Travail', icon: FileText }
+  { value: 'work-orders', label: 'Ordres de travail', icon: FileText }
 ];
+
+const TYPES_IMPORT = TYPES_EXPORT.filter((t) =>
+  ['equipments', 'maintenance-history', 'spare-parts'].includes(t.value),
+);
+
+/** Conservé pour les libellés : l'historique d'import peut citer n'importe quel type. */
+const DATA_TYPES = TYPES_EXPORT;
 
 const FORMATS = [
   { value: 'csv', label: 'CSV', extension: '.csv' },
@@ -68,9 +83,9 @@ export default function DataImportExport() {
 
   // Récupération de l'historique des imports/exports
   const { data: importHistory, isLoading: historyLoading } = useQuery<ImportHistory[]>({
-    queryKey: ['/api/data/import-history'],
+    queryKey: ['/api/data-import-export/import-history'],
     queryFn: async () => {
-      const response = await fetch('/api/data/import-history');
+      const response = await fetch('/api/data-import-export/import-history');
       if (!response.ok) throw new Error('Erreur lors du chargement de l\'historique');
       return response.json();
     }
@@ -82,17 +97,10 @@ export default function DataImportExport() {
       setIsUploading(true);
       setUploadProgress(0);
       
-      const response = await fetch('/api/data/import', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erreur lors de l\'import');
-      }
-
-      return response.json();
+      // `uploadFile` pose l'en-tête X-CSRF-Token et `credentials: include`.
+      // Un `fetch` brut ne fait ni l'un ni l'autre : depuis F06, la route
+      // n'étant plus exemptée de CSRF, l'import serait refusé en 403.
+      return (await uploadFile('/api/data-import-export/import', formData)) as ImportResult;
     },
     onSuccess: (result) => {
       setIsUploading(false);
@@ -120,7 +128,7 @@ export default function DataImportExport() {
         });
       }
       
-      queryClient.invalidateQueries({ queryKey: ['/api/data/import-history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/data-import-export/import-history'] });
     },
     onError: (error: Error) => {
       setIsUploading(false);
@@ -136,7 +144,7 @@ export default function DataImportExport() {
   // Téléchargement des templates
   const downloadTemplate = async (dataType: string, format: string) => {
     try {
-      const response = await fetch(`/api/data/template?type=${dataType}&format=${format}`);
+      const response = await fetch(`/api/data-import-export/template?type=${dataType}&format=${format}`);
       if (!response.ok) throw new Error('Erreur lors du téléchargement du template');
       
       const blob = await response.blob();
@@ -170,7 +178,7 @@ export default function DataImportExport() {
         params.append('days', '30'); // Derniers 30 jours pour les données IoT
       }
       
-      const response = await fetch(`/api/data/export?${params}`);
+      const response = await fetch(`/api/data-import-export/export?${params}`);
       if (!response.ok) throw new Error('Erreur lors de l\'export');
       
       const blob = await response.blob();
@@ -290,7 +298,7 @@ export default function DataImportExport() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {DATA_TYPES.map((type) => (
+                        {TYPES_IMPORT.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             <div className="flex items-center space-x-2">
                               <type.icon className="w-4 h-4" />
@@ -447,7 +455,7 @@ export default function DataImportExport() {
           {/* Onglet Export */}
           <TabsContent value="export" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {DATA_TYPES.map((dataType) => (
+              {TYPES_EXPORT.map((dataType) => (
                 <Card key={dataType.value} className="transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">

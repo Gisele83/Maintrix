@@ -273,3 +273,33 @@ ni création d'équipement en place, et sa création échouait en `400` dès qu'
 
 Après : le même composant que l'onglet, l'union des capacités, et l'échéance qui
 s'enregistre — vérifié en base, pas à l'écran.
+
+---
+
+## Historique — une seule implémentation (20 octobre 2026)
+
+### L'onglet « Historique » du tableau de bord
+
+| Avant | Après |
+|---|---|
+| ![Avant](captures/historique-avant-ecran-blanc.jpg) | ![Après](captures/historique-apres-ecran-blanc.jpg) |
+
+À gauche, ce n'est pas une capture ratée : c'est l'écran. `document.body.innerText`
+mesurait **zéro caractère**, et la console affichait « TypeError: a.map is not a
+function ». Il suffisait qu'un second locataire possède UNE session de diagnostic pour
+que `/api/history` réponde `{ error: 'CROSS_TENANT_DATA_DETECTED' }` **en HTTP 200** :
+le client voyait `res.ok`, passait l'objet à `.map`, et toute la page tombait. L'onglet
+« Signalement », qui lit `/api/reports`, tombait de la même façon.
+
+À droite, le même onglet après la réunion : 48 interventions, leurs durées, leurs coûts
+et leurs pièces consommées.
+
+### La page /historique
+
+![Après](captures/historique-apres-page.jpg)
+
+La page importait `EnTetePage`, `Indicateur`, `PuceEtat`, `EtatVide` et quatre autres
+composants de charte sans en utiliser aucun — son titre était un `<h1 className="text-3xl
+font-bold">` écrit à la main. Elle porte maintenant le gabarit commun, quatre indicateurs
+calculés sur les données réelles, et le filtre par période qui n'existait que dans
+l'onglet du tableau de bord.

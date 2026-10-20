@@ -548,3 +548,126 @@ n'a lieu d'être que tant que ce n'est pas corrigé. Deux autres points relevés
   traque que l'égalité littérale. Et `director` n'existe dans aucun référentiel de rôles ;
 - le même `director` fantôme figure dans le contrôle serveur de la suppression
   (`gmao-routes.ts:511`), où il ne correspond jamais à rien.
+
+---
+
+## 14. L'historique et les rapports — 20 octobre 2026
+
+### 14.1 Trois écrans nommés « Historique », dont un seul en montrait
+
+| Écran | Monté par | Lit | État mesuré |
+|---|---|---|---|
+| `pages/historique.tsx` (440 l.) | `/historique`, dans la navigation | `/api/maintenance-history` | fonctionne |
+| `components/history-management.tsx` (501 l.) | onglet « Historique » de la GMAO | — | **aucun historique** : une console d'import/export |
+| `components/maintenance-history.tsx` (408 l.) | onglet « Historique » du tableau de bord | `/api/history` | **page blanche** |
+
+L'onglet de la GMAO s'intitulait « Gestion de l'Historique » et proposait « Importez et
+exportez vos données » : pas une ligne d'historique à l'écran.
+
+### 14.2 La page blanche, et pourquoi personne ne l'avait vue
+
+`/api/history` compose sa réponse à partir de `storage.getDiagnosticSessions()`, dont
+l'implémentation est `db.select().from(diagnosticSessions)` — **sans aucun filtre de
+locataire**. Le garde-fou `antiLeakageValidator` le détecte et remplace le corps par
+`{ error: 'CROSS_TENANT_DATA_DETECTED' }` — **mais laisse le statut à 200**.
+
+Vérifié en insérant UNE session de diagnostic appartenant à un second locataire :
+
+```
+avant : GET /api/history → 200, 20 enregistrements
+après : GET /api/history → 200, {"error":"CROSS_TENANT_DATA_DETECTED", …}
+```
+
+Le client vérifiait `res.ok`, le trouvait vrai, et appelait `.map` sur un objet :
+`TypeError: a.map is not a function`. **`/dashboard` ne rendait plus rien du tout** —
+onglet « Historique » comme onglet « Signalement », qui lit `/api/reports` et souffre
+exactement du même défaut (`storage.getReportedCases()` est tout aussi peu cloisonné).
+
+Ce défaut est invisible sur un jeu de données mono-locataire. C'est précisément ce qui
+l'a fait survivre : il ne se déclenche que là où il fait le plus de dégâts, en production
+multi-locataire.
+
+> La base de test contient désormais, volontairement, une ligne appartenant au locataire
+> « Tenant Beta ». Elle n'a pas été retirée : elle maintient le défaut serveur visible
+> pour qui voudra vérifier la correction.
+
+### 14.3 Ce qui a été fait
+
+**Le garde-fou central** est dans `lib/queryClient.ts` : un corps de réponse qui a la
+forme d'un refus (`{ error, message }`) est traité comme une erreur même servi en 200,
+sur les trois chemins de lecture (`apiRequest`, `uploadFile`, `getQueryFn`). Un écran ne
+doit jamais blanchir parce qu'une réponse n'a pas la forme attendue — quelle que soit la
+cause côté serveur. Les deux onglets se sont relevés sans autre modification.
+
+**L'historique** est désormais `components/historique-maintenance.tsx`, monté par
+`/historique`, l'onglet de la GMAO et celui du tableau de bord. Il lit
+`/api/maintenance-history`, qui passe par `gmaoStorage.getWorkOrders(tenantId)` et est
+donc correctement cloisonnée. L'union des capacités est conservée : recherche, filtres
+par type, par statut et **par période** (celui-ci venait de l'onglet du tableau de bord),
+export CSV et Excel côté serveur, export de la **vue filtrée** côté navigateur, import
+avec modèle de colonnes téléchargeable.
+
+**Un libellé corrigé au passage.** `mapWorkOrderStatus` ne distingue que `completed` et
+`cancelled` : tout le reste devient `in_progress`. Sur le locataire de test, 45 ordres
+« pending », 1 « paused » et 1 « on_hold » arrivaient ainsi en `in_progress`. Afficher
+« En cours » aurait affirmé que 47 interventions étaient engagées alors que 45 n'avaient
+pas commencé. Le libellé retenu est **« Non clôturé »**, qui est vrai pour les 47.
+
+### 14.4 L'import/export : trois implémentations, deux familles d'API, dont une inexistante
+
+| Écran | Famille appelée | État mesuré |
+|---|---|---|
+| `pages/data-import-export.tsx` (587 l.) | `/api/data/*` | **404 sur tout** |
+| `components/history-management.tsx` | `/api/data-import-export/*` | 200 |
+| bloc interne de `pages/historique.tsx` | `/api/data-import-export/*` | 200 |
+
+```
+GET /api/data/export?type=maintenance-history&format=csv   → 404
+GET /api/data/template?type=equipments&format=csv          → 404
+GET /api/data/import-history                               → 404
+GET /api/data-import-export/export?…                       → 200
+```
+
+Les endpoints appelés par la page de 587 lignes existent bel et bien — sous un autre
+préfixe. Aucun de ses boutons n'avait jamais rien produit. Le préfixe est corrigé ; la
+page gagne au passage `/validate`, et son envoi de fichier passe par `uploadFile`, qui
+pose le jeton CSRF (sans quoi l'import est refusé en 403 depuis F06).
+
+Les listes de types sont alignées sur ce que le serveur traite réellement
+(`server/data-import-export-routes.ts`) : **trois** types à l'import (équipements,
+historique de maintenance, pièces détachées), **cinq** à l'export. Les deux consoles
+proposaient la même liste des deux côtés, « Utilisateurs » compris — qu'aucune des deux
+routes ne traite.
+
+### 14.5 Les rapports ne sont PAS des doublons
+
+Trois écrans portent le mot « rapport ». Ils n'ont **aucun endpoint en commun** :
+
+| Écran | Lit | Objet métier |
+|---|---|---|
+| `pages/advanced-reporting.tsx` | kpi-metrics, budgets, budget-requests, alerts, work-orders, equipment | tableau de bord de direction |
+| `components/maintenance-reports.tsx` (1 062 l.) | maintenance-reports, monthly-reports | **documents** d'intervention et mensuels, générés en PDF |
+| `components/case-reporting.tsx` | report, reports | **formulaire** de signalement d'un cas |
+
+Les réunir supprimerait des capacités au lieu d'en préserver : un document PDF n'est pas
+un tableau de bord, et un formulaire de signalement n'est ni l'un ni l'autre. Leurs
+métriques ont par ailleurs été vérifiées : celles de `maintenance-reports` proviennent de
+`monthly_reports` — ce sont des données stockées, pas des chiffres fabriqués.
+
+Ce qui est vrai, en revanche, c'est que leurs **portions analytiques** se recouvrent
+partiellement avec l'onglet « Analytiques » de la GMAO. C'est une question de structure,
+pas de doublon d'implémentation : elle relève du lot 3.
+
+### 14.6 Ce qui reste ouvert — côté serveur
+
+1. **`storage.getDiagnosticSessions()` et `storage.getReportedCases()` ne filtrent pas par
+   locataire.** C'est la cause des deux pages blanches. Tant que ce n'est pas corrigé,
+   aucun écran ne peut afficher les sessions de diagnostic : il n'existe pas de route
+   `GET /api/diagnostic-sessions` cloisonnée.
+2. **`antiLeakageValidator` répond 200.** Un refus doit porter un statut d'erreur — 403
+   conviendrait. Le garde-fou client compense, il ne remplace pas la correction.
+3. **`mapWorkOrderStatus` écrase quatre statuts en un.** `pending`, `assigned`, `paused`
+   et `on_hold` deviennent tous `in_progress` dans l'historique.
+4. La capacité perdue à l'écran : `/api/history` agrégeait aussi les **sessions de
+   diagnostic** et les **exécutions de plans préventifs** des 90 derniers jours. Elle
+   reviendra quand une route cloisonnée les exposera.

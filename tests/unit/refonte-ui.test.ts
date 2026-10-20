@@ -733,3 +733,148 @@ describe('Ordres de travail — une seule implémentation', () => {
     expect(fautifs).toEqual([]);
   });
 });
+
+describe('Historique — une seule implémentation', () => {
+  /*
+   * Trois écrans portaient le nom « Historique », sur DEUX sources de données,
+   * et un seul montrait réellement un historique :
+   *
+   *   • /historique                        → /api/maintenance-history ✓
+   *   • onglet « Historique » de la GMAO   → RIEN : une console import/export
+   *   • onglet « Historique » du dashboard → /api/history
+   *
+   * `/api/history` compose sa réponse avec `storage.getDiagnosticSessions()`,
+   * qui ne filtre pas par locataire. `antiLeakageValidator` le détecte et
+   * remplace le corps par un objet d'erreur — en laissant le statut à 200.
+   * Mesuré le 20/10/2026 : UNE session de diagnostic appartenant à un second
+   * locataire suffisait à faire rendre /dashboard entièrement blanc.
+   */
+  const COMPOSANT = join(CLIENT, 'components', 'historique-maintenance.tsx');
+
+  it('les trois hôtes montent le même composant', () => {
+    const page = readFileSync(join(CLIENT, 'pages', 'historique.tsx'), 'utf8');
+    const gmao = readFileSync(join(CLIENT, 'pages', 'gmao-dashboard.tsx'), 'utf8');
+    const tableauDeBord = readFileSync(join(CLIENT, 'pages', 'dashboard.tsx'), 'utf8');
+    for (const source of [page, gmao, tableauDeBord]) {
+      expect(source).toContain('@/components/historique-maintenance');
+    }
+    // La page ne réimplémente pas la liste : elle pose le cadre.
+    expect(page.split('\n').length).toBeLessThan(60);
+  });
+
+  it('plus aucun écran ne lit la route non cloisonnée', () => {
+    /*
+     * `/api/history` reste en place côté serveur ; plus aucun écran ne doit
+     * la lire tant que `getDiagnosticSessions()` ignore le locataire.
+     */
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/["'`]\/api\/history(?![\w-])/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('un refus renvoyé en HTTP 200 est traité comme une erreur', () => {
+    /*
+     * C'est le garde-fou central : sans lui, un corps
+     * `{ error: 'CROSS_TENANT_DATA_DETECTED' }` servi en 200 traversait
+     * `res.ok`, arrivait dans un `.map` et blanchissait la page.
+     */
+    const client = readFileSync(join(CLIENT, 'lib', 'queryClient.ts'), 'utf8');
+    expect(client).toContain('refusDeguiseEnSucces');
+    // Les trois chemins de lecture doivent passer par le contrôle.
+    const appels = client.match(/refusDeguiseEnSucces\(/g) ?? [];
+    expect(appels.length).toBeGreaterThanOrEqual(4); // 1 définition + 3 usages
+  });
+
+  it('aucun statut d\'intervention n\'est affiché en valeur brute', () => {
+    const fautifs: string[] = [];
+    for (const { n, texte } of lignesDeCode(readFileSync(COMPOSANT, 'utf8'))) {
+      // Ni `value={…}` (attribut d'un select) ni `${…}` (interpolation dans
+      // un gabarit de chaîne) : seul le rendu en enfant JSX est fautif.
+      if (/(?<![=$])\{\s*\w+\.(status|maintenanceType)\s*\}/.test(texte)) {
+        fautifs.push(`historique-maintenance.tsx:${n} → ${texte.trim().slice(0, 70)}`);
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('le filtre de statut ne propose que ce que l\'API sait produire', () => {
+    /*
+     * `mapWorkOrderStatus` ne renvoie que `completed`, `cancelled` ou
+     * `in_progress` : 45 ordres « pending », 1 « paused » et 1 « on_hold »
+     * arrivaient tous en `in_progress`. Proposer « En attente » donnerait un
+     * filtre qui ne ramène jamais rien, et afficher « En cours » affirmerait
+     * que 47 interventions sont engagées alors que 45 n'ont pas commencé.
+     */
+    const contenu = readFileSync(COMPOSANT, 'utf8');
+    const debut = contenu.indexOf('aria-label="Filtrer par statut"');
+    expect(debut).toBeGreaterThan(-1);
+    const bloc = contenu.slice(debut, contenu.indexOf('</select>', debut));
+    expect(bloc).toContain('completed');
+    expect(bloc).toContain('in_progress');
+    expect(bloc).toContain('cancelled');
+    expect(bloc).not.toMatch(/value="(pending|paused|on_hold)"/);
+    // Et le libellé rendu ne doit pas prétendre que le travail est engagé.
+    expect(contenu).toMatch(/in_progress:\s*\{\s*libelle:\s*"Non clôturé"/);
+  });
+});
+
+describe('Import / export — une seule famille de routes', () => {
+  /*
+   * Trois implémentations coexistaient, sur DEUX familles d'API. Vérifié au
+   * serveur le 20/10/2026 : `/api/data/export`, `/api/data/template` et
+   * `/api/data/import-history` répondent **404**. La page
+   * pages/data-import-export.tsx (587 lignes, route /data-import-export)
+   * n'appelait qu'elles : aucun de ses boutons n'a jamais rien produit.
+   * `/api/data-import-export/*` répond 200.
+   */
+  it('plus aucun écran n\'appelle la famille inexistante /api/data/*', () => {
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/["'`]\/api\/data\/(?!import-export)/.test(texte)) {
+          fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 80)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('les types proposés correspondent à ce que le serveur traite', () => {
+    /*
+     * L'import n'accepte que trois types (equipments, maintenance-history,
+     * spare-parts), l'export cinq. Les deux consoles proposaient la même
+     * liste des deux côtés, « Utilisateurs » compris — qu'aucune des deux
+     * routes ne traite.
+     */
+    const page = readFileSync(join(CLIENT, 'pages', 'data-import-export.tsx'), 'utf8');
+    const debutImport = page.indexOf('const TYPES_IMPORT');
+    expect(debutImport).toBeGreaterThan(-1);
+    const listeImport = page.slice(debutImport, page.indexOf(';', debutImport));
+    for (const type of ['equipments', 'maintenance-history', 'spare-parts']) {
+      expect(listeImport).toContain(type);
+    }
+    expect(listeImport).not.toContain('iot-data');
+    expect(listeImport).not.toContain('work-orders');
+    // « Utilisateurs » ne doit plus figurer dans AUCUNE des deux listes (le
+    // commentaire qui explique son retrait, lui, a le droit de le citer).
+    const debutExport = page.indexOf('const TYPES_EXPORT');
+    const listeExport = page.slice(debutExport, page.indexOf('];', debutExport));
+    expect(listeExport).not.toContain('Utilisateurs');
+    expect(listeImport).not.toContain('Utilisateurs');
+  });
+
+  it('l\'envoi de fichier pose le jeton CSRF', () => {
+    // Un `fetch` brut avec FormData est refusé en 403 depuis F06.
+    const page = readFileSync(join(CLIENT, 'pages', 'data-import-export.tsx'), 'utf8');
+    const composant = readFileSync(join(CLIENT, 'components', 'historique-maintenance.tsx'), 'utf8');
+    for (const source of [page, composant]) {
+      expect(source).toContain('uploadFile');
+    }
+  });
+});

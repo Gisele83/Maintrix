@@ -24,7 +24,7 @@ export function DataImport() {
         description: `${result.success} cas de maintenance importés avec succès`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance-cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
     },
     onError: (error: any) => {
       toast({
