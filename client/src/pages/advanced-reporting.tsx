@@ -28,6 +28,20 @@ import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } fr
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import { ETAT, type RegistreEtat } from "@/lib/etats";
 
+/**
+ * Statuts d'une demande budgétaire, traduits et colorés par les jetons d'état
+ * partagés. Ils étaient rendus bruts (`pending`, `approved`) et teintés par
+ * les variantes de `Badge`, dont le contraste n'a jamais été mesuré.
+ */
+const DEMANDES_BUDGET: Record<string, { libelle: string; registre: RegistreEtat }> = {
+  pending: { libelle: "En attente", registre: "alerte" },
+  approved: { libelle: "Approuvée", registre: "nominal" },
+  rejected: { libelle: "Refusée", registre: "critique" },
+  draft: { libelle: "Brouillon", registre: "neutre" },
+};
+const libelleDemandeBudget = (statut: string) => DEMANDES_BUDGET[statut]?.libelle ?? statut ?? "—";
+const registreDemandeBudget = (statut: string): RegistreEtat => DEMANDES_BUDGET[statut]?.registre ?? "neutre";
+
 export default function AdvancedReporting() {
   const { language } = useLanguage();
   const { toast } = useToast();
@@ -168,47 +182,64 @@ export default function AdvancedReporting() {
   return (
     <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "Rapports" }]} largeur="large">
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white border-b border-rule shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+      <EnTetePage
+        surTitre="Analyse"
+        titre="Reporting avancé"
+        phrase="Budget, charge de travail, alertes et équipements critiques, réunis pour une revue de direction."
+      />
+
+      {/* ⚠️ Ces deux listes ne filtrent PAS l'écran : elles ne sont lues que
+          par `exportReport`, pour l'URL du PDF et du tableur. Placées en haut
+          de page comme des filtres, elles laissaient croire le contraire —
+          on choisissait « Cette semaine », rien ne bougeait, et on pouvait
+          en déduire que les chiffres affichés étaient hebdomadaires. Elles
+          sont donc rassemblées avec les boutons qu'elles commandent, sous un
+          intitulé qui dit ce qu'elles font. */}
+      <div className="border border-rule bg-white p-5">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+          <div>
+            <p className="font-mono text-eyebrow uppercase text-ink-mute">Périmètre de l'export</p>
+            <p className="text-sm text-ink-soft mt-1.5">
+              Ces deux choix déterminent le contenu du fichier exporté, pas celui de l'écran.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-ink flex items-center space-x-3">
-                <Activity className="h-8 w-8 text-primary" />
-                <span>Reporting Avancé GMAO</span>
-              </h1>
-              <p className="text-ink-soft mt-2">Tableau de bord exécutif et analyse de performance</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <select 
-                value={selectedPeriod} 
+              <label htmlFor="export-periode" className="sr-only">Période de l'export</label>
+              <select
+                id="export-periode"
+                value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-3 py-2 border border-rule rounded-lg bg-white"
+                className="h-10 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
                 <option value="week">Cette semaine</option>
                 <option value="month">Ce mois</option>
                 <option value="quarter">Ce trimestre</option>
                 <option value="year">Cette année</option>
               </select>
-              <select 
-                value={selectedDepartment} 
+            </div>
+            <div>
+              <label htmlFor="export-departement" className="sr-only">Département de l'export</label>
+              <select
+                id="export-departement"
+                value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="px-3 py-2 border border-rule rounded-lg bg-white"
+                className="h-10 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
                 <option value="all">Tous départements</option>
                 <option value="maintenance">Maintenance</option>
                 <option value="production">Production</option>
                 <option value="utilities">Utilités</option>
               </select>
-              <Button onClick={() => exportReport('pdf')} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              <Button onClick={() => exportReport('excel')} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
-              </Button>
             </div>
+            <ActionSecondaire onClick={() => exportReport('pdf')}>
+              <Download className="h-4 w-4" />
+              Export PDF
+            </ActionSecondaire>
+            <ActionSecondaire onClick={() => exportReport('excel')}>
+              <Download className="h-4 w-4" />
+              Export Excel
+            </ActionSecondaire>
           </div>
         </div>
       </div>
@@ -222,7 +253,10 @@ export default function AdvancedReporting() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <DollarSign className="h-5 w-5 text-etat-nominal-texte" />
-                <span>Vue Budgétaire 2025</span>
+                {/* L'année était écrite en dur — « Vue Budgétaire 2025 »
+                    s'affichait encore en 2026, au-dessus de chiffres qui,
+                    eux, sont ceux de l'exercice courant. */}
+                <span>Vue budgétaire</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -231,13 +265,13 @@ export default function AdvancedReporting() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
                       <p className="text-sm text-ink-soft">Budget Total</p>
-                      <p className="text-2xl font-bold text-etat-encours-texte">
+                      <p className="font-serif text-3xl text-etat-encours-texte">
                         {budgetSummary.totalAllocated?.toLocaleString()}€
                       </p>
                     </div>
                     <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
                       <p className="text-sm text-ink-soft">Disponible</p>
-                      <p className="text-2xl font-bold text-etat-nominal-texte">
+                      <p className="font-serif text-3xl text-etat-nominal-texte">
                         {budgetSummary.totalRemaining?.toLocaleString()}€
                       </p>
                     </div>
@@ -282,12 +316,13 @@ export default function AdvancedReporting() {
                       <p className="font-medium">{request.description}</p>
                       <p className="text-sm text-ink-soft">{request.amount?.toLocaleString()}€</p>
                     </div>
-                    <Badge 
-                      variant={request.status === 'approved' ? 'default' : 
-                               request.status === 'rejected' ? 'destructive' : 'secondary'}
-                    >
-                      {request.status}
-                    </Badge>
+                    {/* Le statut s'affichait dans la valeur brute du serveur
+                        — « pending », « approved » — au milieu d'une page en
+                        français, et sa couleur passait par les variantes de
+                        `Badge` plutôt que par les jetons d'état mesurés. */}
+                    <PuceEtat registre={registreDemandeBudget(request.status)}>
+                      {libelleDemandeBudget(request.status)}
+                    </PuceEtat>
                   </div>
                 ))}
                 {budgetRequests.length === 0 && (
@@ -396,57 +431,40 @@ export default function AdvancedReporting() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-paper-deep rounded-lg">
                 <p className="text-sm text-ink-soft">Sessions de diagnostic</p>
-                <p className="text-2xl font-bold text-signal-deep">{diagnosticStats?.totalSessions ?? 0}</p>
+                <p className="font-serif text-3xl text-signal-deep">{diagnosticStats?.totalSessions ?? 0}</p>
               </div>
               <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
                 <p className="text-sm text-ink-soft">Confiance moyenne</p>
-                <p className="text-2xl font-bold text-etat-encours-texte">{Math.round((diagnosticStats?.avgConfidence ?? 0) * 100)}%</p>
+                <p className="font-serif text-3xl text-etat-encours-texte">{Math.round((diagnosticStats?.avgConfidence ?? 0) * 100)}%</p>
               </div>
               <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
                 <p className="text-sm text-ink-soft">Taux de complétion</p>
-                <p className="text-2xl font-bold text-etat-nominal-texte">{diagnosticStats?.completionRate ?? 0}%</p>
+                <p className="font-serif text-3xl text-etat-nominal-texte">{diagnosticStats?.completionRate ?? 0}%</p>
               </div>
               <div className="text-center p-4 bg-etat-alerte-fond rounded-lg">
                 <p className="text-sm text-ink-soft">Part avec prédiction ML</p>
-                <p className="text-2xl font-bold text-etat-alerte-texte">{diagnosticStats?.mlPredictionRate ?? 0}%</p>
+                <p className="font-serif text-3xl text-etat-alerte-texte">{diagnosticStats?.mlPredictionRate ?? 0}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Performance Trends */}
-        <Card className="border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart className="h-5 w-5 text-etat-encours-texte" />
-              <span>Tendances de Performance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Coûts Maintenance</h4>
-                <p className="text-2xl font-bold text-etat-encours-texte">↓ 12%</p>
-                <p className="text-sm text-ink-soft">vs mois dernier</p>
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Temps d'Arrêt</h4>
-                <p className="text-2xl font-bold text-etat-nominal-texte">↓ 8%</p>
-                <p className="text-sm text-ink-soft">vs mois dernier</p>
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Interventions Préventives</h4>
-                <p className="text-2xl font-bold text-etat-encours-texte">↑ 15%</p>
-                <p className="text-sm text-ink-soft">vs mois dernier</p>
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Satisfaction Client</h4>
-                <p className="text-2xl font-bold text-signal-deep">96%</p>
-                <p className="text-sm text-ink-soft">Score NPS</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ⚠️ RETIRÉ : une carte « Tendances de Performance » dont les QUATRE
+            chiffres étaient écrits en dur dans le JSX — « Coûts Maintenance
+            ↓ 12 % », « Temps d'Arrêt ↓ 8 % », « Interventions Préventives
+            ↑ 15 % » et « Satisfaction Client 96 %, Score NPS ».
+
+            Aucun n'avait de source : ils ne venaient d'aucune des huit
+            requêtes de cette page, et la plateforme ne collecte NI tendance
+            mensuelle NI score NPS. Un industriel qui lit « ↓ 12 % de coûts
+            vs mois dernier » sur un parc qu'il vient de saisir n'a aucun
+            moyen de deviner que la phrase est décorative.
+
+            Le nettoyage du 11/10 avait traité les valeurs de REPLI de cette
+            page (MTBF 168,5 h, MTTR 4,2 h, OEE 87,3 %...) : celles-ci lui ont
+            échappé parce qu'elles ne sont pas des replis, mais du texte.
+
+            Ces mesures ont leur place ici le jour où une route les calcule. */}
       </div>
     </div>
     </AppShell>

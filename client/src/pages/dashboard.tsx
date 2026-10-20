@@ -393,7 +393,22 @@ export default function Dashboard() {
         )}
 
         {/* Reporting Section */}
-        {activeTab === "reporting" && <CaseReporting />}
+        {/* En-tête de niveau 2 : cette page porte déjà son propre <h1>. */}
+        {activeTab === "reporting" && (
+          <CaseReporting
+            enTete={
+              <div className="pb-6 border-b border-rule">
+                <p className="font-mono text-eyebrow uppercase text-ink-mute">Diagnostic</p>
+                <h2 className="font-serif text-page font-medium text-ink mt-1.5">
+                  Signaler un cas
+                </h2>
+                <p className="text-sm text-ink-soft mt-1.5 max-w-2xl">
+                  Les pannes qu'aucun diagnostic n'a su traiter, et ce qu'elles sont devenues.
+                </p>
+              </div>
+            }
+          />
+        )}
 
         {/* Data Import Section */}
         {activeTab === "import" && <DataImport />}

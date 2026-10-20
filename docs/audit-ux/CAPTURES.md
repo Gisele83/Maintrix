@@ -303,3 +303,28 @@ composants de charte sans en utiliser aucun — son titre était un `<h1 classNa
 font-bold">` écrit à la main. Elle porte maintenant le gabarit commun, quatre indicateurs
 calculés sur les données réelles, et le filtre par période qui n'existait que dans
 l'onglet du tableau de bord.
+
+---
+
+## Rapports — harmonisés, pas fusionnés (20 octobre 2026)
+
+### Reporting avancé
+
+![Après](captures/rapports-apres-advanced-reporting.jpg)
+
+En-tête de charte, et le « Périmètre de l'export » rassemblé avec les boutons qu'il
+commande — ces deux listes étaient posées en haut de page comme des filtres alors
+qu'elles ne touchent que le fichier exporté. La carte « Tendances de Performance », dont
+les quatre chiffres étaient écrits en dur (jusqu'à un « Score NPS » que la plateforme ne
+collecte pas), a été retirée. Les statuts des demandes budgétaires ne s'affichent plus en
+« pending » / « approved ».
+
+### Bilans mensuels
+
+![Après](captures/rapports-apres-bilans-mensuels.jpg)
+
+Cet onglet rendait une page **entièrement blanche** : `mtbf`, `mttr` et les coûts sont des
+colonnes `decimal`, que le pilote PostgreSQL renvoie en chaînes, et `.toFixed()` sur une
+chaîne lève une exception. Le défaut ne se déclenchait qu'une fois un bilan réellement
+enregistré — donc jamais sur une base de démonstration. Les valeurs s'affichent maintenant
+à la française : 97,5 %, 310 h, 9 277 €.

@@ -13,6 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { EnTetePage } from "@/components/app-shell";
+import { PuceEtat } from "@/components/indicateurs";
+import { type RegistreEtat } from "@/lib/etats";
 import { 
   FileText, 
   Plus, 
@@ -59,8 +62,8 @@ interface MaintenanceReport {
   followUpDate?: string;
   followUpNotes?: string;
   totalCost?: number;
-  laborCost?: number;
-  partsCost?: number;
+  laborCost?: number | string;
+  partsCost?: number | string;
   status: string;
   approvedBy?: string;
   approvalDate?: string;
@@ -79,23 +82,23 @@ interface MonthlyReport {
   generatedAt: string;
   totalEquipment?: number;
   activeEquipment?: number;
-  equipmentAvailability?: number;
+  equipmentAvailability?: number | string;
   totalWorkOrders?: number;
   completedWorkOrders?: number;
   preventiveWorkOrders?: number;
   correctiveWorkOrders?: number;
-  averageCompletionTime?: number;
-  mtbf?: number;
-  mttr?: number;
-  plannedMaintenanceRatio?: number;
-  maintenanceEfficiency?: number;
-  totalMaintenanceCost?: number;
-  laborCost?: number;
-  partsCost?: number;
-  contractorCost?: number;
-  costPerWorkOrder?: number;
+  averageCompletionTime?: number | string;
+  mtbf?: number | string;
+  mttr?: number | string;
+  plannedMaintenanceRatio?: number | string;
+  maintenanceEfficiency?: number | string;
+  totalMaintenanceCost?: number | string;
+  laborCost?: number | string;
+  partsCost?: number | string;
+  contractorCost?: number | string;
+  costPerWorkOrder?: number | string;
   partsConsumed?: number;
-  inventoryTurnover?: number;
+  inventoryTurnover?: number | string;
   stockouts?: number;
   emergencyPurchases?: number;
   totalAlerts?: number;
@@ -113,7 +116,17 @@ interface MonthlyReport {
   notes?: string;
 }
 
-export function MaintenanceReports() {
+interface ProprietesRapports {
+  /**
+   * En-tête fourni par l'écran hôte — même convention que les ordres de
+   * travail, l'historique et le préventif. Sans lui, cet onglet ne portait
+   * AUCUN titre de niveau 1 : son intitulé était un `<h2>` en
+   * `font-serif text-3xl text-ink`, et la GMAO le montait nu.
+   */
+  enTete?: React.ReactNode;
+}
+
+export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
   const [activeTab, setActiveTab] = useState<"intervention" | "monthly">("intervention");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -175,45 +188,107 @@ export function MaintenanceReports() {
     });
   };
 
+  /**
+   * Les deux branches `default` rendaient la VALEUR BRUTE du serveur. Ce
+   * n'était pas théorique : les seuls rapports présents en base portent
+   * `report_type = 'intervention'` et `status = 'completed'`, qu'aucun des
+   * deux dictionnaires ne couvrait. Relevé à l'écran le 20/10/2026, au
+   * milieu d'une page en français : « intervention » et « completed ».
+   *
+   * `completed` n'est d'ailleurs pas dans les valeurs que `shared/schema.ts`
+   * documente sur la colonne (« draft, approved, archived ») — c'est
+   * l'auto-génération de rapport qui l'écrit. Il est donc reconnu en lecture,
+   * comme `on_hold` l'est pour les ordres de travail.
+   */
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte">Approuvé</Badge>;
-      case "draft":
-        return <Badge className="bg-etat-alerte-fond text-etat-alerte-texte">Brouillon</Badge>;
-      case "generated":
-        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">Généré</Badge>;
-      case "reviewed":
-        return <Badge className="bg-paper-deep text-signal-deep">Révisé</Badge>;
-      default:
-        return <Badge className="bg-paper-deep text-ink">{status}</Badge>;
-    }
+    const table: Record<string, { libelle: string; registre: RegistreEtat }> = {
+      draft: { libelle: "Brouillon", registre: "alerte" },
+      generated: { libelle: "Généré", registre: "encours" },
+      completed: { libelle: "Terminé", registre: "nominal" },
+      reviewed: { libelle: "Révisé", registre: "encours" },
+      approved: { libelle: "Approuvé", registre: "nominal" },
+      archived: { libelle: "Archivé", registre: "neutre" },
+    };
+    const entree = table[status];
+    return (
+      <PuceEtat registre={entree?.registre ?? "neutre"}>{entree?.libelle ?? status ?? "—"}</PuceEtat>
+    );
   };
 
   const getReportTypeBadge = (type: string) => {
-    switch (type) {
-      case "preventive":
-        return <Badge className="bg-etat-nominal-fond text-etat-nominal-texte">Préventive</Badge>;
-      case "corrective":
-        return <Badge className="bg-etat-critique-fond text-etat-critique-texte">Corrective</Badge>;
-      case "inspection":
-        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">Inspection</Badge>;
-      default:
-        return <Badge className="bg-paper-deep text-ink">{type}</Badge>;
-    }
+    const table: Record<string, { libelle: string; registre: RegistreEtat }> = {
+      intervention: { libelle: "Intervention", registre: "encours" },
+      preventive: { libelle: "Préventive", registre: "nominal" },
+      corrective: { libelle: "Corrective", registre: "alerte" },
+      inspection: { libelle: "Inspection", registre: "encours" },
+    };
+    const entree = table[type];
+    return (
+      <PuceEtat registre={entree?.registre ?? "neutre"}>{entree?.libelle ?? type ?? "—"}</PuceEtat>
+    );
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return "N/A";
+  /**
+   * Les colonnes `mtbf`, `mttr`, `average_completion_time`,
+   * `equipment_availability` et les coûts sont des `decimal` PostgreSQL. Le
+   * pilote les renvoie en CHAÎNES, pas en nombres — alors que les interfaces
+   * de ce fichier les déclaraient `number`.
+   *
+   * Conséquence mesurée le 20/10/2026 : `report.mtbf?.toFixed(1)` levait
+   * « TypeError: pe.toFixed is not a function » et l'onglet « Bilans
+   * mensuels » rendait une PAGE BLANCHE dès qu'un bilan existait. Le défaut
+   * ne se voit pas tant que la table est vide — c'est-à-dire jamais pendant
+   * une démonstration sur une base neuve.
+   *
+   * `nombre` ramène la valeur à un nombre utilisable, ou à `null` si elle
+   * n'en est pas un. `null` s'affiche comme absent, jamais comme zéro.
+   */
+  const nombre = (valeur: unknown): number | null => {
+    if (valeur === null || valeur === undefined || valeur === "") return null;
+    const n = typeof valeur === "number" ? valeur : Number(valeur);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const formatCurrency = (amount?: number | string | null) => {
+    const n = nombre(amount);
+    if (n === null) return "—";
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
       currency: "EUR",
-    }).format(amount);
+      maximumFractionDigits: 0,
+    }).format(n);
   };
 
-  const formatPercentage = (value?: number) => {
-    if (!value) return "N/A";
-    return `${value.toFixed(1)}%`;
+  const formatPercentage = (value?: number | string | null) => {
+    const n = nombre(value);
+    if (n === null) return "—";
+    return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
+  };
+
+  /** Heures lisibles, à partir d'une valeur qui peut arriver en chaîne. */
+  const formatHeures = (valeur?: number | string | null) => {
+    const n = nombre(valeur);
+    if (n === null) return "—";
+    return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h`;
+  };
+
+  /** Remplissage d'une barre, borné à 100 %. Une valeur absente ne remplit rien. */
+  const jauge = (valeur: unknown, maximum: number): number => {
+    const n = nombre(valeur);
+    if (n === null || maximum <= 0) return 0;
+    return Math.min(100, Math.max(0, (n / maximum) * 100));
+  };
+
+  /**
+   * Part d'un total, en pourcentage. Un total nul ou absent ne donne pas une
+   * part de 0 % : il ne donne rien, et la barre reste vide — l'ancien code
+   * divisait par `|| 1`, ce qui transformait « pas de total » en « 100 % ».
+   */
+  const part = (valeur: unknown, total: unknown): number => {
+    const n = nombre(valeur);
+    const t = nombre(total);
+    if (n === null || t === null || t === 0) return 0;
+    return Math.min(100, Math.max(0, (n / t) * 100));
   };
 
   const openAnalyticsModal = (report: MonthlyReport) => {
@@ -360,8 +435,8 @@ export function MaintenanceReports() {
     <Card className="p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-sm font-medium text-ink-soft">{title}</p>
+          <p className="font-serif text-3xl text-ink">{value}</p>
         </div>
         <div className={`p-3 rounded-lg ${color}`}>
           <div className="w-5 h-5">{icon}</div>
@@ -377,7 +452,7 @@ export function MaintenanceReports() {
     
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <h3 className="font-serif text-title font-medium text-ink mb-4">{title}</h3>
         <div className="space-y-3">
           {Object.entries(data).map(([key, value], index) => {
             const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
@@ -390,7 +465,7 @@ export function MaintenanceReports() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{String(value)}</span>
-                  <span className="text-xs text-muted-foreground">({percentage.toFixed(1)}%)</span>
+                  <span className="text-xs text-ink-soft">({percentage.toFixed(1)}%)</span>
                 </div>
               </div>
             );
@@ -402,31 +477,42 @@ export function MaintenanceReports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-ink">
-            Rapports de Maintenance
-          </h2>
-          <p className="text-muted-foreground">Génération et consultation des rapports d'intervention et mensuels</p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === "intervention" ? "default" : "outline"}
-            onClick={() => setActiveTab("intervention")}
-            className="bg-paper-deep"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Rapports d'Intervention
-          </Button>
-          <Button
-            variant={activeTab === "monthly" ? "default" : "outline"}
-            onClick={() => setActiveTab("monthly")}
-            className="bg-paper-deep"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Rapports Mensuels
-          </Button>
+      {enTete ?? (
+        <EnTetePage
+          surTitre="GMAO"
+          titre="Rapports de maintenance"
+          phrase="Les rapports d'intervention et les bilans mensuels, consultables et exportables en PDF."
+        />
+      )}
+
+      {/* Deux familles de rapports, donc deux onglets — et non deux boutons
+          qui se ressemblent. Le soulignement dit lequel est ouvert ; c'est le
+          même motif que la navigation de la GMAO. */}
+      <div className="border-b border-rule" role="tablist" aria-label="Famille de rapports">
+        <div className="flex gap-6">
+          {([
+            { id: "intervention", libelle: "Rapports d'intervention", icone: FileText },
+            { id: "monthly", libelle: "Bilans mensuels", icone: BarChart3 },
+          ] as const).map((onglet) => {
+            const Icone = onglet.icone;
+            const actif = activeTab === onglet.id;
+            return (
+              <button
+                key={onglet.id}
+                role="tab"
+                aria-selected={actif}
+                onClick={() => setActiveTab(onglet.id)}
+                className={`inline-flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal ${
+                  actif
+                    ? "border-signal text-ink font-medium"
+                    : "border-transparent text-ink-soft hover:text-ink"
+                }`}
+              >
+                <Icone className="w-4 h-4" aria-hidden="true" />
+                {onglet.libelle}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -446,13 +532,13 @@ export function MaintenanceReports() {
               {loadingReports ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement des rapports...</p>
+                  <p className="mt-2 text-ink-soft">Chargement des rapports...</p>
                 </div>
               ) : (maintenanceReports as MaintenanceReport[]).length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Aucun rapport d'intervention disponible</p>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <FileText className="w-12 h-12 mx-auto text-ink-soft mb-4" />
+                  <p className="text-ink-soft">Aucun rapport d'intervention disponible</p>
+                  <p className="text-sm text-ink-soft mt-2">
                     Les rapports sont générés automatiquement lors de la completion des ordres de travail
                   </p>
                 </div>
@@ -464,7 +550,7 @@ export function MaintenanceReports() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h3 className="font-semibold text-lg">{report.reportNumber}</h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-ink-soft">
                               {format(new Date(report.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
                             </p>
                           </div>
@@ -622,13 +708,13 @@ export function MaintenanceReports() {
               {loadingMonthly ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement des rapports mensuels...</p>
+                  <p className="mt-2 text-ink-soft">Chargement des rapports mensuels...</p>
                 </div>
               ) : (monthlyReports as MonthlyReport[]).length === 0 ? (
                 <div className="text-center py-8">
-                  <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Aucun rapport mensuel disponible</p>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <BarChart3 className="w-12 h-12 mx-auto text-ink-soft mb-4" />
+                  <p className="text-ink-soft">Aucun rapport mensuel disponible</p>
+                  <p className="text-sm text-ink-soft mt-2">
                     Générez votre premier rapport mensuel pour commencer l'analyse des performances
                   </p>
                 </div>
@@ -640,10 +726,10 @@ export function MaintenanceReports() {
                         <div className="flex justify-between items-start mb-6">
                           <div>
                             <h3 className="font-semibold text-xl">{report.reportNumber}</h3>
-                            <p className="text-muted-foreground">
+                            <p className="text-ink-soft">
                               Rapport pour {format(new Date(report.periodStart), "MMMM yyyy", { locale: fr })}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-ink-soft">
                               Généré le {format(new Date(report.generatedAt), "dd/MM/yyyy à HH:mm", { locale: fr })}
                             </p>
                           </div>
@@ -664,7 +750,7 @@ export function MaintenanceReports() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Disponibilité</p>
-                                <p className="text-2xl font-bold">{formatPercentage(report.equipmentAvailability)}</p>
+                                <p className="font-serif text-3xl text-ink">{formatPercentage(report.equipmentAvailability)}</p>
                               </div>
                             </div>
                           </Card>
@@ -676,7 +762,7 @@ export function MaintenanceReports() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTBF</p>
-                                <p className="text-2xl font-bold">{report.mtbf?.toFixed(1) || 0}h</p>
+                                <p className="font-serif text-3xl text-ink">{formatHeures(report.mtbf)}</p>
                               </div>
                             </div>
                           </Card>
@@ -688,7 +774,7 @@ export function MaintenanceReports() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTTR</p>
-                                <p className="text-2xl font-bold">{report.mttr?.toFixed(1) || 0}h</p>
+                                <p className="font-serif text-3xl text-ink">{formatHeures(report.mttr)}</p>
                               </div>
                             </div>
                           </Card>
@@ -700,7 +786,7 @@ export function MaintenanceReports() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Coût Total</p>
-                                <p className="text-2xl font-bold">{formatCurrency(report.totalMaintenanceCost)}</p>
+                                <p className="font-serif text-3xl text-ink">{formatCurrency(report.totalMaintenanceCost)}</p>
                               </div>
                             </div>
                           </Card>
@@ -780,7 +866,7 @@ export function MaintenanceReports() {
 
                         <div className="mt-6 flex justify-between items-center">
                           <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-ink-soft">
                               Généré par: {report.generatedBy || "Système"}
                             </span>
                           </div>
@@ -870,30 +956,30 @@ export function MaintenanceReports() {
               {/* Detailed Metrics */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Métriques de Fiabilité</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Métriques de Fiabilité</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">MTBF (Temps Moyen Entre Pannes)</span>
-                      <span className="font-medium">{selectedMonthlyReport.mtbf?.toFixed(1)}h</span>
+                      <span className="font-medium">{formatHeures(selectedMonthlyReport.mtbf)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.mtbf || 0) / 200 * 100} className="h-2" />
+                    <Progress value={jauge(selectedMonthlyReport.mtbf, 200)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">MTTR (Temps Moyen de Réparation)</span>
-                      <span className="font-medium">{selectedMonthlyReport.mttr?.toFixed(1)}h</span>
+                      <span className="font-medium">{formatHeures(selectedMonthlyReport.mttr)}</span>
                     </div>
-                    <Progress value={Math.max(0, 100 - (selectedMonthlyReport.mttr || 0) * 10)} className="h-2" />
+                    <Progress value={Math.max(0, 100 - (nombre(selectedMonthlyReport.mttr) ?? 0) * 10)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Disponibilité Équipements</span>
                       <span className="font-medium">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</span>
                     </div>
-                    <Progress value={selectedMonthlyReport.equipmentAvailability || 0} className="h-2" />
+                    <Progress value={nombre(selectedMonthlyReport.equipmentAvailability) ?? 0} className="h-2" />
                   </div>
                 </Card>
 
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Analyse des Coûts</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Analyse des Coûts</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Coût Total</span>
@@ -904,13 +990,13 @@ export function MaintenanceReports() {
                       <span className="text-sm">Main d'œuvre</span>
                       <span className="font-medium">{formatCurrency(selectedMonthlyReport.laborCost)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.laborCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                    <Progress value={part(selectedMonthlyReport.laborCost, selectedMonthlyReport.totalMaintenanceCost)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Pièces détachées</span>
                       <span className="font-medium">{formatCurrency(selectedMonthlyReport.partsCost)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.partsCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                    <Progress value={part(selectedMonthlyReport.partsCost, selectedMonthlyReport.totalMaintenanceCost)} className="h-2" />
                   </div>
                 </Card>
               </div>
@@ -918,7 +1004,7 @@ export function MaintenanceReports() {
               {/* Recommendations */}
               {selectedMonthlyReport.recommendations && selectedMonthlyReport.recommendations.length > 0 && (
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Recommandations d'Amélioration</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Recommandations d'Amélioration</h3>
                   <div className="space-y-3">
                     {selectedMonthlyReport.recommendations.map((rec, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 bg-etat-encours-fond rounded-lg">
@@ -984,30 +1070,30 @@ export function MaintenanceReports() {
 
               {/* Performance Indicators */}
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Indicateurs de Performance</h3>
+                <h3 className="font-serif text-title font-medium text-ink mb-4">Indicateurs de Performance</h3>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto bg-etat-nominal-fond rounded-full flex items-center justify-center mb-2">
                       <Activity className="w-8 h-8 text-etat-nominal-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-etat-nominal-texte">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
-                    <p className="text-sm text-muted-foreground">Disponibilité</p>
+                    <p className="font-serif text-3xl text-etat-nominal-texte">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
+                    <p className="text-sm text-ink-soft">Disponibilité</p>
                   </div>
                   
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto bg-etat-encours-fond rounded-full flex items-center justify-center mb-2">
                       <Clock className="w-8 h-8 text-etat-encours-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-etat-encours-texte">{selectedMonthlyReport.averageCompletionTime?.toFixed(1)}h</p>
-                    <p className="text-sm text-muted-foreground">Temps Moyen</p>
+                    <p className="font-serif text-3xl text-etat-encours-texte">{formatHeures(selectedMonthlyReport.averageCompletionTime)}</p>
+                    <p className="text-sm text-ink-soft">Temps Moyen</p>
                   </div>
                   
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto bg-paper-deep rounded-full flex items-center justify-center mb-2">
                       <Target className="w-8 h-8 text-signal-deep" />
                     </div>
-                    <p className="text-2xl font-bold text-signal-deep">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
-                    <p className="text-sm text-muted-foreground">Efficacité</p>
+                    <p className="font-serif text-3xl text-signal-deep">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
+                    <p className="text-sm text-ink-soft">Efficacité</p>
                   </div>
                 </div>
               </Card>
@@ -1015,7 +1101,7 @@ export function MaintenanceReports() {
               {/* Trends and Alerts */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Tendances du Mois</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Tendances du Mois</h3>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 bg-etat-nominal-fond rounded-lg">
                       <TrendingUp className="w-5 h-5 text-etat-nominal-texte" />
@@ -1033,7 +1119,7 @@ export function MaintenanceReports() {
                 </Card>
 
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Résumé des Alertes</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Résumé des Alertes</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Total alertes</span>

@@ -671,3 +671,76 @@ pas de doublon d'implémentation : elle relève du lot 3.
 4. La capacité perdue à l'écran : `/api/history` agrégeait aussi les **sessions de
    diagnostic** et les **exécutions de plans préventifs** des 90 derniers jours. Elle
    reviendra quand une route cloisonnée les exposera.
+
+---
+
+## 15. Les trois écrans de rapports, harmonisés — 20 octobre 2026
+
+Ils ne sont pas fusionnés : ce sont trois objets métier distincts, sans aucun endpoint
+commun (§14.5). Ils partagent désormais le gabarit, le vocabulaire et les jetons d'état.
+
+### 15.1 Ce qui manquait
+
+| | advanced-reporting | maintenance-reports | case-reporting |
+|---|---|---|---|
+| Gabarit commun | `AppShell` seul | **aucun** | **aucun** |
+| Titre de niveau 1 | oui, écrit à la main | **aucun** | **aucun** |
+| Échelle typographique | 13 tailles en dur | 9 en dur | 3 en dur |
+
+L'onglet « Rapports » de la GMAO et l'onglet « Signalement » du tableau de bord n'avaient
+donc **aucun titre**, ni à l'écran ni pour un lecteur d'écran : leur intitulé vivait dans
+un `CardTitle`, c'est-à-dire un `<div>`.
+
+### 15.2 Deux pages blanches de plus, et des chiffres inventés
+
+**L'onglet « Bilans mensuels » rendait une page entièrement blanche.** Les colonnes
+`mtbf`, `mttr`, `average_completion_time`, `equipment_availability` et les coûts sont des
+`decimal` PostgreSQL : le pilote les renvoie en **chaînes**, alors que les interfaces du
+fichier les déclaraient `number`. `report.mtbf?.toFixed(1)` levait donc
+« TypeError: pe.toFixed is not a function ». Invisible tant que la table est vide —
+c'est-à-dire pendant toute démonstration sur une base neuve.
+
+Corriger le type a fait apparaître **sept autres endroits** qui faisaient de
+l'arithmétique sur ces chaînes, dont deux barres de progression calculées sur
+`(valeur || 0) / (total || 1)` — une division qui transformait « pas de total » en
+« 100 % ».
+
+**Des chiffres écrits en clair dans le balisage**, que le garde-fou existant ne voyait pas
+(il traque les valeurs de repli, pas le texte) :
+
+- `advanced-reporting` — une carte « Tendances de Performance » entière : « Coûts
+  Maintenance ↓ 12 % », « Temps d'Arrêt ↓ 8 % », « Interventions Préventives ↑ 15 % »,
+  « Satisfaction Client 96 %, Score NPS ». La plateforme ne collecte ni tendance mensuelle
+  ni NPS. Carte retirée ;
+- `advanced-reporting` — « Vue Budgétaire **2025** », affiché en 2026 au-dessus de
+  chiffres de l'exercice courant. L'année est retirée ;
+- `tenant-management` (trouvé au passage) — « 847 diagnostics ce mois », « 2.3k
+  interventions totales », « 94 % de taux de résolution », identiques pour **chaque**
+  locataire sélectionné, y compris un locataire créé à l'instant ; et une tuile
+  « Conformité RGPD 100 % » qu'aucun contrôle ne calcule. Les deux sont retirées.
+
+Un garde-fou couvre désormais ce troisième motif : aucun pourcentage ni effectif littéral
+rendu comme une mesure.
+
+### 15.3 Le vocabulaire
+
+Trois dictionnaires rendaient encore la valeur brute du serveur dans leur branche
+`default` — et ce n'était pas théorique :
+
+- demandes budgétaires : « pending », « approved » relevés à l'écran ;
+- rapports : « intervention », « completed » — les seules valeurs réellement présentes en
+  base, qu'aucune des deux tables de correspondance ne couvrait. `completed` n'est
+  d'ailleurs pas dans les valeurs que `shared/schema.ts` documente (« draft, approved,
+  archived ») : c'est l'auto-génération qui l'écrit, et il est reconnu en lecture comme
+  `on_hold` l'est pour les ordres de travail.
+
+Tous passent maintenant par `PuceEtat` et les jetons d'état, dont le contraste est mesuré.
+
+### 15.4 Le périmètre d'export, qui n'était pas un filtre
+
+Sur `advanced-reporting`, les listes « période » et « département » étaient posées en haut
+de page, à l'emplacement des filtres. Elles ne sont lues que par `exportReport` : choisir
+« Cette semaine » ne changeait rien à l'écran, ce qui laissait croire soit à une panne,
+soit — plus grave — que les chiffres affichés étaient hebdomadaires. Elles sont
+rassemblées avec les boutons qu'elles commandent, sous l'intitulé « Périmètre de
+l'export » et une phrase qui le dit.

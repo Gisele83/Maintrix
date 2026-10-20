@@ -1071,7 +1071,15 @@ export default function GMAODashboard() {
         )}
 
         {showAdminModal && activeAdminTab === "reports" && (
-          <MaintenanceReports />
+          <MaintenanceReports
+            enTete={
+              <EnTetePage
+                surTitre="GMAO"
+                titre="Rapports de maintenance"
+                phrase="Les rapports d'intervention et les bilans mensuels, consultables et exportables en PDF."
+              />
+            }
+          />
         )}
 
         {showAdminModal && activeAdminTab === "analytics" && (

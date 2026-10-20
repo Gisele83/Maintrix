@@ -157,3 +157,58 @@ describe('Aucun chiffre inventé en l\'absence de données', () => {
     expect(methode![0]).toContain('eq(workOrders.tenantId, tenantId)');
   });
 });
+
+describe('Aucun chiffre de performance écrit en clair dans le JSX', () => {
+  /*
+   * Le garde-fou précédent traque les valeurs de REPLI (`donnee?.champ || 42`)
+   * et les séries constantes. Il ne voyait pas un troisième motif, plus
+   * grossier : le chiffre écrit directement dans le balisage.
+   *
+   * Trouvé le 20/10/2026 en harmonisant les écrans de rapports :
+   *
+   *   • `advanced-reporting.tsx` — une carte « Tendances de Performance »
+   *     entière : « Coûts Maintenance ↓ 12 % », « Temps d'Arrêt ↓ 8 % »,
+   *     « Interventions Préventives ↑ 15 % », « Satisfaction Client 96 %,
+   *     Score NPS ». La plateforme ne collecte ni tendance mensuelle ni NPS ;
+   *   • `tenant-management.tsx` — « 847 diagnostics ce mois », « 2.3k
+   *     interventions totales », « 94 % de taux de résolution », affichés à
+   *     l'identique pour chaque locataire, et « Conformité RGPD 100 % ».
+   *
+   * Un pourcentage écrit en dur ne lève aucune erreur, ne dépend d'aucune
+   * donnée, et se lit exactement comme une mesure.
+   */
+  it('aucun pourcentage littéral n\'est rendu comme une mesure', () => {
+    // `>96%<`, `>↓ 12%<` : un nœud de texte JSX qui ne contient qu'un nombre
+    // suivi de `%`, éventuellement précédé d'une flèche de tendance.
+    const POURCENTAGE_LITTERAL = />\s*[↑↓→]?\s*\d+([.,]\d+)?\s*%\s*</;
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (POURCENTAGE_LITTERAL.test(texte)) {
+          fautifs.push(`${fichier.replace(RACINE, '')}:${n} → ${texte.trim().slice(0, 70)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('aucun effectif littéral n\'est rendu comme une mesure', () => {
+    /*
+     * « 847 », « 2.3k » : trois chiffres ou plus, ou un suffixe k/M, seuls
+     * dans un nœud de texte. Les petits nombres sont exclus : un « 0 » ou un
+     * « 1 » littéral est presque toujours une légende, pas une statistique.
+     */
+    const EFFECTIF_LITTERAL = />\s*(\d{3,}|\d+([.,]\d+)?\s*[kKmM])\s*</;
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        // Les années et les codes HTTP ne sont pas des mesures inventées.
+        if (/\b(19|20)\d{2}\b|\b(200|201|204|301|302|400|401|403|404|409|422|429|500|503)\b/.test(texte)) continue;
+        if (EFFECTIF_LITTERAL.test(texte)) {
+          fautifs.push(`${fichier.replace(RACINE, '')}:${n} → ${texte.trim().slice(0, 70)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});

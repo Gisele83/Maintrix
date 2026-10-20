@@ -214,20 +214,11 @@ const TenantManagement: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-etat-alerte-fond rounded-lg">
-                <Shield className="w-6 h-6 text-etat-alerte-texte" />
-              </div>
-              <div>
-                <p className="text-sm text-ink-soft">Conformité RGPD</p>
-                <p className="text-2xl font-bold">100%</p>
-                <p className="text-xs text-ink-mute">Tenants conformes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ⚠️ RETIRÉ : une tuile « Conformité RGPD — 100 % — Tenants
+            conformes ». Ce taux n'était calculé nulle part ; aucun contrôle
+            de conformité n'existe dans cette base. Afficher 100 % de
+            conformité réglementaire sans l'avoir mesurée est précisément le
+            genre d'affirmation qu'un audit vient vérifier. */}
       </div>
 
       {/* Main Content */}
@@ -335,31 +326,14 @@ const TenantManagement: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Usage Stats */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Statistiques d'utilisation
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
-                        <div className="text-2xl font-bold text-etat-encours-texte">847</div>
-                        <div className="text-sm text-ink-soft">Diagnostics ce mois</div>
-                      </div>
-                      <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
-                        <div className="text-2xl font-bold text-etat-nominal-texte">2.3k</div>
-                        <div className="text-sm text-ink-soft">Interventions totales</div>
-                      </div>
-                      <div className="text-center p-4 bg-paper-deep rounded-lg">
-                        <div className="text-2xl font-bold text-signal-deep">94%</div>
-                        <div className="text-sm text-ink-soft">Taux de résolution</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* ⚠️ RETIRÉ : une carte « Statistiques d'utilisation » dont
+                    les trois chiffres étaient écrits en dur — « 847
+                    diagnostics ce mois », « 2.3k interventions totales »,
+                    « 94 % de taux de résolution ». Ils s'affichaient à
+                    l'identique pour CHAQUE locataire sélectionné, y compris
+                    un locataire créé à l'instant. Aucune de ces mesures n'est
+                    calculée nulle part : le super-administrateur lisait une
+                    activité qui n'existait pas. */}
               </TabsContent>
 
               {/* Security Tab */}

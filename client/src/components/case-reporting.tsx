@@ -29,7 +29,19 @@ const reportSchema = z.object({
 
 type ReportForm = z.infer<typeof reportSchema>;
 
-export function CaseReporting() {
+interface ProprietesSignalement {
+  /**
+   * En-tête fourni par l'écran hôte — même convention que les ordres de
+   * travail, l'historique et le préventif. Ce composant ne portait aucun
+   * titre de niveau 1 ni 2 : son intitulé vivait dans un `CardTitle`,
+   * c'est-à-dire un `<div>`. L'onglet « Signalement » du tableau de bord
+   * n'avait donc pas de titre du tout, ni à l'écran ni pour un lecteur
+   * d'écran.
+   */
+  enTete?: React.ReactNode;
+}
+
+export function CaseReporting({ enTete }: ProprietesSignalement = {}) {
   const { language } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -133,7 +145,9 @@ export function CaseReporting() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="space-y-6">
+      {enTete}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Report Form */}
       <Card className="border border-rule shadow-sm">
         <CardHeader className="border-b border-rule">
@@ -368,19 +382,19 @@ export function CaseReporting() {
             <h4 className="font-medium text-ink mb-3">{t("reportStatistics", language)}</h4>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-signal">
+                <div className="font-serif text-3xl text-signal">
                   {reportedCases.filter((c: any) => c.status === "pending").length}
                 </div>
                 <div className="text-xs text-ink-soft">{t("inProgress", language)}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-etat-nominal-texte">
+                <div className="font-serif text-3xl text-etat-nominal-texte">
                   {reportedCases.filter((c: any) => c.status === "resolved").length}
                 </div>
                 <div className="text-xs text-ink-soft">{t("resolved", language)}</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-etat-alerte-texte">
+                <div className="font-serif text-3xl text-etat-alerte-texte">
                   {reportedCases.filter((c: any) => {
                     const caseDate = new Date(c.createdAt);
                     const thisMonth = new Date();
@@ -394,6 +408,7 @@ export function CaseReporting() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
