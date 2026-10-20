@@ -78,9 +78,25 @@ export function EquipmentHealthDashboard() {
   const [timeRange, setTimeRange] = useState<string>("24h");
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Fetch equipment health data
+  // ⚠️ Cette clé était `["/api/equipment/health", selectedEquipment, timeRange]`,
+  // soit trois éléments. Or la `queryFn` par défaut du projet construit l'URL
+  // par `queryKey.join("/")` (client/src/lib/queryClient.ts) : la requête
+  // partait donc vers `/api/equipment/health/all/24h`, que le serveur
+  // n'enregistre pas. Mesuré au navigateur sur l'écran « Santé des machines » :
+  //
+  //     GET /api/equipment/health/all/24h  ->  404 Not Found
+  //
+  // L'écran ne plantait pas — il gardait son titre, ses filtres et ses onglets —
+  // mais restait vide, et la seule trace du défaut était dans la console.
+  //
+  // La route attend ces deux valeurs en PARAMÈTRES DE REQUÊTE, et traite
+  // explicitement `equipmentId=all` (server/equipment-health-routes.ts). On
+  // les passe donc ainsi, dans une clé d'UN SEUL élément pour que la jointure
+  // rende l'URL telle quelle — le motif déjà employé ailleurs, par exemple
+  // `queryKey: ['/api/budgets?year=...']` dans client/src/pages/budget.tsx.
+  // La clé continue de varier avec les deux filtres, donc le cache reste juste.
   const { data: healthData = [], isLoading } = useQuery<EquipmentHealth[]>({
-    queryKey: ["/api/equipment/health", selectedEquipment, timeRange],
+    queryKey: [`/api/equipment/health?equipmentId=${selectedEquipment}&timeRange=${timeRange}`],
   });
 
 

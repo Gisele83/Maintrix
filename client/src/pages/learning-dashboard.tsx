@@ -57,8 +57,26 @@ export default function LearningDashboard() {
   const queryClient = useQueryClient();
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
 
+  // ⚠️ Même défaut que sur « Santé des machines », et plus sournois ici parce
+  // qu'il est CONDITIONNEL. La clé était à deux éléments, et la `queryFn` par
+  // défaut construit l'URL par `queryKey.join("/")` :
+  //
+  //     filtre « all »   -> /api/learning-metrics/        -> 200  (la barre
+  //                                                          finale passe)
+  //     un équipement    -> /api/learning-metrics/pompe   -> 404
+  //
+  // L'écran fonctionnait donc tant qu'on ne se servait pas du filtre, et
+  // cessait de rendre quoi que ce soit dès qu'on l'utilisait — le genre de
+  // défaut qu'une capture d'écran à l'état initial ne montre jamais.
+  //
+  // La route lit `equipmentType` dans les paramètres de requête
+  // (server/routes.ts). On l'y passe, et on n'ajoute le paramètre que s'il
+  // filtre réellement, pour ne pas envoyer `equipmentType=all`, que la route
+  // ne connaît pas.
   const { data: learningMetrics = [], isLoading: metricsLoading } = useQuery<LearningMetrics[]>({
-    queryKey: ["/api/learning-metrics", selectedEquipment !== "all" ? selectedEquipment : undefined],
+    queryKey: [selectedEquipment !== "all"
+      ? `/api/learning-metrics?equipmentType=${encodeURIComponent(selectedEquipment)}`
+      : "/api/learning-metrics"],
     retry: false,
   });
 
