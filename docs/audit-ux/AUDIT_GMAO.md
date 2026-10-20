@@ -744,3 +744,80 @@ de page, à l'emplacement des filtres. Elles ne sont lues que par `exportReport`
 soit — plus grave — que les chiffres affichés étaient hebdomadaires. Elles sont
 rassemblées avec les boutons qu'elles commandent, sous l'intitulé « Périmètre de
 l'export » et une phrase qui le dit.
+
+---
+
+## 16. Revue systématique des deux défauts — 20 octobre 2026
+
+Quatre pages blanches ont été trouvées en réunissant les écrans. Toutes relevaient de
+deux causes seulement. Cette revue cherche les mêmes causes partout ailleurs.
+
+### 16.1 Les colonnes `decimal` arrivent en chaînes
+
+Le pilote PostgreSQL rend `numeric` / `decimal` — et les `COUNT()`, qui sont des
+`bigint` — sous forme de **chaînes**, pour ne pas perdre de précision. Le schéma en
+compte 68. Ce que cela produit dépend de l'opérateur, et c'est ce qui rend le défaut
+difficile à voir :
+
+| Opération | Résultat sur une chaîne |
+|---|---|
+| `.toFixed()` | **TypeError** → page blanche |
+| `+` | **concaténation** : « 0 » + « 150.00 » = « 0150.00 » |
+| `-`, `*`, `/` | conversion implicite, résultat **juste** |
+| `<`, `>` entre deux chaînes | comparaison **lexicographique** : « 9.00 » > « 10.00 » |
+
+C'est parce que la division fonctionne que le problème passe pour anecdotique.
+
+**Méthode.** Chercher les noms de champs dans le schéma sur-déclare : `sensor.value` et
+`plan.yearlyPrice` portent le nom d'une colonne `decimal`, mais leurs routes calculent la
+valeur en JavaScript et renvoient de vrais nombres — vérifié. Les **123 routes** que lit
+l'interface ont donc été interrogées une à une sur l'environnement de test, et leurs
+réponses inspectées à la recherche de nombres écrits en chaîne.
+
+**Résultat : 12 champs sur 5 routes.**
+
+| Route | Champs |
+|---|---|
+| `/api/purchase-orders` | `totalAmount` = `"1234.56"` |
+| `/api/monthly-reports` | `mtbf`, `mttr`, `equipmentAvailability`, `totalMaintenanceCost` |
+| `/api/maintenance-reports` | `totalCost`, `laborCost`, `partsCost` |
+| `/api/admin/federated-analytics` | `totalContributions`, `totalActiveTenants` |
+| `/api/admin/tenants` | `monthlyActivity`, `federatedContributions` |
+
+Croisés avec l'usage côté client, **un seul** produisait encore un défaut :
+`order.totalAmount.toFixed(2)` — l'onglet « Achats » de la GMAO rendait une page blanche
+dès qu'un seul bon de commande existait. **C'était la quatrième.** Les autres passent
+déjà par un formateur qui convertit, ou ne sont pas lus.
+
+Les conversions vivent désormais dans `client/src/lib/donnees.ts` : `nombre`, `montant`,
+`pourcentage`, `heures`, `somme`, `moyenne`, `part`, `liste`, `dateCourte`. Un seul
+endroit sait traduire ce que le serveur envoie.
+
+### 16.2 Les réponses qui n'ont pas la forme attendue
+
+`lib/queryClient.ts` traite depuis §14 un refus servi en HTTP 200 comme une erreur. Mais
+ce contrôle ne s'applique qu'à ce qui passe par lui : **onze `queryFn` faisaient un
+`fetch` brut suivi de `.json()`**, donc sans `throwIfResNotOk` ni contrôle du refus. Deux
+d'entre elles n'avaient même aucune vérification de `response.ok` : la réponse d'une
+erreur 500 devenait la donnée affichée.
+
+Toutes passent maintenant par `apiRequest` — portail client, journal cryptographique,
+import/export, analyses prédictives, IMCA, optimiseur multi-actifs, simulation
+prospective et validation sécurisée (deux fois). Au passage, l'en-tête
+`Authorization: Bearer` que posait la validation sécurisée n'était lu par **aucun**
+handler : ces routes s'appuient sur la session en cookie.
+
+### 16.3 Au passage : une date absente affichée comme une vraie date
+
+`new Date(null)` vaut le 1er janvier 1970. Un bon de commande sans date de livraison
+affichait « Livraison prévue : 01/01/1970 ». Corrigé par `dateCourte`, qui écrit « — ».
+Le client compte 183 appels à `new Date(` ; celui-ci est le seul dont le défaut ait été
+constaté à l'écran, les autres n'ont pas été revus un par un.
+
+### 16.4 Ce que les garde-fous retiennent désormais
+
+- aucun `.toFixed()` sur un champ monétaire ou une métrique de fiabilité ;
+- les interfaces ne déclarent plus `number` pour un champ `decimal` — c'est ce mensonge
+  de type qui masquait le défaut, et le corriger avait fait apparaître sept calculs faux ;
+- aucune `queryFn` ne contourne le contrôle des réponses ;
+- les conversions restent dans un seul module.

@@ -183,9 +183,7 @@ export default function MultiAssetOptimizerPage() {
   const { data: fleetData, isLoading, refetch } = useQuery<FleetResult>({
     queryKey: ["/api/multi-asset/fleet", budget, maxTechDays],
     queryFn: () =>
-      fetch(`/api/multi-asset/fleet?totalBudget=${budget}&maxTechDays=${maxTechDays}`, {
-        credentials: "include",
-      }).then(r => r.json()),
+      apiRequest(`/api/multi-asset/fleet?totalBudget=${budget}&maxTechDays=${maxTechDays}`),
     enabled: true,
     staleTime: 30000,
   });

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { ModernNavigation } from "@/components/modern-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,17 +182,13 @@ export default function CryptoJournalPage() {
   const { data: chainData, refetch: refetchChain, isLoading: loadingChain } = useQuery<{ chain: JournalEntry[]; genesisHash: string; domain: string }>({
     queryKey: ["/api/crypto-journal/chain", domainFilter],
     queryFn: () =>
-      fetch(`/api/crypto-journal/chain?n=40${domainFilter !== "ALL" ? `&domain=${domainFilter}` : ""}`, {
-        credentials: "include",
-      }).then(r => r.json()),
+      apiRequest(`/api/crypto-journal/chain?n=40${domainFilter !== "ALL" ? `&domain=${domainFilter}` : ""}`),
   });
 
   const { data: verifyData, refetch: refetchVerify } = useQuery<VerifyResult>({
     queryKey: ["/api/crypto-journal/verify", domainFilter],
     queryFn: () =>
-      fetch(`/api/crypto-journal/verify${domainFilter !== "ALL" ? `/${domainFilter}` : ""}`, {
-        credentials: "include",
-      }).then(r => r.json()),
+      apiRequest(`/api/crypto-journal/verify${domainFilter !== "ALL" ? `/${domainFilter}` : ""}`),
     enabled: false,
   });
 

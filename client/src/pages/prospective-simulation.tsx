@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { ModernNavigation } from "@/components/modern-navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -302,18 +303,12 @@ export default function ProspectiveSimulationPage() {
 
   const { data: fleet, isLoading: fleetLoading, refetch: refetchFleet } = useQuery<{ results: FleetItem[]; totalEquipment: number; criticalCount: number }>({
     queryKey: ["/api/prospective/fleet-summary", deferDays],
-    queryFn: async () => {
-      const r = await fetch(`/api/prospective/fleet-summary?deferDays=${deferDays}`, { credentials: "include" });
-      return r.json();
-    },
+    queryFn: () => apiRequest(`/api/prospective/fleet-summary?deferDays=${deferDays}`),
   });
 
   const { data: sim, isLoading: simLoading } = useQuery<SimResult>({
     queryKey: ["/api/prospective/simulate", selectedId, deferDays],
-    queryFn: async () => {
-      const r = await fetch(`/api/prospective/simulate/${selectedId}?deferDays=${deferDays}`, { credentials: "include" });
-      return r.json();
-    },
+    queryFn: () => apiRequest(`/api/prospective/simulate/${selectedId}?deferDays=${deferDays}`),
     enabled: selectedId !== null,
   });
 

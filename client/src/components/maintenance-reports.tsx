@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { montant, pourcentage, heures, part, nombre } from "@/lib/donnees";
 import { EnTetePage } from "@/components/app-shell";
 import { PuceEtat } from "@/components/indicateurs";
 import { type RegistreEtat } from "@/lib/etats";
@@ -61,7 +62,7 @@ interface MaintenanceReport {
   followUpRequired: boolean;
   followUpDate?: string;
   followUpNotes?: string;
-  totalCost?: number;
+  totalCost?: number | string;
   laborCost?: number | string;
   partsCost?: number | string;
   status: string;
@@ -230,66 +231,18 @@ export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
 
   /**
    * Les colonnes `mtbf`, `mttr`, `average_completion_time`,
-   * `equipment_availability` et les coûts sont des `decimal` PostgreSQL. Le
-   * pilote les renvoie en CHAÎNES, pas en nombres — alors que les interfaces
-   * de ce fichier les déclaraient `number`.
+   * `equipment_availability` et les coûts sont des `decimal` PostgreSQL : le
+   * pilote les renvoie en CHAÎNES. `report.mtbf?.toFixed(1)` levait donc
+   * « TypeError: pe.toFixed is not a function », et l'onglet « Bilans
+   * mensuels » rendait une page blanche dès qu'un bilan existait.
    *
-   * Conséquence mesurée le 20/10/2026 : `report.mtbf?.toFixed(1)` levait
-   * « TypeError: pe.toFixed is not a function » et l'onglet « Bilans
-   * mensuels » rendait une PAGE BLANCHE dès qu'un bilan existait. Le défaut
-   * ne se voit pas tant que la table est vide — c'est-à-dire jamais pendant
-   * une démonstration sur une base neuve.
-   *
-   * `nombre` ramène la valeur à un nombre utilisable, ou à `null` si elle
-   * n'en est pas un. `null` s'affiche comme absent, jamais comme zéro.
+   * Les conversions vivent maintenant dans `lib/donnees.ts` : un seul endroit
+   * sait traduire ce que le serveur envoie, pour les onze écrans concernés.
    */
-  const nombre = (valeur: unknown): number | null => {
-    if (valeur === null || valeur === undefined || valeur === "") return null;
-    const n = typeof valeur === "number" ? valeur : Number(valeur);
-    return Number.isFinite(n) ? n : null;
-  };
-
-  const formatCurrency = (amount?: number | string | null) => {
-    const n = nombre(amount);
-    if (n === null) return "—";
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-      maximumFractionDigits: 0,
-    }).format(n);
-  };
-
-  const formatPercentage = (value?: number | string | null) => {
-    const n = nombre(value);
-    if (n === null) return "—";
-    return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
-  };
-
-  /** Heures lisibles, à partir d'une valeur qui peut arriver en chaîne. */
-  const formatHeures = (valeur?: number | string | null) => {
-    const n = nombre(valeur);
-    if (n === null) return "—";
-    return `${n.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} h`;
-  };
-
-  /** Remplissage d'une barre, borné à 100 %. Une valeur absente ne remplit rien. */
-  const jauge = (valeur: unknown, maximum: number): number => {
-    const n = nombre(valeur);
-    if (n === null || maximum <= 0) return 0;
-    return Math.min(100, Math.max(0, (n / maximum) * 100));
-  };
-
-  /**
-   * Part d'un total, en pourcentage. Un total nul ou absent ne donne pas une
-   * part de 0 % : il ne donne rien, et la barre reste vide — l'ancien code
-   * divisait par `|| 1`, ce qui transformait « pas de total » en « 100 % ».
-   */
-  const part = (valeur: unknown, total: unknown): number => {
-    const n = nombre(valeur);
-    const t = nombre(total);
-    if (n === null || t === null || t === 0) return 0;
-    return Math.min(100, Math.max(0, (n / t) * 100));
-  };
+  const formatCurrency = (valeur?: number | string | null) => montant(valeur, { decimales: 2 });
+  const formatPercentage = (valeur?: number | string | null) => pourcentage(valeur);
+  const formatHeures = (valeur?: number | string | null) => heures(valeur);
+  const jauge = (valeur: unknown, maximum: number) => part(valeur, maximum);
 
   const openAnalyticsModal = (report: MonthlyReport) => {
     console.log("Opening analytics modal for report:", report.reportNumber);

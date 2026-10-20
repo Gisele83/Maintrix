@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { ModernNavigation } from "@/components/modern-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -358,10 +359,8 @@ export default function IMCADashboard() {
 
   const { data: detail, isLoading: detailLoading } = useQuery<IMCAResult>({
     queryKey: ["/api/imca/equipment", selectedId, windowShort, windowLong],
-    queryFn: async () => {
-      const r = await fetch(`/api/imca/equipment/${selectedId}?windowShort=${windowShort}&windowLong=${windowLong}`, { credentials: "include" });
-      return r.json();
-    },
+    queryFn: () =>
+      apiRequest(`/api/imca/equipment/${selectedId}?windowShort=${windowShort}&windowLong=${windowLong}`),
     enabled: selectedId !== null,
   });
 

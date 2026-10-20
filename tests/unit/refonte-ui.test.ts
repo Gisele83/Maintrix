@@ -878,3 +878,93 @@ describe('Import / export — une seule famille de routes', () => {
     }
   });
 });
+
+describe('Ce que le serveur envoie, et ce que l\'écran en fait', () => {
+  /*
+   * Revue systématique du 20/10/2026, sur les deux défauts qui ont produit
+   * quatre pages blanches dans cette application.
+   *
+   * ─── Les colonnes `decimal` arrivent en CHAÎNES ───
+   * 68 colonnes du schéma sont des `decimal` ; le pilote PostgreSQL les rend
+   * en chaînes pour ne pas perdre de précision. Les 123 routes que lit
+   * l'interface ont été interrogées une à une sur l'environnement de test :
+   * 12 champs sur 5 routes renvoient un nombre écrit en chaîne, par exemple
+   * `"totalAmount": "1234.56"` sur /api/purchase-orders.
+   *
+   * Chercher les noms de champs dans le schéma SUR-DÉCLARE : `sensor.value`
+   * et `plan.yearlyPrice` portent le nom d'une colonne `decimal`, mais leurs
+   * routes calculent la valeur en JavaScript et renvoient de vrais nombres.
+   * Seule la réponse réelle tranche — d'où la sonde, et non une recherche de
+   * motifs.
+   *
+   * ─── Une réponse qui n'a pas la forme attendue ───
+   * Un `fetch` brut contourne `lib/queryClient.ts`, donc le contrôle qui
+   * transforme un refus servi en HTTP 200 en erreur.
+   */
+
+  it('aucun .toFixed() n\'est appelé sur un champ monétaire', () => {
+    /*
+     * `order.totalAmount.toFixed(2)` levait « TypeError: p.totalAmount.toFixed
+     * is not a function » : l'onglet « Achats » de la GMAO rendait une page
+     * blanche dès qu'un seul bon de commande existait.
+     */
+    const CHAMPS = ['totalAmount', 'totalCost', 'laborCost', 'partsCost', 'totalMaintenanceCost', 'mtbf', 'mttr', 'equipmentAvailability'];
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (/parseFloat|Number\(|nombre\(/.test(texte)) continue;
+        for (const champ of CHAMPS) {
+          if (new RegExp('\\.' + champ + '\\s*\\??\\.?\\s*toFixed\\s*\\(').test(texte)) {
+            fautifs.push(`${relatif(fichier)}:${n} → ${texte.trim().slice(0, 70)}`);
+          }
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('les conversions vivent dans un seul module', () => {
+    // Onze écrans affichent des montants ou des durées venus de colonnes
+    // `decimal` ; un seul endroit doit savoir les convertir.
+    const donnees = readFileSync(join(CLIENT, 'lib', 'donnees.ts'), 'utf8');
+    for (const aide of ['export function nombre', 'export function montant', 'export function pourcentage', 'export function heures', 'export function liste', 'export function part']) {
+      expect(donnees).toContain(aide);
+    }
+  });
+
+  it('les interfaces ne déclarent plus `number` pour un champ decimal', () => {
+    /*
+     * Le type mentait, et c'est ce mensonge qui masquait le défaut : corriger
+     * `mtbf?: number` en `number | string` a fait apparaître SEPT autres
+     * endroits qui faisaient de l'arithmétique sur ces chaînes.
+     */
+    const rapports = readFileSync(join(CLIENT, 'components', 'maintenance-reports.tsx'), 'utf8');
+    for (const champ of ['mtbf', 'mttr', 'equipmentAvailability', 'totalMaintenanceCost', 'laborCost', 'partsCost']) {
+      expect(rapports).toMatch(new RegExp(`${champ}\?: number \| string;`));
+    }
+  });
+
+  it('aucune queryFn ne contourne le contrôle des réponses', () => {
+    /*
+     * `fetch(url).then(r => r.json())` dans une `queryFn` saute
+     * `throwIfResNotOk` ET le contrôle du refus déguisé en succès. Les quatre
+     * écrans concernés (portail client, journal cryptographique, import/export,
+     * analyses prédictives) passent par `apiRequest`.
+     */
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      if (fichier.includes('queryClient')) continue;
+      const contenu = readFileSync(fichier, 'utf8');
+      const lignes = lignesDeCode(contenu);
+      for (const { n, texte } of lignes) {
+        if (!/\bqueryFn\b/.test(texte)) continue;
+        // Les 6 lignes qui suivent la déclaration de la queryFn.
+        const suite = contenu.split('\n').slice(n - 1, n + 6).join('\n');
+        if (/\bfetch\s*\(/.test(suite) && /\.json\(\)/.test(suite)) {
+          fautifs.push(`${relatif(fichier)}:${n}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});

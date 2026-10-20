@@ -172,12 +172,7 @@ export default function PredictiveInsights() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery<PredictiveInsightData>({
     queryKey: ["/api/predictive-insights", selectedEquipId],
     queryFn: () =>
-      fetch(`/api/predictive-insights${selectedEquipId !== "all" ? `?equipmentId=${selectedEquipId}` : ""}`, {
-        credentials: "include",
-      }).then((r) => {
-        if (!r.ok) throw new Error("Erreur réseau");
-        return r.json();
-      }),
+      apiRequest(`/api/predictive-insights${selectedEquipId !== "all" ? `?equipmentId=${selectedEquipId}` : ""}`),
     refetchInterval: 30000,
   });
 

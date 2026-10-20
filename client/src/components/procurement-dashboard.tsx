@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { montant, dateCourte } from '@/lib/donnees';
 import { 
   ShoppingCart, 
   Truck, 
@@ -39,7 +40,7 @@ interface PurchaseOrder {
   supplierId: number;
   status: string;
   priority: string;
-  totalAmount: number;
+  totalAmount: number | string;
   currency: string;
   expectedDelivery: string;
   requestedBy: string;
@@ -258,12 +259,21 @@ export function ProcurementDashboard() {
                       Demandé par: {order.requestedBy}
                     </div>
                     <div className="text-sm">
-                      Livraison prévue: {new Date(order.expectedDelivery).toLocaleDateString('fr-FR')}
+                      {/* `new Date(null)` vaut le 1er janvier 1970 : un bon de
+                          commande sans date de livraison affichait
+                          « Livraison prévue : 01/01/1970 ». */}
+                      Livraison prévue : {dateCourte(order.expectedDelivery)}
                     </div>
                   </div>
                   <div className="text-right space-y-2">
+                    {/* `total_amount` est une colonne `numeric` : le serveur
+                        l'envoie en CHAÎNE (« 1234.56 »). `.toFixed()` sur une
+                        chaîne lève « TypeError: p.totalAmount.toFixed is not a
+                        function » — et cet onglet rendait une page blanche dès
+                        qu'un seul bon de commande existait. Mesuré le
+                        20/10/2026 ; invisible tant que la table est vide. */}
                     <div className="font-medium">
-                      {order.totalAmount.toFixed(2)} {order.currency}
+                      {montant(order.totalAmount, { decimales: 2 })}
                     </div>
                     <div className="flex gap-2">
                       {getStatusBadge(order.status)}

@@ -42,7 +42,7 @@ const statusLabels: Record<string, string> = {
 function PortalView({ token }: { token: string }) {
   const { data, isLoading, error, refetch } = useQuery<any>({
     queryKey: ['/api/client-portal', token],
-    queryFn: () => fetch(`/api/client-portal/${token}`).then(r => r.json()),
+    queryFn: () => apiRequest(`/api/client-portal/${token}`),
     refetchInterval: 30000
   });
 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { uploadFile } from "@/lib/queryClient";
+import { uploadFile, apiRequest } from "@/lib/queryClient";
 import { 
   Upload, 
   Download, 
@@ -84,11 +84,9 @@ export default function DataImportExport() {
   // Récupération de l'historique des imports/exports
   const { data: importHistory, isLoading: historyLoading } = useQuery<ImportHistory[]>({
     queryKey: ['/api/data-import-export/import-history'],
-    queryFn: async () => {
-      const response = await fetch('/api/data-import-export/import-history');
-      if (!response.ok) throw new Error('Erreur lors du chargement de l\'historique');
-      return response.json();
-    }
+    // `apiRequest` applique le contrôle de `lib/queryClient.ts` : un refus
+    // servi en HTTP 200 devient une erreur au lieu d'arriver dans un `.map`.
+    queryFn: () => apiRequest('/api/data-import-export/import-history')
   });
 
   // Mutation pour l'import de données

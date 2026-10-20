@@ -89,27 +89,16 @@ export default function SecureValidation() {
   const { data: pendingOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: [`/api/validation/purchase-orders/pending`, user?.validationLevel],
     enabled: !!user && user.canValidateOrders,
-    queryFn: async () => {
-      const response = await fetch(`/api/validation/purchase-orders/pending?validationLevel=${user?.validationLevel}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      return response.json();
-    }
+    // L'en-tête `Authorization: Bearer` posé ici n'était lu par aucun
+    // handler : ces routes s'appuient sur la session en cookie. `apiRequest`
+    // l'envoie, et applique en plus le contrôle des réponses.
+    queryFn: () => apiRequest(`/api/validation/purchase-orders/pending?validationLevel=${user?.validationLevel}`)
   });
 
   const { data: pendingWorkOrders = [], isLoading: workOrdersLoading, refetch: refetchWorkOrders } = useQuery({
     queryKey: [`/api/validation/work-orders/pending`, user?.validationLevel],
     enabled: !!user && user.canValidateWorkOrders,
-    queryFn: async () => {
-      const response = await fetch(`/api/validation/work-orders/pending?validationLevel=${user?.validationLevel}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      return response.json();
-    }
+    queryFn: () => apiRequest(`/api/validation/work-orders/pending?validationLevel=${user?.validationLevel}`)
   });
 
   const validateOrderMutation = useMutation({
