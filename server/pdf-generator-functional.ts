@@ -20,7 +20,18 @@ import { Response } from 'express';
  * le seul producteur : le rapport d'intervention et le bilan mensuel.
  */
 function valeurOuND(valeur: number | null | undefined, unite: string): string {
-  return valeur === null || valeur === undefined ? 'N/D' : `${valeur.toFixed(1)}${unite}`;
+  // `!Number.isFinite` et pas seulement `null`/`undefined` : `number` n'exclut
+  // PAS `NaN` ni ±Infinity en TypeScript, et `toFixed()` les imprime
+  // littéralement — « NaN% » ou « Infinityh » dans un document qui porte le nom
+  // de l'entreprise et circule.
+  //
+  // Ce n'est pas un défaut vivant : le seul producteur actuel de ces trois
+  // grandeurs est `nombreOuNull()` (server/gmao-routes.ts), qui filtre déjà le
+  // non-fini par `Number.isFinite`. C'est une garde pour le producteur suivant
+  // — un quotient dont le dénominateur peut être nul, par exemple. Vérifié :
+  // à valeurs finies, le document rendu est identique à l'octet.
+  if (valeur === null || valeur === undefined || !Number.isFinite(valeur)) return 'N/D';
+  return `${valeur.toFixed(1)}${unite}`;
 }
 
 
