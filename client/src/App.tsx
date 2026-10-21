@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import Dashboard from "@/pages/dashboard";
+import PosteDeDiagnostic from "@/pages/poste-de-diagnostic";
 import ModernHome from "@/pages/modern-home";
 import LandingPage from "@/pages/landing";
 import SmartDiagnostic from "@/pages/smart-diagnostic";
@@ -167,9 +167,29 @@ function Router() {
       <Route path="/force-logout" component={ForceLogout} />
       <Route path="/payment-test" component={PaymentTest} />
       <Route path="/" component={HomePage} />
-      <Route path="/dashboard">
-        {(params) => <ProtectedRoute component={Dashboard} {...params} />}
+      {/* ⚠️ `/dashboard` ne menait PAS à un tableau de bord : il rendait le
+          poste de diagnostic — formulaire de panne, guidance de réparation,
+          historique, signalement et importation — dont le fichier s'appelait
+          `dashboard.tsx` par héritage. Un prospect en fin d'essai qui cliquait
+          « Retour au tableau de bord » atterrissait donc sur un formulaire de
+          panne aux compteurs à zéro.
+
+          La route porte désormais le nom de ce qu'elle montre, et `/dashboard`
+          y redirige au lieu de disparaître : les signets et les liens externes
+          continuent de fonctionner.
+
+          Elle NE redirige PAS vers `/`, contrairement à ce qu'on pourrait
+          attendre d'un nom pareil, et c'est délibéré : `RepairGuidance` et
+          `CaseReporting` ne sont rendus nulle part ailleurs dans le produit
+          (vérifié sur tout `client/src/pages/`). Renvoyer vers l'accueil
+          rendrait ces deux fonctions inatteignables — ce serait supprimer des
+          fonctionnalités sous couvert de corriger un lien. Les deux liens de
+          fin d'essai, eux, pointent maintenant vers `/`, qui est le véritable
+          tableau de bord. */}
+      <Route path="/poste-de-diagnostic">
+        {(params) => <ProtectedRoute component={PosteDeDiagnostic} {...params} />}
       </Route>
+      <Route path="/dashboard">{() => <Redirect to="/poste-de-diagnostic" />}</Route>
       <Route path="/diagnostic">
         {(params) => <ProtectedRoute component={SmartDiagnostic} {...params} />}
       </Route>

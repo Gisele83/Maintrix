@@ -390,7 +390,6 @@ export default function ERPConfiguration() {
     return (
       <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Configuration ERP" }]} largeur="large">
       <div className="space-y-6">
-        <ModernNavigation />
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-etat-encours-filet border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>

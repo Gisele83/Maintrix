@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ModernNavigation } from "@/components/modern-navigation";
 import { useToast } from "@/hooks/use-toast";
 import { 
   UserPlus, 
@@ -147,7 +146,6 @@ export default function AccessManagement() {
   return (
     <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Accès" }]} largeur="large">
     <div className="space-y-6">
-      <ModernNavigation />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}

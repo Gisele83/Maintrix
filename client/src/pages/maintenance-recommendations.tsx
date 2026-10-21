@@ -372,7 +372,6 @@ export default function MaintenanceRecommendations() {
     return (
       <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Recommandations" }]} largeur="large">
       <div className="space-y-6">
-        <ModernNavigation />
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
           <div className="w-16 h-16 bg-paper-deep rounded-none flex items-center justify-center mx-auto mb-6 animate-pulse shadow-blue-500/25">
             <Brain className="w-8 h-8 text-ink" />

@@ -360,7 +360,10 @@ export default function TrialDashboard() {
                     {startTrialMutation.isPending ? "Démarrage..." : "Démarrer l'essai 30 jours"}
                   </Button>
                 )}
-                <Link href="/dashboard">
+                {/* Même correction que dans subscription.tsx : « Continuer
+                    l'utilisation » doit ramener au tableau de bord, c'est-à-dire
+                    `/`, et non au poste de diagnostic. */}
+                <Link href="/">
                   <Button variant="outline" className="w-full">
                     <ArrowRight className="h-4 w-4 mr-2" />
                     Continuer l'utilisation

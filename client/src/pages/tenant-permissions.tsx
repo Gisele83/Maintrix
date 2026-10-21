@@ -165,7 +165,6 @@ export default function TenantPermissions() {
     return (
       <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Permissions" }]} largeur="large">
       <div className="space-y-6">
-        <ModernNavigation />
         <div className="pt-24 pb-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-lg p-8 text-center">

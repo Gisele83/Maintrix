@@ -345,7 +345,10 @@ export default function SubscriptionPage() {
                   <RefreshCw className={`h-4 w-4 mr-2 ${validateMutation.isPending ? "animate-spin" : ""}`} />
                   Valider la licence (cache offline)
                 </Button>
-                <Link href="/dashboard">
+                {/* Le tableau de bord est `/`. Ce lien visait `/dashboard`,
+                    qui rendait le poste de diagnostic : « Retour au tableau de
+                    bord » ramenait à un formulaire de panne. */}
+                <Link href="/">
                   <Button variant="ghost" className="w-full">
                     Retour au tableau de bord
                   </Button>
