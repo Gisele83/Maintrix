@@ -1104,21 +1104,43 @@ export function registerGMAORoutes(app: Express) {
   // Create alert
   app.post("/api/alerts", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const data = insertAlertsNotificationsSchema.parse(req.body);
-      const alert = await gmaoStorage.createAlert(data);
+      // Le locataire est posé APRÈS l'analyse du corps, donc il l'écrase :
+      // c'est la session qui dit à qui appartient l'alerte, jamais le client.
+      // Auparavant le corps fournissait `tenantId` et rien ne le contrôlait —
+      // on pouvait écrire une alerte au nom d'une autre organisation. La
+      // vérification que l'équipement visé est bien le sien est faite par
+      // createAlert, qui est le passage unique.
+      const alert = await gmaoStorage.createAlert({ ...data, tenantId });
       res.status(201).json(alert);
     } catch (error) {
       console.error("Error creating alert:", error);
-      res.status(400).json({ message: "Failed to create alert" });
+      // Un refus de cloisonnement n'est pas une requête malformée : il est
+      // rendu tel quel, pour qu'un appelant légitime comprenne ce qu'on lui
+      // reproche au lieu de lire « Failed to create alert ».
+      const message = error instanceof Error && /^ALERTE_/.test(error.message)
+        ? error.message
+        : "Failed to create alert";
+      res.status(400).json({ message });
     }
   });
 
   // Update alert
   app.put("/api/alerts/:id", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const alert = await gmaoStorage.updateAlert(id, updates);
+      const alert = await gmaoStorage.updateAlert(id, tenantId, updates);
+      // Sans correspondance, l'alerte existe peut-être — mais pas pour ce
+      // locataire. On rend 404 et non 403 : dire « interdit » confirmerait
+      // l'existence de l'alerte d'autrui, ce qui est déjà une information.
+      if (!alert) {
+        return res.status(404).json({ message: "Alerte introuvable" });
+      }
       res.json(alert);
     } catch (error) {
       console.error("Error updating alert:", error);
@@ -1129,8 +1151,10 @@ export function registerGMAORoutes(app: Express) {
   // Get alerts by equipment
   app.get("/api/equipment/:equipmentId/alerts", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId);
-      const alerts = await gmaoStorage.getAlertsByEquipment(equipmentId);
+      const alerts = await gmaoStorage.getAlertsByEquipment(equipmentId, tenantId);
       res.json(alerts);
     } catch (error) {
       console.error("Error fetching alerts:", error);

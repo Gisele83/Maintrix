@@ -21,7 +21,8 @@
     "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
     "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer",
     "demo:desactiver": "tsx scripts/jeu-de-demonstration.ts --desactiver",
-    "demo:secrets": "tsx scripts/secrets-demonstration.ts"
+    "demo:secrets": "tsx scripts/secrets-demonstration.ts",
+    "alertes:examiner": "tsx scripts/alertes-orphelines.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

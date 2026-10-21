@@ -180,10 +180,15 @@ export interface IStorage {
   createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog>;
 
   // Alerts and Notifications
-  getAlertsNotifications(status?: string): Promise<AlertsNotifications[]>;
-  getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]>;
+  // Le locataire est positionnel et obligatoire sur les quatre : voir le bloc
+  // d'explication au-dessus de createAlert, plus bas dans ce fichier.
+  // (La déclaration annonçait `status` là où l'implémentation attend un
+  // tenantId — un écart qui aurait fini par faire écrire un filtre de statut
+  // à la place d'un filtre d'organisation.)
+  getAlertsNotifications(tenantId?: string, limit?: number): Promise<AlertsNotifications[]>;
+  getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]>;
   createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications>;
-  updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
+  updateAlert(id: number, tenantId: string, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
 }
 
 // Database Storage Implementation
@@ -270,22 +275,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Alerts and Notifications
+  // ═══════════════════════════════════════════════════════════════════
+  // Alerts and Notifications — la même barrière que dans gmao-storage
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // Ce dépôt porte DEUX couches de stockage qui écrivent dans la même table.
+  // Mettre la garde dans une seule revient à la laisser ouverte : il suffit
+  // qu'un appelant choisisse l'autre. Ces méthodes n'avaient d'ailleurs aucun
+  // appelant au moment de la correction — c'est précisément pour cela qu'il
+  // fallait s'en occuper tout de suite, car le premier appelant à venir
+  // n'aurait rien vu d'anormal.
+  //
+  // Elles DÉLÈGUENT plutôt que de dupliquer le contrôle : un contrôle écrit
+  // deux fois finit par diverger, et c'est la copie la plus laxiste qui
+  // décide. L'import est dynamique pour ne pas créer de cycle entre les deux
+  // modules de stockage.
   async createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
-    const [record] = await db.insert(alertsNotifications).values(data).returning();
-    return record;
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.createAlert(data);
   }
 
-  async updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
-    const [record] = await db.update(alertsNotifications).set(updates).where(eq(alertsNotifications.id, id)).returning();
-    if (!record) throw new Error(`Alert with id ${id} not found`);
-    return record;
+  async updateAlert(id: number, tenantId: string, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.updateAlert(id, tenantId, updates);
   }
 
-  async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
-    return await db.select().from(alertsNotifications)
-      .where(eq(alertsNotifications.equipmentId, equipmentId))
-      .orderBy(desc(alertsNotifications.createdAt));
+  async getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]> {
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.getAlertsByEquipment(equipmentId, tenantId);
   }
 
   // Dernière lecture capteur / prédiction par équipement (utilisées pour des vues détail,
@@ -635,8 +652,14 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async getAlerts(): Promise<AlertsNotifications[]> {
-    return await db.select().from(alertsNotifications).orderBy(desc(alertsNotifications.createdAt)).limit(500);
+  // Lisait 500 alertes TOUS LOCATAIRES CONFONDUS, sans le moindre filtre.
+  // Aucun appelant, donc aucune fuite constatée — mais une lecture non
+  // cloisonnée qui traîne dans une classe partagée est une fuite en attente
+  // d'appelant. Le locataire devient obligatoire.
+  async getAlerts(tenantId: string): Promise<AlertsNotifications[]> {
+    return await db.select().from(alertsNotifications)
+      .where(eq(alertsNotifications.tenantId, tenantId))
+      .orderBy(desc(alertsNotifications.createdAt)).limit(500);
   }
 
   async getAlertsNotifications(tenantId?: string, limit = 200): Promise<AlertsNotifications[]> {
@@ -654,9 +677,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Troisième porte d'écriture dans la même table, sans appelant elle non
+  // plus. Même délégation, même raison.
   async createAlertsNotifications(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
-    const [record] = await db.insert(alertsNotifications).values(data).returning();
-    return record;
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.createAlert(data);
   }
 
   async getMaintenanceCases(): Promise<MaintenanceCase[]> {

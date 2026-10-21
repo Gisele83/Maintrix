@@ -1372,22 +1372,109 @@ export class GMAOStorage {
       .limit(maxLimit);
   }
 
-  async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
+  async getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]> {
+    // Le locataire est OBLIGATOIRE et positionnel : la route
+    // `/api/equipment/:id/alerts` lisait les alertes d'un équipement sur son
+    // seul identifiant numérique, donc celles d'un équipement d'autrui en
+    // changeant un chiffre dans l'URL. Le filtre porte sur les deux colonnes,
+    // et non sur l'équipement seul : une alerte mal rattachée ne doit pas
+    // devenir lisible parce que son équipement, lui, est bien rattaché.
     return await db.select().from(alertsNotifications)
-      .where(eq(alertsNotifications.equipmentId, equipmentId))
+      .where(and(
+        eq(alertsNotifications.equipmentId, equipmentId),
+        eq(alertsNotifications.tenantId, tenantId),
+      ))
       .orderBy(desc(alertsNotifications.createdAt));
   }
 
+  /**
+   * Crée une alerte — ou refuse.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI CETTE FONCTION REFUSE AU LIEU DE COMPLÉTER
+   * ═══════════════════════════════════════════════════════════════════
+   * Elle est le passage unique par lequel toute alerte persistée entre en
+   * base : compteurs de maintenance, règles de réapprovisionnement, seuils
+   * de capteurs, analyse prédictive, et la route HTTP. Quatre de ces cinq
+   * chemins n'ont jamais transmis de `tenantId`, et la colonne étant
+   * nullable, l'écriture passait sans bruit. Le résultat : des alertes
+   * n'appartenant à personne, produites toutes les 30 secondes par le
+   * simulateur, invisibles dans l'interface puisque les lectures filtrent
+   * par locataire — mais bien présentes, et liées aux équipements par clé
+   * étrangère. Elles ont fini par faire échouer le retrait du jeu de
+   * démonstration sur une contrainte de clé étrangère : le seul symptôme
+   * visible d'un défaut qui durait depuis le début.
+   *
+   * Deux refus distincts, et un troisième qu'on ne fait PAS :
+   *
+   *   1. SANS LOCATAIRE, on refuse. On ne « devine » pas, et surtout on ne
+   *      déduit pas le locataire de l'équipement ici : ce serait transformer
+   *      un oubli d'appelant en écriture silencieuse, et l'appelant qui
+   *      ignore à qui appartient son alerte ignore aussi s'il a le droit de
+   *      l'écrire. La déduction a sa place à l'INGESTION — là où une trame
+   *      arrive sans session — et elle y est déjà faite, une fois, par
+   *      `resoudreLocataireEquipement`.
+   *
+   *   2. ÉQUIPEMENT D'UN AUTRE LOCATAIRE, on refuse. Sans cela, la route
+   *      `POST /api/alerts` permettrait de poser une alerte sur
+   *      l'équipement d'autrui : le corps de la requête fournissait le
+   *      `tenantId`, et rien ne vérifiait que l'équipement visé était bien
+   *      le sien. Le contrôle est ici plutôt que dans la route, parce qu'une
+   *      garde placée dans une seule route ne protège que cette route-là.
+   *
+   *   3. Ce qu'on NE fait PAS : remplacer un `tenantId` manquant par celui
+   *      de la session, ni par un locataire par défaut. Une valeur par
+   *      défaut rendrait le défaut invisible au lieu de le supprimer.
+   *
+   * Elle LÈVE au lieu de rendre un indicateur d'échec : les appelants sont
+   * des boucles de fond, et une boucle qui ignore un code de retour écrirait
+   * encore des alertes orphelines. Les tâches de fond ont déjà leur propre
+   * isolation et leur temporisation — une levée y est tracée, pas fatale.
+   */
   async createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
+    if (!data.tenantId) {
+      throw new Error(
+        `ALERTE_SANS_LOCATAIRE : refus d'écrire une alerte « ${data.alertType} » `
+        + `sans organisation propriétaire`
+        + (data.equipmentId ? ` (équipement #${data.equipmentId}).` : '.')
+        + ` L'appelant doit fournir tenantId ; à l'ingestion, le résoudre avec `
+        + `resoudreLocataireEquipement() et abandonner s'il est introuvable.`,
+      );
+    }
+
+    if (data.equipmentId != null) {
+      const proprietaire = await this.resoudreLocataireEquipement(data.equipmentId);
+      if (!proprietaire) {
+        throw new Error(
+          `ALERTE_EQUIPEMENT_INCONNU : équipement #${data.equipmentId} introuvable — `
+          + `impossible de vérifier qu'il appartient à ${data.tenantId}.`,
+        );
+      }
+      if (proprietaire !== data.tenantId) {
+        throw new Error(
+          `ALERTE_HORS_LOCATAIRE : l'équipement #${data.equipmentId} appartient à une `
+          + `autre organisation que ${data.tenantId}. Alerte refusée.`,
+        );
+      }
+    }
+
     const [alert] = await db.insert(alertsNotifications).values(data).returning();
     return alert;
   }
 
-  async updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
+  async updateAlert(id: number, tenantId: string, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
+    // Locataire obligatoire et positionnel, même raison que pour la lecture :
+    // `PUT /api/alerts/:id` modifiait n'importe quelle alerte sur son seul
+    // identifiant. Le `tenantId` est retiré des champs modifiables — une
+    // alerte ne change pas de propriétaire par une mise à jour.
+    const { tenantId: _ignore, ...modifications } = updates;
     const [alert] = await db
       .update(alertsNotifications)
-      .set(updates)
-      .where(eq(alertsNotifications.id, id))
+      .set(modifications)
+      .where(and(
+        eq(alertsNotifications.id, id),
+        eq(alertsNotifications.tenantId, tenantId),
+      ))
       .returning();
     return alert;
   }
@@ -1555,6 +1642,11 @@ export class GMAOStorage {
 
           // Generate alert
           await this.createAlert({
+            // Le locataire est dans la portée depuis le début de la fonction —
+            // la ligne qui lit la pièce s'en sert déjà. Il n'était simplement
+            // pas transmis, et chaque alerte de stock bas s'écrivait sans
+            // propriétaire.
+            tenantId,
             alertType: "stock_low",
             equipmentId: null,
             severity: currentStock <= 0 ? "critical" : "high",
