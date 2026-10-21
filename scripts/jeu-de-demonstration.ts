@@ -1,8 +1,10 @@
 /**
  * Jeu de démonstration — une usine crédible, pour montrer Maintrix.
  *
- *   npx tsx scripts/jeu-de-demonstration.ts            (charge)
- *   npx tsx scripts/jeu-de-demonstration.ts --retirer  (efface)
+ *   npm run demo:charger      charge le jeu
+ *   npm run demo:secrets      récupère les secrets, puis efface leur dépôt
+ *   npm run demo:desactiver   coupe les accès, garde les données
+ *   npm run demo:retirer      efface tout
  *
  * ═══════════════════════════════════════════════════════════════════
  * POURQUOI CE FICHIER EXISTE, ET CE QU'IL N'EST PAS
@@ -63,6 +65,7 @@ import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { randomBytes } from 'node:crypto';
 import { eq, inArray, sql } from 'drizzle-orm';
+import { preparerCanal, deposerLesSecrets, effacerLeDepot } from './canal-secrets';
 
 // ─── Identité du jeu de démonstration ────────────────────────────────────────
 
@@ -136,9 +139,15 @@ const VALEURS_DEXEMPLE = [
  *     parfois dans un fichier de configuration versionné.
  *
  * Désormais : un secret tiré au hasard par compte, à chaque chargement,
- * jamais lu depuis l'environnement. Ils sont affichés UNE FOIS en fin
- * d'exécution — c'est le seul moment où ils existent en clair — puis ne
- * subsistent qu'en empreinte bcrypt.
+ * jamais lu depuis l'environnement.
+ *
+ * Et ils ne sont PAS affichés. Un tirage aléatoire ne protège rien si le
+ * résultat part sur la sortie standard, laquelle survit dans l'historique du
+ * terminal et dans les journaux de tout orchestrateur qui a lancé la
+ * commande. Ils sont déposés dans un fichier que seul le compte courant peut
+ * lire, et récupérés par une commande distincte qui l'efface ensuite —
+ * `npm run demo:secrets`. Voir `scripts/canal-secrets.ts` pour le détail et
+ * pour ce que cette protection ne prétend pas être.
  *
  * MAINTRIX_DEMO_PASSWORD N'EST PLUS LU. Le signaler explicitement vaut mieux
  * que l'ignorer en silence : qui l'utilisait doit savoir que son mot de passe
@@ -157,11 +166,11 @@ function refuserMotDePasseImpose(): void {
     throw new Error(
       'MAINTRIX_DEMO_PASSWORD n\'est plus pris en compte.\n'
       + '  Chaque compte de démonstration reçoit désormais un secret ALÉATOIRE\n'
-      + '  et DISTINCT, affiché une seule fois en fin de chargement.\n'
-      + '  Un secret partagé entre un compte owner et un compte technicien\n'
-      + '  donnait le premier à qui obtenait le second.\n\n'
-      + '  Retirez cette variable et relancez : les quatre secrets vous seront\n'
-      + '  donnés. Notez-les, ils ne sont pas récupérables ensuite.',
+      + '  et DISTINCT. Un secret partagé entre un compte owner et un compte\n'
+      + '  technicien donnait le premier à qui obtenait le second.\n\n'
+      + '  Retirez cette variable et relancez. Les quatre secrets ne seront pas\n'
+      + '  affichés : ils seront déposés dans un fichier lisible par vous seul,\n'
+      + '  que « npm run demo:secrets » vous montrera puis effacera.',
     );
   }
 }
@@ -507,12 +516,99 @@ function verifierSeuils(sortiesMinimales: number): void {
  */
 type Verdict = 'autorise' | 'interdit' | 'ambigu';
 
+/**
+ * Le forçage est-il RECEVABLE sur cette base ?
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE CHAÎNE NE SUFFIT PAS
+ * ═══════════════════════════════════════════════════════════════════
+ * La version précédente acceptait le forçage sur simple présence de
+ * `MAINTRIX_DEMO_FORCER=oui-je-sais-ce-que-je-fais`. Cette chaîne est écrite
+ * dans ce fichier, donc publique ; elle traîne dans les historiques de
+ * terminal et dans les scripts d'outillage. Un secret partagé qui ne sort
+ * jamais du dépôt n'est pas un secret : c'est un mot de passe par défaut.
+ *
+ * Or ce que le forçage autorise n'est pas anodin — `--retirer` supprime des
+ * organisations entières. Une opération destructive ne doit pas dépendre
+ * d'une chaîne que n'importe qui peut lire ici.
+ *
+ * Le forçage exige donc DEUX choses, et la seconde ne vit pas dans le dépôt :
+ *
+ *   1. l'intention, toujours — la variable d'environnement ;
+ *   2. une HABILITATION DE LA BASE ELLE-MÊME, par l'un de deux moyens :
+ *
+ *      a) un MARQUEUR POSÉ SUR LA BASE, vérifiable et durable :
+ *           COMMENT ON DATABASE ma_base IS 'maintrix:environnement=test';
+ *         Il exige les droits de propriétaire de la base, il voyage avec
+ *         elle, il survit aux redémarrages, et il ne peut pas être posé par
+ *         inadvertance. Une base de production ne le porte pas.
+ *
+ *      b) une LISTE EXPLICITE de bases autorisées :
+ *           MAINTRIX_DEMO_BASES_AUTORISEES=maintrix_dev,bac_a_sable
+ *         Pour les postes où l'on n'a pas la main sur le commentaire de la
+ *         base. La liste nomme les bases une par une — pas de joker.
+ *
+ * Dans les deux cas, l'habilitation désigne UNE BASE PRÉCISE. Connaître la
+ * chaîne de forçage ne donne plus rien par soi-même : il faut en plus avoir
+ * désigné cette base-là, délibérément, avec des droits qu'on n'a pas par
+ * hasard.
+ *
+ * Et cela ne change rien au reste : le forçage ne lève toujours QUE
+ * l'ambiguïté, jamais un signal de production.
+ */
+const MARQUEUR_BASE = 'maintrix:environnement=test';
+
+interface Habilitation {
+  recevable: boolean;
+  moyen: 'marqueur' | 'liste' | 'aucun';
+  detail: string;
+}
+
+async function habilitationDeLaBase(db: any, nomBase: string): Promise<Habilitation> {
+  // a) Marqueur posé sur la base.
+  try {
+    const r = await db.execute(sql`
+      SELECT shobj_description(oid, 'pg_database') AS commentaire
+      FROM pg_database WHERE datname = current_database()
+    `);
+    const rangs = ((r as { rows?: unknown[] }).rows ?? r) as Array<{ commentaire: string | null }>;
+    const commentaire = rangs[0]?.commentaire ?? '';
+    if (commentaire.includes(MARQUEUR_BASE)) {
+      return { recevable: true, moyen: 'marqueur', detail: `commentaire de la base : « ${commentaire.slice(0, 60)} »` };
+    }
+  } catch {
+    /* Pas de droit de lecture sur le catalogue : on retombe sur la liste. */
+  }
+
+  // b) Liste explicite.
+  const liste = (process.env.MAINTRIX_DEMO_BASES_AUTORISEES ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  if (liste.includes(nomBase)) {
+    return { recevable: true, moyen: 'liste', detail: `« ${nomBase} » figure dans MAINTRIX_DEMO_BASES_AUTORISEES` };
+  }
+
+  return {
+    recevable: false,
+    moyen: 'aucun',
+    detail: liste.length
+      ? `« ${nomBase} » ne figure pas dans la liste autorisée (${liste.join(', ')}), et la base ne porte pas le marqueur`
+      : 'la base ne porte pas le marqueur, et aucune liste autorisée n\'est déclarée',
+  };
+}
+
 interface Environnement {
   verdict: Verdict;
   nomBase: string;
   hote: string;
   signaux: Array<{ nom: string; valeur: string; conclusion: 'test' | 'production' | 'inconnu' }>;
   motif: string;
+  /**
+   * L'habilitation n'est PAS un signal : elle ne pèse pas sur le verdict.
+   * Elle conditionne le droit de le FORCER. On la calcule dans tous les cas,
+   * pour que le refus puisse nommer laquelle des deux moitiés manque au lieu
+   * de renvoyer un « non » sans prise.
+   */
+  habilitation: Habilitation;
 }
 
 /** Noms qui désignent sans ambiguïté un environnement jetable. */
@@ -610,16 +706,20 @@ async function examinerEnvironnement(url: string, db: any, tenants: any, equipme
     conclusion: contenu.reel === 0 ? 'test' : 'production',
   });
 
+  // Calculée ici parce que c'est la seule fonction qui tient la base ouverte :
+  // `appliquerVerdict` est synchrone et n'a rien pour interroger le catalogue.
+  const habilitation = await habilitationDeLaBase(db, nomBase);
+
   const production = signaux.filter((s) => s.conclusion === 'production');
   const inconnus = signaux.filter((s) => s.conclusion === 'inconnu');
 
   if (production.length) {
-    return { verdict: 'interdit', nomBase, hote, signaux, motif: production.map((s) => `${s.nom} : ${s.valeur}`).join(' — ') };
+    return { verdict: 'interdit', nomBase, hote, signaux, habilitation, motif: production.map((s) => `${s.nom} : ${s.valeur}`).join(' — ') };
   }
   if (inconnus.length) {
-    return { verdict: 'ambigu', nomBase, hote, signaux, motif: inconnus.map((s) => s.nom).join(', ') };
+    return { verdict: 'ambigu', nomBase, hote, signaux, habilitation, motif: inconnus.map((s) => s.nom).join(', ') };
   }
-  return { verdict: 'autorise', nomBase, hote, signaux, motif: 'les trois signaux concordent' };
+  return { verdict: 'autorise', nomBase, hote, signaux, habilitation, motif: 'les trois signaux concordent' };
 }
 
 /**
@@ -647,18 +747,58 @@ function appliquerVerdict(env: Environnement, operation: 'charger' | 'retirer'):
     );
   }
 
-  if (env.verdict === 'ambigu' && process.env.MAINTRIX_DEMO_FORCER !== 'oui-je-sais-ce-que-je-fais') {
-    throw new Error(
-      `REFUS : environnement indéterminé — l'inconnu ne vaut pas permission.\n${entete}\n`
-      + `   Signaux non concluants : ${env.motif}\n\n`
-      + `   Procédure autorisée en développement et en test :\n`
-      + `     • nommez la base avec un marqueur explicite — maintrix_test,\n`
-      + `       maintrix_dev, maintrix_local — et servez-la depuis localhost\n`
-      + `       ou une adresse de réseau privé ;\n`
-      + `     • ou, si votre poste impose une configuration atypique :\n`
-      + `       MAINTRIX_DEMO_FORCER=oui-je-sais-ce-que-je-fais\n\n`
-      + `   Ce forçage ne lève que l'ambiguïté. Il reste SANS EFFET sur une\n`
-      + `   base contenant de vraies organisations.`,
+  if (env.verdict === 'ambigu') {
+    // DEUX moitiés, et il faut les deux. L'intention dit « je sais ce que je
+    // fais » ; l'habilitation dit « sur cette base-là ». La première est une
+    // chaîne écrite dans ce fichier, donc connue de quiconque lit le dépôt :
+    // elle n'autorise rien seule. La seconde désigne une base précise et
+    // demande soit les droits de propriétaire, soit une déclaration nominative
+    // hors du dépôt.
+    const intention = process.env.MAINTRIX_DEMO_FORCER === 'oui-je-sais-ce-que-je-fais';
+
+    if (!intention || !env.habilitation.recevable) {
+      const manques = [
+        intention ? null : "l'intention : MAINTRIX_DEMO_FORCER n'est pas posé",
+        env.habilitation.recevable ? null : `l'habilitation de la base : ${env.habilitation.detail}`,
+      ].filter(Boolean) as string[];
+      const base = env.nomBase || 'ma_base';
+
+      throw new Error(
+        `REFUS : environnement indéterminé — l'inconnu ne vaut pas permission.\n${entete}\n`
+        + `   Signaux non concluants : ${env.motif}\n\n`
+        + `   Procédure autorisée en développement et en test :\n`
+        + `     • nommez la base avec un marqueur explicite — maintrix_test,\n`
+        + `       maintrix_dev, maintrix_local — et servez-la depuis localhost\n`
+        + `       ou une adresse de réseau privé ;\n`
+        + `     • ou, si votre poste impose une configuration atypique, forcez.\n\n`
+        + `   Le forçage demande DEUX choses. Il en manque ${manques.length} :\n`
+        + manques.map((m) => `     ✗ ${m}\n`).join('')
+        + `\n   1. L'INTENTION, dans l'environnement du processus :\n`
+        + `        MAINTRIX_DEMO_FORCER=oui-je-sais-ce-que-je-fais\n\n`
+        + `   2. L'HABILITATION DE CETTE BASE, par l'un de ces deux moyens :\n`
+        + `        COMMENT ON DATABASE ${base} IS '${MARQUEUR_BASE}';\n`
+        + `      ou, si vous n'êtes pas propriétaire de la base :\n`
+        + `        MAINTRIX_DEMO_BASES_AUTORISEES=${base}\n\n`
+        + `   Pourquoi les deux : la chaîne de forçage est écrite dans ce\n`
+        + `   fichier, donc publique. Une opération qui supprime des\n`
+        + `   organisations entières ne peut pas reposer sur un secret que\n`
+        + `   tout le dépôt connaît. L'habilitation, elle, désigne UNE base\n`
+        + `   précise et ne s'obtient pas par hasard.\n\n`
+        + `   Ce forçage ne lève que l'ambiguïté. Il reste SANS EFFET sur une\n`
+        + `   base contenant de vraies organisations.`,
+      );
+    }
+
+    // Accepté : on écrit POURQUOI dans la trace. Un journal qui ne garde que
+    // le résultat ne permet pas de savoir, trois mois plus tard, sur quelle
+    // habilitation l'opération est passée.
+    const parQuoi = env.habilitation.moyen === 'marqueur'
+      ? 'marqueur posé sur la base'
+      : 'liste MAINTRIX_DEMO_BASES_AUTORISEES';
+    console.log(
+      `\n   ⚠ Forçage accepté — l'ambiguïté est levée, pas un signal de production.\n`
+      + `     Intention    : MAINTRIX_DEMO_FORCER\n`
+      + `     Habilitation : ${parQuoi} — ${env.habilitation.detail}\n`,
     );
   }
 }
@@ -740,8 +880,13 @@ async function main(): Promise<void> {
         WHERE tenant_id = ${TENANT_DEMO}
       `);
       await db.execute(sql`UPDATE tenants SET is_active = false WHERE id = ${TENANT_DEMO}`);
+      // Les secrets viennent d'être rendus inutilisables : un dépôt encore sur
+      // le disque ne donnerait plus accès à rien, il traînerait seulement en
+      // clair. On l'écarte avec les accès qu'il ouvrait.
+      effacerLeDepot();
       console.log(
         `   Comptes de démonstration désactivés (${(r as { rowCount?: number }).rowCount ?? '?'} compte(s)).\n`
+        + `   Dépôt des secrets effacé : ils n'ouvraient plus rien.\n`
         + `   Les données sont intactes. « npm run demo:charger » rouvrira l'accès\n`
         + `   avec de nouveaux secrets ; « npm run demo:retirer » effacera tout.`,
       );
@@ -757,6 +902,8 @@ async function main(): Promise<void> {
         permitToWork, suppliers, assetLifecycle, smmDocuments,
         knowledgeHubDocuments, kpiMetrics,
       });
+      // Les comptes n'existent plus : leurs secrets n'ouvrent rien.
+      effacerLeDepot();
       return;
     }
 
@@ -768,6 +915,20 @@ async function main(): Promise<void> {
         + `Elle n'a pas été créée par ce script : il s'arrête plutôt que d'écrire dedans.`,
       );
     }
+
+    // ── Canal des secrets : établi AVANT la première écriture ───────
+    //
+    // Ici, et pas plus tard : établir le canal après le chargement
+    // laisserait, en cas d'échec de la protection, quatre comptes ouverts
+    // dont personne ne connaîtrait les secrets. Ici, et pas plus tôt non
+    // plus : la garde d'environnement et le garde-fou du marqueur sont
+    // passés, donc ce chargement va bien avoir lieu et le fichier ne restera
+    // pas vide sur le disque pour rien.
+    //
+    // Si `preparerCanal` lève, rien n'a encore été écrit ni effacé — le
+    // retrait de rechargement ci-dessous n'a pas eu lieu.
+    const canal = preparerCanal();
+    if (canal.avertissement) console.log(canal.avertissement);
 
     // ── Rechargement : retirer d'abord notre propre jeu ─────────────
     //
@@ -859,7 +1020,10 @@ async function main(): Promise<void> {
         WHERE email = ${c.email}
       `);
     }
-    console.log(`   ${COMPTES.length} comptes`);
+    // Les secrets quittent le processus par le canal protégé, et par lui
+    // seul. Rien de ce qui suit ne les écrit sur la sortie standard.
+    deposerLesSecrets(canal, TENANT_DEMO, COMPTES);
+    console.log(`   ${COMPTES.length} comptes — secrets déposés hors de cette sortie`);
 
     // ── Équipements ───────────────────────────────────────────────
     const idsParCode = new Map<string, number>();
@@ -1581,11 +1745,18 @@ async function main(): Promise<void> {
   Organisation : Usine Verrières ${MARQUEUR}
   Identifiant  : ${TENANT_DEMO}
 
-  QUATRE COMPTES, QUATRE SECRETS DISTINCTS — affichés une seule fois,
-  notez-les maintenant. Ils sont tirés au hasard à chaque chargement et
-  ne sont pas récupérables ensuite.
+  QUATRE COMPTES, QUATRE SECRETS DISTINCTS. Les secrets ne sont PAS
+  affichés ici : cette sortie reste dans l'historique du terminal et dans
+  les journaux de tout outil qui a lancé la commande.
 
-${COMPTES.map((c) => `    ${c.email}\n      ${c.secret}   (${c.libelle})`).join('\n')}
+${COMPTES.map((c) => `    ${c.email.padEnd(36)} ${c.libelle}`).join('\n')}
+
+  Leurs secrets sont déposés dans :
+    ${canal.chemin}
+    ${canal.protection}
+
+  Pour les récupérer — ce qui efface le dépôt :
+      npm run demo:secrets
 
   Pour couper l'accès sans rien effacer :  npm run demo:desactiver
 

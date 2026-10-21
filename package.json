@@ -20,7 +20,8 @@
     "verify:opening": "node scripts/verify-opening.mjs",
     "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
     "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer",
-    "demo:desactiver": "tsx scripts/jeu-de-demonstration.ts --desactiver"
+    "demo:desactiver": "tsx scripts/jeu-de-demonstration.ts --desactiver",
+    "demo:secrets": "tsx scripts/secrets-demonstration.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
