@@ -13,10 +13,13 @@
     "test:fast": "node scripts/run-tests.mjs --unit",
     "test:integration": "node scripts/run-tests.mjs --integration",
     "check:tests": "tsc -p tsconfig.tests.json",
+    "check:scripts": "tsc -p tsconfig.scripts.json",
     "test:e2e": "playwright test",
     "verify:migrations": "node scripts/verify-migrations.mjs",
     "verify:secrets": "node scripts/verify-neon-rotation.mjs",
-    "verify:opening": "node scripts/verify-opening.mjs"
+    "verify:opening": "node scripts/verify-opening.mjs",
+    "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
+    "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
