@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { ModernNavigation } from "@/components/modern-navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,7 +202,6 @@ export default function CryptoJournalPage() {
   return (
     <AppShell filAriane={[{ libelle: "Sécurité" }, { libelle: "Journal cryptographique" }]} largeur="large">
     <div className="space-y-6">
-      <ModernNavigation />
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ModernNavigation } from "@/components/modern-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -386,7 +385,6 @@ export default function MobileNotificationsPage() {
   return (
     <AppShell filAriane={[{ libelle: "Ressources" }, { libelle: "Notifications" }]} largeur="large">
     <div className="space-y-6">
-      <ModernNavigation />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {/* ── Header ─────────────────────────────────────────────── */}

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { ModernNavigation } from "@/components/modern-navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -319,7 +318,6 @@ export default function ProspectiveSimulationPage() {
   return (
     <AppShell filAriane={[{ libelle: "Supervision" }, { libelle: "Simulation prospective" }]} largeur="large">
     <div className="space-y-6">
-      <ModernNavigation />
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12">
 
         {/* Header */}

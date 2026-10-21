@@ -49,7 +49,6 @@ export default function EquipmentQR() {
     return (
       <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Codes QR" }]} largeur="large">
       <div className="space-y-6">
-        <ModernNavigation />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
         </div>

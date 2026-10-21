@@ -194,7 +194,6 @@ export default function PredictiveInsights() {
     return (
       <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Analyse prédictive" }]} largeur="large">
       <div className="space-y-6">
-        <ModernNavigation />
         <div className="flex items-center justify-center h-[70vh]">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 border-4 border-etat-encours-filet border-t-transparent rounded-full animate-spin mx-auto" />

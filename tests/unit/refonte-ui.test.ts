@@ -59,9 +59,17 @@ function lignesDeCode(contenu: string): Array<{ n: number; texte: string }> {
 const relatif = (f: string) => f.replace(RACINE, '').split('\\').join('/');
 const fichiers = sources(CLIENT);
 
-/** Les trois écrans refondus à l'étape B. */
+/**
+ * Les trois écrans refondus à l'étape B.
+ *
+ * `dashboard.tsx` s'appelle désormais `poste-de-diagnostic.tsx` : le fichier
+ * ne contenait pas un tableau de bord mais le poste de diagnostic, et portait
+ * ce nom par héritage. Le test le désignait par son chemin, donc le renommage
+ * le faisait échouer sur un fichier introuvable — une alerte exacte, pour une
+ * cause qui n'est pas un défaut du produit.
+ */
 const ECRANS_PRIORITAIRES = [
-  join(CLIENT, 'pages', 'dashboard.tsx'),
+  join(CLIENT, 'pages', 'poste-de-diagnostic.tsx'),
   join(CLIENT, 'pages', 'gmao-dashboard.tsx'),
   join(CLIENT, 'pages', 'maintenance-engineering-platform.tsx'),
 ];
@@ -577,7 +585,7 @@ describe('Navigation et accessibilité', () => {
     // Cinq `console.log` imprimaient le formulaire BRUT, sérialisation JSON
     // comprise. Les symptômes saisis décrivent l'installation du client.
     const fichiers = [
-      join(CLIENT, 'pages', 'dashboard.tsx'),
+      join(CLIENT, 'pages', 'poste-de-diagnostic.tsx'),
       join(CLIENT, 'components', 'diagnostic-form.tsx'),
     ];
     const fautifs: string[] = [];
@@ -748,15 +756,16 @@ describe('Historique — une seule implémentation', () => {
    * remplace le corps par un objet d'erreur — à l'époque en laissant le statut
    * à 200 ; ce refus répond 403 depuis le 2026-10-21. Mesuré le 20/10/2026 :
    * UNE session de diagnostic appartenant à un second locataire suffisait à
-   * faire rendre /dashboard entièrement blanc.
+   * faire rendre le poste de diagnostic entièrement blanc (/dashboard à
+   * l'époque, /poste-de-diagnostic depuis le renommage).
    */
   const COMPOSANT = join(CLIENT, 'components', 'historique-maintenance.tsx');
 
   it('les trois hôtes montent le même composant', () => {
     const page = readFileSync(join(CLIENT, 'pages', 'historique.tsx'), 'utf8');
     const gmao = readFileSync(join(CLIENT, 'pages', 'gmao-dashboard.tsx'), 'utf8');
-    const tableauDeBord = readFileSync(join(CLIENT, 'pages', 'dashboard.tsx'), 'utf8');
-    for (const source of [page, gmao, tableauDeBord]) {
+    const posteDeDiagnostic = readFileSync(join(CLIENT, 'pages', 'poste-de-diagnostic.tsx'), 'utf8');
+    for (const source of [page, gmao, posteDeDiagnostic]) {
       expect(source).toContain('@/components/historique-maintenance');
     }
     // La page ne réimplémente pas la liste : elle pose le cadre.
