@@ -19,7 +19,8 @@
     "verify:secrets": "node scripts/verify-neon-rotation.mjs",
     "verify:opening": "node scripts/verify-opening.mjs",
     "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
-    "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer"
+    "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer",
+    "demo:desactiver": "tsx scripts/jeu-de-demonstration.ts --desactiver"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

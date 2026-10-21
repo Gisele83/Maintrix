@@ -121,39 +121,49 @@ const VALEURS_DEXEMPLE = [
 ];
 
 /**
- * Mot de passe des comptes de démonstration.
+ * Un secret FORT et DISTINCT par compte de démonstration.
  *
- * ⚠️ Volontairement ABSENT du code. Ce dépôt est public, et ce jeu de données
- * est destiné à être chargé sur un serveur accessible par Internet : un mot de
- * passe écrit ici serait un compte `owner` ouvert à quiconque lit le dépôt.
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI A CHANGÉ, ET POURQUOI
+ * ═══════════════════════════════════════════════════════════════════
+ * Les quatre comptes partageaient un seul mot de passe, et `MAINTRIX_DEMO_
+ * PASSWORD` permettait de le choisir. Deux conséquences :
  *
- * Deux usages :
- *   • sans rien préciser, un mot de passe aléatoire est tiré et affiché une
- *     fois en fin de chargement ;
- *   • avec `MAINTRIX_DEMO_PASSWORD`, c'est celui-là qui est posé — utile pour
- *     retrouver le même accès d'une session de captures à l'autre.
+ *   • le compte le plus étendu — `owner` — était accessible avec le même
+ *     secret que le compte technicien. Qui obtenait l'un obtenait l'autre ;
+ *   • un mot de passe fourni par variable d'environnement finit dans
+ *     l'historique du terminal, dans les journaux d'un orchestrateur, et
+ *     parfois dans un fichier de configuration versionné.
+ *
+ * Désormais : un secret tiré au hasard par compte, à chaque chargement,
+ * jamais lu depuis l'environnement. Ils sont affichés UNE FOIS en fin
+ * d'exécution — c'est le seul moment où ils existent en clair — puis ne
+ * subsistent qu'en empreinte bcrypt.
+ *
+ * MAINTRIX_DEMO_PASSWORD N'EST PLUS LU. Le signaler explicitement vaut mieux
+ * que l'ignorer en silence : qui l'utilisait doit savoir que son mot de passe
+ * n'est plus posé, au lieu de découvrir des comptes inaccessibles.
  */
-function motDePasseDemo(): { valeur: string; origine: 'fourni' | 'tiré' } {
-  const fourni = process.env.MAINTRIX_DEMO_PASSWORD;
-  if (fourni) {
-    if (VALEURS_DEXEMPLE.includes(fourni.trim().toLowerCase())) {
-      throw new Error(
-        `MAINTRIX_DEMO_PASSWORD vaut « ${fourni} », qui est une valeur d'exemple.\n`
-        + `Choisissez autre chose, ou ne renseignez rien pour un tirage aléatoire.`,
-      );
-    }
-    if (fourni.length < 12) {
-      throw new Error('MAINTRIX_DEMO_PASSWORD doit faire au moins 12 caractères.');
-    }
-    return { valeur: fourni, origine: 'fourni' };
-  }
-
-  // Tirage cryptographique — pas le générateur déterministe ci-dessous, qui
-  // est reproductible par construction et donc inapte à un mot de passe.
+function secretAleatoire(): string {
+  // Tirage cryptographique — pas le générateur déterministe de ce fichier,
+  // qui est reproductible par construction et donc inapte à un secret.
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  const octets = randomBytes(20);
-  const tire = Array.from(octets, (o) => alphabet[o % alphabet.length]).join('');
-  return { valeur: `Demo-${tire}`, origine: 'tiré' };
+  const octets = randomBytes(24);
+  return `Demo-${Array.from(octets, (o) => alphabet[o % alphabet.length]).join('')}`;
+}
+
+function refuserMotDePasseImpose(): void {
+  if (process.env.MAINTRIX_DEMO_PASSWORD) {
+    throw new Error(
+      'MAINTRIX_DEMO_PASSWORD n\'est plus pris en compte.\n'
+      + '  Chaque compte de démonstration reçoit désormais un secret ALÉATOIRE\n'
+      + '  et DISTINCT, affiché une seule fois en fin de chargement.\n'
+      + '  Un secret partagé entre un compte owner et un compte technicien\n'
+      + '  donnait le premier à qui obtenait le second.\n\n'
+      + '  Retirez cette variable et relancez : les quatre secrets vous seront\n'
+      + '  donnés. Notez-les, ils ne sont pas récupérables ensuite.',
+    );
+  }
 }
 
 // ─── Générateur déterministe ─────────────────────────────────────────────────
@@ -462,18 +472,193 @@ function verifierSeuils(sortiesMinimales: number): void {
   }
 }
 
-function verifierBase(url: string): void {
-  const nom = (() => { try { return new URL(url).pathname.replace(/^\//, ''); } catch { return ''; } })();
-  const autorise = process.env.MAINTRIX_DEMO_ALLOW_ANY_DB === '1';
+/**
+ * L'environnement est-il autorisé à recevoir — ou à perdre — ce jeu ?
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CETTE FONCTION A ÉTÉ RÉÉCRITE
+ * ═══════════════════════════════════════════════════════════════════
+ * La version précédente tenait en une ligne utile : refuser si le NOM de la
+ * base contient « prod ». Trois faiblesses, et la dernière est la pire.
+ *
+ *   • UN SEUL SIGNAL. Une base de production nommée `maintrix`, `app` ou
+ *     `postgres` — le cas le plus courant — passait sans un mot.
+ *   • AUTORISATION PAR DÉFAUT. Tout ce qui n'était pas reconnu comme
+ *     production était accepté. L'inconnu valait permission.
+ *   • LA SUPPRESSION PASSAIT PAR LÀ AUSSI. `--retirer` franchissait la même
+ *     garde : une base de production nommée sobrement pouvait donc être
+ *     amputée de ses locataires, pas seulement enrichie.
+ *
+ * Le principe est inversé : REFUS PAR DÉFAUT. Il faut une preuve positive et
+ * CONVERGENTE d'être ailleurs qu'en production. Trois signaux indépendants
+ * sont relevés, et l'exécution n'est autorisée que si les trois concordent.
+ *
+ *   1. IDENTITÉ de la base — son nom porte-t-il un marqueur de test ?
+ *   2. DESTINATION — l'hôte est-il local ou sur un réseau privé ?
+ *   3. CONTENU — la base porte-t-elle déjà des organisations qui ressemblent
+ *      à de vrais clients ? C'est le signal le plus difficile à tromper :
+ *      il ne dépend ni du nom qu'on a donné à la base, ni de l'adresse par
+ *      laquelle on y accède, mais de ce qu'elle contient réellement.
+ *
+ * `NODE_ENV` N'EST PAS UN SIGNAL. Il est relevé et affiché pour information,
+ * jamais compté : c'est une variable d'environnement que n'importe quel
+ * script peut poser, y compris par erreur, et la production tourne souvent
+ * avec un `NODE_ENV` hérité d'un outillage.
+ */
+type Verdict = 'autorise' | 'interdit' | 'ambigu';
 
-  // ⚠️ Ce jeu de données n'a rien à faire dans la base d'un client. Le
-  // garde-fou est volontairement bruyant : on préfère refuser à tort que
-  // peupler à tort.
-  if (/prod/i.test(nom) && !autorise) {
+interface Environnement {
+  verdict: Verdict;
+  nomBase: string;
+  hote: string;
+  signaux: Array<{ nom: string; valeur: string; conclusion: 'test' | 'production' | 'inconnu' }>;
+  motif: string;
+}
+
+/** Noms qui désignent sans ambiguïté un environnement jetable. */
+const MARQUEURS_TEST = /(^|[_-])(test|tests|dev|devel|demo|local|sandbox|bac[_-]?a[_-]?sable|ci)([_-]|$)/i;
+/** Noms qui désignent sans ambiguïté la production. */
+const MARQUEURS_PRODUCTION = /(^|[_-])(prod|production|live|prd)([_-]|$)/i;
+
+/** Hôtes acceptés : la machine elle-même, ou une adresse de réseau privé. */
+function hoteEstPrive(hote: string): boolean {
+  if (!hote) return false;
+  if (hote === 'localhost' || hote === '127.0.0.1' || hote === '::1' || hote === '[::1]') return true;
+  if (/\.(local|localhost|test|internal)$/i.test(hote)) return true;
+  // RFC 1918 et lien-local.
+  if (/^10\./.test(hote)) return true;
+  if (/^192\.168\./.test(hote)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(hote)) return true;
+  if (/^169\.254\./.test(hote)) return true;
+  return false;
+}
+
+/**
+ * Troisième signal : la base contient-elle de vrais clients ?
+ *
+ * Une organisation est tenue pour RÉELLE si elle porte des équipements et
+ * que ni son nom ni son domaine ne la désignent comme un jeu d'essai. C'est
+ * volontairement strict : mieux vaut refuser sur une base de test mal nommée
+ * — l'exploitant lèvera l'ambiguïté en renommant ou en forçant — que de
+ * charger, ou pire de supprimer, chez un client.
+ */
+async function contenuRessembleAProduction(db: any, tenants: any, equipmentRegistry: any): Promise<{ reel: number; exemples: string[] }> {
+  let lignes: { rows?: unknown[] } | unknown[];
+  try {
+    lignes = await db.execute(sql`
+      SELECT t.id, t.name, t.domain, COUNT(e.id)::int AS equipements
+      FROM tenants t
+      LEFT JOIN equipment_registry e ON e.tenant_id = t.id
+      WHERE t.id <> ${TENANT_DEMO}
+      GROUP BY t.id, t.name, t.domain
+    `);
+  } catch {
+    // Pas de table `tenants` : ce n'est pas une base Maintrix installée, donc
+    // sûrement pas une base de production. On rend « aucune organisation
+    // réelle » plutôt que de laisser remonter une erreur SQL, qui ferait
+    // passer un refus net pour une panne. Les deux autres signaux — nom et
+    // hôte — restent seuls juges, et l'ambiguïté continue de valoir refus.
+    return { reel: 0, exemples: [] };
+  }
+  const rangs: Array<{ name: string; domain: string | null; equipements: number }> = ((lignes as { rows?: unknown[] }).rows ?? lignes) as never;
+
+  const suspects = rangs.filter((r) => {
+    if (!r.equipements) return false;
+    const texte = `${r.name ?? ''} ${r.domain ?? ''}`;
+    const estEssai = MARQUEURS_TEST.test(texte)
+      || /\.(test|local|invalid|example)(\b|$)/i.test(r.domain ?? '')
+      || /\[démo\]|\[demo\]|témoin|temoin/i.test(texte);
+    return !estEssai;
+  });
+
+  return { reel: suspects.length, exemples: suspects.slice(0, 3).map((r) => `${r.name} (${r.domain ?? 'sans domaine'}, ${r.equipements} équipements)`) };
+}
+
+async function examinerEnvironnement(url: string, db: any, tenants: any, equipmentRegistry: any): Promise<Environnement> {
+  let nomBase = '';
+  let hote = '';
+  try {
+    const u = new URL(url);
+    nomBase = u.pathname.replace(/^\//, '');
+    hote = u.hostname;
+  } catch {
+    /* URL illisible : les signaux resteront inconnus, donc refus. */
+  }
+
+  const signaux: Environnement['signaux'] = [];
+
+  // 1. Identité de la base.
+  if (MARQUEURS_PRODUCTION.test(nomBase)) {
+    signaux.push({ nom: 'nom de la base', valeur: nomBase || '(illisible)', conclusion: 'production' });
+  } else if (MARQUEURS_TEST.test(nomBase)) {
+    signaux.push({ nom: 'nom de la base', valeur: nomBase, conclusion: 'test' });
+  } else {
+    signaux.push({ nom: 'nom de la base', valeur: nomBase || '(illisible)', conclusion: 'inconnu' });
+  }
+
+  // 2. Destination.
+  signaux.push({
+    nom: 'hôte', valeur: hote || '(illisible)',
+    conclusion: hoteEstPrive(hote) ? 'test' : 'inconnu',
+  });
+
+  // 3. Contenu réel.
+  const contenu = await contenuRessembleAProduction(db, tenants, equipmentRegistry);
+  signaux.push({
+    nom: 'organisations en base',
+    valeur: contenu.reel === 0 ? 'aucune organisation réelle' : contenu.exemples.join(' ; '),
+    conclusion: contenu.reel === 0 ? 'test' : 'production',
+  });
+
+  const production = signaux.filter((s) => s.conclusion === 'production');
+  const inconnus = signaux.filter((s) => s.conclusion === 'inconnu');
+
+  if (production.length) {
+    return { verdict: 'interdit', nomBase, hote, signaux, motif: production.map((s) => `${s.nom} : ${s.valeur}`).join(' — ') };
+  }
+  if (inconnus.length) {
+    return { verdict: 'ambigu', nomBase, hote, signaux, motif: inconnus.map((s) => s.nom).join(', ') };
+  }
+  return { verdict: 'autorise', nomBase, hote, signaux, motif: 'les trois signaux concordent' };
+}
+
+/**
+ * Applique le verdict. N'écrit rien, ne supprime rien : elle lève, et c'est
+ * l'appelant qui n'ira pas plus loin.
+ *
+ * Le forçage `MAINTRIX_DEMO_FORCER` ne lève QUE l'ambiguïté. Il ne peut pas
+ * passer outre un signal de production : si la base contient de vrais
+ * clients, aucune variable d'environnement ne doit suffire à y charger un
+ * jeu de démonstration — ni, surtout, à en supprimer des organisations.
+ */
+function appliquerVerdict(env: Environnement, operation: 'charger' | 'retirer'): void {
+  const tableau = env.signaux
+    .map((s) => `     ${s.nom.padEnd(24)} ${String(s.valeur).slice(0, 52).padEnd(54)} ${s.conclusion}`)
+    .join('\n');
+  const entete = `\n   Environnement examiné (NODE_ENV=${process.env.NODE_ENV ?? 'non défini'}, non pris en compte) :\n${tableau}\n`;
+
+  if (env.verdict === 'interdit') {
     throw new Error(
-      `Refus de charger un jeu de démonstration dans « ${nom} » : le nom de base `
-      + `évoque un environnement de production.\n`
-      + `Pour forcer — et vous saurez ce que vous faites : MAINTRIX_DEMO_ALLOW_ANY_DB=1`,
+      `REFUS : cette base porte des marques de PRODUCTION.\n${entete}\n`
+      + `   Motif : ${env.motif}\n\n`
+      + `   L'opération « ${operation} » est interdite ici, et aucune variable\n`
+      + `   d'environnement ne peut l'autoriser. Si ce refus est une erreur,\n`
+      + `   c'est le contenu de la base qu'il faut examiner, pas la garde.`,
+    );
+  }
+
+  if (env.verdict === 'ambigu' && process.env.MAINTRIX_DEMO_FORCER !== 'oui-je-sais-ce-que-je-fais') {
+    throw new Error(
+      `REFUS : environnement indéterminé — l'inconnu ne vaut pas permission.\n${entete}\n`
+      + `   Signaux non concluants : ${env.motif}\n\n`
+      + `   Procédure autorisée en développement et en test :\n`
+      + `     • nommez la base avec un marqueur explicite — maintrix_test,\n`
+      + `       maintrix_dev, maintrix_local — et servez-la depuis localhost\n`
+      + `       ou une adresse de réseau privé ;\n`
+      + `     • ou, si votre poste impose une configuration atypique :\n`
+      + `       MAINTRIX_DEMO_FORCER=oui-je-sais-ce-que-je-fais\n\n`
+      + `   Ce forçage ne lève que l'ambiguïté. Il reste SANS EFFET sur une\n`
+      + `   base contenant de vraies organisations.`,
     );
   }
 }
@@ -481,19 +666,14 @@ function verifierBase(url: string): void {
 async function main(): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL absent.');
-  verifierBase(url);
 
   const retirer = process.argv.includes('--retirer');
+  const desactiver = process.argv.includes('--desactiver');
 
   // Avant toute connexion et toute écriture. Un script qui écrit d'abord et
   // découvre ensuite que son jeu est inexploitable laisse derrière lui une
   // organisation à moitié remplie, qu'il faut retirer à la main.
-  // Le mot de passe est résolu ici, et non au moment de créer les comptes :
-  // un MAINTRIX_DEMO_PASSWORD refusé doit arrêter le script avant la première
-  // écriture, pas après le chargement du parc.
-  const motDePasse = retirer
-    ? { valeur: '', origine: 'tiré' as const }
-    : motDePasseDemo();
+  if (!retirer) refuserMotDePasseImpose();
 
   if (!retirer) {
     const { SORTIES_MINIMALES } = await import('@shared/stock');
@@ -515,6 +695,59 @@ async function main(): Promise<void> {
   } = await import('@shared/schema');
 
   try {
+    // ═══════════════════════════════════════════════════════════════
+    // GARDE D'ENVIRONNEMENT — avant toute écriture ET toute suppression
+    // ═══════════════════════════════════════════════════════════════
+    // Elle interroge la base, donc elle ne peut pas précéder la connexion :
+    // elle précède en revanche TOUT le reste, y compris `--retirer`. C'est
+    // l'ordre qui compte — une garde placée après la suppression ne garde
+    // rien. Si elle lève, `finally` ferme le pool et rien n'a été touché.
+    appliquerVerdict(
+      await examinerEnvironnement(url, db, tenants, equipmentRegistry),
+      retirer ? 'retirer' : 'charger',
+    );
+
+    // ── Désactivation : couper l'accès sans rien détruire ───────────
+    //
+    // Entre « le jeu est chargé et quiconque connaît un secret peut entrer »
+    // et « tout est effacé », il manquait un cran. Une démonstration terminée
+    // n'appelle pas forcément la destruction des données — on peut vouloir
+    // les reprendre demain — mais elle appelle la fermeture des accès.
+    //
+    // On ne touche qu'aux comptes de l'organisation marquée, et on ne
+    // supprime rien : les mots de passe sont remplacés par une empreinte
+    // inutilisable, et les comptes désactivés. Recharger les rouvrira avec de
+    // nouveaux secrets.
+    if (desactiver) {
+      const [locataireADesactiver] = await db.select().from(tenants)
+        .where(eq(tenants.id, TENANT_DEMO)).limit(1);
+      if (!locataireADesactiver) {
+        console.log('   Aucune organisation de démonstration : rien à désactiver.');
+        return;
+      }
+      if (!locataireADesactiver.name?.includes(MARQUEUR)) {
+        throw new Error(
+          `L'organisation ${TENANT_DEMO} ne porte pas le marqueur ${MARQUEUR} — `
+          + `refus de toucher à des comptes dont ce script n'est pas l'auteur.`,
+        );
+      }
+      // Empreinte d'un secret aléatoire jamais révélé : aucun mot de passe ne
+      // peut y correspondre, et la colonne reste conforme à son format.
+      const inutilisable = await bcrypt.hash(secretAleatoire(), 10);
+      const r = await db.execute(sql`
+        UPDATE user_profiles
+        SET is_active = false, password = ${inutilisable}
+        WHERE tenant_id = ${TENANT_DEMO}
+      `);
+      await db.execute(sql`UPDATE tenants SET is_active = false WHERE id = ${TENANT_DEMO}`);
+      console.log(
+        `   Comptes de démonstration désactivés (${(r as { rowCount?: number }).rowCount ?? '?'} compte(s)).\n`
+        + `   Les données sont intactes. « npm run demo:charger » rouvrira l'accès\n`
+        + `   avec de nouveaux secrets ; « npm run demo:retirer » effacera tout.`,
+      );
+      return;
+    }
+
     if (retirer) {
       await effacer(db, {
         tenants, userProfiles, equipmentRegistry, workOrders, spareParts,
@@ -591,16 +824,17 @@ async function main(): Promise<void> {
       WHERE id = ${TENANT_DEMO}
     `);
 
-    const empreinte = await bcrypt.hash(motDePasse.valeur, 10);
+    // Un secret TIRÉ POUR CHAQUE COMPTE, et jamais le même : obtenir celui du
+    // technicien ne doit pas donner celui de la direction.
     const COMPTES = [
-      // `owner` d'abord : c'est le rôle le plus étendu d'un locataire, donc
-      // celui qui donne accès à tous les écrans à capturer.
-      { email: `direction@${DOMAINE_DEMO}`, username: 'demo_direction', role: 'owner', prenom: 'Hélène', nom: 'Daumier' },
-      { email: `responsable@${DOMAINE_DEMO}`, username: 'demo_responsable', role: 'maintenance_manager', prenom: 'Claire', nom: 'Vasseur' },
-      { email: `technicien@${DOMAINE_DEMO}`, username: 'demo_technicien', role: 'technician', prenom: 'Samir', nom: 'Benali' },
-      { email: `planificateur@${DOMAINE_DEMO}`, username: 'demo_planificateur', role: 'planner', prenom: 'Léa', nom: 'Moreau' },
-    ];
+      { email: `direction@${DOMAINE_DEMO}`, username: 'demo_direction', role: 'owner', prenom: 'Hélène', nom: 'Daumier', libelle: 'direction (accès le plus large)' },
+      { email: `responsable@${DOMAINE_DEMO}`, username: 'demo_responsable', role: 'maintenance_manager', prenom: 'Claire', nom: 'Vasseur', libelle: 'responsable maintenance' },
+      { email: `technicien@${DOMAINE_DEMO}`, username: 'demo_technicien', role: 'technician', prenom: 'Samir', nom: 'Benali', libelle: 'technicien' },
+      { email: `planificateur@${DOMAINE_DEMO}`, username: 'demo_planificateur', role: 'planner', prenom: 'Léa', nom: 'Moreau', libelle: 'planificateur' },
+    ].map((c) => ({ ...c, secret: secretAleatoire() }));
+
     for (const c of COMPTES) {
+      const empreinte = await bcrypt.hash(c.secret, 10);
       await db.insert(userProfiles).values({
         tenantId: TENANT_DEMO, username: c.username, email: c.email, password: empreinte,
         firstName: c.prenom, lastName: c.nom, role: c.role, isActive: true,
@@ -1347,18 +1581,13 @@ async function main(): Promise<void> {
   Organisation : Usine Verrières ${MARQUEUR}
   Identifiant  : ${TENANT_DEMO}
 
-  Connexion    : direction@${DOMAINE_DEMO}   (accès le plus large)
-  Mot de passe : ${motDePasse.valeur}
-                 ${motDePasse.origine === 'tiré'
-                   ? '↑ tiré au hasard, affiché UNE SEULE FOIS — notez-le maintenant.\n'
-                     + '                   Pour en imposer un : MAINTRIX_DEMO_PASSWORD=…'
-                   : '↑ celui de MAINTRIX_DEMO_PASSWORD.'}
+  QUATRE COMPTES, QUATRE SECRETS DISTINCTS — affichés une seule fois,
+  notez-les maintenant. Ils sont tirés au hasard à chaque chargement et
+  ne sont pas récupérables ensuite.
 
-  Trois autres comptes, même mot de passe, pour capturer les écrans
-  tels que chaque métier les voit :
-    responsable@${DOMAINE_DEMO}      (responsable maintenance)
-    planificateur@${DOMAINE_DEMO}    (planificateur)
-    technicien@${DOMAINE_DEMO}       (technicien)
+${COMPTES.map((c) => `    ${c.email}\n      ${c.secret}   (${c.libelle})`).join('\n')}
+
+  Pour couper l'accès sans rien effacer :  npm run demo:desactiver
 
   Les indicateurs affichés sont CALCULÉS à partir de ces données :
   MTBF et MTTR sur les interventions closes, courbes mensuelles sur
