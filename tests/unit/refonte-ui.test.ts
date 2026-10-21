@@ -745,9 +745,10 @@ describe('Historique — une seule implémentation', () => {
    *
    * `/api/history` compose sa réponse avec `storage.getDiagnosticSessions()`,
    * qui ne filtre pas par locataire. `antiLeakageValidator` le détecte et
-   * remplace le corps par un objet d'erreur — en laissant le statut à 200.
-   * Mesuré le 20/10/2026 : UNE session de diagnostic appartenant à un second
-   * locataire suffisait à faire rendre /dashboard entièrement blanc.
+   * remplace le corps par un objet d'erreur — à l'époque en laissant le statut
+   * à 200 ; ce refus répond 403 depuis le 2026-10-21. Mesuré le 20/10/2026 :
+   * UNE session de diagnostic appartenant à un second locataire suffisait à
+   * faire rendre /dashboard entièrement blanc.
    */
   const COMPOSANT = join(CLIENT, 'components', 'historique-maintenance.tsx');
 

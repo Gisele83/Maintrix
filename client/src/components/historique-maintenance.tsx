@@ -36,7 +36,11 @@ import {
  * `/api/history` compose sa réponse à partir de `storage.getDiagnosticSessions()`,
  * qui fait `db.select().from(diagnosticSessions)` SANS filtre de locataire.
  * `antiLeakageValidator` le détecte et remplace le corps par
- * `{ error: 'CROSS_TENANT_DATA_DETECTED', … }` — en laissant le statut à 200.
+ * `{ error: 'CROSS_TENANT_DATA_DETECTED', … }` — à l'époque en laissant le
+ * statut à 200 ; ce refus répond 403 depuis le 2026-10-21. Cela ne rend pas
+ * `/api/history` utilisable : le filet n'attrape cette charge QUE parce que
+ * ses lignes portent un `tenantId` au premier niveau, et il resterait aveugle
+ * à la même fuite servie sous une clé ou en projection.
  *
  * Mesuré le 20/10/2026 : il a suffi d'insérer UNE session de diagnostic
  * appartenant à un second locataire pour que la réponse passe de 20

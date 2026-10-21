@@ -93,7 +93,14 @@ securityAuditRouter.get('/', async (req: Request, res: Response) => {
             { label: 'Hiérarchie des niveaux (1-6)', status: 'OK', detail: 'viewer=1 → super_admin=6' },
             { label: 'Navigation conditionnelle', status: 'OK', detail: 'getAccessibleNavigation(role)' },
             { label: 'Middleware d\'autorisation', status: 'OK', detail: 'EnterpriseAuthMiddleware.requireAuthentication' },
-            { label: 'Isolation multi-tenant', status: 'OK', detail: 'tenantId sur toutes les requêtes DB' },
+            // Cet item annonçait « OK — tenantId sur toutes les requêtes DB ».
+            // Les deux moitiés étaient fausses, et la campagne d'intégration du
+            // 2026-10-21 l'a montré : quatre accès inter-locataires dans le seul
+            // module de stock, dont une ÉCRITURE (un locataire portait de 1 à 999
+            // le stock d'une pièce d'un autre). Le cloisonnement est réel là où
+            // la requête porte le locataire, et il a été refermé module par
+            // module — il n'est pas une propriété acquise de l'ensemble.
+            { label: 'Isolation multi-tenant', status: 'WARN', detail: 'Cloisonnement par requête, vérifié module par module (stock, capteurs IoT, coûts) — pas une propriété globale. Le filet antiLeakageValidator est une alarme de forme, pas une garantie : il ne voit ni les charges imbriquées, ni les projections sans identifiant, ni les exports non-JSON.' },
             { label: 'MFA enforcement (routes critiques)', status: 'OK', detail: 'mfaEnforcementMiddleware sur /api/tenant/security-*' },
           ]
         },

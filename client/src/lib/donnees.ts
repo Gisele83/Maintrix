@@ -30,11 +30,12 @@
  * ─── 2. Une réponse qui n'a pas la forme attendue ────────────────────
  *
  * `antiLeakageValidator` remplace le corps d'une réponse par un objet
- * d'erreur sans toucher au statut : l'écran reçoit HTTP 200 et un objet là
- * où il attendait un tableau. `const { data = [] }` ne protège pas — la
- * valeur n'est pas `undefined` — et le `.map` qui suit fait tomber la page.
- * `lib/queryClient.ts` intercepte désormais ce cas ; `liste()` est la
- * ceinture de sécurité pour tout ce qui passe à côté.
+ * d'erreur. Il le faisait sans toucher au statut : l'écran recevait HTTP 200
+ * et un objet là où il attendait un tableau. `const { data = [] }` ne protège
+ * pas — la valeur n'est pas `undefined` — et le `.map` qui suit fait tomber la
+ * page. Le serveur répond désormais 403 (corrigé le 2026-10-21), mais une
+ * instance déployée avant ce correctif répond encore 200 : `queryClient.ts`
+ * intercepte ce cas, et `liste()` est la ceinture pour ce qui passe à côté.
  */
 
 /**
