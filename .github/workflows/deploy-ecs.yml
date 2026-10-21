@@ -18,10 +18,50 @@ env:
   ECS_SERVICE: maintrix-service
 
 jobs:
+  # Un secret ne peut pas être lu dans un `if:` de job : on le transforme donc en
+  # sortie booléenne d'un job préalable, pour que le déploiement soit IGNORÉ au
+  # lieu d'ÉCHOUER quand les identifiants AWS sont absents.
+  #
+  # Sans cette garde, le job `deploy` partait à chaque fusion sur main et mourait
+  # à l'étape « Configure AWS credentials » sur « Credentials could not be loaded
+  # from any providers » — mesuré rouge sur les fusions des PR #6, #7 et #8. Un
+  # rouge permanent ne signale plus rien : il rend au contraire invisible le jour
+  # où un déploiement échoue pour une vraie raison.
+  #
+  # Aucun identifiant AWS n'est configuré dans ce dépôt, et Maintrix est déployé
+  # sur OVHcloud (voir deploy-ovh.yml, qui est le chemin réel). Ce workflow reste
+  # donc inerte, mais prêt si l'hébergement change — et silencieux en attendant.
+  #
+  # Les secrets passent par `env:` et non par une interpolation dans le script,
+  # comme le fait deploy-ovh.yml : une valeur interpolée se retrouve dans le texte
+  # de la commande. C'est le style à suivre, celui de ci.yml étant plus ancien.
+  configuration:
+    name: AWS configuré ?
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      pret: ${{ steps.verif.outputs.pret }}
+    steps:
+      - id: verif
+        env:
+          IDENTIFIANT: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          manque=""
+          [ -n "$IDENTIFIANT" ] || manque="$manque AWS_ACCESS_KEY_ID"
+          [ -n "$SECRET" ]      || manque="$manque AWS_SECRET_ACCESS_KEY"
+          if [ -n "$manque" ]; then
+            echo "pret=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Déploiement ECS NON configuré — manque :$manque. Étape ignorée, ce n'est pas une panne."
+          else
+            echo "pret=true" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     name: Deploy to ECS Fargate
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: configuration
+    if: needs.configuration.outputs.pret == 'true'
     environment: production
     steps:
       - name: Checkout code
