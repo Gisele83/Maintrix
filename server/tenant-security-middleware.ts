@@ -4,10 +4,26 @@ import { userProfiles, tenants } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 // =====================================================
-// TENANT SECURITY MIDDLEWARE - ZERO DATA LEAKAGE
+// MIDDLEWARES DE CLOISONNEMENT PAR LOCATAIRE
 // =====================================================
-// Garantit une isolation stricte des données par tenant
-// Empêche tout accès inter-tenant (0% de fuite de données)
+// Ce fichier s'annonçait en tête comme une absence totale de fuite, garantie
+// à cent pour cent. C'était faux, et la formule a coûté cher : elle a servi de
+// garantie dans le rapport d'audit, alors que la campagne d'intégration du
+// 2026-10-21 a relevé quatre accès inter-locataires dans le seul module de
+// stock — dont une ÉCRITURE. Aucun middleware ne peut garantir le
+// cloisonnement : il se garantit dans la REQUÊTE qui lit la donnée, en
+// portant le locataire.
+//
+// (Les formules exactes ne sont pas reproduites ici : un test les interdit
+//  dans ce fichier, et les citer les y ferait revenir.)
+//
+// Ce que ces middlewares font réellement :
+//   • tenantSecurityMiddleware — résout le locataire de l'appelant, vérifie
+//     qu'il est actif, et le pose sur la requête ;
+//   • validateTenantData      — contrôle le rôle, et injecte le locataire
+//     dans le corps (POST/PUT) et les paramètres (GET) ;
+//   • antiLeakageValidator    — ALARME de dernier recours sur la forme des
+//     réponses. Ses limites, mesurées, sont décrites à son emplacement.
 
 export interface TenantRequest extends Request {
   tenantId?: string;
@@ -183,41 +199,131 @@ export const validateTenantData = (allowedRoles: string[] = []) => {
 };
 
 /**
- * 🚨 ANTI-LEAKAGE VALIDATOR
- * Middleware de vérification finale pour empêcher toute fuite de données
- * Scanne les réponses pour s'assurer qu'elles ne contiennent que les données du tenant
+ * 🚨 FILET ANTI-FUITE — UNE ALARME DE DERNIER RECOURS, PAS UNE GARANTIE
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QU'IL ATTRAPE, ET CE QU'IL LAISSE PASSER — MESURÉ
+ * ═══════════════════════════════════════════════════════════════════
+ * Ce middleware enveloppe `res.json` / `res.send` et inspecte la FORME de la
+ * réponse : il cherche un `tenantId` (ou `tenant_id`) étranger sur l'objet de
+ * PREMIER NIVEAU, ou sur les éléments d'un tableau de premier niveau. Rien de
+ * plus profond — et c'est un choix, justifié plus bas.
+ *
+ * Relevé du 2026-10-21, filet monté dans une application Express minimale,
+ * deux locataires. `tests/unit/filet-anti-fuite.test.ts` rejoue ce tableau,
+ * ligne par ligne : il est la définition exécutable de ce qui suit.
+ *
+ *   forme de la charge                     donnée étrangère →  filet
+ *   ──────────────────────────────────────────────────────────────────
+ *   { tenantId }                  objet plat                  BLOQUE
+ *   [ { tenantId } ]              tableau de 1er niveau       BLOQUE
+ *   [ { tenant_id } ]             ligne de SQL brut           BLOQUE
+ *   { alerts: [ { tenantId } ] }  tableau imbriqué            passe
+ *   { data: { tenantId } }        objet imbriqué              passe
+ *   [ [ { tenantId } ] ]          tableau à deux niveaux      passe
+ *   text/csv, Excel, PDF          charge non-JSON             passe
+ *   { available, currentStock }   projection sans marqueur    passe
+ *
+ * Les trois premières lignes sont tout ce qu'il couvre. C'est assez pour
+ * rattraper la forme la plus franche d'une régression — une ligne de table
+ * servie telle quelle, ce qui a bien été le cas de `/api/stock/:id/history`
+ * pendant la campagne — et rien de plus.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI IL N'EST PAS DEVENU RÉCURSIF
+ * ═══════════════════════════════════════════════════════════════════
+ * Un détecteur parcourant toute la charge a été écrit, puis MESURÉ sur les
+ * 163 routes de lecture sans paramètre, serveur réel, connecté comme
+ * administrateur du locataire Alpha. Trois constats l'ont fait écarter.
+ *
+ * 1. IL NE DISTINGUE PAS UNE FUITE D'UNE DONNÉE VOULUE MULTI-SITE.
+ *    Le récursif signale exactement 3 charges, et AUCUNE des trois n'est une
+ *    fuite accidentelle :
+ *      • `/api/cognitive/knowledge-graph` porte `tenantId: 'global'` sur ses
+ *        49 nœuds — une sentinelle de savoir partagé (cognitive-layers/
+ *        knowledge-graph.ts, enum `GLOBAL` de layer-contracts.ts), pas un
+ *        locataire ;
+ *      • `/api/federated-adapt/sites` et `/api/federated-adapt/specialization`
+ *        servent les profils de TOUS les sites. C'est l'objet déclaré du
+ *        module (« profils de maturité de tous les sites »), et l'écran
+ *        « Adaptation Fédérée » les affiche.
+ *    Rendre ce filet récursif ET bloquant renverrait donc 403 sur deux écrans
+ *    en service, pour zéro fuite accidentelle attrapée. La distinction entre
+ *    « fuite » et « voulu » porte sur l'INTENTION de la route ; elle n'est pas
+ *    lisible dans la forme d'une réponse, et aucune profondeur de parcours ne
+ *    la rend lisible. L'exempter par une liste de chemins reviendrait à écrire
+ *    le trou dans la configuration du filet lui-même.
+ *
+ *    ⚠️ Que ces deux routes exposent le NOM et les métriques d'un autre
+ *    locataire à l'administrateur d'Alpha reste un défaut réel. Il est
+ *    signalé comme tel, et relève d'une décision produit sur ce module — pas
+ *    d'un réglage de ce middleware.
+ *
+ * 2. LA COUVERTURE RESTERAIT MARGINALE. Sur les 158 routes qui ont servi une
+ *    charge, 142 ne portent AUCUN identifiant de locataire : ce sont des
+ *    projections et des agrégats. Le récursif ferait passer la couverture de
+ *    6 à 11 charges sur 158 — de 4 % à 7 %. Et les deux dernières formes du
+ *    tableau resteraient invisibles À TOUTE PROFONDEUR : une somme calculée
+ *    sur les lignes d'autrui est un nombre, un export PDF est un flux
+ *    d'octets. Ni l'un ni l'autre ne porte de quoi se trahir.
+ *
+ * 3. SON COÛT N'EST PAS CE QUI L'A ÉCARTÉ. Mesuré sur des charges réelles
+ *    (600 ordres de travail, 250 équipements, 300 pièces) : `/api/work-orders`,
+ *    456 Ko et 17 401 nœuds, parcours complet en 3,6 ms — 1,4× ce que coûte
+ *    déjà la sérialisation JSON de la même charge. C'est abordable.
+ *
+ * CONSÉQUENCE À TENIR. Le cloisonnement se garantit là où la donnée est lue,
+ * par une requête qui porte le locataire : c'est ce qu'ont fait les lots de
+ * cloisonnement du stock et des capteurs IoT. Rien, dans le dépôt, ne doit
+ * présenter ce filet comme une garantie — c'est pourquoi l'item « Isolation
+ * multi-tenant » de server/security-audit-report.ts est passé de
+ * « OK — tenantId sur toutes les requêtes DB » à un WARN qui nomme ce qui
+ * n'est pas couvert.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * UN BLOCAGE RÉPOND 403, PLUS 200
+ * ═══════════════════════════════════════════════════════════════════
+ * Il répondait HTTP **200** avec un corps `{ error: 'CROSS_TENANT_DATA_DETECTED' }`.
+ * Un client ne pouvait donc pas distinguer ce refus d'un succès sans inspecter
+ * le corps : `res.ok` était vrai, le `.map` qui suivait tombait, et /dashboard
+ * se rendait entièrement blanc (mesuré le 2026-10-20). La convention du dépôt,
+ * posée au lot D5, est 403 = refusé, 404 = absent.
+ *
+ * Le garde-fou client `refusDeguiseEnSucces` (client/src/lib/queryClient.ts)
+ * RESTE en place : il couvre les instances déployées avant ce correctif.
  */
 export const antiLeakageValidator = (req: TenantRequest, res: Response, next: NextFunction): void => {
   const originalSend = res.send;
   const originalJson = res.json;
 
-  // Override res.send pour scanner et bloquer les réponses
-  res.send = function(body: any) {
-    if (req.tenantId && body) {
-      const leakDetected = detectLeakage(body, req.tenantId, req.originalUrl);
-      if (leakDetected) {
-        console.error(`🚨 RESPONSE BLOCKED — cross-tenant data leak on ${req.originalUrl}`);
-        res.status = function() { return res; }; // Prevent further chaining issues
-        return originalJson.call(this, {
-          error: 'CROSS_TENANT_DATA_DETECTED',
-          message: 'Accès refusé : fuite de données inter-tenant détectée'
-        });
-      }
+  // `res.json` finit par appeler `res.send` avec la charge sérialisée : sans ce
+  // drapeau, toute réponse serait inspectée DEUX fois, la seconde après un
+  // JSON.parse inutile de ce qu'on vient de sérialiser.
+  let dejaInspectee = false;
+
+  const refuser = (): Response => {
+    console.error(`🚨 RÉPONSE BLOQUÉE — donnée inter-locataire sur ${req.originalUrl}`);
+    // `res.statusCode` plutôt que `res.status(403)` : la route a pu poser son
+    // propre statut, et on écrit par-dessus sans dépendre du chaînage.
+    res.statusCode = 403;
+    return originalJson.call(res, {
+      error: 'CROSS_TENANT_DATA_DETECTED',
+      message: 'Accès refusé : fuite de données inter-tenant détectée'
+    });
+  };
+
+  res.send = function (body: any) {
+    if (!dejaInspectee && req.tenantId && body) {
+      dejaInspectee = true;
+      if (detectLeakage(body, req.tenantId, req.originalUrl)) return refuser();
     }
     return originalSend.call(this, body);
   };
 
-  // Override res.json pour scanner et bloquer les réponses JSON
-  res.json = function(obj: any) {
-    if (req.tenantId && obj) {
-      const leakDetected = detectLeakage(obj, req.tenantId, req.originalUrl);
-      if (leakDetected) {
-        console.error(`🚨 RESPONSE BLOCKED — cross-tenant data leak on ${req.originalUrl}`);
-        return originalJson.call(this, {
-          error: 'CROSS_TENANT_DATA_DETECTED',
-          message: 'Accès refusé : fuite de données inter-tenant détectée'
-        });
-      }
+  res.json = function (obj: any) {
+    if (!dejaInspectee && req.tenantId && obj) {
+      dejaInspectee = true;
+      if (detectLeakage(obj, req.tenantId, req.originalUrl)) return refuser();
     }
     return originalJson.call(this, obj);
   };
@@ -226,8 +332,19 @@ export const antiLeakageValidator = (req: TenantRequest, res: Response, next: Ne
 };
 
 /**
- * Détecte une fuite de données inter-tenant dans la réponse.
- * Retourne true si une fuite est détectée (la réponse doit être bloquée).
+ * Cherche un identifiant de locataire étranger au PREMIER NIVEAU de la charge.
+ *
+ * Les deux orthographes sont acceptées : les lectures en SQL brut rendent des
+ * lignes en `tenant_id` (166 occurrences dans server/), alors que Drizzle rend
+ * `tenantId`. Ne contrôler que la seconde rendait le filet aveugle au format
+ * de ligne le plus répandu du dépôt.
+ *
+ * La portée s'arrête volontairement au premier niveau : voir la décision
+ * documentée sur `antiLeakageValidator`. Mesuré sur les 158 charges réelles,
+ * ce choix ne produit aucun faux positif — les trois charges légitimement
+ * multi-locataires portent leur identifiant PLUS PROFOND.
+ *
+ * Retourne true si la réponse doit être bloquée.
  */
 function detectLeakage(data: any, tenantId: string, endpoint: string): boolean {
   try {
@@ -236,21 +353,33 @@ function detectLeakage(data: any, tenantId: string, endpoint: string): boolean {
       try {
         parsed = JSON.parse(data);
       } catch {
-        return false; // Pas du JSON, pas de risque de fuite structurée
+        // Charge non-JSON (CSV, Excel, PDF) : hors de portée de ce filet.
+        return false;
       }
     }
 
+    /** L'enregistrement porte-t-il le locataire d'un autre ? */
+    const etranger = (item: any): string | null => {
+      if (!item || typeof item !== "object") return null;
+      for (const clef of ["tenantId", "tenant_id"] as const) {
+        const valeur = item[clef];
+        if (typeof valeur === "string" && valeur && valeur !== tenantId) return valeur;
+      }
+      return null;
+    };
+
     if (Array.isArray(parsed)) {
       for (let i = 0; i < parsed.length; i++) {
-        const item = parsed[i];
-        if (item?.tenantId && item.tenantId !== tenantId) {
-          console.error(`🚨 DATA LEAKAGE BLOCKED: Item ${i} in ${endpoint} — tenant ${item.tenantId} ≠ requester ${tenantId}`);
+        const autre = etranger(parsed[i]);
+        if (autre) {
+          console.error(`🚨 FUITE BLOQUÉE : élément ${i} de ${endpoint} — locataire ${autre} ≠ demandeur ${tenantId}`);
           return true;
         }
       }
-    } else if (parsed && typeof parsed === "object") {
-      if (parsed.tenantId && parsed.tenantId !== tenantId) {
-        console.error(`🚨 DATA LEAKAGE BLOCKED: ${endpoint} — tenant ${parsed.tenantId} ≠ requester ${tenantId}`);
+    } else {
+      const autre = etranger(parsed);
+      if (autre) {
+        console.error(`🚨 FUITE BLOQUÉE : ${endpoint} — locataire ${autre} ≠ demandeur ${tenantId}`);
         return true;
       }
     }

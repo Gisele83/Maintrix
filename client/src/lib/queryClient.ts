@@ -26,9 +26,14 @@ function sessionSuperAdminPerdue(texte: string): boolean {
  * ═══════════════════════════════════════════════════════════════════
  * `antiLeakageValidator` (server/tenant-security-middleware.ts) inspecte
  * chaque réponse et, s'il y repère des données d'un autre locataire,
- * REMPLACE le corps par `{ error: 'CROSS_TENANT_DATA_DETECTED', … }` — mais
- * sans toucher au statut. Le client reçoit donc **HTTP 200** accompagné d'un
- * objet d'erreur, là où il attendait un tableau.
+ * REMPLACE le corps par `{ error: 'CROSS_TENANT_DATA_DETECTED', … }`. Il le
+ * faisait sans toucher au statut : le client recevait **HTTP 200** accompagné
+ * d'un objet d'erreur, là où il attendait un tableau.
+ *
+ * ⚠️ Côté serveur, ce refus répond maintenant **403** (corrigé le 2026-10-21).
+ * Ce garde-fou RESTE néanmoins nécessaire : une console servie par une
+ * instance déployée avant ce correctif reçoit toujours le refus en 200, et
+ * c'est la version du SERVEUR, pas celle du client, qui en décide.
  *
  * Mesuré le 20/10/2026 sur l'environnement de test : il a suffi d'insérer UNE
  * session de diagnostic appartenant à un second locataire pour que
