@@ -4,6 +4,7 @@
  */
 
 import { gmaoStorage } from "../gmao-storage";
+import { evaluerSeuil, VALEURS_NOMINALES, type SensorThreshold } from './seuils';
 import { InsertIotSensorData, InsertAlertsNotifications, InsertPredictiveAnalytics } from "@shared/schema";
 import * as mqtt from "mqtt";
 type MqttClient = mqtt.MqttClient;
@@ -16,13 +17,18 @@ export interface IoTConfig {
   sensorThresholds: SensorThreshold[];
 }
 
-export interface SensorThreshold {
-  sensorType: string;
-  warningThreshold: number;
-  criticalThreshold: number;
-  unit: string;
-}
+// Le type, les valeurs et la décision vivent dans `./seuils`, qui n'importe
+// rien : c'est ce qui les rend mesurables sans base de données. Réexportés
+// ici pour les appelants qui les prenaient à cette adresse.
+export {
+  VALEURS_NOMINALES,
+  VARIATION_SIMULATION,
+  SEUILS_PAR_DEFAUT,
+  evaluerSeuil,
+} from './seuils';
+export type { SensorThreshold } from './seuils';
 
+/** Un relevé tel qu il arrive du terrain ou du simulateur. */
 export interface SensorReading {
   equipmentId: number;
   sensorId: string;
@@ -264,14 +270,9 @@ export class IoTConnector {
       return;
     }
 
-    let severity: string | null = null;
-    let alertType = 'threshold';
-
-    if (reading.value >= threshold.criticalThreshold) {
-      severity = 'critical';
-    } else if (reading.value >= threshold.warningThreshold) {
-      severity = 'high';
-    }
+    const alertType = 'threshold';
+    const auDessous = threshold.sens === 'au-dessous';
+    const severity = evaluerSeuil(reading.value, threshold);
 
     if (severity) {
       const alert: InsertAlertsNotifications = {
@@ -280,7 +281,11 @@ export class IoTConnector {
         equipmentId: reading.equipmentId,
         severity,
         title: `${reading.sensorType.toUpperCase()} Alert`,
-        message: `${reading.sensorType} value of ${reading.value} ${reading.unit} exceeds ${severity} threshold (${
+        // Le verbe suit le sens : « exceeds » sur une chute de pression
+        // décrivait le contraire de ce qui se passait.
+        message: `${reading.sensorType} value of ${reading.value} ${reading.unit} ${
+          auDessous ? 'is below' : 'exceeds'
+        } ${severity} threshold (${
           severity === 'critical' ? threshold.criticalThreshold : threshold.warningThreshold
         } ${reading.unit})`,
         triggerValue: reading.value.toString(),
@@ -534,16 +539,7 @@ export class IoTConnector {
   }
 
   private getBaseValue(sensorType: string): number {
-    const baseValues: Record<string, number> = {
-      'temperature': 65,
-      'vibration': 4.5,
-      'pressure': 6.2,
-      'current': 12.5,
-      'voltage': 400,
-      'humidity': 45,
-      'speed': 1450
-    };
-    return baseValues[sensorType] || 50;
+    return VALEURS_NOMINALES[sensorType] ?? 50;
   }
 
   /**
