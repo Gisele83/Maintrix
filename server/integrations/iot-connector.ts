@@ -230,10 +230,16 @@ export class IoTConnector {
       }
 
       // Check thresholds and generate alerts
-      await this.checkThresholds(reading);
+      //
+      // Le locataire vient d'être résolu ci-dessus, et le relevé a été refusé
+      // s'il ne l'était pas. Il est donc transmis aux deux générateurs
+      // d'alertes au lieu d'être oublié trois lignes plus bas : c'est très
+      // exactement l'oubli qui produisait des alertes sans propriétaire, à
+      // chaque passage du simulateur.
+      await this.checkThresholds(reading, tenantId);
 
       // Perform predictive analysis
-      await this.performPredictiveAnalysis(reading);
+      await this.performPredictiveAnalysis(reading, tenantId);
 
     } catch (error) {
       console.error('Error processing sensor reading:', error);
@@ -243,7 +249,7 @@ export class IoTConnector {
   /**
    * Check sensor thresholds and generate alerts
    */
-  private async checkThresholds(reading: SensorReading): Promise<void> {
+  private async checkThresholds(reading: SensorReading, tenantId: string): Promise<void> {
     const threshold = this.config.sensorThresholds.find(
       t => t.sensorType === reading.sensorType
     );
@@ -269,6 +275,7 @@ export class IoTConnector {
 
     if (severity) {
       const alert: InsertAlertsNotifications = {
+        tenantId,
         alertType,
         equipmentId: reading.equipmentId,
         severity,
@@ -291,7 +298,7 @@ export class IoTConnector {
   /**
    * Perform predictive analysis on sensor data
    */
-  private async performPredictiveAnalysis(reading: SensorReading): Promise<void> {
+  private async performPredictiveAnalysis(reading: SensorReading, tenantId: string): Promise<void> {
     const key = `${reading.equipmentId}_${reading.sensorType}`;
     const readings = this.sensorData.get(key);
 
@@ -339,6 +346,7 @@ export class IoTConnector {
         // Generate alert for high failure probability
         if (failureProbability > 0.7) {
           const alert: InsertAlertsNotifications = {
+            tenantId,
             alertType: 'anomaly',
             equipmentId: reading.equipmentId,
             severity: failureProbability > 0.8 ? 'critical' : 'high',

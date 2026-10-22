@@ -655,3 +655,89 @@ describe('Canal des secrets', () => {
     rmSync(dirname(depot), { recursive: true, force: true });
   }, 300_000);
 });
+
+// ═══════════════════════════════════════════════════════════════════
+/**
+ * Le retrait survit-il aux alertes — et le témoin y survit-il entier ?
+ *
+ * C'est par là que le défaut des alertes sans propriétaire s'est manifesté :
+ * `effacer()` butait sur une contrainte de clé étrangère, parce que le moteur
+ * d'alertes avait posé, sur un équipement de démonstration, des lignes que
+ * personne ne savait rattacher. Le code ne produit plus de telles lignes,
+ * mais une base ayant déjà tourné en porte : le cas ci-dessous en fabrique
+ * une À LA MAIN, exprès, pour que le retrait reste éprouvé contre l'héritage
+ * et pas seulement contre ce que le code écrit aujourd'hui.
+ *
+ * Le témoin, lui, est mesuré ENTIER : une empreinte table par table avant et
+ * après. Vérifier que son équipement est toujours là ne prouverait rien sur
+ * ses alertes, ses ordres de travail ou son magasin.
+ */
+describe('Retrait après génération d\'alertes', () => {
+  it('efface les alertes du jeu, préserve le témoin dans son intégralité', async () => {
+    const url = await baseJetable(`maintrix_test_alertes_${STAMP}`);
+    expect(lancer(url).code).toBe(0);
+
+    const TEMOIN = '66666666-6666-4666-8666-666666666666';
+    const c = new Client({ connectionString: url });
+    await c.connect();
+
+    // ── Le témoin, avec de quoi mesurer sa préservation ──
+    await c.query(
+      `INSERT INTO tenants (id, name, domain, plan, is_active)
+       VALUES ($1, 'Témoin Alertes SA', 'temoin-alertes.test.local', 'pro', true)`, [TEMOIN]);
+    const { rows: eqTemoin } = await c.query(
+      `INSERT INTO equipment_registry (tenant_id, equipment_id, equipment_name, equipment_type)
+       VALUES ($1, 'TEM-ALR-001', 'Pompe témoin', 'pompe') RETURNING id`, [TEMOIN]);
+    await c.query(
+      `INSERT INTO alerts_notifications (tenant_id, equipment_id, alert_type, severity, title, message)
+       VALUES ($1, $2, 'threshold', 'high', 'Alerte du témoin', 'doit survivre au retrait')`,
+      [TEMOIN, eqTemoin[0].id]);
+
+    // ── Côté démonstration : une alerte en règle, et une orpheline d'héritage ──
+    const { rows: eqDemo } = await c.query(
+      'SELECT id FROM equipment_registry WHERE tenant_id = $1 ORDER BY id LIMIT 1', [TENANT_DEMO]);
+    await c.query(
+      `INSERT INTO alerts_notifications (tenant_id, equipment_id, alert_type, severity, title, message)
+       VALUES ($1, $2, 'anomaly', 'critical', 'Alerte de démonstration', 'posée en règle')`,
+      [TENANT_DEMO, eqDemo[0].id]);
+    await c.query(
+      `INSERT INTO alerts_notifications (equipment_id, alert_type, severity, title, message)
+       VALUES ($1, 'threshold', 'high', 'Alerte héritée sans locataire', 'comme avant la correction')`,
+      [eqDemo[0].id]);
+
+    /** Empreinte du témoin : combien de lignes lui appartiennent, table par table. */
+    const empreinte = async () => {
+      const tables = ['equipment_registry', 'alerts_notifications', 'work_orders',
+        'spare_parts', 'iot_sensor_data', 'user_profiles'];
+      const compte: Record<string, number> = {};
+      for (const t of tables) {
+        const { rows } = await c.query(
+          `SELECT COUNT(*)::int n FROM ${t} WHERE tenant_id = $1`, [TEMOIN]);
+        compte[t] = rows[0].n;
+      }
+      return compte;
+    };
+    const avant = await empreinte();
+    expect(avant.alerts_notifications).toBe(1);
+    expect(avant.equipment_registry).toBe(1);
+
+    const r = lancer(url, ['--retirer']);
+    expect(r.code).toBe(0);
+
+    // Le jeu est parti, alertes comprises — y compris l'orpheline héritée,
+    // qui est précisément celle qui bloquait le retrait.
+    expect(await compter(url, 'alerts_notifications', TENANT_DEMO)).toBe(0);
+    expect(await compter(url, 'equipment_registry', TENANT_DEMO)).toBe(0);
+    const { rows: orphelines } = await c.query(
+      "SELECT COUNT(*)::int n FROM alerts_notifications WHERE tenant_id IS NULL");
+    expect(orphelines[0].n).toBe(0);
+
+    // Le témoin est intact, table par table — pas seulement son équipement.
+    expect(await empreinte()).toEqual(avant);
+    const { rows: titre } = await c.query(
+      'SELECT title FROM alerts_notifications WHERE tenant_id = $1', [TEMOIN]);
+    expect(titre[0].title).toBe('Alerte du témoin');
+
+    await c.end();
+  }, 300_000);
+});
