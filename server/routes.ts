@@ -415,17 +415,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize enterprise integrations
   const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");
+  const { SEUILS_PAR_DEFAUT } = await import("./integrations/seuils");
   const integrationConfig = {
     iot: {
       mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
       mqttUsername: process.env.MQTT_USERNAME,
       mqttPassword: process.env.MQTT_PASSWORD,
-      sensorThresholds: [
-        { sensorType: 'temperature', warningThreshold: 75, criticalThreshold: 85, unit: '°C' },
-        { sensorType: 'vibration', warningThreshold: 4.5, criticalThreshold: 7.1, unit: 'mm/s' },
-        { sensorType: 'pressure', warningThreshold: 5.5, criticalThreshold: 4.0, unit: 'bar' },
-        { sensorType: 'current', warningThreshold: 105, criticalThreshold: 120, unit: 'A' }
-      ]
+      // Déclarés dans integrations/iot-connector.ts, avec le sens de chaque
+      // franchissement : une configuration que seul ce fichier connaîtrait ne
+      // serait éprouvée par aucun test.
+      sensorThresholds: SEUILS_PAR_DEFAUT
     }
   };
 
