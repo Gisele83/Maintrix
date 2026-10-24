@@ -36,13 +36,45 @@ export default function AdvancedReporting() {
     queryKey: ["/api/budgets"],
   });
 
-  const { data: budgetSummary } = useQuery<{ totalAllocated: number; totalSpent: number; totalRemaining: number; utilizationRate: number; byCategory: any[] } | undefined>({
-    queryKey: ["/api/budget-summary"],
+  // ⚠️ Cette page interrogeait /api/budget-summary et /api/budget-requests, qui
+  // étaient servis par `server/budget-management.ts` depuis deux tableaux EN
+  // MÉMOIRE, codés en dur sous le commentaire « Sample budget data for
+  // demonstration » : 325 000 € de budget, 189 100 € disponibles, deux demandes
+  // d'achat nominatives. Chaque testeur et chaque locataire les voyait comme
+  // étant les siens — et les voyait TOUS À L'IDENTIQUE, les tableaux étant
+  // partagés par l'ensemble de l'instance.
+  //
+  // Le module a été supprimé. /api/budgets/stats lit les vraies tables
+  // `budget_plans` / `budget_transactions`, filtrées par locataire et par
+  // exercice. Il ne connaît pas la notion de « demande budgétaire » : aucune
+  // table ne la porte, ce qui n'existait donc que dans le tableau fabriqué.
+  const exerciceCourant = new Date().getFullYear();
+
+  const { data: budgetStats } = useQuery<{
+    totalAllocated: number;
+    totalSpent: number;
+    totalCommitted: number;
+    byType: Array<{ budget_type: string; allocated: string; spent: string }>;
+  } | undefined>({
+    queryKey: ["/api/budgets/stats"],
   });
 
-  const { data: budgetRequests = [] } = useQuery<any[]>({
-    queryKey: ["/api/budget-requests"],
-  });
+  const budget = (() => {
+    if (!budgetStats) return undefined;
+    const alloue = Number(budgetStats.totalAllocated) || 0;
+    const depense = Number(budgetStats.totalSpent) || 0;
+    const engage = Number(budgetStats.totalCommitted) || 0;
+    return {
+      alloue,
+      depense,
+      engage,
+      disponible: alloue - depense - engage,
+      // Un budget non renseigné n'est pas un budget consommé à 0 % : sans
+      // enveloppe allouée, le taux n'a pas de valeur, il n'existe pas.
+      utilisation: alloue > 0 ? (depense / alloue) * 100 : null,
+      parType: budgetStats.byType ?? [],
+    };
+  })();
 
   const { data: kpiMetrics = [] } = useQuery<any[]>({
     queryKey: ["/api/kpi-metrics"],
@@ -104,11 +136,54 @@ export default function AdvancedReporting() {
       oee,
       // `null` plutôt qu'un taux inventé : un budget non renseigné n'est pas
       // un budget consommé à 25 %.
-      budgetUtilization: budgetSummary?.utilizationRate ?? null
+      budgetUtilization: budget?.utilisation ?? null
     };
   };
 
   const kpis = calculateKPIs();
+
+  /**
+   * Tendances mois courant / mois précédent.
+   *
+   * ⚠️ Les quatre tuiles « Tendances de Performance » affichaient ↓ 12 %,
+   * ↓ 8 %, ↑ 15 % et 96 % de satisfaction — quatre littéraux écrits dans le
+   * JSX, identiques pour tout le monde et insensibles aux données. Un
+   * industriel qui voit « coûts de maintenance en baisse de 12 % » sur un parc
+   * qu'il vient de créer n'a aucune raison de refaire confiance au reste.
+   *
+   * Deux de ces quatre grandeurs se calculent vraiment à partir des ordres de
+   * travail que cette page charge déjà. Les deux autres n'ont aucune source
+   * dans Maintrix et le disent.
+   */
+  const tendances = (() => {
+    const maintenant = new Date();
+    const moisDe = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+    const moisCourant = moisDe(maintenant);
+
+    const clos = workOrders.filter((wo: any) => wo.status === 'completed' && wo.actualEnd);
+    const parMois = (decalage: number) =>
+      clos.filter((wo: any) => moisDe(new Date(wo.actualEnd)) === moisCourant - decalage);
+
+    const ceMois = parMois(0);
+    const moisPrecedent = parMois(1);
+
+    const cumulCout = (lot: any[]) =>
+      lot.reduce((s: number, wo: any) => s + (parseFloat(wo.cost ?? '0') || 0), 0);
+
+    // Une variation n'a de sens que si le mois de référence existe ET porte un
+    // coût non nul : sinon on diviserait par zéro, ou on annoncerait « +∞ % ».
+    const coutPrecedent = cumulCout(moisPrecedent);
+    const variationCout = moisPrecedent.length > 0 && coutPrecedent > 0
+      ? ((cumulCout(ceMois) - coutPrecedent) / coutPrecedent) * 100
+      : null;
+
+    // Part du préventif sur le mois : indicateur de pilotage standard en GMAO.
+    const partPreventif = ceMois.length > 0
+      ? (ceMois.filter((wo: any) => wo.orderType === 'preventive').length / ceMois.length) * 100
+      : null;
+
+    return { variationCout, partPreventif, interventionsClosesCeMois: ceMois.length };
+  })();
 
   const exportReport = (format: string) => {
     try {
@@ -119,8 +194,7 @@ export default function AdvancedReporting() {
           department: selectedDepartment,
           generatedAt: new Date().toISOString(),
           kpis,
-          budgetSummary,
-          budgetRequests: budgetRequests.slice(0, 10),
+          budget,
           workOrders: workOrders.slice(0, 20),
           equipment: equipment.slice(0, 15),
           alerts: alerts.slice(0, 10)
@@ -218,46 +292,64 @@ export default function AdvancedReporting() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <DollarSign className="h-5 w-5 text-green-600" />
-                <span>Vue Budgétaire 2025</span>
+                <span>Vue budgétaire {exerciceCourant}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {budgetSummary && (
+              {budget && budget.alloue > 0 ? (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Budget Total</p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {budgetSummary.totalAllocated?.toLocaleString()}€
+                    <div className="text-center p-4 bg-paper-deep rounded-lg">
+                      <p className="text-sm text-ink-soft">Budget alloué</p>
+                      <p className="text-2xl font-bold text-ink">
+                        {budget.alloue.toLocaleString('fr-FR')} €
                       </p>
                     </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-sm text-gray-600">Disponible</p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {budgetSummary.totalRemaining?.toLocaleString()}€
+                    <div className="text-center p-4 bg-paper-deep rounded-lg">
+                      <p className="text-sm text-ink-soft">Disponible</p>
+                      <p className="text-2xl font-bold text-ink">
+                        {budget.disponible.toLocaleString('fr-FR')} €
+                      </p>
+                      <p className="text-xs text-ink-mute mt-1">
+                        alloué − dépensé − engagé
                       </p>
                     </div>
                   </div>
-                  
+
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Utilisation: {budgetSummary.utilizationRate?.toFixed(1)}%</span>
-                      <span>{budgetSummary.totalSpent?.toLocaleString()}€ / {budgetSummary.totalAllocated?.toLocaleString()}€</span>
+                      <span>Utilisation : {budget.utilisation!.toFixed(1)} %</span>
+                      <span>
+                        {budget.depense.toLocaleString('fr-FR')} € / {budget.alloue.toLocaleString('fr-FR')} €
+                      </span>
                     </div>
-                    <Progress value={budgetSummary.utilizationRate} className="h-3" />
+                    <Progress value={budget.utilisation!} className="h-3" />
                   </div>
 
                   <div className="space-y-3">
-                    {Object.entries(budgetSummary.byCategory || {}).map(([category, data]: [string, any]) => (
-                      <div key={category} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium capitalize">{category}</span>
-                        <div className="text-right">
-                          <p className="font-bold">{data.remaining?.toLocaleString()}€</p>
-                          <p className="text-xs text-gray-600">sur {data.allocated?.toLocaleString()}€</p>
+                    {budget.parType.map((ligne) => {
+                      const alloue = Number(ligne.allocated) || 0;
+                      const depense = Number(ligne.spent) || 0;
+                      return (
+                        <div key={ligne.budget_type} className="flex justify-between items-center p-3 bg-paper rounded-lg">
+                          <span className="font-medium capitalize">{ligne.budget_type}</span>
+                          <div className="text-right">
+                            <p className="font-bold">{(alloue - depense).toLocaleString('fr-FR')} €</p>
+                            <p className="text-xs text-ink-soft">sur {alloue.toLocaleString('fr-FR')} €</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm text-ink-soft py-6">
+                  <p>Aucun budget n'est défini pour l'exercice {exerciceCourant}.</p>
+                  <p className="text-ink-mute">
+                    Les montants affichés ici proviennent des enveloppes saisies dans
+                    le module Budget. Tant qu'aucune n'est créée, il n'y a rien à
+                    afficher — et rien à supposer.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -267,31 +359,29 @@ export default function AdvancedReporting() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-orange-600" />
-                <span>Demandes Budgétaires</span>
+                <span>Demandes budgétaires</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {budgetRequests.slice(0, 5).map((request: any) => (
-                  <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{request.description}</p>
-                      <p className="text-sm text-gray-600">{request.amount?.toLocaleString()}€</p>
-                    </div>
-                    <Badge 
-                      variant={request.status === 'approved' ? 'default' : 
-                               request.status === 'rejected' ? 'destructive' : 'secondary'}
-                    >
-                      {request.status}
-                    </Badge>
-                  </div>
-                ))}
-                {budgetRequests.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                    <p>Aucune demande budgétaire en attente</p>
-                  </div>
-                )}
+              {/* ⚠️ Cette carte listait « Remplacement roulements moteur
+                  principal — 3 500 € — pending » et « Pièces détachées pompe
+                  hydraulique — 850 € — approved ». Deux demandes inventées,
+                  identiques chez tous les locataires.
+
+                  Et son état vide affirmait « Aucune demande budgétaire en
+                  attente », coche verte à l'appui — une affirmation, pas un
+                  constat : aucune table ne stocke de demande budgétaire, donc
+                  la plateforme ne peut pas savoir s'il y en a. Dire « aucune »
+                  quand on ne mesure rien est la même faute que d'en inventer
+                  deux. */}
+              <div className="space-y-2 text-sm text-ink-soft py-6">
+                <p>Les demandes budgétaires ne sont pas encore gérées par la plateforme.</p>
+                <p className="text-ink-mute">
+                  Le circuit d'engagement de dépense (demande, seuils d'approbation,
+                  rattachement à un ordre de travail ou à un bon de commande) reste à
+                  construire. Les engagements déjà saisis apparaissent dans la vue
+                  budgétaire ci-contre, sous « engagé ».
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -421,24 +511,54 @@ export default function AdvancedReporting() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="text-center">
-                <h4 className="font-semibold text-gray-900">Coûts Maintenance</h4>
-                <p className="text-2xl font-bold text-indigo-600">↓ 12%</p>
-                <p className="text-sm text-gray-600">vs mois dernier</p>
+                <h4 className="font-semibold text-ink">Coût des interventions</h4>
+                {tendances.variationCout === null ? (
+                  <>
+                    <p className="text-2xl font-bold text-ink-mute">—</p>
+                    <p className="text-sm text-ink-mute">pas de mois de référence</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-ink">
+                      {tendances.variationCout >= 0 ? '↑' : '↓'}{' '}
+                      {Math.abs(tendances.variationCout).toFixed(0)} %
+                    </p>
+                    <p className="text-sm text-ink-soft">vs mois précédent</p>
+                  </>
+                )}
               </div>
               <div className="text-center">
-                <h4 className="font-semibold text-gray-900">Temps d'Arrêt</h4>
-                <p className="text-2xl font-bold text-green-600">↓ 8%</p>
-                <p className="text-sm text-gray-600">vs mois dernier</p>
+                <h4 className="font-semibold text-ink">Part du préventif</h4>
+                {tendances.partPreventif === null ? (
+                  <>
+                    <p className="text-2xl font-bold text-ink-mute">—</p>
+                    <p className="text-sm text-ink-mute">aucune intervention close ce mois</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-ink">
+                      {tendances.partPreventif.toFixed(0)} %
+                    </p>
+                    <p className="text-sm text-ink-soft">
+                      sur {tendances.interventionsClosesCeMois} intervention
+                      {tendances.interventionsClosesCeMois > 1 ? 's' : ''} ce mois
+                    </p>
+                  </>
+                )}
               </div>
               <div className="text-center">
-                <h4 className="font-semibold text-gray-900">Interventions Préventives</h4>
-                <p className="text-2xl font-bold text-blue-600">↑ 15%</p>
-                <p className="text-sm text-gray-600">vs mois dernier</p>
+                <h4 className="font-semibold text-ink-mute">Temps d'arrêt</h4>
+                <p className="text-2xl font-bold text-ink-mute">—</p>
+                <p className="text-sm text-ink-mute">
+                  non mesuré : les arrêts de production ne sont pas enregistrés
+                </p>
               </div>
               <div className="text-center">
-                <h4 className="font-semibold text-gray-900">Satisfaction Client</h4>
-                <p className="text-2xl font-bold text-signal-deep">96%</p>
-                <p className="text-sm text-gray-600">Score NPS</p>
+                <h4 className="font-semibold text-ink-mute">Satisfaction</h4>
+                <p className="text-2xl font-bold text-ink-mute">—</p>
+                <p className="text-sm text-ink-mute">
+                  non mesuré : aucune enquête n'est collectée
+                </p>
               </div>
             </div>
           </CardContent>

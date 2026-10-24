@@ -506,10 +506,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/gdpr/track/:requestId', optimizedGDPRRoutes.trackRequest);
   app.get('/api/gdpr/download/:requestId', optimizedGDPRRoutes.downloadData);
   
-  // Register Budget Management routes
-  const { registerBudgetRoutes } = await import("./budget-management");
-  registerBudgetRoutes(app);
-  
+  // ⚠️ `budget-management.ts` était enregistré ici et a été SUPPRIMÉ (2026-10-25).
+  //
+  // Il servait /api/budget-summary et /api/budget-requests depuis deux tableaux
+  // en mémoire, déclarés dans le code sous le commentaire « Sample budget data
+  // for demonstration » : 325 000 € de budget, 189 100 € disponibles, deux
+  // demandes d'achat nominatives. Ces montants s'affichaient dans l'espace de
+  // CHAQUE testeur et de chaque locataire comme s'ils étaient les siens, alors
+  // que le reste de la page affichait 0 partout.
+  //
+  // Pire que fabriqués, ils étaient COMMUNS : les tableaux étaient les champs
+  // d'un singleton de module, sans le moindre `tenantId`. Une demande
+  // budgétaire créée par un locataire apparaissait, montant et libellé compris,
+  // chez tous les autres.
+  //
+  // Les vraies tables existaient déjà (`budget_plans`, `budget_transactions`)
+  // avec un CRUD cloisonné dans `budget-routes.ts`, enregistré plus haut. La
+  // page de reporting consomme désormais /api/budgets/stats, qui filtre par
+  // locataire et par exercice courant.
+
   // Register simple validation routes for demonstration
   registerSimpleValidationRoutes(app);
   

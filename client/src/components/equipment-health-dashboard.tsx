@@ -405,6 +405,24 @@ export function EquipmentHealthDashboard() {
         </TabsContent>
 
         <TabsContent value="predictions" className="space-y-6">
+          {/* ⚠️ Cet onglet itérait directement sur `filteredEquipment`. Sans
+              équipement — c'est-à-dire sur toute organisation qui n'a pas
+              encore saisi son parc — la liste est vide et le `.map()` ne rend
+              RIEN : l'écran restait entièrement blanc, sans titre ni message.
+              Un écran vide se lit comme une panne, pas comme une absence de
+              données. */}
+          {filteredEquipment.length === 0 && (
+            <div className="rounded-lg border border-rule bg-paper p-8 text-center">
+              <p className="text-ink-soft">
+                Aucune prédiction : le parc ne comporte aucun équipement
+                correspondant au filtre.
+              </p>
+              <p className="mt-2 text-sm text-ink-mute">
+                Les prédictions se calculent à partir des relevés de capteurs
+                et de l'historique d'interventions de chaque équipement.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredEquipment.map((eq) => (
               <Card key={eq.id}>
