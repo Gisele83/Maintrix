@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-interface User {
+/**
+ * Ce que `/api/enterprise-auth/profile` renvoie RÉELLEMENT.
+ *
+ * ⚠️ Ce type déclarait `validationLevel`, `canValidateWorkOrders` et
+ * `canValidatePurchaseOrders` alors que la route ne les envoyait PAS : ils
+ * valaient `undefined` à l'exécution sans que rien ne le signale. La route les
+ * renvoie désormais (server/enterprise-auth-routes.ts), mais les champs restent
+ * notés optionnels là où la colonne est nullable en base — un `undefined`
+ * traité comme « aucun droit » est sûr, un `0` affiché comme « niveau 0 » est
+ * juste.
+ */
+export interface User {
   id: number;
   username: string;
   firstName?: string;
@@ -10,9 +21,12 @@ interface User {
   email?: string;
   role: string;
   department?: string;
-  validationLevel: number;
-  canValidateWorkOrders: boolean;
-  canValidatePurchaseOrders: boolean;
+  tenantId?: string;
+  validationLevel?: number | null;
+  canValidateWorkOrders?: boolean | null;
+  canValidatePurchaseOrders?: boolean | null;
+  /** Plafond d'approbation, en décimal sérialisé ; `null` = aucun plafond fixé. */
+  maxPurchaseAmount?: string | null;
   isActive: boolean;
 }
 
@@ -21,7 +35,11 @@ export function useAuth() {
   const queryClient = useQueryClient();
 
   // ✅ ENTERPRISE AUTH: Use enterprise profile endpoint and sessionToken
-  const { data: user, isLoading: queryLoading } = useQuery({
+  // Le générique `<User>` est explicite : `apiRequest` rend `Promise<any>`,
+  // donc sans lui `user` est `any` et aucun consommateur n'est averti quand il
+  // lit un champ que la route n'envoie pas — exactement ce qui s'est produit
+  // avec les droits de validation.
+  const { data: user, isLoading: queryLoading } = useQuery<User>({
     queryKey: ["/api/enterprise-auth/profile"],
     queryFn: async () => {
       const token = localStorage.getItem("sessionToken");

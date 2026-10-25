@@ -24,7 +24,6 @@ import { PreventiveMaintenance } from "@/components/preventive-maintenance";
 import InventorySimple from "@/components/inventory-simple";
 import { MaintenanceReports } from "@/components/maintenance-reports";
 import ValidationDashboard from "@/components/validation-dashboard-simple";
-import PurchaseOrderWorkflowDemo from "@/components/purchase-order-workflow-demo";
 import { CompanyLetterheadConfig } from "@/components/company-letterhead-config";
 import ThresholdConfiguration from "@/components/threshold-configuration";
 import PurchaseOrderCreator from "@/components/purchase-order-creator";
@@ -1214,17 +1213,21 @@ export default function GMAODashboard() {
               titre="Validation"
               phrase="Les commandes et les ordres qui attendent un accord, et le niveau requis pour le donner."
             />
-            <PurchaseOrderWorkflowDemo
-              currentUserRole="Chef de Service"
-              validationLevel={1}
-            />
-            <ValidationDashboard
-              userId={1}
-              userRole="Chef de Service"
-              validationLevel={1}
-              canValidateWorkOrders={true}
-              canValidatePurchaseOrders={true}
-            />
+            {/* ⚠️ `PurchaseOrderWorkflowDemo` a été RETIRÉ d'ici, et son fichier
+                supprimé. C'était un composant de démonstration : quatre étapes
+                en dur, un bon de commande « PO-2025-001 » à 654 € avec trois
+                pièces justificatives fictives, et un bouton « Valider » qui
+                n'appelait aucune route — il faisait avancer un compteur local et
+                affichait « Bon de commande validé par le Chef de Service ». Sur
+                un écran d'exploitation, c'est une confirmation d'approbation
+                mensongère.
+
+                `ValidationDashboard` ne reçoit plus aucune propriété d'identité :
+                elles étaient toutes écrites en dur (`userId={1}`,
+                `userRole="Chef de Service"`, les deux `canValidate*` à `true`),
+                ce qui accordait les droits de validation à quiconque ouvrait
+                l'écran. Le composant lit désormais la session lui-même. */}
+            <ValidationDashboard />
           </div>
         )}
 

@@ -4,6 +4,30 @@ import { gmaoStorage } from "./gmao-storage";
 import { type ValidationLog, type WorkOrder, type PurchaseOrder, type UserProfile } from "@shared/schema";
 import { tenantRequis } from "./tenant-requis";
 
+/**
+ * ⚠️ CE ROUTEUR N'EST MONTÉ NULLE PART.
+ *
+ * Aucun `app.use(...)` ne le référence : `server/routes.ts` n'enregistre que
+ * `registerSimpleValidationRoutes` (server/simple-validation-routes.ts), qui
+ * sert réellement `/api/validation/...`. Ce fichier est le seul appelant de
+ * `gmaoStorage.validateWorkOrder`, `validatePurchaseOrder`,
+ * `getPendingWorkOrdersForValidation` et `getPendingPurchaseOrdersForValidation`,
+ * qui sont donc inatteignables elles aussi.
+ *
+ * Il porte en l'état les mêmes défauts que ceux corrigés le 2026-10-25 dans la
+ * version montée : `validatorId` et `validationLevel` lus dans le CORPS de la
+ * requête, donc une identité d'approbateur fournie par le client. Les contrôles
+ * de `gmaoStorage.validateWorkOrder` (`canValidateWorkOrders`,
+ * `maxPurchaseAmount`) s'appliquent au compte DÉSIGNÉ par ce `validatorId`, pas
+ * à l'appelant : ils vérifient donc les droits de quelqu'un d'autre.
+ *
+ * Le repli sur un UUID de locataire codé en dur a été retiré ci-dessous — un
+ * identifiant de locataire en clair dans un dépôt public n'a rien à y faire, et
+ * un repli silencieux vers un locataire précis est exactement ce que
+ * `server/tenant-requis.ts` existe pour empêcher. Le reste n'a pas été repris :
+ * monter ce routeur rouvrirait la faille. À supprimer, ou à réécrire sur le
+ * modèle de la version montée, avant tout montage.
+ */
 const router = express.Router();
 
 // Validation request schemas
@@ -51,9 +75,10 @@ router.post("/work-orders/validate", async (req, res) => {
   try {
     const validatedData = workOrderValidationSchema.parse(req.body);
     
-    // 🔧 CORRECTION: Récupérer le tenant ID depuis la requête
-    const tenantId = (req as any).tenantId || 'b5c85c4a-b8a1-49c9-9138-dae0b3dff7fa';
-    
+    // Le locataire vient de la session, ou la requête est refusée. Aucun repli.
+    const tenantId = tenantRequis(req, res);
+    if (!tenantId) return;
+
     const result = await gmaoStorage.validateWorkOrder(validatedData, tenantId);
     
     res.json({

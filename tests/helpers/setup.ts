@@ -45,6 +45,15 @@ export const SEEDED = {
   admin: 'admin@maintrix.local',
   technician: 'tech@maintrix.local',
   adminBeta: 'admin-beta@maintrix.local',
+  // Comptes habilités à valider (tests/seed.ts) : niveau 1 avec plafond d'achat
+  // de 2 000, niveau 2 sans plafond, niveau 3 pour le dernier échelon des bons
+  // de commande, et un niveau 2 du locataire Beta pour éprouver la frontière
+  // entre organisations.
+  validateurN1: 'valid1@maintrix.local',
+  validateurN2: 'valid2@maintrix.local',
+  validateurN3: 'valid3@maintrix.local',
+  validateurBeta: 'valid-beta@maintrix.local',
+  plafondN1: 2000,
   tenantAlpha: '00000000-0000-4000-8000-00000000a1fa',
   tenantBeta: '00000000-0000-4000-8000-00000000be7a',
 } as const;
