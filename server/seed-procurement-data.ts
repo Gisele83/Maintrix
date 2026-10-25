@@ -5,7 +5,14 @@
 
 import { gmaoStorage } from "./gmao-storage";
 
-export async function seedProcurementData() {
+/**
+ * Jeu d'essai du circuit d'achat. AUCUN APPELANT à ce jour.
+ *
+ * Le locataire est un paramètre obligatoire depuis la migration 0022 : les
+ * fournisseurs comme les bons de commande portent un propriétaire, et il n'y a
+ * pas de valeur par défaut à supposer.
+ */
+export async function seedProcurementData(tenantId: string) {
   console.log("🚀 Seeding procurement and supplier data...");
 
   try {
@@ -211,7 +218,7 @@ export async function seedProcurementData() {
     for (const order of initialOrders) {
       if (order.supplierId) {
         try {
-          const createdOrder = await gmaoStorage.createPurchaseOrder(order);
+          const createdOrder = await gmaoStorage.createPurchaseOrder(tenantId, order);
           console.log(`✓ Created purchase order: ${order.orderNumber} (ID: ${createdOrder.id})`);
         } catch (error) {
           console.error(`❌ Failed to create purchase order ${order.orderNumber}:`, error);

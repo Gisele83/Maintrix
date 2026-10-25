@@ -1310,6 +1310,9 @@ export function registerGMAORoutes(app: Express) {
 
   app.post("/api/purchase-orders", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       // Determine document type based on amount
       const amount = parseFloat(req.body.totalAmount);
       const documentType = amount <= 1500 ? "purchase_order" : "command_letter";
@@ -1328,8 +1331,11 @@ export function registerGMAORoutes(app: Express) {
         notes: req.body.description || "",
         terms: req.body.terms || ""
       };
-      
-      const order = await gmaoStorage.createPurchaseOrder(orderData);
+
+      // Le propriétaire du bon vient de la SESSION. Cette route le créait sans
+      // aucun locataire : la ligne naissait orpheline, donc lisible et
+      // approuvable par tout le monde (migration 0022).
+      const order = await gmaoStorage.createPurchaseOrder(tenantId, orderData);
       res.status(201).json({
         success: true,
         message: `${documentType === "purchase_order" ? "Bon de commande" : "Lettre de commande"} créé avec succès`,
@@ -1402,7 +1408,12 @@ export function registerGMAORoutes(app: Express) {
   // Get purchase orders — real data from DB
   app.get("/api/purchase-orders", async (req, res) => {
     try {
-      const orders = await gmaoStorage.getPurchaseOrders();
+      // Rendait les bons de commande de toute l'instance — montants,
+      // fournisseurs et demandeurs compris.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const orders = await gmaoStorage.getPurchaseOrders(tenantId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
@@ -1642,15 +1653,22 @@ export function registerGMAORoutes(app: Express) {
   // Generate purchase order with letterhead — real data from DB
   app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
     try {
+      // Un bon de commande servi en PDF reste un bon de commande : le document
+      // porte le montant, le fournisseur et les lignes commandées. Cette route
+      // n'exigeait aucun locataire, et un identifiant deviné suffisait à en
+      // obtenir le PDF complet.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
       // Enrich with line items and resolved supplier name
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
@@ -1741,13 +1759,12 @@ export function registerGMAORoutes(app: Express) {
    * cliquent en même temps ne peuvent pas inscrire deux impressions (zéro ligne
    * touchée → 409), et c'est la première qui reste.
    *
-   * ⚠️ Le locataire de la session est EXIGÉ, mais il ne cloisonne encore rien :
-   * `purchase_orders` ne porte aucune colonne `tenant_id` (shared/schema.ts,
-   * migrations/0000). Un service achat habilité peut donc marquer imprimé le
-   * bon d'une autre organisation. Même limite, et même cause, que pour les
-   * validations elles-mêmes ; elle se lève avec la migration de la table, pas
-   * ici. Exiger le locataire dès maintenant évite une route de plus à reprendre
-   * le jour où la colonne existera.
+   * Le locataire de la session CLOISONNE réellement, depuis la migration
+   * `0022_purchase_orders_tenant_scoped.sql` : il est porté par la lecture du
+   * bon ET par le `WHERE` de l'UPDATE. Jusqu'à cette migration, l'exiger ne
+   * servait qu'à éviter une route de plus à reprendre — `purchase_orders` ne
+   * portait aucune colonne `tenant_id`, et un service achat habilité pouvait
+   * marquer imprimé le bon d'une autre organisation.
    */
   app.post("/api/purchase-orders/:id/mark-printed", async (req, res) => {
     try {
@@ -1777,11 +1794,13 @@ export function registerGMAORoutes(app: Express) {
         });
       }
 
-      const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      // Cherché DANS le locataire de la session : l'identifiant d'une autre
+      // organisation donne 404, et non une impression inscrite chez elle.
+      const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!bon) {
         return res.status(404).json({
           error: "BON_INTROUVABLE",
-          message: `Bon de commande #${purchaseOrderId} introuvable.`,
+          message: `Bon de commande #${purchaseOrderId} introuvable dans votre organisation.`,
         });
       }
 
@@ -1815,6 +1834,10 @@ export function registerGMAORoutes(app: Express) {
         })
         .where(and(
           eq(purchaseOrders.id, purchaseOrderId),
+          // Le locataire est dans le WHERE autant que dans la lecture : entre la
+          // vérification et l'écriture, c'est lui qui garantit qu'on n'inscrit
+          // pas une impression sur la ligne d'une autre organisation.
+          eq(purchaseOrders.tenantId, tenantId),
           eq(purchaseOrders.canPrint, true),
           isNull(purchaseOrders.printedAt),
         ))
@@ -1843,13 +1866,19 @@ export function registerGMAORoutes(app: Express) {
   // Add supporting documents to purchase order
   app.post("/api/purchase-orders/:id/documents", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
       const { documents } = req.body;
-      
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, tenantId, {
         documentsJustificatifs: documents
       });
-      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Bon de commande introuvable" });
+      }
+
       res.json({
         success: true,
         message: "Documents justificatifs ajoutés",
@@ -1864,14 +1893,18 @@ export function registerGMAORoutes(app: Express) {
   // Download purchase order as PDF — real data from DB
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
+      // Même garde que /letterhead : le PDF est le document lui-même.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,

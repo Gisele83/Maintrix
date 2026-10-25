@@ -71,13 +71,25 @@ import { normaliserRole, type RoleLocataire } from "@shared/roles";
  * cliquent en même temps ne peuvent donc pas faire avancer le document deux
  * fois (zéro ligne touchée → 409).
  *
- * ⚠️ RESTE OUVERT, hors de portée de ce lot : `purchase_orders` ne porte AUCUNE
- * colonne `tenant_id` (voir shared/schema.ts et migrations/0000). Le
- * cloisonnement d'un bon de commande entre organisations est donc structurellement
- * impossible ici : un validateur dûment habilité du locataire A peut encore
- * approuver un bon du locataire B. Les contrôles ci-dessous s'appliquent, mais
- * cette barrière-là exige une migration du même type que 0011→0021
- * (« <table>_tenant_scoped ») et la reprise de tous les appelants.
+ * ✅ REFERMÉ DEPUIS (migration 0022) : `purchase_orders` ne portait AUCUNE
+ * colonne `tenant_id`, et le cloisonnement d'un bon de commande entre
+ * organisations était structurellement impossible. Mesuré avant correctif, sur
+ * un bon de 12 500 € du locataire Alpha : le validateur de niveau 2 du
+ * locataire BETA obtenait 200, la ligne d'Alpha passait à `level1_validated`,
+ * son `chef_service_validated_by` recevait le compte de Beta — et
+ * `validation_logs` inscrivait la trace sous le locataire de BETA tout en
+ * pointant la ligne d'ALPHA. La trace n'était donc pas seulement incomplète,
+ * elle était MAL CLASSÉE : l'historique d'Alpha ne montrait jamais cette
+ * approbation, et celui de Beta montrait l'approbation d'un document qui ne lui
+ * appartient pas. Les quatre barrières ci-dessus s'appliquaient correctement…
+ * au profit du mauvais document.
+ *
+ * La colonne existe maintenant (migration 0022, sur le modèle de 0011→0021),
+ * elle est NOT NULL, et c'est une CINQUIÈME barrière, posée AVANT les quatre
+ * autres : le bon est cherché DANS le locataire de la session, de sorte qu'un
+ * identifiant d'une autre organisation donne 404 au lieu d'une approbation.
+ * L'UPDATE porte lui aussi le locataire dans son `WHERE` — le 404 n'est pas une
+ * politesse d'affichage par-dessus une écriture qui aurait lieu quand même.
  */
 
 /** Niveau final : au-delà, le document est validé et exécutable/imprimable. */
@@ -374,7 +386,10 @@ export function registerSimpleValidationRoutes(app: Express) {
       const etape = ETAPES_BON_DE_COMMANDE.find((e) => e.niveau === validateur.niveau)
         ?? ETAPES_BON_DE_COMMANDE[ETAPES_BON_DE_COMMANDE.length - 1];
 
-      const bons = await gmaoStorage.getPurchaseOrdersByStatus(etape.statutAvant);
+      // Le locataire de la session, depuis la migration 0022 : cette file
+      // contenait les bons de commande de TOUTE l'instance — numéro, montant,
+      // fournisseur, demandeur — faute d'une colonne sur laquelle filtrer.
+      const bons = await gmaoStorage.getPurchaseOrdersByStatus(etape.statutAvant, validateur.tenantId);
 
       res.json(bons.map(order => ({
         id: order.id,
@@ -611,11 +626,15 @@ export function registerSimpleValidationRoutes(app: Express) {
         });
       }
 
-      const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      // Le bon est cherché DANS le locataire de la session : un identifiant
+      // d'une autre organisation donne 404, pas une approbation. C'est la
+      // barrière que la migration 0022 a rendue possible — même forme que pour
+      // l'ordre de travail ci-dessus.
+      const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, validateur.tenantId);
       if (!bon) {
         return res.status(404).json({
           error: "BON_INTROUVABLE",
-          message: `Bon de commande #${purchaseOrderId} introuvable.`,
+          message: `Bon de commande #${purchaseOrderId} introuvable dans votre organisation.`,
         });
       }
 
@@ -722,6 +741,11 @@ export function registerSimpleValidationRoutes(app: Express) {
           .set(champs)
           .where(and(
             eq(purchaseOrders.id, purchaseOrderId),
+            // Le locataire est porté par le WHERE de l'écriture, et pas
+            // seulement par la lecture qui précède : un 404 rendu par-dessus un
+            // UPDATE qui s'exécute quand même ne protégerait rien. Même forme
+            // que pour les ordres de travail.
+            eq(purchaseOrders.tenantId, validateur.tenantId),
             statutInchange(purchaseOrders.validationStatus, bon.validationStatus),
           ))
           .returning();

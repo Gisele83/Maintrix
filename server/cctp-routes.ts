@@ -2,14 +2,90 @@
 // CCTP COMPLIANCE ROUTES - Routes API conformité cahier des charges
 // ===================================================================
 
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { cctpComplianceService, PurchaseOrderConfigSchema, WorkOrderConfigSchema, ReportingConfigSchema } from "./cctp-compliance-system";
+import {
+  cctpComplianceService,
+  PurchaseOrderConfigSchema,
+  WorkOrderConfigSchema,
+  ReportingConfigSchema,
+  type Exigence,
+} from "./cctp-compliance-system";
 import { db } from "./db";
-import { tenants } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { purchaseOrders, tenants } from "../shared/schema";
+import { and, eq } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
+
+/**
+ * Conformité CCTP — configuration des bons de commande, des rapports, et le
+ * relevé de conformité.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI ÉTAIT CASSÉ : L'APPELANT DÉSIGNAIT L'ORGANISATION
+ * ═══════════════════════════════════════════════════════════════════
+ * Les dix routes de ce fichier prenaient le locataire DANS L'URL
+ * (`/tenant/:tenantId/...`) et le passaient tel quel au service. Aucune
+ * ne le comparait à la session. Changer un segment d'URL suffisait donc à
+ * travailler dans les données d'une autre entreprise :
+ *
+ *   • `GET  /tenant/:id/purchase-order-config` — seuils de montant, entête
+ *     d'impression, et la GRILLE DE VALIDATION (qui approuve jusqu'à combien) ;
+ *   • `PUT  /tenant/:id/purchase-order-config` — la même, en ÉCRITURE : on
+ *     pouvait abaisser le seuil de validation d'un concurrent, ou réécrire son
+ *     entête d'entreprise ;
+ *   • `PUT  /tenant/:id/reporting-config` et `PUT /tenant/:id/auto-reports` —
+ *     écriture également, dont la liste de diffusion des rapports par courriel ;
+ *   • `GET  /tenant/:id/purchase-order/:bon/document` — le PDF du bon de
+ *     commande, avec l'entête du locataire nommé dans l'URL ;
+ *   • `POST /tenant/:id/work-order/:ot/generate-report` — voir plus bas, le
+ *     plus grave.
+ *
+ * Le repli du client rendait la chose peu visible : `client/src/pages/
+ * cctp-compliance.tsx` envoie l'organisation réellement authentifiée depuis sa
+ * correction du 19/10/2026. Le défaut n'était donc pas atteint par l'écran — il
+ * l'était par quiconque formait l'URL à la main.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI GARDE CES ROUTES MAINTENANT
+ * ═══════════════════════════════════════════════════════════════════
+ * `locataireDeLaSession()` ci-dessous. Le segment `:tenantId` RESTE dans les
+ * chemins — l'écran les construit ainsi, et les retirer casserait ses clés de
+ * requête (voir tests/unit/cles-de-requete.test.ts) — mais il n'est plus une
+ * autorisation : c'est la session qui fait foi, et un segment qui la contredit
+ * fait échouer la requête en 403 au lieu d'être suivi. Un paramètre de chemin
+ * qu'on ignorerait en silence serait pire : il laisserait croire qu'il sert.
+ */
 
 const router = Router();
+
+/**
+ * Le locataire de la requête — celui de la SESSION, jamais celui de l'URL.
+ *
+ * Deux refus distincts, et la nuance compte :
+ *
+ *   • pas de session → 401, par `tenantRequis()` (server/tenant-requis.ts) ;
+ *   • session valide mais l'URL nomme une AUTRE organisation → 403. Ce n'est
+ *     pas un 404 : on ne cherche pas une ressource, on refuse une portée. Et
+ *     ce n'est pas un oracle d'existence — la réponse est la même que le
+ *     locataire nommé existe ou non, puisqu'on ne va pas le voir.
+ */
+function locataireDeLaSession(req: Request, res: Response): string | null {
+  const session = tenantRequis(req, res);
+  if (!session) return null;
+
+  const duChemin = req.params.tenantId;
+  if (duChemin && duChemin !== session) {
+    res.status(403).json({
+      error: "LOCATAIRE_ETRANGER",
+      message:
+        "Cette requête désigne une organisation qui n'est pas la vôtre : refusée. " +
+        "Aucune lecture ni écriture n'a eu lieu.",
+    });
+    return null;
+  }
+
+  return session;
+}
 
 // =====================================================
 // CONFIGURATION BONS DE COMMANDE PAR TENANT
@@ -18,7 +94,8 @@ const router = Router();
 // Obtenir la configuration Bon de Commande d'un tenant
 router.get("/tenant/:tenantId/purchase-order-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
     const config = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
     
@@ -55,7 +132,9 @@ router.get("/tenant/:tenantId/purchase-order-config", async (req, res) => {
 // Mettre à jour la configuration Bon de Commande d'un tenant
 router.put("/tenant/:tenantId/purchase-order-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const config = PurchaseOrderConfigSchema.parse(req.body);
     
     await cctpComplianceService.updatePurchaseOrderConfig(tenantId, config);
@@ -83,7 +162,10 @@ router.put("/tenant/:tenantId/purchase-order-config", async (req, res) => {
 // Générer un Bon de Commande ou Lettre de Commande en HTML/PDF
 router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (req, res) => {
   try {
-    const { tenantId, purchaseOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { purchaseOrderId } = req.params;
     const { type } = req.query; // 'letter' | 'purchase_order' | auto
     
     const result = await cctpComplianceService.generatePurchaseDocument(
@@ -173,24 +255,51 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
 // Obtenir le type de document recommandé selon les seuils
 router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document-type", async (req, res) => {
   try {
-    const { tenantId, purchaseOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { purchaseOrderId } = req.params;
     
     const config = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
     if (!config) {
       return res.status(404).json({ error: "Configuration non trouvée" });
     }
     
-    // Récupérer le montant de la commande
+    // Récupérer le montant de la commande, DANS le locataire de la session.
     const [purchaseOrder] = await db.select()
-      .from(require("../shared/schema").purchaseOrders)
-      .where(eq(require("../shared/schema").purchaseOrders.id, parseInt(purchaseOrderId)));
+      .from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, parseInt(purchaseOrderId)), eq(purchaseOrders.tenantId, tenantId)));
     
     if (!purchaseOrder) {
       return res.status(404).json({ error: "Bon de commande non trouvé" });
     }
     
-    const totalAmount = purchaseOrder.totalAmount || 0;
-    const recommendedType = totalAmount >= config.purchaseOrderThreshold ? 'purchase_order' : 'letter';
+    // ⚠️ DEUX CHAÎNES COMPARÉES COMME DES NOMBRES. La ligne précédente était
+    // `totalAmount >= config.purchaseOrderThreshold`, sur des valeurs dont
+    // AUCUNE n'est un nombre en pratique :
+    //
+    //   • `total_amount` est `numeric`, et node-postgres rend les `numeric`
+    //     sous forme de CHAÎNE pour ne pas perdre en précision — le même piège
+    //     est déjà documenté en F11 dans server/cctp-compliance-system.ts ;
+    //   • `config.purchaseOrderThreshold` est déclaré `number`, mais
+    //     `getPurchaseOrderConfig` rend `tenant.config as PurchaseOrderConfig`,
+    //     un `jsonb` transtypé sans validation : le type annoncé ne garantit
+    //     rien de ce que porte la colonne.
+    //
+    // Deux chaînes comparées par `>=` le sont LEXICOGRAPHIQUEMENT : « 900 » est
+    // alors supérieur à « 1500 », parce que « 9 » vient après « 1 ». Un bon de
+    // 900 € se voyait recommander un bon de commande là où la lettre de
+    // commande s'imposait. Le défaut était invisible au compilateur tant que
+    // `purchaseOrder` venait d'un `require()` non typé.
+    //
+    // Les deux côtés sont donc convertis, comme le fait déjà
+    // `generatePurchaseDocument` pour le même arbitrage.
+    const totalAmount = parseFloat(String(purchaseOrder.totalAmount ?? '0'));
+    const seuil = Number(config.purchaseOrderThreshold);
+    const recommendedType =
+      Number.isFinite(totalAmount) && Number.isFinite(seuil) && totalAmount >= seuil
+        ? 'purchase_order'
+        : 'letter';
     
     res.json({
       totalAmount,
@@ -212,7 +321,9 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document-type", as
 // Activer/désactiver l'auto-génération de rapports pour un tenant
 router.put("/tenant/:tenantId/auto-reports", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const { enabled } = req.body;
     
     if (enabled) {
@@ -244,7 +355,10 @@ router.put("/tenant/:tenantId/auto-reports", async (req, res) => {
 // Générer manuellement un rapport d'intervention pour un OT
 router.post("/tenant/:tenantId/work-order/:workOrderId/generate-report", async (req, res) => {
   try {
-    const { tenantId, workOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { workOrderId } = req.params;
     
     const reportHTML = await cctpComplianceService.checkAndGenerateWorkOrderReport(
       tenantId,
@@ -295,7 +409,8 @@ router.get("/detect-language", async (req, res) => {
 // Obtenir la configuration des rapports d'un tenant
 router.get("/tenant/:tenantId/reporting-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
     const [tenant] = await db.select({ config: tenants.reportingConfig })
       .from(tenants)
@@ -321,7 +436,9 @@ router.get("/tenant/:tenantId/reporting-config", async (req, res) => {
 // Mettre à jour la configuration des rapports d'un tenant
 router.put("/tenant/:tenantId/reporting-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const config = ReportingConfigSchema.parse(req.body);
     
     await cctpComplianceService.updateReportingConfig(tenantId, config);
@@ -349,53 +466,16 @@ router.put("/tenant/:tenantId/reporting-config", async (req, res) => {
 // Vérifier la conformité globale CCTP d'un tenant
 router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
-    // Vérifier toutes les configurations requises
-    const purchaseOrderConfig = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
-    
-    const [tenant] = await db.select({
-      workOrderConfig: tenants.workOrderConfig,
-      reportingConfig: tenants.reportingConfig
-    }).from(tenants).where(eq(tenants.id, tenantId));
-    
-    const compliance = {
-      tenantId,
-      lastChecked: new Date().toISOString(),
-      overallScore: 0,
-      requirements: {
-        purchaseOrderConfiguration: {
-          status: purchaseOrderConfig ? 'compliant' : 'missing',
-          score: purchaseOrderConfig ? 100 : 0,
-          details: purchaseOrderConfig ? 'Configuration complète' : 'Configuration Bon de Commande manquante'
-        },
-        autoReportGeneration: {
-          status: tenant?.workOrderConfig?.autoReportGeneration ? 'compliant' : 'partial',
-          score: tenant?.workOrderConfig?.autoReportGeneration ? 100 : 50,
-          details: tenant?.workOrderConfig?.autoReportGeneration ? 'Auto-génération activée' : 'Auto-génération désactivée'
-        },
-        multilanguageSupport: {
-          status: tenant?.reportingConfig?.autoLanguageDetection ? 'compliant' : 'partial',
-          score: tenant?.reportingConfig?.autoLanguageDetection ? 100 : 75,
-          details: 'Support bilingue FR/EN implémenté'
-        },
-        validationWorkflow: {
-          status: 'compliant',
-          score: 100,
-          details: 'Validation hiérarchique multi-niveaux opérationnelle'
-        },
-        tenantIsolation: {
-          status: 'compliant',
-          score: 100,
-          details: 'Isolation multi-tenant avec RLS activée'
-        }
-      }
-    };
-    
-    // Calculer le score global
-    const scores = Object.values(compliance.requirements).map(req => req.score);
-    compliance.overallScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-    
+    // Le relevé est MESURÉ par le service, qui dit aussi ce qu'il ne mesure
+    // pas (voir `releverConformite`). Cette route notait auparavant cinq
+    // exigences dont deux écrites en dur à 100 — `validationWorkflow` et
+    // `tenantIsolation`, cette dernière en annonçant un « RLS activé » que ce
+    // dépôt n'a jamais eu.
+    const compliance = await cctpComplianceService.releverConformite(tenantId);
+
     res.json(compliance);
   } catch (error) {
     console.error("Error checking CCTP compliance:", error);
@@ -403,151 +483,163 @@ router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
   }
 });
 
-// Générer un rapport de conformité CCTP détaillé
+// =====================================================
+// RAPPORT DE CONFORMITÉ IMPRIMABLE
+// =====================================================
+//
+// ⚠️ CE RAPPORT ÉTAIT ENTIÈREMENT ÉCRIT EN DUR, et c'était le pire endroit du
+// dépôt pour l'être.
+//
+// Il annonçait « Score: 90% » et dix verdicts de conformité rédigés à la main,
+// identiques pour tous les locataires, sans qu'une seule valeur soit mesurée.
+// C'est un document qu'un industriel imprime pour l'opposer à un donneur
+// d'ordre. Deux de ses affirmations étaient FAUSSES, pas seulement non
+// mesurées :
+//
+//   • « ✓ Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
+//     politique RLS. Le cloisonnement est fait en code applicatif, une colonne
+//     tenant_id par table, et c'est tout l'objet des migrations 0011 à 0022 ;
+//   • « ✓ Validation hiérarchique multi-niveaux » — jusqu'au 2026-10-25,
+//     n'importe quel compte authentifié approuvait n'importe quoi. Le rapport
+//     l'a déclaré conforme pendant toute cette période.
+//
+// tests/unit/aucun-chiffre-invente.test.ts cite nommément ce « score de
+// conformité réglementaire 90 % » parmi les défauts qui l'ont fait naître, mais
+// il ne balayait que client/ et deux fichiers serveur : ce rapport-ci lui
+// échappait. Le balayage est étendu dans le même lot.
+//
+// Le rapport rend maintenant EXACTEMENT ce que releverConformite() a mesuré, et
+// il nomme séparément ce qu'il ne mesure pas, en disant où chaque exigence est
+// vérifiée pour de bon. Aucun verdict n'est plus écrit ici.
 router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
   try {
-    const { tenantId } = req.params;
-    
-    // HTML du rapport de conformité
-    const reportHTML = `
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-        <meta charset="UTF-8">
-        <title>Rapport de Conformité CCTP - Tenant ${tenantId}</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            .header { background: #1E40AF; color: white; padding: 20px; text-align: center; border-radius: 10px; }
-            .section { margin: 20px 0; padding: 15px; border-left: 4px solid #1E40AF; background: #F9FAFB; }
-            .compliant { border-left-color: #10B981; }
-            .partial { border-left-color: #F59E0B; }
-            .non-compliant { border-left-color: #EF4444; }
-            .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-            .compliant .status-badge { background: #D1FAE5; color: #065F46; }
-            .partial .status-badge { background: #FEF3C7; color: #92400E; }
-            .score { font-size: 24px; font-weight: bold; color: #1E40AF; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>📋 Rapport de Conformité CCTP</h1>
-            <p>Plateforme unifiée GMAO / Assistant Diagnostic IA</p>
-            <p>Tenant: ${tenantId} | Date: ${new Date().toLocaleDateString('fr-FR')}</p>
-        </div>
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
 
-        <div class="section">
-            <h2>📊 Score Global de Conformité</h2>
-            <div class="score">Score: 90% ✅</div>
-            <p>Votre plateforme respecte 90% des exigences du cahier des charges techniques particulières (CCTP).</p>
-        </div>
+    const releve = await cctpComplianceService.releverConformite(tenantId);
 
-        <div class="section compliant">
-            <h3>✅ 1. Architecture Multi-tenant</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Isolation tenant par RLS PostgreSQL<br>
-               ✓ Chiffrement AES-256 au repos et TLS 1.3 en transit<br>
-               ✓ Journaux d'audit partitionnés par tenant<br>
-               ✓ Redaction automatique des PII</p>
-        </div>
+    // ⚠️ TOUT ce qui est interpolé ci-dessous passe par ici, et pas seulement
+    // l'identifiant du locataire. Les `details` du relevé citent des valeurs de
+    // CONFIGURATION — `companyHeader.name` par exemple, que l'administrateur du
+    // locataire écrit lui-même via `PUT /purchase-order-config`. Une entête
+    // d'entreprise contenant du balisage serait donc injectée dans ce document.
+    const h = (valeur: unknown): string => String(valeur ?? '').replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+    ));
 
-        <div class="section compliant">
-            <h3>✅ 2. Gestion des Actifs</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Inventaire équipements avec localisation<br>
-               ✓ Import/Export Excel/CSV par tenant<br>
-               ✓ Historique des interventions complet</p>
-        </div>
+    const LIBELLES: Record<string, { texte: string; classe: string }> = {
+      compliant: { texte: 'CONFORME', classe: 'conforme' },
+      partial: { texte: 'PARTIEL', classe: 'partiel' },
+      missing: { texte: 'MANQUANT', classe: 'manquant' },
+      non_mesure: { texte: 'NON MESURÉ ICI', classe: 'non-mesure' },
+    };
 
-        <div class="section compliant">
-            <h3>✅ 3. Ordres de Travail</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Création, émission et suivi OT<br>
-               ✓ Types correctifs, préventifs, conditionnels<br>
-               ✓ Validation hiérarchique multi-niveaux</p>
-        </div>
+    const exigences = Object.entries(releve.requirements);
+    const mesurees = exigences.filter(([, e]) => e.score !== null);
+    const nonMesurees = exigences.filter(([, e]) => e.score === null);
 
-        <div class="section partial">
-            <h3>⚠️ 4. Rapports PDF Automatiques</h3>
-            <span class="status-badge">PARTIEL</span>
-            <p>✓ Génération rapports d'intervention<br>
-               ✓ Rapports mensuels consolidés<br>
-               ⚠️ Auto-génération à configurer par tenant</p>
-        </div>
+    const section = ([cle, e]: [string, Exigence]) => {
+      const badge = LIBELLES[e.status] ?? LIBELLES.non_mesure;
+      return [
+        '        <div class="exigence ' + badge.classe + '">',
+        '          <div class="entete-exigence">',
+        '            <h3>' + h(e.libelle) + '</h3>',
+        '            <span class="badge">' + h(badge.texte) + '</span>',
+        '          </div>',
+        '          <p class="details">' + h(e.details) + '</p>',
+        e.score !== null ? '          <p class="note">Note : ' + h(e.score) + ' / 100</p>' : '',
+        e.verifiePar ? '          <p class="verifie">Vérifié par : ' + h(e.verifiePar) + '</p>' : '',
+        '          <p class="cle">' + h(cle) + '</p>',
+        '        </div>',
+      ].filter(Boolean).join('\n');
+    };
 
-        <div class="section compliant">
-            <h3>✅ 5. Stock & Pièces</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Suivi stock avec seuils mini/maxi<br>
-               ✓ Commandes automatiques de réapprovisionnement<br>
-               ✓ Validation multi-niveaux configurée</p>
-        </div>
+    const styles = [
+      'body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #1f2933; line-height: 1.5; }',
+      '.entete { border-bottom: 3px solid #1f3a5f; padding-bottom: 12px; margin-bottom: 20px; }',
+      '.entete h1 { margin: 0 0 6px; font-size: 20px; }',
+      '.entete p { margin: 2px 0; font-size: 12px; color: #52606d; }',
+      '.synthese { border: 1px solid #cbd2d9; padding: 14px; margin-bottom: 22px; }',
+      '.synthese .score { font-size: 26px; font-weight: bold; }',
+      '.synthese .portee { font-size: 12px; color: #52606d; margin-top: 6px; }',
+      'h2 { font-size: 15px; margin: 24px 0 10px; border-bottom: 1px solid #cbd2d9; padding-bottom: 4px; }',
+      '.exigence { border-left: 4px solid #cbd2d9; padding: 10px 14px; margin: 10px 0; background: #f5f7fa; }',
+      '.exigence.conforme { border-left-color: #1e7a4b; }',
+      '.exigence.partiel { border-left-color: #946200; }',
+      '.exigence.manquant { border-left-color: #a61b1b; }',
+      '.exigence.non-mesure { border-left-color: #7b8794; background: #eef1f5; }',
+      '.entete-exigence { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }',
+      '.entete-exigence h3 { margin: 0; font-size: 14px; }',
+      '.badge { font-size: 11px; font-weight: bold; letter-spacing: .04em; white-space: nowrap; }',
+      '.conforme .badge { color: #1e7a4b; }',
+      '.partiel .badge { color: #946200; }',
+      '.manquant .badge { color: #a61b1b; }',
+      '.non-mesure .badge { color: #52606d; }',
+      '.details { margin: 6px 0 0; font-size: 13px; }',
+      '.note { margin: 4px 0 0; font-size: 12px; font-weight: bold; }',
+      '.verifie { margin: 4px 0 0; font-size: 12px; color: #52606d; }',
+      '.cle { margin: 4px 0 0; font-size: 10px; color: #7b8794; font-family: monospace; }',
+      '.avertissement { border: 1px solid #946200; background: #fdf6e7; padding: 12px 14px; font-size: 12px; margin: 22px 0; }',
+      '.pied { margin-top: 28px; border-top: 1px solid #cbd2d9; padding-top: 10px; font-size: 11px; color: #7b8794; }',
+    ].join('\n        ');
 
-        <div class="section compliant">
-            <h3>✅ 6. Contrôle d'Accès</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Admin plateforme contrôle création tenants<br>
-               ✓ Tenant admin gère utilisateurs par invitations<br>
-               ✓ Matrice RBAC avec rôles configurables</p>
-        </div>
+    const portee = releve.overallScore !== null
+      ? 'Moyenne des ' + h(releve.exigencesMesurees)
+        + ' exigence(s) effectivement mesurée(s) sur cette organisation.'
+      : 'Aucune exigence mesurable sur cette organisation.';
+    const reserve = releve.exigencesNonMesurees > 0
+      ? ' ' + h(releve.exigencesNonMesurees) + " exigence(s) ne sont PAS mesurées par ce relevé "
+        + "et n'entrent pas dans cette moyenne : elles sont listées en fin de document."
+      : '';
 
-        <div class="section compliant">
-            <h3>✅ 7. Diagnostic IA</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Module IA avec explicabilité<br>
-               ✓ Alimenté par historiques de maintenance<br>
-               ✓ Ensemble ML avec 9 algorithmes</p>
-        </div>
+    const reportHTML = [
+      '<!DOCTYPE html>',
+      '<html lang="fr">',
+      '<head>',
+      '    <meta charset="UTF-8">',
+      '    <title>Relevé de conformité CCTP — ' + h(releve.tenantId) + '</title>',
+      '    <style>',
+      '        ' + styles,
+      '    </style>',
+      '</head>',
+      '<body>',
+      '    <div class="entete">',
+      '        <h1>Relevé de conformité CCTP</h1>',
+      '        <p>Organisation : ' + h(releve.tenantId) + '</p>',
+      '        <p>Relevé le ' + h(new Date(releve.lastChecked).toLocaleString('fr-FR')) + '</p>',
+      '    </div>',
+      '    <div class="synthese">',
+      '        <div class="score">'
+        + (releve.overallScore !== null ? h(releve.overallScore) + ' %' : 'Non évalué')
+        + '</div>',
+      '        <div class="portee">' + portee + reserve + '</div>',
+      '    </div>',
+      '    <h2>Exigences mesurées sur cette organisation (' + h(mesurees.length) + ')</h2>',
+      mesurees.length > 0
+        ? mesurees.map(section).join('\n')
+        : '    <p class="details">Aucune exigence mesurable.</p>',
+      '    <h2>Exigences que ce relevé ne mesure pas (' + h(nonMesurees.length) + ')</h2>',
+      '    <div class="avertissement">',
+      '        Ces exigences du CCTP ne sont pas observables depuis une requête applicative',
+      '        portant sur une seule organisation. Elles ne sont ni notées, ni comptées dans la',
+      '        moyenne ci-dessus, et ce document ne les déclare pas conformes. Chacune indique',
+      '        où elle est réellement vérifiée.',
+      '    </div>',
+      nonMesurees.map(section).join('\n'),
+      '    <div class="pied">',
+      "        <p>Document produit par Maintrix à partir de l'état enregistré de cette",
+      '           organisation. Chaque ligne porte la clé technique de l\'exigence, pour',
+      '           rapprochement avec GET /api/cctp/tenant/:id/cctp-compliance.</p>',
+      '        <p>Les exigences marquées « NON MESURÉ ICI » le sont délibérément : ce relevé',
+      '           préfère une absence déclarée à une conformité supposée.</p>',
+      '    </div>',
+      '    <script>',
+      '        window.onload = function () { setTimeout(function () { window.print(); }, 500); };',
+      '    </script>',
+      '</body>',
+      '</html>',
+    ].join('\n');
 
-        <div class="section partial">
-            <h3>⚠️ 8. Bons de Commande Configurables</h3>
-            <span class="status-badge">NOUVEAU</span>
-            <p>✅ Configuration seuils montants par tenant<br>
-               ✅ Entêtes d'impression personnalisables<br>
-               ✅ Génération automatique BC/LC selon montants</p>
-        </div>
-
-        <div class="section compliant">
-            <h3>✅ 9. Interface Bilingue</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Support FR/EN complet<br>
-               ✓ Détection automatique de langue<br>
-               ✓ Matrices RBAC bilingues</p>
-        </div>
-
-        <div class="section compliant">
-            <h3>✅ 10. Sécurité & Conformité</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ MFA obligatoire pour admins<br>
-               ✓ RBAC/ABAC implémenté<br>
-               ✓ Conformité RGPD active<br>
-               ✓ Tests sécurité automatisés</p>
-        </div>
-
-        <div style="margin-top: 40px; padding: 20px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px;">
-            <h3>🎯 Recommandations</h3>
-            <ul>
-                <li>✅ Configurer l'auto-génération de rapports selon vos besoins</li>
-                <li>✅ Personnaliser les entêtes de vos Bons de Commande</li>
-                <li>✅ Ajuster les seuils de validation selon votre organigramme</li>
-            </ul>
-        </div>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #6B7280;">
-            <p>Rapport généré automatiquement par Maintrix</p>
-            <p>Conformité CCTP vérifiée le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-        </div>
-
-        <script>
-            window.onload = function() {
-                setTimeout(() => {
-                    window.print();
-                }, 1000);
-            };
-        </script>
-    </body>
-    </html>
-    `;
-    
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.send(reportHTML);

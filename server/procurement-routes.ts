@@ -6,10 +6,11 @@
 import { Router } from "express";
 import { gmaoStorage } from "./gmao-storage";
 import {
-  insertSupplierSchema, 
-  insertPurchaseOrderSchema,
+  insertSupplierSchema,
+  createPurchaseOrderSchema,
+  updatePurchaseOrderSchema,
   insertPurchaseOrderItemSchema,
-  insertReorderRuleSchema 
+  insertReorderRuleSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
@@ -98,13 +99,19 @@ router.put("/suppliers/:id", async (req, res) => {
 // Get all purchase orders
 router.get("/purchase-orders", async (req, res) => {
   try {
+    // Cette route rendait les bons de commande de TOUTE l'instance : ni l'une
+    // ni l'autre de ces deux lectures ne filtrait sur un locataire, faute de
+    // colonne pour le faire (migration 0022).
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const { status } = req.query;
     let orders;
-    
+
     if (status && typeof status === "string") {
-      orders = await gmaoStorage.getPurchaseOrdersByStatus(status);
+      orders = await gmaoStorage.getPurchaseOrdersByStatus(status, tenantId);
     } else {
-      orders = await gmaoStorage.getPurchaseOrders();
+      orders = await gmaoStorage.getPurchaseOrders(tenantId);
     }
     
     res.json(orders);
@@ -117,17 +124,22 @@ router.get("/purchase-orders", async (req, res) => {
 // Get purchase order by ID with items
 router.get("/purchase-orders/:id", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid purchase order ID" });
     }
 
-    const order = await gmaoStorage.getPurchaseOrderById(id);
+    const order = await gmaoStorage.getPurchaseOrderById(id, tenantId);
     if (!order) {
+      // 404 et non 403 : l'existence d'un bon de commande chez un autre
+      // locataire ne se confirme pas à celui qui le cherche.
       return res.status(404).json({ message: "Purchase order not found" });
     }
 
-    const items = await gmaoStorage.getPurchaseOrderItems(id);
+    const items = await gmaoStorage.getPurchaseOrderItems(id, tenantId);
     res.json({ ...order, items });
   } catch (error) {
     console.error("Error fetching purchase order:", error);
@@ -138,14 +150,20 @@ router.get("/purchase-orders/:id", async (req, res) => {
 // Create new purchase order
 router.post("/purchase-orders", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const { items, ...orderData } = req.body;
-    
-    // Validate purchase order data
-    const validatedOrderData = insertPurchaseOrderSchema.parse(orderData);
-    
+
+    // `updatePurchaseOrderSchema` et non `insertPurchaseOrderSchema` : le
+    // premier retire `tenantId`, de sorte qu'un `tenantId` posté dans le corps
+    // est écarté à la validation au lieu d'être repris. Le propriétaire vient
+    // de la session, et de nulle part ailleurs.
+    const validatedOrderData = createPurchaseOrderSchema.parse(orderData);
+
     // Create purchase order
-    const order = await gmaoStorage.createPurchaseOrder(validatedOrderData);
-    
+    const order = await gmaoStorage.createPurchaseOrder(tenantId, validatedOrderData);
+
     // Add items if provided
     if (items && Array.isArray(items)) {
       for (const item of items) {
@@ -153,13 +171,13 @@ router.post("/purchase-orders", async (req, res) => {
           ...item,
           purchaseOrderId: order.id
         });
-        await gmaoStorage.createPurchaseOrderItem(validatedItem);
+        await gmaoStorage.createPurchaseOrderItem(validatedItem, tenantId);
       }
     }
-    
+
     // Get complete order with items
-    const completeOrder = await gmaoStorage.getPurchaseOrderById(order.id);
-    const orderItems = await gmaoStorage.getPurchaseOrderItems(order.id);
+    const completeOrder = await gmaoStorage.getPurchaseOrderById(order.id, tenantId);
+    const orderItems = await gmaoStorage.getPurchaseOrderItems(order.id, tenantId);
     
     res.status(201).json({ ...completeOrder, items: orderItems });
   } catch (error) {
@@ -174,13 +192,22 @@ router.post("/purchase-orders", async (req, res) => {
 // Update purchase order status
 router.put("/purchase-orders/:id", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid purchase order ID" });
     }
 
-    const validatedData = insertPurchaseOrderSchema.partial().parse(req.body);
-    const order = await gmaoStorage.updatePurchaseOrder(id, validatedData);
+    // `updatePurchaseOrderSchema` ne porte PAS `tenantId` : sans cela, un
+    // appelant pouvait déplacer un bon de commande chez un autre locataire par
+    // un simple champ du corps de la requête.
+    const validatedData = updatePurchaseOrderSchema.parse(req.body);
+    const order = await gmaoStorage.updatePurchaseOrder(id, tenantId, validatedData);
+    if (!order) {
+      return res.status(404).json({ message: "Purchase order not found" });
+    }
     res.json(order);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -273,12 +300,15 @@ router.post("/trigger-reorder-check", async (req, res) => {
 // Generate purchase order PDF/Email (future enhancement)
 router.post("/purchase-orders/:id/send", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid purchase order ID" });
     }
 
-    const order = await gmaoStorage.getPurchaseOrderById(id);
+    const order = await gmaoStorage.getPurchaseOrderById(id, tenantId);
     if (!order) {
       return res.status(404).json({ message: "Purchase order not found" });
     }
@@ -289,8 +319,8 @@ router.post("/purchase-orders/:id/send", async (req, res) => {
     }
 
     // Update order status to sent
-    await gmaoStorage.updatePurchaseOrder(id, { 
-      status: "sent" 
+    await gmaoStorage.updatePurchaseOrder(id, tenantId, {
+      status: "sent"
     });
 
     // In a real implementation, this would generate PDF and send email
@@ -314,13 +344,18 @@ router.post("/purchase-orders/:id/attachments",
   uploadPurchaseOrderAttachments.array('attachments', 5),
   async (req: any, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const orderId = parseInt(req.params.id);
       if (isNaN(orderId)) {
         return res.status(400).json({ message: "Invalid purchase order ID" });
       }
 
-      // Vérifier que le bon de commande existe
-      const order = await gmaoStorage.getPurchaseOrderById(orderId);
+      // Vérifier que le bon de commande existe DANS CETTE ORGANISATION : des
+      // pièces (devis, factures) se joignaient jusqu'ici à n'importe quel bon
+      // de l'instance.
+      const order = await gmaoStorage.getPurchaseOrderById(orderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Purchase order not found" });
       }
@@ -345,7 +380,7 @@ router.post("/purchase-orders/:id/attachments",
       const allAttachments = [...existingAttachments, ...newAttachments];
 
       // Mettre à jour le bon de commande
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(orderId, {
+      await gmaoStorage.updatePurchaseOrder(orderId, tenantId, {
         documentsJustificatifs: allAttachments
       });
 
@@ -367,12 +402,15 @@ router.post("/purchase-orders/:id/attachments",
 // Get attachments list for a purchase order
 router.get("/purchase-orders/:id/attachments", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const orderId = parseInt(req.params.id);
     if (isNaN(orderId)) {
       return res.status(400).json({ message: "Invalid purchase order ID" });
     }
 
-    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    const order = await gmaoStorage.getPurchaseOrderById(orderId, tenantId);
     if (!order) {
       return res.status(404).json({ message: "Purchase order not found" });
     }
@@ -388,6 +426,9 @@ router.get("/purchase-orders/:id/attachments", async (req, res) => {
 // Download a specific attachment
 router.get("/purchase-orders/:id/attachments/:filename", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const orderId = parseInt(req.params.id);
     const filename = req.params.filename;
 
@@ -395,8 +436,11 @@ router.get("/purchase-orders/:id/attachments/:filename", async (req, res) => {
       return res.status(400).json({ message: "Invalid purchase order ID" });
     }
 
-    // Vérifier que le bon de commande existe
-    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    // Le bon de commande sert de garde au FICHIER : c'est sa liste de pièces
+    // qui autorise la lecture du nom demandé. Non cloisonné, ce contrôle
+    // servait les devis et factures d'une autre organisation à qui devinait un
+    // identifiant.
+    const order = await gmaoStorage.getPurchaseOrderById(orderId, tenantId);
     if (!order) {
       return res.status(404).json({ message: "Purchase order not found" });
     }
@@ -436,6 +480,9 @@ router.get("/purchase-orders/:id/attachments/:filename", async (req, res) => {
 // Delete a specific attachment
 router.delete("/purchase-orders/:id/attachments/:filename", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const orderId = parseInt(req.params.id);
     const filename = req.params.filename;
 
@@ -444,7 +491,7 @@ router.delete("/purchase-orders/:id/attachments/:filename", async (req, res) => 
     }
 
     // Récupérer le bon de commande
-    const order = await gmaoStorage.getPurchaseOrderById(orderId);
+    const order = await gmaoStorage.getPurchaseOrderById(orderId, tenantId);
     if (!order) {
       return res.status(404).json({ message: "Purchase order not found" });
     }
@@ -467,7 +514,7 @@ router.delete("/purchase-orders/:id/attachments/:filename", async (req, res) => 
     const updatedAttachments = attachments.filter((_, index) => index !== attachmentIndex);
 
     // Mettre à jour le bon de commande
-    await gmaoStorage.updatePurchaseOrder(orderId, {
+    await gmaoStorage.updatePurchaseOrder(orderId, tenantId, {
       documentsJustificatifs: updatedAttachments
     });
 
