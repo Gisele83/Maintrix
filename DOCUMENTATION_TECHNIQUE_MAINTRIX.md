@@ -569,7 +569,6 @@ Le schéma de base de données est complet et bien structuré (2090 lignes). Cep
 | `server/mfa-routes.ts` | Routes MFA | 🔴 STRUCTURE | Endpoints pour MFA, pas de TOTP réel. |
 | `server/jwt-oidc-middleware.ts` | JWT/OIDC | ✅ RÉEL | Middleware JWT pour authentification API. |
 | `server/credential-generator.ts` | Générateur credentials | ✅ RÉEL | Génération de mots de passe temporaires. |
-| `server/seed-auth-users.ts` | Seed utilisateurs | ✅ RÉEL | Données initiales d'authentification. |
 | **Sécurité** | | | |
 | `server/security-middleware.ts` | Middleware sécurité | ✅ RÉEL | Rate limiting, CSRF, détection anomalies. |
 | `server/continuous-access-control.ts` | Contrôle d'accès continu | ✅ RÉEL | Surveillance continue des accès. |
@@ -642,10 +641,7 @@ Le schéma de base de données est complet et bien structuré (2090 lignes). Cep
 | `server/company-data-access.ts` | Accès données entreprise | ✅ RÉEL | Contrôle d'accès aux données. |
 | `server/gdpr-api-ergonomics.ts` | RGPD/API ergonomie | ✅ RÉEL | Conformité RGPD. |
 | `server/multi-tenant-assessment.ts` | Évaluation multi-tenant | ✅ RÉEL | Évaluation de la configuration. |
-| `server/validation-routes.ts` | Routes validation | ✅ RÉEL | Validation des données. |
 | `server/simple-validation-routes.ts` | Validation simple | ✅ RÉEL | Routes de validation simplifiées. |
-| `server/create-validation-demo.ts` | Démo validation | ✅ RÉEL | Données de démonstration. |
-| `server/seed.ts` / `server/seed-*.ts` | Seeds | ✅ RÉEL | Données initiales pour la DB. |
 | `server/advanced-integrations-routes.ts` | Routes intégrations avancées | ✅ RÉEL | Endpoints pour intégrations. |
 | `server/equipment-health-routes.ts` | Routes santé équipement | ✅ RÉEL | Endpoints scoring santé. |
 | `server/super-admin-routes.ts` | Routes super admin | ✅ RÉEL | Administration globale. |

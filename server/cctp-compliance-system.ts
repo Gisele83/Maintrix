@@ -4,8 +4,8 @@
 
 import { z } from "zod";
 import { db } from "./db";
-import { tenants, purchaseOrders, workOrders, maintenanceReports } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { tenants, purchaseOrders, workOrders, maintenanceReports, userProfiles } from "../shared/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { PDFGeneratorFunctional, MaintenanceReportData, MonthlyReportData } from "./pdf-generator-functional";
 
 // 🏢 Configuration des Bons de Commande par Tenant
@@ -65,6 +65,38 @@ export interface ReportingConfig {
   
   // Distribution automatique
   emailDistribution: string[]; // Liste emails pour envoi auto
+}
+
+/**
+ * L'état d'une exigence du CCTP dans un relevé.
+ *
+ * `non_mesure` est le quatrième état, et il a été ajouté pour une raison :
+ * sans lui, une exigence que ce relevé ne peut pas observer n'avait que deux
+ * sorties — être affirmée conforme (ce qu'ont fait `validationWorkflow` et
+ * `tenantIsolation`, l'une à tort pendant des mois, l'autre en annonçant du RLS
+ * qui n'existe pas), ou disparaître du relevé, ce qui laisse croire qu'il
+ * couvre tout.
+ */
+export type EtatExigence = 'compliant' | 'partial' | 'missing' | 'non_mesure';
+
+export interface Exigence {
+  libelle: string;
+  status: EtatExigence;
+  /** `null` quand l'exigence n'est pas mesurable ici. Jamais 0 par défaut. */
+  score: number | null;
+  details: string;
+  /** Où l'exigence est réellement vérifiée, quand ce n'est pas ici. */
+  verifiePar?: string;
+}
+
+export interface ReleveConformite {
+  tenantId: string;
+  lastChecked: string;
+  /** Moyenne des exigences MESURÉES, ou `null` si aucune ne l'est. */
+  overallScore: number | null;
+  exigencesMesurees: number;
+  exigencesNonMesurees: number;
+  requirements: Record<string, Exigence>;
 }
 
 // 📋 Schémas de validation Zod
@@ -162,10 +194,14 @@ export class CCTPComplianceService {
       throw new Error("Configuration Bon de Commande manquante pour ce tenant");
     }
 
+    // Le locataire était DÉJÀ dans la portée de cette fonction — le premier
+    // paramètre, utilisé juste au-dessus pour lire la configuration — et la
+    // lecture du bon de commande ne s'en servait pas. Un bon d'une autre
+    // organisation était donc généré avec l'en-tête de celle qui le demandait.
     const [purchaseOrder] = await db.select()
       .from(purchaseOrders)
-      .where(eq(purchaseOrders.id, purchaseOrderId));
-    
+      .where(and(eq(purchaseOrders.id, purchaseOrderId), eq(purchaseOrders.tenantId, tenantId)));
+
     if (!purchaseOrder) {
       throw new Error("Bon de commande introuvable");
     }
@@ -353,10 +389,22 @@ export class CCTPComplianceService {
       return null;
     }
 
-    // Récupérer les données du workOrder
+    // Récupérer les données du workOrder — DANS le locataire.
+    //
+    // ⚠️ Le filtre manquait, et c'était la fuite la plus large de ce fichier :
+    // `tenantId` était dans la portée (il vient d'être utilisé juste au-dessus
+    // pour lire la configuration), `work_orders.tenant_id` est NOT NULL, et la
+    // condition portait sur le seul identifiant. `POST /api/cctp/tenant/
+    // <le mien>/work-order/<celui d'autrui>/generate-report` produisait donc un
+    // rapport d'intervention complet sur l'ordre de travail d'une AUTRE
+    // organisation : description, technicien, durée, équipement, coûts.
+    //
+    // Même défaut, même forme et même cause que celui refermé sur
+    // `purchase_orders` par la migration 0023 — un locataire présent dans la
+    // signature et absent de la requête.
     const [workOrder] = await db.select()
       .from(workOrders)
-      .where(eq(workOrders.id, workOrderId));
+      .where(and(eq(workOrders.id, workOrderId), eq(workOrders.tenantId, tenantId)));
 
     if (!workOrder || workOrder.status !== 'completed') {
       return null;
@@ -491,13 +539,276 @@ export class CCTPComplianceService {
 
   async updateReportingConfig(tenantId: string, config: ReportingConfig): Promise<void> {
     const validatedConfig = ReportingConfigSchema.parse(config);
-    
+
     await db.update(tenants)
-      .set({ 
+      .set({
         reportingConfig: validatedConfig,
         updatedAt: new Date()
       })
       .where(eq(tenants.id, tenantId));
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // RELEVÉ DE CONFORMITÉ — MESURÉ, OU DÉCLARÉ NON MESURÉ
+  // ════════════════════════════════════════════════════════════════
+  //
+  // CE QUI ÉTAIT RENDU AVANT
+  //
+  // Deux routes servaient un « état de conformité », et aucune ne mesurait
+  // l'essentiel :
+  //
+  //   • `GET /api/cctp/tenant/:id/cctp-compliance` notait cinq exigences, dont
+  //     DEUX écrites en dur à `compliant` / 100 — `validationWorkflow`
+  //     (« Validation hiérarchique multi-niveaux opérationnelle ») et
+  //     `tenantIsolation` (« Isolation multi-tenant avec RLS activée ») ;
+  //   • `GET /api/cctp/tenant/:id/cctp-compliance/report` rendait un HTML
+  //     ENTIÈREMENT écrit en dur : « Score: 90% » et dix verdicts rédigés à la
+  //     main, identiques pour tous les locataires.
+  //
+  // Deux de ces affirmations étaient FAUSSES, pas seulement non mesurées :
+  //
+  //   • « Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
+  //     politique RLS. Le cloisonnement est fait en code applicatif, et c'est
+  //     tout l'objet des migrations 0011 à 0023. Affirmer RLS à un donneur
+  //     d'ordre serait une fausse déclaration sur le point le plus sensible ;
+  //   • « Validation hiérarchique multi-niveaux opérationnelle » — le circuit
+  //     de validation n'habilitait personne avant le 2026-10-25 : n'importe
+  //     quel compte authentifié approuvait n'importe quoi. Le relevé le notait
+  //     100 pendant tout ce temps.
+  //
+  // Un score inventé sur un écran de conformité réglementaire est pire
+  // qu'absent : c'est là, précisément, qu'un industriel vérifie ce qu'il peut
+  // opposer à un donneur d'ordre.
+  //
+  // CE QUI EST RENDU MAINTENANT
+  //
+  // Les exigences réellement observables depuis une requête — la configuration
+  // du locataire et l'état de ses comptes — sont mesurées. Les autres sont
+  // rendues avec `status: 'non_mesure'` et `score: null`, et nommées : elles
+  // disent où elles sont vérifiées pour de bon. Elles ne sont NI comptées dans
+  // le score, NI passées sous silence : les retirer laisserait croire que le
+  // relevé couvre tout le CCTP.
+  //
+  // `score: null` et non 0 : zéro est une note, « non mesuré » est une absence
+  // de note. La règle du dépôt (tests/unit/aucun-chiffre-invente.test.ts) est
+  // qu'une donnée absente s'affiche comme absente.
+
+  /**
+   * Le laboratoire d'une exigence : ce qui a été observé, et à quel degré.
+   *
+   * `score` vaut `null` quand l'exigence n'est pas mesurable ici — jamais 0 par
+   * défaut, ce qui se lirait comme « mesuré, et nul ».
+   */
+  private static exigence(
+    libelle: string,
+    status: EtatExigence,
+    score: number | null,
+    details: string,
+    verifiePar?: string,
+  ): Exigence {
+    return { libelle, status, score, details, verifiePar };
+  }
+
+  async releverConformite(tenantId: string): Promise<ReleveConformite> {
+    const E = CCTPComplianceService.exigence;
+
+    const [tenant] = await db.select({
+      purchaseOrderConfig: tenants.purchaseOrderConfig,
+      workOrderConfig: tenants.workOrderConfig,
+      reportingConfig: tenants.reportingConfig,
+    }).from(tenants).where(eq(tenants.id, tenantId));
+
+    // ⚠️ `{}` EST TRUTHY, et c'est le défaut qui faussait la première exigence.
+    // Les trois colonnes de configuration sont `jsonb DEFAULT '{}'` : tout
+    // locataire nouvellement créé en porte un. L'ancien test
+    // `purchaseOrderConfig ? 100 : 0` notait donc « Configuration complète »
+    // sur une configuration VIDE. Le même piège est déjà documenté en F11 dans
+    // `generatePurchaseDocument` ci-dessus, qui vérifie `companyHeader?.name`
+    // plutôt que la seule présence de l'objet — on vérifie ici la même chose,
+    // pour que le relevé et le générateur soient d'accord sur ce qui est
+    // utilisable.
+    const po = (tenant?.purchaseOrderConfig ?? {}) as Partial<PurchaseOrderConfig>;
+    const wo = (tenant?.workOrderConfig ?? {}) as Partial<WorkOrderConfig>;
+    const rc = (tenant?.reportingConfig ?? {}) as Partial<ReportingConfig>;
+
+    const requirements: Record<string, Exigence> = {};
+
+    // ── 1. Configuration des bons de commande ─────────────────────
+    const entete = typeof po.companyHeader?.name === 'string' ? po.companyHeader.name.trim() : '';
+    const niveaux = Array.isArray(po.validationLevels) ? po.validationLevels : [];
+    const seuilsLisibles = Number.isFinite(Number(po.purchaseOrderThreshold))
+      && Number.isFinite(Number(po.letterOrderThreshold));
+
+    if (!entete) {
+      requirements.configurationBonsDeCommande = E(
+        'Configuration des bons de commande', 'missing', 0,
+        // Formulé pour le LECTEUR du rapport imprimé, qui n'est pas un
+        // développeur : une première version disait « la colonne vaut "{}" ».
+        // C'est exact, et illisible pour un donneur d'ordre.
+        "Aucune entête d'entreprise enregistrée : la génération d'un bon de commande "
+        + "échouerait. Aucune configuration n'a été enregistrée pour cette organisation.",
+      );
+    } else if (!seuilsLisibles || niveaux.length === 0) {
+      const manques = [
+        !seuilsLisibles ? 'seuils de montant illisibles ou absents' : null,
+        niveaux.length === 0 ? 'aucun niveau de validation déclaré' : null,
+      ].filter(Boolean).join(' ; ');
+      requirements.configurationBonsDeCommande = E(
+        'Configuration des bons de commande', 'partial', 50,
+        `Entête « ${entete} » enregistrée, mais ${manques}.`,
+      );
+    } else {
+      requirements.configurationBonsDeCommande = E(
+        'Configuration des bons de commande', 'compliant', 100,
+        `Entête « ${entete} », seuils renseignés, ${niveaux.length} niveau(x) de validation déclaré(s).`,
+      );
+    }
+
+    // ── 2. Cohérence de l'échelle des plafonds ────────────────────
+    // Un échelon dont le plafond ne croît pas rend le niveau supérieur inutile,
+    // ou le niveau inférieur plus puissant que son supérieur. C'est vérifiable,
+    // donc c'est vérifié.
+    if (niveaux.length === 0) {
+      requirements.echelleDesPlafonds = E(
+        "Échelle des plafonds d'approbation", 'missing', 0,
+        'Aucun niveau de validation déclaré : aucune échelle à vérifier.',
+      );
+    } else {
+      const ordonnes = [...niveaux].sort((a, b) => Number(a.level) - Number(b.level));
+      const incoherents = ordonnes.filter((n, i) =>
+        i > 0 && Number(n.maxAmount) <= Number(ordonnes[i - 1].maxAmount));
+      if (incoherents.length > 0) {
+        requirements.echelleDesPlafonds = E(
+          "Échelle des plafonds d'approbation", 'partial', 50,
+          `${niveaux.length} niveau(x) déclaré(s), mais ${incoherents.length} dont le plafond `
+          + "ne dépasse pas celui du niveau inférieur : l'échelon supérieur n'apporte alors "
+          + 'aucun pouvoir d\'approbation supplémentaire.',
+        );
+      } else {
+        requirements.echelleDesPlafonds = E(
+          "Échelle des plafonds d'approbation", 'compliant', 100,
+          `${niveaux.length} niveau(x), plafonds strictement croissants `
+          + `(jusqu'à ${Number(ordonnes[ordonnes.length - 1].maxAmount)}).`,
+        );
+      }
+    }
+
+    // ── 3. La chaîne de validation est-elle DOTÉE ? ───────────────
+    // Remplace l'ancien `validationWorkflow: compliant/100` écrit en dur. La
+    // question utile pour un locataire n'est pas « le code existe-t-il » mais
+    // « des comptes sont-ils réellement habilités chez moi » : un circuit sans
+    // approbateur bloque tout document au premier échelon.
+    const [dotation] = await db.select({
+      ot: sql<number>`COUNT(*) FILTER (WHERE ${userProfiles.canValidateWorkOrders} = true AND ${userProfiles.validationLevel} >= 1)`,
+      bc: sql<number>`COUNT(*) FILTER (WHERE ${userProfiles.canValidatePurchaseOrders} = true AND ${userProfiles.validationLevel} >= 1)`,
+    }).from(userProfiles).where(and(
+      eq(userProfiles.tenantId, tenantId),
+      eq(userProfiles.isActive, true),
+    ));
+
+    const validateursOt = Number(dotation?.ot ?? 0);
+    const validateursBc = Number(dotation?.bc ?? 0);
+    if (validateursOt > 0 && validateursBc > 0) {
+      requirements.chaineDeValidationDotee = E(
+        'Chaîne de validation dotée', 'compliant', 100,
+        `${validateursOt} compte(s) habilité(s) aux ordres de travail, ${validateursBc} aux bons de commande.`,
+      );
+    } else if (validateursOt > 0 || validateursBc > 0) {
+      requirements.chaineDeValidationDotee = E(
+        'Chaîne de validation dotée', 'partial', 50,
+        `${validateursOt} compte(s) habilité(s) aux ordres de travail, ${validateursBc} aux bons de `
+        + 'commande : les documents du type non doté resteront bloqués au premier échelon.',
+      );
+    } else {
+      requirements.chaineDeValidationDotee = E(
+        'Chaîne de validation dotée', 'missing', 0,
+        "Aucun compte actif ne porte de droit de validation : aucun document ne peut être approuvé.",
+      );
+    }
+
+    // ── 4. Auto-génération des rapports d'intervention ───────────
+    requirements.generationAutomatiqueRapports = wo.autoReportGeneration === true
+      ? E('Génération automatique des rapports', 'compliant', 100,
+          "Auto-génération activée : un ordre de travail terminé produit son rapport d'intervention.")
+      : E('Génération automatique des rapports', 'partial', 50,
+          'Auto-génération désactivée pour cette organisation. Les rapports restent produits à la demande.');
+
+    // ── 5. Configuration des rapports ────────────────────────────
+    const langue = rc.defaultLanguage;
+    const formatDate = typeof rc.dateFormat === 'string' ? rc.dateFormat.trim() : '';
+    const devise = typeof rc.currency === 'string' ? rc.currency.trim() : '';
+    if (langue && formatDate && devise) {
+      requirements.configurationRapports = E(
+        'Configuration des rapports', 'compliant', 100,
+        `Langue par défaut « ${langue} », format de date « ${formatDate} », devise « ${devise} »`
+        + `${rc.autoLanguageDetection ? ', détection automatique de langue active' : ''}.`,
+      );
+    } else {
+      const manques = [
+        !langue ? 'langue par défaut' : null,
+        !formatDate ? 'format de date' : null,
+        !devise ? 'devise' : null,
+      ].filter(Boolean).join(', ');
+      requirements.configurationRapports = E(
+        'Configuration des rapports', langue || formatDate || devise ? 'partial' : 'missing',
+        langue || formatDate || devise ? 50 : 0,
+        `Non renseigné : ${manques}. Les rapports emploient alors les valeurs de repli du serveur.`,
+      );
+    }
+
+    // ── Ce que CE relevé ne mesure pas, et le dit ────────────────
+    // ⚠️ CE QUE CE `details` NE DIT PAS, ET POURQUOI.
+    //
+    // Une première rédaction y plaçait le rectificatif historique : « le relevé
+    // affirmait auparavant "Isolation multi-tenant avec RLS activée", c'est
+    // FAUX, ce dépôt ne déclare aucune politique RLS ». Mesuré : cette phrase
+    // part dans le HTML du rapport imprimable, c'est-à-dire dans la pièce qu'un
+    // industriel présente à un donneur d'ordre. Y faire figurer le mot « RLS »
+    // et l'aveu d'une ancienne fausse déclaration n'informe pas ce lecteur : au
+    // mieux il s'en inquiète, au pire il lit « RLS » en diagonale et y voit
+    // encore une revendication.
+    //
+    // Le document rendu dit donc ce qui est VRAI AUJOURD'HUI, et rien de plus.
+    // L'histoire de la fausse déclaration reste ici, dans le code, pour le
+    // mainteneur — et dans le message de commit, pour la trace.
+    requirements.cloisonnementParLocataire = E(
+      'Cloisonnement des données par organisation', 'non_mesure', null,
+      "Propriété de la plateforme, et non de la configuration d'une organisation : une "
+      + 'requête applicative ne peut pas attester son propre cloisonnement. Le cloisonnement '
+      + "est assuré en code applicatif, par une colonne de propriétaire sur chaque table.",
+      'migrations 0011 à 0023 (« <table>_tenant_scoped ») et les suites '
+      + 'tests/integration/isolation-*.test.ts, multi-tenant.test.ts, isolation-cctp.test.ts',
+    );
+
+    requirements.chiffrementEtTransport = E(
+      'Chiffrement au repos et en transit', 'non_mesure', null,
+      "Dépend de l'infrastructure de déploiement (terminaison TLS, chiffrement du volume, "
+      + "gestion des clés), que l'application ne peut pas inspecter depuis une requête.",
+      'configuration nginx/TLS et KMS du déploiement — hors application',
+    );
+
+    requirements.authentificationForte = E(
+      'Authentification forte des administrateurs', 'non_mesure', null,
+      "Se constate compte par compte, et non par organisation : ce relevé ne lit pas l'état "
+      + 'MFA des comptes.',
+      'server/mfa-enforcement-middleware.ts et la configuration MFA de chaque compte',
+    );
+
+    // ── Score : sur les exigences MESURÉES seulement ─────────────
+    // Diluer avec des 100 inventés était exactement le mécanisme du « 90 % ».
+    const mesurees = Object.values(requirements).filter((e) => e.score !== null);
+    const overallScore = mesurees.length === 0
+      ? null
+      : Math.round(mesurees.reduce((somme, e) => somme + (e.score as number), 0) / mesurees.length);
+
+    return {
+      tenantId,
+      lastChecked: new Date().toISOString(),
+      overallScore,
+      exigencesMesurees: mesurees.length,
+      exigencesNonMesurees: Object.values(requirements).length - mesurees.length,
+      requirements,
+    };
   }
 }
 

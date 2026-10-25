@@ -108,9 +108,26 @@ export default function CCTPCompliancePage() {
     enabled: !!tenantId
   });
 
+  /**
+   * ⚠️ `overallScore` et `score` sont NULLABLES, et c'est le point.
+   *
+   * Le serveur rendait un score global dilué par deux exigences notées 100 en
+   * dur (`validationWorkflow`, `tenantIsolation`). Il ne note plus que ce
+   * qu'il mesure, et marque les autres `non_mesure` / `score: null`. Le type
+   * doit donc l'admettre, sinon l'écran affiche « null% » sur les exigences
+   * que le serveur refuse désormais de noter.
+   */
   const { data: compliance, isLoading: loadingCompliance } = useQuery<{
-    overallScore: number;
-    requirements: Record<string, { status: string; score: number; details: string }>;
+    overallScore: number | null;
+    exigencesMesurees?: number;
+    exigencesNonMesurees?: number;
+    requirements: Record<string, {
+      libelle?: string;
+      status: string;
+      score: number | null;
+      details: string;
+      verifiePar?: string;
+    }>;
   }>({
     queryKey: ["/api/cctp/tenant", tenantId, "cctp-compliance"],
     queryFn: () => apiRequest(`/api/cctp/tenant/${tenantId}/cctp-compliance`),
@@ -208,8 +225,13 @@ export default function CCTPCompliancePage() {
         return <Badge className="bg-etat-alerte-fond text-etat-alerte-texte">Partiel</Badge>;
       case 'missing':
         return <Badge className="bg-etat-critique-fond text-etat-critique-texte">Manquant</Badge>;
+      case 'non_mesure':
+        // Une exigence que le relevé n'observe pas. Elle tombait jusqu'ici dans
+        // le cas par défaut, et s'affichait « 🆕 Nouveau » — ce qui la faisait
+        // passer pour une nouveauté plutôt que pour une absence de mesure.
+        return <Badge className="bg-paper-deep text-ink-soft">Non mesuré ici</Badge>;
       default:
-        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">🆕 Nouveau</Badge>;
+        return <Badge className="bg-etat-encours-fond text-etat-encours-texte">État inconnu</Badge>;
     }
   };
 
@@ -250,7 +272,14 @@ export default function CCTPCompliancePage() {
           ce qu'il peut opposer à un donneur d'ordre. On compte désormais ce
           que le serveur rapporte. */}
       {(() => {
-        const exigences = Object.values(compliance?.requirements ?? {});
+        // Les exigences NON MESURÉES sortent des deux compteurs : elles ne
+        // sont ni satisfaites ni « à configurer ». Les compter parmi les
+        // secondes aurait donné au locataire une liste de tâches dont trois
+        // ne lui appartiennent pas — le chiffrement du volume ou le
+        // cloisonnement de la plateforme ne se règlent pas depuis cet écran.
+        const toutes = Object.values(compliance?.requirements ?? {});
+        const exigences = toutes.filter((e) => e.status !== 'non_mesure');
+        const nonMesurees = toutes.length - exigences.length;
         const conformes = exigences.filter((e) => e.status === 'compliant').length;
         const aConfigurer = exigences.filter((e) => e.status !== 'compliant').length;
         return (
@@ -259,14 +288,16 @@ export default function CCTPCompliancePage() {
               libelle="Score global"
               valeur={compliance?.overallScore != null ? `${compliance.overallScore} %` : '—'}
               precision={compliance?.overallScore != null
-                ? `évalué le ${new Date().toLocaleDateString('fr-FR')}`
-                : 'conformité non encore évaluée'}
+                ? `sur ${exigences.length} exigence(s) mesurée(s)`
+                : 'aucune exigence mesurable'}
               icone={Shield}
             />
             <Indicateur
               libelle="Exigences conformes"
               valeur={exigences.length > 0 ? `${conformes}/${exigences.length}` : '—'}
-              precision={exigences.length > 0 ? 'exigences du CCTP satisfaites' : 'aucune exigence évaluée'}
+              precision={nonMesurees > 0
+                ? `${nonMesurees} exigence(s) non mesurée(s) ici, hors décompte`
+                : exigences.length > 0 ? 'exigences du CCTP satisfaites' : 'aucune exigence évaluée'}
               icone={CheckCircle}
             />
             <Indicateur
@@ -504,20 +535,33 @@ export default function CCTPCompliancePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {compliance?.requirements && Object.entries(compliance.requirements).map(([key, req]) => (
-                <div key={key} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={key} className="flex items-start justify-between gap-4 p-4 border rounded-lg">
                   <div className="space-y-1">
-                    <div className="font-medium capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    {/* Le serveur fournit un libellé lisible ; le repli sur la
+                        clé technique découpée reste utile si une exigence
+                        nouvelle n'en porte pas encore. */}
+                    <div className="font-medium">
+                      {req.libelle ?? key.replace(/([A-Z])/g, ' $1').trim()}
                     </div>
                     <div className="text-sm text-ink-soft">
                       {req.details}
                     </div>
+                    {req.verifiePar && (
+                      <div className="text-xs text-ink-soft">
+                        Vérifié par : {req.verifiePar}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right space-y-2">
+                  <div className="text-right space-y-2 shrink-0">
                     {getStatusBadge(req.status)}
-                    <div className={`text-sm font-semibold ${getComplianceColor(req.score)}`}>
-                      {req.score}%
-                    </div>
+                    {/* Pas de « null% » : une exigence non notée n'affiche pas
+                        de note. C'est la règle du dépôt — une donnée absente
+                        s'affiche comme absente. */}
+                    {req.score != null && (
+                      <div className={`text-sm font-semibold ${getComplianceColor(req.score)}`}>
+                        {req.score}%
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

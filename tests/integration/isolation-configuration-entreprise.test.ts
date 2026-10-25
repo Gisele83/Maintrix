@@ -43,10 +43,20 @@
  *   3. le TEXTE RÉELLEMENT IMPRIMÉ dans le PDF du bon de commande, flux
  *      décompressés. C'est le seul endroit où le défaut sortait sur papier.
  *
- * ⚠️ Un cas de cette suite AFFIRME UNE LIMITE OUVERTE (« la provenance du bon
- * de commande reste commune »), à la manière de tests/unit/filet-anti-fuite.test.ts :
- * `purchase_orders` ne porte aucun `tenant_id`, et ce lot ne corrige que
- * l'en-tête. Une limite qu'aucun test n'énonce se reprend pour une garantie.
+ * ✅ LA LIMITE QUE CETTE SUITE ÉPINGLAIT EST REFERMÉE. Un cas affirmait ici
+ * « la provenance du bon de commande reste commune » — `purchase_orders` ne
+ * portait aucun `tenant_id`, et le lot d'origine ne corrigeait que l'en-tête.
+ * La migration 0023 a posé la colonne et repris tous les appelants ; ce cas a
+ * donc été remplacé par l'assertion INVERSE, comme son propre commentaire le
+ * prescrivait (« il faut alors le remplacer par l'assertion inverse, pas le
+ * supprimer »).
+ *
+ * Conséquence sur les fixtures : les deux locataires ont désormais CHACUN leur
+ * bon de commande. Le cas « le même bon vu par Beta porte l'en-tête de Beta »
+ * ne pouvait plus exister tel quel — un bon n'est plus visible des deux côtés,
+ * ce qui est précisément l'acquis. La propriété qu'il mesurait (« l'en-tête est
+ * celui du DEMANDEUR, pas la ligne active commune ») est conservée, mesurée sur
+ * le bon de chacun.
  *
  * ⚠️ Cette suite ne se lance pas avec `jest` seul : `npm test` provisionne la
  * base, le serveur et les variables (voir scripts/run-tests.mjs).
@@ -106,6 +116,8 @@ let technicien: AuthenticatedAgent;
 let reponseAlpha: any;
 let reponseBeta: any;
 let bonDeCommandeId = 0;
+/** Le bon de commande de Beta : depuis la migration 0023, un bon a un propriétaire. */
+let bonDeCommandeBetaId = 0;
 
 /** Nombre de configurations ACTIVES d'un locataire, lu en base. */
 async function configsActives(tenantId: string): Promise<number> {
@@ -194,17 +206,26 @@ beforeAll(async () => {
   reponseAlpha = await createAuthenticatedRequest('post', '/api/company-config', alpha).send(ALPHA_CFG);
   reponseBeta = await createAuthenticatedRequest('post', '/api/company-config', beta).send(BETA_CFG);
 
-  // Un bon de commande pour éprouver l'en-tête du document émis.
-  const { rows } = await pool.query(
-    `INSERT INTO purchase_orders (order_number, order_type, requested_by, total_amount, currency, status)
-     VALUES ($1, 'spare_parts', $2, '1234.00', 'EUR', 'draft') RETURNING id`,
-    [`BC-${STAMP}`, `Demandeur ${STAMP}`],
-  );
-  bonDeCommandeId = rows[0].id;
+  // Un bon de commande PAR LOCATAIRE, pour éprouver l'en-tête du document émis.
+  //
+  // `tenant_id` est arrivé avec la migration 0023, et la colonne est NOT NULL :
+  // cet INSERT se faisait sans propriétaire, ce qui était exactement le défaut
+  // que le cas « LIMITE OUVERTE » épinglait plus bas.
+  const insererBon = async (tenantId: string, suffixe: string): Promise<number> => {
+    const { rows } = await pool.query(
+      `INSERT INTO purchase_orders (tenant_id, order_number, order_type, requested_by,
+                                    total_amount, currency, status)
+       VALUES ($1, $2, 'spare_parts', $3, '1234.00', 'EUR', 'draft') RETURNING id`,
+      [tenantId, `BC-${STAMP}-${suffixe}`, `Demandeur ${STAMP}`],
+    );
+    return rows[0].id;
+  };
+  bonDeCommandeId = await insererBon(SEEDED.tenantAlpha, 'A');
+  bonDeCommandeBetaId = await insererBon(SEEDED.tenantBeta, 'B');
 });
 
 afterAll(async () => {
-  await pool.query('DELETE FROM purchase_order_items WHERE purchase_order_id = $1', [bonDeCommandeId]);
+  await pool.query('DELETE FROM purchase_order_items WHERE purchase_order_id = ANY($1)', [[bonDeCommandeId, bonDeCommandeBetaId]]);
   await pool.query('DELETE FROM purchase_orders WHERE order_number = $1', [`BC-${STAMP}`]);
   await pool.query('DELETE FROM company_config WHERE tenant_id = ANY($1::varchar[])', [
     [SEEDED.tenantAlpha, SEEDED.tenantBeta],
@@ -318,8 +339,12 @@ describe('Le bon de commande porte l\'en-tête de son demandeur', () => {
     expect(texte).not.toContain(BETA_CFG.taxNumber);
   });
 
-  it('le même bon demandé par Beta est imprimé à l\'en-tête de Beta', async () => {
-    const res = await telechargerPdf(`/api/purchase-orders/${bonDeCommandeId}/pdf`, beta);
+  it('le bon de Beta est imprimé à l\'en-tête de Beta', async () => {
+    // Mesuré sur LE BON DE BETA, et non plus sur celui d'Alpha : depuis la
+    // migration 0023, un bon de commande n'est plus visible des deux côtés.
+    // La propriété vérifiée reste la même — l'en-tête est celui du demandeur et
+    // non la ligne active commune à l'instance.
+    const res = await telechargerPdf(`/api/purchase-orders/${bonDeCommandeBetaId}/pdf`, beta);
 
     expect(res.status).toBe(200);
     const texte = texteDuPdf(res.body as Buffer);
@@ -345,29 +370,32 @@ describe('Le bon de commande porte l\'en-tête de son demandeur', () => {
     expect([401, 403]).toContain(res.status);
   });
 
-  it('LIMITE OUVERTE : la PROVENANCE du bon de commande reste commune', async () => {
-    // ⚠️ Ce cas N'EST PAS une régression : il énonce ce que ce lot ne corrige
-    // pas. `purchase_orders` ne porte aucun `tenant_id` — ni dans
-    // shared/schema.ts, ni dans aucune migration — et rien ne filtre
-    // `getPurchaseOrderById()`. Les deux locataires obtiennent donc 200 sur le
-    // MÊME identifiant de commande, chacun sous son propre en-tête.
+  it('LIMITE REFERMÉE : la PROVENANCE du bon de commande est cloisonnée', async () => {
+    // ✅ Ce cas est l'ASSERTION INVERSE de celle qu'il portait. Il affirmait
+    // « les deux locataires obtiennent 200 sur le MÊME identifiant de commande »
+    // et exigeait sa propre réécriture le jour où la colonne existerait :
     //
-    // La correction demande sa propre migration et la reprise de toute la
-    // chaîne achats (liste, validation, impression). Si ce cas devient rouge,
-    // c'est que ce travail a été fait : il faut alors le remplacer par
-    // l'assertion inverse (404 ou 403 pour le locataire étranger), pas le
-    // supprimer.
+    //     « Si ce cas devient rouge, c'est que ce travail a été fait : il faut
+    //       alors le remplacer par l'assertion inverse (404 ou 403 pour le
+    //       locataire étranger), pas le supprimer. »
+    //
+    // C'est la migration 0023 qui l'a fait, avec la reprise de toute la chaîne
+    // achats (liste, validation, impression, pièces justificatives).
     const vuParAlpha = await createAuthenticatedRequest('get', `/api/purchase-orders/${bonDeCommandeId}/pdf`, alpha);
     const vuParBeta = await createAuthenticatedRequest('get', `/api/purchase-orders/${bonDeCommandeId}/pdf`, beta);
 
+    // Le propriétaire l'obtient, l'étranger non.
     expect(vuParAlpha.status).toBe(200);
-    expect(vuParBeta.status).toBe(200);
+    expect(vuParBeta.status).toBe(404);
 
+    // Et la colonne est bien là, NOT NULL : le cloisonnement ne repose pas sur
+    // la seule discipline des appelants.
     const { rows } = await pool.query(
-      `SELECT COUNT(*)::int AS c FROM information_schema.columns
+      `SELECT is_nullable FROM information_schema.columns
         WHERE table_name = 'purchase_orders' AND column_name = 'tenant_id'`,
     );
-    expect(rows[0].c).toBe(0); // le jour où la colonne existe, ce cas doit être réécrit
+    expect(rows).toHaveLength(1);
+    expect(rows[0].is_nullable).toBe('NO');
   });
 });
 

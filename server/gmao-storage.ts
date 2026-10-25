@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, isNull, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, inArray, sql, count } from "drizzle-orm";
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -18,7 +18,6 @@ import {
   purchaseOrders,
   purchaseOrderItems,
   reorderRules,
-  validationLogs,
   userProfiles,
   type EquipmentRegistry,
   type InsertEquipmentRegistry,
@@ -52,8 +51,6 @@ import {
   type InsertPurchaseOrderItem,
   type ReorderRule,
   type InsertReorderRule,
-  type ValidationLog,
-  type InsertValidationLog,
   type UserProfile,
   type InsertUserProfile,
   maintenanceReports,
@@ -1527,14 +1524,40 @@ export class GMAOStorage {
     return supplier;
   }
 
-  // Purchase Orders management
-  async createPurchaseOrder(orderData: Omit<InsertPurchaseOrder, 'orderNumber'> & { orderNumber?: string }): Promise<PurchaseOrder> {
+  // ════════════════════════════════════════════════════════════════
+  // BONS DE COMMANDE — cloisonnés par locataire depuis la migration 0023
+  // ════════════════════════════════════════════════════════════════
+  //
+  // Aucune de ces méthodes ne filtrait sur quoi que ce soit : `purchase_orders`
+  // ne portait pas de colonne `tenant_id`. Chacune prend désormais un
+  // `tenantId` OBLIGATOIRE, et il vient de la session de l'appelant — jamais du
+  // corps de la requête, jamais d'un en-tête (voir server/tenant-requis.ts).
+  //
+  // Le locataire est placé APRÈS l'identifiant du document, comme pour les
+  // ordres de travail (`getWorkOrderById(id, tenantId)`,
+  // `updateWorkOrder(id, tenantId, data)`), pour que les deux circuits se
+  // lisent de la même façon.
+  //
+  // `updatePurchaseOrder` rend désormais `undefined` quand aucune ligne n'a été
+  // touchée, au lieu de `PurchaseOrder`. C'est le point important : un bon
+  // appartenant à un autre locataire ne produit plus une écriture silencieuse
+  // ni une exception, mais une absence que l'appelant doit traiter — en 404.
+
+  async createPurchaseOrder(
+    tenantId: string,
+    orderData: Omit<InsertPurchaseOrder, 'orderNumber' | 'tenantId'> & { orderNumber?: string },
+  ): Promise<PurchaseOrder> {
     const orderNumber = `${orderData.documentType === "command_letter" ? "CL" : "PO"}-${Date.now()}`;
-    
+
     const [order] = await db
       .insert(purchaseOrders)
       .values({
         ...orderData,
+        // Le locataire est posé APRÈS l'étalement de `orderData` : même si un
+        // appelant y glissait un `tenantId`, c'est celui de la session qui est
+        // écrit. Le type l'interdit déjà, mais un `any` sur le chemin d'appel
+        // suffirait à contourner le type et pas cette ligne.
+        tenantId,
         orderNumber,
         status: "pending"
       })
@@ -1542,30 +1565,62 @@ export class GMAOStorage {
     return order;
   }
 
-  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    return await db.select().from(purchaseOrders);
+  async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
+    return await db.select().from(purchaseOrders).where(eq(purchaseOrders.tenantId, tenantId));
   }
 
-  async getPurchaseOrderById(id: number): Promise<PurchaseOrder | undefined> {
-    const [order] = await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+  async getPurchaseOrderById(id: number, tenantId: string): Promise<PurchaseOrder | undefined> {
+    const [order] = await this.db.select().from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.tenantId, tenantId)));
     return order;
   }
 
-  async updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder> {
+  async updatePurchaseOrder(
+    id: number,
+    tenantId: string,
+    data: Partial<Omit<InsertPurchaseOrder, 'tenantId'>>,
+  ): Promise<PurchaseOrder | undefined> {
     const [order] = await this.db
       .update(purchaseOrders)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(purchaseOrders.id, id))
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.tenantId, tenantId)))
       .returning();
     return order;
   }
 
-  async getPurchaseOrdersByStatus(status: string): Promise<PurchaseOrder[]> {
-    return await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.validationStatus, status));
+  async getPurchaseOrdersByStatus(status: string, tenantId: string): Promise<PurchaseOrder[]> {
+    return await this.db.select().from(purchaseOrders)
+      .where(and(eq(purchaseOrders.validationStatus, status), eq(purchaseOrders.tenantId, tenantId)));
   }
 
-  // Purchase Order Items management
-  async createPurchaseOrderItem(itemData: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+  // ── Lignes de bon de commande ───────────────────────────────────
+  //
+  // `purchase_order_items` ne porte PAS de colonne `tenant_id`, et n'en reçoit
+  // pas : une ligne n'existe que par son bon. Le cloisonnement passe donc par
+  // le bon parent, et il est exact — une ligne dont le bon appartient à un
+  // autre locataire n'est ni lisible, ni modifiable, ni créable.
+  //
+  // `bonsDuLocataire()` sert de sous-requête commune. Drizzle n'exprime pas de
+  // jointure dans un UPDATE : le `IN (SELECT ...)` est la forme qui marche
+  // aussi bien en lecture qu'en écriture, donc une seule règle à relire.
+
+  private bonsDuLocataire(tenantId: string) {
+    return this.db.select({ id: purchaseOrders.id }).from(purchaseOrders)
+      .where(eq(purchaseOrders.tenantId, tenantId));
+  }
+
+  async createPurchaseOrderItem(
+    itemData: InsertPurchaseOrderItem,
+    tenantId: string,
+  ): Promise<PurchaseOrderItem | undefined> {
+    // Le bon parent est vérifié AVANT l'insertion : sans ce contrôle, un
+    // appelant pouvait ajouter une ligne — donc un montant — à un bon de
+    // commande d'une autre organisation, alors même que la table des lignes
+    // n'a pas de locataire à usurper.
+    if (itemData.purchaseOrderId == null) return undefined;
+    const bon = await this.getPurchaseOrderById(itemData.purchaseOrderId, tenantId);
+    if (!bon) return undefined;
+
     const [item] = await this.db
       .insert(purchaseOrderItems)
       .values(itemData)
@@ -1573,16 +1628,26 @@ export class GMAOStorage {
     return item;
   }
 
-  async getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]> {
+  async getPurchaseOrderItems(purchaseOrderId: number, tenantId: string): Promise<PurchaseOrderItem[]> {
     return await this.db.select().from(purchaseOrderItems)
-      .where(eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId));
+      .where(and(
+        eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId),
+        inArray(purchaseOrderItems.purchaseOrderId, this.bonsDuLocataire(tenantId)),
+      ));
   }
 
-  async updatePurchaseOrderItem(id: number, data: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem> {
+  async updatePurchaseOrderItem(
+    id: number,
+    tenantId: string,
+    data: Partial<InsertPurchaseOrderItem>,
+  ): Promise<PurchaseOrderItem | undefined> {
     const [item] = await this.db
       .update(purchaseOrderItems)
       .set(data)
-      .where(eq(purchaseOrderItems.id, id))
+      .where(and(
+        eq(purchaseOrderItems.id, id),
+        inArray(purchaseOrderItems.purchaseOrderId, this.bonsDuLocataire(tenantId)),
+      ))
       .returning();
     return item;
   }
@@ -1660,11 +1725,11 @@ export class GMAOStorage {
           if (rule.autoOrder && rule.supplierId) {
             const supplier = await this.getSupplierById(rule.supplierId);
             if (supplier) {
-              const orderNumber = await this.generatePurchaseOrderNumber();
+              const orderNumber = await this.generatePurchaseOrderNumber(tenantId);
               const expectedDelivery = new Date();
               expectedDelivery.setDate(expectedDelivery.getDate() + (rule.leadTime || supplier.deliveryTime || 7));
 
-              const purchaseOrder = await this.createPurchaseOrder({
+              const purchaseOrder = await this.createPurchaseOrder(tenantId, {
                 orderNumber,
                 supplierId: rule.supplierId,
                 orderType: "spare_parts",
@@ -1689,7 +1754,7 @@ export class GMAOStorage {
                 unitPrice: part.unitPrice ? part.unitPrice.toString() : "0",
                 totalPrice: (part.unitPrice ? (parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2) : "0"),
                 expectedDelivery
-              });
+              }, tenantId);
 
               createdOrders.push(purchaseOrder);
 
@@ -1704,11 +1769,27 @@ export class GMAOStorage {
   }
 
   // Generate purchase order number
-  private async generatePurchaseOrderNumber(): Promise<string> {
+  //
+  // ⚠️ LE NUMÉRO RENDU ICI N'EST PAS CELUI QUI FINIT EN BASE. `createPurchaseOrder`
+  // recalcule systématiquement `orderNumber = PO-${Date.now()}` et ignore celui
+  // qu'on lui passe — ce qui veut dire que la trace
+  // « Auto-order created: PO20260001 » du réapprovisionnement automatique
+  // annonce un numéro que la ligne insérée ne porte pas. Défaut antérieur,
+  // laissé en place : changer la numérotation touche à `order_number`, qui est
+  // UNIQUE à l'échelle de l'instance, et ne se décide pas dans un lot
+  // d'isolation. Il est noté ici pour qu'il cesse d'être invisible.
+  //
+  // La lecture est tout de même cloisonnée : elle parcourait les bons de
+  // commande de toute l'instance, et c'est inutile pour un comptage qui ne sort
+  // pas de ce locataire.
+  private async generatePurchaseOrderNumber(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const orders = await db.select().from(purchaseOrders)
-      .where(sql`EXTRACT(year FROM order_date) = ${year}`);
-    
+    const orders = await db.select({ id: purchaseOrders.id }).from(purchaseOrders)
+      .where(and(
+        eq(purchaseOrders.tenantId, tenantId),
+        sql`EXTRACT(year FROM order_date) = ${year}`,
+      ));
+
     const nextNumber = (orders.length + 1).toString().padStart(4, '0');
     return `PO${year}${nextNumber}`;
   }
@@ -2255,333 +2336,42 @@ export class GMAOStorage {
   }
 
   private countQualityIssues(reports: MaintenanceReport[]): number {
-    return reports.filter(report => report.qualityCheck === false || 
+    return reports.filter(report => report.qualityCheck === false ||
       (report.qualityNotes && report.qualityNotes.toLowerCase().includes("problème"))).length;
   }
 
-  // ============= VALIDATION SYSTEM METHODS =============
-
-  // Work Order Validation Methods
-  async getPendingWorkOrdersForValidation(validatorId: number, validationLevel: number): Promise<WorkOrder[]> {
-    const user = await this.getUserProfile(validatorId);
-    if (!user || !user.canValidateWorkOrders) {
-      throw new Error("User does not have work order validation permissions");
-    }
-
-    // Get work orders that need validation at the specified level
-    if (validationLevel === 1) {
-      // Level 1: Chef de Service - Show pending orders
-      return await db.select().from(workOrders).where(
-        eq(workOrders.validationStatus, "pending")
-      );
-    } else if (validationLevel === 2) {
-      // Level 2: Chef Département Maintenance - Show orders validated by Chef Service (final validation)
-      return await db.select().from(workOrders).where(
-        eq(workOrders.validationStatus, "level1_validated")
-      );
-    } else {
-      throw new Error("Invalid validation level for work orders");
-    }
-  }
-
-  async validateWorkOrder(data: {
-    workOrderId: number;
-    action: "validate" | "reject";
-    validationLevel: number;
-    comments?: string;
-    validatorId: number;
-  }, tenantId: string) {
-    // 🔧 CORRECTION: Passer le tenant ID à getWorkOrderById  
-    const workOrder = await this.getWorkOrderById(data.workOrderId, tenantId);
-    if (!workOrder) {
-      throw new Error("Work order not found");
-    }
-
-
-    const user = await this.getUserProfile(data.validatorId);
-    if (!user || !user.canValidateWorkOrders) {
-      throw new Error("User does not have validation permissions");
-    }
-
-    const currentDate = new Date();
-    let updatedWorkOrder;
-    
-    if (data.action === "validate") {
-      if (data.validationLevel === 1) {
-        // Chef de Service validation
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-          validationStatus: "level1_validated"
-        });
-      } else if (data.validationLevel === 2) {
-        // Chef Département Maintenance - Final validation
-        // L'ordre retourne dans la liste principale avec status "assigned" pour exécution par les techniciens
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-          validationStatus: "validated",
-          status: "assigned", // 🔧 CORRECTION: Retour dans liste principale
-          canExecute: true
-        });
-        console.log(`Work order ${data.workOrderId} fully validated, status changed to 'assigned' for technician execution`);
-      }
-    } else {
-      updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-        validationStatus: "rejected",
-        status: "cancelled", // 🔧 CORRECTION: Status cohérent pour rejet
-        rejectedBy: data.validatorId,
-        rejectedAt: currentDate,
-        rejectionReason: data.comments
-      });
-      console.log(`Work order ${data.workOrderId} rejected and cancelled`);
-    }
-
-    // Log the validation action
-    const validationLog = await this.createValidationLog({
-      recordType: "work_order",
-      recordId: data.workOrderId,
-      validationLevel: data.validationLevel,
-      action: data.action,
-      validatedBy: data.validatorId,
-      comments: data.comments,
-      previousStatus: workOrder.validationStatus,
-      newStatus: updatedWorkOrder?.validationStatus
-    });
-
-    return { workOrder: updatedWorkOrder, validationLog };
-  }
-
-  // Purchase Order Validation Methods
-  async getPendingPurchaseOrdersForValidation(validatorId: number, validationLevel: number): Promise<PurchaseOrder[]> {
-    const user = await this.getUserProfile(validatorId);
-    if (!user || !user.canValidatePurchaseOrders) {
-      throw new Error("User does not have purchase order validation permissions");
-    }
-
-    // Get purchase orders that need validation at the specified level
-    let query;
-    if (validationLevel === 1) {
-      query = and(
-        eq(purchaseOrders.validationStatus, "pending"),
-        isNull(purchaseOrders.chefServiceValidatedBy)
-      );
-    } else if (validationLevel === 2) {
-      query = and(
-        eq(purchaseOrders.validationStatus, "chef_service_validated"),
-        isNull(purchaseOrders.directeurValidatedBy)
-      );
-    } else if (validationLevel === 3) {
-      query = eq(purchaseOrders.validationStatus, "directeur_validated");
-    } else {
-      throw new Error("Invalid validation level for purchase orders");
-    }
-
-    return await this.db.select().from(purchaseOrders).where(query);
-  }
-
-  async validatePurchaseOrder(data: {
-    purchaseOrderId: number;
-    action: "validate" | "reject";
-    validationLevel: number;
-    comments?: string;
-    validatorId: number;
-  }) {
-    const purchaseOrder = await this.getPurchaseOrderById(data.purchaseOrderId);
-    if (!purchaseOrder) {
-      throw new Error("Purchase order not found");
-    }
-
-    const user = await this.getUserProfile(data.validatorId);
-    if (!user || !user.canValidatePurchaseOrders) {
-      throw new Error("User does not have validation permissions");
-    }
-
-    // Check if user has sufficient authority for the purchase amount
-    if (user.maxPurchaseAmount && purchaseOrder.totalAmount && 
-        parseFloat(purchaseOrder.totalAmount) > parseFloat(user.maxPurchaseAmount)) {
-      throw new Error("Purchase amount exceeds user's approval limit");
-    }
-
-    const currentDate = new Date();
-    let updatedPurchaseOrder;
-    
-    if (data.action === "validate") {
-      if (data.validationLevel === 1) {
-        // Chef de Service Utilisateur valide
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "chef_service_validated",
-          chefServiceValidatedBy: data.validatorId,
-          chefServiceValidatedAt: currentDate
-        });
-      } else if (data.validationLevel === 2) {
-        // Directeur Général valide - Passe au niveau 3 ou prêt pour impression si c'est le dernier niveau
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "directeur_validated",
-          directeurValidatedBy: data.validatorId,
-          directeurValidatedAt: currentDate
-        });
-      } else if (data.validationLevel === 3) {
-        // Validation finale - bon prêt pour impression
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "ready_for_print",
-          canPrint: true
-        });
-      }
-    } else {
-      updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-        validationStatus: "rejected",
-        rejectedBy: data.validatorId,
-        rejectedAt: currentDate,
-        rejectionReason: data.comments
-      });
-    }
-
-    // Log the validation action
-    const validationLog = await this.createValidationLog({
-      recordType: "purchase_order",
-      recordId: data.purchaseOrderId,
-      validationLevel: data.validationLevel,
-      action: data.action,
-      validatedBy: data.validatorId,
-      comments: data.comments,
-      previousStatus: purchaseOrder.validationStatus,
-      newStatus: updatedPurchaseOrder?.validationStatus
-    });
-
-    return { purchaseOrder: updatedPurchaseOrder, validationLog };
-  }
-
-  // Validation Log Methods
-  async createValidationLog(data: InsertValidationLog): Promise<ValidationLog> {
-    const [log] = await this.db.insert(validationLogs).values(data).returning();
-    return log;
-  }
-
-  async getValidationHistory(recordType: string, recordId: number): Promise<ValidationLog[]> {
-    return await this.db.select().from(validationLogs)
-      .where(and(
-        eq(validationLogs.recordType, recordType),
-        eq(validationLogs.recordId, recordId)
-      ))
-      .orderBy(desc(validationLogs.validationDate));
-  }
-
-  async getValidationStatistics(filters: {
-    validatorId?: number;
-    dateFrom?: Date;
-    dateTo?: Date;
-  }) {
-    const conditions = [];
-    if (filters.validatorId) {
-      conditions.push(eq(validationLogs.validatedBy, filters.validatorId));
-    }
-    if (filters.dateFrom) {
-      conditions.push(gte(validationLogs.validationDate, filters.dateFrom));
-    }
-    if (filters.dateTo) {
-      conditions.push(lte(validationLogs.validationDate, filters.dateTo));
-    }
-
-    const logs = await this.db.select().from(validationLogs)
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
-
-    // Calculate statistics
-    const total = logs.length;
-    const validated = logs.filter(log => log.action === "validate").length;
-    const rejected = logs.filter(log => log.action === "reject").length;
-    const workOrderValidations = logs.filter(log => log.recordType === "work_order").length;
-    const purchaseOrderValidations = logs.filter(log => log.recordType === "purchase_order").length;
-
-    return {
-      total,
-      validated,
-      rejected,
-      workOrderValidations,
-      purchaseOrderValidations,
-      validationRate: total > 0 ? (validated / total) * 100 : 0,
-      rejectionRate: total > 0 ? (rejected / total) * 100 : 0
-    };
-  }
-
-  // User Profile Methods
-
-  async updateUserValidationPermissions(userId: number, updates: {
-    validationLevel?: number;
-    canValidateWorkOrders?: boolean;
-    canValidatePurchaseOrders?: boolean;
-    maxPurchaseAmount?: string;
-  }): Promise<UserProfile> {
-    const [user] = await this.db.update(userProfiles)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(userProfiles.id, userId))
-      .returning();
-    
-    if (!user) {
-      throw new Error("User not found");
-    }
-    return user;
-  }
-
-  // Validation Status Methods
-  async getWorkOrderValidationStatus(workOrderId: number, tenantId: string) {
-    const workOrder = await this.getWorkOrderById(workOrderId, tenantId);
-    if (!workOrder) {
-      throw new Error("Work order not found");
-    }
-
-    return {
-      workOrderId,
-      validationStatus: workOrder.validationStatus,
-      canExecute: workOrder.canExecute,
-      level1: {
-        validated: workOrder.level1ValidatedBy !== null,
-        validatedBy: workOrder.level1ValidatedBy,
-        validatedAt: workOrder.level1ValidatedAt,
-        notes: workOrder.level1ValidationNotes
-      },
-      level2: {
-        validated: workOrder.level2ValidatedBy !== null,
-        validatedBy: workOrder.level2ValidatedBy,
-        validatedAt: workOrder.level2ValidatedAt,
-        notes: workOrder.level2ValidationNotes
-      },
-      rejection: {
-        rejected: workOrder.rejectedBy !== null,
-        rejectedBy: workOrder.rejectedBy,
-        rejectedAt: workOrder.rejectedAt,
-        reason: workOrder.rejectionReason
-      }
-    };
-  }
-
-  async getPurchaseOrderValidationStatus(purchaseOrderId: number) {
-    const purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId);
-    if (!purchaseOrder) {
-      throw new Error("Purchase order not found");
-    }
-
-    return {
-      purchaseOrderId,
-      validationStatus: purchaseOrder.validationStatus,
-      canPrint: purchaseOrder.canPrint,
-      chefService: {
-        validated: purchaseOrder.chefServiceValidatedBy !== null,
-        validatedBy: purchaseOrder.chefServiceValidatedBy,
-        validatedAt: purchaseOrder.chefServiceValidatedAt,
-        rejectionReason: purchaseOrder.chefServiceRejectionReason
-      },
-      directeur: {
-        validated: purchaseOrder.directeurValidatedBy !== null,
-        validatedBy: purchaseOrder.directeurValidatedBy,
-        validatedAt: purchaseOrder.directeurValidatedAt,
-        rejectionReason: purchaseOrder.directeurRejectionReason
-      },
-      documentsJustificatifs: purchaseOrder.documentsJustificatifs,
-      rejection: {
-        rejected: purchaseOrder.rejectedBy !== null,
-        rejectedBy: purchaseOrder.rejectedBy,
-        rejectedAt: purchaseOrder.rejectedAt,
-        reason: purchaseOrder.rejectionReason
-      }
-    };
-  }
+  // ═══════════════════════════════════════════════════════════════════
+  // PLUS DE MÉTHODES DE VALIDATION ICI — ET C'EST VOULU
+  // ═══════════════════════════════════════════════════════════════════
+  // Dix méthodes ont été retirées le 2026-10-25 : `getPendingWorkOrdersForValidation`,
+  // `validateWorkOrder`, `getPendingPurchaseOrdersForValidation`,
+  // `validatePurchaseOrder`, `createValidationLog`, `getValidationHistory`,
+  // `getValidationStatistics`, `updateUserValidationPermissions`,
+  // `getWorkOrderValidationStatus` et `getPurchaseOrderValidationStatus`.
+  //
+  // Leur SEUL appelant était `server/validation-routes.ts`, un routeur Express
+  // qu'aucun `app.use(...)` ne montait : elles étaient donc inatteignables, et
+  // le fichier a été supprimé avec elles.
+  //
+  // Les garder aurait été pire que du code mort. `validateWorkOrder` et
+  // `validatePurchaseOrder` recevaient un `validatorId` : elles vérifiaient
+  // `canValidateWorkOrders`, `canValidatePurchaseOrders` et `maxPurchaseAmount`
+  // sur le compte DÉSIGNÉ par ce paramètre, c'est-à-dire les droits de
+  // quelqu'un d'autre que l'appelant. C'est exactement la faille fermée le même
+  // jour dans la version montée ; monter ce routeur l'aurait rouverte.
+  //
+  // Elles écrivaient en outre un vocabulaire de statuts QUE PLUS RIEN NE LIT —
+  // `chef_service_validated`, `directeur_validated`, `ready_for_print` — là où
+  // les routes en service écrivent et relisent `level1_validated`,
+  // `level2_validated`, `validated` puis `printed`. Un document passé par
+  // l'ancien chemin aurait été inatteignable par le nouveau : son statut ne
+  // correspondant à aucune étape, aucune validation n'y serait plus attendue.
+  //
+  // Le circuit réel vit dans `server/simple-validation-routes.ts` : identité et
+  // niveau pris sur la SESSION, quatre barrières, écriture et trace dans la même
+  // transaction. Les traces s'y écrivent avec le même `tx` que la mise à jour
+  // du document — raison pour laquelle `createValidationLog`, qui ouvrait sa
+  // propre connexion, n'avait plus d'emploi.
 
   // ============= COMPANY CONFIGURATION METHODS =============
   //
@@ -2663,6 +2453,10 @@ export class GMAOStorage {
    * cloisonnée quand même — une fonction morte qui lit une table commune est un
    * piège pour le jour où on la rebranche, et c'est ainsi que la configuration
    * commune a été lue par cinq endroits sans que personne ne s'en aperçoive.
+   *
+   * Cette méthode lisait DEUX tables sans locataire, et les deux défauts ont été
+   * trouvés séparément : la configuration d'entreprise (migration 0022) et le
+   * bon de commande lui-même (migration 0023). Les deux sont cloisonnés ici.
    */
   async generatePurchaseOrderWithLetterhead(purchaseOrderId: number, tenantId: string, demoData?: any): Promise<string> {
     const config = await this.getCompanyConfig(tenantId);
@@ -2672,15 +2466,11 @@ export class GMAOStorage {
       // Use demo data from validation system
       purchaseOrder = demoData;
     } else {
-      // ⚠️ `purchase_orders` NE PORTE PAS de `tenant_id` — ni dans le schéma, ni
-      // dans aucune migration, et rien dans le dépôt ne cloisonne cette table.
-      // Le bon de commande lu ici peut donc appartenir à n'importe quel
-      // locataire de l'instance. C'est un défaut DISTINCT de celui corrigé dans
-      // ce lot, et plus large (toute la chaîne achats : liste, validation,
-      // impression) : il demande sa propre migration et la reprise de
-      // procurement-routes.ts. L'en-tête, lui, est désormais celui du demandeur.
-      const [dbOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
-      purchaseOrder = dbOrder;
+      // ✅ La réserve posée ici par la migration 0022 — « `purchase_orders` ne
+      // porte pas de `tenant_id`, ce défaut demande sa propre migration et la
+      // reprise de procurement-routes.ts » — est levée : c'est la migration
+      // 0023, et tous les appelants sont repris.
+      purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId, tenantId);
     }
 
     if (!config) {

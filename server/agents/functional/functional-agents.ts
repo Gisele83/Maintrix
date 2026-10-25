@@ -170,9 +170,13 @@ const procurementAgent: FunctionalAgentAssessor = async (tenantId) => {
      WHERE tenant_id = $1 AND is_active = true AND current_stock <= reorder_point`,
     [tenantId],
   );
-  // purchase_orders n'a pas de colonne tenant_id dans le schéma actuel — comptage global,
-  // pas isolé par tenant (limite connue de la table, pas une omission de cette requête).
-  const po = await sharedPool.query(`SELECT COUNT(*) AS pending FROM purchase_orders WHERE status IN ('draft', 'sent')`);
+  // purchase_orders porte tenant_id depuis la migration 0023 : ce compteur additionnait
+  // jusqu'ici les bons en cours de TOUS les locataires de l'instance, et le résultat était
+  // présenté comme le chiffre du locataire évalué.
+  const po = await sharedPool.query(
+    `SELECT COUNT(*) AS pending FROM purchase_orders WHERE tenant_id = $1 AND status IN ('draft', 'sent')`,
+    [tenantId],
+  );
   const signals: AgentSignal[] = [
     {
       label: "Pièces sous le seuil de réapprovisionnement",

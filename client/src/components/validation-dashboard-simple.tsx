@@ -8,6 +8,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Check, X, Clock, FileText, AlertCircle, User, Euro, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { libelleRole } from "@shared/roles";
+
+/**
+ * Tableau de validation — ordres de travail et bons de commande.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI ÉTAIT CASSÉ
+ * ═══════════════════════════════════════════════════════════════════
+ * Ce composant recevait son utilisateur en PROPRIÉTÉS, et l'écran qui
+ * l'affichait les écrivait toutes en dur :
+ *
+ *     userId={1} userRole="Chef de Service" validationLevel={1}
+ *     canValidateWorkOrders={true} canValidatePurchaseOrders={true}
+ *
+ * Donc : tout le monde était l'utilisateur n° 1 ; « Chef de Service » n'existe
+ * dans aucune nomenclature du dépôt (voir shared/roles.ts, dont l'en-tête cite
+ * déjà `manager` et `supervisor` comme valeurs fantômes du même genre) ; et les
+ * deux droits de validation étaient accordés à quiconque ouvrait l'écran.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI PLUS AUCUNE PROPRIÉTÉ D'IDENTITÉ
+ * ═══════════════════════════════════════════════════════════════════
+ * Le composant lit lui-même la session (`useAuth`). Une propriété peut être
+ * recodée en dur par le prochain appelant — c'est précisément ce qui est arrivé
+ * ici ; une session, non. Le serveur ne croit de toute façon plus un mot de ce
+ * que l'écran lui envoie sur l'identité ou le niveau
+ * (server/simple-validation-routes.ts) : ce que cet écran affiche n'est donc
+ * plus qu'un reflet, et il doit être exact.
+ */
 
 interface WorkOrder {
   id: number;
@@ -18,6 +48,8 @@ interface WorkOrder {
   requestedBy: string;
   createdAt: string;
   status: string;
+  /** Le niveau que CE document attend, tel que le serveur l'a calculé. */
+  niveauAttendu?: number;
 }
 
 interface PurchaseOrder {
@@ -30,35 +62,51 @@ interface PurchaseOrder {
   currency: string;
   priority: string;
   requestedBy: string;
-  deliveryDate: string;
+  deliveryDate: string | null;
   documentType?: string;
+  /** Le niveau que CE document attend, tel que le serveur l'a calculé. */
+  niveauAttendu?: number;
 }
 
 interface ValidationLog {
   id: number;
   recordType: string;
   recordId: number;
+  validationLevel: number;
   action: string;
   validatedBy: number;
   comments?: string;
   validationDate: string;
 }
 
-interface ValidationDashboardProps {
-  userId: number;
-  userRole: string;
-  validationLevel: number;
-  canValidateWorkOrders: boolean;
-  canValidatePurchaseOrders: boolean;
+/**
+ * Le motif lisible d'un refus serveur.
+ *
+ * `apiRequest` lève `new Error('403: {"error":…,"message":"…"}')` : afficher la
+ * chaîne brute mettrait du JSON dans une notification. On en extrait la phrase,
+ * pour que « niveau insuffisant » ou « plafond dépassé » arrive jusqu'à la
+ * personne qui vient de cliquer.
+ */
+function motifDuRefus(erreur: unknown): string | null {
+  if (!(erreur instanceof Error) || !erreur.message) return null;
+  const corps = erreur.message.replace(/^\d{3}:\s*/, "").trim();
+  try {
+    const json = JSON.parse(corps);
+    if (typeof json?.message === "string" && json.message) return json.message;
+  } catch { /* corps non JSON */ }
+  return corps && corps.length < 200 ? corps : null;
 }
 
-export default function ValidationDashboard({
-  userId,
-  userRole,
-  validationLevel,
-  canValidateWorkOrders,
-  canValidatePurchaseOrders
-}: ValidationDashboardProps) {
+export default function ValidationDashboard() {
+  const { user } = useAuth();
+
+  // Tout est dérivé de la session. `?? 0` et `=== true` plutôt qu'un repli
+  // permissif : un champ absent vaut « aucun droit », jamais « tous les droits ».
+  const validationLevel = user?.validationLevel ?? 0;
+  const canValidateWorkOrders = user?.canValidateWorkOrders === true;
+  const canValidatePurchaseOrders = user?.canValidatePurchaseOrders === true;
+  const userId = user?.id;
+
   const [pendingWorkOrders, setPendingWorkOrders] = useState<WorkOrder[]>([]);
   const [pendingPurchaseOrders, setPendingPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [validationHistory, setValidationHistory] = useState<ValidationLog[]>([]);
@@ -75,17 +123,16 @@ export default function ValidationDashboard({
 
   const loadPendingItems = async () => {
     try {
+      // `validatorId` et `validationLevel` ne sont PLUS envoyés en paramètres :
+      // le serveur lit l'un et l'autre sur la session. Les laisser suggérerait
+      // qu'ils pèsent encore sur la réponse.
       if (canValidateWorkOrders) {
-        const workOrdersResponse = await apiRequest(
-          `/api/validation/work-orders/pending?validatorId=${userId}&validationLevel=${validationLevel}`
-        );
+        const workOrdersResponse = await apiRequest("/api/validation/work-orders/pending");
         setPendingWorkOrders(workOrdersResponse);
       }
 
       if (canValidatePurchaseOrders) {
-        const purchaseOrdersResponse = await apiRequest(
-          `/api/validation/purchase-orders/pending?validatorId=${userId}&validationLevel=${validationLevel}`
-        );
+        const purchaseOrdersResponse = await apiRequest("/api/validation/purchase-orders/pending");
         setPendingPurchaseOrders(purchaseOrdersResponse);
       }
     } catch (error) {
@@ -100,7 +147,7 @@ export default function ValidationDashboard({
 
   const loadValidationHistory = async () => {
     try {
-      const response = await apiRequest(`/api/validation/statistics?validatorId=${userId}`);
+      const response = await apiRequest("/api/validation/statistics");
       setValidationHistory(response.logs || []);
     } catch (error) {
       console.error("Error loading validation history:", error);
@@ -108,7 +155,12 @@ export default function ValidationDashboard({
     }
   };
 
-  const handleValidation = async (recordType: "work_order" | "purchase_order", recordId: number, action: "validate" | "reject") => {
+  const handleValidation = async (
+    recordType: "work_order" | "purchase_order",
+    recordId: number,
+    action: "validate" | "reject",
+    niveauDuDocument?: number,
+  ) => {
     // Justification requise uniquement pour les rejets
     if (!rejectionReason.trim() && action === "reject") {
       toast({
@@ -125,13 +177,17 @@ export default function ValidationDashboard({
         ? "/api/validation/work-orders/validate"
         : "/api/validation/purchase-orders/validate";
 
-      await apiRequest(endpoint, {
+      const reponse = await apiRequest(endpoint, {
         method: "POST",
         body: {
           [`${recordType.replace("_", "")}Id`]: recordId,
           action,
-          validationLevel,
-          validatorId: userId,
+          // Le niveau que le SERVEUR a annoncé pour ce document, et non celui
+          // du profil : un document peut attendre un échelon inférieur à celui
+          // qu'on détient. `validatorId` n'est plus envoyé — l'identité de
+          // l'approbateur est celle de la session, et c'est elle qui est
+          // inscrite dans `levelNValidatedBy`.
+          validationLevel: niveauDuDocument ?? validationLevel,
           comments: action === "reject" ? rejectionReason : undefined // Pas de commentaire pour validation
         }
       });
@@ -146,10 +202,16 @@ export default function ValidationDashboard({
       setSelectedRecord(null);
       loadPendingItems();
       loadValidationHistory();
+      return reponse;
     } catch (error) {
+      // Le serveur refuse désormais pour des raisons PRÉCISES — habilitation
+      // absente, niveau insuffisant, étape inattendue, plafond dépassé. Les
+      // noyer dans « Impossible de valider » rendrait le refus incompréhensible
+      // à la personne qui le reçoit.
+      const motif = motifDuRefus(error);
       toast({
-        title: "Erreur",
-        description: `Impossible de ${action === "validate" ? "valider" : "rejeter"} l'élément`,
+        title: action === "validate" ? "Validation refusée" : "Rejet refusé",
+        description: motif ?? `Impossible de ${action === "validate" ? "valider" : "rejeter"} l'élément`,
         variant: "destructive",
       });
     } finally {
@@ -176,13 +238,52 @@ export default function ValidationDashboard({
   const libelleTypeDocument = (documentType?: string) =>
     documentType === "command_letter" ? "Lettre" : "Bon";
 
+  /**
+   * Un compte sans habilitation le lit, au lieu de voir trois onglets vides.
+   *
+   * C'est l'état par défaut en base : `validation_level` vaut 0 et les deux
+   * drapeaux `false` tant qu'un administrateur ne les a pas accordés. L'écran
+   * contournait ce cas en se déclarant lui-même habilité.
+   */
+  if (!userId) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <Clock className="w-10 h-10 mx-auto text-ink-mute mb-3" />
+          <p className="text-ink-soft">Chargement de votre profil…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!canValidateWorkOrders && !canValidatePurchaseOrders) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <AlertCircle className="w-10 h-10 mx-auto text-ink-mute mb-3" />
+          <p className="font-medium">Votre compte ne porte aucun droit de validation.</p>
+          <p className="text-ink-soft mt-2">
+            {libelleRole(user?.role)} — niveau de validation {validationLevel}. Les droits
+            d'approbation des ordres de travail et des bons de commande sont attribués par
+            un administrateur de votre organisation.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tableau de Validation</h2>
+          {/* Le rôle passe par `libelleRole()` : il affichait « Chef de Service »,
+              une valeur hors référentiel reçue en propriété codée en dur. */}
           <p className="text-ink-soft">
-            {userRole} - Niveau {validationLevel}
+            {libelleRole(user?.role)} — Niveau {validationLevel}
+            {user?.maxPurchaseAmount
+              ? ` — plafond d'approbation ${user.maxPurchaseAmount} EUR`
+              : ""}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -248,7 +349,7 @@ export default function ValidationDashboard({
                         <div className="flex gap-2 ml-4">
                           {/* VALIDATION SIMPLE - Pas de commentaire requis */}
                           <Button
-                            onClick={() => handleValidation("work_order", workOrder.id, "validate")}
+                            onClick={() => handleValidation("work_order", workOrder.id, "validate", workOrder.niveauAttendu)}
                             disabled={loading}
                             className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                           >
@@ -287,7 +388,7 @@ export default function ValidationDashboard({
                                   </Button>
                                   <Button
                                     variant="destructive"
-                                    onClick={() => handleValidation("work_order", workOrder.id, "reject")}
+                                    onClick={() => handleValidation("work_order", workOrder.id, "reject", workOrder.niveauAttendu)}
                                     disabled={loading || !rejectionReason.trim()}
                                   >
                                     <X className="h-4 w-4 mr-1" />
@@ -350,14 +451,20 @@ export default function ValidationDashboard({
                             <div>Fournisseur: {purchaseOrder.supplier}</div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              Livraison: {new Date(purchaseOrder.deliveryDate).toLocaleDateString()}
+                              {/* La date venait d'un `Date.now() + 10 jours` calculé par le
+                                  serveur à chaque appel : une livraison inventée, qui se
+                                  décalait d'un jour par jour. C'est `expected_delivery` qui
+                                  est lu maintenant, et son absence s'affiche comme absente. */}
+                              Livraison: {purchaseOrder.deliveryDate
+                                ? new Date(purchaseOrder.deliveryDate).toLocaleDateString()
+                                : "non renseignée"}
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
                           {/* VALIDATION SIMPLE - Pas de commentaire requis */}
                           <Button
-                            onClick={() => handleValidation("purchase_order", purchaseOrder.id, "validate")}
+                            onClick={() => handleValidation("purchase_order", purchaseOrder.id, "validate", purchaseOrder.niveauAttendu)}
                             disabled={loading}
                             className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
                           >
@@ -396,7 +503,7 @@ export default function ValidationDashboard({
                                   </Button>
                                   <Button
                                     variant="destructive"
-                                    onClick={() => handleValidation("purchase_order", purchaseOrder.id, "reject")}
+                                    onClick={() => handleValidation("purchase_order", purchaseOrder.id, "reject", purchaseOrder.niveauAttendu)}
                                     disabled={loading || !rejectionReason.trim()}
                                   >
                                     <X className="h-4 w-4 mr-1" />
@@ -436,6 +543,12 @@ export default function ValidationDashboard({
                           log.action === "validate" ? "bg-etat-nominal-fond text-etat-nominal-texte" : "bg-etat-critique-fond text-etat-critique-texte"
                         }`}>
                           {log.action === "validate" ? "Validé" : "Rejeté"}
+                        </span>
+                        {/* Le niveau et l'approbateur viennent de `validation_logs`.
+                            Cet onglet affichait deux entrées écrites en dur, datées de
+                            l'instant de l'affichage et attribuées au validateur n° 1. */}
+                        <span className="ml-2 text-xs text-ink-mute">
+                          niveau {log.validationLevel} · compte n° {log.validatedBy}
                         </span>
                         {log.comments && (
                           <p className="text-sm text-ink-soft mt-1">Raison: {log.comments}</p>
