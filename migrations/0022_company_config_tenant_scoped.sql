@@ -74,7 +74,8 @@
 -- en attente étant appliqué dans UNE transaction (drizzle-orm/pg-core/dialect.js, `migrate()`),
 -- rien n'est resté en base : ni la colonne, ni la marque au journal. Pour LIRE la raison :
 --     psql "$DATABASE_URL" -f migrations/0022_company_config_tenant_scoped.sql
--- (les `--> statement-breakpoint` sont des commentaires SQL, psql les ignore). Corriger les
+-- (les marqueurs de coupure d'instruction insérés par drizzle sont des commentaires SQL,
+-- psql les ignore). Corriger les
 -- données signalées, puis relancer `drizzle-kit migrate` — la reprise est sans risque,
 -- l'annulation ayant été vérifiée complète.
 --
