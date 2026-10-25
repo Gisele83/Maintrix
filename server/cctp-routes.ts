@@ -4,7 +4,13 @@
 
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { cctpComplianceService, PurchaseOrderConfigSchema, WorkOrderConfigSchema, ReportingConfigSchema } from "./cctp-compliance-system";
+import {
+  cctpComplianceService,
+  PurchaseOrderConfigSchema,
+  WorkOrderConfigSchema,
+  ReportingConfigSchema,
+  type Exigence,
+} from "./cctp-compliance-system";
 import { db } from "./db";
 import { purchaseOrders, tenants } from "../shared/schema";
 import { and, eq } from "drizzle-orm";
@@ -463,51 +469,13 @@ router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
     const tenantId = locataireDeLaSession(req, res);
     if (!tenantId) return;
     
-    // Vérifier toutes les configurations requises
-    const purchaseOrderConfig = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
-    
-    const [tenant] = await db.select({
-      workOrderConfig: tenants.workOrderConfig,
-      reportingConfig: tenants.reportingConfig
-    }).from(tenants).where(eq(tenants.id, tenantId));
-    
-    const compliance = {
-      tenantId,
-      lastChecked: new Date().toISOString(),
-      overallScore: 0,
-      requirements: {
-        purchaseOrderConfiguration: {
-          status: purchaseOrderConfig ? 'compliant' : 'missing',
-          score: purchaseOrderConfig ? 100 : 0,
-          details: purchaseOrderConfig ? 'Configuration complète' : 'Configuration Bon de Commande manquante'
-        },
-        autoReportGeneration: {
-          status: tenant?.workOrderConfig?.autoReportGeneration ? 'compliant' : 'partial',
-          score: tenant?.workOrderConfig?.autoReportGeneration ? 100 : 50,
-          details: tenant?.workOrderConfig?.autoReportGeneration ? 'Auto-génération activée' : 'Auto-génération désactivée'
-        },
-        multilanguageSupport: {
-          status: tenant?.reportingConfig?.autoLanguageDetection ? 'compliant' : 'partial',
-          score: tenant?.reportingConfig?.autoLanguageDetection ? 100 : 75,
-          details: 'Support bilingue FR/EN implémenté'
-        },
-        validationWorkflow: {
-          status: 'compliant',
-          score: 100,
-          details: 'Validation hiérarchique multi-niveaux opérationnelle'
-        },
-        tenantIsolation: {
-          status: 'compliant',
-          score: 100,
-          details: 'Isolation multi-tenant avec RLS activée'
-        }
-      }
-    };
-    
-    // Calculer le score global
-    const scores = Object.values(compliance.requirements).map(req => req.score);
-    compliance.overallScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-    
+    // Le relevé est MESURÉ par le service, qui dit aussi ce qu'il ne mesure
+    // pas (voir `releverConformite`). Cette route notait auparavant cinq
+    // exigences dont deux écrites en dur à 100 — `validationWorkflow` et
+    // `tenantIsolation`, cette dernière en annonçant un « RLS activé » que ce
+    // dépôt n'a jamais eu.
+    const compliance = await cctpComplianceService.releverConformite(tenantId);
+
     res.json(compliance);
   } catch (error) {
     console.error("Error checking CCTP compliance:", error);
@@ -515,162 +483,163 @@ router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
   }
 });
 
-// Générer un rapport de conformité CCTP détaillé
+// =====================================================
+// RAPPORT DE CONFORMITÉ IMPRIMABLE
+// =====================================================
+//
+// ⚠️ CE RAPPORT ÉTAIT ENTIÈREMENT ÉCRIT EN DUR, et c'était le pire endroit du
+// dépôt pour l'être.
+//
+// Il annonçait « Score: 90% » et dix verdicts de conformité rédigés à la main,
+// identiques pour tous les locataires, sans qu'une seule valeur soit mesurée.
+// C'est un document qu'un industriel imprime pour l'opposer à un donneur
+// d'ordre. Deux de ses affirmations étaient FAUSSES, pas seulement non
+// mesurées :
+//
+//   • « ✓ Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
+//     politique RLS. Le cloisonnement est fait en code applicatif, une colonne
+//     tenant_id par table, et c'est tout l'objet des migrations 0011 à 0022 ;
+//   • « ✓ Validation hiérarchique multi-niveaux » — jusqu'au 2026-10-25,
+//     n'importe quel compte authentifié approuvait n'importe quoi. Le rapport
+//     l'a déclaré conforme pendant toute cette période.
+//
+// tests/unit/aucun-chiffre-invente.test.ts cite nommément ce « score de
+// conformité réglementaire 90 % » parmi les défauts qui l'ont fait naître, mais
+// il ne balayait que client/ et deux fichiers serveur : ce rapport-ci lui
+// échappait. Le balayage est étendu dans le même lot.
+//
+// Le rapport rend maintenant EXACTEMENT ce que releverConformite() a mesuré, et
+// il nomme séparément ce qu'il ne mesure pas, en disant où chaque exigence est
+// vérifiée pour de bon. Aucun verdict n'est plus écrit ici.
 router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
   try {
     const tenantId = locataireDeLaSession(req, res);
     if (!tenantId) return;
 
-    // Le locataire est interpolé deux fois dans le HTML ci-dessous. Il vient
-    // maintenant de la session, donc de la base, et non plus d'un segment
-    // d'URL — mais `tenants.id` est un `varchar(36)` libre, pas un type UUID
-    // contraint : rien dans le schéma n'interdit d'y stocker des chevrons. On
-    // échappe, parce qu'une valeur « sûre par provenance » cesse de l'être au
-    // premier endroit où quelqu'un change sa provenance.
-    const locataireAffiche = tenantId.replace(/[&<>"']/g, (c) => (
+    const releve = await cctpComplianceService.releverConformite(tenantId);
+
+    // ⚠️ TOUT ce qui est interpolé ci-dessous passe par ici, et pas seulement
+    // l'identifiant du locataire. Les `details` du relevé citent des valeurs de
+    // CONFIGURATION — `companyHeader.name` par exemple, que l'administrateur du
+    // locataire écrit lui-même via `PUT /purchase-order-config`. Une entête
+    // d'entreprise contenant du balisage serait donc injectée dans ce document.
+    const h = (valeur: unknown): string => String(valeur ?? '').replace(/[&<>"']/g, (c) => (
       { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
     ));
-    
-    // HTML du rapport de conformité
-    const reportHTML = `
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-        <meta charset="UTF-8">
-        <title>Rapport de Conformité CCTP - Tenant ${locataireAffiche}</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            .header { background: #1E40AF; color: white; padding: 20px; text-align: center; border-radius: 10px; }
-            .section { margin: 20px 0; padding: 15px; border-left: 4px solid #1E40AF; background: #F9FAFB; }
-            .compliant { border-left-color: #10B981; }
-            .partial { border-left-color: #F59E0B; }
-            .non-compliant { border-left-color: #EF4444; }
-            .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-            .compliant .status-badge { background: #D1FAE5; color: #065F46; }
-            .partial .status-badge { background: #FEF3C7; color: #92400E; }
-            .score { font-size: 24px; font-weight: bold; color: #1E40AF; }
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>📋 Rapport de Conformité CCTP</h1>
-            <p>Plateforme unifiée GMAO / Assistant Diagnostic IA</p>
-            <p>Tenant: ${locataireAffiche} | Date: ${new Date().toLocaleDateString('fr-FR')}</p>
-        </div>
 
-        <div class="section">
-            <h2>📊 Score Global de Conformité</h2>
-            <div class="score">Score: 90% ✅</div>
-            <p>Votre plateforme respecte 90% des exigences du cahier des charges techniques particulières (CCTP).</p>
-        </div>
+    const LIBELLES: Record<string, { texte: string; classe: string }> = {
+      compliant: { texte: 'CONFORME', classe: 'conforme' },
+      partial: { texte: 'PARTIEL', classe: 'partiel' },
+      missing: { texte: 'MANQUANT', classe: 'manquant' },
+      non_mesure: { texte: 'NON MESURÉ ICI', classe: 'non-mesure' },
+    };
 
-        <div class="section compliant">
-            <h3>✅ 1. Architecture Multi-tenant</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Isolation tenant par RLS PostgreSQL<br>
-               ✓ Chiffrement AES-256 au repos et TLS 1.3 en transit<br>
-               ✓ Journaux d'audit partitionnés par tenant<br>
-               ✓ Redaction automatique des PII</p>
-        </div>
+    const exigences = Object.entries(releve.requirements);
+    const mesurees = exigences.filter(([, e]) => e.score !== null);
+    const nonMesurees = exigences.filter(([, e]) => e.score === null);
 
-        <div class="section compliant">
-            <h3>✅ 2. Gestion des Actifs</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Inventaire équipements avec localisation<br>
-               ✓ Import/Export Excel/CSV par tenant<br>
-               ✓ Historique des interventions complet</p>
-        </div>
+    const section = ([cle, e]: [string, Exigence]) => {
+      const badge = LIBELLES[e.status] ?? LIBELLES.non_mesure;
+      return [
+        '        <div class="exigence ' + badge.classe + '">',
+        '          <div class="entete-exigence">',
+        '            <h3>' + h(e.libelle) + '</h3>',
+        '            <span class="badge">' + h(badge.texte) + '</span>',
+        '          </div>',
+        '          <p class="details">' + h(e.details) + '</p>',
+        e.score !== null ? '          <p class="note">Note : ' + h(e.score) + ' / 100</p>' : '',
+        e.verifiePar ? '          <p class="verifie">Vérifié par : ' + h(e.verifiePar) + '</p>' : '',
+        '          <p class="cle">' + h(cle) + '</p>',
+        '        </div>',
+      ].filter(Boolean).join('\n');
+    };
 
-        <div class="section compliant">
-            <h3>✅ 3. Ordres de Travail</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Création, émission et suivi OT<br>
-               ✓ Types correctifs, préventifs, conditionnels<br>
-               ✓ Validation hiérarchique multi-niveaux</p>
-        </div>
+    const styles = [
+      'body { font-family: Arial, Helvetica, sans-serif; margin: 24px; color: #1f2933; line-height: 1.5; }',
+      '.entete { border-bottom: 3px solid #1f3a5f; padding-bottom: 12px; margin-bottom: 20px; }',
+      '.entete h1 { margin: 0 0 6px; font-size: 20px; }',
+      '.entete p { margin: 2px 0; font-size: 12px; color: #52606d; }',
+      '.synthese { border: 1px solid #cbd2d9; padding: 14px; margin-bottom: 22px; }',
+      '.synthese .score { font-size: 26px; font-weight: bold; }',
+      '.synthese .portee { font-size: 12px; color: #52606d; margin-top: 6px; }',
+      'h2 { font-size: 15px; margin: 24px 0 10px; border-bottom: 1px solid #cbd2d9; padding-bottom: 4px; }',
+      '.exigence { border-left: 4px solid #cbd2d9; padding: 10px 14px; margin: 10px 0; background: #f5f7fa; }',
+      '.exigence.conforme { border-left-color: #1e7a4b; }',
+      '.exigence.partiel { border-left-color: #946200; }',
+      '.exigence.manquant { border-left-color: #a61b1b; }',
+      '.exigence.non-mesure { border-left-color: #7b8794; background: #eef1f5; }',
+      '.entete-exigence { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }',
+      '.entete-exigence h3 { margin: 0; font-size: 14px; }',
+      '.badge { font-size: 11px; font-weight: bold; letter-spacing: .04em; white-space: nowrap; }',
+      '.conforme .badge { color: #1e7a4b; }',
+      '.partiel .badge { color: #946200; }',
+      '.manquant .badge { color: #a61b1b; }',
+      '.non-mesure .badge { color: #52606d; }',
+      '.details { margin: 6px 0 0; font-size: 13px; }',
+      '.note { margin: 4px 0 0; font-size: 12px; font-weight: bold; }',
+      '.verifie { margin: 4px 0 0; font-size: 12px; color: #52606d; }',
+      '.cle { margin: 4px 0 0; font-size: 10px; color: #7b8794; font-family: monospace; }',
+      '.avertissement { border: 1px solid #946200; background: #fdf6e7; padding: 12px 14px; font-size: 12px; margin: 22px 0; }',
+      '.pied { margin-top: 28px; border-top: 1px solid #cbd2d9; padding-top: 10px; font-size: 11px; color: #7b8794; }',
+    ].join('\n        ');
 
-        <div class="section partial">
-            <h3>⚠️ 4. Rapports PDF Automatiques</h3>
-            <span class="status-badge">PARTIEL</span>
-            <p>✓ Génération rapports d'intervention<br>
-               ✓ Rapports mensuels consolidés<br>
-               ⚠️ Auto-génération à configurer par tenant</p>
-        </div>
+    const portee = releve.overallScore !== null
+      ? 'Moyenne des ' + h(releve.exigencesMesurees)
+        + ' exigence(s) effectivement mesurée(s) sur cette organisation.'
+      : 'Aucune exigence mesurable sur cette organisation.';
+    const reserve = releve.exigencesNonMesurees > 0
+      ? ' ' + h(releve.exigencesNonMesurees) + " exigence(s) ne sont PAS mesurées par ce relevé "
+        + "et n'entrent pas dans cette moyenne : elles sont listées en fin de document."
+      : '';
 
-        <div class="section compliant">
-            <h3>✅ 5. Stock & Pièces</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Suivi stock avec seuils mini/maxi<br>
-               ✓ Commandes automatiques de réapprovisionnement<br>
-               ✓ Validation multi-niveaux configurée</p>
-        </div>
+    const reportHTML = [
+      '<!DOCTYPE html>',
+      '<html lang="fr">',
+      '<head>',
+      '    <meta charset="UTF-8">',
+      '    <title>Relevé de conformité CCTP — ' + h(releve.tenantId) + '</title>',
+      '    <style>',
+      '        ' + styles,
+      '    </style>',
+      '</head>',
+      '<body>',
+      '    <div class="entete">',
+      '        <h1>Relevé de conformité CCTP</h1>',
+      '        <p>Organisation : ' + h(releve.tenantId) + '</p>',
+      '        <p>Relevé le ' + h(new Date(releve.lastChecked).toLocaleString('fr-FR')) + '</p>',
+      '    </div>',
+      '    <div class="synthese">',
+      '        <div class="score">'
+        + (releve.overallScore !== null ? h(releve.overallScore) + ' %' : 'Non évalué')
+        + '</div>',
+      '        <div class="portee">' + portee + reserve + '</div>',
+      '    </div>',
+      '    <h2>Exigences mesurées sur cette organisation (' + h(mesurees.length) + ')</h2>',
+      mesurees.length > 0
+        ? mesurees.map(section).join('\n')
+        : '    <p class="details">Aucune exigence mesurable.</p>',
+      '    <h2>Exigences que ce relevé ne mesure pas (' + h(nonMesurees.length) + ')</h2>',
+      '    <div class="avertissement">',
+      '        Ces exigences du CCTP ne sont pas observables depuis une requête applicative',
+      '        portant sur une seule organisation. Elles ne sont ni notées, ni comptées dans la',
+      '        moyenne ci-dessus, et ce document ne les déclare pas conformes. Chacune indique',
+      '        où elle est réellement vérifiée.',
+      '    </div>',
+      nonMesurees.map(section).join('\n'),
+      '    <div class="pied">',
+      "        <p>Document produit par Maintrix à partir de l'état enregistré de cette",
+      '           organisation. Chaque ligne porte la clé technique de l\'exigence, pour',
+      '           rapprochement avec GET /api/cctp/tenant/:id/cctp-compliance.</p>',
+      '        <p>Les exigences marquées « NON MESURÉ ICI » le sont délibérément : ce relevé',
+      '           préfère une absence déclarée à une conformité supposée.</p>',
+      '    </div>',
+      '    <script>',
+      '        window.onload = function () { setTimeout(function () { window.print(); }, 500); };',
+      '    </script>',
+      '</body>',
+      '</html>',
+    ].join('\n');
 
-        <div class="section compliant">
-            <h3>✅ 6. Contrôle d'Accès</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Admin plateforme contrôle création tenants<br>
-               ✓ Tenant admin gère utilisateurs par invitations<br>
-               ✓ Matrice RBAC avec rôles configurables</p>
-        </div>
-
-        <div class="section compliant">
-            <h3>✅ 7. Diagnostic IA</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Module IA avec explicabilité<br>
-               ✓ Alimenté par historiques de maintenance<br>
-               ✓ Ensemble ML avec 9 algorithmes</p>
-        </div>
-
-        <div class="section partial">
-            <h3>⚠️ 8. Bons de Commande Configurables</h3>
-            <span class="status-badge">NOUVEAU</span>
-            <p>✅ Configuration seuils montants par tenant<br>
-               ✅ Entêtes d'impression personnalisables<br>
-               ✅ Génération automatique BC/LC selon montants</p>
-        </div>
-
-        <div class="section compliant">
-            <h3>✅ 9. Interface Bilingue</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ Support FR/EN complet<br>
-               ✓ Détection automatique de langue<br>
-               ✓ Matrices RBAC bilingues</p>
-        </div>
-
-        <div class="section compliant">
-            <h3>✅ 10. Sécurité & Conformité</h3>
-            <span class="status-badge">CONFORME</span>
-            <p>✓ MFA obligatoire pour admins<br>
-               ✓ RBAC/ABAC implémenté<br>
-               ✓ Conformité RGPD active<br>
-               ✓ Tests sécurité automatisés</p>
-        </div>
-
-        <div style="margin-top: 40px; padding: 20px; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px;">
-            <h3>🎯 Recommandations</h3>
-            <ul>
-                <li>✅ Configurer l'auto-génération de rapports selon vos besoins</li>
-                <li>✅ Personnaliser les entêtes de vos Bons de Commande</li>
-                <li>✅ Ajuster les seuils de validation selon votre organigramme</li>
-            </ul>
-        </div>
-
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #6B7280;">
-            <p>Rapport généré automatiquement par Maintrix</p>
-            <p>Conformité CCTP vérifiée le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-        </div>
-
-        <script>
-            window.onload = function() {
-                setTimeout(() => {
-                    window.print();
-                }, 1000);
-            };
-        </script>
-    </body>
-    </html>
-    `;
-    
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.send(reportHTML);
