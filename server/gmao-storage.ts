@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, isNull, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, sql, count } from "drizzle-orm";
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -18,7 +18,6 @@ import {
   purchaseOrders,
   purchaseOrderItems,
   reorderRules,
-  validationLogs,
   userProfiles,
   type EquipmentRegistry,
   type InsertEquipmentRegistry,
@@ -52,8 +51,6 @@ import {
   type InsertPurchaseOrderItem,
   type ReorderRule,
   type InsertReorderRule,
-  type ValidationLog,
-  type InsertValidationLog,
   type UserProfile,
   type InsertUserProfile,
   maintenanceReports,
@@ -2255,333 +2252,42 @@ export class GMAOStorage {
   }
 
   private countQualityIssues(reports: MaintenanceReport[]): number {
-    return reports.filter(report => report.qualityCheck === false || 
+    return reports.filter(report => report.qualityCheck === false ||
       (report.qualityNotes && report.qualityNotes.toLowerCase().includes("problème"))).length;
   }
 
-  // ============= VALIDATION SYSTEM METHODS =============
-
-  // Work Order Validation Methods
-  async getPendingWorkOrdersForValidation(validatorId: number, validationLevel: number): Promise<WorkOrder[]> {
-    const user = await this.getUserProfile(validatorId);
-    if (!user || !user.canValidateWorkOrders) {
-      throw new Error("User does not have work order validation permissions");
-    }
-
-    // Get work orders that need validation at the specified level
-    if (validationLevel === 1) {
-      // Level 1: Chef de Service - Show pending orders
-      return await db.select().from(workOrders).where(
-        eq(workOrders.validationStatus, "pending")
-      );
-    } else if (validationLevel === 2) {
-      // Level 2: Chef Département Maintenance - Show orders validated by Chef Service (final validation)
-      return await db.select().from(workOrders).where(
-        eq(workOrders.validationStatus, "level1_validated")
-      );
-    } else {
-      throw new Error("Invalid validation level for work orders");
-    }
-  }
-
-  async validateWorkOrder(data: {
-    workOrderId: number;
-    action: "validate" | "reject";
-    validationLevel: number;
-    comments?: string;
-    validatorId: number;
-  }, tenantId: string) {
-    // 🔧 CORRECTION: Passer le tenant ID à getWorkOrderById  
-    const workOrder = await this.getWorkOrderById(data.workOrderId, tenantId);
-    if (!workOrder) {
-      throw new Error("Work order not found");
-    }
-
-
-    const user = await this.getUserProfile(data.validatorId);
-    if (!user || !user.canValidateWorkOrders) {
-      throw new Error("User does not have validation permissions");
-    }
-
-    const currentDate = new Date();
-    let updatedWorkOrder;
-    
-    if (data.action === "validate") {
-      if (data.validationLevel === 1) {
-        // Chef de Service validation
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-          validationStatus: "level1_validated"
-        });
-      } else if (data.validationLevel === 2) {
-        // Chef Département Maintenance - Final validation
-        // L'ordre retourne dans la liste principale avec status "assigned" pour exécution par les techniciens
-        updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-          validationStatus: "validated",
-          status: "assigned", // 🔧 CORRECTION: Retour dans liste principale
-          canExecute: true
-        });
-        console.log(`Work order ${data.workOrderId} fully validated, status changed to 'assigned' for technician execution`);
-      }
-    } else {
-      updatedWorkOrder = await this.updateWorkOrder(data.workOrderId, (workOrder as any).tenant_id || workOrder.tenantId, {
-        validationStatus: "rejected",
-        status: "cancelled", // 🔧 CORRECTION: Status cohérent pour rejet
-        rejectedBy: data.validatorId,
-        rejectedAt: currentDate,
-        rejectionReason: data.comments
-      });
-      console.log(`Work order ${data.workOrderId} rejected and cancelled`);
-    }
-
-    // Log the validation action
-    const validationLog = await this.createValidationLog({
-      recordType: "work_order",
-      recordId: data.workOrderId,
-      validationLevel: data.validationLevel,
-      action: data.action,
-      validatedBy: data.validatorId,
-      comments: data.comments,
-      previousStatus: workOrder.validationStatus,
-      newStatus: updatedWorkOrder?.validationStatus
-    });
-
-    return { workOrder: updatedWorkOrder, validationLog };
-  }
-
-  // Purchase Order Validation Methods
-  async getPendingPurchaseOrdersForValidation(validatorId: number, validationLevel: number): Promise<PurchaseOrder[]> {
-    const user = await this.getUserProfile(validatorId);
-    if (!user || !user.canValidatePurchaseOrders) {
-      throw new Error("User does not have purchase order validation permissions");
-    }
-
-    // Get purchase orders that need validation at the specified level
-    let query;
-    if (validationLevel === 1) {
-      query = and(
-        eq(purchaseOrders.validationStatus, "pending"),
-        isNull(purchaseOrders.chefServiceValidatedBy)
-      );
-    } else if (validationLevel === 2) {
-      query = and(
-        eq(purchaseOrders.validationStatus, "chef_service_validated"),
-        isNull(purchaseOrders.directeurValidatedBy)
-      );
-    } else if (validationLevel === 3) {
-      query = eq(purchaseOrders.validationStatus, "directeur_validated");
-    } else {
-      throw new Error("Invalid validation level for purchase orders");
-    }
-
-    return await this.db.select().from(purchaseOrders).where(query);
-  }
-
-  async validatePurchaseOrder(data: {
-    purchaseOrderId: number;
-    action: "validate" | "reject";
-    validationLevel: number;
-    comments?: string;
-    validatorId: number;
-  }) {
-    const purchaseOrder = await this.getPurchaseOrderById(data.purchaseOrderId);
-    if (!purchaseOrder) {
-      throw new Error("Purchase order not found");
-    }
-
-    const user = await this.getUserProfile(data.validatorId);
-    if (!user || !user.canValidatePurchaseOrders) {
-      throw new Error("User does not have validation permissions");
-    }
-
-    // Check if user has sufficient authority for the purchase amount
-    if (user.maxPurchaseAmount && purchaseOrder.totalAmount && 
-        parseFloat(purchaseOrder.totalAmount) > parseFloat(user.maxPurchaseAmount)) {
-      throw new Error("Purchase amount exceeds user's approval limit");
-    }
-
-    const currentDate = new Date();
-    let updatedPurchaseOrder;
-    
-    if (data.action === "validate") {
-      if (data.validationLevel === 1) {
-        // Chef de Service Utilisateur valide
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "chef_service_validated",
-          chefServiceValidatedBy: data.validatorId,
-          chefServiceValidatedAt: currentDate
-        });
-      } else if (data.validationLevel === 2) {
-        // Directeur Général valide - Passe au niveau 3 ou prêt pour impression si c'est le dernier niveau
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "directeur_validated",
-          directeurValidatedBy: data.validatorId,
-          directeurValidatedAt: currentDate
-        });
-      } else if (data.validationLevel === 3) {
-        // Validation finale - bon prêt pour impression
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-          validationStatus: "ready_for_print",
-          canPrint: true
-        });
-      }
-    } else {
-      updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
-        validationStatus: "rejected",
-        rejectedBy: data.validatorId,
-        rejectedAt: currentDate,
-        rejectionReason: data.comments
-      });
-    }
-
-    // Log the validation action
-    const validationLog = await this.createValidationLog({
-      recordType: "purchase_order",
-      recordId: data.purchaseOrderId,
-      validationLevel: data.validationLevel,
-      action: data.action,
-      validatedBy: data.validatorId,
-      comments: data.comments,
-      previousStatus: purchaseOrder.validationStatus,
-      newStatus: updatedPurchaseOrder?.validationStatus
-    });
-
-    return { purchaseOrder: updatedPurchaseOrder, validationLog };
-  }
-
-  // Validation Log Methods
-  async createValidationLog(data: InsertValidationLog): Promise<ValidationLog> {
-    const [log] = await this.db.insert(validationLogs).values(data).returning();
-    return log;
-  }
-
-  async getValidationHistory(recordType: string, recordId: number): Promise<ValidationLog[]> {
-    return await this.db.select().from(validationLogs)
-      .where(and(
-        eq(validationLogs.recordType, recordType),
-        eq(validationLogs.recordId, recordId)
-      ))
-      .orderBy(desc(validationLogs.validationDate));
-  }
-
-  async getValidationStatistics(filters: {
-    validatorId?: number;
-    dateFrom?: Date;
-    dateTo?: Date;
-  }) {
-    const conditions = [];
-    if (filters.validatorId) {
-      conditions.push(eq(validationLogs.validatedBy, filters.validatorId));
-    }
-    if (filters.dateFrom) {
-      conditions.push(gte(validationLogs.validationDate, filters.dateFrom));
-    }
-    if (filters.dateTo) {
-      conditions.push(lte(validationLogs.validationDate, filters.dateTo));
-    }
-
-    const logs = await this.db.select().from(validationLogs)
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
-
-    // Calculate statistics
-    const total = logs.length;
-    const validated = logs.filter(log => log.action === "validate").length;
-    const rejected = logs.filter(log => log.action === "reject").length;
-    const workOrderValidations = logs.filter(log => log.recordType === "work_order").length;
-    const purchaseOrderValidations = logs.filter(log => log.recordType === "purchase_order").length;
-
-    return {
-      total,
-      validated,
-      rejected,
-      workOrderValidations,
-      purchaseOrderValidations,
-      validationRate: total > 0 ? (validated / total) * 100 : 0,
-      rejectionRate: total > 0 ? (rejected / total) * 100 : 0
-    };
-  }
-
-  // User Profile Methods
-
-  async updateUserValidationPermissions(userId: number, updates: {
-    validationLevel?: number;
-    canValidateWorkOrders?: boolean;
-    canValidatePurchaseOrders?: boolean;
-    maxPurchaseAmount?: string;
-  }): Promise<UserProfile> {
-    const [user] = await this.db.update(userProfiles)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(userProfiles.id, userId))
-      .returning();
-    
-    if (!user) {
-      throw new Error("User not found");
-    }
-    return user;
-  }
-
-  // Validation Status Methods
-  async getWorkOrderValidationStatus(workOrderId: number, tenantId: string) {
-    const workOrder = await this.getWorkOrderById(workOrderId, tenantId);
-    if (!workOrder) {
-      throw new Error("Work order not found");
-    }
-
-    return {
-      workOrderId,
-      validationStatus: workOrder.validationStatus,
-      canExecute: workOrder.canExecute,
-      level1: {
-        validated: workOrder.level1ValidatedBy !== null,
-        validatedBy: workOrder.level1ValidatedBy,
-        validatedAt: workOrder.level1ValidatedAt,
-        notes: workOrder.level1ValidationNotes
-      },
-      level2: {
-        validated: workOrder.level2ValidatedBy !== null,
-        validatedBy: workOrder.level2ValidatedBy,
-        validatedAt: workOrder.level2ValidatedAt,
-        notes: workOrder.level2ValidationNotes
-      },
-      rejection: {
-        rejected: workOrder.rejectedBy !== null,
-        rejectedBy: workOrder.rejectedBy,
-        rejectedAt: workOrder.rejectedAt,
-        reason: workOrder.rejectionReason
-      }
-    };
-  }
-
-  async getPurchaseOrderValidationStatus(purchaseOrderId: number) {
-    const purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId);
-    if (!purchaseOrder) {
-      throw new Error("Purchase order not found");
-    }
-
-    return {
-      purchaseOrderId,
-      validationStatus: purchaseOrder.validationStatus,
-      canPrint: purchaseOrder.canPrint,
-      chefService: {
-        validated: purchaseOrder.chefServiceValidatedBy !== null,
-        validatedBy: purchaseOrder.chefServiceValidatedBy,
-        validatedAt: purchaseOrder.chefServiceValidatedAt,
-        rejectionReason: purchaseOrder.chefServiceRejectionReason
-      },
-      directeur: {
-        validated: purchaseOrder.directeurValidatedBy !== null,
-        validatedBy: purchaseOrder.directeurValidatedBy,
-        validatedAt: purchaseOrder.directeurValidatedAt,
-        rejectionReason: purchaseOrder.directeurRejectionReason
-      },
-      documentsJustificatifs: purchaseOrder.documentsJustificatifs,
-      rejection: {
-        rejected: purchaseOrder.rejectedBy !== null,
-        rejectedBy: purchaseOrder.rejectedBy,
-        rejectedAt: purchaseOrder.rejectedAt,
-        reason: purchaseOrder.rejectionReason
-      }
-    };
-  }
+  // ═══════════════════════════════════════════════════════════════════
+  // PLUS DE MÉTHODES DE VALIDATION ICI — ET C'EST VOULU
+  // ═══════════════════════════════════════════════════════════════════
+  // Dix méthodes ont été retirées le 2026-10-25 : `getPendingWorkOrdersForValidation`,
+  // `validateWorkOrder`, `getPendingPurchaseOrdersForValidation`,
+  // `validatePurchaseOrder`, `createValidationLog`, `getValidationHistory`,
+  // `getValidationStatistics`, `updateUserValidationPermissions`,
+  // `getWorkOrderValidationStatus` et `getPurchaseOrderValidationStatus`.
+  //
+  // Leur SEUL appelant était `server/validation-routes.ts`, un routeur Express
+  // qu'aucun `app.use(...)` ne montait : elles étaient donc inatteignables, et
+  // le fichier a été supprimé avec elles.
+  //
+  // Les garder aurait été pire que du code mort. `validateWorkOrder` et
+  // `validatePurchaseOrder` recevaient un `validatorId` : elles vérifiaient
+  // `canValidateWorkOrders`, `canValidatePurchaseOrders` et `maxPurchaseAmount`
+  // sur le compte DÉSIGNÉ par ce paramètre, c'est-à-dire les droits de
+  // quelqu'un d'autre que l'appelant. C'est exactement la faille fermée le même
+  // jour dans la version montée ; monter ce routeur l'aurait rouverte.
+  //
+  // Elles écrivaient en outre un vocabulaire de statuts QUE PLUS RIEN NE LIT —
+  // `chef_service_validated`, `directeur_validated`, `ready_for_print` — là où
+  // les routes en service écrivent et relisent `level1_validated`,
+  // `level2_validated`, `validated` puis `printed`. Un document passé par
+  // l'ancien chemin aurait été inatteignable par le nouveau : son statut ne
+  // correspondant à aucune étape, aucune validation n'y serait plus attendue.
+  //
+  // Le circuit réel vit dans `server/simple-validation-routes.ts` : identité et
+  // niveau pris sur la SESSION, quatre barrières, écriture et trace dans la même
+  // transaction. Les traces s'y écrivent avec le même `tx` que la mise à jour
+  // du document — raison pour laquelle `createValidationLog`, qui ouvrait sa
+  // propre connexion, n'avait plus d'emploi.
 
   // ============= COMPANY CONFIGURATION METHODS =============
   

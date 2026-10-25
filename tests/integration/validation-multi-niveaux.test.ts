@@ -101,7 +101,8 @@ async function creerBon(montant: string, suffixe: string): Promise<number> {
 async function lireBon(id: number) {
   const { rows } = await pool.query(
     `SELECT validation_status, chef_service_validated_by, chef_service_validated_at,
-            directeur_validated_by, directeur_validated_at, can_print, printed_at
+            directeur_validated_by, directeur_validated_at, can_print,
+            printed_by, printed_at
      FROM purchase_orders WHERE id = $1`,
     [id],
   );
@@ -513,5 +514,135 @@ describe('Historique — plus aucune entrée inventée', () => {
       .filter((l) => l.recordType === 'work_order')
       .map((l) => l.recordId);
     expect(ids).not.toContain(ordre);
+  }, 60_000);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe("Impression — l'auteur vient de la session, pas du corps", () => {
+  /**
+   * `POST /api/purchase-orders/:id/mark-printed` lisait `printedBy` ET
+   * `printedAt` dans le CORPS. Mesuré depuis un technicien sans aucun droit
+   * d'achat, sur un bon de 87 000 € jamais validé : HTTP 200,
+   * `printed_by` = le compte que le corps désignait, `printed_at` = 2020, et le
+   * bon passé à « printed » — statut qui ne correspond à aucune étape du
+   * circuit, de sorte que le validateur de niveau 1 recevait ensuite 409
+   * CIRCUIT_CLOS. L'approbation de n'importe quelle dépense pouvait donc être
+   * neutralisée en une requête.
+   */
+  const marquerImprime = (agent: AuthenticatedAgent, id: number, corps: Record<string, unknown> = {}) =>
+    createAuthenticatedRequest('post', `/api/purchase-orders/${id}/mark-printed`, agent).send(corps);
+
+  /** Un bon mené à `can_print` par les trois échelons réels. */
+  async function bonImprimable(suffixe: string): Promise<number> {
+    const bon = await creerBon('900.00', suffixe);
+    for (const [agent, niveau] of [[niveau1, 1], [niveau2, 2], [niveau3, 3]] as const) {
+      const r = await validerBon(agent, { purchaseorderId: bon, action: 'validate', validationLevel: niveau });
+      expect(r.status).toBe(200);
+    }
+    expect((await lireBon(bon)).can_print).toBe(true);
+    return bon;
+  }
+
+  it('inscrit le compte de la SESSION, et ignore un printedBy menteur dans le corps', async () => {
+    const bon = await bonImprimable('impr');
+    const avant = Date.now();
+
+    // Le corps désigne un autre compte et une date de 2020 : les deux doivent
+    // être ignorés.
+    const r = await marquerImprime(niveau3, bon, {
+      printedBy: niveau1.userId,
+      printedAt: '2020-01-01T00:00:00.000Z',
+    });
+    expect(r.status).toBe(200);
+
+    const apres = await lireBon(bon);
+    expect(apres.validation_status).toBe('printed');
+    expect(apres.printed_by).toBe(niveau3.userId);
+    expect(apres.printed_by).not.toBe(niveau1.userId);
+
+    // ⚠️ L'INSTANT se vérifie sur la réponse de la route, pas sur la colonne
+    // relue ici. `printed_at` est un `timestamp` SANS fuseau : l'application
+    // l'écrit et le relit en UTC (vérifié : une date rendue par l'API revient
+    // identique), tandis que le pilote `pg` de cette suite interprète la valeur
+    // nue comme une heure LOCALE. Sur une machine à UTC+1, la comparer à
+    // `Date.now()` donne donc un retard d'une heure qui ne dit rien du code —
+    // d'où un échec qui serait vert sur un serveur réglé en UTC.
+    expect(new Date(r.body.printedAt).getTime()).toBeGreaterThanOrEqual(avant - 60_000);
+    // La colonne, elle, répond à la seule question qui la concerne : la date du
+    // corps (2020) n'a pas été retenue.
+    expect(apres.printed_at).toBeInstanceOf(Date);
+    expect(apres.printed_at.getUTCFullYear()).toBeGreaterThan(2020);
+  }, 60_000);
+
+  it("un compte sans droit sur les achats est REFUSÉ, et rien n'est inscrit", async () => {
+    const bon = await bonImprimable('impr-refus');
+
+    const r = await marquerImprime(technicien, bon);
+
+    expect(r.status).toBe(403);
+    expect(JSON.stringify(r.body)).toMatch(/IMPRESSION_NON_HABILITEE/);
+    const apres = await lireBon(bon);
+    expect(apres.printed_by).toBeNull();
+    expect(apres.printed_at).toBeNull();
+    expect(apres.validation_status).toBe('validated');
+  }, 60_000);
+
+  it("un bon non validé ne peut pas être « imprimé », et son circuit reste ouvert", async () => {
+    const bon = await creerBon('87000.00', 'impr-neutralisation');
+
+    const r = await marquerImprime(niveau3, bon);
+
+    expect(r.status).toBe(409);
+    expect(JSON.stringify(r.body)).toMatch(/CIRCUIT_INCOMPLET/);
+    expect((await lireBon(bon)).validation_status).toBe('pending');
+
+    // Le circuit est intact : l'approbation suit son cours.
+    const v = await validerBon(niveau2, { purchaseorderId: bon, action: 'validate', validationLevel: 1 });
+    expect(v.status).toBe(200);
+    expect((await lireBon(bon)).validation_status).toBe('level1_validated');
+  }, 60_000);
+
+  it('une seconde impression est refusée, et la première trace est conservée', async () => {
+    const bon = await bonImprimable('impr-deux-fois');
+    expect((await marquerImprime(niveau3, bon)).status).toBe(200);
+    const premiere = await lireBon(bon);
+
+    const r = await marquerImprime(niveau3, bon);
+
+    expect(r.status).toBe(409);
+    expect(JSON.stringify(r.body)).toMatch(/DEJA_IMPRIME/);
+    const apres = await lireBon(bon);
+    expect(apres.printed_by).toBe(premiere.printed_by);
+    expect(apres.printed_at.getTime()).toBe(premiere.printed_at.getTime());
+  }, 60_000);
+
+  it("un bon inexistant répond 404, au lieu de confirmer une impression", async () => {
+    // L'ancienne route répondait 200 « marqué comme imprimé » : l'UPDATE ne
+    // touchait aucune ligne et personne ne regardait le résultat.
+    const r = await marquerImprime(niveau3, 999_999);
+
+    expect(r.status).toBe(404);
+    expect(JSON.stringify(r.body)).toMatch(/BON_INTROUVABLE/);
+  }, 60_000);
+
+  it("la route de démonstration n'existe plus", async () => {
+    // `POST /api/create-validation-demo` écrivait, depuis n'importe quel compte
+    // authentifié, deux bons de commande RÉELS (654,00 € et 4 250,00 €) dans la
+    // file de validation, et des profils à identifiants forcés portant des rôles
+    // hors référentiel. Le jeu de démonstration légitime est
+    // `npm run demo:charger` (scripts/jeu-de-demonstration.ts).
+    const r = await createAuthenticatedRequest('post', '/api/create-validation-demo', technicien).send({});
+    expect(r.status).toBe(404);
+
+    // Et rien ne porte sa signature en base. (Les montants seuls ne la font
+    // pas : cette suite crée elle-même des bons à 4 250,00 € pour éprouver le
+    // plafond. Ce sont les libellés du jeu de démonstration qui sont uniques.)
+    const { rows } = await pool.query(
+      `SELECT count(*)::int AS n FROM purchase_orders
+       WHERE order_number IN ('PO-2025-001', 'PO-2025-002')
+          OR notes LIKE 'Commande de roulements et joints%'
+          OR notes LIKE 'Acquisition d''un nouveau moteur électrique%'`,
+    );
+    expect(rows[0].n).toBe(0);
   }, 60_000);
 });

@@ -642,9 +642,7 @@ Le schéma de base de données est complet et bien structuré (2090 lignes). Cep
 | `server/company-data-access.ts` | Accès données entreprise | ✅ RÉEL | Contrôle d'accès aux données. |
 | `server/gdpr-api-ergonomics.ts` | RGPD/API ergonomie | ✅ RÉEL | Conformité RGPD. |
 | `server/multi-tenant-assessment.ts` | Évaluation multi-tenant | ✅ RÉEL | Évaluation de la configuration. |
-| `server/validation-routes.ts` | Routes validation | ✅ RÉEL | Validation des données. |
 | `server/simple-validation-routes.ts` | Validation simple | ✅ RÉEL | Routes de validation simplifiées. |
-| `server/create-validation-demo.ts` | Démo validation | ✅ RÉEL | Données de démonstration. |
 | `server/seed.ts` / `server/seed-*.ts` | Seeds | ✅ RÉEL | Données initiales pour la DB. |
 | `server/advanced-integrations-routes.ts` | Routes intégrations avancées | ✅ RÉEL | Endpoints pour intégrations. |
 | `server/equipment-health-routes.ts` | Routes santé équipement | ✅ RÉEL | Endpoints scoring santé. |

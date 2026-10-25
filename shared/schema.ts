@@ -605,7 +605,7 @@ export const workOrders = pgTable("work_orders", {
   notes: text("notes"),
   completionNotes: text("completion_notes"),
   // VALIDATION SYSTEM - 2 LEVELS FOR WORK ORDERS
-  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, fully_validated, rejected
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, validated, rejected — vocabulaire écrit ET relu par server/simple-validation-routes.ts
   level1ValidatedBy: integer("level1_validated_by").references(() => userProfiles.id), // Supervisor validation
   level1ValidatedAt: timestamp("level1_validated_at"),
   level1ValidationNotes: text("level1_validation_notes"),
@@ -1335,8 +1335,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
   deliveryAddress: text("delivery_address"),
   notes: text("notes"),
   terms: text("terms"),
-  // VALIDATION SYSTEM - 2 LEVELS POUR BONS DE COMMANDE
-  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, chef_service_validated, directeur_validated, ready_for_print, printed, rejected
+  // VALIDATION SYSTEM - 3 LEVELS POUR BONS DE COMMANDE
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, level2_validated, validated, printed, rejected — vocabulaire écrit ET relu par server/simple-validation-routes.ts
   chefServiceValidatedBy: integer("chef_service_validated_by").references(() => userProfiles.id), // Chef de Service Utilisateur
   chefServiceValidatedAt: timestamp("chef_service_validated_at"),
   chefServiceRejectionReason: text("chef_service_rejection_reason"), // Justification uniquement pour les rejets

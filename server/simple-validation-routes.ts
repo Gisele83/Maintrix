@@ -266,15 +266,14 @@ export function registerSimpleValidationRoutes(app: Express) {
   // `pending` → `level1_validated` (chef de service) → `level2_validated`
   // (direction) → `validated` (+ canPrint, service achat).
   //
-  // ⚠️ Ce vocabulaire de statuts est celui que ces routes écrivent ET relisent
-  // depuis l'origine. `shared/schema.ts` en documente un autre
-  // (`chef_service_validated`, `directeur_validated`, `ready_for_print`), que
-  // `gmaoStorage.validatePurchaseOrder` emploie — fonction appelée seulement
-  // par `server/validation-routes.ts`, qui n'est montée nulle part. Aligner les
-  // deux demanderait de reprendre les lignes déjà écrites en base : hors de ce
-  // lot, dont l'objet est le contrôle d'accès. On conserve donc le vocabulaire
-  // réellement en service, pour ne pas rendre inatteignables les documents
-  // déjà engagés dans le circuit.
+  // Ce vocabulaire de statuts est désormais le SEUL du dépôt. Le second
+  // (`chef_service_validated`, `directeur_validated`, `ready_for_print`) n'était
+  // écrit que par `gmaoStorage.validatePurchaseOrder`, appelée seulement depuis
+  // `server/validation-routes.ts`, routeur monté nulle part : les deux ont été
+  // supprimés le 2026-10-25, et le commentaire de `shared/schema.ts` aligné sur
+  // ce qui est réellement écrit. Un document passé par l'ancien chemin aurait
+  // été inatteignable par celui-ci — son statut ne correspondant à aucune
+  // étape, plus aucune validation n'y serait attendue.
   const ETAPES_BON_DE_COMMANDE = [
     { statutAvant: "pending", niveau: 1 },
     { statutAvant: "level1_validated", niveau: 2 },
