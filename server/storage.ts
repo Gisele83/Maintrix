@@ -72,13 +72,21 @@ export interface DiagnosticStats {
 
 export interface IStorage {
   // Maintenance Cases
-  getMaintenanceCases(): Promise<MaintenanceCase[]>;
-  getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined>;
+  //
+  // ⚠️ `tenantId` est OBLIGATOIRE sur chaque lecture, et ce n'est pas une
+  // précaution de style : ces méthodes lisaient `maintenance_cases` sans aucun
+  // filtre, et sept routes de server/routes.ts servaient ainsi les cas de
+  // TOUTES les organisations. Un paramètre optionnel aurait laissé chaque
+  // appelant libre de l'oublier — c'est précisément ce qui s'était produit dans
+  // `diagnosticRulesEngine.getFailureMemoryMatches`, qui recevait un `tenantId?`
+  // et ne l'utilisait pas.
+  getMaintenanceCases(tenantId: string): Promise<MaintenanceCase[]>;
+  getMaintenanceCaseById(id: number, tenantId: string): Promise<MaintenanceCase | undefined>;
   createMaintenanceCase(data: InsertMaintenanceCase): Promise<MaintenanceCase>;
-  searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]>;
+  searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }, tenantId: string): Promise<MaintenanceCase[]>;
 
   // Repair Procedures
-  getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]>;
+  getRepairProceduresByCaseId(caseId: number, tenantId: string): Promise<RepairProcedure[]>;
   createRepairProcedure(data: InsertRepairProcedure): Promise<RepairProcedure>;
   updateRepairProcedureCompletion(id: number, completed: boolean): Promise<RepairProcedure>;
 
@@ -684,12 +692,15 @@ export class DatabaseStorage implements IStorage {
     return gmaoStorage.createAlert(data);
   }
 
-  async getMaintenanceCases(): Promise<MaintenanceCase[]> {
-    return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
+  async getMaintenanceCases(tenantId: string): Promise<MaintenanceCase[]> {
+    return await db.select().from(maintenanceCases)
+      .where(eq(maintenanceCases.tenantId, tenantId))
+      .orderBy(desc(maintenanceCases.createdAt));
   }
 
-  async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
-    const [case_] = await db.select().from(maintenanceCases).where(eq(maintenanceCases.id, id));
+  async getMaintenanceCaseById(id: number, tenantId: string): Promise<MaintenanceCase | undefined> {
+    const [case_] = await db.select().from(maintenanceCases)
+      .where(and(eq(maintenanceCases.id, id), eq(maintenanceCases.tenantId, tenantId)));
     return case_ || undefined;
   }
 
@@ -701,8 +712,10 @@ export class DatabaseStorage implements IStorage {
     return case_;
   }
 
-  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]> {
-    let whereConditions = [];
+  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }, tenantId: string): Promise<MaintenanceCase[]> {
+    // Le locataire d'abord : une recherche sans critère ne doit pas devenir une
+    // recherche sans frontière.
+    let whereConditions: any[] = [eq(maintenanceCases.tenantId, tenantId)];
 
     if (query.equipmentType) {
       whereConditions.push(eq(maintenanceCases.equipmentType, query.equipmentType));
@@ -725,11 +738,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Repair Procedures
-  async getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]> {
+  async getRepairProceduresByCaseId(caseId: number, tenantId: string): Promise<RepairProcedure[]> {
+    // `repair_procedures` porte son propre `tenant_id` : on l'oppose, au lieu
+    // de se reposer sur le seul `case_id` — un identifiant de cas venu du
+    // client désignerait sinon les gammes d'une autre organisation.
     return await db
       .select()
       .from(repairProcedures)
-      .where(eq(repairProcedures.caseId, caseId))
+      .where(and(eq(repairProcedures.caseId, caseId), eq(repairProcedures.tenantId, tenantId)))
       .orderBy(repairProcedures.stepNumber);
   }
 

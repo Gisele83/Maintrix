@@ -18,6 +18,13 @@ export class EnhancedDiagnosticEngine {
   /**
    * Enhanced diagnostic using historical maintenance cases
    */
+  /**
+   * ⚠️ `tenantId` est OBLIGATOIRE : les trois recherches ci-dessous lisaient
+   * `maintenance_cases` SANS filtre de locataire, et `/api/diagnostic/analyze`
+   * n'en fournissait aucun. Mesuré : un technicien du locataire A recevait les
+   * diagnostics et solutions du locataire B comme s'ils venaient de son propre
+   * historique.
+   */
   async analyzeWithHistory(data: {
     equipmentType: string;
     symptoms: string;
@@ -25,6 +32,7 @@ export class EnhancedDiagnosticEngine {
     urgency: string;
     zone?: string;
     sector?: string;
+    tenantId: string;
   }): Promise<{
     suggestions: any[];
     historicalMatches: HistoricalMatch[];
@@ -35,13 +43,13 @@ export class EnhancedDiagnosticEngine {
     
     try {
       // 1. Search for exact equipment type matches
-      const exactMatches = await this.findExactMatches(data.equipmentType, data.symptoms);
+      const exactMatches = await this.findExactMatches(data.equipmentType, data.symptoms, data.tenantId);
       
       // 2. Search for similar equipment types
-      const similarMatches = await this.findSimilarMatches(data.equipmentType, data.symptoms);
+      const similarMatches = await this.findSimilarMatches(data.equipmentType, data.symptoms, data.tenantId);
       
       // 3. Search for symptom-based matches across all equipment
-      const symptomMatches = await this.findSymptomMatches(data.symptoms);
+      const symptomMatches = await this.findSymptomMatches(data.symptoms, data.tenantId);
       
       // 4. Combine and rank all matches
       const allMatches = [
@@ -91,10 +99,11 @@ export class EnhancedDiagnosticEngine {
     }
   }
 
-  private async findExactMatches(equipmentType: string, symptoms: string): Promise<HistoricalMatch[]> {
+  private async findExactMatches(equipmentType: string, symptoms: string, tenantId: string): Promise<HistoricalMatch[]> {
     const matches = await db.select()
       .from(maintenanceCases)
       .where(and(
+        eq(maintenanceCases.tenantId, tenantId),
         eq(maintenanceCases.equipmentType, equipmentType),
         like(maintenanceCases.symptoms, `%${symptoms}%`)
       ))
@@ -114,16 +123,17 @@ export class EnhancedDiagnosticEngine {
     }));
   }
 
-  private async findSimilarMatches(equipmentType: string, symptoms: string): Promise<HistoricalMatch[]> {
+  private async findSimilarMatches(equipmentType: string, symptoms: string, tenantId: string): Promise<HistoricalMatch[]> {
     // Search for similar equipment types (moteur, pompe, compresseur, etc.)
     const equipmentKeywords = this.extractEquipmentKeywords(equipmentType);
     const symptomKeywords = this.extractSymptomKeywords(symptoms);
     
     const matches = await db.select()
       .from(maintenanceCases)
-      .where(
-        like(maintenanceCases.symptoms, `%${symptomKeywords[0] || symptoms.split(' ')[0]}%`)
-      )
+      .where(and(
+        eq(maintenanceCases.tenantId, tenantId),
+        like(maintenanceCases.symptoms, `%${symptomKeywords[0] || symptoms.split(' ')[0]}%`),
+      ))
       .orderBy(desc(maintenanceCases.confidence))
       .limit(15);
     
@@ -144,14 +154,17 @@ export class EnhancedDiagnosticEngine {
       }));
   }
 
-  private async findSymptomMatches(symptoms: string): Promise<HistoricalMatch[]> {
+  private async findSymptomMatches(symptoms: string, tenantId: string): Promise<HistoricalMatch[]> {
     const keywords = this.extractSymptomKeywords(symptoms);
     const matches: HistoricalMatch[] = [];
     
     for (const keyword of keywords.slice(0, 3)) { // Limit to top 3 keywords
       const keywordMatches = await db.select()
         .from(maintenanceCases)
-        .where(like(maintenanceCases.symptoms, `%${keyword}%`))
+        .where(and(
+          eq(maintenanceCases.tenantId, tenantId),
+          like(maintenanceCases.symptoms, `%${keyword}%`),
+        ))
         .orderBy(desc(maintenanceCases.confidence))
         .limit(5);
       
@@ -276,13 +289,15 @@ export class EnhancedDiagnosticEngine {
   /**
    * Get learning statistics
    */
-  async getLearningStats(): Promise<{
+  /** Les statistiques du locataire — elles comptaient les cas de tous. */
+  async getLearningStats(tenantId: string): Promise<{
     totalCases: number;
     equipmentTypes: number;
     avgConfidence: number;
     recentCases: number;
   }> {
-    const totalCases = await db.select().from(maintenanceCases);
+    const totalCases = await db.select().from(maintenanceCases)
+      .where(eq(maintenanceCases.tenantId, tenantId));
     const uniqueEquipment = [...new Set(totalCases.map(c => c.equipmentType))];
     const avgConfidence = totalCases.reduce((sum, c) => sum + (c.confidence || 0), 0) / totalCases.length;
     const recentCases = totalCases.filter(c => 

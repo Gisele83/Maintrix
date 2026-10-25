@@ -10,7 +10,20 @@ import type {
 
 const execAsync = promisify(exec);
 
+/**
+ * ⚠️ Le locataire est OBLIGATOIRE depuis le cloisonnement du diagnostic
+ * (2026-10-25). Les cas importés étaient écrits sans `tenant_id` : avant, ils
+ * étaient visibles de TOUTES les organisations ; depuis que les lectures sont
+ * filtrées, ils ne seraient visibles d'AUCUNE. Un import qui réussit sans que
+ * personne ne voie ses lignes est pire que pas d'import.
+ */
 export class DirectExcelImport {
+  private tenantId: string;
+
+  constructor(tenantId: string) {
+    this.tenantId = tenantId;
+  }
+
   
   async importRealData(): Promise<{
     success: boolean;
@@ -92,7 +105,9 @@ print(json.dumps(result, default=str))
       for (const eq of equipments) {
         try {
           const equipmentData: InsertEquipmentRegistry = {
-            tenantId: 'default-tenant',
+            // Était `'default-tenant'` en dur : les équipements importés
+            // atterrissaient dans un locataire commun, quel que soit l'appelant.
+            tenantId: this.tenantId,
             equipmentId: eq.ID?.toString() || `EQ-${processed}`,
             equipmentName: `${eq.Marque || 'Marque'} ${eq.Modèle || 'Modèle'}`,
             equipmentType: this.normalizeType(eq.Type),
@@ -130,6 +145,7 @@ print(json.dumps(result, default=str))
                            diag['Type diagnostic'] || 'Diagnostic industriel';
           
           const maintenanceCase: InsertMaintenanceCase = {
+            tenantId: this.tenantId,
             equipmentType: this.normalizeType(equipment.Type),
             equipmentId: diag['Équipement ID']?.toString(),
             zone: equipment.Localisation || 'Zone industrielle',

@@ -520,9 +520,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic-ml", async (req, res) => {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
-      
-      // Create diagnostic session
-      const session = await storage.createDiagnosticSession(data);
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // La session de diagnostic porte le locataire et le compte de l'appelant,
+      // comme /api/diagnostic : sans eux, la ligne était invisible de toute
+      // lecture cloisonnée (voir le commentaire de /api/diagnostic).
+      const session = await storage.createDiagnosticSession({
+        ...data,
+        tenantId,
+        userId: (req as any).user?.id,
+      });
       
       // Pré-analyse sémantique pour décider de la stratégie
       const symptoms = data.symptoms.toLowerCase();
@@ -532,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (hasCommonTerms) {
         try {
           // Récupérer les cas de maintenance pour analyse sémantique
-          const cases = await storage.getMaintenanceCases();
+          const cases = await storage.getMaintenanceCases(tenantId);
           const semanticSuggestions = [];
           
           for (const case_ of cases) {
@@ -1039,9 +1050,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/maintenance-insights/:equipmentType", async (req, res) => {
     try {
       const equipmentType = req.params.equipmentType;
-      
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       // Get recent diagnostic history for this equipment type
-      const recentCases = await storage.getMaintenanceCases();
+      const recentCases = await storage.getMaintenanceCases(tenantId);
       const equipmentCases = recentCases
         .filter(c => c.equipmentType === equipmentType)
         .slice(0, 10);
@@ -1070,9 +1086,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/repair/:caseId", async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
-      
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // ⚠️ LE CAS D'ABORD, et il doit être celui de l'appelant.
+      //
+      // Mesuré le 2026-10-25 : appelée par ALPHA sur l'identifiant d'un cas de
+      // BETA, cette route ne trouvait aucune gamme et en FABRIQUAIT quatre, avec
+      // `tenant_id` à NULL et `case_id` pointant le cas de BETA. Une simple
+      // LECTURE écrivait donc dans le dossier d'une autre organisation.
+      const dossier = await storage.getMaintenanceCaseById(caseId, tenantId);
+      if (!dossier) {
+        return res.status(404).json({
+          error: "CAS_INTROUVABLE",
+          message: `Aucun cas de maintenance de votre organisation ne porte l'identifiant ${caseId}.`,
+        });
+      }
+
       // First try to get existing procedures
-      let procedures = await storage.getRepairProceduresByCaseId(caseId);
+      let procedures = await storage.getRepairProceduresByCaseId(caseId, tenantId);
       
       // If no procedures exist, generate default ones
       if (procedures.length === 0) {
@@ -1135,32 +1170,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         ];
         
-        // Create default procedures in storage
+        // Create default procedures in storage — dans le locataire du cas,
+        // sans quoi elles seraient invisibles de la lecture qui suit.
         for (const proc of defaultProcedures) {
-          await storage.createRepairProcedure(proc);
+          await storage.createRepairProcedure({ ...proc, tenantId });
         }
         
         // Fetch the newly created procedures
-        procedures = await storage.getRepairProceduresByCaseId(caseId);
+        procedures = await storage.getRepairProceduresByCaseId(caseId, tenantId);
       }
 
-      // Try to get maintenance case details, but proceed even if not found
-      let maintenanceCase = null;
-      try {
-        maintenanceCase = await storage.getMaintenanceCaseById(caseId);
-      } catch (error: any) {
-        console.log(`No maintenance case found for ID ${caseId}, proceeding with procedures only`);
-      }
-      
-      res.json({
-        case: maintenanceCase || {
-          id: caseId,
-          equipmentType: "Équipement",
-          symptoms: "Diagnostic à partir du système ML",
-          solution: "Procédures de réparation générées automatiquement"
-        },
-        procedures
-      });
+      res.json({ case: dossier, procedures });
     } catch (error: any) {
       console.error("Repair procedures error:", error);
       res.status(500).json({ message: "Failed to get repair procedures" });
@@ -1264,7 +1284,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all maintenance cases for ML training
   app.get("/api/maintenance-cases", async (req, res) => {
     try {
-      const cases = await storage.getMaintenanceCases();
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const cases = await storage.getMaintenanceCases(tenantId);
       res.json(cases);
     } catch (error: any) {
       console.error("Error fetching maintenance cases:", error);
@@ -1285,10 +1310,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       console.log("🔬 Starting Advanced ML diagnostic...");
-      
+
       // Enhanced pattern matching with real industrial data
-      const historicalCases = await storage.getMaintenanceCases().then(cases => 
+      const historicalCases = await storage.getMaintenanceCases(tenantId).then(cases => 
         cases.filter(c => c.equipmentType.toLowerCase().includes(equipmentType.toLowerCase()))
              .slice(0, 10)
       );
@@ -1379,10 +1409,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       console.log("🚀 Starting Ensemble ML diagnostic (9 models)...");
-      
+
       // Enhanced pattern matching with cross-table analysis
-      const historicalCases = await storage.getMaintenanceCases().then(cases => 
+      const historicalCases = await storage.getMaintenanceCases(tenantId).then(cases => 
         cases.filter(c => c.equipmentType.toLowerCase().includes(equipmentType.toLowerCase()))
              .slice(0, 15)
       );
@@ -1644,7 +1679,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mlEnabled = false;
       const modelAccuracy = "rule_based_fallback";
       const enhancedMetrics = {};
-      const cases = await storage.getMaintenanceCases();
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const cases = await storage.getMaintenanceCases(tenantId);
       const matchingSuggestions = cases
         .filter(case_ => case_.equipmentType === formData.equipmentType)
         .slice(0, 1);
@@ -2058,23 +2099,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/feedback", async (req, res) => {
     try {
       const feedbackData = req.body;
-      const feedback = await storage.createFeedbackSession(feedbackData);
 
-      try {
-        await hybridDiagnosticPipeline.recordFeedbackAndLearn({
-          sessionId: feedbackData.sessionId,
-          rating: feedbackData.rating || 3,
-          helpful: feedbackData.helpful,
-          comments: feedbackData.comments || '',
-          suggestionsAccuracy: feedbackData.suggestionsAccuracy || '',
-          actualDiagnosis: feedbackData.actualDiagnosis,
-          actualSolution: feedbackData.actualSolution
+      // Le locataire vient de la session : un retour ne peut porter que sur une
+      // session de SON organisation. Mesuré avant correction — un compte du
+      // locataire A notait une session du locataire B, et le retour écrivait
+      // dans `failure_memory` une ligne portant le diagnostic de B.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // ⚠️ C'est le pipeline qui écrit la ligne de `feedback_sessions`, et lui
+      // seul — APRÈS avoir vérifié que la session visée appartient au locataire
+      // de l'appelant. Deux défauts mesurés le 2026-10-25 :
+      //
+      //   • cette route écrivait elle-même la ligne, en plus du pipeline : un
+      //     retour légitime en créait DEUX, donc comptait double dans toute
+      //     statistique de retours ;
+      //   • elle l'écrivait AVANT toute vérification : un compte du locataire A
+      //     notant une session du locataire B obtenait 200 et laissait une ligne
+      //     rattachée à la session de B.
+      const accepte = await hybridDiagnosticPipeline.recordFeedbackAndLearn({
+        tenantId,
+        sessionId: feedbackData.sessionId,
+        rating: feedbackData.rating || 3,
+        helpful: feedbackData.helpful,
+        comments: feedbackData.comments || '',
+        suggestionsAccuracy: feedbackData.suggestionsAccuracy || '',
+        actualDiagnosis: feedbackData.actualDiagnosis,
+        actualSolution: feedbackData.actualSolution
+      });
+
+      if (!accepte) {
+        return res.status(404).json({
+          error: "SESSION_INTROUVABLE",
+          message: "Aucune session de diagnostic de votre organisation ne porte cet identifiant.",
         });
-      } catch (learnError) {
-        console.error("Learning loop error (non-blocking):", learnError);
       }
 
-      res.json({ success: true, feedback });
+      res.json({ success: true });
     } catch (error: any) {
       console.error("Error creating feedback:", error);
       res.status(500).json({ error: "Failed to create feedback session" });
@@ -2803,8 +2864,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import default historical database from Excel file
   app.post("/api/import/default-historical-data", async (req, res) => {
     try {
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { processDefaultHistoricalData } = await import("./simple-excel-reader");
-      const result = await processDefaultHistoricalData();
+      const result = await processDefaultHistoricalData(tenantId);
       
       res.json(result);
     } catch (error: any) {
@@ -2829,8 +2895,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { ExcelHistoryProcessor } = await import("./excel-processor");
-      const processor = new ExcelHistoryProcessor();
+      const processor = new ExcelHistoryProcessor(tenantId);
       const result = await processor.processUserExcelFile(filePath);
       
       if (result.success) {
@@ -2899,8 +2970,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process Excel file with multiple sheets (Equipment, Diagnostic, Procedure cross-references)
   app.post("/api/diagnostic/process-excel-sheets", async (req, res) => {
     try {
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { DirectExcelImport } = await import('./direct-excel-import');
-      const processor = new DirectExcelImport();
+      const processor = new DirectExcelImport(tenantId);
       
       const result = await processor.importRealData();
       
@@ -2922,6 +2998,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic/analyze", async (req, res) => {
     try {
       const data = req.body;
+
+      // Le locataire vient de la SESSION. Sans lui, ce moteur lisait
+      // `maintenance_cases` sans frontière.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       // Enhanced diagnostic with historical learning
       if (data.equipmentType && data.symptoms) {
@@ -2935,7 +3016,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             symptomsChecked: data.symptomsChecked,
             urgency: data.urgency,
             zone: data.zone,
-            sector: data.sector
+            sector: data.sector,
+            tenantId,
           });
           
           if (enhancedResult.suggestions.length > 0) {
@@ -2945,7 +3027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mlEnabled: true,
               modelAccuracy: "enhanced_historical",
               historicalBoost: true,
-              learningStats: await diagnosticEngine.getLearningStats(),
+              learningStats: await diagnosticEngine.getLearningStats(tenantId),
               dataSource: "imported_historical_cases",
               success: true
             });
@@ -2991,12 +3073,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const data = schema.parse(req.body);
 
+      // Cette route ne passait AUCUN locataire au pipeline : elle exécutait
+      // donc le diagnostic sur les données de toutes les organisations. Le
+      // champ étant désormais obligatoire, l'oubli ne compile plus.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const hybridRequest: HybridDiagnosticRequest = {
         equipmentType: data.equipmentType,
         symptoms: data.symptoms,
         urgency: data.urgency,
         zone: data.zone || undefined,
         sector: data.sector || undefined,
+        tenantId,
       };
 
       const hybridResult = await hybridDiagnosticPipeline.runDiagnostic(hybridRequest);

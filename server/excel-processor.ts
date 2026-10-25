@@ -14,10 +14,17 @@ export interface ProcessedExcelData {
   message: string;
 }
 
+/**
+ * ⚠️ Le locataire est OBLIGATOIRE depuis le cloisonnement du diagnostic
+ * (2026-10-25). Les cas importés étaient écrits sans `tenant_id` : avant, ils
+ * étaient visibles de TOUTES les organisations ; depuis que les lectures sont
+ * filtrées, ils ne seraient visibles d'AUCUNE. Un import qui réussit sans que
+ * personne ne voie ses lignes est pire que pas d'import.
+ */
 export class ExcelHistoryProcessor {
-  private tenantId?: string;
+  private tenantId: string;
 
-  constructor(tenantId?: string) {
+  constructor(tenantId: string) {
     this.tenantId = tenantId;
   }
   
@@ -132,7 +139,7 @@ export class ExcelHistoryProcessor {
       try {
         const maintenanceCase = this.extractMaintenanceCaseFromRow(row);
         if (maintenanceCase) {
-          await storage.createMaintenanceCase(maintenanceCase);
+          await storage.createMaintenanceCase({ ...maintenanceCase, tenantId: this.tenantId });
           processedCount++;
         }
       } catch (error: any) {
@@ -144,10 +151,6 @@ export class ExcelHistoryProcessor {
   }
 
   private async processEquipment(data: any[]): Promise<number> {
-    if (!this.tenantId) {
-      console.log(`ℹ️  Skipping ${data.length} equipment rows — no tenantId provided`);
-      return 0;
-    }
     let count = 0;
     for (const row of data) {
       try {
