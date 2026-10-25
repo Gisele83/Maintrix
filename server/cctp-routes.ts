@@ -2,14 +2,84 @@
 // CCTP COMPLIANCE ROUTES - Routes API conformité cahier des charges
 // ===================================================================
 
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { cctpComplianceService, PurchaseOrderConfigSchema, WorkOrderConfigSchema, ReportingConfigSchema } from "./cctp-compliance-system";
 import { db } from "./db";
 import { purchaseOrders, tenants } from "../shared/schema";
 import { and, eq } from "drizzle-orm";
+import { tenantRequis } from "./tenant-requis";
+
+/**
+ * Conformité CCTP — configuration des bons de commande, des rapports, et le
+ * relevé de conformité.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI ÉTAIT CASSÉ : L'APPELANT DÉSIGNAIT L'ORGANISATION
+ * ═══════════════════════════════════════════════════════════════════
+ * Les dix routes de ce fichier prenaient le locataire DANS L'URL
+ * (`/tenant/:tenantId/...`) et le passaient tel quel au service. Aucune
+ * ne le comparait à la session. Changer un segment d'URL suffisait donc à
+ * travailler dans les données d'une autre entreprise :
+ *
+ *   • `GET  /tenant/:id/purchase-order-config` — seuils de montant, entête
+ *     d'impression, et la GRILLE DE VALIDATION (qui approuve jusqu'à combien) ;
+ *   • `PUT  /tenant/:id/purchase-order-config` — la même, en ÉCRITURE : on
+ *     pouvait abaisser le seuil de validation d'un concurrent, ou réécrire son
+ *     entête d'entreprise ;
+ *   • `PUT  /tenant/:id/reporting-config` et `PUT /tenant/:id/auto-reports` —
+ *     écriture également, dont la liste de diffusion des rapports par courriel ;
+ *   • `GET  /tenant/:id/purchase-order/:bon/document` — le PDF du bon de
+ *     commande, avec l'entête du locataire nommé dans l'URL ;
+ *   • `POST /tenant/:id/work-order/:ot/generate-report` — voir plus bas, le
+ *     plus grave.
+ *
+ * Le repli du client rendait la chose peu visible : `client/src/pages/
+ * cctp-compliance.tsx` envoie l'organisation réellement authentifiée depuis sa
+ * correction du 19/10/2026. Le défaut n'était donc pas atteint par l'écran — il
+ * l'était par quiconque formait l'URL à la main.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * CE QUI GARDE CES ROUTES MAINTENANT
+ * ═══════════════════════════════════════════════════════════════════
+ * `locataireDeLaSession()` ci-dessous. Le segment `:tenantId` RESTE dans les
+ * chemins — l'écran les construit ainsi, et les retirer casserait ses clés de
+ * requête (voir tests/unit/cles-de-requete.test.ts) — mais il n'est plus une
+ * autorisation : c'est la session qui fait foi, et un segment qui la contredit
+ * fait échouer la requête en 403 au lieu d'être suivi. Un paramètre de chemin
+ * qu'on ignorerait en silence serait pire : il laisserait croire qu'il sert.
+ */
 
 const router = Router();
+
+/**
+ * Le locataire de la requête — celui de la SESSION, jamais celui de l'URL.
+ *
+ * Deux refus distincts, et la nuance compte :
+ *
+ *   • pas de session → 401, par `tenantRequis()` (server/tenant-requis.ts) ;
+ *   • session valide mais l'URL nomme une AUTRE organisation → 403. Ce n'est
+ *     pas un 404 : on ne cherche pas une ressource, on refuse une portée. Et
+ *     ce n'est pas un oracle d'existence — la réponse est la même que le
+ *     locataire nommé existe ou non, puisqu'on ne va pas le voir.
+ */
+function locataireDeLaSession(req: Request, res: Response): string | null {
+  const session = tenantRequis(req, res);
+  if (!session) return null;
+
+  const duChemin = req.params.tenantId;
+  if (duChemin && duChemin !== session) {
+    res.status(403).json({
+      error: "LOCATAIRE_ETRANGER",
+      message:
+        "Cette requête désigne une organisation qui n'est pas la vôtre : refusée. " +
+        "Aucune lecture ni écriture n'a eu lieu.",
+    });
+    return null;
+  }
+
+  return session;
+}
 
 // =====================================================
 // CONFIGURATION BONS DE COMMANDE PAR TENANT
@@ -18,7 +88,8 @@ const router = Router();
 // Obtenir la configuration Bon de Commande d'un tenant
 router.get("/tenant/:tenantId/purchase-order-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
     const config = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
     
@@ -55,7 +126,9 @@ router.get("/tenant/:tenantId/purchase-order-config", async (req, res) => {
 // Mettre à jour la configuration Bon de Commande d'un tenant
 router.put("/tenant/:tenantId/purchase-order-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const config = PurchaseOrderConfigSchema.parse(req.body);
     
     await cctpComplianceService.updatePurchaseOrderConfig(tenantId, config);
@@ -83,7 +156,10 @@ router.put("/tenant/:tenantId/purchase-order-config", async (req, res) => {
 // Générer un Bon de Commande ou Lettre de Commande en HTML/PDF
 router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (req, res) => {
   try {
-    const { tenantId, purchaseOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { purchaseOrderId } = req.params;
     const { type } = req.query; // 'letter' | 'purchase_order' | auto
     
     const result = await cctpComplianceService.generatePurchaseDocument(
@@ -173,22 +249,17 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document", async (
 // Obtenir le type de document recommandé selon les seuils
 router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document-type", async (req, res) => {
   try {
-    const { tenantId, purchaseOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { purchaseOrderId } = req.params;
     
     const config = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
     if (!config) {
       return res.status(404).json({ error: "Configuration non trouvée" });
     }
     
-    // Récupérer le montant de la commande, DANS le locataire demandé.
-    //
-    // ⚠️ Ce `tenantId` vient de l'URL, pas de la session : c'est l'appelant qui
-    // désigne l'organisation dont il lit la configuration. Défaut antérieur,
-    // commun à toutes les routes de ce fichier et hors du lot d'isolation de
-    // `purchase_orders` ; il reste à reprendre avec `tenantRequis()`. Filtrer
-    // dessus ne suffit donc pas à cloisonner cette route — mais ne pas filtrer
-    // du tout laissait en plus lire le montant d'un bon de n'importe qui, même
-    // avec un locataire correctement résolu.
+    // Récupérer le montant de la commande, DANS le locataire de la session.
     const [purchaseOrder] = await db.select()
       .from(purchaseOrders)
       .where(and(eq(purchaseOrders.id, parseInt(purchaseOrderId)), eq(purchaseOrders.tenantId, tenantId)));
@@ -244,7 +315,9 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document-type", as
 // Activer/désactiver l'auto-génération de rapports pour un tenant
 router.put("/tenant/:tenantId/auto-reports", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const { enabled } = req.body;
     
     if (enabled) {
@@ -276,7 +349,10 @@ router.put("/tenant/:tenantId/auto-reports", async (req, res) => {
 // Générer manuellement un rapport d'intervention pour un OT
 router.post("/tenant/:tenantId/work-order/:workOrderId/generate-report", async (req, res) => {
   try {
-    const { tenantId, workOrderId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    const { workOrderId } = req.params;
     
     const reportHTML = await cctpComplianceService.checkAndGenerateWorkOrderReport(
       tenantId,
@@ -327,7 +403,8 @@ router.get("/detect-language", async (req, res) => {
 // Obtenir la configuration des rapports d'un tenant
 router.get("/tenant/:tenantId/reporting-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
     const [tenant] = await db.select({ config: tenants.reportingConfig })
       .from(tenants)
@@ -353,7 +430,9 @@ router.get("/tenant/:tenantId/reporting-config", async (req, res) => {
 // Mettre à jour la configuration des rapports d'un tenant
 router.put("/tenant/:tenantId/reporting-config", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
     const config = ReportingConfigSchema.parse(req.body);
     
     await cctpComplianceService.updateReportingConfig(tenantId, config);
@@ -381,7 +460,8 @@ router.put("/tenant/:tenantId/reporting-config", async (req, res) => {
 // Vérifier la conformité globale CCTP d'un tenant
 router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
     
     // Vérifier toutes les configurations requises
     const purchaseOrderConfig = await cctpComplianceService.getPurchaseOrderConfig(tenantId);
@@ -438,7 +518,18 @@ router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
 // Générer un rapport de conformité CCTP détaillé
 router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
   try {
-    const { tenantId } = req.params;
+    const tenantId = locataireDeLaSession(req, res);
+    if (!tenantId) return;
+
+    // Le locataire est interpolé deux fois dans le HTML ci-dessous. Il vient
+    // maintenant de la session, donc de la base, et non plus d'un segment
+    // d'URL — mais `tenants.id` est un `varchar(36)` libre, pas un type UUID
+    // contraint : rien dans le schéma n'interdit d'y stocker des chevrons. On
+    // échappe, parce qu'une valeur « sûre par provenance » cesse de l'être au
+    // premier endroit où quelqu'un change sa provenance.
+    const locataireAffiche = tenantId.replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+    ));
     
     // HTML du rapport de conformité
     const reportHTML = `
@@ -446,7 +537,7 @@ router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
     <html lang="fr">
     <head>
         <meta charset="UTF-8">
-        <title>Rapport de Conformité CCTP - Tenant ${tenantId}</title>
+        <title>Rapport de Conformité CCTP - Tenant ${locataireAffiche}</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
             .header { background: #1E40AF; color: white; padding: 20px; text-align: center; border-radius: 10px; }
@@ -464,7 +555,7 @@ router.get("/tenant/:tenantId/cctp-compliance/report", async (req, res) => {
         <div class="header">
             <h1>📋 Rapport de Conformité CCTP</h1>
             <p>Plateforme unifiée GMAO / Assistant Diagnostic IA</p>
-            <p>Tenant: ${tenantId} | Date: ${new Date().toLocaleDateString('fr-FR')}</p>
+            <p>Tenant: ${locataireAffiche} | Date: ${new Date().toLocaleDateString('fr-FR')}</p>
         </div>
 
         <div class="section">

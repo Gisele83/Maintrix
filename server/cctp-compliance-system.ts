@@ -357,10 +357,22 @@ export class CCTPComplianceService {
       return null;
     }
 
-    // Récupérer les données du workOrder
+    // Récupérer les données du workOrder — DANS le locataire.
+    //
+    // ⚠️ Le filtre manquait, et c'était la fuite la plus large de ce fichier :
+    // `tenantId` était dans la portée (il vient d'être utilisé juste au-dessus
+    // pour lire la configuration), `work_orders.tenant_id` est NOT NULL, et la
+    // condition portait sur le seul identifiant. `POST /api/cctp/tenant/
+    // <le mien>/work-order/<celui d'autrui>/generate-report` produisait donc un
+    // rapport d'intervention complet sur l'ordre de travail d'une AUTRE
+    // organisation : description, technicien, durée, équipement, coûts.
+    //
+    // Même défaut, même forme et même cause que celui refermé sur
+    // `purchase_orders` par la migration 0022 — un locataire présent dans la
+    // signature et absent de la requête.
     const [workOrder] = await db.select()
       .from(workOrders)
-      .where(eq(workOrders.id, workOrderId));
+      .where(and(eq(workOrders.id, workOrderId), eq(workOrders.tenantId, tenantId)));
 
     if (!workOrder || workOrder.status !== 'completed') {
       return null;
