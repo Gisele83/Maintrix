@@ -341,6 +341,55 @@ function choisirVoie() {
   ].join('\n'));
 }
 
+/**
+ * Pourquoi drizzle vient-il d'échouer : une migration, ou une base injoignable ?
+ *
+ * `drizzle-kit` n'affiche, en cas d'échec, que « applying migrations... » suivi
+ * de ses cadres d'animation : le message de la cause est avalé. Le rapport de
+ * la barrière ressemblait donc à « migration en échec » quelle que fût la
+ * raison — et une base inaccessible se corrige ailleurs qu'une migration
+ * fautive. Mesuré le 2026-10-25, en éprouvant la voie Docker : la connexion
+ * échouait à l'authentification, et il a fallu tracer le réseau pour le voir.
+ *
+ * Deux canaux différents, et c'est tout l'intérêt : le relevé (`lire`) parle à
+ * la base par le chemin de la barrière, drizzle par l'URL. Quand le premier
+ * répond et le second non, le défaut est dans la liaison — port publié,
+ * identifiants — et pas une ligne de SQL.
+ */
+async function pourquoiDrizzleAEchoue(base) {
+  let releveOk = false;
+  try { releveOk = base.lire('SELECT 1').includes('1'); } catch { releveOk = false; }
+
+  let urlOk = null, erreurUrl = '';
+  try {
+    const mod = await import('pg');
+    const { Client } = mod.default ?? mod;
+    const client = new Client({ connectionString: base.url, connectionTimeoutMillis: 5000 });
+    try {
+      await client.connect();
+      await client.query('SELECT 1');
+      urlOk = true;
+    } finally {
+      await client.end().catch(() => {});
+    }
+  } catch (e) {
+    if (urlOk === null) { urlOk = false; erreurUrl = e.message; }
+  }
+
+  if (!releveOk) {
+    return 'DIAGNOSTIC : la base ne répond même pas au relevé de la barrière. '
+      + 'Rien n\'a été construit de ce côté — ce n\'est pas une migration qu\'il faut relire.';
+  }
+  if (urlOk === false) {
+    return 'DIAGNOSTIC : la base RÉPOND au relevé de la barrière, mais pas par l\'URL que '
+      + `drizzle emploie (${erreurUrl}). Donc liaison ou identifiants, PAS une migration.`;
+  }
+  return 'DIAGNOSTIC : la base répond, et l\'URL de drizzle aussi. La cause est donc dans les '
+    + 'fichiers de migration eux-mêmes ; drizzle ne dit pas laquelle, mais\n'
+    + '  psql "<url>" -f migrations/<fichier>.sql\n'
+    + '  l\'affiche. Un commentaire citant le marqueur de coupure suffit à tout casser.';
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // RELEVÉ DU SCHÉMA RÉELLEMENT OBTENU
 // ═══════════════════════════════════════════════════════════════════
@@ -422,13 +471,18 @@ try {
     const { bases, annonces } = await voie.preparer();
     annonces.forEach(ok);
 
+    // Le diagnostic passe AVANT la sortie de drizzle : `ko` ne montre que les
+    // douze premières lignes du détail, et les cadres d'animation de drizzle
+    // les mangeaient toutes.
     const rMigrate = run('npx', ['drizzle-kit', 'migrate'], { DATABASE_URL: bases.migrate.url });
     if (rMigrate.status === 0) ok('drizzle-kit migrate s\'est terminé sans erreur');
-    else ko('drizzle-kit migrate a échoué', `${rMigrate.stdout}\n${rMigrate.stderr}`);
+    else ko('drizzle-kit migrate a échoué',
+      `${await pourquoiDrizzleAEchoue(bases.migrate)}\n\n${rMigrate.stdout}\n${rMigrate.stderr}`);
 
     const rPush = run('npx', ['drizzle-kit', 'push', '--force'], { DATABASE_URL: bases.push.url });
     if (rPush.status === 0) ok('drizzle-kit push s\'est terminé sans erreur');
-    else ko('drizzle-kit push a échoué', `${rPush.stdout}\n${rPush.stderr}`);
+    else ko('drizzle-kit push a échoué',
+      `${await pourquoiDrizzleAEchoue(bases.push)}\n\n${rPush.stdout}\n${rPush.stderr}`);
 
     section('T3 — Les deux chemins produisent-ils le même schéma ?');
     const sMigrate = releverSchema(bases.migrate);
