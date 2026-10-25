@@ -1034,9 +1034,40 @@ describe('GMAO — six domaines sur deux niveaux', () => {
 
   it('les treize destinations restent atteignables', () => {
     // Cinq onglets + huit entrées du menu « Plus » = treize.
+    //
+    // ⚠️ Le motif de la destination « Configuration » admet désormais une
+    // condition SUPPLÉMENTAIRE. Elle n'est plus ouverte à tous : modifier la
+    // raison sociale, le numéro fiscal et les seuils d'approbation demande au
+    // moins `technical_director`, comme côté serveur. La destination reste
+    // comptée — elle existe et s'ouvre — mais elle est conditionnée, et c'est
+    // le cas suivant qui vérifie à quoi.
     const contenu = readFileSync(GMAO, 'utf8');
     const conditions = contenu.match(/domaine === "[a-z-]+"/g) ?? [];
-    const configuration = contenu.match(/\{configurationOuverte && \(/g) ?? [];
+    const configuration = contenu.match(/\{configurationOuverte &&[^(]*\(/g) ?? [];
     expect(conditions.length + configuration.length).toBe(13);
+  });
+
+  it("la destination « Configuration » est conditionnée au rôle, par le référentiel", () => {
+    /*
+     * Cet écran porte l'identité commerciale imprimée sur les bons de commande
+     * et le seuil au-delà duquel une dépense exige une validation. Il était
+     * offert à tout compte authentifié, technicien et lecture seule comprises,
+     * et le serveur ne refusait rien.
+     *
+     * Le contrôle doit passer par `auMoins` et non par une comparaison
+     * littérale — `owner` est au-dessus de `technical_director` et une liste
+     * écrite à la main l'enfermerait dehors. Le garde-fou générique de
+     * tests/unit/roles-cote-client.test.ts interdit déjà le motif littéral ;
+     * ce cas-ci vérifie en plus que le contrôle est bien PRÉSENT sur cet écran.
+     */
+    const contenu = readFileSync(GMAO, 'utf8');
+
+    expect(contenu).toContain('from "@shared/roles"');
+    expect(contenu).toMatch(/auMoins\(\s*user\?\.role\s*,\s*["']technical_director["']\s*\)/);
+
+    // L'onglet ET le contenu sont tous deux gardés : un onglet masqué dont le
+    // bloc resterait monté se rouvrirait au premier changement d'état.
+    expect(contenu).toMatch(/\{peutConfigurerEntreprise && \(/);
+    expect(contenu).toMatch(/\{configurationOuverte && peutConfigurerEntreprise && \(/);
   });
 });

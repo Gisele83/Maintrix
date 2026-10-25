@@ -89,7 +89,7 @@ async function lireOrdre(id: number): Promise<LigneOrdre> {
 /**
  * Un bon de commande neuf, du montant demandé, DANS le locataire donné.
  *
- * `tenant_id` est arrivé avec la migration 0022, et la colonne est NOT NULL :
+ * `tenant_id` est arrivé avec la migration 0023, et la colonne est NOT NULL :
  * avant elle, cette fixture insérait un bon sans propriétaire — ce qui était
  * précisément le défaut. Le locataire est le premier paramètre, comme pour
  * `creerOrdre`, pour qu'aucun appel ne puisse l'oublier en silence.

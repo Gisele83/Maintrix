@@ -160,7 +160,14 @@
       "idx": 22,
       "version": "7",
       "when": 1784672147523,
-      "tag": "0022_purchase_orders_tenant_scoped",
+      "tag": "0022_company_config_tenant_scoped",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1784672207523,
+      "tag": "0023_purchase_orders_tenant_scoped",
       "breakpoints": true
     }
   ]

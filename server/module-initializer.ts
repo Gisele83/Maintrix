@@ -321,6 +321,20 @@ export async function initializeModuleCatalog(): Promise<void> {
 
       if (existingModules.length > 0) {
         console.log(`🔄 Updating module catalog - forcing refresh to apply latest module configurations`);
+        // ⚠️ SUPPRESSION SANS `WHERE`, ET C'EST VOULU. `module_catalog` est le
+        // catalogue de la PLATEFORME : il ne porte aucune colonne `tenant_id`
+        // (voir shared/schema.ts) et vaut pour tous les locataires. Ce qui
+        // appartient à chacun est la LISTE des modules activés, rangée dans
+        // `tenants.features`, que ce bloc ne touche pas.
+        //
+        // Cette précision est ici parce que le recensement du 2026-10-25 a
+        // trouvé exactement DEUX écritures sans portée dans tout le dépôt :
+        // celle-ci, légitime, et `createCompanyConfig()`, qui effaçait la
+        // configuration d'entreprise de tous les locataires. Sans la phrase
+        // qui distingue les deux, la relecture suivante rapproche l'une de
+        // l'autre — et corrige la mauvaise. Le garde-fou qui le vérifie est
+        // tests/unit/ecritures-sans-where.test.ts, dont la liste de tolérances
+        // cite ce fichier.
         await tx.delete(moduleCatalog);
         console.log("  ✓ Cleared existing modules");
       }

@@ -18,7 +18,7 @@
  *
  *   • « Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
  *     politique RLS. Le cloisonnement est fait en code applicatif, une colonne
- *     `tenant_id` par table, et c'est l'objet des migrations 0011 à 0022 ;
+ *     `tenant_id` par table, et c'est l'objet des migrations 0011 à 0023 ;
  *   • « Validation hiérarchique multi-niveaux opérationnelle » — jusqu'au
  *     2026-10-25, n'importe quel compte authentifié approuvait n'importe quoi.
  *
@@ -249,7 +249,7 @@ describe("Ce qui n'est pas mesuré est déclaré, pas noté", () => {
     expect(exigence.status).toBe('non_mesure');
     expect(exigence.score).toBeNull();
     // Le relevé renvoie vers ce qui le vérifie réellement.
-    expect(String(exigence.verifiePar)).toMatch(/isolation|0011|0022/);
+    expect(String(exigence.verifiePar)).toMatch(/isolation|0011|0023/);
   }, 60_000);
 
   it('le score global ne moyenne QUE les exigences notées', async () => {

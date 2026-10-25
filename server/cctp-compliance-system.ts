@@ -400,7 +400,7 @@ export class CCTPComplianceService {
     // organisation : description, technicien, durée, équipement, coûts.
     //
     // Même défaut, même forme et même cause que celui refermé sur
-    // `purchase_orders` par la migration 0022 — un locataire présent dans la
+    // `purchase_orders` par la migration 0023 — un locataire présent dans la
     // signature et absent de la requête.
     const [workOrder] = await db.select()
       .from(workOrders)
@@ -569,7 +569,7 @@ export class CCTPComplianceService {
   //
   //   • « Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
   //     politique RLS. Le cloisonnement est fait en code applicatif, et c'est
-  //     tout l'objet des migrations 0011 à 0022. Affirmer RLS à un donneur
+  //     tout l'objet des migrations 0011 à 0023. Affirmer RLS à un donneur
   //     d'ordre serait une fausse déclaration sur le point le plus sensible ;
   //   • « Validation hiérarchique multi-niveaux opérationnelle » — le circuit
   //     de validation n'habilitait personne avant le 2026-10-25 : n'importe
@@ -776,7 +776,7 @@ export class CCTPComplianceService {
       "Propriété de la plateforme, et non de la configuration d'une organisation : une "
       + 'requête applicative ne peut pas attester son propre cloisonnement. Le cloisonnement '
       + "est assuré en code applicatif, par une colonne de propriétaire sur chaque table.",
-      'migrations 0011 à 0022 (« <table>_tenant_scoped ») et les suites '
+      'migrations 0011 à 0023 (« <table>_tenant_scoped ») et les suites '
       + 'tests/integration/isolation-*.test.ts, multi-tenant.test.ts, isolation-cctp.test.ts',
     );
 
