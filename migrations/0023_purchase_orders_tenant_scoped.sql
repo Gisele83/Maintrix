@@ -87,7 +87,7 @@
 --      (le réglage ne vit que le temps de la session psql, et c'est l'exploitant qui désigne le
 --      locataire, pas la migration) :
 --          SET maintrix.locataire_bons_orphelins = '<uuid-du-locataire>';
---          \i migrations/0022_purchase_orders_tenant_scoped.sql
+--          \i migrations/0023_purchase_orders_tenant_scoped.sql
 --   c) supprimer les bons qui n'engagent plus rien. Ce n'est PAS fait ici : supprimer des données
 --      est une décision d'exploitation, pas de migration.
 --
@@ -169,7 +169,7 @@ BEGIN
     USING HINT =
       'A qui appartient un engagement de depense ne se devine pas. Trois issues, au choix : '
       '(a) rattacher chaque bon a son fournisseur — UPDATE purchase_orders SET supplier_id = <id> WHERE order_number = ''<numero>'' — puis rejouer ; '
-      '(b) attribuer le reliquat a un locataire NOMME, en rejouant ce fichier a la main : SET maintrix.locataire_bons_orphelins = ''<uuid>''; \i migrations/0022_purchase_orders_tenant_scoped.sql ; '
+      '(b) attribuer le reliquat a un locataire NOMME, en rejouant ce fichier a la main : SET maintrix.locataire_bons_orphelins = ''<uuid>''; \i migrations/0023_purchase_orders_tenant_scoped.sql ; '
       '(c) supprimer ces bons s''ils n''engagent plus rien — decision d''exploitation, que cette migration ne prend pas a votre place.';
 END
 $maintrix$;

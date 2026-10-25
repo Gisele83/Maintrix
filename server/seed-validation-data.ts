@@ -4,7 +4,7 @@ import { gmaoStorage } from "./gmao-storage";
 /**
  * Jeu d'essai du circuit de validation. AUCUN APPELANT à ce jour.
  *
- * Le locataire est un paramètre obligatoire : depuis la migration 0022, un bon
+ * Le locataire est un paramètre obligatoire : depuis la migration 0023, un bon
  * de commande sans propriétaire ne s'insère pas, et il n'y a pas de locataire
  * par défaut à deviner ici.
  */

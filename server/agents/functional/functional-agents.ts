@@ -170,7 +170,7 @@ const procurementAgent: FunctionalAgentAssessor = async (tenantId) => {
      WHERE tenant_id = $1 AND is_active = true AND current_stock <= reorder_point`,
     [tenantId],
   );
-  // purchase_orders porte tenant_id depuis la migration 0022 : ce compteur additionnait
+  // purchase_orders porte tenant_id depuis la migration 0023 : ce compteur additionnait
   // jusqu'ici les bons en cours de TOUS les locataires de l'instance, et le résultat était
   // présenté comme le chiffre du locataire évalué.
   const po = await sharedPool.query(

@@ -8,7 +8,7 @@ import { gmaoStorage } from "./gmao-storage";
 /**
  * Jeu d'essai du circuit d'achat. AUCUN APPELANT à ce jour.
  *
- * Le locataire est un paramètre obligatoire depuis la migration 0022 : les
+ * Le locataire est un paramètre obligatoire depuis la migration 0023 : les
  * fournisseurs comme les bons de commande portent un propriétaire, et il n'y a
  * pas de valeur par défaut à supposer.
  */

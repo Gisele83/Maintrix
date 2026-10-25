@@ -71,7 +71,7 @@ import { normaliserRole, type RoleLocataire } from "@shared/roles";
  * cliquent en même temps ne peuvent donc pas faire avancer le document deux
  * fois (zéro ligne touchée → 409).
  *
- * ✅ REFERMÉ DEPUIS (migration 0022) : `purchase_orders` ne portait AUCUNE
+ * ✅ REFERMÉ DEPUIS (migration 0023) : `purchase_orders` ne portait AUCUNE
  * colonne `tenant_id`, et le cloisonnement d'un bon de commande entre
  * organisations était structurellement impossible. Mesuré avant correctif, sur
  * un bon de 12 500 € du locataire Alpha : le validateur de niveau 2 du
@@ -84,7 +84,7 @@ import { normaliserRole, type RoleLocataire } from "@shared/roles";
  * appartient pas. Les quatre barrières ci-dessus s'appliquaient correctement…
  * au profit du mauvais document.
  *
- * La colonne existe maintenant (migration 0022, sur le modèle de 0011→0021),
+ * La colonne existe maintenant (migration 0023, sur le modèle de 0011→0021),
  * elle est NOT NULL, et c'est une CINQUIÈME barrière, posée AVANT les quatre
  * autres : le bon est cherché DANS le locataire de la session, de sorte qu'un
  * identifiant d'une autre organisation donne 404 au lieu d'une approbation.
@@ -387,7 +387,7 @@ export function registerSimpleValidationRoutes(app: Express) {
       const etape = ETAPES_BON_DE_COMMANDE.find((e) => e.niveau === validateur.niveau)
         ?? ETAPES_BON_DE_COMMANDE[ETAPES_BON_DE_COMMANDE.length - 1];
 
-      // Le locataire de la session, depuis la migration 0022 : cette file
+      // Le locataire de la session, depuis la migration 0023 : cette file
       // contenait les bons de commande de TOUTE l'instance — numéro, montant,
       // fournisseur, demandeur — faute d'une colonne sur laquelle filtrer.
       const bons = await gmaoStorage.getPurchaseOrdersByStatus(etape.statutAvant, validateur.tenantId);
@@ -629,7 +629,7 @@ export function registerSimpleValidationRoutes(app: Express) {
 
       // Le bon est cherché DANS le locataire de la session : un identifiant
       // d'une autre organisation donne 404, pas une approbation. C'est la
-      // barrière que la migration 0022 a rendue possible — même forme que pour
+      // barrière que la migration 0023 a rendue possible — même forme que pour
       // l'ordre de travail ci-dessus.
       const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, validateur.tenantId);
       if (!bon) {

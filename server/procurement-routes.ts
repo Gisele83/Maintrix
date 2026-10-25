@@ -101,7 +101,7 @@ router.get("/purchase-orders", async (req, res) => {
   try {
     // Cette route rendait les bons de commande de TOUTE l'instance : ni l'une
     // ni l'autre de ces deux lectures ne filtrait sur un locataire, faute de
-    // colonne pour le faire (migration 0022).
+    // colonne pour le faire (migration 0023).
     const tenantId = tenantRequis(req as any, res as any);
     if (!tenantId) return;
 

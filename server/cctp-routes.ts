@@ -498,7 +498,7 @@ router.get("/tenant/:tenantId/cctp-compliance", async (req, res) => {
 //
 //   • « ✓ Isolation tenant par RLS PostgreSQL » — ce dépôt ne déclare aucune
 //     politique RLS. Le cloisonnement est fait en code applicatif, une colonne
-//     tenant_id par table, et c'est tout l'objet des migrations 0011 à 0022 ;
+//     tenant_id par table, et c'est tout l'objet des migrations 0011 à 0023 ;
 //   • « ✓ Validation hiérarchique multi-niveaux » — jusqu'au 2026-10-25,
 //     n'importe quel compte authentifié approuvait n'importe quoi. Le rapport
 //     l'a déclaré conforme pendant toute cette période.

@@ -290,6 +290,6 @@ describe('Le SERVEUR non plus ne fabrique de verdict de conformité', () => {
     // Et le cloisonnement n'est plus déclaré conforme par ce relevé : il est
     // renvoyé vers ce qui le vérifie réellement.
     expect(code).toMatch(/cloisonnementParLocataire/);
-    expect(code).toMatch(/isolation-\*\.test\.ts|0011 à 0022/);
+    expect(code).toMatch(/isolation-\*\.test\.ts|0011 à 0023/);
   });
 });
