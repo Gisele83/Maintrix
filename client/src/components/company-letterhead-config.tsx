@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,22 +39,61 @@ interface CompanyConfig {
   documentFooter?: string;
 }
 
+/**
+ * Valeurs de départ pour un locataire qui n'a encore rien enregistré.
+ *
+ * ⚠️ Ce sont des EXEMPLES, pas une configuration. Ils ne doivent jamais être
+ * enregistrés tels quels — voir le chargement ci-dessous, qui existe pour ça.
+ */
+const EXEMPLE_VIERGE: CompanyConfig = {
+  companyName: "Votre Entreprise",
+  address: "123 Rue de l'Industrie\n75001 Paris, France",
+  phone: "+33 1 23 45 67 89",
+  email: "contact@entreprise.fr",
+  website: "www.entreprise.fr",
+  taxNumber: "FR 12 345 678 901",
+  primaryColor: "#0066cc",
+  secondaryColor: "#f8f9fa",
+  fontFamily: "Arial, sans-serif",
+};
+
 export function CompanyLetterheadConfig() {
-  const [config, setConfig] = useState<CompanyConfig>({
-    companyName: "Votre Entreprise",
-    address: "123 Rue de l'Industrie\n75001 Paris, France",
-    phone: "+33 1 23 45 67 89",
-    email: "contact@entreprise.fr",
-    website: "www.entreprise.fr",
-    taxNumber: "FR 12 345 678 901",
-    primaryColor: "#0066cc",
-    secondaryColor: "#f8f9fa",
-    fontFamily: "Arial, sans-serif"
-  });
-  
+  const [config, setConfig] = useState<CompanyConfig>(EXEMPLE_VIERGE);
+
   const [previewMode, setPreviewMode] = useState<"letterhead" | "purchase_order">("letterhead");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  /**
+   * ⚠️ CE FORMULAIRE NE RELISAIT RIEN. Il partait des valeurs d'exemple
+   * ci-dessus à chaque ouverture de l'onglet, et `saveConfiguration()` postait
+   * son état : ouvrir l'écran puis enregistrer suffisait à remplacer l'identité
+   * enregistrée par « Votre Entreprise », « 123 Rue de l'Industrie », le SIRET
+   * fictif — et, ces valeurs alimentant `letterheadTemplate`, à les imprimer
+   * ensuite sur les bons de commande.
+   *
+   * Tant que la table était commune à toute l'instance, le même geste écrasait
+   * en plus l'identité de TOUS les locataires. Cloisonner la table sans réparer
+   * ce chargement aurait laissé chacun n'écraser que la sienne : moins grave,
+   * tout aussi faux.
+   */
+  const { data: configEnregistree } = useQuery<CompanyConfig>({
+    queryKey: ["/api/company-config"],
+  });
+
+  useEffect(() => {
+    if (!configEnregistree) return;
+    // Les champs absents de la réponse gardent la valeur d'exemple plutôt que
+    // de devenir `undefined` : les `Input` deviendraient non contrôlés et React
+    // avertirait à chaque frappe.
+    setConfig(prev => ({
+      ...prev,
+      ...Object.fromEntries(
+        Object.entries(configEnregistree).filter(([, v]) => v !== null && v !== undefined),
+      ),
+    }));
+  }, [configEnregistree]);
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -235,6 +275,11 @@ export function CompanyLetterheadConfig() {
         method: "POST",
         body: templateData
       });
+
+      // Les seuils d'approbation sont servis par la MÊME route et lus par
+      // threshold-configuration.tsx : sans cette invalidation, l'autre écran de
+      // l'onglet continue d'afficher l'état d'avant l'enregistrement.
+      queryClient.invalidateQueries({ queryKey: ["/api/company-config"] });
 
       toast({
         title: "Configuration sauvegardée",

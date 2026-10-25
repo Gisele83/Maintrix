@@ -523,6 +523,28 @@ export type FailureTrend = typeof failureTrends.$inferSelect;
 // Company Configuration - Enterprise Branding and Letterhead
 export const companyConfig = pgTable("company_config", {
   id: serial("id").primaryKey(),
+  // ⚠️ Cette colonne manquait, et cette table porte l'IDENTITÉ COMMERCIALE :
+  // raison sociale, adresse, numéro fiscal, logo — plus les seuils à partir
+  // desquels une dépense exige une validation. Sans locataire :
+  //
+  //   • `getCompanyConfig()` n'avait aucun filtre : tous les locataires
+  //     lisaient la même ligne, donc l'en-tête, l'adresse et le numéro fiscal
+  //     d'une entreprise quelconque de l'instance ;
+  //   • `createCompanyConfig()` désactivait les configurations existantes par
+  //     un `UPDATE … SET is_active = false` SANS clause `WHERE` : le locataire
+  //     qui enregistrait la sienne effaçait celle de TOUS les autres, puis
+  //     devenait la seule ligne active — son identité était ensuite servie à
+  //     tout le monde ;
+  //   • les bons de commande, documents d'engagement de dépense, pouvaient
+  //     donc sortir à l'en-tête et au numéro fiscal d'une AUTRE entreprise :
+  //     une fuite de données commerciales doublée d'un document faux ;
+  //   • les seuils d'approbation vivant dans la même ligne, un locataire
+  //     modifiait sans le savoir le montant à partir duquel les autres
+  //     déclenchent une validation.
+  //
+  // Voir migrations/0022_company_config_tenant_scoped.sql pour le rattachement
+  // des lignes antérieures — qu'AUCUNE donnée ne permet d'attribuer.
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   companyName: varchar("company_name", { length: 255 }).notNull(),
   address: text("address"),
   phone: varchar("phone", { length: 50 }),
@@ -1601,8 +1623,33 @@ export const insertCompanyConfigSchema = createInsertSchema(companyConfig).omit(
   updatedAt: true,
 });
 
+/**
+ * La charge acceptée de l'interface sur `POST /api/company-config`.
+ *
+ * ⚠️ `tenantId` et `isActive` en sont RETIRÉS, et ce n'est pas cosmétique.
+ * La route passait `req.body` tel quel à `.set({ ...configData })`. Une fois la
+ * colonne `tenant_id` ajoutée, un appelant qui postait `{ "tenantId": "<autre
+ * locataire>" }` aurait fait DÉMÉNAGER sa propre ligne de configuration chez
+ * ce locataire — la clause `WHERE` du correctif vise bien le locataire de la
+ * session, mais rien n'empêchait le `SET` de réécrire la colonne visée.
+ * Le même raisonnement vaut pour `isActive` : l'activation est décidée par le
+ * serveur, jamais demandée par le client.
+ *
+ * `client/src/components/threshold-configuration.tsx` rend ce filtrage
+ * nécessaire même sans malveillance : il renvoie l'objet lu par le GET
+ * (`{ ...companyConfig, seuils }`), donc `id`, `tenantId` et les horodatages
+ * reviennent dans la charge à chaque enregistrement de seuils. Zod les écarte
+ * silencieusement (comportement « strip » par défaut) au lieu de les écrire.
+ */
+export const companyConfigPayloadSchema = insertCompanyConfigSchema.omit({
+  tenantId: true,
+  isActive: true,
+});
+
 export type CompanyConfig = typeof companyConfig.$inferSelect;
 export type InsertCompanyConfig = z.infer<typeof insertCompanyConfigSchema>;
+/** Ce qu'un locataire peut écrire : tout sauf à qui la ligne appartient. */
+export type CompanyConfigPayload = z.infer<typeof companyConfigPayloadSchema>;
 
 // ========================================
 // POST-DEPLOYMENT ACCESS MANAGEMENT TABLES
