@@ -17,7 +17,8 @@ import {
   insertAlertsNotificationsSchema,
   insertMaintenanceReportSchema,
   insertMonthlyReportSchema,
-  createCounterFromPlanSchema
+  createCounterFromPlanSchema,
+  companyConfigPayloadSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { createValidationDemo } from "./create-validation-demo";
@@ -1542,12 +1543,26 @@ export function registerGMAORoutes(app: Express) {
 
 
   // ============= COMPANY CONFIGURATION ROUTES =============
-  
+  //
+  // Ces routes lisaient et écrivaient UNE SEULE ligne pour toute l'instance :
+  // la raison sociale, l'adresse, le numéro fiscal, le logo et les seuils
+  // d'approbation étaient communs à tous les locataires, et le dernier à
+  // enregistrer effaçait la configuration de tous les autres. Voir
+  // shared/schema.ts (table `companyConfig`) et
+  // migrations/0022_company_config_tenant_scoped.sql.
+
   // Get company configuration
   app.get("/api/company-config", async (req, res) => {
     try {
-      const config = await gmaoStorage.getCompanyConfig();
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      const config = await gmaoStorage.getCompanyConfig(tenantId);
       if (!config) {
+        // Gabarit de départ pour un locataire qui n'a encore rien enregistré.
+        // ⚠️ Il ne doit JAMAIS retomber sur la configuration d'un autre : un
+        // locataire neuf voit des champs vides et les remplit, il ne reprend
+        // pas l'identité commerciale du voisin.
         return res.json({
           companyName: "Votre Entreprise",
           address: "",
@@ -1570,13 +1585,20 @@ export function registerGMAORoutes(app: Express) {
   // Get document type based on amount
   app.post("/api/purchase-orders/document-type", async (req, res) => {
     try {
+      // ⚠️ Les seuils vivent dans `company_config`. Tant que cette table était
+      // commune, un locataire qui modifiait son seuil déplaçait celui de tout
+      // le monde : le montant au-delà duquel une dépense exige une validation
+      // renforcée changeait chez les autres, sans qu'ils en sachent rien.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const { amount } = req.body;
-      
+
       if (!amount || isNaN(parseFloat(amount))) {
         return res.status(400).json({ message: "Montant invalide" });
       }
-      
-      const config = await gmaoStorage.getCompanyConfig();
+
+      const config = await gmaoStorage.getCompanyConfig(tenantId);
       const purchaseThreshold = parseFloat(config?.purchaseOrderThreshold || "1500.00");
       const commandThreshold = parseFloat(config?.commandLetterThreshold || "1500.01");
       
@@ -1608,20 +1630,65 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Create or update company configuration  
+  // Create or update company configuration
   app.post("/api/company-config", async (req, res) => {
     try {
-      const existingConfig = await gmaoStorage.getCompanyConfig();
-      
+      // ⚠️ AUCUN CONTRÔLE DE RÔLE n'existait ici. N'importe quel compte
+      // authentifié — un technicien, un lecteur — pouvait réécrire la raison
+      // sociale, l'adresse et le numéro fiscal portés par les bons de commande,
+      // et déplacer le seuil au-delà duquel une dépense exige une validation.
+      // Le second point est le plus grave : relever le seuil désarme le contrôle
+      // d'engagement, sans laisser de trace ailleurs que dans cette ligne.
+      //
+      // `technical_director` est le niveau retenu parce qu'il désigne EXACTEMENT
+      // les rôles auxquels server/rbac-permissions.ts accorde `manage_settings`
+      // (technical_director 5, admin 6, owner 7) : les deux référentiels disent
+      // donc la même chose. `auMoins` est préféré à une liste littérale pour la
+      // raison documentée en tête de ce fichier — `owner` est au-dessus et
+      // n'a pas à être nommé, et les orthographes déjà en base sont rattrapées.
+      if (!auMoinsNiveau(req, 'technical_director')) {
+        return res.status(403).json({
+          success: false,
+          error: "FORBIDDEN",
+          message: "Droits insuffisants pour modifier la configuration de l'entreprise",
+        });
+      }
+
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      // La charge est VALIDÉE puis réduite : ni `id`, ni `tenantId`, ni
+      // `isActive` ne traversent. Sans cela, `{ "tenantId": "<autre
+      // locataire>" }` posté par le client faisait déménager la ligne chez lui
+      // (le `.set()` réécrivait la colonne même que le `WHERE` venait de
+      // viser). Voir companyConfigPayloadSchema dans shared/schema.ts.
+      const charge = companyConfigPayloadSchema.safeParse(req.body);
+      if (!charge.success) {
+        return res.status(400).json({
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Configuration d'entreprise invalide",
+          details: charge.error.errors,
+        });
+      }
+
+      const existingConfig = await gmaoStorage.getCompanyConfig(tenantId);
+
       if (existingConfig) {
-        const updatedConfig = await gmaoStorage.updateCompanyConfig(existingConfig.id, req.body);
+        const updatedConfig = await gmaoStorage.updateCompanyConfig(existingConfig.id, tenantId, charge.data);
+        // `undefined` signifie que la ligne n'appartient pas à ce locataire —
+        // impossible ici puisqu'on vient de la lire pour lui, mais le contrat de
+        // la méthode le prévoit et un succès inventé serait pire qu'un 404.
+        if (!updatedConfig) {
+          return res.status(404).json({ success: false, message: "Configuration d'entreprise introuvable" });
+        }
         res.json({
           success: true,
           message: "Configuration mise à jour avec succès",
           config: updatedConfig
         });
       } else {
-        const newConfig = await gmaoStorage.createCompanyConfig(req.body);
+        const newConfig = await gmaoStorage.createCompanyConfig(tenantId, charge.data);
         res.json({
           success: true,
           message: "Configuration créée avec succès",
@@ -1630,9 +1697,9 @@ export function registerGMAORoutes(app: Express) {
       }
     } catch (error) {
       console.error("Error saving company config:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: "Failed to save company configuration" 
+        message: "Failed to save company configuration"
       });
     }
   });
@@ -1640,8 +1707,24 @@ export function registerGMAORoutes(app: Express) {
   // Generate purchase order with letterhead — real data from DB
   app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
     try {
+      // L'en-tête porté par ce document est celui du DEMANDEUR, et plus la
+      // ligne active commune à l'instance. C'était le cas le plus lourd de
+      // conséquences : un bon de commande est un engagement de dépense, et il
+      // sortait sous la raison sociale, l'adresse et le numéro fiscal d'une
+      // autre entreprise.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
+      // ⚠️ RESTE OUVERT, ET DISTINCT : `purchase_orders` ne porte aucun
+      // `tenant_id` (ni schéma, ni migration, ni filtrage nulle part), donc
+      // cette lecture peut renvoyer le bon de commande d'un autre locataire.
+      // Le correctif de ce lot change l'EN-TÊTE, pas la provenance de la
+      // commande : la chaîne achats entière (liste, validation, impression)
+      // demande sa propre migration. Le cas est épinglé par
+      // tests/integration/isolation-configuration-entreprise.test.ts, pour que
+      // la limite soit visible au lieu d'être supposée fermée.
       const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
@@ -1668,7 +1751,7 @@ export function registerGMAORoutes(app: Express) {
       };
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      const companyConfig = await gmaoStorage.getCompanyConfig();
+      const companyConfig = await gmaoStorage.getCompanyConfig(tenantId);
       const pdfCompanyConfig = companyConfig ? {
         companyName: companyConfig.companyName,
         address: companyConfig.address || "",
@@ -1740,6 +1823,12 @@ export function registerGMAORoutes(app: Express) {
   // Download purchase order as PDF — real data from DB
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
+      // Même en-tête, même raison que sur `/letterhead` juste au-dessus : le
+      // papier à en-tête est celui du demandeur. Et même limite restante sur la
+      // provenance du bon de commande lui-même.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
       const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
@@ -1767,7 +1856,7 @@ export function registerGMAORoutes(app: Express) {
       };
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      const companyConfig = await gmaoStorage.getCompanyConfig();
+      const companyConfig = await gmaoStorage.getCompanyConfig(tenantId);
       const pdfCompanyConfig = companyConfig ? {
         companyName: companyConfig.companyName,
         address: companyConfig.address || "",

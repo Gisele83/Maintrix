@@ -30,6 +30,8 @@ import ThresholdConfiguration from "@/components/threshold-configuration";
 import PurchaseOrderCreator from "@/components/purchase-order-creator";
 import { EquipmentHealthDashboard } from "@/components/equipment-health-dashboard";
 import { HistoriqueMaintenance } from "@/components/historique-maintenance";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 
 
 interface RecentWorkOrder {
@@ -175,6 +177,19 @@ export default function GMAODashboard() {
   const [ecran, setEcran] = useState<string>("");
   const [configurationOuverte, setConfigurationOuverte] = useState(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+  const { user } = useAuth();
+
+  /**
+   * Qui peut toucher à l'identité de l'entreprise et aux seuils d'approbation.
+   *
+   * `auMoins` et non une comparaison littérale : `owner` est AU-DESSUS de
+   * `technical_director` et une liste écrite à la main l'oublierait — c'est
+   * exactement le défaut relevé par tests/unit/roles-cote-client.test.ts, qui
+   * refuse désormais ce motif. Le niveau est celui du serveur
+   * (POST /api/company-config), et correspond aux rôles porteurs de
+   * `manage_settings` dans server/rbac-permissions.ts.
+   */
+  const peutConfigurerEntreprise = auMoins(user?.role, "technical_director");
 
   // Fetch GMAO dashboard data
   const { data: dashboardData, isLoading, isError } = useQuery<GMAODashboardData>({
@@ -343,7 +358,19 @@ export default function GMAODashboard() {
             })}
 
             {/* La configuration de l'entreprise n'est pas un domaine
-                d'exploitation : elle se tient à l'écart, à droite. */}
+                d'exploitation : elle se tient à l'écart, à droite.
+
+                ⚠️ Et elle n'est plus offerte à tous. L'onglet donnait à
+                n'importe quel compte — technicien, lecture seule — la raison
+                sociale et le numéro fiscal portés par les bons de commande,
+                ainsi que le seuil au-delà duquel une dépense exige une
+                validation. Le serveur refuse désormais l'écriture en 403
+                (POST /api/company-config) ; masquer l'onglet évite d'offrir un
+                bouton qui échoue. Le NIVEAU est le même des deux côtés, et
+                c'est le point : une interface plus permissive que le serveur
+                promet ce qu'il refuse, l'inverse enferme dehors des comptes
+                autorisés. */}
+            {peutConfigurerEntreprise && (
             <button
               onClick={() => setConfigurationOuverte(true)}
               aria-selected={configurationOuverte}
@@ -357,6 +384,7 @@ export default function GMAODashboard() {
               <Cog className="w-4 h-4" aria-hidden="true" />
               <span>Configuration</span>
             </button>
+            )}
           </div>
         </div>
       </nav>
@@ -1228,7 +1256,7 @@ export default function GMAODashboard() {
           </div>
         )}
 
-        {configurationOuverte && (
+        {configurationOuverte && peutConfigurerEntreprise && (
           <div className="space-y-6">
             <EnTetePage
               surTitre="GMAO"

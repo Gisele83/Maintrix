@@ -2584,41 +2584,101 @@ export class GMAOStorage {
   }
 
   // ============= COMPANY CONFIGURATION METHODS =============
-  
-  async getCompanyConfig(): Promise<CompanyConfig | undefined> {
-    const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
+  //
+  // ⚠️ `tenantId` est OBLIGATOIRE sur les quatre méthodes qui suivent, et c'est
+  // délibéré : un paramètre facultatif aurait laissé les appelants existants
+  // compiler sans changement, donc continuer de lire la configuration d'autrui
+  // en silence. En l'exigeant, le compilateur désigne lui-même les appelants —
+  // vérifié en retirant l'argument : cinq erreurs TS2554 dans gmao-routes.ts,
+  // une par lecture de configuration (GET /api/company-config,
+  // POST /api/purchase-orders/document-type, POST /api/company-config, et les
+  // deux routes PDF de bon de commande), plus l'écriture de cette même route.
+  // `generatePurchaseOrderWithLetterhead` ci-dessous n'a, lui, aucun appelant.
+
+  async getCompanyConfig(tenantId: string): Promise<CompanyConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(companyConfig)
+      .where(and(eq(companyConfig.tenantId, tenantId), eq(companyConfig.isActive, true)));
     return config;
   }
 
-  async createCompanyConfig(configData: InsertCompanyConfig): Promise<CompanyConfig> {
-    // Deactivate existing configs
-    await db.update(companyConfig).set({ isActive: false });
-    
-    const [newConfig] = await db
-      .insert(companyConfig)
-      .values({ ...configData, isActive: true })
-      .returning();
-    return newConfig;
+  /**
+   * ⚠️ `configData` NE PORTE PAS `tenantId` : il vient de la session, jamais de
+   * la charge. Le type l'interdit pour que personne ne rebranche la charge du
+   * client sur cette colonne (voir `companyConfigPayloadSchema`).
+   */
+  async createCompanyConfig(
+    tenantId: string,
+    configData: Omit<InsertCompanyConfig, "tenantId">,
+  ): Promise<CompanyConfig> {
+    // ⚠️ LE DÉFAUT CORRIGÉ ICI. La désactivation s'écrivait
+    // `db.update(companyConfig).set({ isActive: false })` — sans WHERE. Elle
+    // éteignait donc la configuration de TOUS les locataires de l'instance, et
+    // la ligne nouvellement insérée devenait la seule active : l'identité
+    // commerciale de celui qui enregistrait était ensuite servie à tout le
+    // monde par `getCompanyConfig()`.
+    //
+    // Les deux écritures sont désormais dans une TRANSACTION. Sans elle, une
+    // panne entre les deux laisse le locataire sans aucune configuration active
+    // alors qu'il vient d'en enregistrer une — et ses bons de commande sortent
+    // sans en-tête sans que rien ne le signale.
+    return await db.transaction(async (tx) => {
+      await tx
+        .update(companyConfig)
+        .set({ isActive: false })
+        .where(eq(companyConfig.tenantId, tenantId));
+
+      const [newConfig] = await tx
+        .insert(companyConfig)
+        .values({ ...configData, tenantId, isActive: true })
+        .returning();
+      return newConfig;
+    });
   }
 
-  async updateCompanyConfig(id: number, configData: Partial<InsertCompanyConfig>): Promise<CompanyConfig> {
+  /**
+   * Met à jour la configuration `id` **à condition qu'elle appartienne à
+   * `tenantId`**. Renvoie `undefined` si elle ne lui appartient pas : la route
+   * répond alors 404, et non un succès silencieux sur la ligne d'autrui.
+   */
+  async updateCompanyConfig(
+    id: number,
+    tenantId: string,
+    configData: Partial<Omit<InsertCompanyConfig, "tenantId">>,
+  ): Promise<CompanyConfig | undefined> {
     const [updatedConfig] = await db
       .update(companyConfig)
       .set({ ...configData, updatedAt: new Date() })
-      .where(eq(companyConfig.id, id))
+      .where(and(eq(companyConfig.id, id), eq(companyConfig.tenantId, tenantId)))
       .returning();
     return updatedConfig;
   }
 
-  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number, demoData?: any): Promise<string> {
-    const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
-    
+  /**
+   * Bon de commande rendu en HTML sur le papier en-tête du locataire.
+   *
+   * ⚠️ AUCUN APPELANT à ce jour (vérifié par recensement sur tout le dépôt) :
+   * les deux routes PDF passent par `generatePurchaseOrderPDF`. La méthode est
+   * cloisonnée quand même — une fonction morte qui lit une table commune est un
+   * piège pour le jour où on la rebranche, et c'est ainsi que la configuration
+   * commune a été lue par cinq endroits sans que personne ne s'en aperçoive.
+   */
+  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number, tenantId: string, demoData?: any): Promise<string> {
+    const config = await this.getCompanyConfig(tenantId);
+
     let purchaseOrder;
     if (demoData) {
       // Use demo data from validation system
       purchaseOrder = demoData;
     } else {
-      // Try to get from real database
+      // ⚠️ `purchase_orders` NE PORTE PAS de `tenant_id` — ni dans le schéma, ni
+      // dans aucune migration, et rien dans le dépôt ne cloisonne cette table.
+      // Le bon de commande lu ici peut donc appartenir à n'importe quel
+      // locataire de l'instance. C'est un défaut DISTINCT de celui corrigé dans
+      // ce lot, et plus large (toute la chaîne achats : liste, validation,
+      // impression) : il demande sa propre migration et la reprise de
+      // procurement-routes.ts. L'en-tête, lui, est désormais celui du demandeur.
       const [dbOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
       purchaseOrder = dbOrder;
     }
