@@ -102,14 +102,21 @@ router.post("/work-orders/validate", async (req, res) => {
 router.get("/purchase-orders/pending", async (req, res) => {
   try {
     const { validatorId, validationLevel } = req.query;
-    
+
     if (!validatorId || !validationLevel) {
       return res.status(400).json({ message: "validatorId and validationLevel required" });
     }
 
+    // Le locataire vient de la session, ou la requête est refusée. Aucun repli.
+    // (`validatorId` reste lu dans la requête : voir l'avertissement en tête de
+    // ce fichier, qui n'est monté nulle part et n'a pas été réécrit.)
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
     const purchaseOrders = await gmaoStorage.getPendingPurchaseOrdersForValidation(
       Number(validatorId),
-      Number(validationLevel)
+      Number(validationLevel),
+      tenantId,
     );
     
     res.json(purchaseOrders);
@@ -123,8 +130,12 @@ router.get("/purchase-orders/pending", async (req, res) => {
 router.post("/purchase-orders/validate", async (req, res) => {
   try {
     const validatedData = purchaseOrderValidationSchema.parse(req.body);
-    
-    const result = await gmaoStorage.validatePurchaseOrder(validatedData);
+
+    // Le locataire vient de la session, ou la requête est refusée. Aucun repli.
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
+    const result = await gmaoStorage.validatePurchaseOrder({ ...validatedData, tenantId });
     
     res.json({
       success: true,
@@ -244,7 +255,9 @@ router.get("/work-orders/:id/status", async (req, res) => {
 router.get("/purchase-orders/:id/status", async (req, res) => {
   try {
     const { id } = req.params;
-    const status = await gmaoStorage.getPurchaseOrderValidationStatus(Number(id));
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+    const status = await gmaoStorage.getPurchaseOrderValidationStatus(Number(id), tenantId);
     res.json(status);
   } catch (error) {
     console.error("Error fetching purchase order validation status:", error);

@@ -1308,6 +1308,9 @@ export function registerGMAORoutes(app: Express) {
 
   app.post("/api/purchase-orders", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       // Determine document type based on amount
       const amount = parseFloat(req.body.totalAmount);
       const documentType = amount <= 1500 ? "purchase_order" : "command_letter";
@@ -1326,8 +1329,11 @@ export function registerGMAORoutes(app: Express) {
         notes: req.body.description || "",
         terms: req.body.terms || ""
       };
-      
-      const order = await gmaoStorage.createPurchaseOrder(orderData);
+
+      // Le propriétaire du bon vient de la SESSION. Cette route le créait sans
+      // aucun locataire : la ligne naissait orpheline, donc lisible et
+      // approuvable par tout le monde (migration 0022).
+      const order = await gmaoStorage.createPurchaseOrder(tenantId, orderData);
       res.status(201).json({
         success: true,
         message: `${documentType === "purchase_order" ? "Bon de commande" : "Lettre de commande"} créé avec succès`,
@@ -1400,7 +1406,12 @@ export function registerGMAORoutes(app: Express) {
   // Get purchase orders — real data from DB
   app.get("/api/purchase-orders", async (req, res) => {
     try {
-      const orders = await gmaoStorage.getPurchaseOrders();
+      // Rendait les bons de commande de toute l'instance — montants,
+      // fournisseurs et demandeurs compris.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const orders = await gmaoStorage.getPurchaseOrders(tenantId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
@@ -1640,15 +1651,22 @@ export function registerGMAORoutes(app: Express) {
   // Generate purchase order with letterhead — real data from DB
   app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
     try {
+      // Un bon de commande servi en PDF reste un bon de commande : le document
+      // porte le montant, le fournisseur et les lignes commandées. Cette route
+      // n'exigeait aucun locataire, et un identifiant deviné suffisait à en
+      // obtenir le PDF complet.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
       // Enrich with line items and resolved supplier name
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
@@ -1696,15 +1714,35 @@ export function registerGMAORoutes(app: Express) {
   // Mark purchase order as printed (Service Achat final step)
   app.post("/api/purchase-orders/:id/mark-printed", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
-      const { printedBy, printedAt } = req.body;
-      
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+      const { printedAt } = req.body;
+
+      // `printedBy` ne vient PLUS du corps, et son repli `|| 1` est retiré.
+      // C'était la même signature falsifiée que celle refermée dans le circuit
+      // de validation : le client désignait qui avait imprimé, et à défaut
+      // l'utilisateur n° 1 — quel qu'il soit — en portait la trace. L'identité
+      // vient de la session, et l'absence de session fait échouer la requête
+      // plutôt que d'inventer un auteur.
+      const imprimeur = (req as any).user?.id;
+      if (!imprimeur) {
+        return res.status(401).json({
+          error: "AUTHENTIFICATION_REQUISE",
+          message: "Marquer un bon comme imprimé exige une identité.",
+        });
+      }
+
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, tenantId, {
         validationStatus: "printed",
-        printedBy: printedBy || 1, // Service Achat user ID
+        printedBy: imprimeur,
         printedAt: printedAt ? new Date(printedAt) : new Date()
       });
-      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Bon de commande introuvable" });
+      }
+
       res.json({
         success: true,
         message: "Bon de commande marqué comme imprimé",
@@ -1719,13 +1757,19 @@ export function registerGMAORoutes(app: Express) {
   // Add supporting documents to purchase order
   app.post("/api/purchase-orders/:id/documents", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
       const { documents } = req.body;
-      
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, tenantId, {
         documentsJustificatifs: documents
       });
-      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Bon de commande introuvable" });
+      }
+
       res.json({
         success: true,
         message: "Documents justificatifs ajoutés",
@@ -1740,14 +1784,18 @@ export function registerGMAORoutes(app: Express) {
   // Download purchase order as PDF — real data from DB
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
+      // Même garde que /letterhead : le PDF est le document lui-même.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
@@ -1797,7 +1845,12 @@ export function registerGMAORoutes(app: Express) {
   // Create sample validation data for testing
   app.post("/api/create-validation-demo", async (req, res) => {
     try {
-      const result = await createValidationDemo();
+      // Le jeu de démonstration se dépose chez le locataire de la session, et
+      // non chez un `"default-tenant"` écrit en dur dans la fonction.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const result = await createValidationDemo(tenantId);
       res.json(result);
     } catch (error: any) {
       console.error("Error creating validation demo:", error);

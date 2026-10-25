@@ -6,8 +6,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { cctpComplianceService, PurchaseOrderConfigSchema, WorkOrderConfigSchema, ReportingConfigSchema } from "./cctp-compliance-system";
 import { db } from "./db";
-import { tenants } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { purchaseOrders, tenants } from "../shared/schema";
+import { and, eq } from "drizzle-orm";
 
 const router = Router();
 
@@ -180,17 +180,49 @@ router.get("/tenant/:tenantId/purchase-order/:purchaseOrderId/document-type", as
       return res.status(404).json({ error: "Configuration non trouvée" });
     }
     
-    // Récupérer le montant de la commande
+    // Récupérer le montant de la commande, DANS le locataire demandé.
+    //
+    // ⚠️ Ce `tenantId` vient de l'URL, pas de la session : c'est l'appelant qui
+    // désigne l'organisation dont il lit la configuration. Défaut antérieur,
+    // commun à toutes les routes de ce fichier et hors du lot d'isolation de
+    // `purchase_orders` ; il reste à reprendre avec `tenantRequis()`. Filtrer
+    // dessus ne suffit donc pas à cloisonner cette route — mais ne pas filtrer
+    // du tout laissait en plus lire le montant d'un bon de n'importe qui, même
+    // avec un locataire correctement résolu.
     const [purchaseOrder] = await db.select()
-      .from(require("../shared/schema").purchaseOrders)
-      .where(eq(require("../shared/schema").purchaseOrders.id, parseInt(purchaseOrderId)));
+      .from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, parseInt(purchaseOrderId)), eq(purchaseOrders.tenantId, tenantId)));
     
     if (!purchaseOrder) {
       return res.status(404).json({ error: "Bon de commande non trouvé" });
     }
     
-    const totalAmount = purchaseOrder.totalAmount || 0;
-    const recommendedType = totalAmount >= config.purchaseOrderThreshold ? 'purchase_order' : 'letter';
+    // ⚠️ DEUX CHAÎNES COMPARÉES COMME DES NOMBRES. La ligne précédente était
+    // `totalAmount >= config.purchaseOrderThreshold`, sur des valeurs dont
+    // AUCUNE n'est un nombre en pratique :
+    //
+    //   • `total_amount` est `numeric`, et node-postgres rend les `numeric`
+    //     sous forme de CHAÎNE pour ne pas perdre en précision — le même piège
+    //     est déjà documenté en F11 dans server/cctp-compliance-system.ts ;
+    //   • `config.purchaseOrderThreshold` est déclaré `number`, mais
+    //     `getPurchaseOrderConfig` rend `tenant.config as PurchaseOrderConfig`,
+    //     un `jsonb` transtypé sans validation : le type annoncé ne garantit
+    //     rien de ce que porte la colonne.
+    //
+    // Deux chaînes comparées par `>=` le sont LEXICOGRAPHIQUEMENT : « 900 » est
+    // alors supérieur à « 1500 », parce que « 9 » vient après « 1 ». Un bon de
+    // 900 € se voyait recommander un bon de commande là où la lettre de
+    // commande s'imposait. Le défaut était invisible au compilateur tant que
+    // `purchaseOrder` venait d'un `require()` non typé.
+    //
+    // Les deux côtés sont donc convertis, comme le fait déjà
+    // `generatePurchaseDocument` pour le même arbitrage.
+    const totalAmount = parseFloat(String(purchaseOrder.totalAmount ?? '0'));
+    const seuil = Number(config.purchaseOrderThreshold);
+    const recommendedType =
+      Number.isFinite(totalAmount) && Number.isFinite(seuil) && totalAmount >= seuil
+        ? 'purchase_order'
+        : 'letter';
     
     res.json({
       totalAmount,

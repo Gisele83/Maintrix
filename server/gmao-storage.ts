@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, isNull, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, isNull, inArray, sql, count } from "drizzle-orm";
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -1527,14 +1527,40 @@ export class GMAOStorage {
     return supplier;
   }
 
-  // Purchase Orders management
-  async createPurchaseOrder(orderData: Omit<InsertPurchaseOrder, 'orderNumber'> & { orderNumber?: string }): Promise<PurchaseOrder> {
+  // ════════════════════════════════════════════════════════════════
+  // BONS DE COMMANDE — cloisonnés par locataire depuis la migration 0022
+  // ════════════════════════════════════════════════════════════════
+  //
+  // Aucune de ces méthodes ne filtrait sur quoi que ce soit : `purchase_orders`
+  // ne portait pas de colonne `tenant_id`. Chacune prend désormais un
+  // `tenantId` OBLIGATOIRE, et il vient de la session de l'appelant — jamais du
+  // corps de la requête, jamais d'un en-tête (voir server/tenant-requis.ts).
+  //
+  // Le locataire est placé APRÈS l'identifiant du document, comme pour les
+  // ordres de travail (`getWorkOrderById(id, tenantId)`,
+  // `updateWorkOrder(id, tenantId, data)`), pour que les deux circuits se
+  // lisent de la même façon.
+  //
+  // `updatePurchaseOrder` rend désormais `undefined` quand aucune ligne n'a été
+  // touchée, au lieu de `PurchaseOrder`. C'est le point important : un bon
+  // appartenant à un autre locataire ne produit plus une écriture silencieuse
+  // ni une exception, mais une absence que l'appelant doit traiter — en 404.
+
+  async createPurchaseOrder(
+    tenantId: string,
+    orderData: Omit<InsertPurchaseOrder, 'orderNumber' | 'tenantId'> & { orderNumber?: string },
+  ): Promise<PurchaseOrder> {
     const orderNumber = `${orderData.documentType === "command_letter" ? "CL" : "PO"}-${Date.now()}`;
-    
+
     const [order] = await db
       .insert(purchaseOrders)
       .values({
         ...orderData,
+        // Le locataire est posé APRÈS l'étalement de `orderData` : même si un
+        // appelant y glissait un `tenantId`, c'est celui de la session qui est
+        // écrit. Le type l'interdit déjà, mais un `any` sur le chemin d'appel
+        // suffirait à contourner le type et pas cette ligne.
+        tenantId,
         orderNumber,
         status: "pending"
       })
@@ -1542,30 +1568,62 @@ export class GMAOStorage {
     return order;
   }
 
-  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    return await db.select().from(purchaseOrders);
+  async getPurchaseOrders(tenantId: string): Promise<PurchaseOrder[]> {
+    return await db.select().from(purchaseOrders).where(eq(purchaseOrders.tenantId, tenantId));
   }
 
-  async getPurchaseOrderById(id: number): Promise<PurchaseOrder | undefined> {
-    const [order] = await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.id, id));
+  async getPurchaseOrderById(id: number, tenantId: string): Promise<PurchaseOrder | undefined> {
+    const [order] = await this.db.select().from(purchaseOrders)
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.tenantId, tenantId)));
     return order;
   }
 
-  async updatePurchaseOrder(id: number, data: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder> {
+  async updatePurchaseOrder(
+    id: number,
+    tenantId: string,
+    data: Partial<Omit<InsertPurchaseOrder, 'tenantId'>>,
+  ): Promise<PurchaseOrder | undefined> {
     const [order] = await this.db
       .update(purchaseOrders)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(purchaseOrders.id, id))
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.tenantId, tenantId)))
       .returning();
     return order;
   }
 
-  async getPurchaseOrdersByStatus(status: string): Promise<PurchaseOrder[]> {
-    return await this.db.select().from(purchaseOrders).where(eq(purchaseOrders.validationStatus, status));
+  async getPurchaseOrdersByStatus(status: string, tenantId: string): Promise<PurchaseOrder[]> {
+    return await this.db.select().from(purchaseOrders)
+      .where(and(eq(purchaseOrders.validationStatus, status), eq(purchaseOrders.tenantId, tenantId)));
   }
 
-  // Purchase Order Items management
-  async createPurchaseOrderItem(itemData: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+  // ── Lignes de bon de commande ───────────────────────────────────
+  //
+  // `purchase_order_items` ne porte PAS de colonne `tenant_id`, et n'en reçoit
+  // pas : une ligne n'existe que par son bon. Le cloisonnement passe donc par
+  // le bon parent, et il est exact — une ligne dont le bon appartient à un
+  // autre locataire n'est ni lisible, ni modifiable, ni créable.
+  //
+  // `bonsDuLocataire()` sert de sous-requête commune. Drizzle n'exprime pas de
+  // jointure dans un UPDATE : le `IN (SELECT ...)` est la forme qui marche
+  // aussi bien en lecture qu'en écriture, donc une seule règle à relire.
+
+  private bonsDuLocataire(tenantId: string) {
+    return this.db.select({ id: purchaseOrders.id }).from(purchaseOrders)
+      .where(eq(purchaseOrders.tenantId, tenantId));
+  }
+
+  async createPurchaseOrderItem(
+    itemData: InsertPurchaseOrderItem,
+    tenantId: string,
+  ): Promise<PurchaseOrderItem | undefined> {
+    // Le bon parent est vérifié AVANT l'insertion : sans ce contrôle, un
+    // appelant pouvait ajouter une ligne — donc un montant — à un bon de
+    // commande d'une autre organisation, alors même que la table des lignes
+    // n'a pas de locataire à usurper.
+    if (itemData.purchaseOrderId == null) return undefined;
+    const bon = await this.getPurchaseOrderById(itemData.purchaseOrderId, tenantId);
+    if (!bon) return undefined;
+
     const [item] = await this.db
       .insert(purchaseOrderItems)
       .values(itemData)
@@ -1573,16 +1631,26 @@ export class GMAOStorage {
     return item;
   }
 
-  async getPurchaseOrderItems(purchaseOrderId: number): Promise<PurchaseOrderItem[]> {
+  async getPurchaseOrderItems(purchaseOrderId: number, tenantId: string): Promise<PurchaseOrderItem[]> {
     return await this.db.select().from(purchaseOrderItems)
-      .where(eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId));
+      .where(and(
+        eq(purchaseOrderItems.purchaseOrderId, purchaseOrderId),
+        inArray(purchaseOrderItems.purchaseOrderId, this.bonsDuLocataire(tenantId)),
+      ));
   }
 
-  async updatePurchaseOrderItem(id: number, data: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem> {
+  async updatePurchaseOrderItem(
+    id: number,
+    tenantId: string,
+    data: Partial<InsertPurchaseOrderItem>,
+  ): Promise<PurchaseOrderItem | undefined> {
     const [item] = await this.db
       .update(purchaseOrderItems)
       .set(data)
-      .where(eq(purchaseOrderItems.id, id))
+      .where(and(
+        eq(purchaseOrderItems.id, id),
+        inArray(purchaseOrderItems.purchaseOrderId, this.bonsDuLocataire(tenantId)),
+      ))
       .returning();
     return item;
   }
@@ -1660,11 +1728,11 @@ export class GMAOStorage {
           if (rule.autoOrder && rule.supplierId) {
             const supplier = await this.getSupplierById(rule.supplierId);
             if (supplier) {
-              const orderNumber = await this.generatePurchaseOrderNumber();
+              const orderNumber = await this.generatePurchaseOrderNumber(tenantId);
               const expectedDelivery = new Date();
               expectedDelivery.setDate(expectedDelivery.getDate() + (rule.leadTime || supplier.deliveryTime || 7));
 
-              const purchaseOrder = await this.createPurchaseOrder({
+              const purchaseOrder = await this.createPurchaseOrder(tenantId, {
                 orderNumber,
                 supplierId: rule.supplierId,
                 orderType: "spare_parts",
@@ -1689,7 +1757,7 @@ export class GMAOStorage {
                 unitPrice: part.unitPrice ? part.unitPrice.toString() : "0",
                 totalPrice: (part.unitPrice ? (parseFloat(part.unitPrice) * rule.reorderQuantity).toFixed(2) : "0"),
                 expectedDelivery
-              });
+              }, tenantId);
 
               createdOrders.push(purchaseOrder);
 
@@ -1704,11 +1772,27 @@ export class GMAOStorage {
   }
 
   // Generate purchase order number
-  private async generatePurchaseOrderNumber(): Promise<string> {
+  //
+  // ⚠️ LE NUMÉRO RENDU ICI N'EST PAS CELUI QUI FINIT EN BASE. `createPurchaseOrder`
+  // recalcule systématiquement `orderNumber = PO-${Date.now()}` et ignore celui
+  // qu'on lui passe — ce qui veut dire que la trace
+  // « Auto-order created: PO20260001 » du réapprovisionnement automatique
+  // annonce un numéro que la ligne insérée ne porte pas. Défaut antérieur,
+  // laissé en place : changer la numérotation touche à `order_number`, qui est
+  // UNIQUE à l'échelle de l'instance, et ne se décide pas dans un lot
+  // d'isolation. Il est noté ici pour qu'il cesse d'être invisible.
+  //
+  // La lecture est tout de même cloisonnée : elle parcourait les bons de
+  // commande de toute l'instance, et c'est inutile pour un comptage qui ne sort
+  // pas de ce locataire.
+  private async generatePurchaseOrderNumber(tenantId: string): Promise<string> {
     const year = new Date().getFullYear();
-    const orders = await db.select().from(purchaseOrders)
-      .where(sql`EXTRACT(year FROM order_date) = ${year}`);
-    
+    const orders = await db.select({ id: purchaseOrders.id }).from(purchaseOrders)
+      .where(and(
+        eq(purchaseOrders.tenantId, tenantId),
+        sql`EXTRACT(year FROM order_date) = ${year}`,
+      ));
+
     const nextNumber = (orders.length + 1).toString().padStart(4, '0');
     return `PO${year}${nextNumber}`;
   }
@@ -2349,7 +2433,11 @@ export class GMAOStorage {
   }
 
   // Purchase Order Validation Methods
-  async getPendingPurchaseOrdersForValidation(validatorId: number, validationLevel: number): Promise<PurchaseOrder[]> {
+  async getPendingPurchaseOrdersForValidation(
+    validatorId: number,
+    validationLevel: number,
+    tenantId: string,
+  ): Promise<PurchaseOrder[]> {
     const user = await this.getUserProfile(validatorId);
     if (!user || !user.canValidatePurchaseOrders) {
       throw new Error("User does not have purchase order validation permissions");
@@ -2373,7 +2461,10 @@ export class GMAOStorage {
       throw new Error("Invalid validation level for purchase orders");
     }
 
-    return await this.db.select().from(purchaseOrders).where(query);
+    // Le locataire n'est pas une option : la file d'attente d'un validateur ne
+    // contient que les bons de son organisation.
+    return await this.db.select().from(purchaseOrders)
+      .where(and(query, eq(purchaseOrders.tenantId, tenantId)));
   }
 
   async validatePurchaseOrder(data: {
@@ -2382,8 +2473,9 @@ export class GMAOStorage {
     validationLevel: number;
     comments?: string;
     validatorId: number;
+    tenantId: string;
   }) {
-    const purchaseOrder = await this.getPurchaseOrderById(data.purchaseOrderId);
+    const purchaseOrder = await this.getPurchaseOrderById(data.purchaseOrderId, data.tenantId);
     if (!purchaseOrder) {
       throw new Error("Purchase order not found");
     }
@@ -2405,27 +2497,27 @@ export class GMAOStorage {
     if (data.action === "validate") {
       if (data.validationLevel === 1) {
         // Chef de Service Utilisateur valide
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
+        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, data.tenantId, {
           validationStatus: "chef_service_validated",
           chefServiceValidatedBy: data.validatorId,
           chefServiceValidatedAt: currentDate
         });
       } else if (data.validationLevel === 2) {
         // Directeur Général valide - Passe au niveau 3 ou prêt pour impression si c'est le dernier niveau
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
+        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, data.tenantId, {
           validationStatus: "directeur_validated",
           directeurValidatedBy: data.validatorId,
           directeurValidatedAt: currentDate
         });
       } else if (data.validationLevel === 3) {
         // Validation finale - bon prêt pour impression
-        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
+        updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, data.tenantId, {
           validationStatus: "ready_for_print",
           canPrint: true
         });
       }
     } else {
-      updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, {
+      updatedPurchaseOrder = await this.updatePurchaseOrder(data.purchaseOrderId, data.tenantId, {
         validationStatus: "rejected",
         rejectedBy: data.validatorId,
         rejectedAt: currentDate,
@@ -2551,8 +2643,8 @@ export class GMAOStorage {
     };
   }
 
-  async getPurchaseOrderValidationStatus(purchaseOrderId: number) {
-    const purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId);
+  async getPurchaseOrderValidationStatus(purchaseOrderId: number, tenantId: string) {
+    const purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId, tenantId);
     if (!purchaseOrder) {
       throw new Error("Purchase order not found");
     }
@@ -2610,17 +2702,25 @@ export class GMAOStorage {
     return updatedConfig;
   }
 
-  async generatePurchaseOrderWithLetterhead(purchaseOrderId: number, demoData?: any): Promise<string> {
+  // ⚠️ AUCUN APPELANT. Le papier à en-tête servi par l'application passe par
+  // `generatePurchaseOrderPDF` (server/pdf-generator-pdfkit.ts), appelé depuis
+  // server/gmao-routes.ts. Cette méthode-ci n'est référencée nulle part, et le
+  // `tenantId` y est néanmoins exigé : une méthode morte qui lit sans locataire
+  // est une fuite en attente d'un appelant.
+  async generatePurchaseOrderWithLetterhead(
+    purchaseOrderId: number,
+    tenantId: string,
+    demoData?: any,
+  ): Promise<string> {
     const [config] = await db.select().from(companyConfig).where(eq(companyConfig.isActive, true));
-    
+
     let purchaseOrder;
     if (demoData) {
       // Use demo data from validation system
       purchaseOrder = demoData;
     } else {
       // Try to get from real database
-      const [dbOrder] = await db.select().from(purchaseOrders).where(eq(purchaseOrders.id, purchaseOrderId));
-      purchaseOrder = dbOrder;
+      purchaseOrder = await this.getPurchaseOrderById(purchaseOrderId, tenantId);
     }
 
     if (!config) {

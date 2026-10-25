@@ -1,8 +1,14 @@
 import { db } from "./db";
 import { gmaoStorage } from "./gmao-storage";
 
-// Create sample validation data for testing multi-level validation system
-export async function seedValidationData() {
+/**
+ * Jeu d'essai du circuit de validation. AUCUN APPELANT à ce jour.
+ *
+ * Le locataire est un paramètre obligatoire : depuis la migration 0022, un bon
+ * de commande sans propriétaire ne s'insère pas, et il n'y a pas de locataire
+ * par défaut à deviner ici.
+ */
+export async function seedValidationData(tenantId: string) {
   try {
     console.log("Creating sample validation data...");
 
@@ -145,9 +151,9 @@ export async function seedValidationData() {
 
     // Insert purchase orders with their line items
     for (const { items, ...purchaseOrder } of purchaseOrders) {
-      const created = await gmaoStorage.createPurchaseOrder(purchaseOrder);
+      const created = await gmaoStorage.createPurchaseOrder(tenantId, purchaseOrder);
       for (const item of items) {
-        await gmaoStorage.createPurchaseOrderItem({ purchaseOrderId: created.id, ...item });
+        await gmaoStorage.createPurchaseOrderItem({ purchaseOrderId: created.id, ...item }, tenantId);
       }
     }
 

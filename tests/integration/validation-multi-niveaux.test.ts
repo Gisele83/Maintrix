@@ -86,21 +86,36 @@ async function lireOrdre(id: number): Promise<LigneOrdre> {
   return rows[0];
 }
 
-/** Un bon de commande neuf, en attente, du montant demandé. */
-async function creerBon(montant: string, suffixe: string): Promise<number> {
+/**
+ * Un bon de commande neuf, du montant demandé, DANS le locataire donné.
+ *
+ * `tenant_id` est arrivé avec la migration 0022, et la colonne est NOT NULL :
+ * avant elle, cette fixture insérait un bon sans propriétaire — ce qui était
+ * précisément le défaut. Le locataire est le premier paramètre, comme pour
+ * `creerOrdre`, pour qu'aucun appel ne puisse l'oublier en silence.
+ *
+ * `statut` permet de poser un bon directement à une étape avancée du circuit,
+ * ce dont les cas de file d'attente par niveau ont besoin.
+ */
+async function creerBon(
+  tenantId: string,
+  montant: string,
+  suffixe: string,
+  statut: string = 'pending',
+): Promise<number> {
   const { rows } = await pool.query(
-    `INSERT INTO purchase_orders (order_number, order_type, document_type, status, priority,
-                                  total_amount, currency, validation_status, notes)
-     VALUES ($1, 'spare_parts', 'purchase_order', 'pending', 'medium', $2, 'EUR', 'pending', $3)
+    `INSERT INTO purchase_orders (tenant_id, order_number, order_type, document_type, status,
+                                  priority, total_amount, currency, validation_status, notes)
+     VALUES ($1, $2, 'spare_parts', 'purchase_order', 'pending', 'medium', $3, 'EUR', $4, $5)
      RETURNING id`,
-    [`PO-${STAMP}-${suffixe}`, montant, `Bon ${suffixe} ${STAMP}`],
+    [tenantId, `PO-${STAMP}-${suffixe}`, montant, statut, `Bon ${suffixe} ${STAMP}`],
   );
   return rows[0].id;
 }
 
 async function lireBon(id: number) {
   const { rows } = await pool.query(
-    `SELECT validation_status, chef_service_validated_by, chef_service_validated_at,
+    `SELECT tenant_id, validation_status, chef_service_validated_by, chef_service_validated_at,
             directeur_validated_by, directeur_validated_at, can_print, printed_at
      FROM purchase_orders WHERE id = $1`,
     [id],
@@ -336,6 +351,80 @@ describe('Organisations — une habilitation ne traverse pas la frontière', () 
     expect(apres.level1_validated_by).toBeNull();
   }, 60_000);
 
+  it("un validateur habilité de Beta ne peut pas approuver un BON DE COMMANDE d'Alpha", async () => {
+    // Le cas que le lot précédent n'a PAS pu couvrir : `purchase_orders` ne
+    // portait aucun `tenant_id`, et `getPurchaseOrderById(id)` retrouvait donc
+    // le bon de n'importe quelle organisation. Les quatre barrières
+    // d'habilitation s'appliquaient alors correctement — au profit du mauvais
+    // document : `validateurBeta` détient réellement le niveau 2, porte
+    // `can_validate_purchase_orders` et n'a aucun plafond. Rien, côté
+    // habilitation, ne l'arrêtait. Seule la colonne du locataire pouvait.
+    const bon = await creerBon(SEEDED.tenantAlpha, '900.00', 'bc-frontiere');
+
+    const r = await validerBon(beta, {
+      purchaseorderId: bon,
+      action: 'validate',
+      validationLevel: 1,
+      // Le locataire PRÉTENDU par le client, pour vérifier qu'il n'est pas lu :
+      // c'est `req.tenantId` de la session qui sert, et lui seul.
+      tenantId: SEEDED.tenantAlpha,
+    });
+
+    expect(r.status).toBe(404);
+
+    // ET RIEN N'A ÉTÉ ÉCRIT — c'est le point. Un 404 rendu par-dessus un UPDATE
+    // qui s'exécute quand même serait indiscernable d'un vrai refus si l'on
+    // s'arrêtait au code de retour.
+    const apres = await lireBon(bon);
+    expect(apres.tenant_id).toBe(SEEDED.tenantAlpha);
+    expect(apres.validation_status).toBe('pending');
+    expect(apres.chef_service_validated_by).toBeNull();
+    expect(apres.chef_service_validated_at).toBeNull();
+    expect(apres.can_print).toBe(false);
+    expect(await journal('purchase_order', bon)).toHaveLength(0);
+  }, 60_000);
+
+  it("un rejet d'un bon d'Alpha par Beta est refusé de la même façon", async () => {
+    // Rejeter engage autant que valider : un bon rejeté sort du circuit.
+    const bon = await creerBon(SEEDED.tenantAlpha, '900.00', 'bc-rejet-frontiere');
+
+    const r = await validerBon(beta, {
+      purchaseorderId: bon, action: 'reject', validationLevel: 1, comments: 'non',
+    });
+
+    expect(r.status).toBe(404);
+    const apres = await lireBon(bon);
+    expect(apres.validation_status).toBe('pending');
+    expect(await journal('purchase_order', bon)).toHaveLength(0);
+  }, 60_000);
+
+  it("la file d'attente des BONS DE COMMANDE est cloisonnée, dans les deux sens", async () => {
+    // Un bon par locataire au niveau 1…
+    const bonAlpha = await creerBon(SEEDED.tenantAlpha, '800.00', 'file-bc-a');
+    const bonBeta = await creerBon(SEEDED.tenantBeta, '800.00', 'file-bc-b');
+    // …et un par locataire au niveau 2, pour éprouver l'autre sens avec
+    // `validateurBeta`, qui détient le niveau 2 et lit donc la file
+    // « level1_validated ».
+    const bonAlphaN2 = await creerBon(SEEDED.tenantAlpha, '800.00', 'file-bc-a2', 'level1_validated');
+    const bonBetaN2 = await creerBon(SEEDED.tenantBeta, '800.00', 'file-bc-b2', 'level1_validated');
+
+    const vueAlpha = await createAuthenticatedRequest(
+      'get', '/api/validation/purchase-orders/pending', niveau1,
+    );
+    expect(vueAlpha.status).toBe(200);
+    const idsAlpha = (vueAlpha.body as Array<{ id: number }>).map((b) => b.id);
+    expect(idsAlpha).toContain(bonAlpha);
+    expect(idsAlpha).not.toContain(bonBeta);
+
+    const vueBeta = await createAuthenticatedRequest(
+      'get', '/api/validation/purchase-orders/pending', beta,
+    );
+    expect(vueBeta.status).toBe(200);
+    const idsBeta = (vueBeta.body as Array<{ id: number }>).map((b) => b.id);
+    expect(idsBeta).toContain(bonBetaN2);
+    expect(idsBeta).not.toContain(bonAlphaN2);
+  }, 60_000);
+
   it("la file d'attente d'un locataire ne contient pas les ordres de l'autre", async () => {
     const ordreAlpha = await creerOrdre(SEEDED.tenantAlpha, 'file-a');
     const ordreBeta = await creerOrdre(SEEDED.tenantBeta, 'file-b');
@@ -394,7 +483,7 @@ describe("Files d'attente — le niveau vient de la session", () => {
 // ═══════════════════════════════════════════════════════════════════
 describe('Bons de commande — le plafond est opposable', () => {
   it("un montant supérieur au plafond du validateur est REFUSÉ, sans écriture", async () => {
-    const bon = await creerBon('4250.00', 'plafond');
+    const bon = await creerBon(SEEDED.tenantAlpha, '4250.00', 'plafond');
 
     const r = await validerBon(niveau1, { purchaseorderId: bon, action: 'validate', validationLevel: 1 });
 
@@ -408,7 +497,7 @@ describe('Bons de commande — le plafond est opposable', () => {
   }, 60_000);
 
   it('un montant sous le plafond passe, et inscrit un IDENTIFIANT de compte', async () => {
-    const bon = await creerBon('1500.00', 'sous-plafond');
+    const bon = await creerBon(SEEDED.tenantAlpha, '1500.00', 'sous-plafond');
 
     const r = await validerBon(niveau1, { purchaseorderId: bon, action: 'validate', validationLevel: 1 });
     expect(r.status).toBe(200);
@@ -423,7 +512,7 @@ describe('Bons de commande — le plafond est opposable', () => {
   }, 60_000);
 
   it("un validateur SANS plafond peut engager le montant que le niveau 1 refusait", async () => {
-    const bon = await creerBon('4250.00', 'sans-plafond');
+    const bon = await creerBon(SEEDED.tenantAlpha, '4250.00', 'sans-plafond');
 
     const r = await validerBon(niveau2, { purchaseorderId: bon, action: 'validate', validationLevel: 1 });
     expect(r.status).toBe(200);
@@ -431,7 +520,7 @@ describe('Bons de commande — le plafond est opposable', () => {
   }, 60_000);
 
   it("les trois échelons mènent à canPrint, et seulement à ce moment-là", async () => {
-    const bon = await creerBon('900.00', 'chaine');
+    const bon = await creerBon(SEEDED.tenantAlpha, '900.00', 'chaine');
 
     expect((await validerBon(niveau1, { purchaseorderId: bon, action: 'validate', validationLevel: 1 })).status).toBe(200);
     expect((await lireBon(bon)).can_print).toBe(false);
@@ -468,7 +557,7 @@ describe('Bons de commande — le plafond est opposable', () => {
   }, 60_000);
 
   it('un circuit déjà clos ne se rejoue pas', async () => {
-    const bon = await creerBon('100.00', 'clos');
+    const bon = await creerBon(SEEDED.tenantAlpha, '100.00', 'clos');
 
     expect((await validerBon(niveau1, { purchaseorderId: bon, action: 'validate', validationLevel: 1 })).status).toBe(200);
     // Deuxième validation de niveau 1 sur le même bon : l'étape est passée.

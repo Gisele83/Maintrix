@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { db } from "./db";
 import { tenants, purchaseOrders, workOrders, maintenanceReports } from "../shared/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { PDFGeneratorFunctional, MaintenanceReportData, MonthlyReportData } from "./pdf-generator-functional";
 
 // 🏢 Configuration des Bons de Commande par Tenant
@@ -162,10 +162,14 @@ export class CCTPComplianceService {
       throw new Error("Configuration Bon de Commande manquante pour ce tenant");
     }
 
+    // Le locataire était DÉJÀ dans la portée de cette fonction — le premier
+    // paramètre, utilisé juste au-dessus pour lire la configuration — et la
+    // lecture du bon de commande ne s'en servait pas. Un bon d'une autre
+    // organisation était donc généré avec l'en-tête de celle qui le demandait.
     const [purchaseOrder] = await db.select()
       .from(purchaseOrders)
-      .where(eq(purchaseOrders.id, purchaseOrderId));
-    
+      .where(and(eq(purchaseOrders.id, purchaseOrderId), eq(purchaseOrders.tenantId, tenantId)));
+
     if (!purchaseOrder) {
       throw new Error("Bon de commande introuvable");
     }

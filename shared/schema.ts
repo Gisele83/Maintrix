@@ -1319,6 +1319,12 @@ export const suppliers = pgTable("suppliers", {
 // Purchase Orders table
 export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
+  // Ajoutée migration 0022. Un bon de commande est un ENGAGEMENT DE DÉPENSE : sans
+  // cette colonne, `getPurchaseOrderById` retrouvait celui d'une autre organisation
+  // et un validateur habilité du locataire A pouvait l'approuver en son propre nom.
+  // Le locataire vient de la session à chaque insertion — jamais du corps de la
+  // requête ni d'un en-tête (voir server/tenant-requis.ts).
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   orderNumber: varchar("order_number", { length: 50 }).unique().notNull(),
   supplierId: integer("supplier_id").references(() => suppliers.id),
   orderType: varchar("order_type", { length: 50 }).notNull(), // spare_parts, services, maintenance
@@ -1357,7 +1363,18 @@ export const purchaseOrders = pgTable("purchase_orders", {
 // Purchase Order Items table
 export const purchaseOrderItems = pgTable("purchase_order_items", {
   id: serial("id").primaryKey(),
-  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  // `onDelete: "cascade"` ajouté migration 0022, et pas par souci de symétrie :
+  // sans lui, le `ON DELETE CASCADE` que `purchase_orders.tenant_id` porte ne
+  // s'exécute JAMAIS dès qu'un bon a des lignes. Mesuré — supprimer un
+  // locataire échoue sur « violates foreign key constraint
+  // purchase_order_items_purchase_order_id_purchase_orders_id_fk », et le
+  // retrait d'une organisation s'arrête là. Une ligne de bon de commande
+  // n'existe que par son bon : elle le suit.
+  //
+  // Cette table ne porte PAS de `tenantId` : le cloisonnement passe par le bon
+  // parent (voir `gmaoStorage.getPurchaseOrderItems`), ce qui évite une seconde
+  // valeur à maintenir — donc à désynchroniser.
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id, { onDelete: "cascade" }),
   sparePartId: integer("spare_part_id").references(() => spareParts.id),
   partNumber: varchar("part_number", { length: 100 }),
   description: text("description"),
@@ -1399,6 +1416,29 @@ export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit
   createdAt: true,
   updatedAt: true,
 });
+
+/**
+ * Un bon de commande tel qu'un CLIENT peut le formuler — à la création comme à
+ * la modification.
+ *
+ * `tenantId` est RETIRÉ des deux, et c'est le point de ces schémas. Les routes
+ * validaient le corps avec `insertPurchaseOrderSchema` : depuis que la colonne
+ * existe, cette forme l'aurait acceptée dans le corps, et le stockage l'aurait
+ * écrite — un appelant pouvait donc créer un bon chez un autre locataire, ou
+ * DÉPLACER le sien, par un simple champ de requête. Le propriétaire d'un bon
+ * est fixé à sa création, depuis la session, et ne se change pas ensuite.
+ *
+ * `orderNumber` est retiré lui aussi : `gmaoStorage.createPurchaseOrder` le
+ * recalcule systématiquement et ignore celui qu'on lui passe. Le laisser dans
+ * le schéma donnait à croire qu'un appelant pouvait choisir le numéro de son
+ * bon de commande, alors que la valeur postée était jetée sans un mot.
+ */
+export const createPurchaseOrderSchema = insertPurchaseOrderSchema.omit({
+  tenantId: true,
+  orderNumber: true,
+});
+
+export const updatePurchaseOrderSchema = createPurchaseOrderSchema.partial();
 
 export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({
   id: true,
