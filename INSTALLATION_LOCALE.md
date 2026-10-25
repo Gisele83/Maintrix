@@ -115,8 +115,9 @@ createdb maintrix_db
 # Exécuter les migrations
 npm run db:push
 
-# Charger les données de démonstration (120 cas industriels)
-npx tsx server/seed.ts
+# Charger le jeu de démonstration — organisation dédiée, réversible
+# (14 équipements, 14 mois d'interventions, relevés de capteurs, magasin)
+npm run demo:charger
 ```
 
 ### **Étape 6 : Construction et Démarrage**
@@ -237,8 +238,8 @@ docker-compose up -d --build
 # Vérification des logs
 docker-compose logs -f app
 
-# Charger les données de démo (si nécessaire)
-docker-compose exec app npx tsx server/seed.ts
+# Charger le jeu de démonstration (si nécessaire)
+docker-compose exec app npm run demo:charger
 
 # Arrêt
 docker-compose down
