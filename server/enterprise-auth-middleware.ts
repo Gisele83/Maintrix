@@ -50,8 +50,14 @@ export class EnterpriseAuthMiddleware {
       '/api/paypal/config',
       '/api/payments/create-payment-intent',
       '/api/paypal/create-order',
-      '/api/diagnostic-test',
-      '/diagnostic-test',
+      // ⚠️ `/api/diagnostic-test` et `/diagnostic-test` ont été RETIRÉS de cette
+      // liste le 2026-10-25. Mesuré : un appel ANONYME (jeton CSRF seul, aucune
+      // session) atteignait le pipeline de diagnostic complet et obtenait les
+      // cas de maintenance, les sessions, les tendances de défaillance, la
+      // criticité des équipements et les ordres de travail de TOUTES les
+      // organisations — /api/diagnostic, lui, répondait bien
+      // AUTHENTICATION_REQUIRED. Un chemin public ne peut pas être cloisonné :
+      // sans session, il n'y a pas de locataire à opposer.
       '/payments/config',
       '/paypal/config',
       '/payments/create-payment-intent',

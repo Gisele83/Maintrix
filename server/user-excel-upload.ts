@@ -2,6 +2,7 @@ import multer from 'multer';
 import * as XLSX from 'xlsx';
 import { Request, Response } from 'express';
 import { storage } from './storage';
+import { tenantRequis } from './tenant-requis';
 
 // Configure multer for file upload
 const upload = multer({
@@ -114,6 +115,13 @@ function extractDiagnosticData(worksheet: XLSX.WorkSheet): any[] {
 // Process uploaded Excel file and extract industrial maintenance data
 export async function processUserExcelFile(req: Request, res: Response) {
   try {
+    // Le locataire de la SESSION, et rien d'autre : les cas, équipements et
+    // gammes importés étaient écrits sans `tenant_id`. Visibles de toutes les
+    // organisations avant le cloisonnement du diagnostic, ils ne seraient
+    // désormais visibles d'aucune.
+    const tenantId = tenantRequis(req, res);
+    if (!tenantId) return;
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -192,7 +200,7 @@ export async function processUserExcelFile(req: Request, res: Response) {
     // Save equipment data
     for (const equipment of equipmentData) {
       try {
-        await storage.createEquipment(equipment);
+        await storage.createEquipment({ ...equipment, tenantId });
         savedEquipment++;
       } catch (error: any) {
         if (!error.message.includes('duplicate key value')) {
@@ -204,7 +212,7 @@ export async function processUserExcelFile(req: Request, res: Response) {
     // Save diagnostic data
     for (const diagnostic of diagnosticData) {
       try {
-        await storage.createMaintenanceCase(diagnostic);
+        await storage.createMaintenanceCase({ ...diagnostic, tenantId });
         savedDiagnostics++;
       } catch (error: any) {
         console.error(`❌ Failed to create diagnostic ${diagnostic.diagnosticId}:`, error.message);
@@ -215,7 +223,7 @@ export async function processUserExcelFile(req: Request, res: Response) {
     if (diagnosticData.length > 0) {
       for (const procedure of procedureData) {
         try {
-          await storage.createRepairProcedure(procedure);
+          await storage.createRepairProcedure({ ...procedure, tenantId });
           savedProcedures++;
         } catch (error: any) {
           console.error(`❌ Failed to create procedure ${procedure.procedureId}:`, error.message);
