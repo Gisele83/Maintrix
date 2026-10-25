@@ -4,6 +4,12 @@
 supervision industrielle (EN 13306, ISO 14224, ISO 55000, ISA-18.2 / EEMUA 191
 pour les alarmes).*
 
+> **Lecture.** Cet audit a été mené sur une lignée de travail parallèle à
+> `main`. Au moment de la fusion, plusieurs de ses constats avaient déjà été
+> corrigés par d'autres sessions : ils sont conservés ici, marqués
+> **corrigé depuis** et accompagnés du commit qui les a traités. Un constat
+> qu'on efface une fois réglé est un constat qui se reproduit.
+
 ---
 
 ## Méthode
@@ -114,35 +120,41 @@ raccordent pas.
 
 ---
 
-## 3. Validation multi-niveaux — le contrôle n'en est pas un
+## 3. Validation multi-niveaux — **corrigé depuis**
+
+*Constat d'audit, et son issue.*
 
 L'identité du validateur et son niveau d'habilitation étaient envoyés **par le
-navigateur** et repris tels quels par le serveur, sans aucune vérification :
-`simple-validation-routes.ts` ne contient aucune occurrence de `canValidate`,
-`requireRole` ni `hasPermission`. Poster `validationLevel: 2` suffisait à
-obtenir `canExecute = true` en sautant le niveau 1. Et personne n'était
-enregistré comme approbateur, le code ayant renoncé aux champs à contrainte de
-clé étrangère.
+navigateur** et repris tels quels par le serveur, sans aucune vérification.
+Poster `validationLevel: 2` suffisait à obtenir `canExecute = true` en sautant
+le niveau 1. Et personne n'était enregistré comme approbateur, le code ayant
+renoncé aux champs à contrainte de clé étrangère.
 
 En GMAO, la valeur d'une validation à plusieurs niveaux tient **entièrement** à
 la traçabilité : qui a approuvé, à quel niveau, pour quel montant. Sans elle, le
-dispositif a l'apparence d'un contrôle sans en être un.
+dispositif a l'apparence d'un contrôle sans en être un — ce qui est pire que pas
+de contrôle, parce qu'il inspire une confiance qu'il ne mérite pas.
 
-*Chantier lancé séparément.*
+**Corrigé** par `2e60a11` : `validatorId` ne provient plus du corps de la
+requête, et le fichier porte désormais les contrôles de droits qui lui
+manquaient.
 
 ---
 
-## 4. Configuration d'entreprise — commune à tous les locataires
+## 4. Configuration d'entreprise — **corrigé depuis**
 
-`company_config` ne porte aucune colonne locataire, et `createCompanyConfig`
-exécute `UPDATE company_config SET is_active = false` **sans clause WHERE**. Le
-locataire qui enregistre sa configuration désactive donc celle de tous les
-autres et devient la seule ligne active : sa raison sociale, son adresse et son
-numéro fiscal sont ensuite servis à tout le monde, y compris sur les bons de
-commande générés. Les seuils d'approbation étant dans la même table, un
-locataire modifie aussi ceux des autres.
+*Constat d'audit, et son issue.*
 
-*Chantier lancé séparément.*
+`company_config` ne portait aucune colonne locataire, et `createCompanyConfig`
+exécutait `UPDATE company_config SET is_active = false` **sans clause WHERE**.
+Le locataire qui enregistrait sa configuration désactivait donc celle de tous
+les autres et devenait la seule ligne active : sa raison sociale, son adresse et
+son numéro fiscal étaient ensuite servis à tout le monde, y compris sur les bons
+de commande générés. Les seuils d'approbation étant dans la même table, un
+locataire modifiait aussi ceux des autres.
+
+**Corrigé** par `38aa2c7` : la table porte un `tenant_id` et la désactivation
+est filtrée par locataire.
 
 ---
 
@@ -183,7 +195,7 @@ reste nécessaire.
 - plancher de confiance à 60 % ;
 - identifiants d'alerte tirés par `Math.random()`.
 
-### Budget (lot précédent)
+### Budget — traité en parallèle (29aa867)
 
 `/api/budget-summary` et `/api/budget-requests` servaient deux tableaux **en
 mémoire** — 325 000 € de budget, deux demandes d'achat nominatives — **partagés
