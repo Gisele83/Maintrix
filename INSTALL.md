@@ -34,8 +34,10 @@ createdb maintrix_db
 # 5. Initialiser le schéma
 npm run db:push
 
-# 6. (Optionnel) Charger les données de démo
-npx tsx server/seed.ts
+# 6. (Optionnel) Charger le jeu de démonstration
+#    Organisation dédiée (domaine .demo.invalid), réversible : rien n'est
+#    écrit dans une organisation réelle. Retrait : npm run demo:retirer
+npm run demo:charger
 
 # 7. Démarrer en développement
 npm run dev
@@ -202,7 +204,8 @@ chmod +x deploy-ovh.sh
 | `npm run build` | Construction production |
 | `npm start` | Démarrage production |
 | `npm run db:push` | Appliquer migrations DB |
-| `npx tsx server/seed.ts` | Charger données de démo |
+| `npm run demo:charger` | Charger le jeu de démonstration (organisation dédiée) |
+| `npm run demo:retirer` | Le retirer entièrement |
 | `npm run check` | Vérification TypeScript |
 
 ---
