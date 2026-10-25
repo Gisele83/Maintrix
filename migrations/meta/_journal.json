@@ -169,6 +169,13 @@
       "when": 1784672207523,
       "tag": "0023_purchase_orders_tenant_scoped",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1784672267523,
+      "tag": "0024_reorder_rules_tenant_scoped",
+      "breakpoints": true
     }
   ]
 }

@@ -1413,6 +1413,12 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
 // Automatic Reorder Rules table
 export const reorderRules = pgTable("reorder_rules", {
   id: serial("id").primaryKey(),
+  // Migration 0024. Dernière table de la chaîne achats à recevoir son
+  // propriétaire : `getReorderRules()` ne filtrait sur rien, et DEUX routes la
+  // servaient au tableau de bord « Stocks & Achats » — chaque client y lisait
+  // les seuils, quantités, délais et drapeaux de commande automatique de tous
+  // les autres, c'est-à-dire leur politique d'approvisionnement.
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   sparePartId: integer("spare_part_id").references(() => spareParts.id),
   reorderPoint: integer("reorder_point").notNull(), // minimum stock level
   reorderQuantity: integer("reorder_quantity").notNull(), // quantity to order

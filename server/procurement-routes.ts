@@ -220,10 +220,18 @@ router.put("/purchase-orders/:id", async (req, res) => {
 
 // REORDER RULES MANAGEMENT - GESTION DES RÈGLES DE RÉAPPROVISIONNEMENT
 
+// 🔒 Migration 0024 — les trois routes ci-dessous ignoraient le locataire.
+// La lecture est le doublon de `GET /api/reorder-rules` (server/gmao-routes.ts) :
+// les deux servaient la politique d'approvisionnement de toutes les
+// organisations au tableau de bord « Stocks & Achats ». La mise à jour agissait
+// sur un identifiant nu, donc sur la règle de n'importe qui.
+
 // Get all reorder rules
 router.get("/reorder-rules", async (req, res) => {
   try {
-    const rules = await gmaoStorage.getReorderRules();
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+    const rules = await gmaoStorage.getReorderRules(tenantId);
     res.json(rules);
   } catch (error) {
     console.error("Error fetching reorder rules:", error);
@@ -234,8 +242,12 @@ router.get("/reorder-rules", async (req, res) => {
 // Create reorder rule for a spare part
 router.post("/reorder-rules", async (req, res) => {
   try {
-    const validatedData = insertReorderRuleSchema.parse(req.body);
-    const rule = await gmaoStorage.createReorderRule(validatedData);
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+    // `omit({ tenantId: true })` : le schéma REFUSE désormais que le corps porte
+    // un locataire, au lieu de le valider puis de l'écrire.
+    const validatedData = insertReorderRuleSchema.omit({ tenantId: true }).parse(req.body);
+    const rule = await gmaoStorage.createReorderRule(validatedData, tenantId);
     res.status(201).json(rule);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -249,13 +261,21 @@ router.post("/reorder-rules", async (req, res) => {
 // Update reorder rule
 router.put("/reorder-rules/:id", async (req, res) => {
   try {
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid reorder rule ID" });
     }
 
-    const validatedData = insertReorderRuleSchema.partial().parse(req.body);
-    const rule = await gmaoStorage.updateReorderRule(id, validatedData);
+    const validatedData = insertReorderRuleSchema.partial().omit({ tenantId: true }).parse(req.body);
+    const rule = await gmaoStorage.updateReorderRule(id, tenantId, validatedData);
+    // `undefined` = aucune ligne touchée, donc la règle appartient à une autre
+    // organisation ou n'existe pas. Les deux se répondent 404 : distinguer
+    // révélerait l'existence de la règle du voisin.
+    if (!rule) {
+      return res.status(404).json({ message: "Règle de réapprovisionnement introuvable" });
+    }
     res.json(rule);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -271,7 +291,9 @@ router.put("/reorder-rules/:id", async (req, res) => {
 // Get parts needing reorder
 router.get("/parts-needing-reorder", async (req, res) => {
   try {
-    const parts = await gmaoStorage.getPartsNeedingReorder();
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+    const parts = await gmaoStorage.getPartsNeedingReorder(tenantId);
     res.json(parts);
   } catch (error) {
     console.error("Error fetching parts needing reorder:", error);

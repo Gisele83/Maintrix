@@ -1353,9 +1353,17 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // REORDER RULES AND AUTOMATIC ORDERING
+  //
+  // 🔒 Migration 0024 — ces deux routes servaient et écrivaient sans locataire.
+  // La lecture rendait à chaque client les seuils, quantités, délais et drapeaux
+  // de commande automatique de TOUS les autres, affichés par le tableau de bord
+  // « Stocks & Achats » : leur politique d'approvisionnement. La création, elle,
+  // passait `req.body` tel quel.
   app.get("/api/reorder-rules", async (req, res) => {
     try {
-      const rules = await gmaoStorage.getReorderRules();
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const rules = await gmaoStorage.getReorderRules(tenantId);
       res.json(rules);
     } catch (error) {
       console.error("Error fetching reorder rules:", error);
@@ -1365,7 +1373,11 @@ export function registerGMAORoutes(app: Express) {
 
   app.post("/api/reorder-rules", async (req, res) => {
     try {
-      const rule = await gmaoStorage.createReorderRule(req.body);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      // Le locataire vient de la session et écrase ce que le corps porterait.
+      const { tenantId: _ignore, ...corps } = req.body ?? {};
+      const rule = await gmaoStorage.createReorderRule(corps, tenantId);
       res.status(201).json(rule);
     } catch (error) {
       console.error("Error creating reorder rule:", error);
@@ -1398,7 +1410,9 @@ export function registerGMAORoutes(app: Express) {
   // Get parts needing reorder — real stock levels from DB
   app.get("/api/parts-needing-reorder", async (req, res) => {
     try {
-      const parts = await gmaoStorage.getPartsNeedingReorder();
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const parts = await gmaoStorage.getPartsNeedingReorder(tenantId);
       res.json(parts);
     } catch (error) {
       console.error("Error fetching parts needing reorder:", error);

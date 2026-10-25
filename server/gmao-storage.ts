@@ -1653,36 +1653,61 @@ export class GMAOStorage {
   }
 
   // Reorder Rules management
-  async createReorderRule(ruleData: InsertReorderRule): Promise<ReorderRule> {
+  async createReorderRule(ruleData: Omit<InsertReorderRule, 'tenantId'>, tenantId: string): Promise<ReorderRule> {
+    // Le locataire est un PARAMÈTRE, et il écrase ce que le corps de la requête
+    // aurait pu porter : `Omit<…, 'tenantId'>` rend l'autre forme impossible à
+    // écrire. Les deux routes `POST` passaient `req.body` tel quel.
     const [rule] = await db
       .insert(reorderRules)
-      .values(ruleData)
+      .values({ ...ruleData, tenantId })
       .returning();
     return rule;
   }
 
-  async getReorderRules(): Promise<ReorderRule[]> {
-    return await db.select().from(reorderRules).where(eq(reorderRules.isActive, true));
+  // 🔒 Migration 0024 — le locataire est EXIGÉ, pas optionnel.
+  //
+  // Ces trois lectures/écritures ne filtraient sur rien. Deux routes servaient
+  // `getReorderRules()` au tableau de bord « Stocks & Achats » : chaque client
+  // y lisait la politique d'approvisionnement de tous les autres. Le paramètre
+  // est obligatoire plutôt que facultatif, pour qu'un appelant qui l'oublie
+  // échoue à la compilation et non en servant les données d'autrui.
+  async getReorderRules(tenantId: string): Promise<ReorderRule[]> {
+    return await db.select().from(reorderRules)
+      .where(and(eq(reorderRules.tenantId, tenantId), eq(reorderRules.isActive, true)));
   }
 
-  async getReorderRuleByPartId(sparePartId: number): Promise<ReorderRule | undefined> {
+  async getReorderRuleByPartId(sparePartId: number, tenantId: string): Promise<ReorderRule | undefined> {
     const [rule] = await db.select().from(reorderRules)
-      .where(and(eq(reorderRules.sparePartId, sparePartId), eq(reorderRules.isActive, true)));
+      .where(and(
+        eq(reorderRules.sparePartId, sparePartId),
+        eq(reorderRules.tenantId, tenantId),
+        eq(reorderRules.isActive, true),
+      ));
     return rule;
   }
 
-  async updateReorderRule(id: number, data: Partial<InsertReorderRule>): Promise<ReorderRule> {
+  async updateReorderRule(id: number, tenantId: string, data: Partial<InsertReorderRule>): Promise<ReorderRule | undefined> {
+    // Le locataire est dans le WHERE, et non vérifié avant : une règle d'une
+    // autre organisation ne touche aucune ligne et rend `undefined`, que
+    // l'appelant traduit en 404. `PUT /reorder-rules/:id` agissait jusqu'ici
+    // sur un identifiant nu.
     const [rule] = await this.db
       .update(reorderRules)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(reorderRules.id, id))
+      .where(and(eq(reorderRules.id, id), eq(reorderRules.tenantId, tenantId)))
       .returning();
     return rule;
   }
 
   // Stock monitoring and automatic reorder
   async checkStockLevelsAndTriggerReorders(tenantId: string): Promise<{ triggeredRules: ReorderRule[], createdOrders: PurchaseOrder[] }> {
-    const rules = await this.getReorderRules();
+    // Les règles sont désormais lues DANS le locataire. Avant, cette fonction
+    // les lisait toutes et s'en sortait par accident : la pièce était résolue
+    // dans la portée du locataire et le `continue` ci-dessous écartait les
+    // règles d'autrui. Le résultat était correct, la lecture non — et rien ne
+    // garantissait que le prochain usage de `getReorderRules()` reproduise ce
+    // filtrage par pièce.
+    const rules = await this.getReorderRules(tenantId);
     const triggeredRules: ReorderRule[] = [];
     const createdOrders: PurchaseOrder[] = [];
 
@@ -1703,7 +1728,7 @@ export class GMAOStorage {
           triggeredRules.push(rule);
 
           // Update last triggered timestamp
-          await this.updateReorderRule(rule.id, { lastTriggered: new Date() });
+          await this.updateReorderRule(rule.id, tenantId, { lastTriggered: new Date() });
 
           // Generate alert
           await this.createAlert({
@@ -1795,12 +1820,20 @@ export class GMAOStorage {
   }
 
   // Get parts with stock below reorder point
-  async getPartsNeedingReorder(): Promise<(SparePart & { reorderRule?: ReorderRule })[]> {
-    const partsQuery = await db.select().from(spareParts);
+  //
+  // 🔒 Migration 0024 — DEUX fuites dans six lignes, révélées par le typage en
+  // cloisonnant `getReorderRuleByPartId` : la liste des pièces était lue sans
+  // locataire (`db.select().from(spareParts)` nu), et la règle de chaque pièce
+  // l'était aussi. Deux routes la servaient — `GET /api/parts-needing-reorder`
+  // (server/gmao-routes.ts) et `GET /parts-needing-reorder` ici même : chaque
+  // client lisait les pièces en rupture de TOUTES les organisations, avec leurs
+  // stocks courants et leurs seuils.
+  async getPartsNeedingReorder(tenantId: string): Promise<(SparePart & { reorderRule?: ReorderRule })[]> {
+    const partsQuery = await db.select().from(spareParts).where(eq(spareParts.tenantId, tenantId));
     const results = [];
 
     for (const part of partsQuery) {
-      const rule = await this.getReorderRuleByPartId(part.id);
+      const rule = await this.getReorderRuleByPartId(part.id, tenantId);
       if (rule && (part.currentStock ?? 0) <= rule.reorderPoint) {
         results.push({ ...part, reorderRule: rule });
       }
