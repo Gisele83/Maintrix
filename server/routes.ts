@@ -393,10 +393,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/gdpr/track/:requestId', optimizedGDPRRoutes.trackRequest);
   app.get('/api/gdpr/download/:requestId', optimizedGDPRRoutes.downloadData);
   
-  // Register Budget Management routes
-  const { registerBudgetRoutes } = await import("./budget-management");
-  registerBudgetRoutes(app);
-  
+  // ⚠️ PLUS DE « budget-management » ICI — ET C'EST VOULU.
+  //
+  // `server/budget-management.ts` a été supprimé : 331 lignes servant cinq
+  // routes (`/api/budget-summary`, `/api/budget-requests` et son approbation,
+  // son rejet) à partir d'un tableau écrit en dur — 50 000, 75 000 et
+  // 200 000 € alloués, leurs montants dépensés, et des seuils d'approbation
+  // nommés `supervisor`, `manager`, `director`, qui n'appartiennent à aucune
+  // nomenclature du dépôt. ZÉRO occurrence de `tenantId` dans le fichier :
+  // toutes les organisations lisaient les mêmes chiffres inventés, affichés sur
+  // l'écran « Analyses et rapports ». Ses cinq routes ne portaient en outre
+  // aucun middleware d'authentification, là où les routes budgétaires réelles
+  // exigent `auth`.
+  //
+  // Le budget RÉEL est `registerBudgetPlanRoutes` (server/budget-routes.ts),
+  // monté plus haut : `/api/budgets`, cloisonné par locataire depuis la
+  // migration 0012, et c'est lui que l'écran `/budget` consomme.
+  //
+  // Ce correctif vient de `ce480dd`, produit dans l'autre copie locale du
+  // projet (D:\…\Maintrix\Maintrix, une lignée git distincte sans distant
+  // GitHub) et absent de ce dépôt. Sa partie cliente n'a pas été reprise telle
+  // quelle : cette lignée avait déjà supprimé l'objet `reportData` que la
+  // sienne modifiait encore.
+
   // Register simple validation routes for demonstration
   registerSimpleValidationRoutes(app);
   

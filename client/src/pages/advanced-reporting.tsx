@@ -48,18 +48,6 @@ export default function AdvancedReporting() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
 
-  // Fetch budget data
-  const { data: budgets = [] } = useQuery<any[]>({
-    queryKey: ["/api/budgets"],
-  });
-
-  const { data: budgetSummary } = useQuery<{ totalAllocated: number; totalSpent: number; totalRemaining: number; utilizationRate: number; byCategory: any[] } | undefined>({
-    queryKey: ["/api/budget-summary"],
-  });
-
-  const { data: budgetRequests = [] } = useQuery<any[]>({
-    queryKey: ["/api/budget-requests"],
-  });
 
   const { data: kpiMetrics = [] } = useQuery<any[]>({
     queryKey: ["/api/kpi-metrics"],
@@ -119,9 +107,28 @@ export default function AdvancedReporting() {
       mttr,
       availability,
       oee,
-      // `null` plutôt qu'un taux inventé : un budget non renseigné n'est pas
-      // un budget consommé à 25 %.
-      budgetUtilization: budgetSummary?.utilizationRate ?? null
+      // ⚠️ `budgetUtilization` a été retiré d'ici, avec sa source.
+      //
+      // Il valait `budgetSummary?.utilizationRate`, servi par
+      // `server/budget-management.ts` : 331 lignes, ZÉRO occurrence de
+      // `tenantId`, un tableau de budgets écrits en dur (50 000, 75 000 et
+      // 200 000 € alloués, avec leurs montants dépensés et des seuils
+      // d'approbation nommés `supervisor`, `manager`, `director` — les rôles
+      // fantômes que shared/roles.ts existe pour éliminer). Les mêmes chiffres
+      // pour toutes les organisations, sur l'écran « Analyses et rapports »,
+      // celui qu'un industriel imprime pour un comité ou un audit. Les cinq
+      // routes du module ne portaient par ailleurs AUCUN middleware
+      // d'authentification.
+      //
+      // Le champ n'était de toute façon affiché nulle part : il était calculé
+      // ici et jamais lu. Une campagne précédente avait rendu son repli honnête
+      // (`?? null` plutôt qu'un taux inventé) sans toucher à la source, qui
+      // elle restait fabriquée.
+      //
+      // Le budget RÉEL, cloisonné par locataire, vit dans
+      // `server/budget-routes.ts` (`/api/budgets`, avec `auth` et
+      // `TenantRequest`) et s'affiche sur l'écran `/budget`. Cette page ne le
+      // redouble pas : une donnée absente s'affiche comme absente.
     };
   };
 
@@ -245,94 +252,6 @@ export default function AdvancedReporting() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Budget Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-etat-nominal-texte" />
-                {/* L'année était écrite en dur — « Vue Budgétaire 2025 »
-                    s'affichait encore en 2026, au-dessus de chiffres qui,
-                    eux, sont ceux de l'exercice courant. */}
-                <span>Vue budgétaire</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {budgetSummary && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
-                      <p className="text-sm text-ink-soft">Budget Total</p>
-                      <p className="font-serif text-3xl text-etat-encours-texte">
-                        {budgetSummary.totalAllocated?.toLocaleString()}€
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
-                      <p className="text-sm text-ink-soft">Disponible</p>
-                      <p className="font-serif text-3xl text-etat-nominal-texte">
-                        {budgetSummary.totalRemaining?.toLocaleString()}€
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Utilisation: {budgetSummary.utilizationRate?.toFixed(1)}%</span>
-                      <span>{budgetSummary.totalSpent?.toLocaleString()}€ / {budgetSummary.totalAllocated?.toLocaleString()}€</span>
-                    </div>
-                    <Progress value={budgetSummary.utilizationRate} className="h-3" />
-                  </div>
-
-                  <div className="space-y-3">
-                    {Object.entries(budgetSummary.byCategory || {}).map(([category, data]: [string, any]) => (
-                      <div key={category} className="flex justify-between items-center p-3 bg-paper rounded-lg">
-                        <span className="font-medium capitalize">{category}</span>
-                        <div className="text-right">
-                          <p className="font-bold">{data.remaining?.toLocaleString()}€</p>
-                          <p className="text-xs text-ink-soft">sur {data.allocated?.toLocaleString()}€</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-etat-alerte-texte" />
-                <span>Demandes Budgétaires</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {budgetRequests.slice(0, 5).map((request: any) => (
-                  <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{request.description}</p>
-                      <p className="text-sm text-ink-soft">{request.amount?.toLocaleString()}€</p>
-                    </div>
-                    {/* Le statut s'affichait dans la valeur brute du serveur
-                        — « pending », « approved » — au milieu d'une page en
-                        français, et sa couleur passait par les variantes de
-                        `Badge` plutôt que par les jetons d'état mesurés. */}
-                    <PuceEtat registre={registreDemandeBudget(request.status)}>
-                      {libelleDemandeBudget(request.status)}
-                    </PuceEtat>
-                  </div>
-                ))}
-                {budgetRequests.length === 0 && (
-                  <div className="text-center py-8 text-ink-mute">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-etat-nominal-texte" />
-                    <p>Aucune demande budgétaire en attente</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Work Orders & Alerts Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
