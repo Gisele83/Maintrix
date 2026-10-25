@@ -19,6 +19,9 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, Cell, ScatterChart, Scatter
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface PredictiveInsightData {
@@ -97,10 +100,10 @@ interface MaintenanceWindow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const riskColor: Record<string, string> = {
-  low: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-  high: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-  critical: "bg-red-500/20 text-red-400 border-red-500/30",
+  low: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",
+  medium: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  high: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  critical: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",
 };
 
 const riskBg: Record<string, string> = {
@@ -169,12 +172,7 @@ export default function PredictiveInsights() {
   const { data, isLoading, isError, refetch, isFetching } = useQuery<PredictiveInsightData>({
     queryKey: ["/api/predictive-insights", selectedEquipId],
     queryFn: () =>
-      fetch(`/api/predictive-insights${selectedEquipId !== "all" ? `?equipmentId=${selectedEquipId}` : ""}`, {
-        credentials: "include",
-      }).then((r) => {
-        if (!r.ok) throw new Error("Erreur réseau");
-        return r.json();
-      }),
+      apiRequest(`/api/predictive-insights${selectedEquipId !== "all" ? `?equipmentId=${selectedEquipId}` : ""}`),
     refetchInterval: 30000,
   });
 
@@ -194,15 +192,16 @@ export default function PredictiveInsights() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Analyse prédictive" }]} largeur="large">
+      <div className="space-y-6">
         <div className="flex items-center justify-center h-[70vh]">
           <div className="text-center space-y-4">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-16 h-16 border-4 border-etat-encours-filet border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-ink-soft text-lg">Analyse prédictive en cours…</p>
           </div>
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -211,10 +210,10 @@ export default function PredictiveInsights() {
       <div className="min-h-screen bg-paper-deep">
         <ModernNavigation />
         <div className="flex items-center justify-center h-[70vh]">
-          <div className="text-center space-y-4 p-8 rounded-2xl bg-red-500/10 border border-red-500/20">
-            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto" />
-            <p className="text-red-300 text-lg">Impossible de charger les données prédictives</p>
-            <Button onClick={() => refetch()} variant="outline" className="border-red-500/30 text-red-300">
+          <div className="text-center space-y-4 p-8 rounded-none bg-etat-critique-fond border border-etat-critique-filet">
+            <AlertTriangle className="w-12 h-12 text-etat-critique-texte mx-auto" />
+            <p className="text-etat-critique-texte text-lg">Impossible de charger les données prédictives</p>
+            <Button onClick={() => refetch()} variant="outline" className="border-etat-critique-filet text-etat-critique-texte">
               Réessayer
             </Button>
           </div>
@@ -231,8 +230,8 @@ export default function PredictiveInsights() {
       <div className="border-b border-rule bg-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-paper-deep border border-rule/20">
-              <Brain className="w-6 h-6 text-signal-light" />
+            <div className="p-2.5 rounded-none bg-paper-deep border border-rule/20">
+              <Brain className="w-6 h-6 text-signal" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-ink">Analyse Prédictive</h1>
@@ -256,7 +255,7 @@ export default function PredictiveInsights() {
               size="sm"
               onClick={() => seedMutation.mutate()}
               disabled={seedMutation.isPending}
-              className="border-rule/30 text-signal-light hover:bg-signal-deep/10"
+              className="border-rule/30 text-signal hover:bg-signal-deep/10"
             >
               <Sparkles className={`w-4 h-4 mr-1 ${seedMutation.isPending ? "animate-pulse" : ""}`} />
               {seedMutation.isPending ? "Génération…" : "Données démo"}
@@ -280,10 +279,10 @@ export default function PredictiveInsights() {
         {/* ── Fleet KPI cards ─────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Score santé moyen", value: `${fleet?.avgHealthScore ?? 0}%`, icon: Shield, color: "from-emerald-500/20 to-green-500/20", iconColor: "text-emerald-400", border: "border-emerald-500/20" },
-            { label: "Durée de vie restante moy.", value: fleet?.avgRul ? `${fleet.avgRul}j` : "—", icon: Clock, color: "from-blue-500/20 to-cyan-500/20", iconColor: "text-blue-400", border: "border-blue-500/20" },
-            { label: "Alertes critiques", value: fleet?.criticalAlerts ?? 0, icon: AlertTriangle, color: "from-red-500/20 to-orange-500/20", iconColor: "text-red-400", border: "border-red-500/20" },
-            { label: "Pannes prévues < 30j", value: fleet?.predictedFailuresNext30d ?? 0, icon: Target, color: "from-orange-500/20 to-amber-500/20", iconColor: "text-orange-400", border: "border-orange-500/20" },
+            { label: "Score santé moyen", value: `${fleet?.avgHealthScore ?? 0}%`, icon: Shield, color: "/20/20", iconColor: "text-etat-nominal-texte", border: "border-etat-nominal-filet" },
+            { label: "Durée de vie restante moy.", value: fleet?.avgRul ? `${fleet.avgRul}j` : "—", icon: Clock, color: "/20/20", iconColor: "text-etat-encours-texte", border: "border-etat-encours-filet" },
+            { label: "Alertes critiques", value: fleet?.criticalAlerts ?? 0, icon: AlertTriangle, color: "/20/20", iconColor: "text-etat-critique-texte", border: "border-etat-critique-filet" },
+            { label: "Pannes prévues < 30j", value: fleet?.predictedFailuresNext30d ?? 0, icon: Target, color: "/20/20", iconColor: "text-etat-alerte-texte", border: "border-etat-alerte-filet" },
           ].map((kpi, i) => (
             <Card key={i} className={`bg-paper-deep ${kpi.color} border ${kpi.border}`}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -308,19 +307,19 @@ export default function PredictiveInsights() {
               </div>
               <div className="flex h-4 rounded-full overflow-hidden gap-0.5">
                 {fleet.healthy > 0 && (
-                  <div style={{ width: `${(fleet.healthy / fleet.total) * 100}%` }} className="bg-emerald-500 transition-all duration-700" title={`Sains: ${fleet.healthy}`} />
+                  <div style={{ width: `${(fleet.healthy / fleet.total) * 100}%` }} className="bg-etat-nominal-vif transition-all duration-700" title={`Sains: ${fleet.healthy}`} />
                 )}
                 {fleet.warning > 0 && (
-                  <div style={{ width: `${(fleet.warning / fleet.total) * 100}%` }} className="bg-yellow-500 transition-all duration-700" title={`En alerte: ${fleet.warning}`} />
+                  <div style={{ width: `${(fleet.warning / fleet.total) * 100}%` }} className="bg-etat-alerte-vif transition-all duration-700" title={`En alerte: ${fleet.warning}`} />
                 )}
                 {fleet.critical > 0 && (
-                  <div style={{ width: `${(fleet.critical / fleet.total) * 100}%` }} className="bg-red-500 transition-all duration-700 animate-pulse" title={`Critiques: ${fleet.critical}`} />
+                  <div style={{ width: `${(fleet.critical / fleet.total) * 100}%` }} className="bg-etat-critique-vif transition-all duration-700 animate-pulse" title={`Critiques: ${fleet.critical}`} />
                 )}
               </div>
               <div className="flex gap-4 mt-2 text-xs">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Sains ({fleet.healthy})</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />En alerte ({fleet.warning})</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Critiques ({fleet.critical})</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-etat-nominal-vif inline-block" />Sains ({fleet.healthy})</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-etat-alerte-vif inline-block" />En alerte ({fleet.warning})</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-etat-critique-vif inline-block" />Critiques ({fleet.critical})</span>
               </div>
             </CardContent>
           </Card>
@@ -329,16 +328,16 @@ export default function PredictiveInsights() {
         {/* ── Main tabs ───────────────────────────────────────────────────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/5 border border-rule p-1 grid grid-cols-4 sm:w-auto sm:inline-flex">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-etat-encours-vif data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
               <Eye className="w-3 h-3 mr-1" />Vue globale
             </TabsTrigger>
-            <TabsTrigger value="trends" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
+            <TabsTrigger value="trends" className="data-[state=active]:bg-etat-encours-vif data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
               <Waves className="w-3 h-3 mr-1" />Tendances
             </TabsTrigger>
-            <TabsTrigger value="risk" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
+            <TabsTrigger value="risk" className="data-[state=active]:bg-etat-encours-vif data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
               <AlertTriangle className="w-3 h-3 mr-1" />Risques
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
+            <TabsTrigger value="schedule" className="data-[state=active]:bg-etat-encours-vif data-[state=active]:text-white text-ink-mute text-xs sm:text-sm">
               <Target className="w-3 h-3 mr-1" />Planning
             </TabsTrigger>
           </TabsList>
@@ -358,7 +357,7 @@ export default function PredictiveInsights() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {equipment.map((eq) => (
-                  <Card key={eq.id} className={`bg-white/5 border transition-all duration-300 hover:bg-white hover:border-rule ${eq.riskLevel === "critical" ? "border-red-500/40 shadow-red-500/10" : eq.riskLevel === "high" ? "border-orange-500/30" : "border-rule"}`}>
+                  <Card key={eq.id} className={`bg-white/5 border transition-all duration-300 hover:bg-white hover:border-rule ${eq.riskLevel === "critical" ? "border-etat-critique-filet shadow-red-500/10" : eq.riskLevel === "high" ? "border-etat-alerte-filet" : "border-rule"}`}>
                     <CardHeader className="pb-2 pt-4 px-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -375,7 +374,7 @@ export default function PredictiveInsights() {
                           <div>
                             <div className="flex justify-between text-xs text-ink-mute mb-0.5">
                               <span>Probabilité panne</span>
-                              <span className={`font-semibold ${eq.failureProbability > 0.6 ? "text-red-400" : eq.failureProbability > 0.3 ? "text-yellow-400" : "text-emerald-400"}`}>
+                              <span className={`font-semibold ${eq.failureProbability > 0.6 ? "text-etat-critique-texte" : eq.failureProbability > 0.3 ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`}>
                                 {Math.round(eq.failureProbability * 100)}%
                               </span>
                             </div>
@@ -384,7 +383,7 @@ export default function PredictiveInsights() {
                           <div>
                             <div className="flex justify-between text-xs text-ink-mute mb-0.5">
                               <span>Score anomalie</span>
-                              <span className={`font-semibold ${eq.anomalyScore > 0.6 ? "text-red-400" : eq.anomalyScore > 0.3 ? "text-yellow-400" : "text-ink-soft"}`}>
+                              <span className={`font-semibold ${eq.anomalyScore > 0.6 ? "text-etat-critique-texte" : eq.anomalyScore > 0.3 ? "text-etat-alerte-texte" : "text-ink-soft"}`}>
                                 {(eq.anomalyScore * 100).toFixed(0)}%
                               </span>
                             </div>
@@ -400,13 +399,13 @@ export default function PredictiveInsights() {
                         </div>
                         <div className="bg-white/5 rounded-lg p-2">
                           <p className="text-ink-mute">OT ouverts</p>
-                          <p className={`font-semibold mt-0.5 ${eq.openWorkOrders > 0 ? "text-yellow-400" : "text-emerald-400"}`}>{eq.openWorkOrders}</p>
+                          <p className={`font-semibold mt-0.5 ${eq.openWorkOrders > 0 ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`}>{eq.openWorkOrders}</p>
                         </div>
                       </div>
 
                       {eq.topSensor && (
                         <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 text-xs">
-                          <Activity className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                          <Activity className="w-3 h-3 text-etat-encours-texte flex-shrink-0" />
                           <span className="text-ink-mute truncate capitalize">{eq.topSensor} :</span>
                           <span className="text-ink font-semibold ml-auto">
                             {eq.topSensorValue?.toFixed(1)} {eq.topSensorUnit}
@@ -418,7 +417,7 @@ export default function PredictiveInsights() {
                         <div className="space-y-1">
                           {eq.recommendations.slice(0, 2).map((rec, i) => (
                             <p key={i} className="text-xs text-ink-mute flex items-start gap-1">
-                              <span className="text-blue-400 flex-shrink-0 mt-0.5">▸</span>
+                              <span className="text-etat-encours-texte flex-shrink-0 mt-0.5">▸</span>
                               <span className="line-clamp-1">{rec}</span>
                             </p>
                           ))}
@@ -434,7 +433,7 @@ export default function PredictiveInsights() {
             {data?.kpiRadar && data.kpiRadar.length > 0 && (
               <Card className="bg-white/5 border border-rule">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-ink flex items-center gap-2"><BarChart2 className="w-4 h-4 text-signal-light" />Radar KPI — Performance vs Benchmark</CardTitle>
+                  <CardTitle className="text-sm text-ink flex items-center gap-2"><BarChart2 className="w-4 h-4 text-signal" />Radar KPI — Performance vs Benchmark</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
@@ -459,7 +458,7 @@ export default function PredictiveInsights() {
               <>
                 <Card className="bg-white/5 border border-rule">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-ink flex items-center gap-2"><Thermometer className="w-4 h-4 text-red-400" />Température & Vibration</CardTitle>
+                    <CardTitle className="text-sm text-ink flex items-center gap-2"><Thermometer className="w-4 h-4 text-etat-critique-texte" />Température & Vibration</CardTitle>
                     <CardDescription className="text-xs text-ink-mute">Tendances capteurs sur la période sélectionnée</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -489,7 +488,7 @@ export default function PredictiveInsights() {
 
                 <Card className="bg-white/5 border border-rule">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-ink flex items-center gap-2"><Gauge className="w-4 h-4 text-green-400" />Pression & Courant électrique</CardTitle>
+                    <CardTitle className="text-sm text-ink flex items-center gap-2"><Gauge className="w-4 h-4 text-etat-nominal-texte" />Pression & Courant électrique</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={240}>
@@ -520,7 +519,7 @@ export default function PredictiveInsights() {
             {data?.failureProbabilityTimeline && data.failureProbabilityTimeline.length > 0 && (
               <Card className="bg-white/5 border border-rule">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-ink flex items-center gap-2"><TrendingUp className="w-4 h-4 text-orange-400" />Probabilité de panne — Projection 30 jours</CardTitle>
+                  <CardTitle className="text-sm text-ink flex items-center gap-2"><TrendingUp className="w-4 h-4 text-etat-alerte-texte" />Probabilité de panne — Projection 30 jours</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={220}>
@@ -551,7 +550,7 @@ export default function PredictiveInsights() {
             {data?.anomalyDistribution && data.anomalyDistribution.length > 0 ? (
               <Card className="bg-white/5 border border-rule">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm text-ink flex items-center gap-2"><Cpu className="w-4 h-4 text-blue-400" />Score d'anomalie par équipement</CardTitle>
+                  <CardTitle className="text-sm text-ink flex items-center gap-2"><Cpu className="w-4 h-4 text-etat-encours-texte" />Score d'anomalie par équipement</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={280}>
@@ -573,8 +572,8 @@ export default function PredictiveInsights() {
             ) : (
               <Card className="bg-white/5 border border-rule">
                 <CardContent className="p-12 text-center">
-                  <Shield className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-                  <p className="text-emerald-400 font-medium">Aucune anomalie détectée</p>
+                  <Shield className="w-10 h-10 text-etat-nominal-texte mx-auto mb-3" />
+                  <p className="text-etat-nominal-texte font-medium">Aucune anomalie détectée</p>
                   <p className="text-ink-mute text-sm mt-1">Tous les équipements fonctionnent dans les paramètres normaux.</p>
                 </CardContent>
               </Card>
@@ -584,9 +583,9 @@ export default function PredictiveInsights() {
             {(criticalEquip.length > 0 || highEquip.length > 0) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {criticalEquip.length > 0 && (
-                  <Card className="bg-red-500/10 border border-red-500/20">
+                  <Card className="bg-etat-critique-fond border border-etat-critique-filet">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-red-400 flex items-center gap-2">
+                      <CardTitle className="text-sm text-etat-critique-texte flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 animate-pulse" />
                         Critiques ({criticalEquip.length})
                       </CardTitle>
@@ -598,7 +597,7 @@ export default function PredictiveInsights() {
                             <p className="text-sm text-ink font-medium">{eq.name}</p>
                             <p className="text-xs text-ink-mute">{eq.recommendations[0] ?? "Intervention requise"}</p>
                           </div>
-                          <span className="text-red-400 text-xs font-bold">{Math.round(eq.failureProbability * 100)}%</span>
+                          <span className="text-etat-critique-texte text-xs font-bold">{Math.round(eq.failureProbability * 100)}%</span>
                         </div>
                       ))}
                     </CardContent>
@@ -606,9 +605,9 @@ export default function PredictiveInsights() {
                 )}
 
                 {highEquip.length > 0 && (
-                  <Card className="bg-orange-500/10 border border-orange-500/20">
+                  <Card className="bg-etat-alerte-fond border border-etat-alerte-filet">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm text-orange-400 flex items-center gap-2">
+                      <CardTitle className="text-sm text-etat-alerte-texte flex items-center gap-2">
                         <TrendingUp className="w-4 h-4" />
                         Risque élevé ({highEquip.length})
                       </CardTitle>
@@ -620,7 +619,7 @@ export default function PredictiveInsights() {
                             <p className="text-sm text-ink font-medium">{eq.name}</p>
                             <p className="text-xs text-ink-mute">{eq.recommendations[0] ?? "Surveiller de près"}</p>
                           </div>
-                          <span className="text-orange-400 text-xs font-bold">{Math.round(eq.failureProbability * 100)}%</span>
+                          <span className="text-etat-alerte-texte text-xs font-bold">{Math.round(eq.failureProbability * 100)}%</span>
                         </div>
                       ))}
                     </CardContent>
@@ -636,10 +635,10 @@ export default function PredictiveInsights() {
               <div className="space-y-3">
                 <p className="text-ink-mute text-sm">Fenêtres de maintenance suggérées par l'analyse prédictive :</p>
                 {data.maintenanceWindowSuggestions.map((mw, i) => (
-                  <Card key={i} className={`bg-white/5 border ${mw.urgency === "critical" ? "border-red-500/30" : mw.urgency === "high" ? "border-orange-500/30" : "border-rule"}`}>
+                  <Card key={i} className={`bg-white/5 border ${mw.urgency === "critical" ? "border-etat-critique-filet" : mw.urgency === "high" ? "border-etat-alerte-filet" : "border-rule"}`}>
                     <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-1 self-stretch rounded-full ${mw.urgency === "critical" ? "bg-red-500" : mw.urgency === "high" ? "bg-orange-500" : mw.urgency === "medium" ? "bg-yellow-500" : "bg-emerald-500"}`} />
+                        <div className={`w-1 self-stretch rounded-full ${mw.urgency === "critical" ? "bg-etat-critique-vif" : mw.urgency === "high" ? "bg-etat-alerte-vif" : mw.urgency === "medium" ? "bg-etat-alerte-vif" : "bg-etat-nominal-vif"}`} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-ink truncate">{mw.equipmentName}</p>
                           <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{mw.reason}</p>

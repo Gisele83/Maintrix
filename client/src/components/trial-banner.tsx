@@ -30,32 +30,32 @@ export function TrialBanner({
   };
   
   const planColors = {
-    pro: "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800",
-    business: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800", 
-    enterprise: "bg-paper-deep dark:bg-ink border-rule dark:border-rule"
+    pro: "bg-etat-encours-fond border-etat-encours-filet",
+    business: "bg-etat-nominal-fond border-etat-nominal-filet", 
+    enterprise: "bg-paper-deep border-rule"
   };
   
   const PlanIcon = planIcons[planType];
   
   if (!isTrialActive) {
     return (
-      <Card className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
+      <Card className="mb-6 border-etat-critique-filet bg-etat-critique-fond">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-                <Clock className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <div className="p-2 bg-etat-critique-fond rounded-lg">
+                <Clock className="h-5 w-5 text-etat-critique-texte" />
               </div>
               <div>
-                <h3 className="font-medium text-red-900 dark:text-red-100">
+                <h3 className="font-medium text-etat-critique-texte">
                   Période d'essai expirée
                 </h3>
-                <p className="text-sm text-red-700 dark:text-red-300">
+                <p className="text-sm text-etat-critique-texte">
                   Contactez l'administrateur pour accéder à Maintrix
                 </p>
               </div>
             </div>
-            <Button size="sm" className="bg-red-600 hover:bg-red-700" disabled>
+            <Button size="sm" className="bg-etat-critique-vif hover:bg-etat-critique-vif" disabled>
               Fonctionnalité désactivée
             </Button>
           </div>
@@ -69,8 +69,8 @@ export function TrialBanner({
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white dark:bg-black/20 rounded-lg">
-              <Gift className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-white rounded-lg">
+              <Gift className="h-5 w-5 text-etat-nominal-texte" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -118,7 +118,7 @@ export function TrialBanner({
             className="h-2"
           />
           {usagePercentage > 80 && (
-            <p className="text-xs text-orange-600 dark:text-orange-400">
+            <p className="text-xs text-etat-alerte-texte">
               Utilisation élevée - Pensez à vous abonner pour ne pas perdre l'accès
             </p>
           )}
@@ -126,16 +126,16 @@ export function TrialBanner({
         
         {/* Fonctionnalités de l'essai */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Smart Diagnostic
           </div>
-          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Smart GMAO
           </div>
-          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             IA Avancée
           </div>
-          <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+          <div className="flex items-center gap-1 text-etat-nominal-texte">
             Export données
           </div>
         </div>

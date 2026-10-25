@@ -8,7 +8,14 @@
   --background: hsl(210, 20%, 98%);
   --foreground: hsl(215, 25%, 15%);
   --muted: hsl(210, 15%, 95%);
-  --muted-foreground: hsl(215, 10%, 45%);
+  /* ⚠️ Cette teinte valait 45 % de clarté, soit rgb(103, 113, 126). Posée
+     sur `--muted` — le fond des rangées d'onglets de la bibliothèque — elle
+     donnait 4,41:1, juste SOUS le seuil AA de 4,5:1. Un seul jeton, mais il
+     faisait échouer l'onglet inactif de six écrans au moins (SMM,
+     documentation, import/export, expertise d'ingénierie, équipe
+     multi-agent, maintenance préventive), toujours de la même quantité.
+     Assombrie à 40 % : 5,26:1 sur ce même fond, mesuré. */
+  --muted-foreground: hsl(215, 10%, 40%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(215, 25%, 15%);
   --card: hsl(0, 0%, 100%);
@@ -23,216 +30,114 @@
   --secondary-foreground: hsl(215, 25%, 15%);
   --accent: hsl(210, 15%, 95%);
   --accent-foreground: hsl(215, 25%, 15%);
-  --destructive: hsl(4, 79%, 55%);
+  /* ⚠️ 55 % de clarté donnait rgb(231, 62, 50). Le texte blanc que la
+     bibliothèque pose dessus — variante « destructive » des badges et des
+     boutons — n'y atteignait que 4,09:1, sous le seuil AA de 4,5:1. Mesuré
+     sur le badge « En retard » de la maintenance préventive, mais le jeton
+     sert partout où une action détruit ou un état alarme.
+     Assombri à 48 % à teinte constante : 4,87:1 sur blanc. */
+  --destructive: hsl(4, 79%, 48%);
   --destructive-foreground: hsl(0, 0%, 100%);
   --ring: hsl(197, 100%, 33%);
   --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
-  
-  /* Modern professional color scheme */
-  --carbon-blue: hsl(214, 78%, 51%);
-  --carbon-blue-light: hsl(214, 78%, 96%);
-  --carbon-gray-90: hsl(215, 25%, 15%);
-  --carbon-gray-70: hsl(215, 15%, 35%);
-  --carbon-gray-50: hsl(215, 10%, 55%);
-  --carbon-gray-20: hsl(215, 10%, 88%);
-  --carbon-gray-10: hsl(210, 20%, 96%);
-  --carbon-green: hsl(142, 76%, 36%);
-  --carbon-green-light: hsl(142, 76%, 96%);
-  --carbon-red: hsl(4, 79%, 55%);
-  --carbon-red-light: hsl(4, 79%, 96%);
-  --carbon-orange: hsl(27, 96%, 61%);
-  --carbon-orange-light: hsl(27, 96%, 96%);
-  --carbon-purple: hsl(258, 90%, 66%);
-  --carbon-purple-light: hsl(258, 90%, 96%);
-  --carbon-yellow: hsl(41, 100%, 55%);
-  --carbon-yellow-light: hsl(41, 100%, 96%);
 }
 
-.dark {
-  --background: hsl(215, 28%, 9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(215, 25%, 15%);
-  --muted-foreground: hsl(215, 10%, 65%);
-  --popover: hsl(215, 25%, 12%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(215, 25%, 12%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(215, 20%, 20%);
-  --input: hsl(215, 20%, 20%);
-  --primary: hsl(194, 100%, 47%);
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(215, 25%, 15%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(215, 25%, 15%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(4, 79%, 65%);
-  --destructive-foreground: hsl(0, 0%, 100%);
-  --ring: hsl(194, 100%, 47%);
-  --radius: 0.125rem; /* Charte : angles vifs. Les coins tres arrondis (12px) donnaient aux ecrans un air de maquette generique. */
-  
-  /* Dark mode color adjustments */
-  --carbon-gray-10: hsl(215, 25%, 15%);
-  --carbon-gray-20: hsl(215, 20%, 20%);
-}
+/* ═══════════════════════════════════════════════════════════════
+   LE THÈME SOMBRE A ÉTÉ RETIRÉ — et pourquoi
+   ═══════════════════════════════════════════════════════════════
+   Un bloc `.dark` redéfinissait ici vingt variables de la bibliothèque
+   (--background, --foreground, --card, --border…). Il ne pouvait pas
+   fonctionner, et la mesure l'a confirmé le 19/10/2026 :
 
-/* Custom glassmorphism effects */
-.backdrop-blur-xl {
-  backdrop-filter: blur(16px);
-}
+   Les jetons de la CHARTE — paper, ink, rule, signal, etat — sont
+   déclarés dans tailwind.config.ts comme des valeurs hexadécimales
+   littérales, pas comme des variables CSS. Ils ne peuvent donc PAS
+   changer avec le thème. Vérifié à la sonde : `bg-paper`, `text-ink` et
+   `border-rule` rendent rigoureusement les mêmes rgb(244,247,250),
+   rgb(1,21,53) et rgb(211,220,229) dans les deux thèmes.
 
-.backdrop-blur-sm {
-  backdrop-filter: blur(4px);
-}
+   Or toute la refonte repose sur ces jetons. En sombre, le fond de page
+   et la barre de navigation passaient au bleu nuit pendant que chaque
+   carte restait blanche et chaque texte restait encre. Résultat mesuré
+   sur douze écrans : 241 textes sur 800 sous le seuil WCAG AA, avec des
+   rapports descendant à 1,04:1 — c'est-à-dire invisibles. /budget : 63 %
+   des textes. /work-orders : 44 %. /smart-diagnostic : 40 %.
 
-/* Custom shadows for modern look */
-.shadow-3xl {
-  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
-}
+   Pire, ce n'était pas réservé à qui cliquait le bouton :
+   `getInitialTheme()` retombait sur `prefers-color-scheme`. Un visiteur
+   dont le système est en sombre — cas courant — arrivait dans cet état
+   dès sa PREMIÈRE visite, sans avoir rien demandé.
 
-/* Enhanced animations */
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
+   Une vraie réparation aurait demandé : convertir 26 jetons de charte en
+   variables CSS et choisir pour chacun une valeur sombre dont le
+   contraste soit validé ; tokeniser 467 `bg-white` ; traiter 110
+   couleurs littérales passées aux graphiques, que Recharts n'accepte pas
+   autrement ; réauditer 454 variantes `dark:` une par une ; revérifier
+   86 écrans. Soit un chantier de la taille de l'harmonisation complète,
+   pour une fonction que la charte validée ne demande pas — elle dit
+   « bleu marine, fond gris très clair » — et dont une campagne
+   précédente avait déjà éloigné 56 pages.
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(2deg); }
-}
+   Le thème sombre reste donc possible, mais il se construira sur des
+   jetons variabilisés, délibérément, pas sur ce reliquat. */
 
-/* New professional animations */
-.animate-slide-up {
-  animation: slideUp 0.8s ease-out forwards;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-scale {
-  animation: fadeInScale 0.6s ease-out forwards;
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Advanced glassmorphism */
-.glass-morphism {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.glass-morphism-dark {
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-/* Gradient text effects */
-.bg-clip-text {
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-/* Enhanced card hover effects */
-.card-hover {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.card-hover::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.card-hover:hover::before {
-  left: 100%;
-}
-
-.card-hover:hover {
-  transform: translateY(-12px) scale(1.03);
-  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.3);
-}
-
-/* Professional button effects */
-.btn-professional {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.btn-professional::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.4s;
-}
-
-.btn-professional:hover::before {
-  left: 100%;
-}
-
-/* Gradient text animations */
-.gradient-text-animate {
-  background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
-  background-size: 400% 400%;
-  animation: gradientShift 4s ease infinite;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Custom scrollbar */
+/* ═══════════════════════════════════════════════════════════════
+   BARRE DE DÉFILEMENT
+   ═══════════════════════════════════════════════════════════════
+   Elle était un dégradé bleu → violet, à coins arrondis. C'était la
+   seule pièce de l'interface à contredire la charte sur TOUS les
+   écrans à la fois : visible sous les onglets de la GMAO et du
+   tableau de bord, dans chaque modale et chaque tableau défilant.
+   Un filet gris, angles vifs comme le reste. */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #E6EDF3;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
-  border-radius: 4px;
+  background: #B6C3D0;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #7c3aed);
+  background: #8E9DAE;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CE QUI A ÉTÉ RETIRÉ D'ICI — et pourquoi
+   ═══════════════════════════════════════════════════════════════
+   Environ deux cents lignes d'effets décoratifs restaient livrées à
+   chaque chargement sans qu'AUCUN composant ne les utilise (vérifié
+   par recherche exhaustive, zéro occurrence pour chacune) :
+
+     glass-morphism, glass-morphism-dark, glass-effect  — verre dépoli
+     gradient-text-animate    — dégradé bleu/violet/rose/ambre animé
+     gradient-border          — bordure en dégradé animé
+     card-hover               — soulèvement de 12 px + mise à l'échelle
+     btn-professional         — balayage brillant au survol
+     interactive-element      — soulèvement au survol
+     animate-float            — flottement et rotation
+     animate-slide-up, animate-fade-in-scale, shadow-3xl
+
+   Les garder revenait à laisser une invitation permanente à
+   réintroduire ce que la charte proscrit. Elles restent dans
+   l'historique Git si un besoin réel apparaît un jour.
+
+   La palette --carbon-* et ses vingt-trois utilitaires ont disparu
+   avec eux : une seconde palette complète (bleu, vert, rouge, orange,
+   violet, jaune) vivait en parallèle de la charte. Pire, les
+   utilitaires text-carbon-* n'avaient JAMAIS été déclarés — seuls
+   .carbon-x et .bg-carbon-x existaient. Les 159 occurrences de
+   text-carbon-* présentes dans le code ne produisaient donc aucune
+   règle : sur le tableau de bord, les trois niveaux d'urgence
+   « Faible », « Moyen » et « Élevé » s'affichaient dans la même
+   encre, et la hiérarchie des textes secondaires était plate. Elles
+   pointent désormais vers les jetons de charte et vers
+   client/src/lib/etats.ts. */
 
 @layer base {
   * {
@@ -255,145 +160,4 @@
     letter-spacing: -0.025em;
   }
 
-  .glass-effect {
-    backdrop-filter: blur(16px) saturate(180%);
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.125);
-  }
-
-  .dark .glass-effect {
-    background-color: rgba(18, 18, 18, 0.85);
-  }
-
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(45deg, var(--carbon-blue), var(--carbon-purple), var(--carbon-blue));
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-  }
-
-  @keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  /* Enhanced interaction states */
-  .interactive-element {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-  }
-  
-  .interactive-element:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  }
-  
-  .interactive-element:active {
-    transform: translateY(0);
-    transition: all 0.1s ease;
-  }
-
-  .card-hover {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-}
-
-@layer utilities {
-  .carbon-blue {
-    color: var(--carbon-blue);
-  }
-  
-  .bg-carbon-blue {
-    background-color: var(--carbon-blue);
-  }
-  
-  .carbon-gray-90 {
-    color: var(--carbon-gray-90);
-  }
-  
-  .bg-carbon-gray-90 {
-    background-color: var(--carbon-gray-90);
-  }
-  
-  .carbon-gray-70 {
-    color: var(--carbon-gray-70);
-  }
-  
-  .bg-carbon-gray-70 {
-    background-color: var(--carbon-gray-70);
-  }
-  
-  .carbon-gray-50 {
-    color: var(--carbon-gray-50);
-  }
-  
-  .bg-carbon-gray-50 {
-    background-color: var(--carbon-gray-50);
-  }
-  
-  .carbon-gray-20 {
-    color: var(--carbon-gray-20);
-  }
-  
-  .bg-carbon-gray-20 {
-    background-color: var(--carbon-gray-20);
-  }
-  
-  .carbon-gray-10 {
-    color: var(--carbon-gray-10);
-  }
-  
-  .bg-carbon-gray-10 {
-    background-color: var(--carbon-gray-10);
-  }
-  
-  .carbon-green {
-    color: var(--carbon-green);
-  }
-  
-  .bg-carbon-green {
-    background-color: var(--carbon-green);
-  }
-  
-  .carbon-red {
-    color: var(--carbon-red);
-  }
-  
-  .bg-carbon-red {
-    background-color: var(--carbon-red);
-  }
-  
-  .carbon-orange {
-    color: var(--carbon-orange);
-  }
-  
-  .bg-carbon-orange {
-    background-color: var(--carbon-orange);
-  }
-  
-  .border-carbon-blue {
-    border-color: var(--carbon-blue);
-  }
-  
-  .border-carbon-gray-20 {
-    border-color: var(--carbon-gray-20);
-  }
-  
-  .border-carbon-green {
-    border-color: var(--carbon-green);
-  }
-  
-  .border-carbon-red {
-    border-color: var(--carbon-red);
-  }
-  
-  .border-carbon-orange {
-    border-color: var(--carbon-orange);
-  }
 }

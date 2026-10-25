@@ -334,14 +334,66 @@ export class SmartNotificationEngine extends EventEmitter {
   /**
    * Resolve notification recipients based on rules
    */
+  /**
+   * Destinataires d'une notification — ceux de l'organisation concernée.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE QUI SE PASSAIT AVANT
+   * ═══════════════════════════════════════════════════════════════════
+   * Cette fonction lisait TOUS les comptes actifs de l'instance et ne les
+   * filtrait que par rôle et par abonnement. Un dépassement de seuil sur
+   * l'équipement d'une organisation produisait donc une notification à
+   * destination des responsables de maintenance de TOUTES les autres — et
+   * le message n'est pas anodin : il nomme l'emplacement de l'équipement et
+   * la valeur relevée.
+   *
+   * Ce n'était pas une fuite théorique. Le connecteur IoT avancé tourne
+   * toutes les 5 secondes sur des appareils dont l'identifiant d'équipement
+   * est écrit en dur (1 et 2) : sur une instance multi-locataires, ces
+   * identifiants désignent les équipements de qui les a créés en premier.
+   *
+   * La table `smart_notifications` ne portant pas de `tenant_id`, rien en
+   * aval ne pouvait rattraper l'erreur : le cloisonnement doit avoir lieu
+   * ICI, au choix du destinataire.
+   *
+   * On déduit donc le propriétaire de l'ÉQUIPEMENT concerné — c'est la seule
+   * chose dont l'événement est sûr — et l'on ne retient que les comptes de
+   * cette organisation. Si l'équipement est inconnu ou sans propriétaire,
+   * on ne notifie PERSONNE : prévenir tout le monde faute de savoir qui
+   * prévenir est précisément le défaut qu'on corrige.
+   */
   private async resolveRecipients(rule: NotificationRule, data: any): Promise<UserProfile[]> {
     try {
       // Query active users from the database
       let allUsers: UserProfile[] = [];
+      let locataireConcerne: string | undefined;
       try {
         const { db } = await import('../db.js');
-        const { userProfiles } = await import('@shared/schema.js');
+        const { userProfiles, equipmentRegistry } = await import('@shared/schema.js');
         const { eq } = await import('drizzle-orm');
+
+        const equipmentId = Number(data?.equipmentId);
+        if (!Number.isInteger(equipmentId)) {
+          console.warn(
+            `Notification abandonnée : l'événement « ${rule.id} » ne désigne aucun `
+            + `équipement, donc aucune organisation à prévenir.`,
+          );
+          return [];
+        }
+        const [equipement] = await db
+          .select({ tenantId: equipmentRegistry.tenantId })
+          .from(equipmentRegistry)
+          .where(eq(equipmentRegistry.id, equipmentId))
+          .limit(1);
+        locataireConcerne = equipement?.tenantId ?? undefined;
+        if (!locataireConcerne) {
+          console.warn(
+            `Notification abandonnée : équipement #${equipmentId} introuvable ou sans `
+            + `organisation — on ne prévient personne plutôt que tout le monde.`,
+          );
+          return [];
+        }
+
         allUsers = await db.select().from(userProfiles).where(eq(userProfiles.isActive, true));
       } catch {
         // DB unavailable — return empty list, no mocks
@@ -350,6 +402,10 @@ export class SmartNotificationEngine extends EventEmitter {
 
       // Filter recipients based on rule criteria
       return allUsers.filter(user => {
+        // L'organisation d'abord : un rôle correspondant chez un autre
+        // locataire reste un destinataire illégitime.
+        if (user.tenantId !== locataireConcerne) return false;
+
         // Check role match
         if (rule.recipients.roles.length > 0 && !rule.recipients.roles.includes(user.role || '')) {
           return false;
@@ -413,9 +469,16 @@ export class SmartNotificationEngine extends EventEmitter {
     this.notificationCooldowns.set(cooldownKey, new Date());
     
     // Auto-remove cooldown after the specified time
-    setTimeout(() => {
+    //
+    // `unref` : cette minuterie ne doit pas, à elle seule, maintenir le
+    // processus en vie. Sans effet sur le serveur, qui est tenu éveillé par
+    // sa socket d'écoute ; décisif ailleurs — une temporisation de plusieurs
+    // minutes suffit à suspendre un processus court, et c'est ce qui arrive
+    // à la voie de test. Même idiome que `sleep()` dans background-tasks.ts.
+    const minuterieRefroidissement = setTimeout(() => {
       this.notificationCooldowns.delete(cooldownKey);
     }, minutes * 60 * 1000);
+    minuterieRefroidissement.unref?.();
   }
 
   /**
@@ -425,7 +488,11 @@ export class SmartNotificationEngine extends EventEmitter {
     if (!rule.escalationRules) return;
     const escalationRules = rule.escalationRules;
 
-    setTimeout(async () => {
+    // `unref` plus bas, même raison que pour le refroidissement — et ici le
+    // délai est de QUINZE MINUTES : une seule notification traitée suffisait
+    // à suspendre la suite de tests d'intégration pendant tout ce temps,
+    // après que tous les cas soient passés.
+    const minuterieEscalade = setTimeout(async () => {
       // Check if alert was acknowledged
       const wasAcknowledged = await this.checkIfAcknowledged(rule.id, alert.equipmentId);
 
@@ -446,6 +513,7 @@ export class SmartNotificationEngine extends EventEmitter {
         }
       }
     }, rule.escalationRules.timeoutMinutes * 60 * 1000);
+    minuterieEscalade.unref?.();
   }
 
   /**

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { auMoins, libelleRole } from "@shared/roles";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,9 @@ import {
 } from "lucide-react";
 import ModernNavigation from "@/components/modern-navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // Types pour les permissions et rôles
 interface UserPermission {
@@ -143,26 +147,40 @@ export default function TenantPermissions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Vérifier que l'utilisateur a les permissions appropriées
-  if (!user || !["admin", "director"].includes(user.role || "")) {
+  /**
+   * Qui accède à la gestion des permissions ?
+   *
+   * ⚠️ La condition comparait le rôle à `["admin", "director"]`, écrit à la
+   * main. Elle recopiait fidèlement le serveur, qui faisait la même faute —
+   * c'est pourquoi le lot précédent l'avait GELÉE au lieu de la corriger : la
+   * corriger seule aurait promis un écran que le serveur refusait.
+   *
+   * Le serveur a été repris depuis (`auMoins(role, 'admin')` sur
+   * `GET /api/tenant/users`, `PATCH …/permissions` et `POST /api/tenant/roles`).
+   * L'interface peut donc enfin s'aligner : le **propriétaire** du locataire,
+   * niveau 7, retrouve l'écran que la comparaison littérale lui refusait, et
+   * `director` — qui n'existe dans aucun référentiel — cesse de l'obtenir.
+   */
+  if (!auMoins(user?.role, "admin")) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Permissions" }]} largeur="large">
+      <div className="space-y-6">
         <div className="pt-24 pb-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-lg p-8 text-center">
-              <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès Non Autorisé</h1>
-              <p className="text-gray-600 mb-4">
-                Seuls les administrateurs et directeurs peuvent accéder à la gestion des permissions.
+              <Shield className="w-16 h-16 text-etat-critique-texte mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-ink mb-2">Accès Non Autorisé</h1>
+              <p className="text-ink-soft mb-4">
+                La gestion des permissions est réservée à l'administrateur et au propriétaire du compte.
               </p>
-              <p className="text-sm text-gray-500">
-                Votre rôle actuel : <span className="font-medium">{user?.role || "Non défini"}</span>
+              <p className="text-sm text-ink-mute">
+                Votre rôle actuel : <span className="font-medium">{libelleRole(user?.role)}</span>
               </p>
             </div>
           </div>
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -249,10 +267,10 @@ export default function TenantPermissions() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case "admin": return <Crown className="w-4 h-4 text-signal-deep" />;
-      case "director": return <Building className="w-4 h-4 text-blue-600" />;
-      case "manager": return <UserCog className="w-4 h-4 text-green-600" />;
-      case "supervisor": return <Shield className="w-4 h-4 text-yellow-600" />;
-      default: return <Users className="w-4 h-4 text-gray-600" />;
+      case "director": return <Building className="w-4 h-4 text-etat-encours-texte" />;
+      case "manager": return <UserCog className="w-4 h-4 text-etat-nominal-texte" />;
+      case "supervisor": return <Shield className="w-4 h-4 text-etat-alerte-texte" />;
+      default: return <Users className="w-4 h-4 text-ink-soft" />;
     }
   };
 
@@ -300,12 +318,12 @@ export default function TenantPermissions() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
               <Shield className="w-6 h-6 text-ink" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestion des Permissions</h1>
-              <p className="text-gray-600">Définissez les niveaux d'accès selon l'organigramme de votre entreprise</p>
+              <h1 className="text-3xl font-bold text-ink">Gestion des Permissions</h1>
+              <p className="text-ink-soft">Définissez les niveaux d'accès selon l'organigramme de votre entreprise</p>
             </div>
           </div>
 
@@ -346,15 +364,15 @@ export default function TenantPermissions() {
               <CardContent>
                 <div className="grid gap-4">
                   {users.map((user: UserPermission) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-paper">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           {getRoleIcon(user.role)}
                           <div>
-                            <div className="font-semibold text-gray-900">
+                            <div className="font-semibold text-ink">
                               {user.firstName} {user.lastName}
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-ink-soft">
                               {user.email} • {user.department}
                             </div>
                           </div>
@@ -366,11 +384,11 @@ export default function TenantPermissions() {
                         
                         <div className="flex items-center gap-1">
                           {user.isActive ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <CheckCircle2 className="w-4 h-4 text-etat-nominal-texte" />
                           ) : (
-                            <XCircle className="w-4 h-4 text-red-600" />
+                            <XCircle className="w-4 h-4 text-etat-critique-texte" />
                           )}
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-ink-mute">
                             {user.isActive ? "Actif" : "Inactif"}
                           </span>
                         </div>
@@ -444,7 +462,7 @@ export default function TenantPermissions() {
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <Label>Validation Ordres de Travail</Label>
-                                    <p className="text-sm text-gray-600">Peut valider et approuver les OT</p>
+                                    <p className="text-sm text-ink-soft">Peut valider et approuver les OT</p>
                                   </div>
                                   <Switch
                                     checked={selectedUser.canValidateWorkOrders}
@@ -455,7 +473,7 @@ export default function TenantPermissions() {
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <Label>Validation Bons de Commande</Label>
-                                    <p className="text-sm text-gray-600">Peut valider et approuver les BC</p>
+                                    <p className="text-sm text-ink-soft">Peut valider et approuver les BC</p>
                                   </div>
                                   <Switch
                                     checked={selectedUser.canValidatePurchaseOrders}
@@ -534,7 +552,7 @@ export default function TenantPermissions() {
                         </Badge>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <p className="text-sm text-gray-600">{role.description}</p>
+                        <p className="text-sm text-ink-soft">{role.description}</p>
                         
                         <div>
                           <h4 className="font-semibold text-sm mb-2">Validations autorisées:</h4>
@@ -552,7 +570,7 @@ export default function TenantPermissions() {
                         
                         <div>
                           <h4 className="font-semibold text-sm mb-2">Accès modules:</h4>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-xs text-ink-soft">
                             {role.moduleAccess["*"] ? "Tous les modules" : 
                              `${Object.keys(role.moduleAccess).length} modules autorisés`}
                           </div>
@@ -586,7 +604,7 @@ export default function TenantPermissions() {
                 {Object.entries(MODULE_CATEGORIES).map(([category, categoryName]) => (
                   <div key={category} className="mb-6">
                     <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Factory className="w-5 h-5 text-blue-600" />
+                      <Factory className="w-5 h-5 text-etat-encours-texte" />
                       {categoryName}
                     </h3>
                     
@@ -595,7 +613,7 @@ export default function TenantPermissions() {
                         <div key={module.key} className="flex items-center justify-between p-3 border rounded-lg">
                           <div>
                             <div className="font-medium">{module.name}</div>
-                            <div className="text-sm text-gray-600">{module.description}</div>
+                            <div className="text-sm text-ink-soft">{module.description}</div>
                           </div>
                           
                           <div className="flex items-center gap-4">

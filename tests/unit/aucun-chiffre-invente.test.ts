@@ -157,3 +157,139 @@ describe('Aucun chiffre inventé en l\'absence de données', () => {
     expect(methode![0]).toContain('eq(workOrders.tenantId, tenantId)');
   });
 });
+
+describe('Aucun chiffre de performance écrit en clair dans le JSX', () => {
+  /*
+   * Le garde-fou précédent traque les valeurs de REPLI (`donnee?.champ || 42`)
+   * et les séries constantes. Il ne voyait pas un troisième motif, plus
+   * grossier : le chiffre écrit directement dans le balisage.
+   *
+   * Trouvé le 20/10/2026 en harmonisant les écrans de rapports :
+   *
+   *   • `advanced-reporting.tsx` — une carte « Tendances de Performance »
+   *     entière : « Coûts Maintenance ↓ 12 % », « Temps d'Arrêt ↓ 8 % »,
+   *     « Interventions Préventives ↑ 15 % », « Satisfaction Client 96 %,
+   *     Score NPS ». La plateforme ne collecte ni tendance mensuelle ni NPS ;
+   *   • `tenant-management.tsx` — « 847 diagnostics ce mois », « 2.3k
+   *     interventions totales », « 94 % de taux de résolution », affichés à
+   *     l'identique pour chaque locataire, et « Conformité RGPD 100 % ».
+   *
+   * Un pourcentage écrit en dur ne lève aucune erreur, ne dépend d'aucune
+   * donnée, et se lit exactement comme une mesure.
+   */
+  it('aucun pourcentage littéral n\'est rendu comme une mesure', () => {
+    // `>96%<`, `>↓ 12%<` : un nœud de texte JSX qui ne contient qu'un nombre
+    // suivi de `%`, éventuellement précédé d'une flèche de tendance.
+    const POURCENTAGE_LITTERAL = />\s*[↑↓→]?\s*\d+([.,]\d+)?\s*%\s*</;
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (POURCENTAGE_LITTERAL.test(texte)) {
+          fautifs.push(`${fichier.replace(RACINE, '')}:${n} → ${texte.trim().slice(0, 70)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it('aucun effectif littéral n\'est rendu comme une mesure', () => {
+    /*
+     * « 847 », « 2.3k » : trois chiffres ou plus, ou un suffixe k/M, seuls
+     * dans un nœud de texte. Les petits nombres sont exclus : un « 0 » ou un
+     * « 1 » littéral est presque toujours une légende, pas une statistique.
+     */
+    const EFFECTIF_LITTERAL = />\s*(\d{3,}|\d+([.,]\d+)?\s*[kKmM])\s*</;
+    const fautifs: string[] = [];
+    for (const fichier of fichiers) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        // Les années et les codes HTTP ne sont pas des mesures inventées.
+        if (/\b(19|20)\d{2}\b|\b(200|201|204|301|302|400|401|403|404|409|422|429|500|503)\b/.test(texte)) continue;
+        if (EFFECTIF_LITTERAL.test(texte)) {
+          fautifs.push(`${fichier.replace(RACINE, '')}:${n} → ${texte.trim().slice(0, 70)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+});
+
+describe('Le SERVEUR non plus ne fabrique de verdict de conformité', () => {
+  /*
+   * ⚠️ LE TROU DE CE GARDE-FOU, TROUVÉ LE 25/10/2026.
+   *
+   * Les blocs ci-dessus ne balaient que `client/src`, plus `gmao-routes.ts` et
+   * `gmao-storage.ts` nommément. Or le pire chiffre inventé du dépôt était
+   * SERVEUR : `GET /api/cctp/tenant/:id/cctp-compliance/report` rendait un
+   * document HTML entièrement écrit en dur — « Score: 90% » et dix verdicts de
+   * conformité rédigés à la main, identiques pour tous les locataires.
+   *
+   * L'en-tête de ce fichier cite pourtant « score de conformité réglementaire
+   * 90 % » parmi les défauts qui l'ont fait naître : le motif était connu, et
+   * c'est la PORTÉE du balayage qui le laissait passer. Un rapport imprimable
+   * est la pièce qu'un industriel oppose à un donneur d'ordre ; deux de ses
+   * affirmations étaient fausses, dont « Isolation tenant par RLS PostgreSQL »
+   * alors que ce dépôt cloisonne en code applicatif.
+   *
+   * ⚠️ Tout ce bloc passe par `lignesDeCode()`, et ce n'est pas une précaution
+   * de style : les commentaires de `cctp-routes.ts` CITENT les chaînes fautives
+   * pour expliquer le défaut. Un garde-fou qui lirait la prose punirait
+   * l'explication du défaut au lieu du défaut.
+   */
+  const ROUTES_SERVEUR = sources(join(RACINE, 'server'))
+    .filter((f) => /routes?\.ts$|report|rapport|conformite|compliance/i.test(f));
+
+  it('le balayage atteint bien les fichiers de routes du serveur', () => {
+    expect(ROUTES_SERVEUR.length).toBeGreaterThan(5);
+    expect(ROUTES_SERVEUR.some((f) => /cctp-routes\.ts$/.test(f))).toBe(true);
+  });
+
+  it('aucun score de conformité écrit en dur dans un document servi', () => {
+    // « Score: 90% », « Conformité 100 % », « score global : 90% » : un libellé
+    // de notation suivi d'un nombre littéral, dans une chaîne que le serveur
+    // envoie. Le nombre doit venir d'un calcul, jamais du source.
+    const SCORE_LITTERAL = /(score|conformit[ée]|compliance)[^\n]{0,20}?[:>]\s*\d{1,3}\s*%/i;
+    const fautifs: string[] = [];
+    for (const fichier of ROUTES_SERVEUR) {
+      for (const { n, texte } of lignesDeCode(readFileSync(fichier, 'utf8'))) {
+        if (SCORE_LITTERAL.test(texte)) {
+          fautifs.push(`${fichier.replace(RACINE, '').split('\\').join('/')}:${n} → ${texte.trim().slice(0, 90)}`);
+        }
+      }
+    }
+    expect(fautifs).toEqual([]);
+  });
+
+  it("le relevé de conformité CCTP n'écrit aucun verdict en dur", () => {
+    const fichier = join(RACINE, 'server', 'cctp-routes.ts');
+    const code = lignesDeCode(readFileSync(fichier, 'utf8')).map((l) => l.texte).join('\n');
+
+    // Un état d'exigence posé littéralement dans la route : c'est exactement
+    // ce que faisaient `validationWorkflow` et `tenantIsolation`.
+    expect(code).not.toMatch(/status:\s*['"]compliant['"]/);
+    expect(code).not.toMatch(/score:\s*100\b/);
+
+    // Et la fausse déclaration la plus grave : ce dépôt n'a jamais eu de RLS.
+    expect(code).not.toMatch(/RLS/);
+
+    // Le relevé vient du service, qui le MESURE.
+    expect(code).toContain('releverConformite');
+  });
+
+  it('les exigences non mesurables sont rendues sans note, et non à 100', () => {
+    const service = readFileSync(join(RACINE, 'server', 'cctp-compliance-system.ts'), 'utf8');
+    const code = lignesDeCode(service).map((l) => l.texte).join('\n');
+
+    // `non_mesure` existe comme état, et il est employé.
+    expect(code).toMatch(/['"]non_mesure['"]/);
+
+    // Le score global ne moyenne que les exigences notées : une exigence sans
+    // note ne doit pas peser 100 dans la moyenne, c'était le mécanisme du
+    // « 90 % ».
+    expect(code).toContain('e.score !== null');
+
+    // Et le cloisonnement n'est plus déclaré conforme par ce relevé : il est
+    // renvoyé vers ce qui le vérifie réellement.
+    expect(code).toMatch(/cloisonnementParLocataire/);
+    expect(code).toMatch(/isolation-\*\.test\.ts|0011 à 0023/);
+  });
+});

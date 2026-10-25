@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { auMoins } from "@shared/roles";
 import { notifyTaskAssigned } from "./push-notification-service";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
@@ -16,10 +17,13 @@ import {
   insertAlertsNotificationsSchema,
   insertMaintenanceReportSchema,
   insertMonthlyReportSchema,
-  createCounterFromPlanSchema
+  createCounterFromPlanSchema,
+  companyConfigPayloadSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { createValidationDemo } from "./create-validation-demo";
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "./db";
+import { purchaseOrders } from "@shared/schema";
 import { estViolationUnicite } from "./db-errors";
 import { tenantRequis } from "./tenant-requis";
 
@@ -48,10 +52,26 @@ function requireTenant(req: any, res: any): string | null {
   return tenantId;
 }
 
-// Helper: check that authenticated user has one of the allowed roles
-function hasRole(req: any, ...roles: string[]): boolean {
-  const role = req.user?.role as string | undefined;
-  return !!role && roles.includes(role);
+/**
+ * Le rôle de l'appelant atteint-il le niveau demandé ?
+ *
+ * ⚠️ Remplace un `hasRole(req, ...roles)` qui comparait LITTÉRALEMENT la valeur
+ * de `req.user.role` à une liste écrite à la main —
+ * `'admin', 'director', 'technical_director', 'owner'`. Deux conséquences
+ * mesurées sur la grappe de test :
+ *
+ *   • `director` n'existe dans AUCUN référentiel de rôles, et était pourtant
+ *     accepté : un rôle inconnu du système obtenait le droit de supprimer ;
+ *   • les orthographes déjà présentes en base (`directeur_technique`,
+ *     `administrateur`, `proprietaire`) étaient refusées, alors qu'elles
+ *     désignent des rôles autorisés — un refus d'accès inexplicable.
+ *
+ * `auMoins` normalise les deux côtés avant de comparer, et raisonne par niveau
+ * plutôt que par énumération : `owner` (7) et `admin` (6) sont au-dessus de
+ * `technical_director` (5), donc autorisés sans être nommés.
+ */
+function auMoinsNiveau(req: any, minimum: Parameters<typeof auMoins>[1]): boolean {
+  return auMoins(req.user?.role, minimum);
 }
 
 const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
@@ -508,7 +528,7 @@ export function registerGMAORoutes(app: Express) {
   // Delete work order — restricted to admin, director, technical_director
   app.delete("/api/work-orders/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un ordre de travail" });
       }
       const tenantId = requireTenant(req, res);
@@ -671,13 +691,18 @@ export function registerGMAORoutes(app: Express) {
   // Delete preventive maintenance plan
   app.delete("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer un plan de maintenance" });
       }
       const tenantId = requireTenant(req, res);
       if (!tenantId) return;
       const id = parseInt(req.params.id);
-      await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
+      // Même contrat que les deux autres suppressions du module : on ne
+      // confirme que ce qui a réellement été supprimé.
+      const supprime = await gmaoStorage.deletePreventiveMaintenancePlan(id, tenantId);
+      if (!supprime) {
+        return res.status(404).json({ message: "Plan de maintenance non trouvé" });
+      }
       res.json({ success: true, message: "Plan de maintenance supprimé avec succès" });
     } catch (error) {
       console.error("Error deleting maintenance plan:", error);
@@ -822,7 +847,7 @@ export function registerGMAORoutes(app: Express) {
   // Delete spare part — restricted to admin/director + tenant check
   app.delete("/api/spare-parts/:id", async (req, res) => {
     try {
-      if (!hasRole(req, 'admin', 'director', 'technical_director', 'owner')) {
+      if (!auMoinsNiveau(req, 'technical_director')) {
         return res.status(403).json({ error: "FORBIDDEN", message: "Droits insuffisants pour supprimer une pièce détachée" });
       }
       const tenantId = requireTenant(req, res);
@@ -909,10 +934,17 @@ export function registerGMAORoutes(app: Express) {
   // ============= IOT SENSOR DATA ROUTES =============
   
   // Get IoT sensor data
+  //
+  // ⚠️ Appelée sans `equipmentId` — ce que fait l'écran quand il veut « tous les
+  // relevés » — cette route rendait les capteurs de TOUTE l'instance : la
+  // méthode de stockage n'avait alors plus aucune condition à poser.
   app.get("/api/iot-data", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { equipmentId, sensorType, limit } = req.query;
       const data = await gmaoStorage.getIotSensorData(
+        tenantId,
         equipmentId ? parseInt(equipmentId as string) : undefined,
         sensorType as string,
         limit ? parseInt(limit as string) : undefined
@@ -927,8 +959,12 @@ export function registerGMAORoutes(app: Express) {
   // Create IoT sensor data
   app.post("/api/iot-data", async (req, res) => {
     try {
-      const data = insertIotSensorDataSchema.parse(req.body);
-      const sensorData = await gmaoStorage.createIotSensorData(data);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      // Le locataire vient de la session et est posé APRÈS l'analyse du corps :
+      // un client qui enverrait `tenantId` ne peut pas écrire chez autrui.
+      const data = insertIotSensorDataSchema.parse({ ...req.body, tenantId });
+      const sensorData = await gmaoStorage.createIotSensorData({ ...data, tenantId });
       res.status(201).json(sensorData);
     } catch (error) {
       console.error("Error creating IoT data:", error);
@@ -937,10 +973,14 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get latest sensor data for equipment
+  // L'identifiant d'équipement vient de l'URL : sans condition de locataire,
+  // lire les capteurs d'autrui ne demandait que d'en deviner le numéro.
   app.get("/api/equipment/:equipmentId/sensor-data", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId);
-      const data = await gmaoStorage.getLatestSensorData(equipmentId);
+      const data = await gmaoStorage.getLatestSensorData(equipmentId, tenantId);
       res.json(data);
     } catch (error) {
       console.error("Error fetching sensor data:", error);
@@ -1067,21 +1107,43 @@ export function registerGMAORoutes(app: Express) {
   // Create alert
   app.post("/api/alerts", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const data = insertAlertsNotificationsSchema.parse(req.body);
-      const alert = await gmaoStorage.createAlert(data);
+      // Le locataire est posé APRÈS l'analyse du corps, donc il l'écrase :
+      // c'est la session qui dit à qui appartient l'alerte, jamais le client.
+      // Auparavant le corps fournissait `tenantId` et rien ne le contrôlait —
+      // on pouvait écrire une alerte au nom d'une autre organisation. La
+      // vérification que l'équipement visé est bien le sien est faite par
+      // createAlert, qui est le passage unique.
+      const alert = await gmaoStorage.createAlert({ ...data, tenantId });
       res.status(201).json(alert);
     } catch (error) {
       console.error("Error creating alert:", error);
-      res.status(400).json({ message: "Failed to create alert" });
+      // Un refus de cloisonnement n'est pas une requête malformée : il est
+      // rendu tel quel, pour qu'un appelant légitime comprenne ce qu'on lui
+      // reproche au lieu de lire « Failed to create alert ».
+      const message = error instanceof Error && /^ALERTE_/.test(error.message)
+        ? error.message
+        : "Failed to create alert";
+      res.status(400).json({ message });
     }
   });
 
   // Update alert
   app.put("/api/alerts/:id", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const id = parseInt(req.params.id);
       const updates = req.body;
-      const alert = await gmaoStorage.updateAlert(id, updates);
+      const alert = await gmaoStorage.updateAlert(id, tenantId, updates);
+      // Sans correspondance, l'alerte existe peut-être — mais pas pour ce
+      // locataire. On rend 404 et non 403 : dire « interdit » confirmerait
+      // l'existence de l'alerte d'autrui, ce qui est déjà une information.
+      if (!alert) {
+        return res.status(404).json({ message: "Alerte introuvable" });
+      }
       res.json(alert);
     } catch (error) {
       console.error("Error updating alert:", error);
@@ -1092,8 +1154,10 @@ export function registerGMAORoutes(app: Express) {
   // Get alerts by equipment
   app.get("/api/equipment/:equipmentId/alerts", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const equipmentId = parseInt(req.params.equipmentId);
-      const alerts = await gmaoStorage.getAlertsByEquipment(equipmentId);
+      const alerts = await gmaoStorage.getAlertsByEquipment(equipmentId, tenantId);
       res.json(alerts);
     } catch (error) {
       console.error("Error fetching alerts:", error);
@@ -1247,6 +1311,9 @@ export function registerGMAORoutes(app: Express) {
 
   app.post("/api/purchase-orders", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       // Determine document type based on amount
       const amount = parseFloat(req.body.totalAmount);
       const documentType = amount <= 1500 ? "purchase_order" : "command_letter";
@@ -1265,8 +1332,11 @@ export function registerGMAORoutes(app: Express) {
         notes: req.body.description || "",
         terms: req.body.terms || ""
       };
-      
-      const order = await gmaoStorage.createPurchaseOrder(orderData);
+
+      // Le propriétaire du bon vient de la SESSION. Cette route le créait sans
+      // aucun locataire : la ligne naissait orpheline, donc lisible et
+      // approuvable par tout le monde (migration 0023).
+      const order = await gmaoStorage.createPurchaseOrder(tenantId, orderData);
       res.status(201).json({
         success: true,
         message: `${documentType === "purchase_order" ? "Bon de commande" : "Lettre de commande"} créé avec succès`,
@@ -1339,7 +1409,12 @@ export function registerGMAORoutes(app: Express) {
   // Get purchase orders — real data from DB
   app.get("/api/purchase-orders", async (req, res) => {
     try {
-      const orders = await gmaoStorage.getPurchaseOrders();
+      // Rendait les bons de commande de toute l'instance — montants,
+      // fournisseurs et demandeurs compris.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const orders = await gmaoStorage.getPurchaseOrders(tenantId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
@@ -1373,7 +1448,9 @@ export function registerGMAORoutes(app: Express) {
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
 
-      const report = await gmaoStorage.getMaintenanceReportById(reportId);
+      // Le locataire était déjà exigé ici, mais seulement pour enrichir le PDF
+      // : la lecture du rapport lui-même l'ignorait. On le lui passe.
+      const report = await gmaoStorage.getMaintenanceReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport de maintenance introuvable" });
       }
@@ -1394,10 +1471,18 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get maintenance reports — real data from DB
+  //
+  // ⚠️ Cette route n'exigeait AUCUN locataire et n'en transmettait aucun : elle
+  // renvoyait les rapports de toute l'instance au composant
+  // client/src/components/maintenance-reports.tsx, qui les affiche tels quels
+  // (technicien, description de l'intervention, coût total). C'était la fuite
+  // la plus directe des cinq, et la seule visible à l'œil nu dans l'écran.
   app.get("/api/maintenance-reports", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { reportType, status, equipmentId } = req.query;
-      const reports = await gmaoStorage.getMaintenanceReports({
+      const reports = await gmaoStorage.getMaintenanceReports(tenantId, {
         ...(reportType && { reportType: reportType as string }),
         ...(status && { status: status as string }),
         ...(equipmentId && { equipmentId: parseInt(equipmentId as string) }),
@@ -1432,8 +1517,10 @@ export function registerGMAORoutes(app: Express) {
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "ID de rapport invalide" });
       }
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
 
-      const report = await gmaoStorage.getMonthlyReportById(reportId);
+      const report = await gmaoStorage.getMonthlyReportById(reportId, tenantId);
       if (!report) {
         return res.status(404).json({ message: "Rapport mensuel introuvable" });
       }
@@ -1448,10 +1535,17 @@ export function registerGMAORoutes(app: Express) {
   });
 
   // Get monthly reports — real data from DB
+  //
+  // ⚠️ Même absence de contrôle que sur /api/maintenance-reports, pour des
+  // données plus condensées encore : chaque ligne porte les coûts de
+  // maintenance AGRÉGÉS d'un mois. L'écran les affiche en évidence
+  // (« Coût total », « Main d'œuvre », « Pièces », « Coût / intervention »).
   app.get("/api/monthly-reports", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const year = req.query.year ? parseInt(req.query.year as string) : undefined;
-      const reports = await gmaoStorage.getMonthlyReports(year);
+      const reports = await gmaoStorage.getMonthlyReports(tenantId, year);
       res.json(reports);
     } catch (error) {
       console.error("Error fetching monthly reports:", error);
@@ -1462,12 +1556,26 @@ export function registerGMAORoutes(app: Express) {
 
 
   // ============= COMPANY CONFIGURATION ROUTES =============
-  
+  //
+  // Ces routes lisaient et écrivaient UNE SEULE ligne pour toute l'instance :
+  // la raison sociale, l'adresse, le numéro fiscal, le logo et les seuils
+  // d'approbation étaient communs à tous les locataires, et le dernier à
+  // enregistrer effaçait la configuration de tous les autres. Voir
+  // shared/schema.ts (table `companyConfig`) et
+  // migrations/0022_company_config_tenant_scoped.sql.
+
   // Get company configuration
   app.get("/api/company-config", async (req, res) => {
     try {
-      const config = await gmaoStorage.getCompanyConfig();
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      const config = await gmaoStorage.getCompanyConfig(tenantId);
       if (!config) {
+        // Gabarit de départ pour un locataire qui n'a encore rien enregistré.
+        // ⚠️ Il ne doit JAMAIS retomber sur la configuration d'un autre : un
+        // locataire neuf voit des champs vides et les remplit, il ne reprend
+        // pas l'identité commerciale du voisin.
         return res.json({
           companyName: "Votre Entreprise",
           address: "",
@@ -1490,13 +1598,20 @@ export function registerGMAORoutes(app: Express) {
   // Get document type based on amount
   app.post("/api/purchase-orders/document-type", async (req, res) => {
     try {
+      // ⚠️ Les seuils vivent dans `company_config`. Tant que cette table était
+      // commune, un locataire qui modifiait son seuil déplaçait celui de tout
+      // le monde : le montant au-delà duquel une dépense exige une validation
+      // renforcée changeait chez les autres, sans qu'ils en sachent rien.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const { amount } = req.body;
-      
+
       if (!amount || isNaN(parseFloat(amount))) {
         return res.status(400).json({ message: "Montant invalide" });
       }
-      
-      const config = await gmaoStorage.getCompanyConfig();
+
+      const config = await gmaoStorage.getCompanyConfig(tenantId);
       const purchaseThreshold = parseFloat(config?.purchaseOrderThreshold || "1500.00");
       const commandThreshold = parseFloat(config?.commandLetterThreshold || "1500.01");
       
@@ -1528,20 +1643,65 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Create or update company configuration  
+  // Create or update company configuration
   app.post("/api/company-config", async (req, res) => {
     try {
-      const existingConfig = await gmaoStorage.getCompanyConfig();
-      
+      // ⚠️ AUCUN CONTRÔLE DE RÔLE n'existait ici. N'importe quel compte
+      // authentifié — un technicien, un lecteur — pouvait réécrire la raison
+      // sociale, l'adresse et le numéro fiscal portés par les bons de commande,
+      // et déplacer le seuil au-delà duquel une dépense exige une validation.
+      // Le second point est le plus grave : relever le seuil désarme le contrôle
+      // d'engagement, sans laisser de trace ailleurs que dans cette ligne.
+      //
+      // `technical_director` est le niveau retenu parce qu'il désigne EXACTEMENT
+      // les rôles auxquels server/rbac-permissions.ts accorde `manage_settings`
+      // (technical_director 5, admin 6, owner 7) : les deux référentiels disent
+      // donc la même chose. `auMoins` est préféré à une liste littérale pour la
+      // raison documentée en tête de ce fichier — `owner` est au-dessus et
+      // n'a pas à être nommé, et les orthographes déjà en base sont rattrapées.
+      if (!auMoinsNiveau(req, 'technical_director')) {
+        return res.status(403).json({
+          success: false,
+          error: "FORBIDDEN",
+          message: "Droits insuffisants pour modifier la configuration de l'entreprise",
+        });
+      }
+
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      // La charge est VALIDÉE puis réduite : ni `id`, ni `tenantId`, ni
+      // `isActive` ne traversent. Sans cela, `{ "tenantId": "<autre
+      // locataire>" }` posté par le client faisait déménager la ligne chez lui
+      // (le `.set()` réécrivait la colonne même que le `WHERE` venait de
+      // viser). Voir companyConfigPayloadSchema dans shared/schema.ts.
+      const charge = companyConfigPayloadSchema.safeParse(req.body);
+      if (!charge.success) {
+        return res.status(400).json({
+          success: false,
+          error: "VALIDATION_ERROR",
+          message: "Configuration d'entreprise invalide",
+          details: charge.error.errors,
+        });
+      }
+
+      const existingConfig = await gmaoStorage.getCompanyConfig(tenantId);
+
       if (existingConfig) {
-        const updatedConfig = await gmaoStorage.updateCompanyConfig(existingConfig.id, req.body);
+        const updatedConfig = await gmaoStorage.updateCompanyConfig(existingConfig.id, tenantId, charge.data);
+        // `undefined` signifie que la ligne n'appartient pas à ce locataire —
+        // impossible ici puisqu'on vient de la lire pour lui, mais le contrat de
+        // la méthode le prévoit et un succès inventé serait pire qu'un 404.
+        if (!updatedConfig) {
+          return res.status(404).json({ success: false, message: "Configuration d'entreprise introuvable" });
+        }
         res.json({
           success: true,
           message: "Configuration mise à jour avec succès",
           config: updatedConfig
         });
       } else {
-        const newConfig = await gmaoStorage.createCompanyConfig(req.body);
+        const newConfig = await gmaoStorage.createCompanyConfig(tenantId, charge.data);
         res.json({
           success: true,
           message: "Configuration créée avec succès",
@@ -1550,9 +1710,9 @@ export function registerGMAORoutes(app: Express) {
       }
     } catch (error) {
       console.error("Error saving company config:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: "Failed to save company configuration" 
+        message: "Failed to save company configuration"
       });
     }
   });
@@ -1560,15 +1720,29 @@ export function registerGMAORoutes(app: Express) {
   // Generate purchase order with letterhead — real data from DB
   app.get("/api/purchase-orders/:id/letterhead", async (req, res) => {
     try {
+      // DEUX défauts se rejoignaient sur cette route, trouvés séparément :
+      //
+      //   • l'EN-TÊTE du document était la ligne active commune à l'instance, et
+      //     non celle du demandeur (migration 0022) : un engagement de dépense
+      //     sortait sous la raison sociale, l'adresse et le numéro fiscal d'une
+      //     autre entreprise ;
+      //   • le BON DE COMMANDE lui-même se lisait sans locataire (migration
+      //     0023) : un identifiant deviné suffisait à obtenir le PDF complet
+      //     — montant, fournisseur, lignes commandées — du bon d'autrui.
+      //
+      // L'en-tête et la provenance sont désormais tous deux ceux de la session.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
       // Enrich with line items and resolved supplier name
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
@@ -1588,7 +1762,7 @@ export function registerGMAORoutes(app: Express) {
       };
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      const companyConfig = await gmaoStorage.getCompanyConfig();
+      const companyConfig = await gmaoStorage.getCompanyConfig(tenantId);
       const pdfCompanyConfig = companyConfig ? {
         companyName: companyConfig.companyName,
         address: companyConfig.address || "",
@@ -1613,22 +1787,149 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // Mark purchase order as printed (Service Achat final step)
+  /**
+   * Marquer un bon de commande comme imprimé — dernier geste du service achat.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE QUI ÉTAIT CASSÉ (mesuré le 2026-10-25)
+   * ═══════════════════════════════════════════════════════════════════
+   * La route lisait `printedBy` ET `printedAt` DANS LE CORPS : qui a imprimé,
+   * et quand, étaient DÉCLARÉS par l'appelant. Même défaut de traçabilité que
+   * celui fermé le même jour sur les validations, et aucun contrôle de droit.
+   *
+   * Mesuré depuis un simple technicien (`role = technician`, aucun droit sur
+   * les achats), sur un bon de commande RÉEL de 87 000 € au statut `pending` :
+   *
+   *   • HTTP 200, et `printed_by = 1001` — le compte que le CORPS désignait,
+   *     pas l'appelant (1002). Une impression inscrite au nom de quelqu'un
+   *     d'autre : exactement la signature falsifiée du lot précédent ;
+   *   • `printed_at` venait du corps : 2020-01-01, soit une impression datée
+   *     six ans avant le geste ;
+   *   • le bon portait `can_print = false` — il n'avait franchi AUCUN des
+   *     trois niveaux — et passait pourtant à `validation_status = "printed"` ;
+   *   • conséquence la plus grave : « printed » ne correspond à aucune étape du
+   *     circuit (voir `niveauAttendu()`, server/simple-validation-routes.ts).
+   *     Le validateur de niveau 1 qui tentait ensuite d'approuver ce marché
+   *     recevait 409 CIRCUIT_CLOS. Tout compte authentifié pouvait donc
+   *     NEUTRALISER l'approbation de n'importe quelle dépense, en une requête ;
+   *   • et sur un identifiant inexistant (999999), la route répondait 200
+   *     « marqué comme imprimé » : `updatePurchaseOrder` ne touchait aucune
+   *     ligne et rendait `undefined`, sans que personne le regarde.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE QUI LA GARDE MAINTENANT
+   * ═══════════════════════════════════════════════════════════════════
+   * L'auteur vient de la SESSION, la date de l'HORLOGE SERVEUR, et le corps de
+   * la requête n'est plus lu du tout. S'y ajoutent l'habilitation d'achat de
+   * l'appelant (`canValidatePurchaseOrders`, le drapeau que le circuit de
+   * validation oppose déjà aux bons de commande), l'exigence que le bon ait
+   * RÉELLEMENT franchi les trois niveaux (`can_print`, que seule la validation
+   * finale pose), et le refus de réécrire une impression déjà inscrite : la
+   * première trace est celle qui compte, et le document reste téléchargeable
+   * autant de fois qu'il le faut (`GET /api/purchase-orders/:id/pdf`).
+   *
+   * Ces deux dernières conditions partent aussi dans le `WHERE` de l'UPDATE, et
+   * pas seulement dans les gardes ci-dessus : deux agents du service achat qui
+   * cliquent en même temps ne peuvent pas inscrire deux impressions (zéro ligne
+   * touchée → 409), et c'est la première qui reste.
+   *
+   * Le locataire de la session CLOISONNE réellement, depuis la migration
+   * `0022_purchase_orders_tenant_scoped.sql` : il est porté par la lecture du
+   * bon ET par le `WHERE` de l'UPDATE. Jusqu'à cette migration, l'exiger ne
+   * servait qu'à éviter une route de plus à reprendre — `purchase_orders` ne
+   * portait aucune colonne `tenant_id`, et un service achat habilité pouvait
+   * marquer imprimé le bon d'une autre organisation.
+   */
   app.post("/api/purchase-orders/:id/mark-printed", async (req, res) => {
     try {
-      const purchaseOrderId = parseInt(req.params.id);
-      const { printedBy, printedAt } = req.body;
-      
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
-        validationStatus: "printed",
-        printedBy: printedBy || 1, // Service Achat user ID
-        printedAt: printedAt ? new Date(printedAt) : new Date()
-      });
-      
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const compte = (req as any).user;
+      if (!compte?.id) {
+        return res.status(401).json({
+          error: "AUTHENTIFICATION_REQUISE",
+          message: "Aucun compte en session : une impression exige une identité.",
+        });
+      }
+
+      if (compte.canValidatePurchaseOrders !== true) {
+        return res.status(403).json({
+          error: "IMPRESSION_NON_HABILITEE",
+          message: "Votre compte ne porte pas le droit d'agir sur les bons de commande.",
+        });
+      }
+
+      const purchaseOrderId = Number(req.params.id);
+      if (!Number.isInteger(purchaseOrderId) || purchaseOrderId <= 0) {
+        return res.status(400).json({
+          error: "DOCUMENT_NON_DESIGNE",
+          message: "Identifiant de bon de commande invalide.",
+        });
+      }
+
+      // Cherché DANS le locataire de la session : l'identifiant d'une autre
+      // organisation donne 404, et non une impression inscrite chez elle.
+      const bon = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
+      if (!bon) {
+        return res.status(404).json({
+          error: "BON_INTROUVABLE",
+          message: `Bon de commande #${purchaseOrderId} introuvable dans votre organisation.`,
+        });
+      }
+
+      if (bon.canPrint !== true) {
+        return res.status(409).json({
+          error: "CIRCUIT_INCOMPLET",
+          message:
+            `Ce bon de commande est au statut « ${bon.validationStatus} » et n'est pas ` +
+            "imprimable : seule la validation du dernier niveau pose ce droit.",
+          validationStatus: bon.validationStatus,
+        });
+      }
+
+      if (bon.printedAt) {
+        return res.status(409).json({
+          error: "DEJA_IMPRIME",
+          message: "Ce bon de commande porte déjà une impression : sa trace est conservée.",
+          printedBy: bon.printedBy,
+          printedAt: bon.printedAt,
+        });
+      }
+
+      const maintenant = new Date();
+      const [maj] = await db
+        .update(purchaseOrders)
+        .set({
+          validationStatus: "printed",
+          printedBy: compte.id,
+          printedAt: maintenant,
+          updatedAt: maintenant,
+        })
+        .where(and(
+          eq(purchaseOrders.id, purchaseOrderId),
+          // Le locataire est dans le WHERE autant que dans la lecture : entre la
+          // vérification et l'écriture, c'est lui qui garantit qu'on n'inscrit
+          // pas une impression sur la ligne d'une autre organisation.
+          eq(purchaseOrders.tenantId, tenantId),
+          eq(purchaseOrders.canPrint, true),
+          isNull(purchaseOrders.printedAt),
+        ))
+        .returning();
+
+      if (!maj) {
+        return res.status(409).json({
+          error: "ETAT_MODIFIE",
+          message: "Ce bon de commande a changé d'état entre-temps : rechargez-le.",
+        });
+      }
+
       res.json({
         success: true,
         message: "Bon de commande marqué comme imprimé",
-        purchaseOrder: updatedOrder
+        validationStatus: maj.validationStatus,
+        printedBy: maj.printedBy,
+        printedAt: maj.printedAt,
       });
     } catch (error) {
       console.error("Error marking purchase order as printed:", error);
@@ -1639,13 +1940,19 @@ export function registerGMAORoutes(app: Express) {
   // Add supporting documents to purchase order
   app.post("/api/purchase-orders/:id/documents", async (req, res) => {
     try {
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
       const { documents } = req.body;
-      
-      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, {
+
+      const updatedOrder = await gmaoStorage.updatePurchaseOrder(purchaseOrderId, tenantId, {
         documentsJustificatifs: documents
       });
-      
+      if (!updatedOrder) {
+        return res.status(404).json({ message: "Bon de commande introuvable" });
+      }
+
       res.json({
         success: true,
         message: "Documents justificatifs ajoutés",
@@ -1660,14 +1967,19 @@ export function registerGMAORoutes(app: Express) {
   // Download purchase order as PDF — real data from DB
   app.get("/api/purchase-orders/:id/pdf", async (req, res) => {
     try {
+      // Mêmes deux gardes que sur `/letterhead` juste au-dessus : en-tête du
+      // demandeur, et bon de commande cherché dans son locataire.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const purchaseOrderId = parseInt(req.params.id);
 
-      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId);
+      const order = await gmaoStorage.getPurchaseOrderById(purchaseOrderId, tenantId);
       if (!order) {
         return res.status(404).json({ message: "Bon de commande introuvable" });
       }
 
-      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId);
+      const items = await gmaoStorage.getPurchaseOrderItems(purchaseOrderId, tenantId);
       const supplier = order.supplierId ? await gmaoStorage.getSupplierById(order.supplierId) : undefined;
       const enrichedOrder = {
         ...order,
@@ -1687,7 +1999,7 @@ export function registerGMAORoutes(app: Express) {
       };
 
       const { generatePurchaseOrderPDF } = await import('../server/pdf-generator-pdfkit');
-      const companyConfig = await gmaoStorage.getCompanyConfig();
+      const companyConfig = await gmaoStorage.getCompanyConfig(tenantId);
       const pdfCompanyConfig = companyConfig ? {
         companyName: companyConfig.companyName,
         address: companyConfig.address || "",
@@ -1712,23 +2024,47 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  // ============= VALIDATION DEMO ROUTES =============
-  
-  // Create sample validation data for testing
-  app.post("/api/create-validation-demo", async (req, res) => {
-    try {
-      const result = await createValidationDemo();
-      res.json(result);
-    } catch (error: any) {
-      console.error("Error creating validation demo:", error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la création des données de démonstration",
-        error: error.message
-      });
-    }
-  });
-
+  // ═══════════════════════════════════════════════════════════════════
+  // PAS DE ROUTE DE DÉMONSTRATION ICI — ET C'EST VOULU
+  // ═══════════════════════════════════════════════════════════════════
+  // `POST /api/create-validation-demo` a été retirée le 2026-10-25. Elle
+  // exécutait `createValidationDemo()` (server/create-validation-demo.ts,
+  // supprimé) sans AUCUN contrôle de rôle : tout compte authentifié pouvait
+  // l'appeler. Mesuré sur une grappe de test, depuis un simple technicien
+  // (`role = technician`, `validation_level = 0`) — HTTP 200 :
+  //
+  //   • deux ordres de travail écrits dans le locataire codé en dur
+  //     « default-tenant », donc pas celui de l'appelant, donc visibles de
+  //     personne — pointant pourtant les équipements nº 1 et 2 d'un VRAI
+  //     locataire, et attribués (`requested_by`) aux comptes nº 1 et 2 ;
+  //   • deux bons de commande RÉELS, de 654,00 € et 4 250,00 €, au statut
+  //     `pending` : ils sont entrés dans la file de validation de niveau 1
+  //     d'un validateur habilité, puis — après son approbation — dans celle
+  //     d'un validateur d'une AUTRE organisation. De la dépense fictive
+  //     soumise à signature réelle ;
+  //   • là où les identifiants 1, 2 et 3 étaient libres, trois profils écrits
+  //     à ces identifiants FORCÉS, `tenant_id` à NULL, sans mot de passe, et
+  //     portant des rôles qui n'existent dans aucune nomenclature du dépôt
+  //     (« Chef de Service Utilisateur », « Technicien Maintenance ») — la
+  //     classe de valeur que shared/roles.ts existe pour éliminer. Leurs
+  //     champs `canValidateLevel1/2/3` ne correspondant à aucune colonne, ils
+  //     étaient ignorés en silence : ces « validateurs » naissaient à
+  //     `validation_level = 0`, incapables de valider quoi que ce soit ;
+  //   • sur une instance neuve, dont la séquence de `user_profiles.id` n'a pas
+  //     encore dépassé 3, la création du compte suivant échoue — clé primaire
+  //     déjà prise. Un jeu de démonstration ne doit pas squatter l'espace
+  //     d'identifiants des vrais comptes.
+  //
+  // En prime, l'échec n'était pas transactionnel et répondait HTTP 200 avec
+  // `success: false`, en recopiant dans le corps la requête SQL complète et
+  // ses paramètres.
+  //
+  // Le besoin légitime — montrer le produit sur des données crédibles — est
+  // couvert par `scripts/jeu-de-demonstration.ts` : locataire dédié à
+  // l'identifiant figé, domaine en `.demo.invalid`, refus d'écrire ailleurs,
+  // réversible (`npm run demo:charger` / `npm run demo:retirer`). Une commande
+  // d'exploitation, lancée par qui administre la machine — pas une route
+  // d'écriture ouverte à toute session.
 
   console.log("✅ GMAO routes registered successfully");
 }

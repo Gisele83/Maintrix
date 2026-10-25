@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ModernNavigation } from "@/components/modern-navigation";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import {
   Activity, AlertTriangle, Brain, CheckCircle, ChevronDown, ChevronRight,
   Clock, RefreshCw, Shield, TrendingDown, TrendingUp, Zap
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface RULDistribution {
@@ -43,28 +46,36 @@ interface Equipment { id: number; name: string; type: string; status: string; }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const scoreColor = (v: number) =>
-  v >= 75 ? "text-emerald-400" : v >= 55 ? "text-blue-400" : v >= 35 ? "text-amber-400" : "text-red-400";
+  v >= 75 ? "text-etat-nominal-texte" : v >= 55 ? "text-etat-encours-texte" : v >= 35 ? "text-etat-alerte-texte" : "text-etat-critique-texte";
 
 const scoreBg = (v: number) =>
-  v >= 75 ? "bg-emerald-500/20 border-emerald-500/40" : v >= 55 ? "bg-blue-500/20 border-blue-500/40"
-  : v >= 35 ? "bg-amber-500/20 border-amber-500/40" : "bg-red-500/20 border-red-500/40";
+  v >= 75 ? "bg-etat-nominal-fond border-etat-nominal-filet" : v >= 55 ? "bg-etat-encours-fond border-etat-encours-filet"
+  : v >= 35 ? "bg-etat-alerte-fond border-etat-alerte-filet" : "bg-etat-critique-fond border-etat-critique-filet";
 
 const trendIcon = (t: string) => {
-  if (t === "improving") return <TrendingUp className="w-4 h-4 text-emerald-400" />;
-  if (t === "degrading") return <TrendingDown className="w-4 h-4 text-amber-400" />;
-  if (t === "critical") return <AlertTriangle className="w-4 h-4 text-red-400" />;
-  return <Activity className="w-4 h-4 text-blue-400" />;
+  if (t === "improving") return <TrendingUp className="w-4 h-4 text-etat-nominal-texte" />;
+  if (t === "degrading") return <TrendingDown className="w-4 h-4 text-etat-alerte-texte" />;
+  if (t === "critical") return <AlertTriangle className="w-4 h-4 text-etat-critique-texte" />;
+  return <Activity className="w-4 h-4 text-etat-encours-texte" />;
 };
 
+/**
+ * ⚠️ Ces pastilles posaient la couleur VIVE à 20 % d'opacité
+ * (`bg-etat-nominal-fond`). Un fond translucide se compose sur son parent
+ * AVANT tout calcul de contraste : le vert vif à 20 % sur la carte donnait
+ * rgb(204, 223, 216), et le texte par-dessus tombait à 4,27:1 — sous le
+ * seuil AA. Et comme la grille affiche une pastille par équipement, le
+ * défaut se répétait 250 fois sur un seul écran.
+ *
+ * Les jetons `puce` portent déjà le couple fond + texte + filet dont le
+ * contraste est mesuré. On s'en sert, au lieu de recomposer une teinte.
+ */
 const alertBadge = (level: string) => {
-  const map: Record<string, string> = {
-    ok: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-    watch: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-    warning: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    critical: "bg-red-500/20 text-red-300 border-red-500/40",
+  const registre: Record<string, RegistreEtat> = {
+    ok: "nominal", watch: "encours", warning: "alerte", critical: "critique",
   };
   const label: Record<string, string> = { ok: "Nominal", watch: "Surveillance", warning: "Alerte", critical: "Critique" };
-  return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${map[level] ?? ""}`}>{label[level] ?? level}</span>;
+  return <PuceEtat registre={registre[level] ?? "neutre"}>{label[level] ?? level}</PuceEtat>;
 };
 
 // ─── Gauge component ──────────────────────────────────────────────────────────
@@ -74,7 +85,10 @@ function Gauge({ value, size = 80, label }: { value: number; size?: number; labe
   const cy = size / 2;
   const circ = 2 * Math.PI * r;
   const filled = (value / 100) * circ * 0.75;
-  const color = value >= 75 ? "#10b981" : value >= 55 ? "#3b82f6" : value >= 35 ? "#f59e0b" : "#ef4444";
+  // Arc de jauge : un élément graphique, pas du texte. Les valeurs sont
+  // littérales parce que SVG n'accepte pas de classe Tailwind ; elles
+  // reprennent les jetons d'état de tailwind.config.ts.
+  const color = value >= 75 ? "#2E7D4F" : value >= 55 ? "#006B97" : value >= 35 ? "#B9770E" : "#C0392B";
   const rotation = -135;
   return (
     <div className="flex flex-col items-center gap-1">
@@ -95,7 +109,7 @@ function Gauge({ value, size = 80, label }: { value: number; size?: number; labe
 
 // ─── Sub-index bar ────────────────────────────────────────────────────────────
 function SubBar({ label, value, weight, tip }: { label: string; value: number; weight: number; tip: string }) {
-  const color = value >= 75 ? "bg-emerald-500" : value >= 55 ? "bg-blue-500" : value >= 35 ? "bg-amber-500" : "bg-red-500";
+  const color = value >= 75 ? "bg-etat-nominal-vif" : value >= 55 ? "bg-etat-encours-vif" : value >= 35 ? "bg-etat-alerte-vif" : "bg-etat-critique-vif";
   return (
     <TooltipProvider>
       <Tooltip>
@@ -119,7 +133,7 @@ function SubBar({ label, value, weight, tip }: { label: string; value: number; w
 // ─── Equipment card ───────────────────────────────────────────────────────────
 function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void }) {
   return (
-    <div onClick={onSelect} className={`relative rounded-xl border p-4 cursor-pointer transition-colors ${scoreBg(r.IMCA)}`}>
+    <div onClick={onSelect} className={`relative rounded-none border p-4 cursor-pointer transition-colors ${scoreBg(r.IMCA)}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="text-sm font-semibold text-ink truncate max-w-[180px]">{r.equipmentName}</p>
@@ -136,7 +150,7 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
         ))}
       </div>
       {r.rul_hours !== null && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-amber-400">
+        <div className="mt-2 flex items-center gap-1 text-xs text-etat-alerte-texte">
           <Clock className="w-3 h-3" />
           RUL P50 : ~{r.stochasticRUL?.recommended.median ?? r.rul_hours}h
           {r.stochasticRUL && (
@@ -154,7 +168,7 @@ function EquipmentCard({ r, onSelect }: { r: IMCAResult; onSelect: () => void })
 function DetailPanel({ r }: { r: IMCAResult }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-2xl border border-rule bg-paper-deep p-6 space-y-6">
+    <div className="rounded-none border border-rule bg-paper-deep p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -187,25 +201,25 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
       {/* Technical metrics */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-white border border-rule p-3">
+        <div className="rounded-none bg-white border border-rule p-3">
           <p className="text-xs text-ink-mute mb-1">Écart au comportement normal</p>
           <p className="text-lg font-bold text-ink">{r.mahalanobisDistance.toFixed(3)}</p>
         </div>
-        <div className="rounded-xl bg-white border border-rule p-3">
+        <div className="rounded-none bg-white border border-rule p-3">
           <p className="text-xs text-ink-mute mb-1">Distance Jensen-Shannon (√JSD)</p>
           <p className="text-lg font-bold text-ink">
             {((r.jsDivergence ?? r.klDivergence) || 0).toFixed(4)}
             <span className="text-xs text-ink-mute ml-1">
-              {(r.jsDivergence ?? 0) < 0.10 ? "" : (r.jsDivergence ?? 0) < 0.22 ? "" : (r.jsDivergence ?? 0) < 0.38 ? "" : ""}
+              {(r.jsDivergence ?? 0) < 0.10 ? "dérive négligeable" : (r.jsDivergence ?? 0) < 0.22 ? "dérive modérée" : (r.jsDivergence ?? 0) < 0.38 ? "dérive marquée" : "dérive sévère"}
             </span>
           </p>
         </div>
         {r.stochasticRUL && (
-          <div className="col-span-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-3">
+          <div className="col-span-2 rounded-none bg-etat-alerte-fond border border-etat-alerte-filet p-4 space-y-3">
             {/* Header */}
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-amber-400 font-semibold">
+              <Clock className="w-4 h-4 text-etat-alerte-texte flex-shrink-0" />
+              <span className="text-xs text-etat-alerte-texte font-semibold">
                 RUL Stochastique —&nbsp;
                 {r.stochasticRUL.recommendedModel === "ensemble"
                   ? "Fusion Wiener + Gamma"
@@ -217,16 +231,16 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
             {/* Median + mean */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg bg-amber-500/10 p-2">
-                <p className="text-[10px] text-amber-300/70">Mode</p>
+              <div className="rounded-lg bg-etat-alerte-fond p-2">
+                <p className="text-[10px] text-etat-alerte-texte/70">Mode</p>
                 <p className="text-base font-bold text-amber-200">{r.stochasticRUL.recommended.mode}h</p>
               </div>
-              <div className="rounded-lg bg-amber-500/20 border border-amber-500/40 p-2">
-                <p className="text-[10px] text-amber-300">Médiane (P50)</p>
+              <div className="rounded-lg bg-etat-alerte-fond border border-etat-alerte-filet p-2">
+                <p className="text-[10px] text-etat-alerte-texte">Médiane (P50)</p>
                 <p className="text-lg font-black text-amber-100">{r.stochasticRUL.recommended.median}h</p>
               </div>
-              <div className="rounded-lg bg-amber-500/10 p-2">
-                <p className="text-[10px] text-amber-300/70">Espérance</p>
+              <div className="rounded-lg bg-etat-alerte-fond p-2">
+                <p className="text-[10px] text-etat-alerte-texte/70">Espérance</p>
                 <p className="text-base font-bold text-amber-200">{r.stochasticRUL.recommended.mean}h</p>
               </div>
             </div>
@@ -242,13 +256,13 @@ function DetailPanel({ r }: { r: IMCAResult }) {
                   return (
                     <>
                       {/* P05–P95 range */}
-                      <div className="absolute top-0 h-full bg-amber-900/40 rounded-full"
+                      <div className="absolute top-0 h-full bg-etat-alerte-fond rounded-full"
                         style={{ left: pct(ci.p05), width: `${Math.round(((ci.p95 - ci.p05) / max) * 100)}%` }} />
                       {/* P10–P90 range */}
-                      <div className="absolute top-0 h-full bg-amber-700/50"
+                      <div className="absolute top-0 h-full bg-etat-alerte-fond"
                         style={{ left: pct(ci.p10), width: `${Math.round(((ci.p90 - ci.p10) / max) * 100)}%` }} />
                       {/* P25–P75 IQR */}
-                      <div className="absolute top-0 h-full bg-amber-500/60"
+                      <div className="absolute top-0 h-full bg-etat-alerte-fond"
                         style={{ left: pct(ci.p25), width: `${Math.round(((ci.p75 - ci.p25) / max) * 100)}%` }} />
                       {/* Median marker */}
                       <div className="absolute top-0 h-full w-0.5 bg-white"
@@ -281,13 +295,13 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
             {/* Wiener vs Gamma comparison if both available */}
             {r.stochasticRUL.wienerRUL && r.stochasticRUL.gammaRUL && (
-              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-amber-500/20">
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-etat-alerte-filet">
                 <div className="text-[10px] text-ink-mute">
-                  <span className="text-signal-light font-semibold">Wiener IG</span>{" "}
+                  <span className="text-signal font-semibold">Wiener IG</span>{" "}
                   P50={r.stochasticRUL.wienerRUL.median}h · σ={r.stochasticRUL.wienerRUL.stdDev}h
                 </div>
                 <div className="text-[10px] text-ink-mute">
-                  <span className="text-emerald-400 font-semibold">Gamma MC</span>{" "}
+                  <span className="text-etat-nominal-texte font-semibold">Gamma MC</span>{" "}
                   P50={r.stochasticRUL.gammaRUL.median}h · σ={r.stochasticRUL.gammaRUL.stdDev}h
                 </div>
               </div>
@@ -295,7 +309,7 @@ function DetailPanel({ r }: { r: IMCAResult }) {
 
             {/* Warnings */}
             {r.stochasticRUL.warnings.length > 0 && (
-              <div className="text-[10px] text-yellow-500/80 italic">
+              <div className="text-[10px] text-etat-alerte-texte/80 italic">
                 {r.stochasticRUL.warnings[0]}
               </div>
             )}
@@ -304,10 +318,10 @@ function DetailPanel({ r }: { r: IMCAResult }) {
       </div>
 
       {/* Recommendation */}
-      <div className="rounded-xl bg-blue-500/10 border border-blue-500/30 p-4 space-y-2">
-        <div className="flex items-center gap-2 text-blue-300 font-semibold text-sm"><Brain className="w-4 h-4" /> Facteur dominant</div>
+      <div className="rounded-none bg-etat-encours-fond border border-etat-encours-filet p-4 space-y-2">
+        <div className="flex items-center gap-2 text-etat-encours-texte font-semibold text-sm"><Brain className="w-4 h-4" /> Facteur dominant</div>
         <p className="text-xs text-ink-mute">{r.explanation.dominantFactor}</p>
-        <div className="flex items-center gap-2 text-blue-300 font-semibold text-sm mt-2"><Zap className="w-4 h-4" /> Recommandation</div>
+        <div className="flex items-center gap-2 text-etat-encours-texte font-semibold text-sm mt-2"><Zap className="w-4 h-4" /> Recommandation</div>
         <p className="text-xs text-ink-soft">{r.explanation.recommendation}</p>
       </div>
 
@@ -344,25 +358,23 @@ export default function IMCADashboard() {
 
   const { data: detail, isLoading: detailLoading } = useQuery<IMCAResult>({
     queryKey: ["/api/imca/equipment", selectedId, windowShort, windowLong],
-    queryFn: async () => {
-      const r = await fetch(`/api/imca/equipment/${selectedId}?windowShort=${windowShort}&windowLong=${windowLong}`, { credentials: "include" });
-      return r.json();
-    },
+    queryFn: () =>
+      apiRequest(`/api/imca/equipment/${selectedId}?windowShort=${windowShort}&windowLong=${windowLong}`),
     enabled: selectedId !== null,
   });
 
   const fleetIMCA = fleet?.fleetIMCA ?? 0;
 
   return (
-    <div className="min-h-screen bg-paper-deep">
-      <ModernNavigation />
+    <AppShell filAriane={[{ libelle: "Supervision" }, { libelle: "Indice cognitif" }]} largeur="large">
+    <div className="space-y-6">
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto pb-12">
 
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-xl bg-signal-deep/20 border border-rule/30">
-              <Brain className="w-6 h-6 text-signal-light" />
+            <div className="p-2 rounded-none bg-signal-deep/20 border border-rule/30">
+              <Brain className="w-6 h-6 text-signal" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-ink">IMCA — Indice Cognitif Composite</h1>
@@ -373,20 +385,20 @@ export default function IMCADashboard() {
 
         {/* Fleet KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="rounded-2xl border border-rule/30 bg-signal-deep/10 p-5 text-center">
+          <div className="rounded-none border border-rule/30 bg-signal-deep/10 p-5 text-center">
             <div className={`text-4xl font-black mb-1 ${scoreColor(fleetIMCA)}`}>{fleetLoading ? "…" : fleetIMCA}</div>
             <div className="text-xs text-ink-mute">IMCA Flotte</div>
           </div>
-          <div className="rounded-2xl border border-rule bg-white p-5 text-center">
+          <div className="rounded-none border border-rule bg-white p-5 text-center">
             <div className="text-4xl font-black mb-1 text-ink">{fleet?.results.length ?? "–"}</div>
             <div className="text-xs text-ink-mute">Actifs analysés</div>
           </div>
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-center">
-            <div className="text-4xl font-black mb-1 text-red-400">{fleet?.criticalCount ?? "–"}</div>
+          <div className="rounded-none border border-etat-critique-filet bg-etat-critique-fond p-5 text-center">
+            <div className="text-4xl font-black mb-1 text-etat-critique-texte">{fleet?.criticalCount ?? "–"}</div>
             <div className="text-xs text-ink-mute">Critiques</div>
           </div>
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center">
-            <div className="text-4xl font-black mb-1 text-amber-400">{fleet?.degradingCount ?? "–"}</div>
+          <div className="rounded-none border border-etat-alerte-filet bg-etat-alerte-fond p-5 text-center">
+            <div className="text-4xl font-black mb-1 text-etat-alerte-texte">{fleet?.degradingCount ?? "–"}</div>
             <div className="text-xs text-ink-mute">En dégradation</div>
           </div>
         </div>
@@ -433,7 +445,7 @@ export default function IMCADashboard() {
             {fleetLoading ? (
               <div className="grid grid-cols-2 gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-36 rounded-xl bg-white animate-pulse" />
+                  <div key={i} className="h-36 rounded-none bg-white animate-pulse" />
                 ))}
               </div>
             ) : fleet?.results && fleet.results.length > 0 ? (
@@ -443,7 +455,7 @@ export default function IMCADashboard() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-rule bg-white p-8 text-center">
+              <div className="rounded-none border border-rule bg-white p-8 text-center">
                 <Activity className="w-8 h-8 text-ink-soft mx-auto mb-3" />
                 <p className="text-ink-mute text-sm">Aucune donnée capteur disponible.</p>
                 <p className="text-ink-soft text-xs mt-1">Connectez des capteurs IoT pour alimenter l'IMCA.</p>
@@ -457,7 +469,7 @@ export default function IMCADashboard() {
                 <div className="grid grid-cols-1 gap-2">
                   {equipList.slice(0, 8).map(e => (
                     <button key={e.id} onClick={() => setSelectedId(e.id)}
-                      className="flex items-center justify-between rounded-xl border border-rule bg-white px-4 py-2 hover:border-rule/50 transition-colors text-left">
+                      className="flex items-center justify-between rounded-none border border-rule bg-white px-4 py-2 hover:border-rule/50 transition-colors text-left">
                       <span className="text-sm text-ink-soft">{e.name}</span>
                       <ChevronRight className="w-4 h-4 text-ink-soft" />
                     </button>
@@ -472,15 +484,15 @@ export default function IMCADashboard() {
             {detailLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-xl bg-white animate-pulse" />
+                  <div key={i} className="h-24 rounded-none bg-white animate-pulse" />
                 ))}
               </div>
             ) : detail ? (
               <DetailPanel r={detail} />
             ) : (
-              <div className="rounded-2xl border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center">
-                <div className="p-4 rounded-2xl bg-signal-deep/10 border border-rule/20 mb-4">
-                  <Brain className="w-10 h-10 text-signal-light" />
+              <div className="rounded-none border border-rule bg-white p-12 text-center h-full flex flex-col items-center justify-center">
+                <div className="p-4 rounded-none bg-signal-deep/10 border border-rule/20 mb-4">
+                  <Brain className="w-10 h-10 text-signal" />
                 </div>
                 <p className="text-ink-soft font-semibold mb-2">Sélectionnez un équipement</p>
                 <p className="text-ink-mute text-sm">Cliquez sur une carte pour afficher l'analyse IMCA détaillée avec distance de Mahalanobis, divergence KL, et décomposition des 4 sous-indices.</p>
@@ -490,14 +502,14 @@ export default function IMCADashboard() {
         </div>
 
         {/* Legend */}
-        <div className="mt-8 rounded-2xl border border-rule bg-white p-5">
+        <div className="mt-8 rounded-none border border-rule bg-white p-5">
           <p className="text-xs font-semibold text-ink-mute mb-3">Échelle IMCA</p>
           <div className="flex flex-wrap gap-4">
             {[
-              { range: "75–100", label: "Nominal", color: "bg-emerald-500" },
-              { range: "55–74", label: "Surveillance", color: "bg-blue-500" },
-              { range: "35–54", label: "Alerte", color: "bg-amber-500" },
-              { range: "0–34", label: "Critique", color: "bg-red-500" },
+              { range: "75–100", label: "Nominal", color: "bg-etat-nominal-vif" },
+              { range: "55–74", label: "Surveillance", color: "bg-etat-encours-vif" },
+              { range: "35–54", label: "Alerte", color: "bg-etat-alerte-vif" },
+              { range: "0–34", label: "Critique", color: "bg-etat-critique-vif" },
             ].map(item => (
               <div key={item.range} className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${item.color}`} />
@@ -514,5 +526,6 @@ export default function IMCADashboard() {
         </div>
       </div>
     </div>
+    </AppShell>
   );
 }

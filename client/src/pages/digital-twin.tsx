@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Box, RefreshCw, Gauge, Clock, Settings2, Loader2 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Equipment {
   id: number;
@@ -46,9 +49,9 @@ const CALIBRATION_FIELDS = [
 ];
 
 function deviationColor(d: number) {
-  if (d > 0.7) return "text-red-600 bg-red-50";
-  if (d > 0.4) return "text-orange-600 bg-orange-50";
-  return "text-green-600 bg-green-50";
+  if (d > 0.7) return "text-etat-critique-texte bg-etat-critique-fond";
+  if (d > 0.4) return "text-etat-alerte-texte bg-etat-alerte-fond";
+  return "text-etat-nominal-texte bg-etat-nominal-fond";
 }
 
 export default function DigitalTwinPage() {
@@ -91,14 +94,15 @@ export default function DigitalTwinPage() {
   const selectedEquipment = equipmentList?.find(e => e.id === selectedId);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Jumeau numérique" }]} largeur="large">
+    <div className="space-y-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Box className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
+            <Box className="w-6 h-6 text-etat-encours-texte" />
             Digital Twin
           </h1>
-          <p className="text-gray-500">
+          <p className="text-ink-mute">
             Chaque équipement possède son jumeau numérique — un modèle physique calibré pour LUI, pas un modèle générique par type.
           </p>
         </div>
@@ -143,12 +147,12 @@ export default function DigitalTwinPage() {
                       <div className="text-sm mt-1">{twinData.result.physicalExplanation}</div>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div><span className="text-gray-500">Modèle</span><p className="font-medium">{twinData.result.modelName}</p></div>
-                      <div><span className="text-gray-500">Confiance</span><p className="font-medium">{Math.round(twinData.result.confidence * 100)}%</p></div>
-                      <div><span className="text-gray-500">Déviation</span><p className="font-medium">{Math.round(twinData.result.deviationFromNormal * 100)}%</p></div>
+                      <div><span className="text-ink-mute">Modèle</span><p className="font-medium">{twinData.result.modelName}</p></div>
+                      <div><span className="text-ink-mute">Confiance</span><p className="font-medium">{Math.round(twinData.result.confidence * 100)}%</p></div>
+                      <div><span className="text-ink-mute">Déviation</span><p className="font-medium">{Math.round(twinData.result.deviationFromNormal * 100)}%</p></div>
                     </div>
                     {twinData.result.remainingUsefulLife !== undefined && (
-                      <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <p className="text-sm text-ink-soft flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         Durée de vie résiduelle estimée : {Math.round(twinData.result.remainingUsefulLife)}h
                       </p>
@@ -189,5 +193,6 @@ export default function DigitalTwinPage() {
         )}
       </div>
     </div>
+    </AppShell>
   );
 }

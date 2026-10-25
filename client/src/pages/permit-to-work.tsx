@@ -22,6 +22,11 @@ import {
   ShieldCheck, AlertTriangle, FileText, Eye, ChevronRight, Loader2,
   ClipboardList, Users, MapPin, Calendar, Lock
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -69,29 +74,29 @@ interface Stats {
 // ─── Config ─────────────────────────────────────────────────────────────────
 
 const PERMIT_TYPES = [
-  { value: "hot_work", label: "Travaux à chaud", icon: Flame, color: "text-orange-600", bg: "bg-orange-50 border-orange-200", badge: "bg-orange-100 text-orange-700" },
-  { value: "confined_space", label: "Espace confiné", icon: Wind, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", badge: "bg-yellow-100 text-yellow-700" },
-  { value: "electrical_loto", label: "Consignation LOTO", icon: Zap, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", badge: "bg-blue-100 text-blue-700" },
+  { value: "hot_work", label: "Travaux à chaud", icon: Flame, color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond border-etat-alerte-filet", badge: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "confined_space", label: "Espace confiné", icon: Wind, color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond border-etat-alerte-filet", badge: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "electrical_loto", label: "Consignation LOTO", icon: Zap, color: "text-etat-encours-texte", bg: "bg-etat-encours-fond border-etat-encours-filet", badge: "bg-etat-encours-fond text-etat-encours-texte" },
   { value: "height_work", label: "Travaux en hauteur", icon: MountainSnow, color: "text-signal-deep", bg: "bg-paper-deep border-rule", badge: "bg-paper-deep text-signal-deep" },
-  { value: "cold_work", label: "Travaux à froid", icon: Droplets, color: "text-cyan-600", bg: "bg-cyan-50 border-cyan-200", badge: "bg-cyan-100 text-cyan-700" },
-  { value: "chemical", label: "Risque chimique", icon: FlaskConical, color: "text-green-600", bg: "bg-green-50 border-green-200", badge: "bg-green-100 text-green-700" },
+  { value: "cold_work", label: "Travaux à froid", icon: Droplets, color: "text-etat-encours-texte", bg: "bg-etat-encours-fond border-etat-encours-filet", badge: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "chemical", label: "Risque chimique", icon: FlaskConical, color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond border-etat-nominal-filet", badge: "bg-etat-nominal-fond text-etat-nominal-texte" },
 ];
 
 const STATUSES = [
-  { value: "draft", label: "Brouillon", icon: FileText, color: "bg-gray-100 text-gray-700" },
-  { value: "submitted", label: "En attente", icon: Clock, color: "bg-yellow-100 text-yellow-700" },
-  { value: "approved", label: "Approuvé", icon: CheckCircle2, color: "bg-blue-100 text-blue-700" },
-  { value: "active", label: "Actif", icon: PlayCircle, color: "bg-green-100 text-green-700" },
-  { value: "completed", label: "Clôturé", icon: CheckCircle2, color: "bg-slate-100 text-ink-soft" },
-  { value: "rejected", label: "Rejeté", icon: XCircle, color: "bg-red-100 text-red-700" },
-  { value: "cancelled", label: "Annulé", icon: XCircle, color: "bg-gray-100 text-gray-500" },
+  { value: "draft", label: "Brouillon", icon: FileText, color: "bg-paper-deep text-ink-soft" },
+  { value: "submitted", label: "En attente", icon: Clock, color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "approved", label: "Approuvé", icon: CheckCircle2, color: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "active", label: "Actif", icon: PlayCircle, color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "completed", label: "Clôturé", icon: CheckCircle2, color: "bg-paper-deep text-ink-soft" },
+  { value: "rejected", label: "Rejeté", icon: XCircle, color: "bg-etat-critique-fond text-etat-critique-texte" },
+  { value: "cancelled", label: "Annulé", icon: XCircle, color: "bg-paper-deep text-ink-mute" },
 ];
 
 const RISK_LEVELS = [
-  { value: "low", label: "Faible", color: "bg-green-100 text-green-700" },
-  { value: "medium", label: "Moyen", color: "bg-yellow-100 text-yellow-700" },
-  { value: "high", label: "Élevé", color: "bg-orange-100 text-orange-700" },
-  { value: "critical", label: "Critique", color: "bg-red-100 text-red-700" },
+  { value: "low", label: "Faible", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "medium", label: "Moyen", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "high", label: "Élevé", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "critical", label: "Critique", color: "bg-etat-critique-fond text-etat-critique-texte" },
 ];
 
 const getTypeConfig = (type: string) => PERMIT_TYPES.find(t => t.value === type) || PERMIT_TYPES[0];
@@ -120,6 +125,26 @@ type CreateForm = z.infer<typeof createSchema>;
 export default function PermitToWork() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui arbitre un permis — l'approuve ou le rejette ?
+   *
+   * `POST /api/permits/:id/approve` et `/reject` exigent `auMoins(role,
+   * 'team_leader')` (permit-to-work-routes.ts:329 et 360). Mesuré : technicien
+   * **403** sur les deux, administrateur et propriétaire acceptés.
+   *
+   * Le seuil est repris TEL QUEL, et non relevé au niveau des suppressions :
+   * un chef d'équipe, un planificateur, un magasinier et un responsable
+   * maintenance sont au-dessus du seuil, donc autorisés par le serveur.
+   * Masquer leurs boutons leur retirerait une capacité réelle — c'est le
+   * piège inverse, et il est aussi grave que la promesse creuse.
+   *
+   * Les autres transitions (`submit`, `activate`, `complete`, `cancel`) ne
+   * portent AUCUN contrôle de rôle côté serveur : elles restent ouvertes, y
+   * compris au technicien qui exécute les travaux.
+   */
+  const peutArbitrer = auMoins(user?.role, "team_leader");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -212,21 +237,36 @@ export default function PermitToWork() {
   });
 
   // ── Actions available per status ──
+  // L'arbitrage (`approve`, `reject`) est retiré de la liste quand le rôle ne
+  // l'obtiendra pas : le filtre est posé ici, à la source, pour que la carte
+  // et le panneau de détail — les deux seuls appelants — restent d'accord.
+  const ARBITRAGE = new Set(["approve", "reject"]);
   const getActions = (permit: Permit) => {
-    switch (permit.status) {
-      case "draft": return [{ action: "submit", label: "Soumettre", color: "bg-blue-600 hover:bg-blue-700" }];
-      case "submitted": return [
-        { action: "approve", label: "Approuver", color: "bg-green-600 hover:bg-green-700" },
-        { action: "reject", label: "Rejeter", color: "bg-red-600 hover:bg-red-700" },
-      ];
-      case "approved": return [
-        { action: "activate", label: "Démarrer les travaux", color: "bg-green-600 hover:bg-green-700" },
-        { action: "reject", label: "Rejeter", color: "bg-red-600 hover:bg-red-700" },
-      ];
-      case "active": return [{ action: "complete", label: "Clôturer", color: "bg-paper-deep hover:bg-white" }];
-      default: return [];
-    }
+    const toutes = (() => {
+      switch (permit.status) {
+        case "draft": return [{ action: "submit", label: "Soumettre", color: "bg-etat-encours-vif hover:bg-etat-encours-vif" }];
+        case "submitted": return [
+          { action: "approve", label: "Approuver", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
+          { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
+        ];
+        case "approved": return [
+          { action: "activate", label: "Démarrer les travaux", color: "bg-etat-nominal-vif hover:bg-etat-nominal-vif" },
+          { action: "reject", label: "Rejeter", color: "bg-etat-critique-vif hover:bg-etat-critique-vif" },
+        ];
+        case "active": return [{ action: "complete", label: "Clôturer", color: "bg-paper-deep hover:bg-white" }];
+        default: return [];
+      }
+    })();
+    return peutArbitrer ? toutes : toutes.filter(a => !ARBITRAGE.has(a.action));
   };
+
+  /**
+   * Le permis attend-il un arbitrage que ce compte n'obtiendra pas ?
+   * Sert à écrire la raison à l'écran, plutôt que de laisser un permis soumis
+   * sans aucune action et sans explication.
+   */
+  const arbitrageAttendu = (permit: Permit) =>
+    !peutArbitrer && (permit.status === "submitted" || permit.status === "approved");
 
   const handleChecklist = (permit: Permit, idx: number, checked: boolean) => {
     const items = (permit.checklistItems || []).map((item, i) => i === idx ? { ...item, checked } : item);
@@ -247,12 +287,13 @@ export default function PermitToWork() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Conformité" }, { libelle: "Permis de travail" }]} largeur="large">
+    <div className="space-y-6">
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <Lock className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
@@ -272,18 +313,18 @@ export default function PermitToWork() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Total", value: stats?.total ?? 0, icon: FileText, color: "from-slate-500 to-slate-600" },
-          { label: "Actifs", value: stats?.active ?? 0, icon: PlayCircle, color: "from-green-500 to-emerald-600" },
-          { label: "En attente", value: stats?.pending ?? 0, icon: Clock, color: "from-yellow-500 to-amber-600" },
-          { label: "Critiques", value: stats?.byRisk?.critical ?? 0, icon: AlertTriangle, color: "from-red-500 to-rose-600" },
+          { label: "Total", value: stats?.total ?? 0, icon: FileText, color: "" },
+          { label: "Actifs", value: stats?.active ?? 0, icon: PlayCircle, color: "" },
+          { label: "En attente", value: stats?.pending ?? 0, icon: Clock, color: "" },
+          { label: "Critiques", value: stats?.byRisk?.critical ?? 0, icon: AlertTriangle, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md overflow-hidden">
+          <Card key={label} className="border-0 shadow-none overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}>
                 <Icon className="h-5 w-5 text-ink" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-800">{value}</p>
+                <p className="text-2xl font-bold text-ink">{value}</p>
                 <p className="text-xs text-ink-mute">{label}</p>
               </div>
             </CardContent>
@@ -297,8 +338,8 @@ export default function PermitToWork() {
           <button
             key={value}
             onClick={() => setFilterType(filterType === value ? "all" : value)}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all cursor-pointer ${
-              filterType === value ? bg + " shadow-md scale-105" : "bg-white border-slate-200 hover:border-slate-300"
+            className={`flex flex-col items-center gap-1.5 p-3 rounded-none border-2 transition-all cursor-pointer ${
+              filterType === value ? bg + " shadow-none scale-105" : "bg-white border-rule hover:border-rule"
             }`}
           >
             <Icon className={`h-5 w-5 ${filterType === value ? color : "text-ink-mute"}`} />
@@ -357,11 +398,11 @@ export default function PermitToWork() {
             const actions = getActions(permit);
 
             return (
-              <Card key={permit.id} className={`border-2 shadow-sm hover:shadow-md transition-all ${typeConf.bg}`}>
+              <Card key={permit.id} className={`border-2 shadow-sm hover:shadow-none transition-all ${typeConf.bg}`}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`p-2.5 rounded-xl bg-white shadow-sm`}>
+                      <div className={`p-2.5 rounded-none bg-white shadow-sm`}>
                         <TypeIcon className={`h-5 w-5 ${typeConf.color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -371,7 +412,7 @@ export default function PermitToWork() {
                           <Badge className={typeConf.badge + " text-xs"}>{typeConf.label}</Badge>
                           <Badge className={riskConf.color + " text-xs"}>Risque {riskConf.label}</Badge>
                         </div>
-                        <h3 className="font-semibold text-slate-800 truncate">{permit.title}</h3>
+                        <h3 className="font-semibold text-ink truncate">{permit.title}</h3>
                         <div className="flex items-center gap-4 mt-2 flex-wrap">
                           {permit.location && (
                             <span className="text-xs text-ink-mute flex items-center gap-1">
@@ -403,6 +444,11 @@ export default function PermitToWork() {
                           {a.label}
                         </Button>
                       ))}
+                      {arbitrageAttendu(permit) && (
+                        <span className="text-xs text-ink-mute self-center">
+                          Arbitrage réservé au chef d'équipe
+                        </span>
+                      )}
                       <Button variant="ghost" size="sm" onClick={() => openDetail(permit)}>
                         <Eye className="h-4 w-4 mr-1" /> Détail
                       </Button>
@@ -422,7 +468,7 @@ export default function PermitToWork() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-red-500" />
+              <Lock className="h-5 w-5 text-etat-critique-texte" />
               Nouveau permis de travail
             </DialogTitle>
           </DialogHeader>
@@ -437,7 +483,7 @@ export default function PermitToWork() {
                       <button type="button" key={value}
                         onClick={() => field.onChange(value)}
                         className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left ${
-                          field.value === value ? bg + " shadow" : "bg-white border-slate-200 hover:border-slate-300"
+                          field.value === value ? bg + " shadow" : "bg-white border-rule hover:border-rule"
                         }`}
                       >
                         <Icon className={`h-4 w-4 ${field.value === value ? color : "text-ink-mute"}`} />
@@ -566,8 +612,8 @@ export default function PermitToWork() {
             return (
               <>
                 <DialogHeader>
-                  <div className={`flex items-center gap-3 p-4 rounded-xl ${typeConf.bg} mb-2`}>
-                    <div className="p-2.5 bg-white rounded-xl shadow-sm">
+                  <div className={`flex items-center gap-3 p-4 rounded-none ${typeConf.bg} mb-2`}>
+                    <div className="p-2.5 bg-white rounded-none shadow-sm">
                       <TypeIcon className={`h-6 w-6 ${typeConf.color}`} />
                     </div>
                     <div className="flex-1">
@@ -614,8 +660,8 @@ export default function PermitToWork() {
                     <>
                       <Separator />
                       <div>
-                        <h4 className="font-semibold text-slate-700 mb-2">Description des travaux</h4>
-                        <p className="text-sm text-ink-soft bg-slate-50 p-3 rounded-lg">{selectedPermit.description}</p>
+                        <h4 className="font-semibold text-ink-soft mb-2">Description des travaux</h4>
+                        <p className="text-sm text-ink-soft bg-paper p-3 rounded-lg">{selectedPermit.description}</p>
                       </div>
                     </>
                   )}
@@ -625,24 +671,24 @@ export default function PermitToWork() {
                     <>
                       <Separator />
                       <div>
-                        <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                          <ClipboardList className="h-4 w-4 text-blue-600" /> Checklist de sécurité
+                        <h4 className="font-semibold text-ink-soft mb-3 flex items-center gap-2">
+                          <ClipboardList className="h-4 w-4 text-etat-encours-texte" /> Checklist de sécurité
                           <span className="text-xs text-ink-mute font-normal">
                             ({(selectedPermit.checklistItems || []).filter(i => i.checked).length}/{(selectedPermit.checklistItems || []).length} vérifiés)
                           </span>
                         </h4>
                         <div className="space-y-2">
                           {(selectedPermit.checklistItems || []).map((item, idx) => (
-                            <label key={idx} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                            <label key={idx} className="flex items-center gap-3 p-2.5 rounded-lg bg-paper hover:bg-paper-deep cursor-pointer">
                               <Checkbox
                                 checked={item.checked}
                                 onCheckedChange={checked => handleChecklist(selectedPermit, idx, !!checked)}
                                 disabled={!['active', 'approved'].includes(selectedPermit.status)}
                               />
-                              <span className={`text-sm ${item.checked ? "line-through text-ink-mute" : "text-slate-700"}`}>
+                              <span className={`text-sm ${item.checked ? "line-through text-ink-mute" : "text-ink-soft"}`}>
                                 {item.label}
                               </span>
-                              {item.checked && <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto" />}
+                              {item.checked && <CheckCircle2 className="h-4 w-4 text-etat-nominal-texte ml-auto" />}
                             </label>
                           ))}
                         </div>
@@ -656,26 +702,26 @@ export default function PermitToWork() {
                       <Separator />
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <h4 className="font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-orange-500" /> Dangers
+                          <h4 className="font-semibold text-ink-soft mb-2 flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-etat-alerte-texte" /> Dangers
                           </h4>
                           <ul className="space-y-1">
                             {(selectedPermit.hazards || []).map((h, i) => (
                               <li key={i} className="text-sm text-ink-soft flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />{h}
+                                <span className="w-1.5 h-1.5 bg-etat-alerte-vif rounded-full" />{h}
                               </li>
                             ))}
                           </ul>
                         </div>
                         {(selectedPermit.safetyEquipment || []).length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                              <ShieldCheck className="h-4 w-4 text-green-600" /> EPI requis
+                            <h4 className="font-semibold text-ink-soft mb-2 flex items-center gap-2">
+                              <ShieldCheck className="h-4 w-4 text-etat-nominal-texte" /> EPI requis
                             </h4>
                             <ul className="space-y-1">
                               {(selectedPermit.safetyEquipment || []).map((s: string, i: number) => (
                                 <li key={i} className="text-sm text-ink-soft flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />{s}
+                                  <span className="w-1.5 h-1.5 bg-etat-nominal-vif rounded-full" />{s}
                                 </li>
                               ))}
                             </ul>
@@ -690,8 +736,8 @@ export default function PermitToWork() {
                     <>
                       <Separator />
                       <div>
-                        <h4 className="font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                          <Users className="h-4 w-4 text-indigo-600" /> Personnel autorisé
+                        <h4 className="font-semibold text-ink-soft mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4 text-etat-encours-texte" /> Personnel autorisé
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {(selectedPermit.authorizedPersonnel || []).map((p: any, i: number) => (
@@ -708,11 +754,11 @@ export default function PermitToWork() {
                   {selectedPermit.rejectionReason && (
                     <>
                       <Separator />
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <h4 className="font-semibold text-red-700 mb-1 flex items-center gap-2">
+                      <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-lg p-3">
+                        <h4 className="font-semibold text-etat-critique-texte mb-1 flex items-center gap-2">
                           <XCircle className="h-4 w-4" /> Motif de rejet
                         </h4>
-                        <p className="text-sm text-red-600">{selectedPermit.rejectionReason}</p>
+                        <p className="text-sm text-etat-critique-texte">{selectedPermit.rejectionReason}</p>
                       </div>
                     </>
                   )}
@@ -721,15 +767,22 @@ export default function PermitToWork() {
                   {selectedPermit.completionNotes && (
                     <>
                       <Separator />
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <h4 className="font-semibold text-green-700 mb-1">Notes de clôture</h4>
-                        <p className="text-sm text-green-700">{selectedPermit.completionNotes}</p>
+                      <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3">
+                        <h4 className="font-semibold text-etat-nominal-texte mb-1">Notes de clôture</h4>
+                        <p className="text-sm text-etat-nominal-texte">{selectedPermit.completionNotes}</p>
                       </div>
                     </>
                   )}
                 </div>
 
                 <DialogFooter className="mt-4 gap-2">
+                  {/* Sans cette phrase, un permis soumis s'ouvrirait sur un
+                      panneau sans aucune action, et sans dire pourquoi. */}
+                  {arbitrageAttendu(selectedPermit) && (
+                    <p className="text-sm text-ink-mute mr-auto self-center">
+                      L'approbation et le rejet reviennent au chef d'équipe ou au-dessus.
+                    </p>
+                  )}
                   <Button variant="outline" onClick={() => setShowDetail(false)}>Fermer</Button>
                   {actions.map(a => (
                     <Button
@@ -771,7 +824,7 @@ export default function PermitToWork() {
                 )}
                 {(["reject", "complete"].includes(actionDialog?.type || "")) && (
                   <div className="mt-3">
-                    <label className="text-sm font-medium text-slate-700">
+                    <label className="text-sm font-medium text-ink-soft">
                       {actionDialog?.type === "reject" ? "Motif du rejet *" : "Notes de clôture"}
                     </label>
                     <Textarea
@@ -790,8 +843,8 @@ export default function PermitToWork() {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               className={`text-white ${
-                actionDialog?.type === "reject" || actionDialog?.type === "cancel" ? "bg-red-600 hover:bg-red-700" :
-                actionDialog?.type === "approve" || actionDialog?.type === "activate" ? "bg-green-600 hover:bg-green-700" :
+                actionDialog?.type === "reject" || actionDialog?.type === "cancel" ? "bg-etat-critique-vif hover:bg-etat-critique-vif" :
+                actionDialog?.type === "approve" || actionDialog?.type === "activate" ? "bg-etat-nominal-vif hover:bg-etat-nominal-vif" :
                 "bg-paper-deep hover:bg-white"
               }`}
               disabled={actionDialog?.type === "reject" && !actionNote.trim()}
@@ -810,5 +863,6 @@ export default function PermitToWork() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AppShell>
   );
 }

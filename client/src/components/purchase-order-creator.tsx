@@ -193,7 +193,7 @@ export default function PurchaseOrderCreator() {
           <Plus className="h-5 w-5" />
           Initier une Demande de Commande
         </CardTitle>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-ink-soft">
           Le service utilisateur initie la commande qui sera automatiquement classifiée selon le montant
         </p>
       </CardHeader>
@@ -220,7 +220,7 @@ export default function PurchaseOrderCreator() {
                 id="orderType"
                 value={formData.orderType}
                 onChange={(e) => setFormData(prev => ({ ...prev, orderType: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-rule rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="spare_parts">Pièces de rechange</option>
                 <option value="services">Services</option>
@@ -272,19 +272,19 @@ export default function PurchaseOrderCreator() {
               
               {/* Document Type Display */}
               {isCalculating && (
-                <div className="flex items-center gap-2 text-sm text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="flex items-center gap-2 text-sm text-etat-encours-texte">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etat-encours-filet"></div>
                   Calcul du type de document...
                 </div>
               )}
               
               {documentTypeInfo && (
-                <div className="p-3 rounded-lg border bg-gray-50">
+                <div className="p-3 rounded-lg border bg-paper">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Type de Document:</span>
                     <Badge className={`${
                       documentTypeInfo.documentType === "purchase_order" 
-                        ? "bg-blue-500" 
+                        ? "bg-etat-encours-vif" 
                         : "bg-signal-deep"
                     } text-white`}>
                       {documentTypeInfo.documentType === "purchase_order" ? (
@@ -300,8 +300,8 @@ export default function PurchaseOrderCreator() {
                       )}
                     </Badge>
                   </div>
-                  <p className="text-xs text-gray-600">{documentTypeInfo.message}</p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-xs text-ink-soft">{documentTypeInfo.message}</p>
+                  <p className="text-xs text-ink-soft mt-1">
                     Niveaux de validation requis: {documentTypeInfo.validationLevels}
                   </p>
                 </div>
@@ -314,7 +314,7 @@ export default function PurchaseOrderCreator() {
                 id="priority"
                 value={formData.priority}
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-rule rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="urgent">Urgent</option>
                 <option value="high">Haute</option>
@@ -340,7 +340,7 @@ export default function PurchaseOrderCreator() {
               <Upload className="h-5 w-5 text-signal-deep" />
               Pièces Justificatives (Optionnel)
             </Label>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-ink-soft">
               Joindre des documents (devis, spécifications techniques, photos, etc.)
             </p>
 
@@ -367,7 +367,7 @@ export default function PurchaseOrderCreator() {
                   <Upload className="h-4 w-4 mr-2" />
                   Ajouter des fichiers ({selectedFiles.length}/5)
                 </Button>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Formats acceptés : PDF, Word, Excel, Images (max 10MB par fichier)
                 </p>
               </div>
@@ -379,14 +379,14 @@ export default function PurchaseOrderCreator() {
                   {selectedFiles.map((file, index) => (
                     <div 
                       key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                      className="flex items-center justify-between p-3 bg-paper rounded-lg border"
                       data-testid={`file-item-${index}`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <File className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                        <File className="h-5 w-5 text-etat-encours-texte flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{file.name}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-ink-mute">
                             {(file.size / 1024).toFixed(1)} KB
                           </p>
                         </div>
@@ -396,7 +396,7 @@ export default function PurchaseOrderCreator() {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFile(index)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                        className="text-etat-critique-texte hover:text-etat-critique-texte hover:bg-etat-critique-fond flex-shrink-0"
                         data-testid={`button-remove-file-${index}`}
                       >
                         <X className="h-4 w-4" />
@@ -431,7 +431,7 @@ export default function PurchaseOrderCreator() {
             <Button
               type="submit"
               disabled={createOrderMutation.isPending || isUploadingAttachments}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
               data-testid="button-submit-purchase-order"
             >
               {createOrderMutation.isPending || isUploadingAttachments ? (
@@ -455,9 +455,9 @@ export default function PurchaseOrderCreator() {
         </form>
 
         {/* Information Panel */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">Processus de Validation</h4>
-          <div className="text-sm text-blue-700 space-y-1">
+        <div className="mt-6 p-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg">
+          <h4 className="font-medium text-etat-encours-texte mb-2">Processus de Validation</h4>
+          <div className="text-sm text-etat-encours-texte space-y-1">
             <p>• <strong>Bon de Commande</strong> (≤ 1500€): Validation standard (Chef Service → Directeur)</p>
             <p>• <strong>Lettre de Commande</strong> (&gt; 1500€): Validation renforcée avec approbation spéciale</p>
             <p>• Une fois validé, le document retourne au Service Achat pour impression et envoi</p>

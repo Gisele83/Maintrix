@@ -4,6 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from "express";
+import { auMoins, ROLE_SUPER_ADMIN } from "@shared/roles";
 import { featureService } from "./feature-service.js";
 
 interface AuthenticatedRequest extends Request {
@@ -99,10 +100,16 @@ export async function apiFeatureGuard(req: AuthenticatedRequest, res: Response, 
  * Middleware spécialisé pour les routes de configuration admin
  */
 export function adminConfigGuard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
-  // Vérifier que l'utilisateur a les permissions admin
-  const allowedRoles = ["admin", "owner", "Super-admin"];
-  const hasPermission = req.user && allowedRoles.includes(req.user.role);
-  
+  // ⚠️ La liste était écrite à la main : `["admin", "owner", "Super-admin"]`,
+  // comparée littéralement à `req.user.role`. La troisième entrée ne pouvait
+  // jamais être satisfaite — le rôle de plateforme s'écrit `super_admin`, pas
+  // « Super-admin » — et les orthographes déjà en base (`administrateur`,
+  // `proprietaire`) étaient refusées alors qu'elles désignent des rôles
+  // autorisés. Le référentiel tranche désormais, et `super_admin` se compare à
+  // sa constante, comme le fait `security-middleware.requireRole`.
+  const role = req.user?.role;
+  const hasPermission = !!req.user && (role === ROLE_SUPER_ADMIN || auMoins(role, 'admin'));
+
   if (!hasPermission) {
     return res.status(403).json({
       error: "ADMIN_ACCESS_REQUIRED",

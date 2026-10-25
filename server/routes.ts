@@ -93,7 +93,7 @@ import { resolveTenant, enforceDataIsolation } from "./tenant-middleware";
 import enterpriseAuthRoutes from "./enterprise-auth-routes";
 import procurementRoutes from "./procurement-routes";
 import { EnterpriseAuthMiddleware, blockPublicAccess } from "./enterprise-auth-middleware";
-import { setupCompleteMultiTenantArchitecture } from "./tenant-integration";
+import { setupCompleteMultiTenantArchitecture, registerTenantScopedRoutes } from "./tenant-integration";
 import { featureService } from "./feature-service.js";
 import { routeFeatureGuard, apiFeatureGuard, adminConfigGuard } from "./feature-middleware.js";
 import { initializeERPSystem } from "./module-initializer.js";
@@ -136,22 +136,6 @@ import {
 function nd(valeur: number | undefined, decimales = 1): string {
   return valeur === undefined ? 'N/D' : valeur.toFixed(decimales);
 }
-
-
-/**
- * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
- *
- * ⚠️ Le code faisait `parseFloat(x?.toString() ?? "0")` : une valeur
- * délibérément absente redevenait zéro. Pour un MTBF, zéro se lit « tombe en
- * panne en permanence » ; pour une disponibilité, « jamais disponible ».
- * L'absence doit traverser.
- */
-function nombreOuNull(valeur: unknown): number | undefined {
-  if (valeur === null || valeur === undefined || valeur === "") return undefined;
-  const n = Number(valeur);
-  return Number.isFinite(n) ? n : undefined;
-}
-
 
 // Middleware pour une meilleure gestion des erreurs JSON
 function jsonErrorHandler(err: any, req: any, res: any, next: any) {
@@ -203,166 +187,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 📧 PRIORITÉ 1: ROUTES D'AUTHENTIFICATION ENTERPRISE (AVANT le middleware d'auth global)
   app.use('/api/enterprise-auth', enterpriseAuthRoutes);
 
-  // 🔓 ROUTES PDF PUBLIQUES (sans authentification) - AVANT le middleware d'auth global
-  app.get("/pdf/maintenance-reports/:id", async (req, res) => {
-    try {
-      const reportId = parseInt(req.params.id);
-      if (isNaN(reportId)) {
-        return res.status(400).json({ message: "ID de rapport invalide" });
-      }
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMaintenanceReportById(reportId);
-      if (!report) {
-        return res.status(404).json({ message: "Rapport de maintenance introuvable" });
-      }
-
-      // Enrich with work order + equipment data
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-      const [workOrder, equipment] = await Promise.all([
-        report.workOrderId ? gmaoStorage.getWorkOrderById(report.workOrderId, tenantId) : Promise.resolve(undefined),
-        report.equipmentId ? gmaoStorage.getEquipmentById(report.equipmentId, tenantId) : Promise.resolve(undefined),
-      ]);
-
-      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-      const startDate = report.startTime ? new Date(report.startTime) : new Date();
-      const parts = Array.isArray(report.partsUsed)
-        ? (report.partsUsed as any[]).map((p: any) => ({ name: p.partNumber || p.name || "Pièce", quantity: p.quantity ?? 1, unitCost: parseFloat(p.cost ?? p.unitCost ?? 0) }))
-        : [];
-      const recs: string[] = [];
-      if (report.followUpNotes) recs.push(report.followUpNotes);
-      if (report.qualityNotes) recs.push(report.qualityNotes);
-
-      const reportData = {
-        reportNumber: report.reportNumber,
-        equipment: (equipment as any)?.equipmentName || `Équipement #${report.equipmentId ?? "—"}`,
-        description: report.workDescription || report.actionsTaken || "—",
-        technician: report.technician || "—",
-        date: `${startDate.getDate()} ${MOIS[startDate.getMonth()]} ${startDate.getFullYear()}`,
-        duration: report.actualDuration ?? report.plannedDuration ?? 0,
-        status: report.status || "draft",
-        priority: (workOrder as any)?.priority || "normal",
-        workOrderNumber: (workOrder as any)?.orderNumber || `WO-${report.workOrderId ?? report.id}`,
-        interventionType: report.interventionType || "repair",
-        partsUsed: parts,
-        laborCost: parseFloat(report.laborCost?.toString() ?? "0"),
-        totalCost: parseFloat(report.totalCost?.toString() ?? "0"),
-        nextMaintenanceDate: report.followUpDate ? new Date(report.followUpDate).toLocaleDateString("fr-FR") : undefined,
-        recommendations: recs,
-        supervisor: report.supervisor ?? undefined,
-        actualDuration: report.actualDuration ?? undefined,
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMaintenanceReportHTML(res, reportData);
-    } catch (error: any) {
-      console.error("Error generating PDF maintenance report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport PDF" });
-    }
-  });
-
-  app.get("/pdf/monthly-reports/:id", async (req, res) => {
-    try {
-      const reportId = parseInt(req.params.id);
-      if (isNaN(reportId)) {
-        return res.status(400).json({ message: "ID de rapport invalide" });
-      }
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const report = await gmaoStorage.getMonthlyReportById(reportId);
-      if (!report) {
-        return res.status(404).json({ message: "Rapport mensuel introuvable" });
-      }
-
-      const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-      const stats = (report.statisticsData as any) || {};
-      const equipmentByType: Record<string, number> = stats.equipmentByType || {};
-      const equipmentStats = Object.entries(equipmentByType).map(([name, count]) => ({
-        equipmentName: name,
-        interventionCount: count as number,
-        totalDowntime: 0,
-      }));
-
-      const reportData = {
-        reportNumber: report.reportNumber,
-        month: MOIS[(report.month ?? 1) - 1] ?? String(report.month),
-        year: report.year ?? new Date().getFullYear(),
-        totalInterventions: report.totalWorkOrders ?? 0,
-        completedInterventions: report.completedWorkOrders ?? 0,
-        pendingInterventions: Math.max(0, (report.totalWorkOrders ?? 0) - (report.completedWorkOrders ?? 0)),
-        totalCost: parseFloat(report.totalMaintenanceCost?.toString() ?? "0"),
-        averageDuration: parseFloat(report.averageCompletionTime?.toString() ?? "0") * 60,
-        equipmentStats: equipmentStats.length > 0 ? equipmentStats : [],
-        monthlyKPIs: {
-          // L'absence traverse : une grandeur non calculable ne devient pas zéro.
-          availability: nombreOuNull(report.equipmentAvailability),
-          mtbf: nombreOuNull(report.mtbf),
-          mttr: nombreOuNull(report.mttr),
-        },
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendMonthlyReportHTML(res, reportData);
-    } catch (error: any) {
-      console.error("Error generating PDF monthly report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport PDF mensuel" });
-    }
-  });
-
-  // Comprehensive report PDF route — real KPIs from DB
-  app.get("/pdf/comprehensive-report", async (req, res) => {
-    try {
-      const { period, department } = req.query;
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-
-      const { gmaoStorage } = await import("./gmao-storage");
-      const kpis = await gmaoStorage.getDashboardKPIs(tenantId);
-
-      const totalWOs = kpis.activeWorkOrdersCount + kpis.pendingWorkOrdersCount + kpis.completedWorkOrdersCount;
-      const budgetUtilization = totalWOs > 0
-        ? Math.round((kpis.completedWorkOrdersCount / totalWOs) * 100)
-        : 0;
-
-      const comprehensiveReportData = {
-        reportNumber: `CR${new Date().getFullYear()}${String(new Date().getMonth()+1).padStart(2,'0')}${String(new Date().getDate()).padStart(2,'0')}`,
-        period: period || "month",
-        department: department || "all",
-        generatedAt: new Date().toISOString(),
-        // ⚠️ Ce rapport annonçait « disponibilité 100 % » dès qu'un seul
-        // équipement existait — sans rien mesurer — et des MTBF, MTTR et OEE
-        // à zéro, qui se lisent comme les pires valeurs possibles. Un rapport
-        // porte le nom de l'entreprise et circule : il ne peut pas inventer.
-        // Ces quatre grandeurs demandent un historique que ce rapport ne
-        // rassemble pas ; elles sont donc absentes, et nommées comme telles.
-        kpis: {
-          availability: null,
-          mtbf: null,
-          mttr: null,
-          oee: null,
-        },
-        kpisNonCalcules: "Disponibilité, MTBF, MTTR et OEE exigent un historique "
-          + "d'interventions datées que ce rapport ne rassemble pas. Le module GMAO "
-          + "les calcule à partir des ordres de travail réellement clos.",
-        summary: {
-          totalInterventions: totalWOs,
-          completedInterventions: kpis.completedWorkOrdersCount,
-          budgetUtilization,
-          criticalAlerts: kpis.criticalAlertsCount,
-        },
-      };
-
-      const { PDFGeneratorFunctional } = await import("./pdf-generator-functional");
-      const pdfGenerator = new PDFGeneratorFunctional();
-      await pdfGenerator.sendComprehensiveReportHTML(res, comprehensiveReportData);
-    } catch (error: any) {
-      console.error("Error generating comprehensive PDF report:", error);
-      res.status(500).json({ message: "Impossible de générer le rapport complet" });
-    }
-  });
+  // ═══════════════════════════════════════════════════════════════════
+  // LE PRÉFIXE /pdf N'EXISTE PLUS — UN SEUL CHEMIN PAR DOCUMENT
+  // ═══════════════════════════════════════════════════════════════════
+  // Trois gestionnaires vivaient ici : `/pdf/maintenance-reports/:id`,
+  // `/pdf/monthly-reports/:id` et `/pdf/comprehensive-report`. Chacun avait un
+  // jumeau déjà authentifié sous `/api`. Ils sont supprimés, et le préfixe avec
+  // eux. Ce qui a décidé, mesuré sur la grappe de test avec deux locataires aux
+  // montants sans chiffre commun (Alpha 4242 €, Beta 8181 €) :
+  //
+  //   • RAPPORT D'INTERVENTION — `/pdf/maintenance-reports/:id` et
+  //     `/api/maintenance-reports/:id/pdf` rendaient le MÊME document, à
+  //     l'octet près (9 394 octets, empreinte SHA-256 égale). Le premier
+  //     construisait son `reportData` à la main, le second appelle le
+  //     constructeur partagé `buildMaintenanceReportPDFData` : deux écritures
+  //     du même objet, champ par champ. Rien à trancher, seulement une copie à
+  //     retirer.
+  //
+  //   • BILAN MENSUEL — même constat, même empreinte (7 773 octets). La copie
+  //     manuelle embarquait en plus son propre `nombreOuNull()`, doublon de
+  //     celui de server/gmao-routes.ts ; il disparaît avec elle.
+  //
+  //   • RAPPORT COMPLET — les deux documents DIFFÉRAIENT (4 768 contre 11 469
+  //     octets), et c'est le seul cas qui demandait un choix produit. Relevé
+  //     champ par champ, `/api/comprehensive-report/pdf` est un sur-ensemble :
+  //     il CALCULE disponibilité (99,3 %), MTBF (24 h) et MTTR (2,5 h) par
+  //     `computeGmaoReportKpis` sur les ordres de travail du locataire, là où
+  //     `/pdf` imprimait « N/D » pour les quatre, et il ajoute le détail des
+  //     coûts (main d'œuvre, pièces, sous-traitance, coût par OT), que `/pdf`
+  //     n'avait pas du tout.
+  //
+  //     `/pdf` ne portait que deux champs absents du jumeau, et l'un des deux
+  //     était MAL NOMMÉ : « Utilisation budget : 67 % » valait
+  //     `completedWorkOrders / totalWorkOrders` — 2/3 — soit exactement le
+  //     « Score de performance : 66,67 % » que le jumeau affiche sous son vrai
+  //     nom. Aucun budget n'entrait dans ce calcul. Ce champ n'est donc pas
+  //     repris : le reprendre serait reprendre une étiquette fausse.
+  //     Le second, « Alertes critiques », est un vrai chiffre cloisonné : il
+  //     est, lui, porté sur le document canonique (voir
+  //     `/api/comprehensive-report/pdf`).
+  //
+  //     La phrase que `/pdf` affichait pour justifier ses « N/D » —
+  //     « Disponibilité, MTBF, MTTR et OEE exigent un historique
+  //     d'interventions datées que ce rapport ne rassemble pas » — était vraie
+  //     de CE gestionnaire, pas du produit : le service de KPI rassemble cet
+  //     historique, sur le même locataire, et le mesure. Ce n'étaient donc pas
+  //     deux documents légitimement distincts, mais un document avec deux
+  //     implémentations, dont la plus ancienne avait renoncé.
+  //
+  // POURQUOI RETIRER LE PRÉFIXE, ET PAS SEULEMENT LES ROUTES. `/pdf` était hors
+  // du seul préfixe où `enableMultiTenantSecurity` monte le middleware de
+  // locataire (server/tenant-integration.ts). Il a fallu lui monter
+  // `requireAuthentication` à la main pour que les `tenantRequis()` de ses
+  // routes discriminent au lieu de refuser tout le monde. Tant que le préfixe
+  // existe, toute route `/pdf/...` ajoutée plus tard retombe dans ce piège si
+  // quelqu'un l'enregistre avant ce montage. En le supprimant, les documents ne
+  // sont plus servis que sous `/api`, où le cloisonnement est acquis par
+  // construction.
+  //
+  // Les trois anciennes URL ne sont pas redirigées : une redirection
+  // maintiendrait le préfixe en vie, donc le piège. Les trois appelants du
+  // client ouvraient ces URL par `window.open` depuis des boutons, et visent
+  // désormais les URL `/api` (client/src/components/maintenance-reports.tsx,
+  // client/src/pages/advanced-reporting.tsx).
   
   // 🔒 PRIORITÉ 0: BLOQUER L'ACCÈS PUBLIC APRÈS avoir ajouté les routes d'auth
   app.use(blockPublicAccess);
@@ -506,24 +393,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/gdpr/track/:requestId', optimizedGDPRRoutes.trackRequest);
   app.get('/api/gdpr/download/:requestId', optimizedGDPRRoutes.downloadData);
   
-  // ⚠️ `budget-management.ts` était enregistré ici et a été SUPPRIMÉ (2026-10-25).
+  // ⚠️ PLUS DE « budget-management » ICI — ET C'EST VOULU.
   //
-  // Il servait /api/budget-summary et /api/budget-requests depuis deux tableaux
-  // en mémoire, déclarés dans le code sous le commentaire « Sample budget data
-  // for demonstration » : 325 000 € de budget, 189 100 € disponibles, deux
-  // demandes d'achat nominatives. Ces montants s'affichaient dans l'espace de
-  // CHAQUE testeur et de chaque locataire comme s'ils étaient les siens, alors
-  // que le reste de la page affichait 0 partout.
+  // `server/budget-management.ts` a été supprimé : 331 lignes servant cinq
+  // routes (`/api/budget-summary`, `/api/budget-requests` et son approbation,
+  // son rejet) à partir d'un tableau écrit en dur — 50 000, 75 000 et
+  // 200 000 € alloués, leurs montants dépensés, et des seuils d'approbation
+  // nommés `supervisor`, `manager`, `director`, qui n'appartiennent à aucune
+  // nomenclature du dépôt. ZÉRO occurrence de `tenantId` dans le fichier :
+  // toutes les organisations lisaient les mêmes chiffres inventés, affichés sur
+  // l'écran « Analyses et rapports ». Ses cinq routes ne portaient en outre
+  // aucun middleware d'authentification, là où les routes budgétaires réelles
+  // exigent `auth`.
   //
-  // Pire que fabriqués, ils étaient COMMUNS : les tableaux étaient les champs
-  // d'un singleton de module, sans le moindre `tenantId`. Une demande
-  // budgétaire créée par un locataire apparaissait, montant et libellé compris,
-  // chez tous les autres.
+  // Le budget RÉEL est `registerBudgetPlanRoutes` (server/budget-routes.ts),
+  // monté plus haut : `/api/budgets`, cloisonné par locataire depuis la
+  // migration 0012, et c'est lui que l'écran `/budget` consomme.
   //
-  // Les vraies tables existaient déjà (`budget_plans`, `budget_transactions`)
-  // avec un CRUD cloisonné dans `budget-routes.ts`, enregistré plus haut. La
-  // page de reporting consomme désormais /api/budgets/stats, qui filtre par
-  // locataire et par exercice courant.
+  // Ce correctif vient de `ce480dd`, produit dans l'autre copie locale du
+  // projet (D:\…\Maintrix\Maintrix, une lignée git distincte sans distant
+  // GitHub) et absent de ce dépôt. Sa partie cliente n'a pas été reprise telle
+  // quelle : cette lignée avait déjà supprimé l'objet `reportData` que la
+  // sienne modifiait encore.
 
   // Register simple validation routes for demonstration
   registerSimpleValidationRoutes(app);
@@ -543,17 +434,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize enterprise integrations
   const { initializeIntegrations, getIntegrationHub } = await import("./integrations/index");
+  const { SEUILS_PAR_DEFAUT } = await import("./integrations/seuils");
   const integrationConfig = {
     iot: {
       mqttBrokerUrl: process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
       mqttUsername: process.env.MQTT_USERNAME,
       mqttPassword: process.env.MQTT_PASSWORD,
-      sensorThresholds: [
-        { sensorType: 'temperature', warningThreshold: 75, criticalThreshold: 85, unit: '°C' },
-        { sensorType: 'vibration', warningThreshold: 4.5, criticalThreshold: 7.1, unit: 'mm/s' },
-        { sensorType: 'pressure', warningThreshold: 5.5, criticalThreshold: 4.0, unit: 'bar' },
-        { sensorType: 'current', warningThreshold: 105, criticalThreshold: 120, unit: 'A' }
-      ]
+      // Déclarés dans integrations/iot-connector.ts, avec le sens de chaque
+      // franchissement : une configuration que seul ce fichier connaîtrait ne
+      // serait éprouvée par aucun test.
+      sensorThresholds: SEUILS_PAR_DEFAUT
     }
   };
 
@@ -649,9 +539,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic-ml", async (req, res) => {
     try {
       const data = insertDiagnosticSessionSchema.parse(req.body);
-      
-      // Create diagnostic session
-      const session = await storage.createDiagnosticSession(data);
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // La session de diagnostic porte le locataire et le compte de l'appelant,
+      // comme /api/diagnostic : sans eux, la ligne était invisible de toute
+      // lecture cloisonnée (voir le commentaire de /api/diagnostic).
+      const session = await storage.createDiagnosticSession({
+        ...data,
+        tenantId,
+        userId: (req as any).user?.id,
+      });
       
       // Pré-analyse sémantique pour décider de la stratégie
       const symptoms = data.symptoms.toLowerCase();
@@ -661,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (hasCommonTerms) {
         try {
           // Récupérer les cas de maintenance pour analyse sémantique
-          const cases = await storage.getMaintenanceCases();
+          const cases = await storage.getMaintenanceCases(tenantId);
           const semanticSuggestions = [];
           
           for (const case_ of cases) {
@@ -1168,9 +1069,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/maintenance-insights/:equipmentType", async (req, res) => {
     try {
       const equipmentType = req.params.equipmentType;
-      
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       // Get recent diagnostic history for this equipment type
-      const recentCases = await storage.getMaintenanceCases();
+      const recentCases = await storage.getMaintenanceCases(tenantId);
       const equipmentCases = recentCases
         .filter(c => c.equipmentType === equipmentType)
         .slice(0, 10);
@@ -1199,9 +1105,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/repair/:caseId", async (req, res) => {
     try {
       const caseId = parseInt(req.params.caseId);
-      
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // ⚠️ LE CAS D'ABORD, et il doit être celui de l'appelant.
+      //
+      // Mesuré le 2026-10-25 : appelée par ALPHA sur l'identifiant d'un cas de
+      // BETA, cette route ne trouvait aucune gamme et en FABRIQUAIT quatre, avec
+      // `tenant_id` à NULL et `case_id` pointant le cas de BETA. Une simple
+      // LECTURE écrivait donc dans le dossier d'une autre organisation.
+      const dossier = await storage.getMaintenanceCaseById(caseId, tenantId);
+      if (!dossier) {
+        return res.status(404).json({
+          error: "CAS_INTROUVABLE",
+          message: `Aucun cas de maintenance de votre organisation ne porte l'identifiant ${caseId}.`,
+        });
+      }
+
       // First try to get existing procedures
-      let procedures = await storage.getRepairProceduresByCaseId(caseId);
+      let procedures = await storage.getRepairProceduresByCaseId(caseId, tenantId);
       
       // If no procedures exist, generate default ones
       if (procedures.length === 0) {
@@ -1264,32 +1189,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         ];
         
-        // Create default procedures in storage
+        // Create default procedures in storage — dans le locataire du cas,
+        // sans quoi elles seraient invisibles de la lecture qui suit.
         for (const proc of defaultProcedures) {
-          await storage.createRepairProcedure(proc);
+          await storage.createRepairProcedure({ ...proc, tenantId });
         }
         
         // Fetch the newly created procedures
-        procedures = await storage.getRepairProceduresByCaseId(caseId);
+        procedures = await storage.getRepairProceduresByCaseId(caseId, tenantId);
       }
 
-      // Try to get maintenance case details, but proceed even if not found
-      let maintenanceCase = null;
-      try {
-        maintenanceCase = await storage.getMaintenanceCaseById(caseId);
-      } catch (error: any) {
-        console.log(`No maintenance case found for ID ${caseId}, proceeding with procedures only`);
-      }
-      
-      res.json({
-        case: maintenanceCase || {
-          id: caseId,
-          equipmentType: "Équipement",
-          symptoms: "Diagnostic à partir du système ML",
-          solution: "Procédures de réparation générées automatiquement"
-        },
-        procedures
-      });
+      res.json({ case: dossier, procedures });
     } catch (error: any) {
       console.error("Repair procedures error:", error);
       res.status(500).json({ message: "Failed to get repair procedures" });
@@ -1393,7 +1303,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all maintenance cases for ML training
   app.get("/api/maintenance-cases", async (req, res) => {
     try {
-      const cases = await storage.getMaintenanceCases();
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const cases = await storage.getMaintenanceCases(tenantId);
       res.json(cases);
     } catch (error: any) {
       console.error("Error fetching maintenance cases:", error);
@@ -1414,10 +1329,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       console.log("🔬 Starting Advanced ML diagnostic...");
-      
+
       // Enhanced pattern matching with real industrial data
-      const historicalCases = await storage.getMaintenanceCases().then(cases => 
+      const historicalCases = await storage.getMaintenanceCases(tenantId).then(cases => 
         cases.filter(c => c.equipmentType.toLowerCase().includes(equipmentType.toLowerCase()))
              .slice(0, 10)
       );
@@ -1508,10 +1428,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { equipmentType, symptoms, symptomsChecked, urgency, zone, sector, equipmentId } = req.body;
       
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       console.log("🚀 Starting Ensemble ML diagnostic (9 models)...");
-      
+
       // Enhanced pattern matching with cross-table analysis
-      const historicalCases = await storage.getMaintenanceCases().then(cases => 
+      const historicalCases = await storage.getMaintenanceCases(tenantId).then(cases => 
         cases.filter(c => c.equipmentType.toLowerCase().includes(equipmentType.toLowerCase()))
              .slice(0, 15)
       );
@@ -1773,7 +1698,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mlEnabled = false;
       const modelAccuracy = "rule_based_fallback";
       const enhancedMetrics = {};
-      const cases = await storage.getMaintenanceCases();
+
+      // Le locataire vient de la SESSION : ces lectures servaient les cas de
+      // toutes les organisations.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const cases = await storage.getMaintenanceCases(tenantId);
       const matchingSuggestions = cases
         .filter(case_ => case_.equipmentType === formData.equipmentType)
         .slice(0, 1);
@@ -2187,23 +2118,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/feedback", async (req, res) => {
     try {
       const feedbackData = req.body;
-      const feedback = await storage.createFeedbackSession(feedbackData);
 
-      try {
-        await hybridDiagnosticPipeline.recordFeedbackAndLearn({
-          sessionId: feedbackData.sessionId,
-          rating: feedbackData.rating || 3,
-          helpful: feedbackData.helpful,
-          comments: feedbackData.comments || '',
-          suggestionsAccuracy: feedbackData.suggestionsAccuracy || '',
-          actualDiagnosis: feedbackData.actualDiagnosis,
-          actualSolution: feedbackData.actualSolution
+      // Le locataire vient de la session : un retour ne peut porter que sur une
+      // session de SON organisation. Mesuré avant correction — un compte du
+      // locataire A notait une session du locataire B, et le retour écrivait
+      // dans `failure_memory` une ligne portant le diagnostic de B.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // ⚠️ C'est le pipeline qui écrit la ligne de `feedback_sessions`, et lui
+      // seul — APRÈS avoir vérifié que la session visée appartient au locataire
+      // de l'appelant. Deux défauts mesurés le 2026-10-25 :
+      //
+      //   • cette route écrivait elle-même la ligne, en plus du pipeline : un
+      //     retour légitime en créait DEUX, donc comptait double dans toute
+      //     statistique de retours ;
+      //   • elle l'écrivait AVANT toute vérification : un compte du locataire A
+      //     notant une session du locataire B obtenait 200 et laissait une ligne
+      //     rattachée à la session de B.
+      const accepte = await hybridDiagnosticPipeline.recordFeedbackAndLearn({
+        tenantId,
+        sessionId: feedbackData.sessionId,
+        rating: feedbackData.rating || 3,
+        helpful: feedbackData.helpful,
+        comments: feedbackData.comments || '',
+        suggestionsAccuracy: feedbackData.suggestionsAccuracy || '',
+        actualDiagnosis: feedbackData.actualDiagnosis,
+        actualSolution: feedbackData.actualSolution
+      });
+
+      if (!accepte) {
+        return res.status(404).json({
+          error: "SESSION_INTROUVABLE",
+          message: "Aucune session de diagnostic de votre organisation ne porte cet identifiant.",
         });
-      } catch (learnError) {
-        console.error("Learning loop error (non-blocking):", learnError);
       }
 
-      res.json({ success: true, feedback });
+      res.json({ success: true });
     } catch (error: any) {
       console.error("Error creating feedback:", error);
       res.status(500).json({ error: "Failed to create feedback session" });
@@ -2646,7 +2597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== GESTION DES MOUVEMENTS DE STOCK ====================
   // Import du gestionnaire de stock
-  const { stockManager } = await import("./stock-management.js");
+  const { stockManager, PieceIntrouvable } = await import("./stock-management.js");
 
   // Route pour sortie de stock (maintenance/réparation)
   app.post("/api/stock/outbound", async (req, res) => {
@@ -2657,12 +2608,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et quantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.outboundForMaintenance(
+        tenantId,
         sparePartId, quantity, workOrderId, equipmentId, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur sortie de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2677,12 +2637,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et quantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.returnToStock(
+        tenantId,
         sparePartId, quantity, workOrderId, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur retour de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2697,12 +2666,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId, quantity et reason sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.inboundStock(
+        tenantId,
         sparePartId, quantity, reason, reference, performedBy, unitCost, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur entrée de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2717,12 +2695,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId et newQuantity sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.adjustStock(
+        tenantId,
         sparePartId, newQuantity, performedBy, notes
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur ajustement de stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2734,9 +2721,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sparePartId = parseInt(req.params.sparePartId);
       const quantity = parseInt(req.params.quantity);
 
-      const availability = await stockManager.checkStockAvailability(sparePartId, quantity);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const availability = await stockManager.checkStockAvailability(tenantId, sparePartId, quantity);
       res.json(availability);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur vérification stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2746,9 +2741,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/stock/:sparePartId/history", async (req, res) => {
     try {
       const sparePartId = parseInt(req.params.sparePartId);
-      const history = await stockManager.getMovementHistory(sparePartId);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const history = await stockManager.getMovementHistory(tenantId, sparePartId);
       res.json(history);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur historique stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2757,9 +2760,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route pour alertes de stock bas et recommandations
   app.get("/api/stock/alerts/low-stock", async (req, res) => {
     try {
-      const alertData = await stockManager.generateLowStockAlerts();
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const alertData = await stockManager.generateLowStockAlerts(tenantId);
       res.json(alertData);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur alertes stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2769,9 +2780,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stock/auto-deduction", async (req, res) => {
     try {
       const { workOrderId, partsRequired } = req.body;
-      const result = await stockManager.autoStockDeductionForWorkOrder(workOrderId, partsRequired);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const result = await stockManager.autoStockDeductionForWorkOrder(tenantId, workOrderId, partsRequired);
       res.json(result);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur déduction automatique:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2781,9 +2800,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/stock/auto-return", async (req, res) => {
     try {
       const { workOrderId, partsReturned } = req.body;
-      await stockManager.autoStockReturnAfterWorkOrder(workOrderId, partsReturned);
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      await stockManager.autoStockReturnAfterWorkOrder(tenantId, workOrderId, partsReturned);
       res.json({ success: true });
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur retour automatique:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2833,12 +2860,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "sparePartId, quantity et workOrderId sont requis" });
       }
 
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const movement = await stockManager.reserveStock(
+        tenantId,
         sparePartId, quantity, workOrderId, performedBy
       );
 
       res.json(movement);
     } catch (error: any) {
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 (voir PieceIntrouvable).
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ message: error.message });
+      }
       console.error("Erreur réservation stock:", error);
       res.status(500).json({ message: error.message });
     }
@@ -2847,8 +2883,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import default historical database from Excel file
   app.post("/api/import/default-historical-data", async (req, res) => {
     try {
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { processDefaultHistoricalData } = await import("./simple-excel-reader");
-      const result = await processDefaultHistoricalData();
+      const result = await processDefaultHistoricalData(tenantId);
       
       res.json(result);
     } catch (error: any) {
@@ -2873,8 +2914,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { ExcelHistoryProcessor } = await import("./excel-processor");
-      const processor = new ExcelHistoryProcessor();
+      const processor = new ExcelHistoryProcessor(tenantId);
       const result = await processor.processUserExcelFile(filePath);
       
       if (result.success) {
@@ -2943,8 +2989,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process Excel file with multiple sheets (Equipment, Diagnostic, Procedure cross-references)
   app.post("/api/diagnostic/process-excel-sheets", async (req, res) => {
     try {
+      // L'import écrit dans le locataire de la SESSION : il écrivait
+      // auparavant des lignes sans locataire, donc inattribuables.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const { DirectExcelImport } = await import('./direct-excel-import');
-      const processor = new DirectExcelImport();
+      const processor = new DirectExcelImport(tenantId);
       
       const result = await processor.importRealData();
       
@@ -2966,6 +3017,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/diagnostic/analyze", async (req, res) => {
     try {
       const data = req.body;
+
+      // Le locataire vient de la SESSION. Sans lui, ce moteur lisait
+      // `maintenance_cases` sans frontière.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       
       // Enhanced diagnostic with historical learning
       if (data.equipmentType && data.symptoms) {
@@ -2979,7 +3035,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             symptomsChecked: data.symptomsChecked,
             urgency: data.urgency,
             zone: data.zone,
-            sector: data.sector
+            sector: data.sector,
+            tenantId,
           });
           
           if (enhancedResult.suggestions.length > 0) {
@@ -2989,7 +3046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mlEnabled: true,
               modelAccuracy: "enhanced_historical",
               historicalBoost: true,
-              learningStats: await diagnosticEngine.getLearningStats(),
+              learningStats: await diagnosticEngine.getLearningStats(tenantId),
               dataSource: "imported_historical_cases",
               success: true
             });
@@ -3035,12 +3092,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const data = schema.parse(req.body);
 
+      // Cette route ne passait AUCUN locataire au pipeline : elle exécutait
+      // donc le diagnostic sur les données de toutes les organisations. Le
+      // champ étant désormais obligatoire, l'oubli ne compile plus.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const hybridRequest: HybridDiagnosticRequest = {
         equipmentType: data.equipmentType,
         symptoms: data.symptoms,
         urgency: data.urgency,
         zone: data.zone || undefined,
         sector: data.sector || undefined,
+        tenantId,
       };
 
       const hybridResult = await hybridDiagnosticPipeline.runDiagnostic(hybridRequest);
@@ -3086,15 +3150,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sector: z.string().optional()
   })), async (req, res) => {
     try {
+      // ⚠️ `equipmentId` arrive du CORPS de la requête, et rien ne vérifiait à
+      // qui cet équipement appartient : l'analyse des capteurs qu'en tire
+      // `performAdvancedDiagnosis` lisait donc les relevés de n'importe quel
+      // locataire à qui en devinait le numéro. Le locataire de la session est
+      // désormais transmis, et c'est lui qui borne cette lecture.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
       const { equipmentType, symptoms, urgency, equipmentId, zone, sector } = req.body;
-      
+
       console.log('🔬 Performing advanced reliability-optimized diagnostic...');
-      
+
       // Use advanced diagnostic optimizer
       const advancedResult = await advancedDiagnosticOptimizer.performAdvancedDiagnosis({
         equipmentType,
         symptoms,
         equipmentId,
+        tenantId,
         urgency,
         context: { zone, sector }
       });
@@ -3140,29 +3212,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Comprehensive Report Export Routes for Advanced Reporting
+  // ═══════════════════════════════════════════════════════════════════
+  // RAPPORT COMPLET GMAO — DOCUMENT CANONIQUE
+  // ═══════════════════════════════════════════════════════════════════
+  // Cette route a remplacé `/pdf/comprehensive-report`, supprimée (voir le
+  // bandeau en tête de ce fichier pour le relevé qui a tranché). Elle hérite
+  // donc du bouton « Export PDF » de l'écran des rapports avancés, et de ce que
+  // ce bouton promet : un rapport COMPLET sur la période choisie.
+  //
+  // Trois ajustements qu'imposait cette reprise, chacun mesuré :
+  //
+  //   1. LA PÉRIODE EST HONORÉE. L'écran envoie `week|month|quarter|year`, que
+  //      le service de KPI n'indexait pas : les quatre choix rendaient le même
+  //      résultat mensuel. Normalisé dans le service, ce qui répare du même
+  //      coup `/api/comprehensive-report/excel`, branché dessus depuis
+  //      toujours. Une période inconnue est désormais REFUSÉE ici plutôt que
+  //      repliée en silence : un rapport dont la période ne veut rien dire ne
+  //      doit pas sortir sous une étiquette qui en annonce une autre.
+  //
+  //   2. LE DOCUMENT DIT SA PÉRIODE. Son en-tête était figé sur « RAPPORT
+  //      MENSUEL » et le mois courant, même pour 365 jours.
+  //
+  //   3. LES DEUX LECTURES NON CLOISONNÉES SONT FERMÉES — voir plus bas.
   app.get("/api/comprehensive-report/pdf", EnterpriseAuthMiddleware.requireAuthentication, async (req: any, res) => {
     try {
       const { period = 'monthly' } = req.query;
       const tenantId = req.user?.tenantId || req.tenantId;
       if (!tenantId) return res.status(400).json({ error: "Tenant non résolu pour cette requête" });
 
+      const { computeGmaoReportKpis, normaliserPeriode } = await import("./gmao-report-kpi-service");
+      const periode = normaliserPeriode(String(period));
+      if (!periode) {
+        return res.status(400).json({
+          error: "PERIODE_INCONNUE",
+          message: `Période « ${period} » inconnue — attendu : week/weekly, month/monthly, quarter/quarterly ou year/yearly.`,
+        });
+      }
+
+      // ⚠️ `storage.getEquipment()` et `storage.getUserProfiles()` lisent TOUTE
+      // l'instance, sans locataire. `equipmentHealth` recevait donc
+      // `equipmentList.slice(0, 20)` : les vingt premiers équipements de
+      // l'instance, quel que soit leur propriétaire.
+      //
+      // Dans CE document, la fuite restait latente — mesuré : le gabarit de
+      // `PDFGeneratorClientSide` ne rend ni `equipmentHealth` ni
+      // `topEquipmentIssues`, et le nom de l'équipement d'un autre locataire
+      // était bien absent du PDF d'Alpha. Mais la même lecture alimentait
+      // `/api/comprehensive-report/excel`, qui rend, lui, une feuille
+      // « Équipements » : là, la fuite était EFFECTIVE. Mesuré le 2026-10-20,
+      // Alpha exportant son propre classeur — feuille « Équipements »,
+      // 3 lignes, dont `PRESSE-BETA-8181`, l'équipement de Beta. Après
+      // cloisonnement : 2 lignes, celles d'Alpha seul.
+      //
+      // La lecture est donc cloisonnée des deux côtés, par l'accesseur qui
+      // existait déjà. Le faire ici n'est pas une précaution de principe : le
+      // même oubli, derrière un gabarit qui rend la section, sortait déjà.
+      const { gmaoStorage } = await import("./gmao-storage");
       const [tenantWorkOrders, equipment, technicians] = await Promise.all([
         storage.getWorkOrdersByTenant(tenantId),
-        storage.getEquipment(),
+        gmaoStorage.getEquipmentRegistry(tenantId),
         storage.getUserProfiles(),
       ]);
       const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
-      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+      // Les profils n'ont pas d'accesseur cloisonné ; on filtre donc ici. Cette
+      // table ne pouvait pas trahir un inconnu — elle ne sert qu'à nommer les
+      // techniciens assignés aux OT du locataire, qui sont les siens — mais un
+      // filtre explicite vaut mieux qu'une garantie qui tient à l'usage.
+      const technicianNameById = new Map(technicians
+        .filter((t: any) => t.tenantId === tenantId)
+        .map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
 
-      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
-      const kpis = computeGmaoReportKpis(tenantWorkOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+      const kpis = computeGmaoReportKpis(tenantWorkOrders, periode, equipmentNameById, technicianNameById, equipment as any);
+
+      // Seul champ repris de l'ancien `/pdf/comprehensive-report` : un compte
+      // réel, déjà cloisonné par `getDashboardKPIs`.
+      const { criticalAlertsCount } = await gmaoStorage.getDashboardKPIs(tenantId);
 
       const currentDate = new Date();
       const reportData: import("./pdf-generator-client-side").MonthlyReportData = {
-        reportNumber: `GMAO-${period}-${currentDate.toISOString().split('T')[0]}`,
+        reportNumber: `GMAO-${periode}-${currentDate.toISOString().split('T')[0]}`,
         year: currentDate.getFullYear(),
         month: currentDate.getMonth() + 1,
+        periodeLibelle: kpis.periodLabel,
+        criticalAlerts: criticalAlertsCount,
         performanceScore: kpis.performanceScore,
         totalWorkOrders: kpis.totalWorkOrders,
         completedWorkOrders: kpis.completedWorkOrders,
@@ -3215,15 +3347,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const XLSX = await import('xlsx');
 
       // Get data for Excel export — ordres de travail et alertes scopés au tenant authentifié.
+      // ⚠️ C'EST ICI QUE LA LECTURE NON CLOISONNÉE SORTAIT. `storage.getEquipment()`
+      // lisait tout le parc de l'instance, et la feuille « Équipements » de ce
+      // classeur le rend ligne par ligne. Mesuré le 2026-10-20 : Alpha
+      // exportant SON rapport obtenait 3 lignes d'équipements, dont
+      // `PRESSE-BETA-8181` — celui de Beta. Ce n'était pas une fuite latente :
+      // le nom d'un équipement d'autrui quittait l'application dans un fichier
+      // destiné à circuler. Après correction : 2 lignes, celles d'Alpha.
+      //
+      // Le parc est donc lu par l'accesseur cloisonné, et les profils sont
+      // filtrés sur le locataire — comme sur l'export PDF jumeau.
+      const { gmaoStorage: gmaoStorageExcel } = await import("./gmao-storage");
       const workOrders = await storage.getWorkOrdersByTenant(tenantId);
-      const equipment = await storage.getEquipment();
+      const equipment = await gmaoStorageExcel.getEquipmentRegistry(tenantId);
       const alerts = await storage.getAlertsNotifications(tenantId, 100);
       const technicians = await storage.getUserProfiles();
 
       // Enrichissement — WorkOrder ne porte que des clés étrangères (equipmentId, assignedTo),
       // pas les libellés ; construits ici plutôt que de laisser des colonnes "undefined" dans l'export.
       const equipmentNameById = new Map(equipment.map((eq: any) => [eq.id, eq.equipmentName]));
-      const technicianNameById = new Map(technicians.map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
+      const technicianNameById = new Map(technicians
+        .filter((t: any) => t.tenantId === tenantId)
+        .map((t: any) => [t.id, [t.firstName, t.lastName].filter(Boolean).join(" ") || t.username]));
       const lastMaintenanceByEquipment = new Map<number, Date>();
       for (const wo of workOrders) {
         if (wo.status === "completed" && wo.equipmentId && wo.actualEnd) {
@@ -3233,8 +3378,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const { computeGmaoReportKpis } = await import("./gmao-report-kpi-service");
-      const kpis = computeGmaoReportKpis(workOrders, String(period), equipmentNameById, technicianNameById, equipment as any);
+      // La période du sélecteur est normalisée comme sur l'export PDF : cet
+      // export l'ignorait lui aussi, en silence.
+      const { computeGmaoReportKpis, normaliserPeriode } = await import("./gmao-report-kpi-service");
+      const periodeExcel = normaliserPeriode(String(period));
+      if (!periodeExcel) {
+        return res.status(400).json({
+          error: "PERIODE_INCONNUE",
+          message: `Période « ${period} » inconnue — attendu : week/weekly, month/monthly, quarter/quarterly ou year/yearly.`,
+        });
+      }
+      const kpis = computeGmaoReportKpis(workOrders, periodeExcel, equipmentNameById, technicianNameById, equipment as any);
 
       // Create workbook
       const wb = XLSX.utils.book_new();
@@ -4272,6 +4426,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register multi-tenant routes (will only apply to /api/tenant and /api/admin routes)
   app.use(tenantRoutes);
   app.use(tenantPermissionsRoutes);
+
+  // Routes qui lisent `req.user` et `req.tenantId` : elles DOIVENT être
+  // déclarées ici, après `app.use('/api', requireAuthentication)` et après les
+  // middlewares tenant posés par `setupCompleteMultiTenantArchitecture`.
+  // Enregistrées plus haut, comme elles l'étaient, elles ne voyaient ni l'un ni
+  // l'autre et refusaient tout le monde, administrateur compris.
+  registerTenantScopedRoutes(app);
   
   // Register RBAC routes for role-based access control
   app.use('/api/rbac', EnterpriseAuthMiddleware.requireAuthentication, rbacRoutes);

@@ -72,13 +72,21 @@ export interface DiagnosticStats {
 
 export interface IStorage {
   // Maintenance Cases
-  getMaintenanceCases(): Promise<MaintenanceCase[]>;
-  getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined>;
+  //
+  // ⚠️ `tenantId` est OBLIGATOIRE sur chaque lecture, et ce n'est pas une
+  // précaution de style : ces méthodes lisaient `maintenance_cases` sans aucun
+  // filtre, et sept routes de server/routes.ts servaient ainsi les cas de
+  // TOUTES les organisations. Un paramètre optionnel aurait laissé chaque
+  // appelant libre de l'oublier — c'est précisément ce qui s'était produit dans
+  // `diagnosticRulesEngine.getFailureMemoryMatches`, qui recevait un `tenantId?`
+  // et ne l'utilisait pas.
+  getMaintenanceCases(tenantId: string): Promise<MaintenanceCase[]>;
+  getMaintenanceCaseById(id: number, tenantId: string): Promise<MaintenanceCase | undefined>;
   createMaintenanceCase(data: InsertMaintenanceCase): Promise<MaintenanceCase>;
-  searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]>;
+  searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }, tenantId: string): Promise<MaintenanceCase[]>;
 
   // Repair Procedures
-  getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]>;
+  getRepairProceduresByCaseId(caseId: number, tenantId: string): Promise<RepairProcedure[]>;
   createRepairProcedure(data: InsertRepairProcedure): Promise<RepairProcedure>;
   updateRepairProcedureCompletion(id: number, completed: boolean): Promise<RepairProcedure>;
 
@@ -160,9 +168,11 @@ export interface IStorage {
   createStockMovement(data: InsertStockMovement): Promise<StockMovement>;
 
   // IoT Sensor Data
-  getIotSensorData(equipmentId?: number, limit?: number): Promise<IotSensorData[]>;
+  // `tenantId` est obligatoire et positionnel : c'est l'omission d'un filtre
+  // facultatif qui a laissé ces lectures parcourir toute l'instance.
+  getIotSensorData(tenantId: string, equipmentId?: number, limit?: number): Promise<IotSensorData[]>;
   createIotSensorData(data: InsertIotSensorData): Promise<IotSensorData>;
-  getLatestSensorData(equipmentId: number): Promise<IotSensorData[]>;
+  getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]>;
 
   // Predictive Analytics
   getPredictiveAnalytics(tenantId?: string, limit?: number): Promise<PredictiveAnalytics[]>;
@@ -178,10 +188,15 @@ export interface IStorage {
   createIntegrationLog(data: InsertIntegrationLog): Promise<IntegrationLog>;
 
   // Alerts and Notifications
-  getAlertsNotifications(status?: string): Promise<AlertsNotifications[]>;
-  getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]>;
+  // Le locataire est positionnel et obligatoire sur les quatre : voir le bloc
+  // d'explication au-dessus de createAlert, plus bas dans ce fichier.
+  // (La déclaration annonçait `status` là où l'implémentation attend un
+  // tenantId — un écart qui aurait fini par faire écrire un filtre de statut
+  // à la place d'un filtre d'organisation.)
+  getAlertsNotifications(tenantId?: string, limit?: number): Promise<AlertsNotifications[]>;
+  getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]>;
   createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications>;
-  updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
+  updateAlert(id: number, tenantId: string, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications>;
 }
 
 // Database Storage Implementation
@@ -268,29 +283,41 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Alerts and Notifications
+  // ═══════════════════════════════════════════════════════════════════
+  // Alerts and Notifications — la même barrière que dans gmao-storage
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // Ce dépôt porte DEUX couches de stockage qui écrivent dans la même table.
+  // Mettre la garde dans une seule revient à la laisser ouverte : il suffit
+  // qu'un appelant choisisse l'autre. Ces méthodes n'avaient d'ailleurs aucun
+  // appelant au moment de la correction — c'est précisément pour cela qu'il
+  // fallait s'en occuper tout de suite, car le premier appelant à venir
+  // n'aurait rien vu d'anormal.
+  //
+  // Elles DÉLÈGUENT plutôt que de dupliquer le contrôle : un contrôle écrit
+  // deux fois finit par diverger, et c'est la copie la plus laxiste qui
+  // décide. L'import est dynamique pour ne pas créer de cycle entre les deux
+  // modules de stockage.
   async createAlert(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
-    const [record] = await db.insert(alertsNotifications).values(data).returning();
-    return record;
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.createAlert(data);
   }
 
-  async updateAlert(id: number, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
-    const [record] = await db.update(alertsNotifications).set(updates).where(eq(alertsNotifications.id, id)).returning();
-    if (!record) throw new Error(`Alert with id ${id} not found`);
-    return record;
+  async updateAlert(id: number, tenantId: string, updates: Partial<AlertsNotifications>): Promise<AlertsNotifications> {
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.updateAlert(id, tenantId, updates);
   }
 
-  async getAlertsByEquipment(equipmentId: number): Promise<AlertsNotifications[]> {
-    return await db.select().from(alertsNotifications)
-      .where(eq(alertsNotifications.equipmentId, equipmentId))
-      .orderBy(desc(alertsNotifications.createdAt));
+  async getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]> {
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.getAlertsByEquipment(equipmentId, tenantId);
   }
 
   // Dernière lecture capteur / prédiction par équipement (utilisées pour des vues détail,
   // distinctes des listes paginées getIotSensorData / getPredictiveAnalytics ci-dessous).
-  async getLatestSensorData(equipmentId: number): Promise<IotSensorData[]> {
+  async getLatestSensorData(equipmentId: number, tenantId: string): Promise<IotSensorData[]> {
     return await db.select().from(iotSensorData)
-      .where(eq(iotSensorData.equipmentId, equipmentId))
+      .where(and(eq(iotSensorData.equipmentId, equipmentId), eq(iotSensorData.tenantId, tenantId)))
       .orderBy(desc(iotSensorData.timestamp))
       .limit(50);
   }
@@ -555,15 +582,18 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getIotSensorData(equipmentId?: number, limit = 500): Promise<IotSensorData[]> {
+  async getIotSensorData(tenantId: string, equipmentId?: number, limit = 500): Promise<IotSensorData[]> {
     try {
-      const query = db.select().from(iotSensorData).orderBy(desc(iotSensorData.timestamp)).limit(limit);
-      if (equipmentId !== undefined) {
-        return await db.select().from(iotSensorData)
-          .where(eq(iotSensorData.equipmentId, equipmentId))
-          .orderBy(desc(iotSensorData.timestamp)).limit(limit);
-      }
-      return await query;
+      // La branche « pas d'équipement » partait sans aucun WHERE : c'était
+      // elle, la fuite. Le locataire est désormais la condition de base, et
+      // l'équipement s'y ajoute quand il est fourni.
+      const conditions = [eq(iotSensorData.tenantId, tenantId)];
+      if (equipmentId !== undefined) conditions.push(eq(iotSensorData.equipmentId, equipmentId));
+
+      return await db.select().from(iotSensorData)
+        .where(and(...conditions))
+        .orderBy(desc(iotSensorData.timestamp))
+        .limit(limit);
     } catch (error) {
       console.error('getIotSensorData error:', error);
       return [];
@@ -630,8 +660,14 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async getAlerts(): Promise<AlertsNotifications[]> {
-    return await db.select().from(alertsNotifications).orderBy(desc(alertsNotifications.createdAt)).limit(500);
+  // Lisait 500 alertes TOUS LOCATAIRES CONFONDUS, sans le moindre filtre.
+  // Aucun appelant, donc aucune fuite constatée — mais une lecture non
+  // cloisonnée qui traîne dans une classe partagée est une fuite en attente
+  // d'appelant. Le locataire devient obligatoire.
+  async getAlerts(tenantId: string): Promise<AlertsNotifications[]> {
+    return await db.select().from(alertsNotifications)
+      .where(eq(alertsNotifications.tenantId, tenantId))
+      .orderBy(desc(alertsNotifications.createdAt)).limit(500);
   }
 
   async getAlertsNotifications(tenantId?: string, limit = 200): Promise<AlertsNotifications[]> {
@@ -649,17 +685,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Troisième porte d'écriture dans la même table, sans appelant elle non
+  // plus. Même délégation, même raison.
   async createAlertsNotifications(data: InsertAlertsNotifications): Promise<AlertsNotifications> {
-    const [record] = await db.insert(alertsNotifications).values(data).returning();
-    return record;
+    const { gmaoStorage } = await import("./gmao-storage");
+    return gmaoStorage.createAlert(data);
   }
 
-  async getMaintenanceCases(): Promise<MaintenanceCase[]> {
-    return await db.select().from(maintenanceCases).orderBy(desc(maintenanceCases.createdAt));
+  async getMaintenanceCases(tenantId: string): Promise<MaintenanceCase[]> {
+    return await db.select().from(maintenanceCases)
+      .where(eq(maintenanceCases.tenantId, tenantId))
+      .orderBy(desc(maintenanceCases.createdAt));
   }
 
-  async getMaintenanceCaseById(id: number): Promise<MaintenanceCase | undefined> {
-    const [case_] = await db.select().from(maintenanceCases).where(eq(maintenanceCases.id, id));
+  async getMaintenanceCaseById(id: number, tenantId: string): Promise<MaintenanceCase | undefined> {
+    const [case_] = await db.select().from(maintenanceCases)
+      .where(and(eq(maintenanceCases.id, id), eq(maintenanceCases.tenantId, tenantId)));
     return case_ || undefined;
   }
 
@@ -671,8 +712,10 @@ export class DatabaseStorage implements IStorage {
     return case_;
   }
 
-  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }): Promise<MaintenanceCase[]> {
-    let whereConditions = [];
+  async searchMaintenanceCases(query: { equipmentType?: string; symptoms?: string[] }, tenantId: string): Promise<MaintenanceCase[]> {
+    // Le locataire d'abord : une recherche sans critère ne doit pas devenir une
+    // recherche sans frontière.
+    let whereConditions: any[] = [eq(maintenanceCases.tenantId, tenantId)];
 
     if (query.equipmentType) {
       whereConditions.push(eq(maintenanceCases.equipmentType, query.equipmentType));
@@ -695,11 +738,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Repair Procedures
-  async getRepairProceduresByCaseId(caseId: number): Promise<RepairProcedure[]> {
+  async getRepairProceduresByCaseId(caseId: number, tenantId: string): Promise<RepairProcedure[]> {
+    // `repair_procedures` porte son propre `tenant_id` : on l'oppose, au lieu
+    // de se reposer sur le seul `case_id` — un identifiant de cas venu du
+    // client désignerait sinon les gammes d'une autre organisation.
     return await db
       .select()
       .from(repairProcedures)
-      .where(eq(repairProcedures.caseId, caseId))
+      .where(and(eq(repairProcedures.caseId, caseId), eq(repairProcedures.tenantId, tenantId)))
       .orderBy(repairProcedures.stepNumber);
   }
 

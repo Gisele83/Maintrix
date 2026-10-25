@@ -32,6 +32,9 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 const createUserSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -169,9 +172,9 @@ export default function UserManagement() {
   if (!canManageUsers) {
     return (
       <div className="container mx-auto p-6">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="border-etat-critique-filet bg-etat-critique-fond">
+          <AlertTriangle className="h-4 w-4 text-etat-critique-texte" />
+          <AlertDescription className="text-etat-critique-texte">
             <strong>Accès refusé.</strong> Seuls les administrateurs peuvent gérer les utilisateurs.
           </AlertDescription>
         </Alert>
@@ -195,14 +198,15 @@ export default function UserManagement() {
   const expiredPasswordUsers = users.filter(u => u.passwordExpired);
 
   return (
-    <div className="container mx-auto p-6 space-y-8 max-w-7xl">
+    <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Utilisateurs" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <UserCog className="w-8 h-8 text-blue-600" />
+          <UserCog className="w-8 h-8 text-etat-encours-texte" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestion des utilisateurs</h1>
-            <p className="text-lg text-gray-600">Créer et gérer les comptes utilisateurs</p>
+            <h1 className="text-3xl font-bold text-ink">Gestion des utilisateurs</h1>
+            <p className="text-lg text-ink-soft">Créer et gérer les comptes utilisateurs</p>
           </div>
         </div>
         
@@ -317,9 +321,9 @@ export default function UserManagement() {
                   />
                 </div>
                 
-                <Alert className="border-blue-200 bg-blue-50">
-                  <Key className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-800">
+                <Alert className="border-etat-encours-filet bg-etat-encours-fond">
+                  <Key className="h-4 w-4 text-etat-encours-texte" />
+                  <AlertDescription className="text-etat-encours-texte">
                     <strong>Sécurité :</strong> Des identifiants temporaires seront générés automatiquement et envoyés par email. 
                     L'utilisateur devra les changer lors de sa première connexion.
                   </AlertDescription>
@@ -353,11 +357,11 @@ export default function UserManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Total Utilisateurs</CardTitle>
+            <CardTitle className="text-sm font-medium text-ink-soft">Total Utilisateurs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-blue-500" />
+              <Users className="w-5 h-5 text-etat-encours-texte" />
               <span className="text-2xl font-bold">{users.length}</span>
             </div>
           </CardContent>
@@ -365,11 +369,11 @@ export default function UserManagement() {
         
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Utilisateurs Actifs</CardTitle>
+            <CardTitle className="text-sm font-medium text-ink-soft">Utilisateurs Actifs</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
+              <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />
               <span className="text-2xl font-bold">{activeUsers.length}</span>
             </div>
           </CardContent>
@@ -377,11 +381,11 @@ export default function UserManagement() {
         
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Mot de passe à changer</CardTitle>
+            <CardTitle className="text-sm font-medium text-ink-soft">Mot de passe à changer</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <AlertTriangle className="w-5 h-5 text-etat-alerte-texte" />
               <span className="text-2xl font-bold">{usersNeedingPasswordChange.length}</span>
             </div>
           </CardContent>
@@ -389,11 +393,11 @@ export default function UserManagement() {
         
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Mots de passe expirés</CardTitle>
+            <CardTitle className="text-sm font-medium text-ink-soft">Mots de passe expirés</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-red-500" />
+              <Clock className="w-5 h-5 text-etat-critique-texte" />
               <span className="text-2xl font-bold">{expiredPasswordUsers.length}</span>
             </div>
           </CardContent>
@@ -402,9 +406,9 @@ export default function UserManagement() {
 
       {/* Alertes de sécurité */}
       {usersNeedingPasswordChange.length > 0 && (
-        <Alert className="border-orange-200 bg-orange-50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
+        <Alert className="border-etat-alerte-filet bg-etat-alerte-fond">
+          <AlertTriangle className="h-4 w-4 text-etat-alerte-texte" />
+          <AlertDescription className="text-etat-alerte-texte">
             <strong>{usersNeedingPasswordChange.length} utilisateur(s)</strong> doivent changer leur mot de passe. 
             Contactez-les pour qu'ils se connectent et mettent à jour leurs identifiants.
           </AlertDescription>
@@ -438,9 +442,9 @@ export default function UserManagement() {
                     <TableCell>
                       <div>
                         <div className="font-medium">{user.username}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="text-sm text-ink-mute">{user.email}</div>
                         {(user.firstName || user.lastName) && (
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-ink-mute">
                             {user.firstName} {user.lastName}
                           </div>
                         )}
@@ -454,7 +458,7 @@ export default function UserManagement() {
                     <TableCell>
                       <Badge 
                         variant={user.accountStatus === 'active' ? 'default' : 'destructive'}
-                        className={user.accountStatus === 'active' ? 'bg-green-100 text-green-800' : ''}
+                        className={user.accountStatus === 'active' ? 'bg-etat-nominal-fond text-etat-nominal-texte' : ''}
                       >
                         {user.accountStatus === 'active' ? 'Actif' : 'Inactif'}
                       </Badge>
@@ -462,13 +466,13 @@ export default function UserManagement() {
                     <TableCell>
                       <div className="space-y-1">
                         {user.isDefaultCredentials && (
-                          <Badge variant="outline" className="text-orange-600 border-orange-300">
+                          <Badge variant="outline" className="text-etat-alerte-texte border-etat-alerte-filet">
                             <Key className="w-3 h-3 mr-1" />
                             Identifiants par défaut
                           </Badge>
                         )}
                         {user.mustChangePassword && (
-                          <Badge variant="outline" className="text-red-600 border-red-300">
+                          <Badge variant="outline" className="text-etat-critique-texte border-etat-critique-filet">
                             <AlertTriangle className="w-3 h-3 mr-1" />
                             Changement requis
                           </Badge>
@@ -485,7 +489,7 @@ export default function UserManagement() {
                       {user.lastLoginAt ? (
                         new Date(user.lastLoginAt).toLocaleString('fr-FR')
                       ) : (
-                        <span className="text-gray-500">Jamais</span>
+                        <span className="text-ink-mute">Jamais</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -505,7 +509,7 @@ export default function UserManagement() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+                <CheckCircle className="w-6 h-6 text-etat-nominal-texte" />
                 <span>Utilisateur créé avec succès</span>
               </DialogTitle>
               <DialogDescription>
@@ -514,15 +518,15 @@ export default function UserManagement() {
             </DialogHeader>
             
             <div className="space-y-6">
-              <Alert className="border-green-200 bg-green-50">
-                <Mail className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">
+              <Alert className="border-etat-nominal-filet bg-etat-nominal-fond">
+                <Mail className="h-4 w-4 text-etat-nominal-texte" />
+                <AlertDescription className="text-etat-nominal-texte">
                   Un email avec les identifiants a été envoyé à l'utilisateur.
                 </AlertDescription>
               </Alert>
               
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-3">Identifiants temporaires</h3>
+              <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-4">
+                <h3 className="font-semibold text-etat-encours-texte mb-3">Identifiants temporaires</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Nom d'utilisateur :</span>
@@ -572,9 +576,9 @@ export default function UserManagement() {
                 </div>
               </div>
               
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <h4 className="font-semibold text-orange-900 mb-2">Instructions importantes</h4>
-                <ul className="text-sm text-orange-800 space-y-1">
+              <div className="bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg p-4">
+                <h4 className="font-semibold text-etat-alerte-texte mb-2">Instructions importantes</h4>
+                <ul className="text-sm text-etat-alerte-texte space-y-1">
                   {createdUserResult.instructions.map((instruction, index) => (
                     <li key={index}>• {instruction}</li>
                   ))}
@@ -585,5 +589,6 @@ export default function UserManagement() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { db } from "./db";
 import { equipmentRegistry, workOrders, spareParts, iotSensorData, preventiveMaintenancePlans } from "@shared/schema";
-import { eq, gte } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { parse } from "csv-parse/sync";
 import * as XLSX from "xlsx";
 import { z } from "zod";
@@ -820,8 +820,18 @@ export class DataImportExportService {
   }
 
   // Export des équipements
-  async exportEquipments(format: 'csv' | 'excel'): Promise<Buffer> {
-    const equipments = await db.select().from(equipmentRegistry).orderBy(equipmentRegistry.equipmentName);
+  //
+  // ⚠️ Les quatre exports de ce service lisaient leur table SANS condition de
+  // locataire : le fichier téléchargé contenait le parc, les stocks, les ordres
+  // de travail (avec leur coût) et les relevés de capteurs de TOUTE l'instance.
+  // Un export est une sortie de données comme une autre, et celle-ci était la
+  // plus volumineuse. `tenantId` est obligatoire sur chacun, pour la même
+  // raison que sur getMaintenanceReports : un paramètre facultatif se fait
+  // oublier.
+  async exportEquipments(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
+    const equipments = await db.select().from(equipmentRegistry)
+      .where(eq(equipmentRegistry.tenantId, tenantId))
+      .orderBy(equipmentRegistry.equipmentName);
     
     const data = equipments.map(eq => ({
       'ID Équipement': eq.equipmentId,
@@ -854,7 +864,7 @@ export class DataImportExportService {
   }
 
   // Export de l'historique de maintenance
-  async exportMaintenanceHistory(format: 'csv' | 'excel'): Promise<Buffer> {
+  async exportMaintenanceHistory(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
     const maintenanceHistory = await db.select({
       orderNumber: workOrders.orderNumber,
       equipmentId: equipmentRegistry.equipmentId,
@@ -874,6 +884,10 @@ export class DataImportExportService {
     })
     .from(workOrders)
     .leftJoin(equipmentRegistry, eq(workOrders.equipmentId, equipmentRegistry.id))
+    // Le filtre porte sur work_orders, et non sur l'équipement joint : la
+    // jointure est un LEFT JOIN, et un ordre de travail sans équipement doit
+    // rester visible à son propriétaire.
+    .where(eq(workOrders.tenantId, tenantId))
     .orderBy(workOrders.createdAt);
 
     const data = maintenanceHistory.map(mh => ({
@@ -910,8 +924,10 @@ export class DataImportExportService {
   }
 
   // Export des pièces détachées
-  async exportSpareParts(format: 'csv' | 'excel'): Promise<Buffer> {
-    const parts = await db.select().from(spareParts).orderBy(spareParts.partName);
+  async exportSpareParts(format: 'csv' | 'excel', tenantId: string): Promise<Buffer> {
+    const parts = await db.select().from(spareParts)
+      .where(eq(spareParts.tenantId, tenantId))
+      .orderBy(spareParts.partName);
     
     const data = parts.map(part => ({
       'Numéro Pièce': part.partNumber,
@@ -944,7 +960,13 @@ export class DataImportExportService {
   }
 
   // Export des données IoT
-  async exportIoTData(format: 'csv' | 'excel', days: number = 30): Promise<Buffer> {
+  //
+  // La jointure interne qui servait de pis-aller ici — `iot_sensor_data` n'ayant
+  // pas de tenant_id — est remplacée par la condition sur la colonne, posée par
+  // la migration 0021. L'équipement est toujours joint, mais pour en afficher le
+  // nom, non plus pour deviner le propriétaire : un relevé sans équipement reste
+  // donc dans l'export de son locataire au lieu d'en disparaître.
+  async exportIoTData(format: 'csv' | 'excel', tenantId: string, days: number = 30): Promise<Buffer> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -961,7 +983,10 @@ export class DataImportExportService {
     })
     .from(iotSensorData)
     .leftJoin(equipmentRegistry, eq(iotSensorData.equipmentId, equipmentRegistry.id))
-    .where(gte(iotSensorData.timestamp, cutoffDate))
+    .where(and(
+      eq(iotSensorData.tenantId, tenantId),
+      gte(iotSensorData.timestamp, cutoffDate),
+    ))
     .orderBy(iotSensorData.timestamp);
 
     const data = iotData.map(iot => ({

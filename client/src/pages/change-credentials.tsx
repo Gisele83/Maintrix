@@ -203,9 +203,9 @@ export default function ChangeCredentials() {
 
         <CardContent className="space-y-6">
           {/* Alerte de sécurité */}
-          <Alert className={`border-2 ${isExpired ? 'border-red-500 bg-red-50' : 'border-orange-500 bg-orange-50'}`}>
-            <AlertTriangle className={`h-4 w-4 ${isExpired ? 'text-red-600' : 'text-orange-600'}`} />
-            <AlertDescription className={isExpired ? 'text-red-800' : 'text-orange-800'}>
+          <Alert className={`border-2 ${isExpired ? 'border-etat-critique-filet bg-etat-critique-fond' : 'border-etat-alerte-filet bg-etat-alerte-fond'}`}>
+            <AlertTriangle className={`h-4 w-4 ${isExpired ? 'text-etat-critique-texte' : 'text-etat-alerte-texte'}`} />
+            <AlertDescription className={isExpired ? 'text-etat-critique-texte' : 'text-etat-alerte-texte'}>
               {userInfo.isDefaultCredentials ? (
                 <>
                   <strong>Identifiants par défaut détectés.</strong> Ces identifiants temporaires doivent être changés.
@@ -223,13 +223,13 @@ export default function ChangeCredentials() {
           </Alert>
 
           {/* Informations utilisateur actuelles */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">Informations actuelles</h3>
-            <div className="space-y-1 text-sm text-blue-800">
+          <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-lg p-4">
+            <h3 className="font-semibold text-etat-encours-texte mb-2">Informations actuelles</h3>
+            <div className="space-y-1 text-sm text-etat-encours-texte">
               <p><strong>Email :</strong> {userInfo.email}</p>
               <p><strong>Nom d'utilisateur actuel :</strong> {userInfo.username}</p>
               {userInfo.canChangeUsername && (
-                <p className="text-green-700">Vous pouvez modifier votre nom d'utilisateur</p>
+                <p className="text-etat-nominal-texte">Vous pouvez modifier votre nom d'utilisateur</p>
               )}
             </div>
           </div>
@@ -254,7 +254,7 @@ export default function ChangeCredentials() {
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink-mute hover:text-ink-soft"
                         >
                           {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -306,7 +306,7 @@ export default function ChangeCredentials() {
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink-mute hover:text-ink-soft"
                         >
                           {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -319,11 +319,11 @@ export default function ChangeCredentials() {
                         {passwordRequirements.map((req, index) => (
                           <div key={index} className="flex items-center space-x-2 text-sm">
                             {req.isValid ? (
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <CheckCircle className="h-4 w-4 text-etat-nominal-texte" />
                             ) : (
-                              <div className="h-4 w-4 border-2 border-gray-300 rounded-full"></div>
+                              <div className="h-4 w-4 border-2 border-rule rounded-full"></div>
                             )}
-                            <span className={req.isValid ? "text-green-700" : "text-gray-600"}>
+                            <span className={req.isValid ? "text-etat-nominal-texte" : "text-ink-soft"}>
                               {req.message}
                             </span>
                           </div>
@@ -354,7 +354,7 @@ export default function ChangeCredentials() {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ink-mute hover:text-ink-soft"
                         >
                           {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -366,9 +366,9 @@ export default function ChangeCredentials() {
               />
 
               {/* Conseils de sécurité */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-semibold text-green-900 mb-2">Conseils de sécurité</h4>
-                <ul className="text-sm text-green-800 space-y-1">
+              <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-4">
+                <h4 className="font-semibold text-etat-nominal-texte mb-2">Conseils de sécurité</h4>
+                <ul className="text-sm text-etat-nominal-texte space-y-1">
                   <li>• Utilisez un mot de passe unique que vous n'utilisez nulle part ailleurs</li>
                   <li>• Combinez lettres majuscules, minuscules, chiffres et symboles</li>
                   <li>• Évitez les informations personnelles (nom, date de naissance, etc.)</li>

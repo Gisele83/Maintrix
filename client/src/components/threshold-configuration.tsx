@@ -91,11 +91,11 @@ export default function ThresholdConfiguration() {
     const commandThreshold = parseFloat(commandLetterThreshold);
     
     if (amount <= purchaseThreshold) {
-      return { type: "Bon de Commande", color: "bg-blue-500", icon: FileText };
+      return { type: "Bon de Commande", color: "bg-etat-encours-vif", icon: FileText };
     } else if (amount >= commandThreshold) {
       return { type: "Lettre de Commande", color: "bg-signal-deep", icon: Mail };
     } else {
-      return { type: "Zone de transition", color: "bg-yellow-500", icon: Settings };
+      return { type: "Zone de transition", color: "bg-etat-alerte-vif", icon: Settings };
     }
   };
 
@@ -104,7 +104,7 @@ export default function ThresholdConfiguration() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet"></div>
           </div>
         </CardContent>
       </Card>
@@ -121,9 +121,9 @@ export default function ThresholdConfiguration() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-medium text-blue-800 mb-2">Principe de Fonctionnement</h4>
-            <p className="text-sm text-blue-700">
+          <div className="bg-etat-encours-fond p-4 rounded-lg border border-etat-encours-filet">
+            <h4 className="font-medium text-etat-encours-texte mb-2">Principe de Fonctionnement</h4>
+            <p className="text-sm text-etat-encours-texte">
               Le service utilisateur initie une demande de commande (service ou pièce de rechange). 
               Selon le montant, le système génère automatiquement soit un <strong>Bon de Commande</strong> 
               (montant ≤ seuil), soit une <strong>Lettre de Commande</strong> (montant &gt; seuil).
@@ -133,7 +133,7 @@ export default function ThresholdConfiguration() {
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="purchaseThreshold" className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600" />
+                <FileText className="h-4 w-4 text-etat-encours-texte" />
                 Seuil Maximum Bon de Commande (€)
               </Label>
               <Input
@@ -145,7 +145,7 @@ export default function ThresholdConfiguration() {
                 onChange={(e) => setPurchaseOrderThreshold(e.target.value)}
                 className="text-lg font-medium"
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-ink-soft">
                 Montants de 0€ à {purchaseOrderThreshold}€ → Bon de Commande
               </p>
             </div>
@@ -164,7 +164,7 @@ export default function ThresholdConfiguration() {
                 onChange={(e) => setCommandLetterThreshold(e.target.value)}
                 className="text-lg font-medium"
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-ink-soft">
                 Montants ≥ {commandLetterThreshold}€ → Lettre de Commande
               </p>
             </div>
@@ -174,7 +174,7 @@ export default function ThresholdConfiguration() {
             <Button 
               onClick={handleSave}
               disabled={updateConfigMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
             >
               <Save className="h-4 w-4 mr-2" />
               {updateConfigMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
@@ -202,7 +202,7 @@ export default function ThresholdConfiguration() {
               const Icon = docType.icon;
               
               return (
-                <div key={index} className="p-4 border rounded-lg bg-gray-50">
+                <div key={index} className="p-4 border rounded-lg bg-paper">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium text-lg">{example.amount}€</span>
                     <Badge className={`${docType.color} text-white`}>
@@ -210,7 +210,7 @@ export default function ThresholdConfiguration() {
                       {docType.type}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{example.description}</p>
+                  <p className="text-sm text-ink-soft">{example.description}</p>
                 </div>
               );
             })}
@@ -228,13 +228,13 @@ export default function ThresholdConfiguration() {
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+            <div className="p-4 bg-etat-encours-fond rounded-lg border-l-4 border-etat-encours-filet">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-800">Bons de Commande</h4>
+                <FileText className="h-5 w-5 text-etat-encours-texte" />
+                <h4 className="font-medium text-etat-encours-texte">Bons de Commande</h4>
               </div>
-              <p className="text-2xl font-bold text-blue-600">0€ - {purchaseOrderThreshold}€</p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-2xl font-bold text-etat-encours-texte">0€ - {purchaseOrderThreshold}€</p>
+              <p className="text-sm text-etat-encours-texte mt-1">
                 Validation standard - Processus accéléré
               </p>
             </div>

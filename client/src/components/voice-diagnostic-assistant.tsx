@@ -218,20 +218,20 @@ export default function VoiceDiagnosticAssistant() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'analyzing':
-        return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+        return <Loader2 className="w-4 h-4 animate-spin text-etat-encours-texte" />;
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />;
       case 'error':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+        return <AlertTriangle className="w-4 h-4 text-etat-critique-texte" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
+        return <Clock className="w-4 h-4 text-ink-mute" />;
     }
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return "text-green-600 bg-green-100";
-    if (confidence >= 0.6) return "text-yellow-600 bg-yellow-100";
-    return "text-red-600 bg-red-100";
+    if (confidence >= 0.8) return "text-etat-nominal-texte bg-etat-nominal-fond";
+    if (confidence >= 0.6) return "text-etat-alerte-texte bg-etat-alerte-fond";
+    return "text-etat-critique-texte bg-etat-critique-fond";
   };
 
   const isVoiceSupported = recognitionRef.current !== null;
@@ -239,10 +239,10 @@ export default function VoiceDiagnosticAssistant() {
   return (
     <div className="space-y-6">
       {/* Voice Control Panel */}
-      <Card className="border-blue-200 bg-paper-deep">
+      <Card className="border-etat-encours-filet bg-paper-deep">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
-            <Brain className="h-6 w-6 text-blue-600" />
+            <Brain className="h-6 w-6 text-etat-encours-texte" />
             Assistant de Diagnostic Vocal
             <Badge variant="secondary" className="ml-auto">
               {isVoiceSupported ? "Actif" : "Non supporté"}
@@ -252,8 +252,8 @@ export default function VoiceDiagnosticAssistant() {
         <CardContent>
           {!isVoiceSupported ? (
             <div className="text-center py-8">
-              <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <p className="text-gray-600">
+              <AlertTriangle className="w-12 h-12 text-etat-alerte-texte mx-auto mb-4" />
+              <p className="text-ink-soft">
                 Votre navigateur ne supporte pas la reconnaissance vocale.
                 Utilisez Chrome ou Edge pour cette fonctionnalité.
               </p>
@@ -268,8 +268,8 @@ export default function VoiceDiagnosticAssistant() {
                   size="lg"
                   className={`${
                     isListening 
-                      ? "bg-red-500 hover:bg-red-600 animate-pulse" 
-                      : "bg-blue-500 hover:bg-blue-600"
+                      ? "bg-etat-critique-vif hover:bg-etat-critique-vif animate-pulse" 
+                      : "bg-etat-encours-vif hover:bg-etat-encours-vif"
                   } text-white px-8 py-4`}
                 >
                   {isListening ? (
@@ -297,12 +297,12 @@ export default function VoiceDiagnosticAssistant() {
               {(isListening || currentTranscript) && (
                 <div className="bg-white p-4 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
-                    <Activity className="w-4 h-4 text-blue-500" />
+                    <Activity className="w-4 h-4 text-etat-encours-texte" />
                     <span className="font-medium text-sm">
                       {isListening ? "En cours d'écoute..." : "Transcription:"}
                     </span>
                   </div>
-                  <p className="text-gray-700">
+                  <p className="text-ink-soft">
                     {currentTranscript || "Parlez maintenant..."}
                   </p>
                 </div>
@@ -310,9 +310,9 @@ export default function VoiceDiagnosticAssistant() {
 
               {/* Processing Indicator */}
               {isProcessing && (
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
-                  <p className="text-blue-700 font-medium">Analyse du diagnostic en cours...</p>
+                <div className="bg-etat-encours-fond border border-etat-encours-filet p-4 rounded-lg text-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-etat-encours-texte mx-auto mb-2" />
+                  <p className="text-etat-encours-texte font-medium">Analyse du diagnostic en cours...</p>
                 </div>
               )}
             </div>
@@ -337,7 +337,7 @@ export default function VoiceDiagnosticAssistant() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(session.status)}
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-ink-mute">
                           {session.timestamp.toLocaleTimeString()}
                         </span>
                       </div>
@@ -350,16 +350,16 @@ export default function VoiceDiagnosticAssistant() {
 
                     <div className="space-y-3">
                       <div>
-                        <h4 className="font-semibold text-sm text-gray-700 mb-1">Question:</h4>
-                        <p className="text-gray-900 bg-gray-50 p-2 rounded">
+                        <h4 className="font-semibold text-sm text-ink-soft mb-1">Question:</h4>
+                        <p className="text-ink bg-paper p-2 rounded">
                           {session.userQuery}
                         </p>
                       </div>
 
                       {session.aiResponse && (
                         <div>
-                          <h4 className="font-semibold text-sm text-gray-700 mb-1">Diagnostic:</h4>
-                          <p className="text-gray-900 bg-blue-50 p-2 rounded">
+                          <h4 className="font-semibold text-sm text-ink-soft mb-1">Diagnostic:</h4>
+                          <p className="text-ink bg-etat-encours-fond p-2 rounded">
                             {session.aiResponse}
                           </p>
                         </div>
@@ -367,8 +367,8 @@ export default function VoiceDiagnosticAssistant() {
 
                       {session.recommendations.length > 0 && (
                         <div>
-                          <h4 className="font-semibold text-sm text-gray-700 mb-1">Recommandations:</h4>
-                          <ul className="list-disc list-inside text-sm text-gray-700 bg-green-50 p-2 rounded">
+                          <h4 className="font-semibold text-sm text-ink-soft mb-1">Recommandations:</h4>
+                          <ul className="list-disc list-inside text-sm text-ink-soft bg-etat-nominal-fond p-2 rounded">
                             {session.recommendations.map((rec, index) => (
                               <li key={index}>{rec}</li>
                             ))}
@@ -385,12 +385,12 @@ export default function VoiceDiagnosticAssistant() {
       )}
 
       {/* Usage Instructions */}
-      <Card className="border-gray-200 bg-gray-50">
+      <Card className="border-rule bg-paper">
         <CardHeader>
           <CardTitle className="text-lg">Instructions d'utilisation</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-ink-soft">
             <p>• Cliquez sur "Commencer le diagnostic" et décrivez le problème</p>
             <p>• Parlez clairement en français</p>
             <p>• Mentionnez l'équipement concerné et les symptômes observés</p>

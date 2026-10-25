@@ -26,6 +26,9 @@ import {
   Wrench,
   Activity
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 export default function Inventaire() {
   const { toast } = useToast();
@@ -202,14 +205,15 @@ export default function Inventaire() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" data-testid="page-inventaire">
+    <AppShell filAriane={[{ libelle: "GMAO" }, { libelle: "Inventaire" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header avec actions d'import/export */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900" data-testid="title-inventaire">
+          <h1 className="text-3xl font-bold text-ink" data-testid="title-inventaire">
             Gestion d'Inventaire
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-ink-soft mt-2">
             Gérez vos équipements et pièces détachées avec import/export depuis Excel et SAGE
           </p>
         </div>
@@ -252,7 +256,7 @@ export default function Inventaire() {
                 <DialogTitle>Importer {getCurrentTypeLabel()}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-ink-soft">
                   <p>ERP et formats supportés :</p>
                   <ul className="list-disc list-inside mt-2">
                     <li>Excel (.xlsx, .xls) et CSV</li>
@@ -289,8 +293,8 @@ export default function Inventaire() {
                 </div>
 
                 <div className="p-3 bg-paper-deep rounded-lg text-sm">
-                  <p className="font-medium text-blue-900">Compatibilité ERP Universal</p>
-                  <p className="text-blue-700 mt-1">
+                  <p className="font-medium text-etat-encours-texte">Compatibilité ERP Universal</p>
+                  <p className="text-etat-encours-texte mt-1">
                     Détection automatique du format : SAGE, SAP, Oracle, Dynamics, Maximo
                   </p>
                 </div>
@@ -332,10 +336,10 @@ export default function Inventaire() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Pièces en Stock</p>
-                <p className="text-2xl font-bold text-blue-600">{piecesStock.length.toLocaleString('fr-FR')}</p>
+                <p className="text-sm text-ink-soft">Pièces en Stock</p>
+                <p className="text-2xl font-bold text-etat-encours-texte">{piecesStock.length.toLocaleString('fr-FR')}</p>
               </div>
-              <Package className="h-8 w-8 text-blue-500" />
+              <Package className="h-8 w-8 text-etat-encours-texte" />
             </div>
           </CardContent>
         </Card>
@@ -344,10 +348,10 @@ export default function Inventaire() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Équipements</p>
-                <p className="text-2xl font-bold text-green-600">{equipements.length.toLocaleString('fr-FR')}</p>
+                <p className="text-sm text-ink-soft">Équipements</p>
+                <p className="text-2xl font-bold text-etat-nominal-texte">{equipements.length.toLocaleString('fr-FR')}</p>
               </div>
-              <Factory className="h-8 w-8 text-green-500" />
+              <Factory className="h-8 w-8 text-etat-nominal-texte" />
             </div>
           </CardContent>
         </Card>
@@ -356,10 +360,10 @@ export default function Inventaire() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Alertes Stock</p>
-                <p className="text-2xl font-bold text-orange-600">{alertesStock}</p>
+                <p className="text-sm text-ink-soft">Alertes Stock</p>
+                <p className="text-2xl font-bold text-etat-alerte-texte">{alertesStock}</p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-orange-500" />
+              <AlertTriangle className="h-8 w-8 text-etat-alerte-texte" />
             </div>
           </CardContent>
         </Card>
@@ -368,7 +372,7 @@ export default function Inventaire() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Valeur Stock</p>
+                <p className="text-sm text-ink-soft">Valeur Stock</p>
                 <p className="text-2xl font-bold text-signal-deep">{montant(valeurStock)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-signal-deep" />
@@ -447,18 +451,18 @@ export default function Inventaire() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">SAGE X3/100</h3>
-              <ol className="text-sm text-blue-800 space-y-1">
+            <div className="p-4 bg-etat-encours-fond rounded-lg">
+              <h3 className="font-semibold text-etat-encours-texte mb-2">SAGE X3/100</h3>
+              <ol className="text-sm text-etat-encours-texte space-y-1">
                 <li>1. Export Excel standard depuis SAGE</li>
                 <li>2. Colonnes françaises reconnues automatiquement</li>
                 <li>3. Import direct sans modification</li>
               </ol>
             </div>
             
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">SAP/Oracle/Dynamics</h3>
-              <ol className="text-sm text-green-800 space-y-1">
+            <div className="p-4 bg-etat-nominal-fond rounded-lg">
+              <h3 className="font-semibold text-etat-nominal-texte mb-2">SAP/Oracle/Dynamics</h3>
+              <ol className="text-sm text-etat-nominal-texte space-y-1">
                 <li>1. Export depuis votre ERP (Excel/CSV)</li>
                 <li>2. Format détecté et converti automatiquement</li>
                 <li>3. Codes statuts/priorités normalisés</li>
@@ -475,12 +479,12 @@ export default function Inventaire() {
             </div>
           </div>
           
-          <div className="p-4 bg-yellow-50 rounded-lg">
-            <h3 className="font-semibold text-yellow-900 mb-2">
+          <div className="p-4 bg-etat-alerte-fond rounded-lg">
+            <h3 className="font-semibold text-etat-alerte-texte mb-2">
               <AlertTriangle className="h-4 w-4 inline mr-1" />
               Bonnes Pratiques
             </h3>
-            <ul className="text-sm text-yellow-800 space-y-1">
+            <ul className="text-sm text-etat-alerte-texte space-y-1">
               <li>• Effectuez une sauvegarde avant tout import massif</li>
               <li>• Vérifiez la cohérence des données avant import</li>
               <li>• Utilisez des identifiants uniques pour éviter les doublons</li>
@@ -490,5 +494,6 @@ export default function Inventaire() {
         </CardContent>
       </Card>
     </div>
+    </AppShell>
   );
 }

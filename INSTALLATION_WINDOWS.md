@@ -156,8 +156,8 @@ npm list --depth=0
 # Appliquer le schéma
 npm run db:push
 
-# Charger les données de démonstration (optionnel)
-npx tsx server/seed.ts
+# Charger le jeu de démonstration (optionnel) — organisation dédiée, réversible
+npm run demo:charger
 ```
 
 ### Étape 9 : Démarrer l'Application
@@ -208,8 +208,8 @@ docker-compose up -d --build
 # Vérifier les logs
 docker-compose logs -f app
 
-# Charger les données de démo (optionnel)
-docker-compose exec app npx tsx server/seed.ts
+# Charger le jeu de démonstration (optionnel)
+docker-compose exec app npm run demo:charger
 ```
 
 **Accès : http://localhost:5000**
@@ -474,7 +474,7 @@ cd android
 - [ ] Fichier `.env` configuré avec bonnes informations
 - [ ] Dépendances installées (`npm install`)
 - [ ] Schéma base de données appliqué (`npm run db:push`)
-- [ ] Données de démo chargées (`npx tsx server/seed.ts`)
+- [ ] Jeu de démonstration chargé (`npm run demo:charger`) — optionnel
 - [ ] Application démarrée (`npm run dev` ou `npm start`)
 - [ ] Connexion réussie sur http://localhost:5000
 - [ ] Pare-feu configuré (si nécessaire)

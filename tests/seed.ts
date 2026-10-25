@@ -34,14 +34,66 @@ export const TEST_PASSWORD = 'Maintrix2024!';
 export const TENANT_ALPHA = '00000000-0000-4000-8000-00000000a1fa';
 export const TENANT_BETA = '00000000-0000-4000-8000-00000000be7a';
 
+/**
+ * Droits de validation d'un compte de test.
+ *
+ * Ces trois colonnes de `user_profiles` portent le circuit de validation à
+ * plusieurs niveaux. Elles n'étaient renseignées par aucun compte du seed —
+ * donc toutes à leur défaut (`validation_level = 0`, les deux drapeaux à
+ * `false`) : impossible d'éprouver un refus pour niveau insuffisant sans un
+ * compte qui détienne RÉELLEMENT un niveau.
+ */
+interface DroitsValidation {
+  niveau: number;
+  ot: boolean;
+  bc: boolean;
+  /** Plafond d'approbation d'achat, en décimal ; `null` = aucun plafond. */
+  plafond: string | null;
+}
+
+const AUCUN_DROIT: DroitsValidation = { niveau: 0, ot: false, bc: false, plafond: null };
+
 /** Comptes de test, un par rôle utile aux suites. */
 export const TEST_USERS = {
   /** Administrateur du tenant Alpha — compte principal des suites existantes. */
-  admin: { email: 'admin@maintrix.local', username: 'admin_alpha', role: 'admin', tenantId: TENANT_ALPHA },
+  admin: { email: 'admin@maintrix.local', username: 'admin_alpha', role: 'admin', tenantId: TENANT_ALPHA, validation: AUCUN_DROIT },
   /** Technicien du tenant Alpha — sert aux tests RBAC (droits réduits). */
-  technician: { email: 'tech@maintrix.local', username: 'tech_alpha', role: 'technician', tenantId: TENANT_ALPHA },
+  technician: { email: 'tech@maintrix.local', username: 'tech_alpha', role: 'technician', tenantId: TENANT_ALPHA, validation: AUCUN_DROIT },
   /** Administrateur du tenant Beta — sert aux tests d'isolation multi-tenant. */
-  adminBeta: { email: 'admin-beta@maintrix.local', username: 'admin_beta', role: 'admin', tenantId: TENANT_BETA },
+  adminBeta: { email: 'admin-beta@maintrix.local', username: 'admin_beta', role: 'admin', tenantId: TENANT_BETA, validation: AUCUN_DROIT },
+  /**
+   * Validateur de niveau 1 du tenant Alpha — chef d'équipe habilité.
+   * Son plafond d'achat (2 000) sert à éprouver le refus pour dépassement.
+   */
+  validateurN1: {
+    email: 'valid1@maintrix.local', username: 'valid1_alpha', role: 'team_leader', tenantId: TENANT_ALPHA,
+    validation: { niveau: 1, ot: true, bc: true, plafond: '2000.00' },
+  },
+  /**
+   * Validateur de niveau 2 du tenant Alpha — responsable maintenance habilité.
+   * Aucun plafond : il peut engager n'importe quel montant.
+   */
+  validateurN2: {
+    email: 'valid2@maintrix.local', username: 'valid2_alpha', role: 'maintenance_manager', tenantId: TENANT_ALPHA,
+    validation: { niveau: 2, ot: true, bc: true, plafond: null },
+  },
+  /**
+   * Validateur de niveau 3 du tenant Alpha — service achat, dernier échelon des
+   * bons de commande (celui qui rend le bon imprimable).
+   */
+  validateurN3: {
+    email: 'valid3@maintrix.local', username: 'valid3_alpha', role: 'procurement', tenantId: TENANT_ALPHA,
+    validation: { niveau: 3, ot: false, bc: true, plafond: null },
+  },
+  /**
+   * Validateur de niveau 2 du tenant BETA — même habilitation que `validateurN2`,
+   * dans une autre organisation. Sert à vérifier qu'une habilitation réelle ne
+   * traverse pas la frontière entre locataires.
+   */
+  validateurBeta: {
+    email: 'valid-beta@maintrix.local', username: 'valid_beta', role: 'maintenance_manager', tenantId: TENANT_BETA,
+    validation: { niveau: 2, ot: true, bc: true, plafond: null },
+  },
 } as const;
 
 /**
@@ -122,6 +174,10 @@ export async function seedTestDatabase(): Promise<void> {
       mustChangePassword: false,
       isDefaultCredentials: false,
       mfaEnabled: false,
+      validationLevel: u.validation.niveau,
+      canValidateWorkOrders: u.validation.ot,
+      canValidatePurchaseOrders: u.validation.bc,
+      maxPurchaseAmount: u.validation.plafond,
     }).onConflictDoNothing();
   }
 
@@ -139,7 +195,15 @@ export async function seedTestDatabase(): Promise<void> {
           failed_login_attempts = 0,
           account_locked_until = NULL,
           tenant_id = ${u.tenantId},
-          role = ${u.role}
+          role = ${u.role},
+          -- Les droits de validation sont RÉALIGNÉS, y compris à zéro : une
+          -- base réutilisée pourrait porter des habilitations accordées par
+          -- une exécution précédente, et le cas « technicien de niveau 0 qui
+          -- tente de valider » passerait alors au vert sans rien prouver.
+          validation_level = ${u.validation.niveau},
+          can_validate_work_orders = ${u.validation.ot},
+          can_validate_purchase_orders = ${u.validation.bc},
+          max_purchase_amount = ${u.validation.plafond}
       WHERE email = ${u.email}
     `);
   }

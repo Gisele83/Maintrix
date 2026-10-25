@@ -39,8 +39,8 @@ const platforms: Platform[] = [
     id: "windows",
     name: "Windows",
     icon: Monitor,
-    color: "text-blue-600",
-    bg: "from-blue-500 to-cyan-600",
+    color: "text-etat-encours-texte",
+    bg: "",
     files: [
       { label: "Installateur Windows", filename: `Maintrix-${VERSION}-Setup-x64.exe`, size: "142 MB", arch: "64-bit", recommended: true, url: "#" },
       { label: "Installateur Windows (32-bit)", filename: `Maintrix-${VERSION}-Setup-x86.exe`, size: "138 MB", arch: "32-bit", url: "#" },
@@ -53,8 +53,8 @@ const platforms: Platform[] = [
     id: "mac",
     name: "macOS",
     icon: Apple,
-    color: "text-slate-700",
-    bg: "from-slate-600 to-slate-800",
+    color: "text-ink-soft",
+    bg: "",
     files: [
       { label: "Mac Apple Silicon (M1/M2/M3)", filename: `Maintrix-${VERSION}-arm64.dmg`, size: "128 MB", arch: "Apple Silicon", recommended: true, url: "#" },
       { label: "Mac Intel", filename: `Maintrix-${VERSION}-x64.dmg`, size: "134 MB", arch: "Intel x64", url: "#" },
@@ -67,8 +67,8 @@ const platforms: Platform[] = [
     id: "linux",
     name: "Linux",
     icon: Cpu,
-    color: "text-orange-600",
-    bg: "from-orange-500 to-red-600",
+    color: "text-etat-alerte-texte",
+    bg: "",
     files: [
       { label: "Debian / Ubuntu (.deb)", filename: `maintrix_${VERSION}_amd64.deb`, size: "119 MB", recommended: true, url: "#" },
       { label: "Red Hat / Fedora (.rpm)", filename: `maintrix-${VERSION}.x86_64.rpm`, size: "121 MB", url: "#" },
@@ -87,8 +87,8 @@ const platforms: Platform[] = [
     id: "android",
     name: "Android",
     icon: Smartphone,
-    color: "text-green-600",
-    bg: "from-green-500 to-emerald-600",
+    color: "text-etat-nominal-texte",
+    bg: "",
     files: [
       { label: "Google Play Store", filename: "com.maintrix.app", size: "Automatique", recommended: true, url: "https://play.google.com/store" },
       { label: "APK Direct (Android 8+)", filename: `Maintrix-${VERSION}.apk`, size: "48 MB", url: "#" },
@@ -112,8 +112,8 @@ const platforms: Platform[] = [
     id: "web",
     name: "Version Web",
     icon: Globe,
-    color: "text-indigo-600",
-    bg: "from-indigo-500 to-blue-600",
+    color: "text-etat-encours-texte",
+    bg: "",
     files: [
       { label: "Accès Web Direct", filename: "app.maintrix.io", size: "—", recommended: true, url: "/gmao-dashboard" },
     ],
@@ -141,17 +141,17 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
   if (!isSubscribed) {
     return (
       <Link href="/register">
-        <Button variant="outline" className="w-full justify-between gap-2 h-auto py-3 px-4 hover:bg-blue-50 border-blue-200 group">
+        <Button variant="outline" className="w-full justify-between gap-2 h-auto py-3 px-4 hover:bg-etat-encours-fond border-etat-encours-filet group">
           <div className="flex items-center gap-3">
-            <Lock className="h-4 w-4 text-blue-500" />
+            <Lock className="h-4 w-4 text-etat-encours-texte" />
             <div className="text-left">
-              <p className="text-sm font-medium text-slate-700">{file.label}</p>
+              <p className="text-sm font-medium text-ink-soft">{file.label}</p>
               <p className="text-xs text-ink-mute">{file.filename}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {file.recommended && <Badge className="bg-blue-100 text-blue-700 text-xs">Recommandé</Badge>}
-            <span className="text-xs text-blue-600 font-medium group-hover:underline">S'abonner</span>
+            {file.recommended && <Badge className="bg-etat-encours-fond text-etat-encours-texte text-xs">Recommandé</Badge>}
+            <span className="text-xs text-etat-encours-texte font-medium group-hover:underline">S'abonner</span>
           </div>
         </Button>
       </Link>
@@ -161,36 +161,36 @@ function DownloadButton({ file, isSubscribed }: { file: DownloadFile; isSubscrib
   return (
     <Button
       variant="outline"
-      className={`w-full justify-between gap-2 h-auto py-3 px-4 transition-all ${clicked ? "bg-green-50 border-green-300" : "hover:bg-slate-50"}`}
+      className={`w-full justify-between gap-2 h-auto py-3 px-4 transition-all ${clicked ? "bg-etat-nominal-fond border-etat-nominal-filet" : "hover:bg-paper"}`}
       onClick={handleClick}
       asChild={file.url !== "#"}
     >
       {file.url !== "#" ? (
         <a href={file.url} download={file.filename !== "com.maintrix.app" && file.filename !== "com.maintrix.ios" && file.filename !== "app.maintrix.io"} target={file.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
           <div className="flex items-center gap-3">
-            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
+            {clicked ? <CheckCircle2 className="h-4 w-4 text-etat-nominal-texte shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
             <div className="text-left">
-              <p className="text-sm font-medium text-slate-800">{file.label}</p>
+              <p className="text-sm font-medium text-ink">{file.label}</p>
               <p className="text-xs text-ink-mute">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
+            {file.recommended && <Badge className="bg-etat-nominal-fond text-etat-nominal-texte text-xs">Recommandé</Badge>}
+            {clicked ? <span className="text-xs text-etat-nominal-texte font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
           </div>
         </a>
       ) : (
         <span className="flex w-full items-center justify-between">
           <div className="flex items-center gap-3">
-            {clicked ? <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
+            {clicked ? <CheckCircle2 className="h-4 w-4 text-etat-nominal-texte shrink-0" /> : <Download className="h-4 w-4 text-ink-mute shrink-0" />}
             <div className="text-left">
-              <p className="text-sm font-medium text-slate-800">{file.label}</p>
+              <p className="text-sm font-medium text-ink">{file.label}</p>
               <p className="text-xs text-ink-mute">{file.filename} {file.arch ? `· ${file.arch}` : ""} · {file.size}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {file.recommended && <Badge className="bg-emerald-100 text-emerald-700 text-xs">Recommandé</Badge>}
-            {clicked ? <span className="text-xs text-green-600 font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
+            {file.recommended && <Badge className="bg-etat-nominal-fond text-etat-nominal-texte text-xs">Recommandé</Badge>}
+            {clicked ? <span className="text-xs text-etat-nominal-texte font-medium">Démarré </span> : <ChevronRight className="h-4 w-4 text-ink-mute" />}
           </div>
         </span>
       )}
@@ -211,7 +211,7 @@ export default function DownloadCenterPage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,white,transparent_75%)]" />
         <div className="relative max-w-6xl mx-auto px-6 py-20 text-center">
-          <Badge className="mb-6 bg-blue-500/20 text-blue-300 border-blue-500/30 text-sm px-4 py-1.5">
+          <Badge className="mb-6 bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet text-sm px-4 py-1.5">
             Version {VERSION} — {RELEASE_DATE}
           </Badge>
           <h1 className="text-5xl font-bold text-ink mb-4 tracking-tight">
@@ -222,11 +222,11 @@ export default function DownloadCenterPage() {
           </p>
 
           {!isSubscribed && (
-            <div className="inline-flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-6 py-3 mb-8">
-              <Lock className="h-5 w-5 text-amber-400" />
-              <span className="text-amber-300 text-sm">Un abonnement actif est requis pour télécharger</span>
+            <div className="inline-flex items-center gap-3 bg-etat-alerte-fond border border-etat-alerte-filet rounded-none px-6 py-3 mb-8">
+              <Lock className="h-5 w-5 text-etat-alerte-texte" />
+              <span className="text-etat-alerte-texte text-sm">Un abonnement actif est requis pour télécharger</span>
               <Link href="/register">
-                <Button size="sm" className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold ml-2">
+                <Button size="sm" className="bg-etat-alerte-vif hover:bg-etat-alerte-vif text-ink font-semibold ml-2">
                   S'abonner maintenant <ArrowRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </Link>
@@ -234,9 +234,9 @@ export default function DownloadCenterPage() {
           )}
 
           {isSubscribed && (
-            <div className="inline-flex items-center gap-3 bg-green-500/10 border border-green-500/30 rounded-xl px-6 py-3 mb-8">
-              <CheckCircle2 className="h-5 w-5 text-green-400" />
-              <span className="text-green-300 text-sm">Abonnement actif — tous les téléchargements déverrouillés</span>
+            <div className="inline-flex items-center gap-3 bg-etat-nominal-fond border border-etat-nominal-filet rounded-none px-6 py-3 mb-8">
+              <CheckCircle2 className="h-5 w-5 text-etat-nominal-texte" />
+              <span className="text-etat-nominal-texte text-sm">Abonnement actif — tous les téléchargements déverrouillés</span>
             </div>
           )}
 
@@ -267,7 +267,7 @@ export default function DownloadCenterPage() {
             <Card className="bg-white/5 border-rule">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-paper-deep ${platform.bg}`}>
+                  <div className={`p-3 rounded-none bg-paper-deep ${platform.bg}`}>
                     <PlatformIcon className="h-7 w-7 text-ink" />
                   </div>
                   <div>
@@ -288,7 +288,7 @@ export default function DownloadCenterPage() {
             <Card className="bg-white/5 border-rule mt-4">
               <CardHeader>
                 <CardTitle className="text-ink text-base flex items-center gap-2">
-                  <Package className="h-5 w-5 text-blue-400" />
+                  <Package className="h-5 w-5 text-etat-encours-texte" />
                   Guide d'installation
                 </CardTitle>
               </CardHeader>
@@ -311,7 +311,7 @@ export default function DownloadCenterPage() {
             <Card className="bg-white/5 border-rule">
               <CardHeader>
                 <CardTitle className="text-ink text-base flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-signal-light" />
+                  <Cpu className="h-5 w-5 text-signal" />
                   Configuration requise
                 </CardTitle>
               </CardHeader>
@@ -319,7 +319,7 @@ export default function DownloadCenterPage() {
                 <ul className="space-y-2">
                   {platform.requirements.map((req, i) => (
                     <li key={i} className="flex gap-2 items-start text-sm text-ink-soft">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-4 w-4 text-etat-nominal-texte shrink-0 mt-0.5" />
                       {req}
                     </li>
                   ))}
@@ -331,15 +331,15 @@ export default function DownloadCenterPage() {
             <Card className="bg-white/5 border-rule">
               <CardHeader>
                 <CardTitle className="text-ink text-base flex items-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-400" />
+                  <Star className="h-5 w-5 text-etat-alerte-texte" />
                   Inclus dans toutes les versions
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {features.map(({ icon: Icon, label, desc }) => (
                   <div key={label} className="flex gap-3">
-                    <div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
-                      <Icon className="h-4 w-4 text-blue-400" />
+                    <div className="p-2 rounded-lg bg-etat-encours-fond shrink-0">
+                      <Icon className="h-4 w-4 text-etat-encours-texte" />
                     </div>
                     <div>
                       <p className="text-ink text-sm font-medium">{label}</p>
@@ -356,23 +356,23 @@ export default function DownloadCenterPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-ink-mute">Version</span><span className="text-ink font-mono">{VERSION}</span></div>
                   <div className="flex justify-between"><span className="text-ink-mute">Date de sortie</span><span className="text-ink">{RELEASE_DATE}</span></div>
-                  <div className="flex justify-between"><span className="text-ink-mute">Licence</span><span className="text-emerald-400">SaaS · Multi-plateforme</span></div>
-                  <div className="flex justify-between"><span className="text-ink-mute">Mises à jour</span><span className="text-blue-400">Automatiques</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Licence</span><span className="text-etat-nominal-texte">SaaS · Multi-plateforme</span></div>
+                  <div className="flex justify-between"><span className="text-ink-mute">Mises à jour</span><span className="text-etat-encours-texte">Automatiques</span></div>
                 </div>
-                <a href="#changelog" className="mt-4 flex items-center gap-1 text-xs text-blue-400 hover:underline">
+                <a href="#changelog" className="mt-4 flex items-center gap-1 text-xs text-etat-encours-texte hover:underline">
                   <ExternalLink className="h-3 w-3" /> Voir les notes de version
                 </a>
               </CardContent>
             </Card>
 
             {/* Web access */}
-            <Card className="bg-paper-deep border-blue-500/30">
+            <Card className="bg-paper-deep border-etat-encours-filet">
               <CardContent className="p-4 text-center">
-                <Globe className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                <Globe className="h-8 w-8 text-etat-encours-texte mx-auto mb-2" />
                 <p className="text-ink font-semibold text-sm mb-1">Version Web toujours disponible</p>
                 <p className="text-ink-mute text-xs mb-3">Sans installation, depuis n'importe quel navigateur</p>
                 <Link href={isSubscribed ? "/gmao-dashboard" : "/register"}>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white w-full">
+                  <Button size="sm" className="bg-etat-encours-vif hover:bg-etat-encours-vif text-white w-full">
                     {isSubscribed ? "Accéder à l'application" : "Essayer gratuitement"}
                     <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
@@ -385,14 +385,14 @@ export default function DownloadCenterPage() {
         {/* Changelog section */}
         <div id="changelog" className="mt-10">
           <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-blue-400" />
+            <Clock className="h-5 w-5 text-etat-encours-texte" />
             Notes de version — v{VERSION}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { tag: "Nouveau", color: "bg-green-500/20 text-green-300 border-green-500/30", items: ["Plan de Maintenance Annuel (PMA)", "Portail Fournisseurs & sous-traitants", "Gestion budgétaire avec suivi des dépenses", "Gestion des garanties équipements"] },
-              { tag: "Amélioré", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", items: ["Performance du moteur de diagnostic IA", "Synchronisation hors-ligne sur mobile", "Tableau de bord GMAO unifié", "Module calibration & habilitations"] },
-              { tag: "Corrigé", color: "bg-amber-500/20 text-amber-300 border-amber-500/30", items: ["Limitation de requêtes en développement", "Affichage des modules dans la navigation", "Synchronisation des alertes IoT", "Rapports PDF sur macOS"] },
+              { tag: "Nouveau", color: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet", items: ["Plan de Maintenance Annuel (PMA)", "Portail Fournisseurs & sous-traitants", "Gestion budgétaire avec suivi des dépenses", "Gestion des garanties équipements"] },
+              { tag: "Amélioré", color: "bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet", items: ["Performance du moteur de diagnostic IA", "Synchronisation hors-ligne sur mobile", "Tableau de bord GMAO unifié", "Module calibration & habilitations"] },
+              { tag: "Corrigé", color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", items: ["Limitation de requêtes en développement", "Affichage des modules dans la navigation", "Synchronisation des alertes IoT", "Rapports PDF sur macOS"] },
             ].map(({ tag, color, items }) => (
               <Card key={tag} className="bg-white/5 border-rule">
                 <CardHeader className="pb-2">

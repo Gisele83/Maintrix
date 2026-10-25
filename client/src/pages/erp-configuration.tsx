@@ -34,7 +34,12 @@ import {
   Server,
   Network
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { auMoins } from '@shared/roles';
 import { ModernNavigation } from '@/components/modern-navigation';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Module {
   id: string;
@@ -100,6 +105,25 @@ const moduleIcons = {
 export default function ERPConfiguration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  /**
+   * Qui peut reconfigurer les modules du locataire ?
+   *
+   * `GET`/`PUT /api/tenant/modules` et `POST
+   * /api/tenant/apply-sector-template` passent par `adminConfigGuard`
+   * (feature-middleware.ts:101), qui n'accepte que `admin` et `owner`. Mesuré :
+   * technicien **403** sur les trois, administrateur et propriétaire 200.
+   *
+   * Le défaut tenait à la liste des secteurs : elle vient de
+   * `/api/tenant/sector-templates`, qui N'EST PAS contrôlée par rôle (mesuré :
+   * 200 pour le technicien). Les quatre cartes s'affichaient donc pour tout le
+   * monde, avec leur bouton « Sélectionner » qui déclenche l'écriture
+   * réservée — un technicien obtenait quatre fois un 403. L'onglet « Modules
+   * ERP », lui, était déjà aligné : son contenu dépend du `GET` refusé, et son
+   * refus porte déjà une explication lisible.
+   */
+  const peutConfigurer = auMoins(user?.role, 'admin');
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -364,16 +388,17 @@ export default function ERPConfiguration() {
 
   if (loadingModules || loadingTemplates) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Configuration ERP" }]} largeur="large">
+      <div className="space-y-6">
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-700">Chargement de la configuration...</h2>
-            <p className="text-gray-500">Récupération des modules et templates</p>
+            <div className="w-16 h-16 border-4 border-etat-encours-filet border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-ink-soft">Chargement de la configuration...</h2>
+            <p className="text-ink-mute">Récupération des modules et templates</p>
           </div>
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -385,27 +410,27 @@ export default function ERPConfiguration() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
               <Settings className="w-6 h-6 text-ink" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Configuration ERP</h1>
-              <p className="text-gray-600">Personnalisez votre système selon votre secteur d'activité</p>
+              <h1 className="text-3xl font-bold text-ink">Configuration ERP</h1>
+              <p className="text-ink-soft">Personnalisez votre système selon votre secteur d'activité</p>
             </div>
           </div>
 
           {/* Status Bar */}
-          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-rule">
             <div className="flex items-center gap-6">
               <div className="text-sm">
-                <span className="text-gray-500">Modules activés:</span>
-                <span className="font-semibold text-blue-600 ml-1">
+                <span className="text-ink-mute">Modules activés:</span>
+                <span className="font-semibold text-etat-encours-texte ml-1">
                   {getEnabledModulesCount()}/{getTotalModulesCount()}
                 </span>
               </div>
               {selectedSector && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50">
+                  <Badge variant="outline" className="bg-etat-encours-fond">
                     <div className="flex items-center gap-1">
                       {React.createElement(sectorIcons[selectedSector as keyof typeof sectorIcons] || Factory, { className: "w-3 h-3" })}
                       {sectorTemplates.find(t => t.key === selectedSector)?.name}
@@ -419,7 +444,7 @@ export default function ERPConfiguration() {
               <Button 
                 onClick={handleSaveChanges}
                 disabled={updateModulesMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-etat-nominal-vif hover:bg-etat-nominal-vif"
               >
                 {updateModulesMutation.isPending ? "Sauvegarde..." : "Sauvegarder les modifications"}
               </Button>
@@ -452,10 +477,24 @@ export default function ERPConfiguration() {
                   Templates par Secteur d'Activité
                 </CardTitle>
                 <CardDescription>
-                  Choisissez un template pré-configuré adapté à votre secteur pour activer automatiquement les modules appropriés
+                  {peutConfigurer
+                    ? "Choisissez un template pré-configuré adapté à votre secteur pour activer automatiquement les modules appropriés"
+                    : "Les secteurs disponibles et les modules qu'ils activent, en consultation."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Dire pourquoi avant que l'utilisateur ne cherche le bouton,
+                    plutôt que de lui laisser découvrir un refus. */}
+                {!peutConfigurer && (
+                  <Alert className="mb-4 border-rule bg-paper-deep">
+                    <Info className="h-4 w-4 text-ink-soft" />
+                    <AlertTitle className="text-ink">Configuration réservée à l'administrateur</AlertTitle>
+                    <AlertDescription className="text-ink-soft">
+                      Changer de secteur reconfigure les modules de toute l'organisation : seuls
+                      l'administrateur et le propriétaire du compte peuvent le faire.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sectorTemplates.map((template) => {
                     const Icon = sectorIcons[template.key as keyof typeof sectorIcons] || Factory;
@@ -464,28 +503,36 @@ export default function ERPConfiguration() {
                     return (
                       <Card 
                         key={template.id}
-                        className={`cursor-pointer transition-all duration-200 ${ isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-md' }`}
+                        className={`cursor-pointer transition-all duration-200 ${ isSelected ? 'ring-2 ring-blue-500 bg-etat-encours-fond' : 'hover:shadow-none' }`}
                         onClick={() => setSelectedSector(template.key)}
                       >
                         <CardContent className="p-4">
                           <div className="flex flex-col items-center text-center space-y-3">
                             <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                               isSelected 
-                                ? 'bg-blue-600 text-white' 
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'bg-etat-encours-vif text-white' 
+                                : 'bg-paper-deep text-ink-soft'
                             }`}>
                               <Icon className="w-6 h-6" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                              <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                              <h3 className="font-semibold text-ink">{template.name}</h3>
+                              <p className="text-sm text-ink-soft mt-1">{template.description}</p>
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-ink-mute">
                               {template.enabledModules.length} modules inclus
                             </div>
-                            {isSelected ? (
-                              <Button 
-                                size="sm" 
+                            {/* La fiche du secteur reste lisible pour tous :
+                                seule l'écriture est réservée. */}
+                            {!peutConfigurer ? (
+                              isSelected && (
+                                <div className="text-xs text-ink-mute w-full text-center">
+                                  Secteur en service
+                                </div>
+                              )
+                            ) : isSelected ? (
+                              <Button
+                                size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleApplySectorTemplate(template.key);
@@ -496,9 +543,9 @@ export default function ERPConfiguration() {
                                 {applySectorMutation.isPending ? "Application..." : "Appliquer"}
                               </Button>
                             ) : (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleApplySectorTemplate(template.key);
@@ -535,10 +582,10 @@ export default function ERPConfiguration() {
           <TabsContent value="modules" className="space-y-6">
             {/* Gestion des erreurs de permissions */}
             {moduleError && (
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800">Permissions administrateur requises</AlertTitle>
-                <AlertDescription className="text-amber-700">
+              <Alert className="border-etat-alerte-filet bg-etat-alerte-fond">
+                <AlertTriangle className="h-4 w-4 text-etat-alerte-texte" />
+                <AlertTitle className="text-etat-alerte-texte">Permissions administrateur requises</AlertTitle>
+                <AlertDescription className="text-etat-alerte-texte">
                   L'accès à la configuration des modules ERP nécessite des privilèges administrateur. 
                   Contactez votre administrateur système pour obtenir ces permissions ou pour configurer les modules.
                   <br/><br/>
@@ -554,7 +601,7 @@ export default function ERPConfiguration() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <CheckCircle2 className="w-5 h-5 text-etat-nominal-texte" />
                       Modules Core GMAO
                     </CardTitle>
                     <CardDescription>
@@ -572,12 +619,12 @@ export default function ERPConfiguration() {
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-3 flex-1">
-                                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <Icon className="w-5 h-5 text-green-600" />
+                                  <div className="w-10 h-10 bg-etat-nominal-fond rounded-lg flex items-center justify-center">
+                                    <Icon className="w-5 h-5 text-etat-nominal-texte" />
                                   </div>
                                   <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-900">{module.name}</h3>
-                                    <p className="text-sm text-gray-600 mt-1">{module.description}</p>
+                                    <h3 className="font-semibold text-ink">{module.name}</h3>
+                                    <p className="text-sm text-ink-soft mt-1">{module.description}</p>
                                     <Badge variant="outline" className="mt-2 text-xs">
                                       v{module.version}
                                     </Badge>
@@ -601,7 +648,7 @@ export default function ERPConfiguration() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Layers className="w-5 h-5 text-blue-600" />
+                      <Layers className="w-5 h-5 text-etat-encours-texte" />
                       Modules ERP Étendus
                     </CardTitle>
                     <CardDescription>
@@ -630,13 +677,13 @@ export default function ERPConfiguration() {
                               <div className="flex items-start justify-between">
                                 <div className="flex items-start gap-3 flex-1">
                                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                    isEnabled ? 'bg-blue-100' : 'bg-gray-100'
+                                    isEnabled ? 'bg-etat-encours-fond' : 'bg-paper-deep'
                                   }`}>
-                                    <Icon className={`w-5 h-5 ${isEnabled ? 'text-blue-600' : 'text-ink-mute'}`} />
+                                    <Icon className={`w-5 h-5 ${isEnabled ? 'text-etat-encours-texte' : 'text-ink-mute'}`} />
                                   </div>
                                   <div className="flex-1">
-                                    <h3 className="font-semibold text-gray-900">{module.name}</h3>
-                                    <p className="text-sm text-gray-600 mt-1">{module.description}</p>
+                                    <h3 className="font-semibold text-ink">{module.name}</h3>
+                                    <p className="text-sm text-ink-soft mt-1">{module.description}</p>
                                     <div className="flex items-center gap-2 mt-2">
                                       <Badge variant="outline" className="text-xs">
                                         v{module.version}
@@ -676,25 +723,25 @@ export default function ERPConfiguration() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Secteur d'activité</span>
+                    <span className="text-ink-soft">Secteur d'activité</span>
                     <Badge variant={selectedSector ? "default" : "secondary"}>
                       {selectedSector ? sectorTemplates.find(t => t.key === selectedSector)?.name : "Non défini"}
                     </Badge>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Modules activés</span>
+                    <span className="text-ink-soft">Modules activés</span>
                     <span className="font-semibold">{getEnabledModulesCount()}/{getTotalModulesCount()}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Modules Core</span>
-                    <span className="font-semibold text-green-600">
+                    <span className="text-ink-soft">Modules Core</span>
+                    <span className="font-semibold text-etat-nominal-texte">
                       {getCategoryModules('GMAO').filter(m => moduleConfig[m.key]).length}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Modules ERP</span>
-                    <span className="font-semibold text-blue-600">
+                    <span className="text-ink-soft">Modules ERP</span>
+                    <span className="font-semibold text-etat-encours-texte">
                       {getCategoryModules('ERP_PROCUREMENT').concat(
                         getCategoryModules('ANALYTICS'),
                         getCategoryModules('IOT_AUTOMATION'),

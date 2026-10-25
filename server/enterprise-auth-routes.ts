@@ -424,7 +424,16 @@ router.post('/login',
           lastName: user.lastName,
           email: user.email,
           role: user.role,
-          tenantId: user.tenantId
+          tenantId: user.tenantId,
+          // `useAuth().login()` amorce le cache de `/profile` AVEC CET OBJET.
+          // Sans ces trois champs, l'utilisateur fraîchement connecté portait
+          // un niveau de validation `undefined` jusqu'au premier rechargement,
+          // et l'écran de validation s'affichait vide alors que ses droits
+          // étaient bien en base. Les deux charges utiles doivent décrire le
+          // même utilisateur.
+          validationLevel: user.validationLevel,
+          canValidateWorkOrders: user.canValidateWorkOrders ?? false,
+          canValidatePurchaseOrders: user.canValidatePurchaseOrders ?? false
         },
         message: "Login successful. Session stored in secure cookie."
       });
@@ -504,6 +513,16 @@ router.get('/profile', async (req: Request, res: Response) => {
       tenantId: user.tenantId,
       isActive: user.isActive,
       validationLevel: user.validationLevel,
+      // 🔑 Les deux habilitations de validation et le plafond d'achat étaient
+      // ABSENTS de cette charge utile, alors que l'interface de `useAuth()` les
+      // DÉCLARAIT : `user.canValidateWorkOrders` valait donc toujours
+      // `undefined` côté client, sans que le type ne le signale. L'écran de
+      // validation masquait ses onglets pour tout le monde — ce qui explique
+      // qu'il ait fini par les coder en dur à `true`. Le type disait la vérité
+      // sur l'intention, pas sur la réponse : c'est la réponse qu'on corrige.
+      canValidateWorkOrders: user.canValidateWorkOrders ?? false,
+      canValidatePurchaseOrders: user.canValidatePurchaseOrders ?? false,
+      maxPurchaseAmount: user.maxPurchaseAmount,
       mfaEnabled: user.mfaEnabled,
       sector: user.sector
     });

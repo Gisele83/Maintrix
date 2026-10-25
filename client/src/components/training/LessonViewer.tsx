@@ -112,10 +112,10 @@ export function LessonViewer({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+              <CardTitle className="text-2xl font-bold text-blue-800">
                 {lesson.title}
               </CardTitle>
-              <p className="text-blue-600 dark:text-blue-400 mt-2">{lesson.content.introduction}</p>
+              <p className="text-blue-600 mt-2">{lesson.content.introduction}</p>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="px-3 py-1">
@@ -161,8 +161,8 @@ export function LessonViewer({
 
             {/* Key Points */}
             {currentStepData.tips && currentStepData.tips.length > 0 && (
-              <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center">
+              <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
                   <Lightbulb className="w-5 h-5 mr-2" />
                   Points clés
                 </h4>
@@ -172,7 +172,7 @@ export function LessonViewer({
                       <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5 flex-shrink-0">
                         {index + 1}
                       </span>
-                      <span className="text-blue-700 dark:text-blue-300">{point}</span>
+                      <span className="text-blue-700">{point}</span>
                     </li>
                   ))}
                 </ul>
@@ -181,15 +181,15 @@ export function LessonViewer({
 
             {/* Interactive Element */}
             {currentStepData.interactive && (
-              <div className="bg-paper-deep p-6 rounded-xl border border-green-200 dark:border-green-800">
+              <div className="bg-paper-deep p-6 rounded-xl border border-green-200">
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full mb-3">
                     <Code className="w-8 h-8" />
                   </div>
-                  <div className="font-bold text-green-800 dark:text-green-200 text-lg mb-2">
+                  <div className="font-bold text-green-800 text-lg mb-2">
                     Exercice Pratique
                   </div>
-                  <p className="text-green-700 dark:text-green-300">
+                  <p className="text-green-700">
                     Cette section comprend des exercices pratiques pour appliquer les concepts appris.
                   </p>
                 </div>
@@ -251,7 +251,7 @@ export function LessonViewer({
                 {exercise.questions?.map((question, questionIndex) => {
                   const questionId = `${exercise.title}-${questionIndex}`;
                   return (
-                    <div key={questionId} className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <div key={questionId} className="mb-6 p-4 bg-gray-50 rounded-lg">
                       <h4 className="font-semibold mb-4 text-lg">
                         Question {questionIndex + 1}: {question.question}
                       </h4>
@@ -259,7 +259,7 @@ export function LessonViewer({
                         {question.answers.map((answer, answerIndex) => (
                           <label
                             key={answerIndex}
-                            className="flex items-center p-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                            className="flex items-center p-3 border rounded-lg hover:bg-gray-100 cursor-pointer"
                           >
                             <input
                               type="radio"

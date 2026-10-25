@@ -2,13 +2,52 @@ import { Router } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db } from "./db";
 import { userProfiles, tenants } from "@shared/schema";
+import { auMoins, normaliserRole } from "@shared/roles";
 import { z } from "zod";
 
 const router = Router();
 
+/**
+ * Qui administre les comptes d'un locataire ?
+ *
+ * ⚠️ Ces routes comparaient le rôle à `["admin", "director"]`, écrit à la main.
+ * Mesuré sur la grappe de test : le **propriétaire** du locataire — niveau 7,
+ * au-dessus d'`admin` — recevait **403** sur les trois, alors que `director`,
+ * qui n'existe dans aucun référentiel, recevait 200. Le compte principal d'une
+ * organisation ne pouvait ni lire, ni modifier les permissions de ses propres
+ * comptes : si son unique administrateur partait, personne ne reprenait la main.
+ *
+ * `auMoins` raisonne par niveau : `admin` (6) et `owner` (7) passent,
+ * `technical_director` (5) et en dessous sont refusés — la gestion des comptes
+ * ne descend pas à l'encadrement technique.
+ */
+function administreLesComptes(role: unknown): boolean {
+  return auMoins(role, 'admin');
+}
+
 // Schema de validation pour les permissions utilisateur
 const userPermissionsSchema = z.object({
-  role: z.string().optional(),
+  // ⚠️ `role` était un `z.string()` libre, recopié tel quel dans
+  // `user_profiles.role`. Mesuré : `director`, `super_admin` et
+  // `nimporte_quoi` étaient tous acceptés (HTTP 200) et écrits en base. Un
+  // administrateur pouvait donc placer un compte dans un état qu'AUCUN
+  // contrôle référentiel ne reconnaît — ni `requireRole`, ni `auMoins`, ni les
+  // garde-fous de l'interface — voire lui donner le nom du rôle de plateforme.
+  //
+  // On NORMALISE plutôt que d'imposer une énumération stricte : le catalogue
+  // servi par `GET /api/tenant/roles` propose encore `supervisor`, `manager` et
+  // `director`, et l'écran de permissions renvoie cet identifiant tel quel
+  // (`handleApplyPresetRole`). Un `z.enum` casserait ce parcours ; la
+  // normalisation le conserve en ramenant chaque ancienne valeur au rôle réel
+  // qu'elle désigne. Ce qui ne correspond à RIEN de connu est refusé — c'est le
+  // cas de `super_admin`, qui n'est pas un rôle de locataire.
+  role: z
+    .string()
+    .transform((valeur) => normaliserRole(valeur))
+    .refine((normalise): normalise is NonNullable<typeof normalise> => normalise !== null, {
+      message: 'Rôle inconnu du référentiel',
+    })
+    .optional(),
   validationLevel: z.number().min(0).max(5).optional(),
   canValidateWorkOrders: z.boolean().optional(),
   canValidatePurchaseOrders: z.boolean().optional(),
@@ -55,7 +94,7 @@ router.get("/api/tenant/users", async (req: any, res) => {
       .from(userProfiles)
       .where(eq(userProfiles.id, currentUserId));
 
-    if (!currentUser || !["admin", "director"].includes(currentUser.role || "")) {
+    if (!currentUser || !administreLesComptes(currentUser.role)) {
       return res.status(403).json({
         error: "INSUFFICIENT_PERMISSIONS",
         message: "Only administrators and directors can view user permissions"
@@ -170,7 +209,7 @@ router.patch("/api/tenant/users/:userId/permissions", async (req: any, res) => {
       .from(userProfiles)
       .where(eq(userProfiles.id, currentUserId));
 
-    if (!currentUser || !["admin", "director"].includes(currentUser.role || "")) {
+    if (!currentUser || !administreLesComptes(currentUser.role)) {
       return res.status(403).json({
         error: "INSUFFICIENT_PERMISSIONS",
         message: "Only administrators and directors can modify user permissions"
@@ -207,6 +246,8 @@ router.patch("/api/tenant/users/:userId/permissions", async (req: any, res) => {
     };
 
     // Copier seulement les champs définis
+    // `validatedData.role` sort normalisé du schéma : c'est la valeur du
+    // référentiel qui est écrite, jamais la chaîne reçue.
     if (validatedData.role !== undefined) updateData.role = validatedData.role;
     if (validatedData.validationLevel !== undefined) updateData.validationLevel = validatedData.validationLevel;
     if (validatedData.canValidateWorkOrders !== undefined) updateData.canValidateWorkOrders = validatedData.canValidateWorkOrders;
@@ -283,7 +324,7 @@ router.post("/api/tenant/roles", async (req: any, res) => {
       .from(userProfiles)
       .where(eq(userProfiles.id, currentUserId));
 
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!currentUser || !administreLesComptes(currentUser.role)) {
       return res.status(403).json({
         error: "INSUFFICIENT_PERMISSIONS",
         message: "Only tenant administrators can create custom roles"

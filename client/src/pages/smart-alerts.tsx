@@ -16,12 +16,15 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 const severityConfig: Record<string, { color: string; bg: string; icon: any; gradient: string }> = {
-  critical: { color: "text-red-400", bg: "bg-red-500/10 border-red-500/30", icon: XCircle, gradient: "from-red-500 to-rose-600" },
-  high: { color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30", icon: AlertTriangle, gradient: "from-orange-500 to-amber-600" },
-  warning: { color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/30", icon: Bell, gradient: "from-yellow-500 to-amber-500" },
-  info: { color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/30", icon: Info, gradient: "from-blue-500 to-cyan-600" }
+  critical: { color: "text-etat-critique-texte", bg: "bg-etat-critique-fond border-etat-critique-filet", icon: XCircle, gradient: "" },
+  high: { color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond border-etat-alerte-filet", icon: AlertTriangle, gradient: "" },
+  warning: { color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond border-etat-alerte-filet", icon: Bell, gradient: "" },
+  info: { color: "text-etat-encours-texte", bg: "bg-etat-encours-fond border-etat-encours-filet", icon: Info, gradient: "" }
 };
 
 const typeLabels: Record<string, string> = {
@@ -45,12 +48,13 @@ export default function SmartAlerts() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Alertes" }]} largeur="large">
+      <div className="space-y-6">
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -87,7 +91,7 @@ export default function SmartAlerts() {
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
             <Brain className="w-6 h-6 text-ink" />
           </div>
           <div>
@@ -98,11 +102,11 @@ export default function SmartAlerts() {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { icon: Bell, label: "Total alertes", value: summary.total, color: "from-slate-500 to-slate-600" },
-            { icon: XCircle, label: "Critiques", value: summary.critical, color: "from-red-500 to-rose-600" },
-            { icon: AlertTriangle, label: "Hautes", value: summary.high, color: "from-orange-500 to-amber-600" },
+            { icon: Bell, label: "Total alertes", value: summary.total, color: "" },
+            { icon: XCircle, label: "Critiques", value: summary.critical, color: "" },
+            { icon: AlertTriangle, label: "Hautes", value: summary.high, color: "" },
             { icon: Brain, label: "Schémas IA", value: summary.patternDetected, color: " " },
-            { icon: TrendingUp, label: "Prédictives", value: summary.predictive, color: "from-cyan-500 to-blue-600" }
+            { icon: TrendingUp, label: "Prédictives", value: summary.predictive, color: "" }
           ].map((stat, i) => (
             <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-3 flex items-center gap-3">
@@ -164,7 +168,7 @@ export default function SmartAlerts() {
           <div className="flex gap-1">
             {["all", "critical", "high", "warning", "info"].map(sev => (
               <Button key={sev} size="sm" variant={filterSeverity === sev ? "default" : "outline"}
-                className={filterSeverity === sev ? "bg-blue-600" : "border-rule text-ink-soft"}
+                className={filterSeverity === sev ? "bg-etat-encours-vif" : "border-rule text-ink-soft"}
                 onClick={() => setFilterSeverity(sev)}>
                 {sev === "all" ? "Tout" : sev === "critical" ? "Critique" : sev === "high" ? "Haute" : sev === "warning" ? "Attention" : "Info"}
               </Button>
@@ -199,7 +203,7 @@ export default function SmartAlerts() {
                             {typeLabels[alert.type] || alert.type}
                           </Badge>
                           {alert.confidence && (
-                            <Badge variant="outline" className="text-[10px] text-signal-light border-rule/30">
+                            <Badge variant="outline" className="text-[10px] text-signal border-rule/30">
                               <Brain className="w-2.5 h-2.5 mr-1" /> {Math.round(alert.confidence * 100)}% confiance
                             </Badge>
                           )}
@@ -211,7 +215,7 @@ export default function SmartAlerts() {
                         {alert.recommendation && (
                           <div className="p-2 bg-white rounded-lg border border-rule">
                             <p className="text-xs text-ink-soft flex items-start gap-1.5">
-                              <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                              <Zap className="w-3.5 h-3.5 text-etat-alerte-texte shrink-0 mt-0.5" />
                               <span><strong className="text-ink">Action recommandée :</strong> {alert.recommendation}</span>
                             </p>
                           </div>
@@ -224,7 +228,7 @@ export default function SmartAlerts() {
             })}
             {filteredAlerts.length === 0 && (
               <div className="text-center py-12">
-                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                <CheckCircle className="w-12 h-12 text-etat-nominal-texte mx-auto mb-3" />
                 <p className="text-ink font-medium">Aucune alerte trouvée</p>
                 <p className="text-sm text-ink-mute">Aucune alerte ne correspond à vos critères de recherche</p>
               </div>

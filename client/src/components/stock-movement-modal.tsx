@@ -135,10 +135,10 @@ export default function StockMovementModal({
 
   const getMovementIcon = (type: string) => {
     switch (type) {
-      case 'IN': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'OUT': return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'RETURN': return <RotateCcw className="h-4 w-4 text-blue-500" />;
-      case 'ADJUSTMENT': return <Settings className="h-4 w-4 text-orange-500" />;
+      case 'IN': return <TrendingUp className="h-4 w-4 text-etat-nominal-texte" />;
+      case 'OUT': return <TrendingDown className="h-4 w-4 text-etat-critique-texte" />;
+      case 'RETURN': return <RotateCcw className="h-4 w-4 text-etat-encours-texte" />;
+      case 'ADJUSTMENT': return <Settings className="h-4 w-4 text-etat-alerte-texte" />;
       default: return <Package className="h-4 w-4" />;
     }
   };
@@ -183,7 +183,7 @@ export default function StockMovementModal({
           <div className="text-sm text-muted-foreground">
             <p><strong>{partName}</strong></p>
             <p>Référence: {partNumber}</p>
-            <p>Stock actuel: <span className="font-semibold text-blue-600">{currentStock} unités</span></p>
+            <p>Stock actuel: <span className="font-semibold text-etat-encours-texte">{currentStock} unités</span></p>
           </div>
         </DialogHeader>
 

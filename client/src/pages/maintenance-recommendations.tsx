@@ -38,6 +38,9 @@ import {
   Target,
   Zap,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ── Types ───────────────────────────────────────────────────────────────────────
 interface Recommendation {
@@ -88,18 +91,18 @@ interface RecommendationData {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────────
 const PRIORITY_CONFIG = {
-  critical: { label: "Critique", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200", dot: "bg-rose-500", badge: "bg-rose-100 text-rose-700 border-rose-200" },
-  high:     { label: "Élevée",   color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", dot: "bg-orange-500", badge: "bg-orange-100 text-orange-700 border-orange-200" },
-  medium:   { label: "Moyenne",  color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500", badge: "bg-amber-100 text-amber-700 border-amber-200" },
-  low:      { label: "Faible",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", dot: "bg-emerald-500", badge: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  critical: { label: "Critique", color: "text-etat-critique-texte", bg: "bg-etat-critique-fond", border: "border-etat-critique-filet", dot: "bg-etat-critique-vif", badge: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet" },
+  high:     { label: "Élevée",   color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond", border: "border-etat-alerte-filet", dot: "bg-etat-alerte-vif", badge: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet" },
+  medium:   { label: "Moyenne",  color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond", border: "border-etat-alerte-filet", dot: "bg-etat-alerte-vif", badge: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet" },
+  low:      { label: "Faible",   color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond", border: "border-etat-nominal-filet", dot: "bg-etat-nominal-vif", badge: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet" },
 };
 
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
-  overdue:         { label: "En retard",       icon: AlertTriangle, color: "text-rose-600" },
+  overdue:         { label: "En retard",       icon: AlertTriangle, color: "text-etat-critique-texte" },
   predictive:      { label: "Prédictive",      icon: Brain,         color: "text-signal-deep" },
-  usage_based:     { label: "Usage",           icon: Gauge,         color: "text-blue-600" },
-  failure_pattern: { label: "Schéma pannes",   icon: TrendingUp,    color: "text-orange-600" },
-  seasonal:        { label: "Saisonnière",     icon: CalendarDays,  color: "text-sky-600" },
+  usage_based:     { label: "Usage",           icon: Gauge,         color: "text-etat-encours-texte" },
+  failure_pattern: { label: "Schéma pannes",   icon: TrendingUp,    color: "text-etat-alerte-texte" },
+  seasonal:        { label: "Saisonnière",     icon: CalendarDays,  color: "text-etat-encours-texte" },
   ai_optimized:    { label: "IA Optimisée",    icon: Sparkles,      color: "text-signal-deep" },
 };
 
@@ -148,24 +151,24 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md">
+      <div className="bg-white rounded-none w-full max-w-md">
         <div className="p-6 border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800">Créer un ordre de travail</h3>
+          <h3 className="text-lg font-bold text-ink">Créer un ordre de travail</h3>
           <p className="text-sm text-ink-mute mt-1">{rec.equipmentName}</p>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-1.5">Date planifiée</label>
+            <label className="text-sm font-medium text-ink-soft block mb-1.5">Date planifiée</label>
             <Input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
           </div>
-          <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm">
+          <div className="bg-paper rounded-none p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-ink-mute">Durée estimée</span>
-              <span className="font-medium text-slate-800">{formatDuration(rec.estimatedDuration)}</span>
+              <span className="font-medium text-ink">{formatDuration(rec.estimatedDuration)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-ink-mute">Coût estimé</span>
-              <span className="font-medium text-slate-800">{rec.estimatedCost.toLocaleString("fr-FR")} €</span>
+              <span className="font-medium text-ink">{rec.estimatedCost.toLocaleString("fr-FR")} €</span>
             </div>
             <div className="flex justify-between">
               <span className="text-ink-mute">Priorité</span>
@@ -176,7 +179,7 @@ function ApplyDialog({ rec, onClose }: { rec: Recommendation; onClose: () => voi
         <div className="p-6 border-t border-slate-100 flex gap-3">
           <Button variant="outline" className="flex-1" onClick={onClose}>Annuler</Button>
           <Button
-            className="flex-1 bg-blue-600 hover:bg-blue-700"
+            className="flex-1 bg-etat-encours-vif hover:bg-etat-encours-vif"
             onClick={() => apply.mutate()}
             disabled={apply.isPending}
           >
@@ -197,7 +200,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
   const TypeIcon = tc.icon;
 
   return (
-    <div className={`bg-white border ${pc.border} rounded-2xl shadow-sm hover:shadow-md transition-all duration-200`}>
+    <div className={`bg-white border ${pc.border} rounded-none shadow-sm hover:shadow-none transition-all duration-200`}>
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -211,7 +214,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
                   <span>{tc.label}</span>
                 </div>
               </div>
-              <h3 className="text-sm font-semibold text-slate-800 leading-snug">{rec.title}</h3>
+              <h3 className="text-sm font-semibold text-ink leading-snug">{rec.title}</h3>
             </div>
           </div>
           <div className="flex-shrink-0 text-right">
@@ -229,18 +232,18 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
 
         {/* KPI row */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
-            <div className={`text-base font-bold ${rec.kpis.failureRisk >= 50 ? "text-rose-600" : rec.kpis.failureRisk >= 25 ? "text-amber-600" : "text-emerald-600"}`}>
+          <div className="bg-paper rounded-lg p-2 text-center">
+            <div className={`text-base font-bold ${rec.kpis.failureRisk >= 50 ? "text-etat-critique-texte" : rec.kpis.failureRisk >= 25 ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`}>
               {rec.kpis.failureRisk}%
             </div>
             <div className="text-[10px] text-ink-mute leading-tight">Risque panne</div>
           </div>
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-slate-700">{rec.kpis.mtbfDays}j</div>
+          <div className="bg-paper rounded-lg p-2 text-center">
+            <div className="text-base font-bold text-ink-soft">{rec.kpis.mtbfDays}j</div>
             <div className="text-[10px] text-ink-mute leading-tight">MTBF</div>
           </div>
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
-            <div className="text-base font-bold text-slate-700">{rec.kpis.daysSinceLastMaintenance}j</div>
+          <div className="bg-paper rounded-lg p-2 text-center">
+            <div className="text-base font-bold text-ink-soft">{rec.kpis.daysSinceLastMaintenance}j</div>
             <div className="text-[10px] text-ink-mute leading-tight">Depuis dernière MP</div>
           </div>
         </div>
@@ -249,7 +252,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
         <div className="mb-3">
           <div className="flex justify-between text-xs text-ink-mute mb-1">
             <span>Confiance de l'analyse</span>
-            <span className="font-medium text-slate-700">{rec.confidence}%</span>
+            <span className="font-medium text-ink-soft">{rec.confidence}%</span>
           </div>
           <Progress value={rec.confidence} className="h-1.5" />
         </div>
@@ -262,7 +265,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
 
         {/* Expand toggle */}
         <button
-          className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 mb-3"
+          className="flex items-center gap-1.5 text-xs text-etat-encours-texte hover:text-etat-encours-texte mb-3"
           onClick={() => setExpanded(!expanded)}
         >
           {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -272,14 +275,14 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
         {expanded && (
           <div className="space-y-3 mb-4">
             {/* Reasoning */}
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <div className="text-xs font-semibold text-blue-700 mb-2 flex items-center gap-1.5">
+            <div className="bg-etat-encours-fond border border-etat-encours-filet rounded-none p-3">
+              <div className="text-xs font-semibold text-etat-encours-texte mb-2 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5" />Facteurs de recommandation
               </div>
               <ul className="space-y-1">
                 {rec.reasoning.map((r, i) => (
-                  <li key={i} className="text-xs text-blue-800 flex items-start gap-1.5">
-                    <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0 text-blue-500" />
+                  <li key={i} className="text-xs text-etat-encours-texte flex items-start gap-1.5">
+                    <CheckCircle className="w-3 h-3 mt-0.5 flex-shrink-0 text-etat-encours-texte" />
                     {r}
                   </li>
                 ))}
@@ -287,14 +290,14 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
             </div>
 
             {/* Actions */}
-            <div className="bg-slate-50 rounded-xl p-3">
-              <div className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+            <div className="bg-paper rounded-none p-3">
+              <div className="text-xs font-semibold text-ink-soft mb-2 flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5" />Actions recommandées
               </div>
               <ol className="space-y-1">
                 {rec.actions.map((a, i) => (
                   <li key={i} className="text-xs text-ink-soft flex items-start gap-2">
-                    <span className="w-4 h-4 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center flex-shrink-0 font-bold" style={{ fontSize: "9px" }}>{i + 1}</span>
+                    <span className="w-4 h-4 bg-etat-encours-fond text-etat-encours-texte rounded-full flex items-center justify-center flex-shrink-0 font-bold" style={{ fontSize: "9px" }}>{i + 1}</span>
                     {a}
                   </li>
                 ))}
@@ -304,7 +307,7 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
             {/* Completion rate */}
             <div className="flex justify-between items-center text-xs text-ink-mute">
               <span>Taux complétion MP historique</span>
-              <span className={`font-semibold ${rec.kpis.completionRate >= 80 ? "text-emerald-600" : rec.kpis.completionRate >= 60 ? "text-amber-600" : "text-rose-600"}`}>
+              <span className={`font-semibold ${rec.kpis.completionRate >= 80 ? "text-etat-nominal-texte" : rec.kpis.completionRate >= 60 ? "text-etat-alerte-texte" : "text-etat-critique-texte"}`}>
                 {rec.kpis.completionRate}%
               </span>
             </div>
@@ -315,14 +318,14 @@ function RecCard({ rec, onApply }: { rec: Recommendation; onApply: (r: Recommend
         <div className="flex gap-2">
           <Button
             size="sm"
-            className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs"
+            className="flex-1 bg-etat-encours-vif hover:bg-etat-encours-vif rounded-none text-xs"
             onClick={() => onApply(rec)}
           >
             <Play className="w-3.5 h-3.5 mr-1.5" />
             Créer un OT
           </Button>
           <Link href={`/gmao`}>
-            <Button size="sm" variant="outline" className="rounded-xl text-xs border-slate-200">
+            <Button size="sm" variant="outline" className="rounded-none text-xs border-rule">
               <Wrench className="w-3.5 h-3.5" />
             </Button>
           </Link>
@@ -367,16 +370,17 @@ export default function MaintenanceRecommendations() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Prédictif" }, { libelle: "Recommandations" }]} largeur="large">
+      <div className="space-y-6">
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-          <div className="w-16 h-16 bg-paper-deep rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse shadow-blue-500/25">
+          <div className="w-16 h-16 bg-paper-deep rounded-none flex items-center justify-center mx-auto mb-6 animate-pulse shadow-blue-500/25">
             <Brain className="w-8 h-8 text-ink" />
           </div>
-          <h2 className="text-xl font-semibold text-slate-700 mb-2">Analyse en cours…</h2>
+          <h2 className="text-xl font-semibold text-ink-soft mb-2">Analyse en cours…</h2>
           <p className="text-ink-mute text-sm">Analyse de l'historique des équipements, OT et plans de maintenance</p>
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -392,10 +396,10 @@ export default function MaintenanceRecommendations() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center shadow-blue-500/20">
+              <div className="w-10 h-10 bg-paper-deep rounded-none flex items-center justify-center shadow-blue-500/20">
                 <Sparkles className="w-5 h-5 text-ink" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-800">Recommandations de maintenance</h1>
+              <h1 className="text-2xl font-bold text-ink">Recommandations de maintenance</h1>
             </div>
             <p className="text-ink-mute text-sm ml-13">
               Recommandations personnalisées basées sur l'historique, l'usage et les données IoT de vos équipements
@@ -412,7 +416,7 @@ export default function MaintenanceRecommendations() {
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="border-slate-200 text-ink-soft rounded-xl"
+              className="border-rule text-ink-soft rounded-none"
             >
               <RefreshCw className={`w-4 h-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
               Actualiser
@@ -421,28 +425,28 @@ export default function MaintenanceRecommendations() {
         </div>
 
         {isError && (
-          <div className="mb-6 bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 text-rose-700">
+          <div className="mb-6 bg-etat-critique-fond border border-etat-critique-filet rounded-none p-4 flex items-center gap-3 text-etat-critique-texte">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <span className="text-sm">Erreur lors de l'analyse. Vérifiez que des équipements et ordres de travail existent.</span>
-            <Button size="sm" variant="ghost" onClick={() => refetch()} className="ml-auto text-rose-700">Réessayer</Button>
+            <Button size="sm" variant="ghost" onClick={() => refetch()} className="ml-auto text-etat-critique-texte">Réessayer</Button>
           </div>
         )}
 
         {/* ── Summary KPI Bar ──────────────────────────────────── */}
         {summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
-            <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-ink rounded-2xl p-5 text-white shadow-blue-500/20">
+            <div className="col-span-2 sm:col-span-4 lg:col-span-2 bg-ink rounded-none p-5 text-paper">
               <div className="text-3xl font-extrabold mb-1">{summary.totalRecommendations}</div>
-              <div className="text-blue-100 text-sm">Recommandations</div>
-              <div className="mt-3 text-xs text-blue-200">Confiance moyenne : <span className="text-ink font-semibold">{summary.avgConfidence}%</span></div>
+              <div className="text-paper/80 text-sm">Recommandations</div>
+              <div className="mt-3 text-xs text-paper/70">Confiance moyenne : <span className="text-paper font-semibold">{summary.avgConfidence} %</span></div>
             </div>
             {[
-              { label: "Critiques", val: summary.critical, color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-100" },
-              { label: "Élevées",   val: summary.high,     color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
-              { label: "Moyennes",  val: summary.medium,   color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
-              { label: "Faibles",   val: summary.low,      color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { label: "Critiques", val: summary.critical, color: "text-etat-critique-texte", bg: "bg-etat-critique-fond", border: "border-etat-critique-filet" },
+              { label: "Élevées",   val: summary.high,     color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond", border: "border-etat-alerte-filet" },
+              { label: "Moyennes",  val: summary.medium,   color: "text-etat-alerte-texte", bg: "bg-etat-alerte-fond", border: "border-etat-alerte-filet" },
+              { label: "Faibles",   val: summary.low,      color: "text-etat-nominal-texte", bg: "bg-etat-nominal-fond", border: "border-etat-nominal-filet" },
             ].map(({ label, val, color, bg, border }) => (
-              <div key={label} className={`${bg} border ${border} rounded-2xl p-4 text-center`}>
+              <div key={label} className={`${bg} border ${border} rounded-none p-4 text-center`}>
                 <div className={`text-2xl font-bold ${color}`}>{val}</div>
                 <div className="text-xs text-ink-mute mt-0.5">{label}</div>
               </div>
@@ -452,13 +456,13 @@ export default function MaintenanceRecommendations() {
 
         {/* ── Cost if Ignored Banner ───────────────────────────── */}
         {summary && summary.estimatedCostIfIgnored > 0 && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-            <DollarSign className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 bg-etat-alerte-fond border border-etat-alerte-filet rounded-none p-4 flex items-start gap-3">
+            <DollarSign className="w-5 h-5 text-etat-alerte-texte flex-shrink-0 mt-0.5" />
             <div>
-              <div className="text-sm font-semibold text-amber-800">Coût estimé si non traité</div>
-              <div className="text-xs text-amber-600 mt-0.5">
+              <div className="text-sm font-semibold text-etat-alerte-texte">Coût estimé si non traité</div>
+              <div className="text-xs text-etat-alerte-texte mt-0.5">
                 Les recommandations critiques et élevées non traitées pourraient générer jusqu'à{" "}
-                <span className="font-bold text-amber-800">{summary.estimatedCostIfIgnored.toLocaleString("fr-FR")} €</span>
+                <span className="font-bold text-etat-alerte-texte">{summary.estimatedCostIfIgnored.toLocaleString("fr-FR")} €</span>
                 {" "}de maintenance corrective (3,5× le coût préventif estimé).
               </div>
             </div>
@@ -470,7 +474,7 @@ export default function MaintenanceRecommendations() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-mute" />
             <Input
-              className="pl-9 rounded-xl border-slate-200"
+              className="pl-9 rounded-none border-rule"
               placeholder="Rechercher un équipement, lieu…"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -481,7 +485,7 @@ export default function MaintenanceRecommendations() {
               <button
                 key={p}
                 onClick={() => setFilterPriority(p)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterPriority === p ? "bg-blue-600 text-white border-blue-600" : "bg-white text-ink-soft border-slate-200 hover:border-slate-300"}`}
+                className={`px-3 py-2 rounded-none text-xs font-medium border transition-all ${filterPriority === p ? "bg-etat-encours-vif text-white border-etat-encours-filet" : "bg-white text-ink-soft border-rule hover:border-rule"}`}
               >
                 {p === "all" ? "Tous" : PRIORITY_CONFIG[p as keyof typeof PRIORITY_CONFIG].label}
               </button>
@@ -492,7 +496,7 @@ export default function MaintenanceRecommendations() {
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${filterType === t ? "bg-signal-deep text-white border-rule" : "bg-white text-ink-soft border-slate-200 hover:border-slate-300"}`}
+                className={`px-3 py-2 rounded-none text-xs font-medium border transition-all ${filterType === t ? "bg-signal-deep text-white border-rule" : "bg-white text-ink-soft border-rule hover:border-rule"}`}
               >
                 {t === "all" ? "Tout type" : TYPE_CONFIG[t]?.label || t}
               </button>
@@ -503,10 +507,10 @@ export default function MaintenanceRecommendations() {
         {/* ── Recommendations ─────────────────────────────────── */}
         {filtered.length === 0 ? (
           <div className="text-center py-20">
-            <div className="w-16 h-16 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-emerald-500" />
+            <div className="w-16 h-16 bg-etat-nominal-fond border border-etat-nominal-filet rounded-none flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-etat-nominal-texte" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            <h3 className="text-lg font-semibold text-ink-soft mb-2">
               {recommendations.length === 0 ? "Aucune recommandation générée" : "Aucun résultat"}
             </h3>
             <p className="text-ink-mute text-sm max-w-md mx-auto">
@@ -516,7 +520,7 @@ export default function MaintenanceRecommendations() {
             </p>
             {recommendations.length === 0 && (
               <Link href="/equipment-management">
-                <Button className="mt-4 bg-blue-600 hover:bg-blue-700 rounded-xl">
+                <Button className="mt-4 bg-etat-encours-vif hover:bg-etat-encours-vif rounded-none">
                   <Wrench className="w-4 h-4 mr-2" />
                   Gérer les équipements
                 </Button>
@@ -525,17 +529,17 @@ export default function MaintenanceRecommendations() {
           </div>
         ) : (
           <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="bg-white border border-slate-200 rounded-xl p-1">
+            <TabsList className="bg-white border border-rule rounded-none p-1">
               <TabsTrigger value="all" className="rounded-lg text-xs">
                 Toutes ({filtered.length})
               </TabsTrigger>
               {criticalRecs.length > 0 && (
-                <TabsTrigger value="critical" className="rounded-lg text-xs text-rose-600">
+                <TabsTrigger value="critical" className="rounded-lg text-xs text-etat-critique-texte">
                   Critiques ({criticalRecs.length})
                 </TabsTrigger>
               )}
               {highRecs.length > 0 && (
-                <TabsTrigger value="high" className="rounded-lg text-xs text-orange-600">
+                <TabsTrigger value="high" className="rounded-lg text-xs text-etat-alerte-texte">
                   Élevées ({highRecs.length})
                 </TabsTrigger>
               )}
@@ -565,15 +569,15 @@ export default function MaintenanceRecommendations() {
 
         {/* ── Bottom Info ──────────────────────────────────────── */}
         {data && (
-          <div className="mt-10 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-4 text-xs text-ink-mute">
+          <div className="mt-10 bg-paper border border-rule rounded-none p-4 flex flex-wrap gap-4 text-xs text-ink-mute">
             <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />
-              Équipements analysés : <strong className="text-slate-700">{meta?.equipmentAnalyzed}</strong>
+              Équipements analysés : <strong className="text-ink-soft">{meta?.equipmentAnalyzed}</strong>
             </span>
             <span className="flex items-center gap-1.5"><ClipboardList className="w-3.5 h-3.5" />
-              OT analysés : <strong className="text-slate-700">{meta?.workOrdersAnalyzed}</strong>
+              OT analysés : <strong className="text-ink-soft">{meta?.workOrdersAnalyzed}</strong>
             </span>
             <span className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />
-              Plans consultés : <strong className="text-slate-700">{meta?.plansAnalyzed}</strong>
+              Plans consultés : <strong className="text-ink-soft">{meta?.plansAnalyzed}</strong>
             </span>
             <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />
               Générée le {new Date(data.generatedAt).toLocaleString("fr-FR")}

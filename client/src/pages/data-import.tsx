@@ -20,6 +20,9 @@ import {
   CloudUpload,
   FileText
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 export default function DataImport() {
   const [isImporting, setIsImporting] = useState(false);
@@ -208,21 +211,22 @@ export default function DataImport() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Importation" }]} largeur="large">
+    <div className="space-y-6">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-ink mb-4">
             Importation des Données Industrielles
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
+          <p className="text-xl text-ink-soft max-w-3xl mx-auto mb-6">
             Complétez votre base de données avec 120 cas industriels enrichis
           </p>
           
           {/* Demo Toggle for Subscription Status */}
           <div className="flex justify-center mb-4">
             <div className="bg-white border rounded-lg p-2 flex items-center shadow-sm">
-              <span className="text-sm text-gray-600 mr-3">Mode Démo:</span>
+              <span className="text-sm text-ink-soft mr-3">Mode Démo:</span>
               <Button
                 onClick={() => setSubscriptionStatus(subscriptionStatus === 'free' ? 'premium' : 'free')}
                 variant={subscriptionStatus === 'premium' ? 'default' : 'outline'}
@@ -245,11 +249,11 @@ export default function DataImport() {
             </CardHeader>
             <CardContent className="p-8">
               <div className="space-y-6">
-                <div className="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500">
-                  <h3 className="font-semibold text-blue-900 mb-2">
+                <div className="bg-etat-encours-fond p-6 rounded-lg border-l-4 border-etat-encours-filet">
+                  <h3 className="font-semibold text-etat-encours-texte mb-2">
                     Base_Industrie_120_Cas_Enrichie.xlsx
                   </h3>
-                  <p className="text-blue-700 text-sm">
+                  <p className="text-etat-encours-texte text-sm">
                     Fichier détecté contenant 120 cas industriels avec équipements, 
                     interventions et données de maintenance complètes
                   </p>
@@ -259,7 +263,7 @@ export default function DataImport() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Importation en cours...</span>
-                      <span className="text-sm text-gray-500">{progress}%</span>
+                      <span className="text-sm text-ink-mute">{progress}%</span>
                     </div>
                     <Progress value={progress} className="w-full" />
                   </div>
@@ -268,7 +272,7 @@ export default function DataImport() {
                 <Button 
                   onClick={handleImportIndustrialData}
                   disabled={isImporting || isUploadingFile}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-sm py-4"
+                  className="w-full bg-etat-encours-vif hover:bg-etat-encours-vif text-sm py-4"
                 >
                   {isImporting ? (
                     <>
@@ -313,11 +317,11 @@ export default function DataImport() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
-                    <h3 className="font-semibold text-orange-900 mb-2">
+                  <div className="bg-etat-alerte-fond p-4 rounded-lg border-l-4 border-etat-alerte-filet">
+                    <h3 className="font-semibold text-etat-alerte-texte mb-2">
                       Fonctionnalité Premium Requise
                     </h3>
-                    <p className="text-orange-700 text-sm mb-3">
+                    <p className="text-etat-alerte-texte text-sm mb-3">
                       L'importation d'historique d'équipements personnalisé est réservée aux abonnés Premium (19€/mois).
                     </p>
                     <Button 
@@ -349,12 +353,12 @@ export default function DataImport() {
                   </Button>
 
                   {selectedFile && (
-                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="bg-etat-nominal-fond p-3 rounded-lg border border-etat-nominal-filet">
                       <div className="flex items-center">
-                        <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
+                        <CheckCircle className="w-4 h-4 text-etat-nominal-texte mr-2" />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-green-900">{selectedFile.name}</p>
-                          <p className="text-xs text-green-700">
+                          <p className="text-sm font-medium text-etat-nominal-texte">{selectedFile.name}</p>
+                          <p className="text-xs text-etat-nominal-texte">
                             {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
@@ -368,7 +372,7 @@ export default function DataImport() {
                         <span className="text-sm font-medium">
                           {isUploadingFile ? "Téléchargement..." : "Importation..."}
                         </span>
-                        <span className="text-sm text-gray-500">{progress}%</span>
+                        <span className="text-sm text-ink-mute">{progress}%</span>
                       </div>
                       <Progress value={progress} className="w-full" />
                     </div>
@@ -412,19 +416,19 @@ export default function DataImport() {
             <CardContent className="p-8">
               {importResult ? (
                 <div className="space-y-6">
-                  <div className="flex items-center p-4 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-green-600 mr-3" />
+                  <div className="flex items-center p-4 bg-etat-nominal-fond rounded-lg">
+                    <CheckCircle className="w-6 h-6 text-etat-nominal-texte mr-3" />
                     <div>
-                      <p className="font-semibold text-green-900">Importation réussie !</p>
-                      <p className="text-sm text-green-700">Toutes les données ont été traitées</p>
+                      <p className="font-semibold text-etat-nominal-texte">Importation réussie !</p>
+                      <p className="text-sm text-etat-nominal-texte">Toutes les données ont été traitées</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg text-center">
-                      <Factory className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-blue-900">{importResult.data.equipment}</p>
-                      <p className="text-sm text-blue-700">Équipements</p>
+                    <div className="bg-etat-encours-fond p-4 rounded-lg text-center">
+                      <Factory className="w-8 h-8 text-etat-encours-texte mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-etat-encours-texte">{importResult.data.equipment}</p>
+                      <p className="text-sm text-etat-encours-texte">Équipements</p>
                     </div>
                     
                     <div className="bg-paper-deep p-4 rounded-lg text-center">
@@ -433,21 +437,21 @@ export default function DataImport() {
                       <p className="text-sm text-signal-deep">Ordres de Travail</p>
                     </div>
                     
-                    <div className="bg-orange-50 p-4 rounded-lg text-center">
-                      <Package className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-orange-900">{importResult.data.spareParts}</p>
-                      <p className="text-sm text-orange-700">Pièces Détachées</p>
+                    <div className="bg-etat-alerte-fond p-4 rounded-lg text-center">
+                      <Package className="w-8 h-8 text-etat-alerte-texte mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-etat-alerte-texte">{importResult.data.spareParts}</p>
+                      <p className="text-sm text-etat-alerte-texte">Pièces Détachées</p>
                     </div>
                     
-                    <div className="bg-green-50 p-4 rounded-lg text-center">
-                      <BarChart3 className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-green-900">{importResult.data.maintenanceCases}</p>
-                      <p className="text-sm text-green-700">Cas Historiques</p>
+                    <div className="bg-etat-nominal-fond p-4 rounded-lg text-center">
+                      <BarChart3 className="w-8 h-8 text-etat-nominal-texte mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-etat-nominal-texte">{importResult.data.maintenanceCases}</p>
+                      <p className="text-sm text-etat-nominal-texte">Cas Historiques</p>
                     </div>
                   </div>
 
                   <div className="flex space-x-3">
-                    <Button asChild className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    <Button asChild className="flex-1 bg-etat-encours-vif hover:bg-etat-encours-vif">
                       <a href="/equipment">
                         <Factory className="w-4 h-4 mr-2" />
                         Voir Équipements
@@ -462,7 +466,7 @@ export default function DataImport() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-ink-mute">
                   <Database className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p>Aucune importation effectuée</p>
                   <p className="text-sm">Cliquez sur "Lancer l'Importation" pour commencer</p>
@@ -483,9 +487,9 @@ export default function DataImport() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-paper-deep p-6 rounded-lg">
-                <Factory className="w-8 h-8 text-blue-600 mb-3" />
-                <h3 className="font-semibold text-blue-900 mb-2">Équipements Industriels</h3>
-                <ul className="text-sm text-blue-700 space-y-1">
+                <Factory className="w-8 h-8 text-etat-encours-texte mb-3" />
+                <h3 className="font-semibold text-etat-encours-texte mb-2">Équipements Industriels</h3>
+                <ul className="text-sm text-etat-encours-texte space-y-1">
                   <li>• Moteurs et pompes</li>
                   <li>• Compresseurs</li>
                   <li>• Systèmes électriques</li>
@@ -505,9 +509,9 @@ export default function DataImport() {
               </div>
               
               <div className="bg-paper-deep p-6 rounded-lg">
-                <Package className="w-8 h-8 text-green-600 mb-3" />
-                <h3 className="font-semibold text-green-900 mb-2">Pièces & Ressources</h3>
-                <ul className="text-sm text-green-700 space-y-1">
+                <Package className="w-8 h-8 text-etat-nominal-texte mb-3" />
+                <h3 className="font-semibold text-etat-nominal-texte mb-2">Pièces & Ressources</h3>
+                <ul className="text-sm text-etat-nominal-texte space-y-1">
                   <li>• Pièces détachées</li>
                   <li>• Outils spécialisés</li>
                   <li>• Consommables</li>
@@ -519,5 +523,6 @@ export default function DataImport() {
         </Card>
       </div>
     </div>
+    </AppShell>
   );
 }

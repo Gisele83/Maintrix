@@ -142,12 +142,12 @@ export default function EnterpriseAuthTest() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-blue-600" />
+            <Shield className="h-8 w-8 text-etat-encours-texte" />
             <h1 className="text-3xl font-bold text-ink">
               Test Authentification Enterprise
             </h1>
           </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-ink-soft max-w-2xl mx-auto">
             Interface de test pour les priorités 1-3 du plan de sécurisation : 
             Authentification obligatoire + Système d'invitations + Sessions sécurisées
           </p>
@@ -175,10 +175,10 @@ export default function EnterpriseAuthTest() {
 
           {/* PRIORITÉ 3: SYSTÈME D'INVITATIONS */}
           <TabsContent value="invitations">
-            <Card className="bg-white border-blue-200">
+            <Card className="bg-white border-etat-encours-filet">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5 text-blue-600" />
+                  <UserPlus className="h-5 w-5 text-etat-encours-texte" />
                   PRIORITÉ 3: Système d'Invitations par Tenant
                 </CardTitle>
                 <CardDescription>
@@ -236,12 +236,12 @@ export default function EnterpriseAuthTest() {
                   </div>
                   
                   {invitationResult && (
-                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                      <h4 className="font-semibold text-green-800 mb-2">Invitation créée</h4>
+                    <div className="bg-etat-nominal-fond p-4 rounded-lg border border-etat-nominal-filet">
+                      <h4 className="font-semibold text-etat-nominal-texte mb-2">Invitation créée</h4>
                       <div className="space-y-2 text-sm">
-                        <p><strong>ID:</strong> <code className="bg-green-100 px-1 rounded">{invitationResult.invitationId}</code></p>
+                        <p><strong>ID:</strong> <code className="bg-etat-nominal-fond px-1 rounded">{invitationResult.invitationId}</code></p>
                         <p><strong>Lien:</strong></p>
-                        <code className="bg-green-100 px-2 py-1 rounded text-xs block break-all">
+                        <code className="bg-etat-nominal-fond px-2 py-1 rounded text-xs block break-all">
                           {invitationResult.invitationLink}
                         </code>
                       </div>
@@ -326,10 +326,10 @@ export default function EnterpriseAuthTest() {
 
           {/* VÉRIFICATION D'INVITATION */}
           <TabsContent value="verify">
-            <Card className="bg-white border-green-200">
+            <Card className="bg-white border-etat-nominal-filet">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-green-600" />
+                  <Mail className="h-5 w-5 text-etat-nominal-texte" />
                   Vérification de Token d'Invitation
                 </CardTitle>
                 <CardDescription>
@@ -356,8 +356,8 @@ export default function EnterpriseAuthTest() {
                   </div>
                   
                   {verificationResult && (
-                    <div className={`p-4 rounded-lg border ${verificationResult.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                      <h4 className={`font-semibold mb-2 ${verificationResult.valid ? 'text-green-800' : 'text-red-800'}`}>
+                    <div className={`p-4 rounded-lg border ${verificationResult.valid ? 'bg-etat-nominal-fond border-etat-nominal-filet' : 'bg-etat-critique-fond border-etat-critique-filet'}`}>
+                      <h4 className={`font-semibold mb-2 ${verificationResult.valid ? 'text-etat-nominal-texte' : 'text-etat-critique-texte'}`}>
                         {verificationResult.valid ? (
                           <><CheckCircle className="h-4 w-4 inline mr-1" /> Invitation Valide</>
                         ) : (
@@ -375,7 +375,7 @@ export default function EnterpriseAuthTest() {
                       )}
                       
                       {!verificationResult.valid && (
-                        <p className="text-sm text-red-600">{verificationResult.error}</p>
+                        <p className="text-sm text-etat-critique-texte">{verificationResult.error}</p>
                       )}
                     </div>
                   )}
@@ -386,10 +386,10 @@ export default function EnterpriseAuthTest() {
 
           {/* STATUS SESSION */}
           <TabsContent value="session">
-            <Card className="bg-white border-indigo-200">
+            <Card className="bg-white border-etat-encours-filet">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-indigo-600" />
+                  <Users className="h-5 w-5 text-etat-encours-texte" />
                   Status Session & Sécurité
                 </CardTitle>
                 <CardDescription>
@@ -399,8 +399,8 @@ export default function EnterpriseAuthTest() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Status Authentification */}
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h4 className="font-semibold text-blue-800 mb-2">Authentification</h4>
+                  <div className="bg-etat-encours-fond p-4 rounded-lg border border-etat-encours-filet">
+                    <h4 className="font-semibold text-etat-encours-texte mb-2">Authentification</h4>
                     <div className="space-y-1 text-sm">
                       <p>Accès public: <Badge variant="destructive">Bloqué</Badge></p>
                       <p>Session requise: <Badge variant="default">Obligatoire</Badge></p>
@@ -409,8 +409,8 @@ export default function EnterpriseAuthTest() {
                   </div>
                   
                   {/* Status Rate Limiting */}
-                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                    <h4 className="font-semibold text-orange-800 mb-2">Rate Limiting</h4>
+                  <div className="bg-etat-alerte-fond p-4 rounded-lg border border-etat-alerte-filet">
+                    <h4 className="font-semibold text-etat-alerte-texte mb-2">Rate Limiting</h4>
                     <div className="space-y-1 text-sm">
                       <p>Login: <Badge variant="outline">5/15min</Badge></p>
                       <p>Invitations: <Badge variant="outline">10/1h</Badge></p>
@@ -419,8 +419,8 @@ export default function EnterpriseAuthTest() {
                   </div>
                   
                   {/* Status Invitations */}
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <h4 className="font-semibold text-green-800 mb-2">Invitations</h4>
+                  <div className="bg-etat-nominal-fond p-4 rounded-lg border border-etat-nominal-filet">
+                    <h4 className="font-semibold text-etat-nominal-texte mb-2">Invitations</h4>
                     <div className="space-y-1 text-sm">
                       <p>Contrôle: <Badge variant="default">Par tenant</Badge></p>
                       <p>Expiration: <Badge variant="outline">24h-7j</Badge></p>
@@ -430,17 +430,17 @@ export default function EnterpriseAuthTest() {
                 </div>
                 
                 {sessionInfo && (
-                  <div className="mt-6 bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                    <h4 className="font-semibold text-indigo-800 mb-2">Session Courante</h4>
+                  <div className="mt-6 bg-etat-encours-fond p-4 rounded-lg border border-etat-encours-filet">
+                    <h4 className="font-semibold text-etat-encours-texte mb-2">Session Courante</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p><strong>Token:</strong> <code className="bg-indigo-100 px-1 rounded">***{sessionInfo.sessionToken.slice(-8)}</code></p>
+                        <p><strong>Token:</strong> <code className="bg-etat-encours-fond px-1 rounded">***{sessionInfo.sessionToken.slice(-8)}</code></p>
                         <p><strong>Utilisateur:</strong> {sessionInfo.user.username}</p>
                         <p><strong>Email:</strong> {sessionInfo.user.email}</p>
                       </div>
                       <div>
                         <p><strong>Rôle:</strong> <Badge variant="outline">{sessionInfo.user.role}</Badge></p>
-                        <p><strong>Tenant:</strong> <code className="bg-indigo-100 px-1 rounded">{sessionInfo.user.tenantId}</code></p>
+                        <p><strong>Tenant:</strong> <code className="bg-etat-encours-fond px-1 rounded">{sessionInfo.user.tenantId}</code></p>
                         <p><strong>Expire:</strong> {new Date(sessionInfo.expiresAt).toLocaleString()}</p>
                       </div>
                     </div>

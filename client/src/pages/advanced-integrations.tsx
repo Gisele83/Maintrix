@@ -40,6 +40,9 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // Types
 interface ERPSystem {
@@ -406,19 +409,20 @@ export default function AdvancedIntegrationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep">
+    <AppShell filAriane={[{ libelle: "Données" }, { libelle: "Intégrations" }]} largeur="large">
+    <div className="space-y-6">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-paper-deep rounded-xl">
+            <div className="p-3 bg-paper-deep rounded-none">
               <Settings className="h-8 w-8 text-ink" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-ink">
                 Intégrations Avancées
               </h1>
-              <p className="text-gray-600 dark:text-ink-soft">
+              <p className="text-ink-soft">
                 Connecteurs ERP/SCADA, IA Prédictive Avancée et Reporting Power BI
               </p>
             </div>
@@ -426,56 +430,56 @@ export default function AdvancedIntegrationsPage() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="p-2 bg-etat-encours-fond rounded-lg">
+                    <Database className="h-5 w-5 text-etat-encours-texte" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-ink-mute">Systèmes ERP</p>
+                    <p className="text-sm text-ink-soft">Systèmes ERP</p>
                     <p className="text-xl font-bold">{erpSystems?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  <div className="p-2 bg-etat-alerte-fond rounded-lg">
+                    <Zap className="h-5 w-5 text-etat-alerte-texte" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-ink-mute">Connexions SCADA</p>
+                    <p className="text-sm text-ink-soft">Connexions SCADA</p>
                     <p className="text-xl font-bold">{scadaConnections?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-signal-deep/10 rounded-lg">
-                    <Brain className="h-5 w-5 text-signal-deep dark:text-signal-light" />
+                    <Brain className="h-5 w-5 text-signal-deep" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-ink-mute">Modèles IA</p>
+                    <p className="text-sm text-ink-soft">Modèles IA</p>
                     <p className="text-xl font-bold">{aiModels?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-500/10 rounded-lg">
-                    <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="p-2 bg-etat-nominal-fond rounded-lg">
+                    <BarChart3 className="h-5 w-5 text-etat-nominal-texte" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-ink-mute">Workspaces Power BI</p>
+                    <p className="text-sm text-ink-soft">Workspaces Power BI</p>
                     <p className="text-xl font-bold">{powerBiWorkspaces?.length || 0}</p>
                   </div>
                 </div>
@@ -486,7 +490,7 @@ export default function AdvancedIntegrationsPage() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="erp-scada" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white dark:bg-gray-800/60 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 bg-white p-1 rounded-none">
             <TabsTrigger value="erp-scada" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               ERP/SCADA
@@ -505,11 +509,11 @@ export default function AdvancedIntegrationsPage() {
           <TabsContent value="erp-scada" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* ERP Systems */}
-              <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+              <Card className="bg-white border-rule">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <Database className="h-5 w-5 text-etat-encours-texte" />
                       <CardTitle>Systèmes ERP</CardTitle>
                     </div>
                     <Dialog open={isERPModalOpen} onOpenChange={setIsERPModalOpen}>
@@ -686,13 +690,13 @@ export default function AdvancedIntegrationsPage() {
                   {erpLoading ? (
                     <div className="space-y-3">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                        <div key={i} className="h-16 bg-paper-deep rounded-lg animate-pulse" />
                       ))}
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {erpSystems?.map((system: ERPSystem) => (
-                        <div key={system.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
+                        <div key={system.id} className="p-4 bg-white rounded-lg border border-rule">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium">{system.systemName}</h4>
@@ -724,7 +728,7 @@ export default function AdvancedIntegrationsPage() {
                               </Button>
                             </div>
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-ink-mute space-y-1">
+                          <div className="text-sm text-ink-soft space-y-1">
                             <div>Type: {system.systemType}</div>
                             <div>Méthode d'auth: {system.authMethod}</div>
                             <div className="flex items-center gap-2">
@@ -735,7 +739,7 @@ export default function AdvancedIntegrationsPage() {
                         </div>
                       ))}
                       {(!erpSystems || erpSystems.length === 0) && (
-                        <div className="text-center py-8 text-gray-500 dark:text-ink-mute">
+                        <div className="text-center py-8 text-ink-mute">
                           Aucun système ERP configuré
                         </div>
                       )}
@@ -745,11 +749,11 @@ export default function AdvancedIntegrationsPage() {
               </Card>
 
               {/* SCADA Connections */}
-              <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+              <Card className="bg-white border-rule">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      <Zap className="h-5 w-5 text-etat-alerte-texte" />
                       <CardTitle>Connexions SCADA</CardTitle>
                     </div>
                     <Dialog open={isSCADAModalOpen} onOpenChange={setIsSCADAModalOpen}>
@@ -892,13 +896,13 @@ export default function AdvancedIntegrationsPage() {
                   {scadaLoading ? (
                     <div className="space-y-3">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-16 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                        <div key={i} className="h-16 bg-paper-deep rounded-lg animate-pulse" />
                       ))}
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {scadaConnections?.map((connection: SCADAConnection) => (
-                        <div key={connection.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
+                        <div key={connection.id} className="p-4 bg-white rounded-lg border border-rule">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium">{connection.connectionName}</h4>
@@ -919,7 +923,7 @@ export default function AdvancedIntegrationsPage() {
                               <Activity className="h-4 w-4" />
                             </Button>
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-ink-mute space-y-1">
+                          <div className="text-sm text-ink-soft space-y-1">
                             <div>Protocole: {connection.protocol}</div>
                             <div>Endpoint: {connection.endpoint}</div>
                             <div className="flex items-center gap-2">
@@ -930,7 +934,7 @@ export default function AdvancedIntegrationsPage() {
                         </div>
                       ))}
                       {(!scadaConnections || scadaConnections.length === 0) && (
-                        <div className="text-center py-8 text-gray-500 dark:text-ink-mute">
+                        <div className="text-center py-8 text-ink-mute">
                           Aucune connexion SCADA configurée
                         </div>
                       )}
@@ -943,11 +947,11 @@ export default function AdvancedIntegrationsPage() {
 
           {/* AI Predictive Tab */}
           <TabsContent value="ai-predictive" className="space-y-6">
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Brain className="h-5 w-5 text-signal-deep dark:text-signal-light" />
+                    <Brain className="h-5 w-5 text-signal-deep" />
                     <CardTitle>Modèles IA Prédictive</CardTitle>
                   </div>
                   <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
@@ -1094,13 +1098,13 @@ export default function AdvancedIntegrationsPage() {
                 {aiLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                      <div key={i} className="h-24 bg-paper-deep rounded-lg animate-pulse" />
                     ))}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {aiModels?.map((model: AIModel) => (
-                      <div key={model.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
+                      <div key={model.id} className="p-4 bg-white rounded-lg border border-rule">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium">{model.modelName}</h4>
@@ -1127,7 +1131,7 @@ export default function AdvancedIntegrationsPage() {
                             <span>Type: {model.modelType}</span>
                             <span>v{model.version}</span>
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-ink-mute">
+                          <div className="text-sm text-ink-soft">
                             Algorithme: {model.algorithmType}
                           </div>
                         </div>
@@ -1146,14 +1150,14 @@ export default function AdvancedIntegrationsPage() {
                           <Progress value={model.precision * 100} className="h-2" />
                         </div>
 
-                        <div className="mt-3 text-xs text-gray-500 dark:text-ink-mute">
+                        <div className="mt-3 text-xs text-ink-mute">
                           Dernier entraînement: {model.lastTrainingDate ? new Date(model.lastTrainingDate).toLocaleDateString('fr-FR') : 'Jamais'}
                         </div>
                       </div>
                     ))}
                     
                     {(!aiModels || aiModels.length === 0) && (
-                      <div className="col-span-2 text-center py-8 text-gray-500 dark:text-ink-mute">
+                      <div className="col-span-2 text-center py-8 text-ink-mute">
                         Aucun modèle IA configuré
                       </div>
                     )}
@@ -1165,11 +1169,11 @@ export default function AdvancedIntegrationsPage() {
 
           {/* Power BI Tab */}
           <TabsContent value="power-bi" className="space-y-6">
-            <Card className="bg-white dark:bg-gray-800/60 border-rule dark:border-rule">
+            <Card className="bg-white border-rule">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <BarChart3 className="h-5 w-5 text-etat-nominal-texte" />
                     <CardTitle>Workspaces Power BI</CardTitle>
                   </div>
                   <Dialog open={isPowerBIModalOpen} onOpenChange={setIsPowerBIModalOpen}>
@@ -1289,13 +1293,13 @@ export default function AdvancedIntegrationsPage() {
                 {powerBiLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+                      <div key={i} className="h-20 bg-paper-deep rounded-lg animate-pulse" />
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {powerBiWorkspaces?.map((workspace: PowerBiWorkspace) => (
-                      <div key={workspace.id} className="p-4 bg-white dark:bg-gray-700/50 rounded-lg border border-rule dark:border-rule">
+                      <div key={workspace.id} className="p-4 bg-white rounded-lg border border-rule">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <h4 className="font-medium">{workspace.workspaceName}</h4>
@@ -1338,7 +1342,7 @@ export default function AdvancedIntegrationsPage() {
                             </Button>
                           </div>
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-ink-mute space-y-1">
+                        <div className="text-sm text-ink-soft space-y-1">
                           <div>ID Workspace: {workspace.workspaceId}</div>
                           <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
@@ -1349,7 +1353,7 @@ export default function AdvancedIntegrationsPage() {
                     ))}
                     
                     {(!powerBiWorkspaces || powerBiWorkspaces.length === 0) && (
-                      <div className="text-center py-8 text-gray-500 dark:text-ink-mute">
+                      <div className="text-center py-8 text-ink-mute">
                         Aucun workspace Power BI connecté
                       </div>
                     )}
@@ -1361,5 +1365,6 @@ export default function AdvancedIntegrationsPage() {
         </Tabs>
       </div>
     </div>
+    </AppShell>
   );
 }

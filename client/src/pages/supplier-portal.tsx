@@ -19,6 +19,9 @@ import {
   Star, Phone, Mail, Globe, MapPin, FileText,
   TrendingUp, Award, Clock, AlertTriangle, Tag, CheckCircle2
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 interface Supplier {
   id: number; supplierCode: string; name: string; supplierType: string; status: string;
@@ -32,24 +35,24 @@ interface Supplier {
 interface SupplierStats { total: number; active: number; blacklisted: number; contractors: number; avgRating: number; totalSpend: number; contractsExpiring: number; byType: any[]; topSuppliers: any[]; }
 
 const TYPE_CFG: Record<string, { label: string; color: string }> = {
-  supplier: { label: "Fournisseur", color: "bg-blue-100 text-blue-700" },
+  supplier: { label: "Fournisseur", color: "bg-etat-encours-fond text-etat-encours-texte" },
   contractor: { label: "Prestataire", color: "bg-paper-deep text-signal-deep" },
-  subcontractor: { label: "Sous-traitant", color: "bg-indigo-100 text-indigo-700" },
-  consultant: { label: "Consultant", color: "bg-teal-100 text-teal-700" },
-  manufacturer: { label: "Fabricant", color: "bg-orange-100 text-orange-700" },
+  subcontractor: { label: "Sous-traitant", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  consultant: { label: "Consultant", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  manufacturer: { label: "Fabricant", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
 };
 const STATUS_CFG: Record<string, { label: string; color: string }> = {
-  active: { label: "Actif", color: "bg-green-100 text-green-700" },
-  inactive: { label: "Inactif", color: "bg-slate-100 text-ink-mute" },
-  blacklisted: { label: "Blacklisté", color: "bg-red-100 text-red-700" },
-  pending_approval: { label: "En attente", color: "bg-yellow-100 text-yellow-700" },
+  active: { label: "Actif", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  inactive: { label: "Inactif", color: "bg-paper-deep text-ink-mute" },
+  blacklisted: { label: "Blacklisté", color: "bg-etat-critique-fond text-etat-critique-texte" },
+  pending_approval: { label: "En attente", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
 };
 const fmtEur = (n: any) => n != null ? `${Number(n).toLocaleString("fr-FR",{maximumFractionDigits:0})} €` : "—";
 
 function StarRating({ rating, onChange }: { rating?: number; onChange?: (v: number) => void }) {
   return (
     <div className="flex gap-0.5">{[1,2,3,4,5].map(s => (
-      <Star key={s} className={`h-4 w-4 ${(rating || 0) >= s ? "fill-yellow-400 text-yellow-400" : "text-ink-soft"} ${onChange ? "cursor-pointer" : ""}`} onClick={() => onChange?.(s)} />
+      <Star key={s} className={`h-4 w-4 ${(rating || 0) >= s ? "fill-yellow-400 text-etat-alerte-texte" : "text-ink-soft"} ${onChange ? "cursor-pointer" : ""}`} onClick={() => onChange?.(s)} />
     ))}</div>
   );
 }
@@ -123,11 +126,12 @@ export default function SupplierPortalPage() {
   const contractsExpiring = suppliers.filter(s => s.contractEnd && new Date(s.contractEnd) < new Date(Date.now() + 60 * 24 * 3600 * 1000) && new Date(s.contractEnd) > new Date()).length;
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Partenaires" }, { libelle: "Fournisseurs" }]} largeur="large">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep"><Building2 className="h-6 w-6 text-ink" /></div>
+            <div className="p-2.5 rounded-none bg-paper-deep"><Building2 className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Portail Fournisseurs</h1>
           </div>
           <p className="text-ink-mute ml-14 text-sm">Gestion des fournisseurs, sous-traitants et prestataires</p>
@@ -138,14 +142,14 @@ export default function SupplierPortalPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Fournisseurs actifs", value: stats?.active ?? 0, icon: Building2, color: " to-indigo-600" },
-          { label: "Prestataires", value: stats?.contractors ?? 0, icon: Award, color: "from-blue-500 to-indigo-600" },
-          { label: "Dépenses totales", value: fmtEur(stats?.totalSpend), icon: TrendingUp, color: "from-emerald-500 to-teal-600" },
-          { label: "Contrats expirant", value: contractsExpiring, icon: AlertTriangle, color: "from-orange-400 to-amber-500" },
+          { label: "Fournisseurs actifs", value: stats?.active ?? 0, icon: Building2, color: "" },
+          { label: "Prestataires", value: stats?.contractors ?? 0, icon: Award, color: "" },
+          { label: "Dépenses totales", value: fmtEur(stats?.totalSpend), icon: TrendingUp, color: "" },
+          { label: "Contrats expirant", value: contractsExpiring, icon: AlertTriangle, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+          <Card key={label} className="border-0 shadow-none"><CardContent className="p-4 flex items-center gap-4">
+            <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+            <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
@@ -154,7 +158,7 @@ export default function SupplierPortalPage() {
       <div className="flex gap-2 mb-6 flex-wrap">
         {[{ v: "all", l: "Tous" }, ...Object.entries(TYPE_CFG).map(([v, c]) => ({ v, l: c.label }))].map(({ v, l }) => {
           const cnt = v === "all" ? suppliers.length : suppliers.filter(s => s.supplierType === v).length;
-          return <button key={v} onClick={() => setFilterType(v)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${filterType === v ? "bg-signal-deep text-white border-rule" : "bg-white border-slate-200 hover:border-slate-300"}`}>{l} ({cnt})</button>;
+          return <button key={v} onClick={() => setFilterType(v)} className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${filterType === v ? "bg-signal-deep text-white border-rule" : "bg-white border-rule hover:border-rule"}`}>{l} ({cnt})</button>;
         })}
       </div>
 
@@ -174,19 +178,19 @@ export default function SupplierPortalPage() {
             const statusConf = STATUS_CFG[s.status] || STATUS_CFG.active;
             const contractExpiring = s.contractEnd && new Date(s.contractEnd) < new Date(Date.now() + 60 * 24 * 3600 * 1000) && new Date(s.contractEnd) > new Date();
             return (
-              <Card key={s.id} className={`border shadow-sm hover:shadow-md transition-all ${s.status === "blacklisted" ? "border-red-200 bg-red-50/20" : "border-slate-100"}`}>
+              <Card key={s.id} className={`border shadow-sm hover:shadow-none transition-all ${s.status === "blacklisted" ? "border-etat-critique-filet bg-etat-critique-fond/20" : "border-slate-100"}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="p-2.5 rounded-xl bg-paper-deep shadow-sm shrink-0"><Building2 className="h-5 w-5 text-signal-deep" /></div>
+                      <div className="p-2.5 rounded-none bg-paper-deep shadow-sm shrink-0"><Building2 className="h-5 w-5 text-signal-deep" /></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
                           <span className="text-xs font-mono text-ink-mute">{s.supplierCode}</span>
                           <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
                           <Badge className={statusConf.color + " text-xs"}>{statusConf.label}</Badge>
-                          {contractExpiring && <Badge className="bg-orange-100 text-orange-700 text-xs">⏰ Contrat bientôt échu</Badge>}
+                          {contractExpiring && <Badge className="bg-etat-alerte-fond text-etat-alerte-texte text-xs">⏰ Contrat bientôt échu</Badge>}
                         </div>
-                        <h3 className="font-semibold text-slate-800">{s.name}</h3>
+                        <h3 className="font-semibold text-ink">{s.name}</h3>
                         <div className="flex items-center gap-4 mt-0.5 flex-wrap text-xs text-ink-mute">
                           {s.city && <span><MapPin className="h-3 w-3 inline mr-0.5" />{s.city}</span>}
                           {s.contactName && <span>{s.contactName}</span>}
@@ -241,7 +245,7 @@ export default function SupplierPortalPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-rule">
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-rule">
                 <Building2 className="h-6 w-6 text-signal-deep" />
                 <div className="flex-1"><DialogTitle>{selected.name}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.supplierCode}</p></div>
                 <div className="flex gap-2 flex-wrap">
@@ -270,30 +274,30 @@ export default function SupplierPortalPage() {
                   ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>))}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Note globale</p>
+                  <p className="text-sm font-medium text-ink-soft mb-2">Note globale</p>
                   <div className="flex items-center gap-3"><StarRating rating={selected.rating} onChange={v => updateMut.mutate({ id: selected.id, data: { rating: v } })} /><span className="text-sm text-ink-mute">{selected.rating ? `${selected.rating}/5` : "Non noté"}</span></div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Spécialités</p>
-                  <div className="flex flex-wrap gap-2 mb-2">{(selected.specialties || []).map((sp, i) => <Badge key={i} variant="outline">{sp}<button className="ml-1 text-ink-mute hover:text-red-500" onClick={() => updateMut.mutate({ id: selected.id, data: { specialties: selected.specialties.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
+                  <p className="text-sm font-medium text-ink-soft mb-2">Spécialités</p>
+                  <div className="flex flex-wrap gap-2 mb-2">{(selected.specialties || []).map((sp, i) => <Badge key={i} variant="outline">{sp}<button className="ml-1 text-ink-mute hover:text-etat-critique-texte" onClick={() => updateMut.mutate({ id: selected.id, data: { specialties: selected.specialties.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
                   <div className="flex gap-2"><Input value={newSpecialty} onChange={e => setNewSpecialty(e.target.value)} placeholder="Ajouter une spécialité..." className="max-w-xs" onKeyDown={e => { if (e.key === "Enter" && newSpecialty) { updateMut.mutate({ id: selected.id, data: { specialties: [...(selected.specialties || []), newSpecialty] } }); setNewSpecialty(""); } }} /><Button size="sm" variant="outline" onClick={() => { if (newSpecialty) { updateMut.mutate({ id: selected.id, data: { specialties: [...(selected.specialties || []), newSpecialty] } }); setNewSpecialty(""); } }}>Ajouter</Button></div>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Certifications</p>
-                  <div className="flex flex-wrap gap-2 mb-2">{(selected.certifications || []).map((c, i) => <Badge key={i} className="bg-green-100 text-green-700">{c}<button className="ml-1" onClick={() => updateMut.mutate({ id: selected.id, data: { certifications: selected.certifications.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
+                  <p className="text-sm font-medium text-ink-soft mb-2">Certifications</p>
+                  <div className="flex flex-wrap gap-2 mb-2">{(selected.certifications || []).map((c, i) => <Badge key={i} className="bg-etat-nominal-fond text-etat-nominal-texte">{c}<button className="ml-1" onClick={() => updateMut.mutate({ id: selected.id, data: { certifications: selected.certifications.filter((_, j) => j !== i) } })}>×</button></Badge>)}</div>
                   <div className="flex gap-2"><Input value={newCert} onChange={e => setNewCert(e.target.value)} placeholder="Ex: ISO 9001, MASE..." className="max-w-xs" /><Button size="sm" variant="outline" onClick={() => { if (newCert) { updateMut.mutate({ id: selected.id, data: { certifications: [...(selected.certifications || []), newCert] } }); setNewCert(""); } }}>Ajouter</Button></div>
                 </div>
-                {selected.notes && <div className="bg-slate-50 rounded-lg p-3 text-sm">{selected.notes}</div>}
+                {selected.notes && <div className="bg-paper rounded-lg p-3 text-sm">{selected.notes}</div>}
               </TabsContent>
 
               <TabsContent value="performance" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { l: "Commandes totales", v: selected.totalOrders ?? 0, c: "text-blue-600" },
+                    { l: "Commandes totales", v: selected.totalOrders ?? 0, c: "text-etat-encours-texte" },
                     { l: "Dépenses totales", v: fmtEur(selected.totalSpend), c: "text-signal-deep" },
-                    { l: "Ponctualité livraison", v: selected.onTimeDeliveryPct != null ? `${selected.onTimeDeliveryPct}%` : "—", c: "text-green-600" },
-                    { l: "Score qualité", v: selected.qualityScore != null ? `${selected.qualityScore}/100` : "—", c: "text-teal-600" },
-                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-xl border p-4 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute mt-1">{l}</p></div>))}
+                    { l: "Ponctualité livraison", v: selected.onTimeDeliveryPct != null ? `${selected.onTimeDeliveryPct}%` : "—", c: "text-etat-nominal-texte" },
+                    { l: "Score qualité", v: selected.qualityScore != null ? `${selected.qualityScore}/100` : "—", c: "text-etat-encours-texte" },
+                  ].map(({ l, v, c }) => (<div key={l} className="bg-white rounded-none border p-4 text-center"><p className={`text-2xl font-bold ${c}`}>{v}</p><p className="text-xs text-ink-mute mt-1">{l}</p></div>))}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-sm font-medium">Ponctualité (%)</label><Input type="number" min="0" max="100" className="mt-1" defaultValue={selected.onTimeDeliveryPct || ""} onBlur={e => updateMut.mutate({ id: selected.id, data: { onTimeDeliveryPct: parseFloat(e.target.value) || null } })} /></div>
@@ -317,12 +321,13 @@ export default function SupplierPortalPage() {
               </TabsContent>
             </Tabs>
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer ce fournisseur ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer ce fournisseur ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

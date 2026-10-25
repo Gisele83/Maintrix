@@ -319,7 +319,14 @@ export class DiagnosticRulesEngine {
     return matches.sort((a, b) => b.confidence - a.confidence);
   }
 
-  async getFailureMemoryMatches(equipmentType: string, symptoms: string, tenantId?: string): Promise<{
+  /**
+   * ⚠️ `tenantId` était déjà DÉCLARÉ ici — et l'appelant le passait — mais il
+   * n'apparaissait nulle part dans le `WHERE`. La mémoire des pannes de toutes
+   * les organisations était donc interrogée. Le cloisonnement n'était pas
+   * oublié : il était à moitié écrit, ce qui est pire, parce que la signature
+   * donnait l'apparence d'un filtre. Il est désormais obligatoire et appliqué.
+   */
+  async getFailureMemoryMatches(equipmentType: string, symptoms: string, tenantId: string): Promise<{
     matches: any[];
     explanations: ExplanationFactor[];
   }> {
@@ -331,6 +338,7 @@ export class DiagnosticRulesEngine {
         .from(failureMemory)
         .where(
           and(
+            eq(failureMemory.tenantId, tenantId),
             sql`LOWER(${failureMemory.equipmentType}) LIKE ${`%${normalizedType.split(' ')[0]}%`}`,
             sql`${failureMemory.confirmedCount} > 0`,
             eq(failureMemory.status, 'active')
@@ -364,12 +372,13 @@ export class DiagnosticRulesEngine {
     }
   }
 
-  async getHistoricalCaseCount(equipmentType: string, diagnosis: string): Promise<number> {
+  async getHistoricalCaseCount(equipmentType: string, diagnosis: string, tenantId: string): Promise<number> {
     try {
       const result = await db.select({ count: sql<number>`count(*)` })
         .from(maintenanceCases)
         .where(
           and(
+            eq(maintenanceCases.tenantId, tenantId),
             sql`LOWER(${maintenanceCases.equipmentType}) LIKE ${`%${equipmentType.toLowerCase().split(' ')[0]}%`}`,
             sql`LOWER(${maintenanceCases.diagnosis}) LIKE ${`%${diagnosis.toLowerCase().split(' ').slice(0, 3).join('%')}%`}`
           )

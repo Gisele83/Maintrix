@@ -27,7 +27,7 @@ export function OfflineIndicator() {
           ) : isOffline ? (
             <WifiOff className="h-4 w-4 text-destructive" />
           ) : (
-            <Wifi className="h-4 w-4 text-green-500" />
+            <Wifi className="h-4 w-4 text-etat-nominal-texte" />
           )}
           
           <Badge 
@@ -46,7 +46,7 @@ export function OfflineIndicator() {
               {isOffline ? (
                 <WifiOff className="h-4 w-4 text-destructive" />
               ) : (
-                <Wifi className="h-4 w-4 text-green-500" />
+                <Wifi className="h-4 w-4 text-etat-nominal-texte" />
               )}
               État de la connexion
             </CardTitle>

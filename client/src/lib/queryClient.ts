@@ -18,6 +18,50 @@ function sessionSuperAdminPerdue(texte: string): boolean {
     || texte.includes('SUPER_ADMIN_TOKEN_REQUIRED');
 }
 
+/**
+ * Un refus déguisé en succès.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CETTE VÉRIFICATION EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * `antiLeakageValidator` (server/tenant-security-middleware.ts) inspecte
+ * chaque réponse et, s'il y repère des données d'un autre locataire,
+ * REMPLACE le corps par `{ error: 'CROSS_TENANT_DATA_DETECTED', … }`. Il le
+ * faisait sans toucher au statut : le client recevait **HTTP 200** accompagné
+ * d'un objet d'erreur, là où il attendait un tableau.
+ *
+ * ⚠️ Côté serveur, ce refus répond maintenant **403** (corrigé le 2026-10-21).
+ * Ce garde-fou RESTE néanmoins nécessaire : une console servie par une
+ * instance déployée avant ce correctif reçoit toujours le refus en 200, et
+ * c'est la version du SERVEUR, pas celle du client, qui en décide.
+ *
+ * Mesuré le 20/10/2026 sur l'environnement de test : il a suffi d'insérer UNE
+ * session de diagnostic appartenant à un second locataire pour que
+ * `/api/history` et `/api/reports` basculent de `[…]` à cet objet. Les deux
+ * écrans qui les lisent vérifiaient `res.ok`, le trouvaient vrai, puis
+ * appelaient `.map` dessus : « TypeError: a.map is not a function », et la
+ * page /dashboard se rendait ENTIÈREMENT BLANCHE — onglet « Historique »
+ * comme onglet « Signalement ».
+ *
+ * Ce défaut ne se voit pas sur un jeu de données mono-locataire : c'est
+ * précisément pourquoi il a survécu. La cause est serveur (des requêtes de
+ * lecture non filtrées par locataire) ; mais un écran ne doit JAMAIS rendre
+ * une page blanche parce qu'une réponse n'a pas la forme attendue. On traite
+ * donc ici le refus comme ce qu'il est : une erreur.
+ */
+function refusDeguiseEnSucces(donnees: unknown): string | null {
+  if (!donnees || typeof donnees !== 'object' || Array.isArray(donnees)) return null;
+  const objet = donnees as Record<string, unknown>;
+  const code = objet.error;
+  if (typeof code !== 'string' || code === '') return null;
+  // Forme stricte du contrat d'erreur du serveur : un code, éventuellement un
+  // message, et rien d'autre. Un enregistrement métier qui porterait un champ
+  // `error` parmi ses colonnes n'est pas concerné.
+  const clefs = Object.keys(objet);
+  if (clefs.some((c) => c !== 'error' && c !== 'message')) return null;
+  return typeof objet.message === 'string' && objet.message ? objet.message : code;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -88,7 +132,10 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return await res.json();
+  const donnees = await res.json();
+  const refus = refusDeguiseEnSucces(donnees);
+  if (refus) throw new Error(refus);
+  return donnees;
 }
 
 // 📎 Upload multipart (FormData) — ne pas utiliser apiRequest() qui force JSON.
@@ -105,7 +152,10 @@ export async function uploadFile(url: string, formData: FormData): Promise<any> 
   });
 
   await throwIfResNotOk(res);
-  return await res.json();
+  const donnees = await res.json();
+  const refus = refusDeguiseEnSucces(donnees);
+  if (refus) throw new Error(refus);
+  return donnees;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -136,7 +186,10 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const donnees = await res.json();
+    const refus = refusDeguiseEnSucces(donnees);
+    if (refus) throw new Error(refus);
+    return donnees;
   };
 
 export const queryClient = new QueryClient({

@@ -15,11 +15,14 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, RadialBarChart, RadialBar
 } from "recharts";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 const complianceColors: Record<string, string> = {
-  compliant: "bg-green-500/10 text-green-400 border-green-500/30",
-  at_risk: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
-  breached: "bg-red-500/10 text-red-400 border-red-500/30"
+  compliant: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",
+  at_risk: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  breached: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet"
 };
 
 const complianceLabels: Record<string, string> = {
@@ -40,12 +43,13 @@ export default function SLAManagement() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-paper-deep">
-        <ModernNavigation />
+      <AppShell filAriane={[{ libelle: "Exploitation" }, { libelle: "Engagements de service" }]} largeur="large">
+      <div className="space-y-6">
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-12 h-12 border-4 border-etat-encours-filet border-t-transparent rounded-full" />
         </div>
       </div>
+    </AppShell>
     );
   }
 
@@ -73,7 +77,7 @@ export default function SLAManagement() {
       <ModernNavigation />
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 bg-paper-deep rounded-xl flex items-center justify-center">
+          <div className="w-12 h-12 bg-paper-deep rounded-none flex items-center justify-center">
             <Timer className="w-6 h-6 text-ink" />
           </div>
           <div>
@@ -84,10 +88,10 @@ export default function SLAManagement() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { icon: Target, label: "Taux de conformité", value: `${summary.complianceRate}%`, color: "from-green-500 to-emerald-600", sub: "SLA respectés" },
-            { icon: CheckCircle, label: "Conformes", value: summary.compliant, color: "from-blue-500 to-cyan-600", sub: "Ordres dans les délais" },
-            { icon: AlertTriangle, label: "À risque", value: summary.atRisk, color: "from-yellow-500 to-amber-600", sub: "Délai de réponse dépassé" },
-            { icon: XCircle, label: "En dépassement", value: summary.breached, color: "from-red-500 to-rose-600", sub: "SLA non respectés" }
+            { icon: Target, label: "Taux de conformité", value: `${summary.complianceRate}%`, color: "", sub: "SLA respectés" },
+            { icon: CheckCircle, label: "Conformes", value: summary.compliant, color: "", sub: "Ordres dans les délais" },
+            { icon: AlertTriangle, label: "À risque", value: summary.atRisk, color: "", sub: "Délai de réponse dépassé" },
+            { icon: XCircle, label: "En dépassement", value: summary.breached, color: "", sub: "SLA non respectés" }
           ].map((stat, i) => (
             <Card key={i} className="bg-paper-deep border-rule">
               <CardContent className="p-4">
@@ -180,7 +184,7 @@ export default function SLAManagement() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${rule.priority === 'critical' ? 'bg-red-500' : rule.priority === 'high' ? 'bg-orange-500' : rule.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
+                      <div className={`w-3 h-3 rounded-full ${rule.priority === 'critical' ? 'bg-etat-critique-vif' : rule.priority === 'high' ? 'bg-etat-alerte-vif' : rule.priority === 'medium' ? 'bg-etat-alerte-vif' : 'bg-etat-encours-vif'}`} />
                       <div>
                         <p className="text-ink font-medium">{rule.name}</p>
                         <p className="text-xs text-ink-mute">Priorité : {rule.priority}</p>
@@ -190,17 +194,17 @@ export default function SLAManagement() {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-white rounded-lg p-3 text-center">
-                      <Clock className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                      <Clock className="w-5 h-5 text-etat-encours-texte mx-auto mb-1" />
                       <p className="text-lg font-bold text-ink">{rule.responseTime}h</p>
                       <p className="text-xs text-ink-mute">Temps de réponse</p>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center">
-                      <Zap className="w-5 h-5 text-green-400 mx-auto mb-1" />
+                      <Zap className="w-5 h-5 text-etat-nominal-texte mx-auto mb-1" />
                       <p className="text-lg font-bold text-ink">{rule.resolutionTime}h</p>
                       <p className="text-xs text-ink-mute">Temps de résolution</p>
                     </div>
                     <div className="bg-white rounded-lg p-3 text-center">
-                      <ArrowUp className="w-5 h-5 text-orange-400 mx-auto mb-1" />
+                      <ArrowUp className="w-5 h-5 text-etat-alerte-texte mx-auto mb-1" />
                       <p className="text-lg font-bold text-ink">{rule.escalationAfter}h</p>
                       <p className="text-xs text-ink-mute">Escalade après</p>
                     </div>
@@ -212,10 +216,10 @@ export default function SLAManagement() {
 
           <TabsContent value="tracking" className="space-y-3">
             {data?.metrics?.slice(0, 20).map((metric: any) => (
-              <Card key={metric.workOrderId} className={`bg-paper-deep border ${metric.complianceStatus === 'breached' ? 'border-red-500/30' : metric.complianceStatus === 'at_risk' ? 'border-yellow-500/30' : 'border-rule'}`}>
+              <Card key={metric.workOrderId} className={`bg-paper-deep border ${metric.complianceStatus === 'breached' ? 'border-etat-critique-filet' : metric.complianceStatus === 'at_risk' ? 'border-etat-alerte-filet' : 'border-rule'}`}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-10 rounded-full ${metric.complianceStatus === 'breached' ? 'bg-red-500' : metric.complianceStatus === 'at_risk' ? 'bg-yellow-500' : 'bg-green-500'}`} />
+                    <div className={`w-2 h-10 rounded-full ${metric.complianceStatus === 'breached' ? 'bg-etat-critique-vif' : metric.complianceStatus === 'at_risk' ? 'bg-etat-alerte-vif' : 'bg-etat-nominal-vif'}`} />
                     <div>
                       <p className="text-sm font-medium text-ink">{metric.title}</p>
                       <p className="text-xs text-ink-mute">
@@ -225,7 +229,7 @@ export default function SLAManagement() {
                   </div>
                   <div className="flex items-center gap-2">
                     {metric.needsEscalation && (
-                      <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/30">
+                      <Badge className="bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet">
                         <ArrowUp className="w-3 h-3 mr-1" /> Escalade
                       </Badge>
                     )}

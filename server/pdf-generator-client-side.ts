@@ -38,6 +38,26 @@ export interface MonthlyReportData {
   reportNumber: string;
   year: number;
   month: number;
+  /**
+   * Période réellement couverte, telle que le service de KPI la nomme
+   * (« 7 derniers jours », « 365 derniers jours »…).
+   *
+   * ⚠️ L'en-tête de ce document était figé sur « RAPPORT MENSUEL » et le mois
+   * courant, quelle que soit la période demandée : un rapport portant sur 365
+   * jours s'annonçait « Octobre 2026 ». Le seul appelant de ce gabarit est le
+   * rapport complet de /api/comprehensive-report/pdf, qui est commandé par un
+   * sélecteur à quatre périodes — le document doit dire laquelle il couvre.
+   */
+  periodeLibelle?: string;
+  /**
+   * Alertes critiques ouvertes du locataire.
+   *
+   * Seul champ repris de l'ancien /pdf/comprehensive-report, supprimé : c'est
+   * un chiffre réel et cloisonné (getDashboardKPIs). L'autre champ que cet
+   * ancien document portait seul, « Utilisation budget », n'est pas repris —
+   * il valait le taux d'achèvement sous une étiquette de budget.
+   */
+  criticalAlerts?: number;
   /** `undefined` sans aucun ordre de travail : un taux sans dénominateur n existe pas. */
   performanceScore?: number;
   totalWorkOrders: number;
@@ -423,7 +443,7 @@ export class PDFGeneratorClientSide {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Rapport Mensuel - ${reportData.reportNumber}</title>
+          <title>Rapport Complet GMAO - ${reportData.reportNumber}</title>
           <style>
             body { 
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -549,8 +569,10 @@ export class PDFGeneratorClientSide {
           
           <div class="container" id="reportContent">
             <div class="header">
-              <h1>📊 RAPPORT MENSUEL</h1>
-              <div class="subtitle">Maintrix - ${monthNames[reportData.month - 1]} ${reportData.year}</div>
+              <h1>📊 RAPPORT COMPLET GMAO</h1>
+              <div class="subtitle">Maintrix - ${reportData.periodeLibelle
+                ? `${reportData.periodeLibelle}, au ${new Date().toLocaleDateString('fr-FR')}`
+                : `${monthNames[reportData.month - 1]} ${reportData.year}`}</div>
               <div class="subtitle">Rapport N° ${reportData.reportNumber}</div>
             </div>
             
@@ -604,6 +626,11 @@ export class PDFGeneratorClientSide {
                   <strong>Temps Moyen</strong>
                   <div class="stats-value">${(reportData.averageResolutionTime || 0).toFixed(1)}h</div>
                 </div>
+                ${reportData.criticalAlerts !== undefined ? `
+                <div class="stats-item">
+                  <strong>Alertes critiques</strong>
+                  <div class="stats-value">${reportData.criticalAlerts}</div>
+                </div>` : ''}
               </div>
             </div>
             

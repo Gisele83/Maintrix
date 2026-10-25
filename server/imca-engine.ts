@@ -398,14 +398,14 @@ export async function computeIMCA(
   const recentSensors = await db
     .select()
     .from(iotSensorData)
-    .where(and(eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp!, shortStart)))
+    .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp!, shortStart)))
     .orderBy(desc(iotSensorData.timestamp!))
     .limit(500);
 
   const historicalSensors = await db
     .select()
     .from(iotSensorData)
-    .where(and(eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp!, longStart), lte(iotSensorData.timestamp!, shortStart)))
+    .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId), gte(iotSensorData.timestamp!, longStart), lte(iotSensorData.timestamp!, shortStart)))
     .orderBy(desc(iotSensorData.timestamp!))
     .limit(2000);
 

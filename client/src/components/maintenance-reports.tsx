@@ -13,6 +13,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { montant, pourcentage, heures, part, nombre } from "@/lib/donnees";
+import { EnTetePage } from "@/components/app-shell";
+import { PuceEtat } from "@/components/indicateurs";
+import { type RegistreEtat } from "@/lib/etats";
 import { 
   FileText, 
   Plus, 
@@ -58,9 +62,9 @@ interface MaintenanceReport {
   followUpRequired: boolean;
   followUpDate?: string;
   followUpNotes?: string;
-  totalCost?: number;
-  laborCost?: number;
-  partsCost?: number;
+  totalCost?: number | string;
+  laborCost?: number | string;
+  partsCost?: number | string;
   status: string;
   approvedBy?: string;
   approvalDate?: string;
@@ -79,23 +83,23 @@ interface MonthlyReport {
   generatedAt: string;
   totalEquipment?: number;
   activeEquipment?: number;
-  equipmentAvailability?: number;
+  equipmentAvailability?: number | string;
   totalWorkOrders?: number;
   completedWorkOrders?: number;
   preventiveWorkOrders?: number;
   correctiveWorkOrders?: number;
-  averageCompletionTime?: number;
-  mtbf?: number;
-  mttr?: number;
-  plannedMaintenanceRatio?: number;
-  maintenanceEfficiency?: number;
-  totalMaintenanceCost?: number;
-  laborCost?: number;
-  partsCost?: number;
-  contractorCost?: number;
-  costPerWorkOrder?: number;
+  averageCompletionTime?: number | string;
+  mtbf?: number | string;
+  mttr?: number | string;
+  plannedMaintenanceRatio?: number | string;
+  maintenanceEfficiency?: number | string;
+  totalMaintenanceCost?: number | string;
+  laborCost?: number | string;
+  partsCost?: number | string;
+  contractorCost?: number | string;
+  costPerWorkOrder?: number | string;
   partsConsumed?: number;
-  inventoryTurnover?: number;
+  inventoryTurnover?: number | string;
   stockouts?: number;
   emergencyPurchases?: number;
   totalAlerts?: number;
@@ -113,7 +117,17 @@ interface MonthlyReport {
   notes?: string;
 }
 
-export function MaintenanceReports() {
+interface ProprietesRapports {
+  /**
+   * En-tête fourni par l'écran hôte — même convention que les ordres de
+   * travail, l'historique et le préventif. Sans lui, cet onglet ne portait
+   * AUCUN titre de niveau 1 : son intitulé était un `<h2>` en
+   * `font-serif text-3xl text-ink`, et la GMAO le montait nu.
+   */
+  enTete?: React.ReactNode;
+}
+
+export function MaintenanceReports({ enTete }: ProprietesRapports = {}) {
   const [activeTab, setActiveTab] = useState<"intervention" | "monthly">("intervention");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -175,46 +189,60 @@ export function MaintenanceReports() {
     });
   };
 
+  /**
+   * Les deux branches `default` rendaient la VALEUR BRUTE du serveur. Ce
+   * n'était pas théorique : les seuls rapports présents en base portent
+   * `report_type = 'intervention'` et `status = 'completed'`, qu'aucun des
+   * deux dictionnaires ne couvrait. Relevé à l'écran le 20/10/2026, au
+   * milieu d'une page en français : « intervention » et « completed ».
+   *
+   * `completed` n'est d'ailleurs pas dans les valeurs que `shared/schema.ts`
+   * documente sur la colonne (« draft, approved, archived ») — c'est
+   * l'auto-génération de rapport qui l'écrit. Il est donc reconnu en lecture,
+   * comme `on_hold` l'est pour les ordres de travail.
+   */
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "approved":
-        return <Badge className="bg-green-100 text-green-800">Approuvé</Badge>;
-      case "draft":
-        return <Badge className="bg-yellow-100 text-yellow-800">Brouillon</Badge>;
-      case "generated":
-        return <Badge className="bg-blue-100 text-blue-800">Généré</Badge>;
-      case "reviewed":
-        return <Badge className="bg-paper-deep text-signal-deep">Révisé</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
-    }
+    const table: Record<string, { libelle: string; registre: RegistreEtat }> = {
+      draft: { libelle: "Brouillon", registre: "alerte" },
+      generated: { libelle: "Généré", registre: "encours" },
+      completed: { libelle: "Terminé", registre: "nominal" },
+      reviewed: { libelle: "Révisé", registre: "encours" },
+      approved: { libelle: "Approuvé", registre: "nominal" },
+      archived: { libelle: "Archivé", registre: "neutre" },
+    };
+    const entree = table[status];
+    return (
+      <PuceEtat registre={entree?.registre ?? "neutre"}>{entree?.libelle ?? status ?? "—"}</PuceEtat>
+    );
   };
 
   const getReportTypeBadge = (type: string) => {
-    switch (type) {
-      case "preventive":
-        return <Badge className="bg-green-100 text-green-800">Préventive</Badge>;
-      case "corrective":
-        return <Badge className="bg-red-100 text-red-800">Corrective</Badge>;
-      case "inspection":
-        return <Badge className="bg-blue-100 text-blue-800">Inspection</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{type}</Badge>;
-    }
+    const table: Record<string, { libelle: string; registre: RegistreEtat }> = {
+      intervention: { libelle: "Intervention", registre: "encours" },
+      preventive: { libelle: "Préventive", registre: "nominal" },
+      corrective: { libelle: "Corrective", registre: "alerte" },
+      inspection: { libelle: "Inspection", registre: "encours" },
+    };
+    const entree = table[type];
+    return (
+      <PuceEtat registre={entree?.registre ?? "neutre"}>{entree?.libelle ?? type ?? "—"}</PuceEtat>
+    );
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return "N/A";
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount);
-  };
-
-  const formatPercentage = (value?: number) => {
-    if (!value) return "N/A";
-    return `${value.toFixed(1)}%`;
-  };
+  /**
+   * Les colonnes `mtbf`, `mttr`, `average_completion_time`,
+   * `equipment_availability` et les coûts sont des `decimal` PostgreSQL : le
+   * pilote les renvoie en CHAÎNES. `report.mtbf?.toFixed(1)` levait donc
+   * « TypeError: pe.toFixed is not a function », et l'onglet « Bilans
+   * mensuels » rendait une page blanche dès qu'un bilan existait.
+   *
+   * Les conversions vivent maintenant dans `lib/donnees.ts` : un seul endroit
+   * sait traduire ce que le serveur envoie, pour les onze écrans concernés.
+   */
+  const formatCurrency = (valeur?: number | string | null) => montant(valeur, { decimales: 2 });
+  const formatPercentage = (valeur?: number | string | null) => pourcentage(valeur);
+  const formatHeures = (valeur?: number | string | null) => heures(valeur);
+  const jauge = (valeur: unknown, maximum: number) => part(valeur, maximum);
 
   const openAnalyticsModal = (report: MonthlyReport) => {
     console.log("Opening analytics modal for report:", report.reportNumber);
@@ -234,7 +262,12 @@ export function MaintenanceReports() {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/maintenance-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
+      // ⚠️ Visait `/pdf/maintenance-reports/:id`, supprimée. Le document rendu
+      // par cette URL était IDENTIQUE À L'OCTET (empreinte SHA-256 égale,
+      // 9 394 octets mesurés) : l'ancienne route recopiait à la main le
+      // `reportData` que `buildMaintenanceReportPDFData` construit ici. Le
+      // téléchargement est donc le même, servi par un seul chemin de code.
+      const url = `/api/maintenance-reports/${report.id}/pdf?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
       console.log('🚀 [INTERVENTION PDF] ===================================');
       console.log('🚀 [INTERVENTION PDF] Report ID:', report.id);
@@ -290,7 +323,9 @@ export function MaintenanceReports() {
     }
   };
 
-  // SUPPRIMÉ: generateInterventionReportHTML - Utilisation des routes PDF publiques uniquement
+  // SUPPRIMÉ : generateInterventionReportHTML — le document vient du serveur,
+  // par `/api/maintenance-reports/:id/pdf`. (Le commentaire disait « routes PDF
+  // publiques » : ces routes ne sont ni publiques, ni distinctes de celles-ci.)
 
   // Download monthly report as PDF
   const downloadMonthlyReport = (report: MonthlyReport) => {
@@ -298,7 +333,11 @@ export function MaintenanceReports() {
       // Force cache bypass with multiple parameters
       const timestamp = new Date().getTime();
       const randomId = Math.random().toString(36).substring(7);
-      const url = `/pdf/monthly-reports/${report.id}?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
+      // ⚠️ Même substitution que pour le rapport d'intervention ci-dessus, et
+      // même constat : les deux URL rendaient le même document à l'octet près
+      // (7 773 octets mesurés). L'ancienne `/pdf/monthly-reports/:id` est
+      // supprimée.
+      const url = `/api/monthly-reports/${report.id}/pdf?cache_bust=${timestamp}&rand=${randomId}&v=3.0`;
       
       console.log('📊 [MONTHLY PDF] ===================================');
       console.log('📊 [MONTHLY PDF] Report ID:', report.id);
@@ -354,14 +393,15 @@ export function MaintenanceReports() {
     }
   };
 
-  // SUPPRIMÉ: generateMonthlyReportHTML - Utilisation des routes PDF publiques uniquement
+  // SUPPRIMÉ : generateMonthlyReportHTML — le document vient du serveur, par
+  // `/api/monthly-reports/:id/pdf`.
 
   const renderKpiCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => (
     <Card className="p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-sm font-medium text-ink-soft">{title}</p>
+          <p className="font-serif text-3xl text-ink">{value}</p>
         </div>
         <div className={`p-3 rounded-lg ${color}`}>
           <div className="w-5 h-5">{icon}</div>
@@ -377,11 +417,11 @@ export function MaintenanceReports() {
     
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <h3 className="font-serif text-title font-medium text-ink mb-4">{title}</h3>
         <div className="space-y-3">
           {Object.entries(data).map(([key, value], index) => {
             const percentage = total > 0 ? ((value as number) / total) * 100 : 0;
-            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-purple-500'];
+            const colors = ['bg-etat-encours-vif', 'bg-etat-nominal-vif', 'bg-etat-alerte-vif', 'bg-etat-critique-vif', 'bg-etat-encours-vif'];
             return (
               <div key={key} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -390,7 +430,7 @@ export function MaintenanceReports() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{String(value)}</span>
-                  <span className="text-xs text-muted-foreground">({percentage.toFixed(1)}%)</span>
+                  <span className="text-xs text-ink-soft">({percentage.toFixed(1)}%)</span>
                 </div>
               </div>
             );
@@ -402,31 +442,42 @@ export function MaintenanceReports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-ink">
-            Rapports de Maintenance
-          </h2>
-          <p className="text-muted-foreground">Génération et consultation des rapports d'intervention et mensuels</p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === "intervention" ? "default" : "outline"}
-            onClick={() => setActiveTab("intervention")}
-            className="bg-paper-deep"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Rapports d'Intervention
-          </Button>
-          <Button
-            variant={activeTab === "monthly" ? "default" : "outline"}
-            onClick={() => setActiveTab("monthly")}
-            className="bg-paper-deep"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Rapports Mensuels
-          </Button>
+      {enTete ?? (
+        <EnTetePage
+          surTitre="GMAO"
+          titre="Rapports de maintenance"
+          phrase="Les rapports d'intervention et les bilans mensuels, consultables et exportables en PDF."
+        />
+      )}
+
+      {/* Deux familles de rapports, donc deux onglets — et non deux boutons
+          qui se ressemblent. Le soulignement dit lequel est ouvert ; c'est le
+          même motif que la navigation de la GMAO. */}
+      <div className="border-b border-rule" role="tablist" aria-label="Famille de rapports">
+        <div className="flex gap-6">
+          {([
+            { id: "intervention", libelle: "Rapports d'intervention", icone: FileText },
+            { id: "monthly", libelle: "Bilans mensuels", icone: BarChart3 },
+          ] as const).map((onglet) => {
+            const Icone = onglet.icone;
+            const actif = activeTab === onglet.id;
+            return (
+              <button
+                key={onglet.id}
+                role="tab"
+                aria-selected={actif}
+                onClick={() => setActiveTab(onglet.id)}
+                className={`inline-flex items-center gap-2 pb-3 -mb-px border-b-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal ${
+                  actif
+                    ? "border-signal text-ink font-medium"
+                    : "border-transparent text-ink-soft hover:text-ink"
+                }`}
+              >
+                <Icone className="w-4 h-4" aria-hidden="true" />
+                {onglet.libelle}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -446,13 +497,13 @@ export function MaintenanceReports() {
               {loadingReports ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rule mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement des rapports...</p>
+                  <p className="mt-2 text-ink-soft">Chargement des rapports...</p>
                 </div>
               ) : (maintenanceReports as MaintenanceReport[]).length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Aucun rapport d'intervention disponible</p>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <FileText className="w-12 h-12 mx-auto text-ink-soft mb-4" />
+                  <p className="text-ink-soft">Aucun rapport d'intervention disponible</p>
+                  <p className="text-sm text-ink-soft mt-2">
                     Les rapports sont générés automatiquement lors de la completion des ordres de travail
                   </p>
                 </div>
@@ -464,7 +515,7 @@ export function MaintenanceReports() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h3 className="font-semibold text-lg">{report.reportNumber}</h3>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-ink-soft">
                               {format(new Date(report.createdAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
                             </p>
                           </div>
@@ -515,15 +566,15 @@ export function MaintenanceReports() {
                         </div>
 
                         {(report.safetyIncidents || report.followUpRequired) && (
-                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <div className="mt-4 p-3 bg-etat-alerte-fond border border-etat-alerte-filet rounded-lg">
                             {report.safetyIncidents && (
-                              <div className="flex items-center gap-2 text-yellow-800">
+                              <div className="flex items-center gap-2 text-etat-alerte-texte">
                                 <AlertTriangle className="w-4 h-4" />
                                 <span className="text-sm font-medium">Incident de sécurité signalé</span>
                               </div>
                             )}
                             {report.followUpRequired && (
-                              <div className="flex items-center gap-2 text-yellow-800">
+                              <div className="flex items-center gap-2 text-etat-alerte-texte">
                                 <Clock className="w-4 h-4" />
                                 <span className="text-sm font-medium">Suivi requis</span>
                                 {report.followUpDate && (
@@ -539,7 +590,7 @@ export function MaintenanceReports() {
                         <div className="mt-4 flex justify-between items-center">
                           <div className="flex items-center gap-4">
                             {report.qualityCheck && (
-                              <div className="flex items-center gap-1 text-green-600">
+                              <div className="flex items-center gap-1 text-etat-nominal-texte">
                                 <CheckCircle className="w-4 h-4" />
                                 <span className="text-sm">Contrôle qualité validé</span>
                               </div>
@@ -621,14 +672,14 @@ export function MaintenanceReports() {
 
               {loadingMonthly ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-muted-foreground">Chargement des rapports mensuels...</p>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etat-encours-filet mx-auto"></div>
+                  <p className="mt-2 text-ink-soft">Chargement des rapports mensuels...</p>
                 </div>
               ) : (monthlyReports as MonthlyReport[]).length === 0 ? (
                 <div className="text-center py-8">
-                  <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Aucun rapport mensuel disponible</p>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <BarChart3 className="w-12 h-12 mx-auto text-ink-soft mb-4" />
+                  <p className="text-ink-soft">Aucun rapport mensuel disponible</p>
+                  <p className="text-sm text-ink-soft mt-2">
                     Générez votre premier rapport mensuel pour commencer l'analyse des performances
                   </p>
                 </div>
@@ -640,15 +691,15 @@ export function MaintenanceReports() {
                         <div className="flex justify-between items-start mb-6">
                           <div>
                             <h3 className="font-semibold text-xl">{report.reportNumber}</h3>
-                            <p className="text-muted-foreground">
+                            <p className="text-ink-soft">
                               Rapport pour {format(new Date(report.periodStart), "MMMM yyyy", { locale: fr })}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-ink-soft">
                               Généré le {format(new Date(report.generatedAt), "dd/MM/yyyy à HH:mm", { locale: fr })}
                             </p>
                           </div>
                           <div className="flex gap-2">
-                            <Badge className="bg-blue-100 text-blue-800">
+                            <Badge className="bg-etat-encours-fond text-etat-encours-texte">
                               Score: {report.performanceScore || 0}/100
                             </Badge>
                             {getStatusBadge(report.status)}
@@ -659,36 +710,36 @@ export function MaintenanceReports() {
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-green-100 rounded-lg">
-                                <TrendingUp className="w-5 h-5 text-green-600" />
+                              <div className="p-2 bg-etat-nominal-fond rounded-lg">
+                                <TrendingUp className="w-5 h-5 text-etat-nominal-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Disponibilité</p>
-                                <p className="text-2xl font-bold">{formatPercentage(report.equipmentAvailability)}</p>
+                                <p className="font-serif text-3xl text-ink">{formatPercentage(report.equipmentAvailability)}</p>
                               </div>
                             </div>
                           </Card>
 
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Clock className="w-5 h-5 text-blue-600" />
+                              <div className="p-2 bg-etat-encours-fond rounded-lg">
+                                <Clock className="w-5 h-5 text-etat-encours-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTBF</p>
-                                <p className="text-2xl font-bold">{report.mtbf?.toFixed(1) || 0}h</p>
+                                <p className="font-serif text-3xl text-ink">{formatHeures(report.mtbf)}</p>
                               </div>
                             </div>
                           </Card>
 
                           <Card className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="p-2 bg-orange-100 rounded-lg">
-                                <Clock className="w-5 h-5 text-orange-600" />
+                              <div className="p-2 bg-etat-alerte-fond rounded-lg">
+                                <Clock className="w-5 h-5 text-etat-alerte-texte" />
                               </div>
                               <div>
                                 <p className="text-sm font-medium">MTTR</p>
-                                <p className="text-2xl font-bold">{report.mttr?.toFixed(1) || 0}h</p>
+                                <p className="font-serif text-3xl text-ink">{formatHeures(report.mttr)}</p>
                               </div>
                             </div>
                           </Card>
@@ -700,7 +751,7 @@ export function MaintenanceReports() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium">Coût Total</p>
-                                <p className="text-2xl font-bold">{formatCurrency(report.totalMaintenanceCost)}</p>
+                                <p className="font-serif text-3xl text-ink">{formatCurrency(report.totalMaintenanceCost)}</p>
                               </div>
                             </div>
                           </Card>
@@ -753,7 +804,7 @@ export function MaintenanceReports() {
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>Critiques</span>
-                                <span className="font-medium text-red-600">{report.criticalAlerts || 0}</span>
+                                <span className="font-medium text-etat-critique-texte">{report.criticalAlerts || 0}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>Incidents sécurité</span>
@@ -765,12 +816,12 @@ export function MaintenanceReports() {
 
                         {/* Recommendations */}
                         {report.recommendations && report.recommendations.length > 0 && (
-                          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="font-medium text-blue-900 mb-2">Recommandations</h4>
+                          <div className="mt-4 p-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg">
+                            <h4 className="font-medium text-etat-encours-texte mb-2">Recommandations</h4>
                             <ul className="space-y-1">
                               {report.recommendations.map((rec, index) => (
-                                <li key={index} className="text-sm text-blue-800 flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></span>
+                                <li key={index} className="text-sm text-etat-encours-texte flex items-start gap-2">
+                                  <span className="w-1.5 h-1.5 bg-etat-encours-vif rounded-full mt-2 flex-shrink-0"></span>
                                   {rec}
                                 </li>
                               ))}
@@ -780,7 +831,7 @@ export function MaintenanceReports() {
 
                         <div className="mt-6 flex justify-between items-center">
                           <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-ink-soft">
                               Généré par: {report.generatedBy || "Système"}
                             </span>
                           </div>
@@ -850,14 +901,14 @@ export function MaintenanceReports() {
                 {renderKpiCard(
                   "Score Performance", 
                   `${selectedMonthlyReport.performanceScore}/100`,
-                  <Target className="w-5 h-5 text-blue-600" />,
-                  "bg-blue-100"
+                  <Target className="w-5 h-5 text-etat-encours-texte" />,
+                  "bg-etat-encours-fond"
                 )}
                 {renderKpiCard(
                   "Efficacité Maintenance", 
                   formatPercentage(selectedMonthlyReport.maintenanceEfficiency),
-                  <Zap className="w-5 h-5 text-green-600" />,
-                  "bg-green-100"
+                  <Zap className="w-5 h-5 text-etat-nominal-texte" />,
+                  "bg-etat-nominal-fond"
                 )}
                 {renderKpiCard(
                   "Ratio Préventif", 
@@ -870,30 +921,30 @@ export function MaintenanceReports() {
               {/* Detailed Metrics */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Métriques de Fiabilité</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Métriques de Fiabilité</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">MTBF (Temps Moyen Entre Pannes)</span>
-                      <span className="font-medium">{selectedMonthlyReport.mtbf?.toFixed(1)}h</span>
+                      <span className="font-medium">{formatHeures(selectedMonthlyReport.mtbf)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.mtbf || 0) / 200 * 100} className="h-2" />
+                    <Progress value={jauge(selectedMonthlyReport.mtbf, 200)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">MTTR (Temps Moyen de Réparation)</span>
-                      <span className="font-medium">{selectedMonthlyReport.mttr?.toFixed(1)}h</span>
+                      <span className="font-medium">{formatHeures(selectedMonthlyReport.mttr)}</span>
                     </div>
-                    <Progress value={Math.max(0, 100 - (selectedMonthlyReport.mttr || 0) * 10)} className="h-2" />
+                    <Progress value={Math.max(0, 100 - (nombre(selectedMonthlyReport.mttr) ?? 0) * 10)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Disponibilité Équipements</span>
                       <span className="font-medium">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</span>
                     </div>
-                    <Progress value={selectedMonthlyReport.equipmentAvailability || 0} className="h-2" />
+                    <Progress value={nombre(selectedMonthlyReport.equipmentAvailability) ?? 0} className="h-2" />
                   </div>
                 </Card>
 
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Analyse des Coûts</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Analyse des Coûts</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Coût Total</span>
@@ -904,13 +955,13 @@ export function MaintenanceReports() {
                       <span className="text-sm">Main d'œuvre</span>
                       <span className="font-medium">{formatCurrency(selectedMonthlyReport.laborCost)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.laborCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                    <Progress value={part(selectedMonthlyReport.laborCost, selectedMonthlyReport.totalMaintenanceCost)} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Pièces détachées</span>
                       <span className="font-medium">{formatCurrency(selectedMonthlyReport.partsCost)}</span>
                     </div>
-                    <Progress value={(selectedMonthlyReport.partsCost || 0) / (selectedMonthlyReport.totalMaintenanceCost || 1) * 100} className="h-2" />
+                    <Progress value={part(selectedMonthlyReport.partsCost, selectedMonthlyReport.totalMaintenanceCost)} className="h-2" />
                   </div>
                 </Card>
               </div>
@@ -918,14 +969,14 @@ export function MaintenanceReports() {
               {/* Recommendations */}
               {selectedMonthlyReport.recommendations && selectedMonthlyReport.recommendations.length > 0 && (
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Recommandations d'Amélioration</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Recommandations d'Amélioration</h3>
                   <div className="space-y-3">
                     {selectedMonthlyReport.recommendations.map((rec, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
+                      <div key={index} className="flex items-start gap-3 p-3 bg-etat-encours-fond rounded-lg">
+                        <div className="w-6 h-6 bg-etat-encours-vif text-white rounded-full flex items-center justify-center text-sm font-medium mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-sm text-blue-900">{rec}</p>
+                        <p className="text-sm text-etat-encours-texte">{rec}</p>
                       </div>
                     ))}
                   </div>
@@ -984,30 +1035,30 @@ export function MaintenanceReports() {
 
               {/* Performance Indicators */}
               <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Indicateurs de Performance</h3>
+                <h3 className="font-serif text-title font-medium text-ink mb-4">Indicateurs de Performance</h3>
                 <div className="grid md:grid-cols-3 gap-6">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-2">
-                      <Activity className="w-8 h-8 text-green-600" />
+                    <div className="w-16 h-16 mx-auto bg-etat-nominal-fond rounded-full flex items-center justify-center mb-2">
+                      <Activity className="w-8 h-8 text-etat-nominal-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-green-600">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
-                    <p className="text-sm text-muted-foreground">Disponibilité</p>
+                    <p className="font-serif text-3xl text-etat-nominal-texte">{formatPercentage(selectedMonthlyReport.equipmentAvailability)}</p>
+                    <p className="text-sm text-ink-soft">Disponibilité</p>
                   </div>
                   
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                      <Clock className="w-8 h-8 text-blue-600" />
+                    <div className="w-16 h-16 mx-auto bg-etat-encours-fond rounded-full flex items-center justify-center mb-2">
+                      <Clock className="w-8 h-8 text-etat-encours-texte" />
                     </div>
-                    <p className="text-2xl font-bold text-blue-600">{selectedMonthlyReport.averageCompletionTime?.toFixed(1)}h</p>
-                    <p className="text-sm text-muted-foreground">Temps Moyen</p>
+                    <p className="font-serif text-3xl text-etat-encours-texte">{formatHeures(selectedMonthlyReport.averageCompletionTime)}</p>
+                    <p className="text-sm text-ink-soft">Temps Moyen</p>
                   </div>
                   
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto bg-paper-deep rounded-full flex items-center justify-center mb-2">
                       <Target className="w-8 h-8 text-signal-deep" />
                     </div>
-                    <p className="text-2xl font-bold text-signal-deep">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
-                    <p className="text-sm text-muted-foreground">Efficacité</p>
+                    <p className="font-serif text-3xl text-signal-deep">{formatPercentage(selectedMonthlyReport.maintenanceEfficiency)}</p>
+                    <p className="text-sm text-ink-soft">Efficacité</p>
                   </div>
                 </div>
               </Card>
@@ -1015,25 +1066,25 @@ export function MaintenanceReports() {
               {/* Trends and Alerts */}
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Tendances du Mois</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Tendances du Mois</h3>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-nominal-fond rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-etat-nominal-texte" />
                       <span className="text-sm">Amélioration de l'efficacité maintenance (+5%)</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-encours-fond rounded-lg">
+                      <BarChart3 className="w-5 h-5 text-etat-encours-texte" />
                       <span className="text-sm">Augmentation des maintenances préventives (+12%)</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                    <div className="flex items-center gap-3 p-3 bg-etat-alerte-fond rounded-lg">
+                      <AlertTriangle className="w-5 h-5 text-etat-alerte-texte" />
                       <span className="text-sm">Réduction des alertes critiques (-8%)</span>
                     </div>
                   </div>
                 </Card>
 
                 <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4">Résumé des Alertes</h3>
+                  <h3 className="font-serif text-title font-medium text-ink mb-4">Résumé des Alertes</h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Total alertes</span>

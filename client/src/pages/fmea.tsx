@@ -20,6 +20,9 @@ import {
   Search, FileText, Activity, BarChart3, ChevronDown, ChevronUp,
   Save, XCircle, Info, Target
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FmeaEntry {
@@ -74,19 +77,19 @@ interface FmeaStats {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const rpnColor = (rpn: number) => rpn >= 200 ? "#ef4444" : rpn >= 100 ? "#f97316" : rpn >= 50 ? "#eab308" : "#22c55e";
 const rpnBg = (cls: string) => ({
-  critical: "bg-red-100 text-red-700 border-red-200",
-  high: "bg-orange-100 text-orange-700 border-orange-200",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  low: "bg-green-100 text-green-700 border-green-200",
-})[cls] || "bg-slate-100 text-slate-700";
+  critical: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",
+  high: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  medium: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet",
+  low: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet",
+})[cls] || "bg-paper-deep text-ink-soft";
 
 const rpnLabel = (cls: string) => ({ critical: "Critique", high: "Élevé", medium: "Moyen", low: "Faible" })[cls] || "";
 
 const STATUSES = [
-  { value: "draft", label: "Brouillon", color: "bg-slate-100 text-ink-soft" },
-  { value: "in_review", label: "En revue", color: "bg-blue-100 text-blue-700" },
-  { value: "approved", label: "Approuvé", color: "bg-green-100 text-green-700" },
-  { value: "obsolete", label: "Obsolète", color: "bg-gray-100 text-gray-500" },
+  { value: "draft", label: "Brouillon", color: "bg-paper-deep text-ink-soft" },
+  { value: "in_review", label: "En revue", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "approved", label: "Approuvé", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "obsolete", label: "Obsolète", color: "bg-paper-deep text-ink-mute" },
 ];
 
 const sodLabel: Record<number, string> = {
@@ -112,10 +115,10 @@ function CriticalityMatrix({ entries }: { entries: FmeaEntry[] }) {
   });
   const cellColor = (s: number, o: number) => {
     const rpn = s * o * 5; // assume avg detection=5
-    if (rpn >= 200) return "bg-red-400 text-white";
+    if (rpn >= 200) return "bg-etat-critique-vif text-white";
     if (rpn >= 100) return "bg-orange-300";
-    if (rpn >= 50) return "bg-yellow-200";
-    return "bg-green-100";
+    if (rpn >= 50) return "bg-etat-alerte-fond";
+    return "bg-etat-nominal-fond";
   };
   return (
     <div className="overflow-x-auto">
@@ -246,12 +249,13 @@ export default function FmeaPage() {
   const statusConf = (v: string) => STATUSES.find(s => s.value === v) || STATUSES[0];
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "AMDEC" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <AlertTriangle className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">FMEA / AMDEC</h1>
@@ -266,15 +270,15 @@ export default function FmeaPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Analyses FMEA", value: stats?.total ?? 0, icon: FileText, color: "from-slate-500 to-slate-600" },
-          { label: "Modes de défaillance", value: stats?.totalEntries ?? 0, icon: Activity, color: "from-blue-500 to-indigo-600" },
-          { label: "Entrées critiques", value: stats?.criticalEntries ?? 0, icon: AlertTriangle, color: "from-red-500 to-rose-600" },
-          { label: "RPN moyen", value: stats?.avgRpn ?? 0, icon: BarChart3, color: "from-orange-500 to-amber-600" },
+          { label: "Analyses FMEA", value: stats?.total ?? 0, icon: FileText, color: "" },
+          { label: "Modes de défaillance", value: stats?.totalEntries ?? 0, icon: Activity, color: "" },
+          { label: "Entrées critiques", value: stats?.criticalEntries ?? 0, icon: AlertTriangle, color: "" },
+          { label: "RPN moyen", value: stats?.avgRpn ?? 0, icon: BarChart3, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md">
+          <Card key={label} className="border-0 shadow-none">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+              <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -283,10 +287,10 @@ export default function FmeaPage() {
       {/* RPN legend */}
       <div className="flex gap-3 mb-6 flex-wrap">
         {[
-          { label: "Critique (RPN ≥ 200)", color: "bg-red-100 text-red-700" },
-          { label: "Élevé (100–199)", color: "bg-orange-100 text-orange-700" },
-          { label: "Moyen (50–99)", color: "bg-yellow-100 text-yellow-700" },
-          { label: "Faible (< 50)", color: "bg-green-100 text-green-700" },
+          { label: "Critique (RPN ≥ 200)", color: "bg-etat-critique-fond text-etat-critique-texte" },
+          { label: "Élevé (100–199)", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+          { label: "Moyen (50–99)", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+          { label: "Faible (< 50)", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
         ].map(({ label, color }) => (
           <Badge key={label} className={color + " px-3 py-1 text-xs"}>{label}</Badge>
         ))}
@@ -326,7 +330,7 @@ export default function FmeaPage() {
             const maxRpn = f.entries?.length ? Math.max(...f.entries.map(e => e.rpn || 0)) : 0;
             const sc = statusConf(f.status);
             return (
-              <Card key={f.id} className="border border-slate-100 shadow-sm hover:shadow-md transition-all">
+              <Card key={f.id} className="border border-slate-100 shadow-sm hover:shadow-none transition-all">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
@@ -336,12 +340,12 @@ export default function FmeaPage() {
                         <Badge variant="outline" className="text-xs">Rev. {f.revision}</Badge>
                         {f.equipmentName && <Badge variant="outline" className="text-xs">{f.equipmentName}</Badge>}
                       </div>
-                      <h3 className="font-semibold text-slate-800">{f.title}</h3>
+                      <h3 className="font-semibold text-ink">{f.title}</h3>
                       {f.scope && <p className="text-xs text-ink-mute mt-1 line-clamp-1">{f.scope}</p>}
                       <div className="flex items-center gap-4 mt-2 flex-wrap">
                         <span className="text-xs text-ink-mute">{f.entries?.length || 0} modes de défaillance</span>
-                        {critical > 0 && <Badge className="bg-red-100 text-red-700 text-xs">{critical} critique{critical > 1 ? "s" : ""}</Badge>}
-                        {high > 0 && <Badge className="bg-orange-100 text-orange-700 text-xs">{high} élevé{high > 1 ? "s" : ""}</Badge>}
+                        {critical > 0 && <Badge className="bg-etat-critique-fond text-etat-critique-texte text-xs">{critical} critique{critical > 1 ? "s" : ""}</Badge>}
+                        {high > 0 && <Badge className="bg-etat-alerte-fond text-etat-alerte-texte text-xs">{high} élevé{high > 1 ? "s" : ""}</Badge>}
                         {maxRpn > 0 && <span className="text-xs font-medium" style={{ color: rpnColor(maxRpn) }}>RPN max: {maxRpn}</span>}
                       </div>
                     </div>
@@ -361,7 +365,7 @@ export default function FmeaPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" /> Nouvelle analyse FMEA
+              <AlertTriangle className="h-5 w-5 text-etat-alerte-texte" /> Nouvelle analyse FMEA
             </DialogTitle>
           </DialogHeader>
           <Form {...form}>
@@ -394,8 +398,8 @@ export default function FmeaPage() {
         <Dialog open={!!selected} onOpenChange={() => { setSelected(null); setEditingEntry(null); setEditingIdx(null); }}>
           <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-orange-200">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-alerte-filet">
+                <AlertTriangle className="h-6 w-6 text-etat-alerte-texte" />
                 <div className="flex-1">
                   <DialogTitle>{selected.title}</DialogTitle>
                   <p className="text-xs text-ink-mute font-mono">{selected.fmeaNumber} · Rev. {selected.revision}</p>
@@ -403,7 +407,7 @@ export default function FmeaPage() {
                 <div className="flex gap-2 flex-wrap">
                   {STATUSES.map(s => (
                     <Button key={s.value} variant={selected.status === s.value ? "default" : "outline"} size="sm"
-                      className={selected.status === s.value ? "bg-orange-500 text-white" : "text-xs"}
+                      className={selected.status === s.value ? "bg-etat-alerte-vif text-white" : "text-xs"}
                       onClick={() => updateMutation.mutate({ id: selected.id, data: { status: s.value } })}>
                       {s.label}
                     </Button>
@@ -417,16 +421,16 @@ export default function FmeaPage() {
               <BarChart3 className="h-4 w-4" /> Matrice de criticité {showMatrix ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
             {showMatrix && (
-              <div className="bg-slate-50 rounded-xl p-4 border">
+              <div className="bg-paper rounded-none p-4 border">
                 <CriticalityMatrix entries={selected.entries || []} />
               </div>
             )}
 
             {/* Entries table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="overflow-x-auto rounded-none border border-rule">
               <table className="w-full text-sm min-w-[900px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b">
+                  <tr className="bg-paper border-b">
                     {["Composant", "Mode de défaillance", "Effet", "Cause", "S", "O", "D", "RPN", "Criticité", "Actions", "Statut", ""].map(h => (
                       <th key={h} className="py-2 px-3 text-left text-xs font-semibold text-ink-soft whitespace-nowrap">{h}</th>
                     ))}
@@ -437,7 +441,7 @@ export default function FmeaPage() {
                     <tr><td colSpan={12} className="py-8 text-center text-ink-mute text-sm">Aucun mode de défaillance — ajoutez-en un ci-dessous</td></tr>
                   )}
                   {(selected.entries || []).map((e, i) => (
-                    <tr key={e.id || i} className={`border-b hover:bg-slate-50 ${e.criticalityClass === "critical" ? "bg-red-50/30" : e.criticalityClass === "high" ? "bg-orange-50/30" : ""}`}>
+                    <tr key={e.id || i} className={`border-b hover:bg-paper ${e.criticalityClass === "critical" ? "bg-etat-critique-fond/30" : e.criticalityClass === "high" ? "bg-etat-alerte-fond/30" : ""}`}>
                       <td className="py-2 px-3 text-xs">{e.component || "—"}</td>
                       <td className="py-2 px-3 font-medium text-sm max-w-36 truncate">{e.failureMode}</td>
                       <td className="py-2 px-3 text-xs max-w-28 truncate">{e.failureEffect || "—"}</td>
@@ -451,7 +455,7 @@ export default function FmeaPage() {
                       <td className="py-2 px-3"><Badge className={`text-xs ${rpnBg(e.criticalityClass || "low")}`}>{rpnLabel(e.criticalityClass || "low")}</Badge></td>
                       <td className="py-2 px-3 text-xs max-w-36 truncate text-ink-soft">{e.recommendedActions || "—"}</td>
                       <td className="py-2 px-3">
-                        <Badge className={`text-xs ${e.status === "closed" ? "bg-green-100 text-green-700" : e.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
+                        <Badge className={`text-xs ${e.status === "closed" ? "bg-etat-nominal-fond text-etat-nominal-texte" : e.status === "in_progress" ? "bg-etat-encours-fond text-etat-encours-texte" : "bg-paper-deep text-ink-soft"}`}>
                           {e.status === "closed" ? "Clôturé" : e.status === "in_progress" ? "En cours" : "Ouvert"}
                         </Badge>
                       </td>
@@ -460,7 +464,7 @@ export default function FmeaPage() {
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditingEntry(e); setEditingIdx(i); }}>
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-400 hover:text-red-600" onClick={() => removeEntry(i)}>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-etat-critique-texte hover:text-etat-critique-texte" onClick={() => removeEntry(i)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -478,23 +482,23 @@ export default function FmeaPage() {
 
             {/* Entry editor */}
             {editingEntry && (
-              <div className="border-2 border-orange-200 rounded-xl p-5 bg-orange-50/30 space-y-4">
-                <h4 className="font-semibold text-orange-800">{editingIdx !== null ? "Modifier le mode de défaillance" : "Nouveau mode de défaillance"}</h4>
+              <div className="border-2 border-etat-alerte-filet rounded-none p-5 bg-etat-alerte-fond/30 space-y-4">
+                <h4 className="font-semibold text-etat-alerte-texte">{editingIdx !== null ? "Modifier le mode de défaillance" : "Nouveau mode de défaillance"}</h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Composant</label>
+                    <label className="text-xs font-medium text-ink-soft">Composant</label>
                     <Input className="mt-1" value={editingEntry.component || ""} onChange={e => setEditingEntry(p => ({ ...p, component: e.target.value }))} placeholder="Ex: Roulement, Valve..." />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Mode de défaillance *</label>
+                    <label className="text-xs font-medium text-ink-soft">Mode de défaillance *</label>
                     <Input className="mt-1" value={editingEntry.failureMode || ""} onChange={e => setEditingEntry(p => ({ ...p, failureMode: e.target.value }))} placeholder="Ex: Fissure, Blocage..." />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Effet de la défaillance</label>
+                    <label className="text-xs font-medium text-ink-soft">Effet de la défaillance</label>
                     <Input className="mt-1" value={editingEntry.failureEffect || ""} onChange={e => setEditingEntry(p => ({ ...p, failureEffect: e.target.value }))} placeholder="Ex: Arrêt de production..." />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-slate-700">Cause de la défaillance</label>
+                    <label className="text-xs font-medium text-ink-soft">Cause de la défaillance</label>
                     <Input className="mt-1" value={editingEntry.failureCause || ""} onChange={e => setEditingEntry(p => ({ ...p, failureCause: e.target.value }))} placeholder="Ex: Fatigue matériaux..." />
                   </div>
                 </div>
@@ -508,7 +512,7 @@ export default function FmeaPage() {
                     const previewRpn = (editingEntry.severity || 5) * (editingEntry.occurrence || 5) * (editingEntry.detection || 5);
                     return (
                       <div key={key} className="bg-white rounded-lg p-3 border">
-                        <label className="text-xs font-semibold text-slate-700">{label}</label>
+                        <label className="text-xs font-semibold text-ink-soft">{label}</label>
                         <p className="text-xs text-ink-mute mb-2">{desc}</p>
                         <div className="flex items-center gap-3">
                           <span className="text-2xl font-black w-8 text-center" style={{ color: rpnColor(val * val) }}>{val}</span>
@@ -528,12 +532,12 @@ export default function FmeaPage() {
                     </p>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-medium text-slate-700">Actions recommandées</label>
+                    <label className="text-xs font-medium text-ink-soft">Actions recommandées</label>
                     <Textarea rows={2} value={editingEntry.recommendedActions || ""} onChange={e => setEditingEntry(p => ({ ...p, recommendedActions: e.target.value }))} placeholder="Actions pour réduire le RPN..." className="mt-1" />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={addOrUpdateEntry} disabled={!editingEntry.failureMode || updateMutation.isPending} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
+                  <Button size="sm" onClick={addOrUpdateEntry} disabled={!editingEntry.failureMode || updateMutation.isPending} className="bg-etat-alerte-vif hover:bg-etat-alerte-vif text-white gap-2">
                     {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     {editingIdx !== null ? "Mettre à jour" : "Ajouter"}
                   </Button>
@@ -543,7 +547,7 @@ export default function FmeaPage() {
             )}
 
             <DialogFooter>
-              <Button variant="ghost" size="sm" className="text-red-600" onClick={() => { if (confirm("Supprimer cette FMEA ?")) deleteMutation.mutate(selected.id); }}>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte" onClick={() => { if (confirm("Supprimer cette FMEA ?")) deleteMutation.mutate(selected.id); }}>
                 <Trash2 className="h-4 w-4 mr-1" /> Supprimer
               </Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
@@ -552,5 +556,6 @@ export default function FmeaPage() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

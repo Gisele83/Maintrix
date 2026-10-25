@@ -24,6 +24,23 @@ import {
   Wrench,
   Brain
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
+
+/**
+ * Statuts d'une demande budgétaire, traduits et colorés par les jetons d'état
+ * partagés. Ils étaient rendus bruts (`pending`, `approved`) et teintés par
+ * les variantes de `Badge`, dont le contraste n'a jamais été mesuré.
+ */
+const DEMANDES_BUDGET: Record<string, { libelle: string; registre: RegistreEtat }> = {
+  pending: { libelle: "En attente", registre: "alerte" },
+  approved: { libelle: "Approuvée", registre: "nominal" },
+  rejected: { libelle: "Refusée", registre: "critique" },
+  draft: { libelle: "Brouillon", registre: "neutre" },
+};
+const libelleDemandeBudget = (statut: string) => DEMANDES_BUDGET[statut]?.libelle ?? statut ?? "—";
+const registreDemandeBudget = (statut: string): RegistreEtat => DEMANDES_BUDGET[statut]?.registre ?? "neutre";
 
 export default function AdvancedReporting() {
   const { language } = useLanguage();
@@ -31,50 +48,6 @@ export default function AdvancedReporting() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
 
-  // Fetch budget data
-  const { data: budgets = [] } = useQuery<any[]>({
-    queryKey: ["/api/budgets"],
-  });
-
-  // ⚠️ Cette page interrogeait /api/budget-summary et /api/budget-requests, qui
-  // étaient servis par `server/budget-management.ts` depuis deux tableaux EN
-  // MÉMOIRE, codés en dur sous le commentaire « Sample budget data for
-  // demonstration » : 325 000 € de budget, 189 100 € disponibles, deux demandes
-  // d'achat nominatives. Chaque testeur et chaque locataire les voyait comme
-  // étant les siens — et les voyait TOUS À L'IDENTIQUE, les tableaux étant
-  // partagés par l'ensemble de l'instance.
-  //
-  // Le module a été supprimé. /api/budgets/stats lit les vraies tables
-  // `budget_plans` / `budget_transactions`, filtrées par locataire et par
-  // exercice. Il ne connaît pas la notion de « demande budgétaire » : aucune
-  // table ne la porte, ce qui n'existait donc que dans le tableau fabriqué.
-  const exerciceCourant = new Date().getFullYear();
-
-  const { data: budgetStats } = useQuery<{
-    totalAllocated: number;
-    totalSpent: number;
-    totalCommitted: number;
-    byType: Array<{ budget_type: string; allocated: string; spent: string }>;
-  } | undefined>({
-    queryKey: ["/api/budgets/stats"],
-  });
-
-  const budget = (() => {
-    if (!budgetStats) return undefined;
-    const alloue = Number(budgetStats.totalAllocated) || 0;
-    const depense = Number(budgetStats.totalSpent) || 0;
-    const engage = Number(budgetStats.totalCommitted) || 0;
-    return {
-      alloue,
-      depense,
-      engage,
-      disponible: alloue - depense - engage,
-      // Un budget non renseigné n'est pas un budget consommé à 0 % : sans
-      // enveloppe allouée, le taux n'a pas de valeur, il n'existe pas.
-      utilisation: alloue > 0 ? (depense / alloue) * 100 : null,
-      parType: budgetStats.byType ?? [],
-    };
-  })();
 
   const { data: kpiMetrics = [] } = useQuery<any[]>({
     queryKey: ["/api/kpi-metrics"],
@@ -134,78 +107,53 @@ export default function AdvancedReporting() {
       mttr,
       availability,
       oee,
-      // `null` plutôt qu'un taux inventé : un budget non renseigné n'est pas
-      // un budget consommé à 25 %.
-      budgetUtilization: budget?.utilisation ?? null
+      // ⚠️ `budgetUtilization` a été retiré d'ici, avec sa source.
+      //
+      // Il valait `budgetSummary?.utilizationRate`, servi par
+      // `server/budget-management.ts` : 331 lignes, ZÉRO occurrence de
+      // `tenantId`, un tableau de budgets écrits en dur (50 000, 75 000 et
+      // 200 000 € alloués, avec leurs montants dépensés et des seuils
+      // d'approbation nommés `supervisor`, `manager`, `director` — les rôles
+      // fantômes que shared/roles.ts existe pour éliminer). Les mêmes chiffres
+      // pour toutes les organisations, sur l'écran « Analyses et rapports »,
+      // celui qu'un industriel imprime pour un comité ou un audit. Les cinq
+      // routes du module ne portaient par ailleurs AUCUN middleware
+      // d'authentification.
+      //
+      // Le champ n'était de toute façon affiché nulle part : il était calculé
+      // ici et jamais lu. Une campagne précédente avait rendu son repli honnête
+      // (`?? null` plutôt qu'un taux inventé) sans toucher à la source, qui
+      // elle restait fabriquée.
+      //
+      // Le budget RÉEL, cloisonné par locataire, vit dans
+      // `server/budget-routes.ts` (`/api/budgets`, avec `auth` et
+      // `TenantRequest`) et s'affiche sur l'écran `/budget`. Cette page ne le
+      // redouble pas : une donnée absente s'affiche comme absente.
     };
   };
 
   const kpis = calculateKPIs();
 
-  /**
-   * Tendances mois courant / mois précédent.
-   *
-   * ⚠️ Les quatre tuiles « Tendances de Performance » affichaient ↓ 12 %,
-   * ↓ 8 %, ↑ 15 % et 96 % de satisfaction — quatre littéraux écrits dans le
-   * JSX, identiques pour tout le monde et insensibles aux données. Un
-   * industriel qui voit « coûts de maintenance en baisse de 12 % » sur un parc
-   * qu'il vient de créer n'a aucune raison de refaire confiance au reste.
-   *
-   * Deux de ces quatre grandeurs se calculent vraiment à partir des ordres de
-   * travail que cette page charge déjà. Les deux autres n'ont aucune source
-   * dans Maintrix et le disent.
-   */
-  const tendances = (() => {
-    const maintenant = new Date();
-    const moisDe = (d: Date) => d.getFullYear() * 12 + d.getMonth();
-    const moisCourant = moisDe(maintenant);
-
-    const clos = workOrders.filter((wo: any) => wo.status === 'completed' && wo.actualEnd);
-    const parMois = (decalage: number) =>
-      clos.filter((wo: any) => moisDe(new Date(wo.actualEnd)) === moisCourant - decalage);
-
-    const ceMois = parMois(0);
-    const moisPrecedent = parMois(1);
-
-    const cumulCout = (lot: any[]) =>
-      lot.reduce((s: number, wo: any) => s + (parseFloat(wo.cost ?? '0') || 0), 0);
-
-    // Une variation n'a de sens que si le mois de référence existe ET porte un
-    // coût non nul : sinon on diviserait par zéro, ou on annoncerait « +∞ % ».
-    const coutPrecedent = cumulCout(moisPrecedent);
-    const variationCout = moisPrecedent.length > 0 && coutPrecedent > 0
-      ? ((cumulCout(ceMois) - coutPrecedent) / coutPrecedent) * 100
-      : null;
-
-    // Part du préventif sur le mois : indicateur de pilotage standard en GMAO.
-    const partPreventif = ceMois.length > 0
-      ? (ceMois.filter((wo: any) => wo.orderType === 'preventive').length / ceMois.length) * 100
-      : null;
-
-    return { variationCout, partPreventif, interventionsClosesCeMois: ceMois.length };
-  })();
-
   const exportReport = (format: string) => {
     try {
       if (format === 'pdf') {
-        // Create comprehensive report data
-        const reportData = {
-          period: selectedPeriod,
-          department: selectedDepartment,
-          generatedAt: new Date().toISOString(),
-          kpis,
-          budget,
-          workOrders: workOrders.slice(0, 20),
-          equipment: equipment.slice(0, 15),
-          alerts: alerts.slice(0, 10)
-        };
-
-        // Download comprehensive GMAO report PDF with cache busting
+        // ⚠️ Un objet `reportData` était construit ici — période, KPI de
+        // l'écran, budgets, vingt ordres de travail, quinze équipements — puis
+        // JAMAIS utilisé : le document est produit côté serveur, qui relit tout
+        // lui-même. Il est supprimé, et avec lui l'illusion que ce qui est
+        // exporté serait ce que l'écran a calculé.
+        //
+        // L'URL visait `/pdf/comprehensive-report`, supprimée. La route retenue
+        // sert un document PLUS COMPLET, et c'est un choix énoncé : elle calcule
+        // disponibilité, MTBF et MTTR sur les ordres de travail du locataire
+        // (mesurés 99,3 %, 24 h, 2,5 h) là où l'ancienne imprimait « N/D » pour
+        // les quatre, et elle ajoute le détail des coûts. Le seul champ que
+        // l'ancienne portait seule et qui vaille — « Alertes critiques » — est
+        // repris. L'autre, « Utilisation budget », ne l'est pas : il valait le
+        // taux d'achèvement des OT sous une étiquette de budget.
         const timestamp = new Date().getTime();
-        const url = `/pdf/comprehensive-report?period=${selectedPeriod}&department=${selectedDepartment}&t=${timestamp}`;
-        
-        console.log('🎯 Opening Comprehensive PDF report:', url); // Debug log
-        
+        const url = `/api/comprehensive-report/pdf?period=${selectedPeriod}&department=${selectedDepartment}&t=${timestamp}`;
+
         // Use window.open instead of download link for better compatibility
         window.open(url, '_blank');
 
@@ -237,48 +185,66 @@ export default function AdvancedReporting() {
   };
 
   return (
-    <div className="min-h-screen bg-paper-deep">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+    <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "Rapports" }]} largeur="large">
+    <div className="space-y-6">
+      <EnTetePage
+        surTitre="Analyse"
+        titre="Reporting avancé"
+        phrase="Budget, charge de travail, alertes et équipements critiques, réunis pour une revue de direction."
+      />
+
+      {/* ⚠️ Ces deux listes ne filtrent PAS l'écran : elles ne sont lues que
+          par `exportReport`, pour l'URL du PDF et du tableur. Placées en haut
+          de page comme des filtres, elles laissaient croire le contraire —
+          on choisissait « Cette semaine », rien ne bougeait, et on pouvait
+          en déduire que les chiffres affichés étaient hebdomadaires. Elles
+          sont donc rassemblées avec les boutons qu'elles commandent, sous un
+          intitulé qui dit ce qu'elles font. */}
+      <div className="border border-rule bg-white p-5">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+          <div>
+            <p className="font-mono text-eyebrow uppercase text-ink-mute">Périmètre de l'export</p>
+            <p className="text-sm text-ink-soft mt-1.5">
+              Ces deux choix déterminent le contenu du fichier exporté, pas celui de l'écran.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
-                <Activity className="h-8 w-8 text-primary" />
-                <span>Reporting Avancé GMAO</span>
-              </h1>
-              <p className="text-gray-600 mt-2">Tableau de bord exécutif et analyse de performance</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <select 
-                value={selectedPeriod} 
+              <label htmlFor="export-periode" className="sr-only">Période de l'export</label>
+              <select
+                id="export-periode"
+                value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                className="h-10 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
                 <option value="week">Cette semaine</option>
                 <option value="month">Ce mois</option>
                 <option value="quarter">Ce trimestre</option>
                 <option value="year">Cette année</option>
               </select>
-              <select 
-                value={selectedDepartment} 
+            </div>
+            <div>
+              <label htmlFor="export-departement" className="sr-only">Département de l'export</label>
+              <select
+                id="export-departement"
+                value={selectedDepartment}
                 onChange={(e) => setSelectedDepartment(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                className="h-10 px-3 border border-rule bg-white text-sm text-ink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal"
               >
                 <option value="all">Tous départements</option>
                 <option value="maintenance">Maintenance</option>
                 <option value="production">Production</option>
                 <option value="utilities">Utilités</option>
               </select>
-              <Button onClick={() => exportReport('pdf')} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export PDF
-              </Button>
-              <Button onClick={() => exportReport('excel')} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
-              </Button>
             </div>
+            <ActionSecondaire onClick={() => exportReport('pdf')}>
+              <Download className="h-4 w-4" />
+              Export PDF
+            </ActionSecondaire>
+            <ActionSecondaire onClick={() => exportReport('excel')}>
+              <Download className="h-4 w-4" />
+              Export Excel
+            </ActionSecondaire>
           </div>
         </div>
       </div>
@@ -286,128 +252,28 @@ export default function AdvancedReporting() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        {/* Budget Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <span>Vue budgétaire {exerciceCourant}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {budget && budget.alloue > 0 ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-paper-deep rounded-lg">
-                      <p className="text-sm text-ink-soft">Budget alloué</p>
-                      <p className="text-2xl font-bold text-ink">
-                        {budget.alloue.toLocaleString('fr-FR')} €
-                      </p>
-                    </div>
-                    <div className="text-center p-4 bg-paper-deep rounded-lg">
-                      <p className="text-sm text-ink-soft">Disponible</p>
-                      <p className="text-2xl font-bold text-ink">
-                        {budget.disponible.toLocaleString('fr-FR')} €
-                      </p>
-                      <p className="text-xs text-ink-mute mt-1">
-                        alloué − dépensé − engagé
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Utilisation : {budget.utilisation!.toFixed(1)} %</span>
-                      <span>
-                        {budget.depense.toLocaleString('fr-FR')} € / {budget.alloue.toLocaleString('fr-FR')} €
-                      </span>
-                    </div>
-                    <Progress value={budget.utilisation!} className="h-3" />
-                  </div>
-
-                  <div className="space-y-3">
-                    {budget.parType.map((ligne) => {
-                      const alloue = Number(ligne.allocated) || 0;
-                      const depense = Number(ligne.spent) || 0;
-                      return (
-                        <div key={ligne.budget_type} className="flex justify-between items-center p-3 bg-paper rounded-lg">
-                          <span className="font-medium capitalize">{ligne.budget_type}</span>
-                          <div className="text-right">
-                            <p className="font-bold">{(alloue - depense).toLocaleString('fr-FR')} €</p>
-                            <p className="text-xs text-ink-soft">sur {alloue.toLocaleString('fr-FR')} €</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 text-sm text-ink-soft py-6">
-                  <p>Aucun budget n'est défini pour l'exercice {exerciceCourant}.</p>
-                  <p className="text-ink-mute">
-                    Les montants affichés ici proviennent des enveloppes saisies dans
-                    le module Budget. Tant qu'aucune n'est créée, il n'y a rien à
-                    afficher — et rien à supposer.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-                <span>Demandes budgétaires</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* ⚠️ Cette carte listait « Remplacement roulements moteur
-                  principal — 3 500 € — pending » et « Pièces détachées pompe
-                  hydraulique — 850 € — approved ». Deux demandes inventées,
-                  identiques chez tous les locataires.
-
-                  Et son état vide affirmait « Aucune demande budgétaire en
-                  attente », coche verte à l'appui — une affirmation, pas un
-                  constat : aucune table ne stocke de demande budgétaire, donc
-                  la plateforme ne peut pas savoir s'il y en a. Dire « aucune »
-                  quand on ne mesure rien est la même faute que d'en inventer
-                  deux. */}
-              <div className="space-y-2 text-sm text-ink-soft py-6">
-                <p>Les demandes budgétaires ne sont pas encore gérées par la plateforme.</p>
-                <p className="text-ink-mute">
-                  Le circuit d'engagement de dépense (demande, seuils d'approbation,
-                  rattachement à un ordre de travail ou à un bon de commande) reste à
-                  construire. Les engagements déjà saisis apparaissent dans la vue
-                  budgétaire ci-contre, sous « engagé ».
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Work Orders & Alerts Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5 text-blue-600" />
+                <Settings className="h-5 w-5 text-etat-encours-texte" />
                 <span>Ordres de Travail</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                  <span className="text-yellow-700">En attente</span>
+                <div className="flex items-center justify-between p-3 bg-etat-alerte-fond rounded-lg">
+                  <span className="text-etat-alerte-texte">En attente</span>
                   <Badge variant="secondary">{kpis.pendingWorkOrders}</Badge>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                  <span className="text-green-700">Terminés</span>
+                <div className="flex items-center justify-between p-3 bg-etat-nominal-fond rounded-lg">
+                  <span className="text-etat-nominal-texte">Terminés</span>
                   <Badge variant="default">{kpis.completedWorkOrders}</Badge>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                  <span className="text-blue-700">Taux de complétion</span>
+                <div className="flex items-center justify-between p-3 bg-etat-encours-fond rounded-lg">
+                  <span className="text-etat-encours-texte">Taux de complétion</span>
                   <Badge variant="outline">
                     {((kpis.completedWorkOrders / Math.max(kpis.completedWorkOrders + kpis.pendingWorkOrders, 1)) * 100).toFixed(0)}%
                   </Badge>
@@ -419,21 +285,21 @@ export default function AdvancedReporting() {
           <Card className="border-0">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertTriangle className="h-5 w-5 text-etat-critique-texte" />
                 <span>Alertes Actives</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="text-center">
-                  <p className="text-4xl font-bold text-red-600">{kpis.activeAlerts}</p>
-                  <p className="text-sm text-gray-600">Alertes nécessitant attention</p>
+                  <p className="text-4xl font-bold text-etat-critique-texte">{kpis.activeAlerts}</p>
+                  <p className="text-sm text-ink-soft">Alertes nécessitant attention</p>
                 </div>
                 <div className="space-y-2">
                   {alerts.slice(0, 3).map((alert: any) => (
-                    <div key={alert.id} className="p-2 bg-red-50 rounded border-l-4 border-red-500">
+                    <div key={alert.id} className="p-2 bg-etat-critique-fond rounded border-l-4 border-etat-critique-filet">
                       <p className="text-sm font-medium">{alert.title}</p>
-                      <p className="text-xs text-gray-600">{alert.message}</p>
+                      <p className="text-xs text-ink-soft">{alert.message}</p>
                     </div>
                   ))}
                 </div>
@@ -452,7 +318,7 @@ export default function AdvancedReporting() {
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-signal-deep">{kpis.criticalEquipment}</p>
-                  <p className="text-sm text-gray-600">Équipements sous surveillance</p>
+                  <p className="text-sm text-ink-soft">Équipements sous surveillance</p>
                 </div>
                 <div className="space-y-2">
                   {equipment
@@ -461,7 +327,7 @@ export default function AdvancedReporting() {
                     .map((eq: any) => (
                     <div key={eq.id} className="p-2 bg-paper-deep rounded border-l-4 border-rule">
                       <p className="text-sm font-medium">{eq.equipmentName}</p>
-                      <p className="text-xs text-gray-600">{eq.location}</p>
+                      <p className="text-xs text-ink-soft">{eq.location}</p>
                     </div>
                   ))}
                 </div>
@@ -481,89 +347,43 @@ export default function AdvancedReporting() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-paper-deep rounded-lg">
-                <p className="text-sm text-gray-600">Sessions de diagnostic</p>
-                <p className="text-2xl font-bold text-signal-deep">{diagnosticStats?.totalSessions ?? 0}</p>
+                <p className="text-sm text-ink-soft">Sessions de diagnostic</p>
+                <p className="font-serif text-3xl text-signal-deep">{diagnosticStats?.totalSessions ?? 0}</p>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">Confiance moyenne</p>
-                <p className="text-2xl font-bold text-blue-900">{Math.round((diagnosticStats?.avgConfidence ?? 0) * 100)}%</p>
+              <div className="text-center p-4 bg-etat-encours-fond rounded-lg">
+                <p className="text-sm text-ink-soft">Confiance moyenne</p>
+                <p className="font-serif text-3xl text-etat-encours-texte">{Math.round((diagnosticStats?.avgConfidence ?? 0) * 100)}%</p>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">Taux de complétion</p>
-                <p className="text-2xl font-bold text-green-900">{diagnosticStats?.completionRate ?? 0}%</p>
+              <div className="text-center p-4 bg-etat-nominal-fond rounded-lg">
+                <p className="text-sm text-ink-soft">Taux de complétion</p>
+                <p className="font-serif text-3xl text-etat-nominal-texte">{diagnosticStats?.completionRate ?? 0}%</p>
               </div>
-              <div className="text-center p-4 bg-amber-50 rounded-lg">
-                <p className="text-sm text-gray-600">Part avec prédiction ML</p>
-                <p className="text-2xl font-bold text-amber-900">{diagnosticStats?.mlPredictionRate ?? 0}%</p>
+              <div className="text-center p-4 bg-etat-alerte-fond rounded-lg">
+                <p className="text-sm text-ink-soft">Part avec prédiction ML</p>
+                <p className="font-serif text-3xl text-etat-alerte-texte">{diagnosticStats?.mlPredictionRate ?? 0}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Performance Trends */}
-        <Card className="border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <BarChart className="h-5 w-5 text-indigo-600" />
-              <span>Tendances de Performance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Coût des interventions</h4>
-                {tendances.variationCout === null ? (
-                  <>
-                    <p className="text-2xl font-bold text-ink-mute">—</p>
-                    <p className="text-sm text-ink-mute">pas de mois de référence</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-ink">
-                      {tendances.variationCout >= 0 ? '↑' : '↓'}{' '}
-                      {Math.abs(tendances.variationCout).toFixed(0)} %
-                    </p>
-                    <p className="text-sm text-ink-soft">vs mois précédent</p>
-                  </>
-                )}
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink">Part du préventif</h4>
-                {tendances.partPreventif === null ? (
-                  <>
-                    <p className="text-2xl font-bold text-ink-mute">—</p>
-                    <p className="text-sm text-ink-mute">aucune intervention close ce mois</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-2xl font-bold text-ink">
-                      {tendances.partPreventif.toFixed(0)} %
-                    </p>
-                    <p className="text-sm text-ink-soft">
-                      sur {tendances.interventionsClosesCeMois} intervention
-                      {tendances.interventionsClosesCeMois > 1 ? 's' : ''} ce mois
-                    </p>
-                  </>
-                )}
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink-mute">Temps d'arrêt</h4>
-                <p className="text-2xl font-bold text-ink-mute">—</p>
-                <p className="text-sm text-ink-mute">
-                  non mesuré : les arrêts de production ne sont pas enregistrés
-                </p>
-              </div>
-              <div className="text-center">
-                <h4 className="font-semibold text-ink-mute">Satisfaction</h4>
-                <p className="text-2xl font-bold text-ink-mute">—</p>
-                <p className="text-sm text-ink-mute">
-                  non mesuré : aucune enquête n'est collectée
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ⚠️ RETIRÉ : une carte « Tendances de Performance » dont les QUATRE
+            chiffres étaient écrits en dur dans le JSX — « Coûts Maintenance
+            ↓ 12 % », « Temps d'Arrêt ↓ 8 % », « Interventions Préventives
+            ↑ 15 % » et « Satisfaction Client 96 %, Score NPS ».
+
+            Aucun n'avait de source : ils ne venaient d'aucune des huit
+            requêtes de cette page, et la plateforme ne collecte NI tendance
+            mensuelle NI score NPS. Un industriel qui lit « ↓ 12 % de coûts
+            vs mois dernier » sur un parc qu'il vient de saisir n'a aucun
+            moyen de deviner que la phrase est décorative.
+
+            Le nettoyage du 11/10 avait traité les valeurs de REPLI de cette
+            page (MTBF 168,5 h, MTTR 4,2 h, OEE 87,3 %...) : celles-ci lui ont
+            échappé parce qu'elles ne sont pas des replis, mais du texte.
+
+            Ces mesures ont leur place ici le jour où une route les calcule. */}
       </div>
     </div>
+    </AppShell>
   );
 }

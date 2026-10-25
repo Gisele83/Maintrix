@@ -523,6 +523,28 @@ export type FailureTrend = typeof failureTrends.$inferSelect;
 // Company Configuration - Enterprise Branding and Letterhead
 export const companyConfig = pgTable("company_config", {
   id: serial("id").primaryKey(),
+  // ⚠️ Cette colonne manquait, et cette table porte l'IDENTITÉ COMMERCIALE :
+  // raison sociale, adresse, numéro fiscal, logo — plus les seuils à partir
+  // desquels une dépense exige une validation. Sans locataire :
+  //
+  //   • `getCompanyConfig()` n'avait aucun filtre : tous les locataires
+  //     lisaient la même ligne, donc l'en-tête, l'adresse et le numéro fiscal
+  //     d'une entreprise quelconque de l'instance ;
+  //   • `createCompanyConfig()` désactivait les configurations existantes par
+  //     un `UPDATE … SET is_active = false` SANS clause `WHERE` : le locataire
+  //     qui enregistrait la sienne effaçait celle de TOUS les autres, puis
+  //     devenait la seule ligne active — son identité était ensuite servie à
+  //     tout le monde ;
+  //   • les bons de commande, documents d'engagement de dépense, pouvaient
+  //     donc sortir à l'en-tête et au numéro fiscal d'une AUTRE entreprise :
+  //     une fuite de données commerciales doublée d'un document faux ;
+  //   • les seuils d'approbation vivant dans la même ligne, un locataire
+  //     modifiait sans le savoir le montant à partir duquel les autres
+  //     déclenchent une validation.
+  //
+  // Voir migrations/0022_company_config_tenant_scoped.sql pour le rattachement
+  // des lignes antérieures — qu'AUCUNE donnée ne permet d'attribuer.
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   companyName: varchar("company_name", { length: 255 }).notNull(),
   address: text("address"),
   phone: varchar("phone", { length: 50 }),
@@ -605,7 +627,7 @@ export const workOrders = pgTable("work_orders", {
   notes: text("notes"),
   completionNotes: text("completion_notes"),
   // VALIDATION SYSTEM - 2 LEVELS FOR WORK ORDERS
-  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, fully_validated, rejected
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, validated, rejected — vocabulaire écrit ET relu par server/simple-validation-routes.ts
   level1ValidatedBy: integer("level1_validated_by").references(() => userProfiles.id), // Supervisor validation
   level1ValidatedAt: timestamp("level1_validated_at"),
   level1ValidationNotes: text("level1_validation_notes"),
@@ -726,8 +748,37 @@ export const stockMovements = pgTable("stock_movements", {
 });
 
 // IoT Sensor Data - Real-time monitoring
+// ⚠️ `tenantId` manquait ici aussi, et l'audit du cloisonnement des coûts
+// (migration 0020) avait laissé cette table de côté en rapiéçant son seul
+// export par une jointure. Le recensement complet de ses lectures a montré que
+// le défaut était bien plus large, et qu'il ne se limitait pas à une question
+// d'isolation :
+//
+//   • `/api/jsd/equipment/:id`, `/api/jsd/global-status` et
+//     `/api/stochastic-rul/equipment/:id` lisaient la table AVEC pour seule
+//     condition une fenêtre temporelle. Les deux routes « equipment/:id »
+//     recevaient un identifiant d'équipement, le renvoyaient dans leur réponse
+//     — et ne s'en servaient JAMAIS dans la requête. Elles calculaient donc une
+//     dérive et un RUL sur les relevés mêlés de tout le parc de toute
+//     l'instance, puis les étiquetaient du nom d'un équipement. Ce n'était pas
+//     seulement une fuite : le nombre affiché ne mesurait rien ;
+//   • `POST /api/equipment/:equipmentId/predict` et
+//     `POST /api/advanced-diagnostic` prenaient l'identifiant d'équipement de
+//     la requête sans vérifier à qui il appartient — lire les capteurs d'autrui
+//     ne demandait que d'en deviner le numéro ;
+//   • `getIotSensorData(equipmentId?)` avait un équipement FACULTATIF : appelée
+//     sans lui par `GET /api/iot-data`, elle rendait toute l'instance.
+//
+// La colonne est posée directement plutôt que dérivée par jointure, pour la
+// même raison que sur `maintenance_reports` : `equipment_id` est NULLABLE, et
+// une jointure rendrait ces relevés invisibles à leur propre propriétaire. À
+// l'ingestion, le seul chemin qui ne connaît pas son locataire est le
+// connecteur IoT, qui ne reçoit qu'un équipement : il résout le locataire
+// depuis `equipment_registry` au moment d'écrire, une fois, au lieu de laisser
+// chaque lecture le redériver.
 export const iotSensorData = pgTable("iot_sensor_data", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   sensorType: varchar("sensor_type", { length: 50 }).notNull(), // temperature, vibration, pressure, flow, current, etc.
   sensorId: varchar("sensor_id", { length: 100 }).notNull(),
@@ -1290,6 +1341,12 @@ export const suppliers = pgTable("suppliers", {
 // Purchase Orders table
 export const purchaseOrders = pgTable("purchase_orders", {
   id: serial("id").primaryKey(),
+  // Ajoutée migration 0023. Un bon de commande est un ENGAGEMENT DE DÉPENSE : sans
+  // cette colonne, `getPurchaseOrderById` retrouvait celui d'une autre organisation
+  // et un validateur habilité du locataire A pouvait l'approuver en son propre nom.
+  // Le locataire vient de la session à chaque insertion — jamais du corps de la
+  // requête ni d'un en-tête (voir server/tenant-requis.ts).
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   orderNumber: varchar("order_number", { length: 50 }).unique().notNull(),
   supplierId: integer("supplier_id").references(() => suppliers.id),
   orderType: varchar("order_type", { length: 50 }).notNull(), // spare_parts, services, maintenance
@@ -1306,8 +1363,8 @@ export const purchaseOrders = pgTable("purchase_orders", {
   deliveryAddress: text("delivery_address"),
   notes: text("notes"),
   terms: text("terms"),
-  // VALIDATION SYSTEM - 2 LEVELS POUR BONS DE COMMANDE
-  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, chef_service_validated, directeur_validated, ready_for_print, printed, rejected
+  // VALIDATION SYSTEM - 3 LEVELS POUR BONS DE COMMANDE
+  validationStatus: varchar("validation_status", { length: 30 }).default("pending"), // pending, level1_validated, level2_validated, validated, printed, rejected — vocabulaire écrit ET relu par server/simple-validation-routes.ts
   chefServiceValidatedBy: integer("chef_service_validated_by").references(() => userProfiles.id), // Chef de Service Utilisateur
   chefServiceValidatedAt: timestamp("chef_service_validated_at"),
   chefServiceRejectionReason: text("chef_service_rejection_reason"), // Justification uniquement pour les rejets
@@ -1328,7 +1385,18 @@ export const purchaseOrders = pgTable("purchase_orders", {
 // Purchase Order Items table
 export const purchaseOrderItems = pgTable("purchase_order_items", {
   id: serial("id").primaryKey(),
-  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id),
+  // `onDelete: "cascade"` ajouté migration 0023, et pas par souci de symétrie :
+  // sans lui, le `ON DELETE CASCADE` que `purchase_orders.tenant_id` porte ne
+  // s'exécute JAMAIS dès qu'un bon a des lignes. Mesuré — supprimer un
+  // locataire échoue sur « violates foreign key constraint
+  // purchase_order_items_purchase_order_id_purchase_orders_id_fk », et le
+  // retrait d'une organisation s'arrête là. Une ligne de bon de commande
+  // n'existe que par son bon : elle le suit.
+  //
+  // Cette table ne porte PAS de `tenantId` : le cloisonnement passe par le bon
+  // parent (voir `gmaoStorage.getPurchaseOrderItems`), ce qui évite une seconde
+  // valeur à maintenir — donc à désynchroniser.
+  purchaseOrderId: integer("purchase_order_id").references(() => purchaseOrders.id, { onDelete: "cascade" }),
   sparePartId: integer("spare_part_id").references(() => spareParts.id),
   partNumber: varchar("part_number", { length: 100 }),
   description: text("description"),
@@ -1371,6 +1439,29 @@ export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).omit
   updatedAt: true,
 });
 
+/**
+ * Un bon de commande tel qu'un CLIENT peut le formuler — à la création comme à
+ * la modification.
+ *
+ * `tenantId` est RETIRÉ des deux, et c'est le point de ces schémas. Les routes
+ * validaient le corps avec `insertPurchaseOrderSchema` : depuis que la colonne
+ * existe, cette forme l'aurait acceptée dans le corps, et le stockage l'aurait
+ * écrite — un appelant pouvait donc créer un bon chez un autre locataire, ou
+ * DÉPLACER le sien, par un simple champ de requête. Le propriétaire d'un bon
+ * est fixé à sa création, depuis la session, et ne se change pas ensuite.
+ *
+ * `orderNumber` est retiré lui aussi : `gmaoStorage.createPurchaseOrder` le
+ * recalcule systématiquement et ignore celui qu'on lui passe. Le laisser dans
+ * le schéma donnait à croire qu'un appelant pouvait choisir le numéro de son
+ * bon de commande, alors que la valeur postée était jetée sans un mot.
+ */
+export const createPurchaseOrderSchema = insertPurchaseOrderSchema.omit({
+  tenantId: true,
+  orderNumber: true,
+});
+
+export const updatePurchaseOrderSchema = createPurchaseOrderSchema.partial();
+
 export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).omit({
   id: true,
 });
@@ -1397,8 +1488,25 @@ export type InsertReorderRule = z.infer<typeof insertReorderRuleSchema>;
 // ============= MAINTENANCE REPORTS TABLES =============
 
 // Maintenance Reports table - Generated after each intervention
+//
+// ⚠️ `tenantId` manquait ici, alors que la quasi-totalité des autres tables le
+// portent. La table n'était rattachée qu'à `equipmentId` — colonne NULLABLE —
+// si bien qu'aucun filtrage par locataire n'était exprimable :
+// `getMaintenanceReports()` lisait les rapports de TOUS les locataires de
+// l'instance, et les coûts du rapport mensuel les additionnaient.
+//
+// Le rattachement est direct plutôt que dérivé de l'équipement, pour deux
+// raisons :
+//   • `equipment_id` est NULLABLE (un ordre de travail peut n'être rattaché à
+//     aucun équipement) ; une jointure laisserait ces rapports hors de toute
+//     portée — ni lisibles par leur propriétaire, ni filtrables ;
+//   • le locataire est déjà connu au seul point d'insertion
+//     (`generateMaintenanceReport(workOrderId, tenantId, …)`) : il n'y a rien
+//     à deviner, et une colonne posée APRÈS le corps fourni par le client ne
+//     peut pas être usurpée par celui-ci.
 export const maintenanceReports = pgTable("maintenance_reports", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
   workOrderId: integer("work_order_id").references(() => workOrders.id),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
@@ -1432,8 +1540,17 @@ export const maintenanceReports = pgTable("maintenance_reports", {
 });
 
 // Monthly Reports table - Generated monthly with KPIs and statistics
+//
+// ⚠️ Même défaut, une marche plus loin : `generateMonthlyReport` reçoit bien
+// un `tenantId` et s'en sert pour le parc, les ordres de travail et les
+// alertes, mais la ligne produite ne le conservait pas. Les agrégats d'un
+// locataire — dont `totalMaintenanceCost`, `laborCost`, `partsCost` et
+// `costPerWorkOrder` — étaient donc rendus à tout le monde par
+// `GET /api/monthly-reports`. Corriger le seul calcul aurait produit des
+// chiffres justes, toujours lisibles par les autres.
 export const monthlyReports = pgTable("monthly_reports", {
   id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
   reportNumber: varchar("report_number", { length: 50 }).unique().notNull(),
   month: integer("month").notNull(), // 1-12
   year: integer("year").notNull(),
@@ -1546,8 +1663,33 @@ export const insertCompanyConfigSchema = createInsertSchema(companyConfig).omit(
   updatedAt: true,
 });
 
+/**
+ * La charge acceptée de l'interface sur `POST /api/company-config`.
+ *
+ * ⚠️ `tenantId` et `isActive` en sont RETIRÉS, et ce n'est pas cosmétique.
+ * La route passait `req.body` tel quel à `.set({ ...configData })`. Une fois la
+ * colonne `tenant_id` ajoutée, un appelant qui postait `{ "tenantId": "<autre
+ * locataire>" }` aurait fait DÉMÉNAGER sa propre ligne de configuration chez
+ * ce locataire — la clause `WHERE` du correctif vise bien le locataire de la
+ * session, mais rien n'empêchait le `SET` de réécrire la colonne visée.
+ * Le même raisonnement vaut pour `isActive` : l'activation est décidée par le
+ * serveur, jamais demandée par le client.
+ *
+ * `client/src/components/threshold-configuration.tsx` rend ce filtrage
+ * nécessaire même sans malveillance : il renvoie l'objet lu par le GET
+ * (`{ ...companyConfig, seuils }`), donc `id`, `tenantId` et les horodatages
+ * reviennent dans la charge à chaque enregistrement de seuils. Zod les écarte
+ * silencieusement (comportement « strip » par défaut) au lieu de les écrire.
+ */
+export const companyConfigPayloadSchema = insertCompanyConfigSchema.omit({
+  tenantId: true,
+  isActive: true,
+});
+
 export type CompanyConfig = typeof companyConfig.$inferSelect;
 export type InsertCompanyConfig = z.infer<typeof insertCompanyConfigSchema>;
+/** Ce qu'un locataire peut écrire : tout sauf à qui la ligne appartient. */
+export type CompanyConfigPayload = z.infer<typeof companyConfigPayloadSchema>;
 
 // ========================================
 // POST-DEPLOYMENT ACCESS MANAGEMENT TABLES

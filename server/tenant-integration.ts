@@ -1,3 +1,4 @@
+import { auMoins } from "@shared/roles";
 import { Express } from "express";
 import { tenantSecurityMiddleware, validateTenantData, antiLeakageValidator, tenantMetricsMiddleware, TenantRequest } from "./tenant-security-middleware";
 import { federatedAI } from "./federated-ai-system";
@@ -207,7 +208,9 @@ export function registerTenantManagementRoutes(app: Express): void {
   // Statistiques de sécurité tenant
   app.get("/api/tenant/security-stats", async (req: TenantRequest, res) => {
     try {
-      if (!req.tenantId || req.user?.role !== "admin") {
+      // `role !== "admin"` excluait le propriétaire du locataire, niveau 7,
+      // au-dessus d'`admin` — le même défaut que sur la gestion des comptes.
+      if (!req.tenantId || !auMoins(req.user?.role, 'admin')) {
         return res.status(403).json({ error: "Accès réservé aux administrateurs" });
       }
 
@@ -243,15 +246,25 @@ export function registerTenantManagementRoutes(app: Express): void {
 export function setupCompleteMultiTenantArchitecture(app: Express): void {
   console.log("🚀 INITIALIZING MULTI-TENANT SAAS ARCHITECTURE...");
   
-  // ⚠️ IMPORTANT: Les routes doivent être enregistrées AVANT les middlewares tenant
-  
-  // 1. Enregistrement des routes IA fédérée (nécessitent tenant)
-  registerFederatedAIRoutes(app);
-  
-  // 2. Enregistrement des routes tenant management (nécessitent tenant)
-  registerTenantManagementRoutes(app);
-  
-  // 3. Activation de la sécurité multi-tenant (avec exemptions auth corrigées)
+  // ⚠️ L'ordre inverse était appliqué ici, sous la mention « IMPORTANT: Les
+  // routes doivent être enregistrées AVANT les middlewares tenant ». C'est
+  // faux dans Express : un `app.use` postérieur ne s'exécute JAMAIS pour une
+  // route déclarée avant lui. Les quatre routes concernées lisaient donc un
+  // `req.tenantId` toujours vide et répondaient, à tout le monde,
+  // administrateur compris :
+  //
+  //   GET  /api/tenant/security-stats          403 « Accès réservé aux administrateurs »
+  //   GET  /api/federated-ai/improvement-stats 401 « Tenant ID requis »
+  //   POST /api/federated-ai/recommendations   401 « Tenant ID requis »
+  //   POST /api/federated-ai/diagnostic-feedback  idem
+  //
+  // Elles échouaient fermé — aucune donnée ne sortait — mais la capacité était
+  // morte, et la position invitait la faute suivante : toute route ajoutée ici
+  // aurait été servie sans authentification ni cloisonnement.
+  //
+  // Seuls les middlewares restent donc à ce point précoce. Les routes qui en
+  // dépendent sont enregistrées par `registerTenantScopedRoutes`, appelée
+  // depuis `routes.ts` APRÈS la barrière `app.use('/api', requireAuthentication)`.
   enableMultiTenantSecurity(app);
   
   console.log("🚀 MULTI-TENANT SAAS ARCHITECTURE: FULLY ACTIVATED");
@@ -259,4 +272,16 @@ export function setupCompleteMultiTenantArchitecture(app: Express): void {
   console.log("  ✅ Federated AI Learning System");
   console.log("  ✅ Enterprise Security Middleware");
   console.log("  ✅ Tenant Management Dashboard");
+}
+
+/**
+ * Les routes qui ont besoin d'une session ET d'un locataire résolus.
+ *
+ * À appeler depuis `routes.ts` après `app.use('/api', requireAuthentication)` :
+ * déclarées plus tôt, elles ne voyaient ni `req.user` ni `req.tenantId`, et
+ * refusaient tout le monde.
+ */
+export function registerTenantScopedRoutes(app: Express): void {
+  registerFederatedAIRoutes(app);
+  registerTenantManagementRoutes(app);
 }

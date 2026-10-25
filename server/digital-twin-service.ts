@@ -82,9 +82,11 @@ export async function getOrCreateTwin(equipmentId: number, tenantId: string): Pr
 }
 
 /** Dernière valeur connue pour chaque type de capteur d'un équipement. */
-async function getLatestSensorReadings(equipmentId: number): Promise<Record<string, number>> {
+// `tenantId` vient de `runTwin`, qui le reçoit : les relevés qui alimentent le
+// jumeau numérique sont cloisonnés comme tous les autres.
+async function getLatestSensorReadings(equipmentId: number, tenantId: string): Promise<Record<string, number>> {
   const readings = await db.select().from(iotSensorData)
-    .where(eq(iotSensorData.equipmentId, equipmentId))
+    .where(and(eq(iotSensorData.tenantId, tenantId), eq(iotSensorData.equipmentId, equipmentId)))
     .orderBy(desc(iotSensorData.timestamp))
     .limit(200); // fenêtre récente, suffisante pour couvrir tous les types de capteurs actifs
 
@@ -114,7 +116,7 @@ export async function runTwin(equipmentId: number, tenantId: string): Promise<Di
     .where(and(eq(equipmentRegistry.id, equipmentId), eq(equipmentRegistry.tenantId, tenantId))).limit(1);
   if (!equipment) return { twin, result: null };
 
-  const liveSensorData = await getLatestSensorReadings(equipmentId);
+  const liveSensorData = await getLatestSensorReadings(equipmentId, tenantId);
   const calibration = (twin.calibration as Record<string, number>) ?? {};
   // La calibration fournit la ligne de base propre à cet équipement (bearingType, ratedCurrent...) ;
   // les lectures capteurs réelles priment pour les valeurs dynamiques (temperature, vibration...).

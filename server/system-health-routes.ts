@@ -23,9 +23,14 @@ function getPool(): Pool {
   return sharedPool;
 }
 
-// Toutes ces tables sont scopées par tenant (tenant_id) sauf iot_sensor_data (données du simulateur
-// IoT partagé, sans tenant_id) — comptées par tenant pour éviter qu'un admin d'un tenant ne voie les
-// volumes d'activité des autres tenants via ce endpoint de santé système.
+// Toutes ces tables sont comptées par tenant, pour qu'un administrateur ne lise pas les volumes
+// d'activité des autres organisations à travers cette sonde.
+//
+// iot_sensor_data faisait exception, faute de tenant_id : son compteur était le seul à couvrir
+// toute l'instance. La colonne existe depuis la migration 0021, et l'exception disparaît avec
+// elle. Le commentaire qui la justifiait parlait d'un « simulateur IoT partagé » — le simulateur
+// est bien partagé, mais les relevés qu'il écrit portent chacun l'équipement d'un locataire
+// précis, donc son locataire : il n'y avait là rien de commun à exposer.
 async function getDbHealth(tenantId: string): Promise<Record<string, any>> {
   const db = getPool();
   const start = Date.now();
@@ -42,7 +47,7 @@ async function getDbHealth(tenantId: string): Promise<Record<string, any>> {
         (SELECT COUNT(*) FROM calibration_records WHERE tenant_id = $1)::int AS calibrations,
         (SELECT COUNT(*) FROM maintenance_cases WHERE tenant_id = $1)::int   AS maintenance_cases,
         (SELECT COUNT(*) FROM alerts_notifications WHERE tenant_id = $1)::int AS alerts,
-        (SELECT COUNT(*) FROM iot_sensor_data)::int     AS iot_data,
+        (SELECT COUNT(*) FROM iot_sensor_data WHERE tenant_id = $1)::int AS iot_data,
         pg_size_pretty(pg_database_size(current_database())) AS db_size
     `, [tenantId]);
     const latencyMs = Date.now() - start;

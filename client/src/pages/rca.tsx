@@ -20,6 +20,9 @@ import {
   ChevronRight, Eye, Trash2, Target, FileText, Users, DollarSign,
   GitBranch, Fish, List, ArrowRight, Save, XCircle
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WhyStep { why: string; answer: string; }
@@ -48,22 +51,22 @@ interface Stats {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const METHODOLOGIES = [
-  { value: "5_whys", label: "5 Pourquoi", icon: List, color: "from-blue-500 to-indigo-600", badge: "bg-blue-100 text-blue-700" },
-  { value: "fishbone", label: "Ishikawa", icon: Fish, color: "from-orange-500 to-amber-600", badge: "bg-orange-100 text-orange-700" },
+  { value: "5_whys", label: "5 Pourquoi", icon: List, color: "", badge: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "fishbone", label: "Ishikawa", icon: Fish, color: "", badge: "bg-etat-alerte-fond text-etat-alerte-texte" },
   { value: "fmea", label: "FMEA/AMDEC", icon: GitBranch, color: " ", badge: "bg-paper-deep text-signal-deep" },
-  { value: "fault_tree", label: "Arbre de défaillance", icon: Target, color: "from-rose-500 ", badge: "bg-rose-100 text-rose-700" },
+  { value: "fault_tree", label: "Arbre de défaillance", icon: Target, color: " ", badge: "bg-etat-critique-fond text-etat-critique-texte" },
 ];
 const SEVERITIES = [
-  { value: "low", label: "Faible", color: "bg-green-100 text-green-700" },
-  { value: "medium", label: "Moyen", color: "bg-yellow-100 text-yellow-700" },
-  { value: "high", label: "Élevé", color: "bg-orange-100 text-orange-700" },
-  { value: "critical", label: "Critique", color: "bg-red-100 text-red-700" },
+  { value: "low", label: "Faible", color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "medium", label: "Moyen", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "high", label: "Élevé", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "critical", label: "Critique", color: "bg-etat-critique-fond text-etat-critique-texte" },
 ];
 const STATUSES = [
-  { value: "open", label: "Ouvert", icon: AlertTriangle, color: "bg-yellow-100 text-yellow-700" },
-  { value: "in_progress", label: "En cours", icon: Clock, color: "bg-blue-100 text-blue-700" },
-  { value: "closed", label: "Clôturé", icon: CheckCircle2, color: "bg-green-100 text-green-700" },
-  { value: "verified", label: "Vérifié", icon: CheckCircle2, color: "bg-slate-100 text-slate-700" },
+  { value: "open", label: "Ouvert", icon: AlertTriangle, color: "bg-etat-alerte-fond text-etat-alerte-texte" },
+  { value: "in_progress", label: "En cours", icon: Clock, color: "bg-etat-encours-fond text-etat-encours-texte" },
+  { value: "closed", label: "Clôturé", icon: CheckCircle2, color: "bg-etat-nominal-fond text-etat-nominal-texte" },
+  { value: "verified", label: "Vérifié", icon: CheckCircle2, color: "bg-paper-deep text-ink-soft" },
 ];
 const FISHBONE_CATEGORIES = [
   { key: "manpower", label: "Main-d'œuvre", emoji: "" },
@@ -172,12 +175,13 @@ export default function RcaPage() {
   });
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Analyse" }, { libelle: "Causes racines" }]} largeur="large">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep">
+            <div className="p-2.5 rounded-none bg-paper-deep">
               <Fish className="h-6 w-6 text-ink" />
             </div>
             <h1 className="text-3xl font-bold text-ink">
@@ -194,15 +198,15 @@ export default function RcaPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Total", value: stats?.total ?? 0, icon: FileText, color: "from-slate-500 to-slate-600" },
-          { label: "Ouvertes", value: stats?.open ?? 0, icon: AlertTriangle, color: "from-yellow-500 to-amber-600" },
-          { label: "Critiques", value: stats?.critical ?? 0, icon: XCircle, color: "from-red-500 to-rose-600" },
-          { label: "Perte estimée", value: stats?.totalLoss ? `${Number(stats.totalLoss).toLocaleString("fr-FR")} €` : "—", icon: DollarSign, color: "from-blue-500 to-indigo-600" },
+          { label: "Total", value: stats?.total ?? 0, icon: FileText, color: "" },
+          { label: "Ouvertes", value: stats?.open ?? 0, icon: AlertTriangle, color: "" },
+          { label: "Critiques", value: stats?.critical ?? 0, icon: XCircle, color: "" },
+          { label: "Perte estimée", value: stats?.totalLoss ? `${Number(stats.totalLoss).toLocaleString("fr-FR")} €` : "—", icon: DollarSign, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md overflow-hidden">
+          <Card key={label} className="border-0 shadow-none overflow-hidden">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-              <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+              <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+              <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
             </CardContent>
           </Card>
         ))}
@@ -211,10 +215,10 @@ export default function RcaPage() {
       {/* Methodology cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {METHODOLOGIES.map(({ value, label, icon: Icon, color }) => (
-          <div key={value} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-3">
+          <div key={value} className="bg-white rounded-none p-4 shadow-sm border border-slate-100 flex items-center gap-3">
             <div className={`p-2 rounded-lg bg-paper-deep ${color}`}><Icon className="h-4 w-4 text-ink" /></div>
             <div>
-              <p className="text-lg font-bold text-slate-800">{stats?.byMethodology?.[value] ?? 0}</p>
+              <p className="text-lg font-bold text-ink">{stats?.byMethodology?.[value] ?? 0}</p>
               <p className="text-xs text-ink-mute">{label}</p>
             </div>
           </div>
@@ -267,11 +271,11 @@ export default function RcaPage() {
             const totalActions = (rca.actionPlans || []).length;
 
             return (
-              <Card key={rca.id} className="border border-slate-100 shadow-sm hover:shadow-md transition-all">
+              <Card key={rca.id} className="border border-slate-100 shadow-sm hover:shadow-none transition-all">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                      <div className={`p-2.5 rounded-xl bg-paper-deep ${methodConf.color} shadow-sm`}>
+                      <div className={`p-2.5 rounded-none bg-paper-deep ${methodConf.color} shadow-sm`}>
                         <MethodIcon className="h-5 w-5 text-ink" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -281,19 +285,19 @@ export default function RcaPage() {
                           <Badge className={methodConf.badge + " text-xs"}>{methodConf.label}</Badge>
                           <Badge className={sevConf.color + " text-xs"}>{sevConf.label}</Badge>
                         </div>
-                        <h3 className="font-semibold text-slate-800 truncate">{rca.title}</h3>
+                        <h3 className="font-semibold text-ink truncate">{rca.title}</h3>
                         <div className="flex items-center gap-4 mt-2 flex-wrap text-xs text-ink-mute">
                           {rca.equipmentName && <span>{rca.equipmentName}</span>}
                           {rca.failureDate && <span>{new Date(rca.failureDate).toLocaleDateString("fr-FR")}</span>}
-                          {rca.estimatedLoss && <span className="text-red-600 font-medium">{Number(rca.estimatedLoss).toLocaleString("fr-FR")} {rca.currency}</span>}
+                          {rca.estimatedLoss && <span className="text-etat-critique-texte font-medium">{Number(rca.estimatedLoss).toLocaleString("fr-FR")} {rca.currency}</span>}
                           {totalActions > 0 && (
-                            <span className={completedActions === totalActions ? "text-green-600" : ""}>
+                            <span className={completedActions === totalActions ? "text-etat-nominal-texte" : ""}>
                               {completedActions}/{totalActions} actions
                             </span>
                           )}
                         </div>
                         {rca.rootCause && (
-                          <p className="mt-2 text-xs text-ink-soft bg-slate-50 px-2 py-1 rounded border-l-2 border-rule truncate">
+                          <p className="mt-2 text-xs text-ink-soft bg-paper px-2 py-1 rounded border-l-2 border-rule truncate">
                             <span className="font-medium text-signal-deep">Cause racine:</span> {rca.rootCause}
                           </p>
                         )}
@@ -332,7 +336,7 @@ export default function RcaPage() {
                         className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left ${
                           field.value === value
                             ? `border-rule bg-paper-deep shadow`
-                            : "border-slate-200 bg-white hover:border-slate-300"
+                            : "border-rule bg-white hover:border-rule"
                         }`}
                       >
                         <div className={`p-1.5 rounded-lg bg-paper-deep ${color}`}><Icon className="h-3.5 w-3.5 text-ink" /></div>
@@ -408,8 +412,8 @@ export default function RcaPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-rule">
-                <div className={`p-2.5 bg-paper-deep ${getMethodology(selected.methodology).color} rounded-xl shadow-sm`}>
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-rule">
+                <div className={`p-2.5 bg-paper-deep ${getMethodology(selected.methodology).color} rounded-none shadow-sm`}>
                   {(() => { const I = getMethodology(selected.methodology).icon; return <I className="h-5 w-5 text-ink" />; })()}
                 </div>
                 <div className="flex-1">
@@ -432,7 +436,7 @@ export default function RcaPage() {
                 >{s.label}</Button>
               ))}
               <div className="ml-auto">
-                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700"
+                <Button variant="ghost" size="sm" className="text-etat-critique-texte hover:text-etat-critique-texte"
                   onClick={() => { if (confirm("Supprimer cette RCA ?")) deleteMutation.mutate(selected.id); }}>
                   <Trash2 className="h-4 w-4 mr-1" /> Supprimer
                 </Button>
@@ -454,12 +458,12 @@ export default function RcaPage() {
                 <Separator />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Cause immédiate</label>
+                    <label className="text-sm font-medium text-ink-soft">Cause immédiate</label>
                     <Textarea className="mt-1" rows={2} defaultValue={selected.immediateCause || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { immediateCause: e.target.value } })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                    <label className="text-sm font-medium text-ink-soft flex items-center gap-1">
                       <Target className="h-4 w-4 text-signal-deep" /> Cause racine identifiée
                     </label>
                     <Textarea className="mt-1 border-rule" rows={2} defaultValue={selected.rootCause || ""}
@@ -481,26 +485,26 @@ export default function RcaPage() {
               {/* ── Synthesis ── */}
               <TabsContent value="synthesis" className="space-y-4 mt-4">
                 {selected.rootCause && (
-                  <div className="p-4 rounded-xl bg-paper-deep border border-rule">
+                  <div className="p-4 rounded-none bg-paper-deep border border-rule">
                     <h4 className="font-semibold text-signal-deep mb-1 flex items-center gap-2"><Target className="h-4 w-4" />Cause racine</h4>
-                    <p className="text-slate-700">{selected.rootCause}</p>
+                    <p className="text-ink-soft">{selected.rootCause}</p>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Enseignements tirés</label>
+                    <label className="text-sm font-medium text-ink-soft">Enseignements tirés</label>
                     <Textarea className="mt-1" rows={3} defaultValue={selected.lessonsLearned || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { lessonsLearned: e.target.value } })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Mesures préventives</label>
+                    <label className="text-sm font-medium text-ink-soft">Mesures préventives</label>
                     <Textarea className="mt-1" rows={3} defaultValue={selected.preventiveMeasures || ""}
                       onBlur={e => updateMutation.mutate({ id: selected.id, data: { preventiveMeasures: e.target.value } })} />
                   </div>
                 </div>
                 <div className="flex gap-4 flex-wrap">
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Risque de récurrence</label>
+                    <label className="text-sm font-medium text-ink-soft">Risque de récurrence</label>
                     <Select value={selected.recurrenceRisk || "medium"}
                       onValueChange={v => updateMutation.mutate({ id: selected.id, data: { recurrenceRisk: v } })}>
                       <SelectTrigger className="w-40 mt-1"><SelectValue /></SelectTrigger>
@@ -513,9 +517,9 @@ export default function RcaPage() {
                     </Select>
                   </div>
                   {selected.estimatedLoss && (
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                      <p className="text-xs text-red-600 font-medium">Perte estimée</p>
-                      <p className="text-xl font-bold text-red-700">{Number(selected.estimatedLoss).toLocaleString("fr-FR")} {selected.currency}</p>
+                    <div className="p-3 rounded-lg bg-etat-critique-fond border border-etat-critique-filet">
+                      <p className="text-xs text-etat-critique-texte font-medium">Perte estimée</p>
+                      <p className="text-xl font-bold text-etat-critique-texte">{Number(selected.estimatedLoss).toLocaleString("fr-FR")} {selected.currency}</p>
                     </div>
                   )}
                 </div>
@@ -529,6 +533,7 @@ export default function RcaPage() {
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }
 
@@ -574,18 +579,18 @@ function FishboneEditor({ fishbone, onSave, isSaving }: { fishbone: Fishbone; on
 
   return (
     <div className="space-y-4">
-      <div className="text-center py-2 bg-paper-deep border border-orange-200 rounded-lg">
-        <p className="text-sm font-semibold text-orange-800">Diagramme d'Ishikawa — Causes par catégorie (6M)</p>
+      <div className="text-center py-2 bg-paper-deep border border-etat-alerte-filet rounded-lg">
+        <p className="text-sm font-semibold text-etat-alerte-texte">Diagramme d'Ishikawa — Causes par catégorie (6M)</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {FISHBONE_CATEGORIES.map(({ key, label, emoji }) => (
-          <div key={key} className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-            <h4 className="font-semibold text-slate-700 mb-3">{emoji} {label}</h4>
+          <div key={key} className="bg-white rounded-none p-4 border border-rule shadow-sm">
+            <h4 className="font-semibold text-ink-soft mb-3">{emoji} {label}</h4>
             <div className="space-y-1.5 mb-3 min-h-8">
               {(local[key as keyof Fishbone] || []).map((item, i) => (
                 <div key={i} className="flex items-center gap-2 group">
-                  <span className="text-xs bg-orange-50 border border-orange-200 rounded px-2 py-0.5 flex-1">{item}</span>
-                  <button onClick={() => removeItem(key as keyof Fishbone, i)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600">
+                  <span className="text-xs bg-etat-alerte-fond border border-etat-alerte-filet rounded px-2 py-0.5 flex-1">{item}</span>
+                  <button onClick={() => removeItem(key as keyof Fishbone, i)} className="opacity-0 group-hover:opacity-100 text-etat-critique-texte hover:text-etat-critique-texte">
                     <XCircle className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -595,7 +600,7 @@ function FishboneEditor({ fishbone, onSave, isSaving }: { fishbone: Fishbone; on
           </div>
         ))}
       </div>
-      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
+      <Button size="sm" onClick={() => onSave(local)} disabled={isSaving} className="bg-etat-alerte-vif hover:bg-etat-alerte-vif text-white gap-2">
         {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Enregistrer Ishikawa
       </Button>
     </div>
@@ -625,14 +630,14 @@ function ActionPlanEditor({ plans, onSave, isSaving }: { plans: ActionPlan[]; on
   const update = (i: number, field: keyof ActionPlan, val: any) => setLocal(prev => prev.map((p, j) => j === i ? { ...p, [field]: val } : p));
   const remove = (i: number) => setLocal(prev => prev.filter((_, j) => j !== i));
 
-  const pBadge = { low: "bg-green-100 text-green-700", medium: "bg-yellow-100 text-yellow-700", high: "bg-red-100 text-red-700" };
-  const sBadge = { pending: "bg-gray-100 text-gray-600", in_progress: "bg-blue-100 text-blue-700", done: "bg-green-100 text-green-700" };
+  const pBadge = { low: "bg-etat-nominal-fond text-etat-nominal-texte", medium: "bg-etat-alerte-fond text-etat-alerte-texte", high: "bg-etat-critique-fond text-etat-critique-texte" };
+  const sBadge = { pending: "bg-paper-deep text-ink-soft", in_progress: "bg-etat-encours-fond text-etat-encours-texte", done: "bg-etat-nominal-fond text-etat-nominal-texte" };
 
   return (
     <div className="space-y-4">
       <div className="space-y-3">
         {local.map((plan, i) => (
-          <div key={plan.id || i} className={`p-4 rounded-xl border-2 transition-all ${plan.status === "done" ? "border-green-200 bg-green-50/30" : "border-slate-200 bg-white"}`}>
+          <div key={plan.id || i} className={`p-4 rounded-none border-2 transition-all ${plan.status === "done" ? "border-etat-nominal-filet bg-etat-nominal-fond/30" : "border-rule bg-white"}`}>
             <div className="flex items-start gap-3">
               <div className="flex-1 space-y-2">
                 <Input value={plan.action} onChange={e => update(i, "action", e.target.value)} className="font-medium" />
@@ -657,7 +662,7 @@ function ActionPlanEditor({ plans, onSave, isSaving }: { plans: ActionPlan[]; on
                   </Select>
                 </div>
               </div>
-              <button onClick={() => remove(i)} className="text-red-400 hover:text-red-600 mt-1"><XCircle className="h-4 w-4" /></button>
+              <button onClick={() => remove(i)} className="text-etat-critique-texte hover:text-etat-critique-texte mt-1"><XCircle className="h-4 w-4" /></button>
             </div>
           </div>
         ))}

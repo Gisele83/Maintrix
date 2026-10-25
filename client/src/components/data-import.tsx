@@ -24,7 +24,7 @@ export function DataImport() {
         description: `${result.success} cas de maintenance importés avec succès`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance-cases"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance-history"] });
     },
     onError: (error: any) => {
       toast({
@@ -192,7 +192,7 @@ export function DataImport() {
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+              <FileSpreadsheet className="w-5 h-5 text-etat-encours-texte" />
               <span>Templates CSV</span>
             </CardTitle>
           </CardHeader>
@@ -233,7 +233,7 @@ export function DataImport() {
         <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Upload className="w-5 h-5 text-green-600" />
+              <Upload className="w-5 h-5 text-etat-nominal-texte" />
               <span>Zone d'Importation</span>
             </CardTitle>
           </CardHeader>
@@ -242,7 +242,7 @@ export function DataImport() {
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 dragActive
                   ? "border-primary bg-primary/5"
-                  : "border-gray-300 hover:border-primary/50"
+                  : "border-rule hover:border-primary/50"
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -286,12 +286,12 @@ export function DataImport() {
       {/* Instructions */}
       <Card className="border-0 bg-paper-deep">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-amber-800 dark:text-amber-200">
+          <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte">
             <AlertCircle className="w-5 h-5" />
             <span>Instructions d'Importation</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 text-amber-700 dark:text-amber-300">
+        <CardContent className="space-y-4 text-etat-alerte-texte">
           <div className="space-y-2">
             <h4 className="font-medium">Préparation des données :</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
@@ -317,7 +317,7 @@ export function DataImport() {
         <Card className="border-0">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />
               <span>Résultats d'Importation</span>
             </CardTitle>
           </CardHeader>
@@ -343,13 +343,13 @@ export function DataImport() {
             )}
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-green-50 dark:bg-green-950 p-3 rounded">
-                <div className="font-medium text-green-800 dark:text-green-200">Succès</div>
-                <div className="text-2xl font-bold text-green-600">{importResults.success}</div>
+              <div className="bg-etat-nominal-fond p-3 rounded">
+                <div className="font-medium text-etat-nominal-texte">Succès</div>
+                <div className="text-2xl font-bold text-etat-nominal-texte">{importResults.success}</div>
               </div>
-              <div className="bg-red-50 dark:bg-red-950 p-3 rounded">
-                <div className="font-medium text-red-800 dark:text-red-200">Erreurs</div>
-                <div className="text-2xl font-bold text-red-600">{importResults.errors?.length || 0}</div>
+              <div className="bg-etat-critique-fond p-3 rounded">
+                <div className="font-medium text-etat-critique-texte">Erreurs</div>
+                <div className="text-2xl font-bold text-etat-critique-texte">{importResults.errors?.length || 0}</div>
               </div>
             </div>
           </CardContent>

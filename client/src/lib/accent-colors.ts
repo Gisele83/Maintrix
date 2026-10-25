@@ -40,7 +40,11 @@ const JETONS: AccentTokens = {
   iconTile: "bg-paper-deep border border-rule",
   iconTileSm: "bg-paper-deep border border-rule",
   badgeChip: "bg-paper-deep text-ink-soft border border-rule",
-  icon400: "text-signal-light",
+  // Ce jeton n'a aucun consommateur : il reste déclaré pour la forme, mais
+  // il pointe vers l'accent sûr. Le cyan du logo (#00B9F2) plafonne à 2,3:1
+  // sur fond clair, et rien ne garantit qu'un futur appelant le posera sur
+  // un fond sombre.
+  icon400: "text-signal",
   icon600: "text-ink-mute",
   text500: "text-signal",
   hoverTile: "hover:border-ink hover:bg-paper",

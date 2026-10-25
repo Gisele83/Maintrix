@@ -47,6 +47,46 @@ const PERIOD_DAYS: Record<string, number> = {
   yearly: 365,
 };
 
+/**
+ * Les quatre périodes, dans les DEUX orthographes que le produit emploie.
+ *
+ * ⚠️ `PERIOD_DAYS` n'indexait que `weekly | monthly | quarterly | yearly`, avec
+ * un `?? PERIOD_DAYS.monthly` en repli. Or le sélecteur de l'écran
+ * (client/src/pages/advanced-reporting.tsx) émet `week | month | quarter |
+ * year` — AUCUNE de ces quatre valeurs n'existait dans la table. Les quatre
+ * choix de l'utilisateur produisaient donc le même résultat mensuel, sans que
+ * rien ne le signale. Mesuré sur la disponibilité, le 2026-10-20 :
+ *
+ *     week      → 99,3 %        weekly    → 97,0 %
+ *     month     → 99,3 %        monthly   → 99,3 %
+ *     quarter   → 99,3 %        quarterly → 99,8 %
+ *     year      → 99,3 %        yearly    → 99,9 %
+ *
+ * La colonne de gauche est celle que l'écran envoyait : elle ne bouge pas.
+ * Cela valait aussi pour `/api/comprehensive-report/excel`, déjà branché sur ce
+ * service : le bouton « Export Excel » ignorait la période depuis toujours.
+ *
+ * La normalisation est faite ICI plutôt que chez l'appelant, pour que les deux
+ * exports soient réparés par le même changement, et qu'un troisième appelant
+ * n'ait pas à connaître l'orthographe attendue.
+ */
+const PERIOD_ALIASES: Record<string, keyof typeof PERIOD_DAYS & string> = {
+  week: 'weekly',
+  month: 'monthly',
+  quarter: 'quarterly',
+  year: 'yearly',
+};
+
+/**
+ * Ramène une période demandée à sa clé canonique, ou `undefined` si elle est
+ * inconnue — l'appelant décide alors, au lieu d'hériter d'un repli muet.
+ */
+export function normaliserPeriode(period: string): string | undefined {
+  const brut = period.trim().toLowerCase();
+  if (brut in PERIOD_DAYS) return brut;
+  return PERIOD_ALIASES[brut];
+}
+
 function avg(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((s, v) => s + v, 0) / values.length;
@@ -61,7 +101,10 @@ export function computeGmaoReportKpis(
   technicianNameById: Map<number, string>,
   equipmentList: Array<{ id: number; equipmentName: string; operationalState?: string | null }>,
 ): GmaoReportKpis {
-  const periodDays = PERIOD_DAYS[period] ?? PERIOD_DAYS.monthly;
+  // Le repli mensuel reste, mais il ne s'applique plus qu'à une période
+  // RÉELLEMENT inconnue : les deux orthographes du produit sont reconnues.
+  const periodeCanonique = normaliserPeriode(period) ?? 'monthly';
+  const periodDays = PERIOD_DAYS[periodeCanonique];
   const periodEnd = new Date();
   const periodStart = new Date(periodEnd.getTime() - periodDays * 24 * 3600 * 1000);
   const periodHours = periodDays * 24;
@@ -233,7 +276,7 @@ export function computeGmaoReportKpis(
   };
 
   return {
-    periodLabel: periodLabelMap[period] ?? periodLabelMap.monthly,
+    periodLabel: periodLabelMap[periodeCanonique],
     periodStart,
     periodEnd,
     totalWorkOrders,

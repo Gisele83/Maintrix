@@ -34,19 +34,15 @@ import {
   Bell,
   LayoutGrid,
   GitCommitHorizontal,
-  Sun,
-  Moon,
   ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/hooks/use-theme";
 
 export function ModernNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
   const [showReturnToAdmin, setShowReturnToAdmin] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   const { data: notifData } = useQuery<{ unreadCount: number }>({
     queryKey: ["/api/mobile/notifications"],
@@ -140,7 +136,7 @@ export function ModernNavigation() {
       icon: Shield,
       items: [
         { name: "Journal Cryptographique", href: "/crypto-journal", icon: Shield },
-        ...(user && ["admin", "director"].includes(user.role || "") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
+        ...(auMoins(user?.role, "admin") ? [{ name: "Permissions", href: "/tenant-permissions", icon: Shield }] : []),
         ...(auMoins(user?.role, "admin") ? [{ name: "Santé système", href: "/system-health", icon: Activity }] : []),
       ],
     },
@@ -155,7 +151,7 @@ export function ModernNavigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-paper border-b border-rule dark:bg-ink dark:border-white/10">
+    <nav className="sticky top-0 z-50 bg-paper border-b border-rule">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -169,16 +165,16 @@ export function ModernNavigation() {
                 alt="Maintrix"
                 width={640}
                 height={213}
-                className="h-8 w-auto dark:hidden"
+                className="h-8 w-auto"
               />
               <img
                 src="/logo-maintrix-clair.png"
                 alt="Maintrix"
                 width={640}
                 height={213}
-                className="hidden h-8 w-auto dark:block"
+                className="hidden h-8 w-auto"
               />
-              <span className="hidden lg:inline font-mono text-eyebrow uppercase tracking-wider text-ink-mute dark:text-paper/60">
+              <span className="hidden lg:inline font-mono text-eyebrow uppercase tracking-wider text-ink-mute">
                 Supervision industrielle
               </span>
             </Link>
@@ -202,7 +198,7 @@ export function ModernNavigation() {
                   key={item.name}
                   href={item.href}
                   className={`flex items-center gap-1.5 px-3 h-16 border-b-2 text-sm transition-colors whitespace-nowrap shrink-0 ${
-                    isActive ? 'text-ink border-signal dark:text-paper' : 'text-ink-soft border-transparent hover:text-ink hover:border-rule dark:text-paper/70 dark:hover:text-paper'
+                    isActive ? 'text-ink border-signal' : 'text-ink-soft border-transparent hover:text-ink hover:border-rule'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -217,9 +213,16 @@ export function ModernNavigation() {
               return (
                 <DropdownMenu key={group.label}>
                   <DropdownMenuTrigger asChild>
+                    {/* ⚠️ `outline-none` supprimait l'indicateur de focus sans
+                        rien proposer à la place : les cinq déclencheurs de
+                        groupe — c'est-à-dire l'essentiel de la navigation —
+                        ne changeaient NI contour NI ombre quand on les
+                        atteignait au clavier (mesuré : 5 éléments sur 40).
+                        WCAG 2.4.7. On supprime le contour par défaut au clic,
+                        mais on le rend au focus clavier. */}
                     <button
-                      className={`flex items-center gap-1.5 px-3 h-16 border-b-2 text-sm outline-none transition-colors whitespace-nowrap shrink-0 ${
-                        isGroupActive ? 'text-ink border-signal dark:text-paper' : 'text-ink-soft border-transparent hover:text-ink hover:border-rule dark:text-paper/70 dark:hover:text-paper'
+                      className={`flex items-center gap-1.5 px-3 h-16 border-b-2 text-sm outline-none transition-colors whitespace-nowrap shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-signal ${
+                        isGroupActive ? 'text-ink border-signal' : 'text-ink-soft border-transparent hover:text-ink hover:border-rule'
                       }`}
                     >
                       <GroupIcon className="w-4 h-4" />
@@ -234,7 +237,7 @@ export function ModernNavigation() {
                       return (
                         <DropdownMenuItem key={item.name} asChild className={isActive ? 'bg-accent font-medium' : ''}>
                           <Link href={item.href} className="flex items-center gap-2.5 cursor-pointer">
-                            <Icon className="w-4 h-4 text-gray-500" />
+                            <Icon className="w-4 h-4 text-ink-mute" />
                             <span>{item.name}</span>
                           </Link>
                         </DropdownMenuItem>
@@ -249,19 +252,9 @@ export function ModernNavigation() {
           {/* User Menu — volontairement compact (icônes + tooltips plutôt que boutons texte) :
               ce bloc et la nav se disputent le même espace restreint une fois le logo posé. */}
           <div className="hidden md:flex items-center space-x-1.5 shrink-0">
-            {/* Bascule thème clair/sombre */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white"
-              title={theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre"}
-              aria-label={theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre"}
-            >
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-
             {/* Notification Bell */}
             <Link href="/mobile-notifications">
-              <button className="relative p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white" title="Notifications" aria-label="Notifications">
+              <button className="relative p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors" title="Notifications" aria-label="Notifications">
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 min-w-4 h-4 px-1 bg-signal-deep text-white font-mono text-[10px] leading-4 text-center">
@@ -271,16 +264,16 @@ export function ModernNavigation() {
               </button>
             </Link>
 
-            <div className="flex items-center gap-2 pl-3 border-l border-rule dark:border-white/10" title="Utilisateur connecté">
-              <User className="w-4 h-4 text-ink-mute dark:text-paper/60" />
-              <span className="text-sm text-ink max-w-28 truncate dark:text-paper">{user?.firstName || user?.username}</span>
+            <div className="flex items-center gap-2 pl-3 border-l border-rule" title="Utilisateur connecté">
+              <User className="w-4 h-4 text-ink-mute" />
+              <span className="text-sm text-ink max-w-28 truncate">{user?.firstName || user?.username}</span>
             </div>
 
             {/* Bouton de retour au super-admin si venant de ce contexte */}
             {showReturnToAdmin && (
               <button
                 onClick={handleReturnToAdmin}
-                className="p-2 text-signal-deep hover:bg-paper-deep transition-colors dark:text-signal-light dark:hover:bg-white"
+                className="p-2 text-signal-deep hover:bg-paper-deep transition-colors"
                 title="Retourner à l'interface super-admin"
                 aria-label="Retourner à l'interface super-admin"
               >
@@ -292,7 +285,7 @@ export function ModernNavigation() {
             {!showReturnToAdmin && (
               <Link href="/admin-login">
                 <button
-                  className="p-2 text-ink-mute hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/60 dark:hover:text-paper dark:hover:bg-white"
+                  className="p-2 text-ink-mute hover:text-ink hover:bg-paper-deep transition-colors"
                   title="Accès administration plateforme"
                   aria-label="Accès administration plateforme"
                 >
@@ -303,7 +296,7 @@ export function ModernNavigation() {
 
             <button
               onClick={handleLogout}
-              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors dark:text-paper/70 dark:hover:text-paper dark:hover:bg-white"
+              className="p-2 text-ink-soft hover:text-ink hover:bg-paper-deep transition-colors"
               title="Déconnexion"
               aria-label="Déconnexion"
             >
@@ -327,7 +320,7 @@ export function ModernNavigation() {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-paper border-t border-rule max-h-[75vh] overflow-y-auto dark:bg-ink dark:border-white/10">
+        <div className="md:hidden bg-paper border-t border-rule max-h-[75vh] overflow-y-auto">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {standaloneLinks.map((item) => {
               const Icon = item.icon;
@@ -338,8 +331,8 @@ export function ModernNavigation() {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 border-l-2 transition-colors ${
                     isActive
-                      ? 'border-signal bg-paper-deep text-ink dark:bg-white/5 dark:text-paper'
-                      : 'border-transparent text-ink-soft hover:bg-paper-deep dark:text-paper/70 dark:hover:bg-white/5'
+                      ? 'border-signal bg-paper-deep text-ink'
+                      : 'border-transparent text-ink-soft hover:bg-paper-deep'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -350,8 +343,8 @@ export function ModernNavigation() {
             })}
 
             {navGroups.map((group) => (
-              <div key={group.label} className="pt-3 mt-2 border-t border-rule first:border-t-0 first:mt-0 first:pt-0 dark:border-white/10">
-                <p className="px-3 pb-1 font-mono text-eyebrow uppercase tracking-wider text-ink-mute flex items-center gap-1.5 dark:text-paper/50">
+              <div key={group.label} className="pt-3 mt-2 border-t border-rule first:border-t-0 first:mt-0 first:pt-0">
+                <p className="px-3 pb-1 font-mono text-eyebrow uppercase tracking-wider text-ink-mute flex items-center gap-1.5">
                   <group.icon className="w-3.5 h-3.5" />
                   {group.label}
                 </p>
@@ -364,8 +357,8 @@ export function ModernNavigation() {
                       href={item.href}
                       className={`flex items-center gap-3 px-3 py-2.5 border-l-2 transition-colors ${
                         isActive
-                          ? 'border-signal bg-paper-deep text-ink dark:bg-white/5 dark:text-paper'
-                          : 'border-transparent text-ink-soft hover:bg-paper-deep dark:text-paper/70 dark:hover:bg-white/5'
+                          ? 'border-signal bg-paper-deep text-ink'
+                          : 'border-transparent text-ink-soft hover:bg-paper-deep'
                       }`}
                       onClick={() => setIsOpen(false)}
                     >
@@ -378,26 +371,15 @@ export function ModernNavigation() {
             ))}
 
             {/* Mobile User Info */}
-            <div className="border-t border-rule pt-3 mt-3 dark:border-white/10">
+            <div className="border-t border-rule pt-3 mt-3">
               <div className="flex items-center justify-between px-3 py-2">
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4" />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-ink-soft">
                     {user?.firstName || user?.username}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {/* Bascule thème clair/sombre */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleTheme}
-                    className="flex items-center space-x-1"
-                    title={theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre"}
-                  >
-                    {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  </Button>
-
                   {/* Bouton de retour au super-admin si venant de ce contexte */}
                   {showReturnToAdmin && (
                     <Button 

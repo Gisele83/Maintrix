@@ -2,7 +2,14 @@ import { storage } from './storage';
 import type { InsertMaintenanceCase } from '../shared/schema';
 
 // Simple fallback implementation without XLSX library
-export async function processDefaultHistoricalData(): Promise<{
+/**
+ * ⚠️ Le locataire est OBLIGATOIRE depuis le cloisonnement du diagnostic
+ * (2026-10-25). Les cas importés étaient écrits sans `tenant_id` : avant, ils
+ * étaient visibles de TOUTES les organisations ; depuis que les lectures sont
+ * filtrées, ils ne seraient visibles d'AUCUNE. Un import qui réussit sans que
+ * personne ne voie ses lignes est pire que pas d'import.
+ */
+export async function processDefaultHistoricalData(tenantId: string): Promise<{
   success: boolean;
   message: string;
   data: {
@@ -203,7 +210,7 @@ export async function processDefaultHistoricalData(): Promise<{
     let insertedCases = 0;
     for (const maintenanceCase of maintenanceCases) {
       try {
-        await storage.createMaintenanceCase(maintenanceCase);
+        await storage.createMaintenanceCase({ ...maintenanceCase, tenantId });
         insertedCases++;
       } catch (error: any) {
         console.error('Error inserting maintenance case:', error);

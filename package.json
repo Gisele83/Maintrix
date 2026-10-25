@@ -14,12 +14,15 @@
     "test:integration": "node scripts/run-tests.mjs --integration",
     "check:tests": "tsc -p tsconfig.tests.json",
     "check:scripts": "tsc -p tsconfig.scripts.json",
-    "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
-    "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer",
     "test:e2e": "playwright test",
     "verify:migrations": "node scripts/verify-migrations.mjs",
     "verify:secrets": "node scripts/verify-neon-rotation.mjs",
-    "verify:opening": "node scripts/verify-opening.mjs"
+    "verify:opening": "node scripts/verify-opening.mjs",
+    "demo:charger": "tsx scripts/jeu-de-demonstration.ts",
+    "demo:retirer": "tsx scripts/jeu-de-demonstration.ts --retirer",
+    "demo:desactiver": "tsx scripts/jeu-de-demonstration.ts --desactiver",
+    "demo:secrets": "tsx scripts/secrets-demonstration.ts",
+    "alertes:examiner": "tsx scripts/alertes-orphelines.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

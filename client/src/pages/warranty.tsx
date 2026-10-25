@@ -18,6 +18,9 @@ import {
   Plus, Loader2, Search, Eye, Trash2, ShieldCheck,
   AlertTriangle, Clock, CheckCircle2, XCircle, FileText, DollarSign
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, registreDepuisLibelle, type RegistreEtat } from "@/lib/etats";
 
 interface Claim { id?: string; date: string; description: string; claimNumber?: string; status: string; amount?: number; resolution?: string; }
 interface Warranty {
@@ -31,18 +34,18 @@ interface Warranty {
 interface WStats { total: number; activeCount: number; expiredCount: number; expiring60d: number; totalCoverage: number; expiring: any[]; }
 
 const STATUS_CFG: Record<string, { label: string; color: string; icon: any }> = {
-  active:        { label: "Active",          color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
-  expiring_soon: { label: "Expire bientôt",  color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: Clock },
-  expired:       { label: "Expirée",         color: "bg-red-100 text-red-700 border-red-200",       icon: XCircle },
+  active:        { label: "Active",          color: "bg-etat-nominal-fond text-etat-nominal-texte border-etat-nominal-filet", icon: CheckCircle2 },
+  expiring_soon: { label: "Expire bientôt",  color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet", icon: Clock },
+  expired:       { label: "Expirée",         color: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet",       icon: XCircle },
 };
 const TYPE_CFG: Record<string, { label: string; color: string }> = {
-  manufacturer: { label: "Fabricant", color: "bg-blue-100 text-blue-700" },
+  manufacturer: { label: "Fabricant", color: "bg-etat-encours-fond text-etat-encours-texte" },
   extended: { label: "Étendue", color: "bg-paper-deep text-signal-deep" },
-  parts: { label: "Pièces", color: "bg-teal-100 text-teal-700" },
-  service: { label: "Service", color: "bg-indigo-100 text-indigo-700" },
-  performance: { label: "Performance", color: "bg-orange-100 text-orange-700" },
+  parts: { label: "Pièces", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  service: { label: "Service", color: "bg-etat-encours-fond text-etat-encours-texte" },
+  performance: { label: "Performance", color: "bg-etat-alerte-fond text-etat-alerte-texte" },
 };
-const CLAIM_STATUS: Record<string, string> = { open:"bg-blue-100 text-blue-700", in_progress:"bg-yellow-100 text-yellow-700", approved:"bg-green-100 text-green-700", rejected:"bg-red-100 text-red-700", closed:"bg-slate-100 text-ink-mute" };
+const CLAIM_STATUS: Record<string, string> = { open:"bg-etat-encours-fond text-etat-encours-texte", in_progress:"bg-etat-alerte-fond text-etat-alerte-texte", approved:"bg-etat-nominal-fond text-etat-nominal-texte", rejected:"bg-etat-critique-fond text-etat-critique-texte", closed:"bg-paper-deep text-ink-mute" };
 const CLAIM_LABEL: Record<string, string> = { open:"Ouvert", in_progress:"En cours", approved:"Approuvé", rejected:"Rejeté", closed:"Clôturé" };
 const fmtEur = (n: any) => n != null ? `${Number(n).toLocaleString("fr-FR",{maximumFractionDigits:0})} €` : "—";
 
@@ -128,11 +131,12 @@ export default function WarrantyPage() {
   });
 
   return (
-    <div className="min-h-screen bg-paper-deep p-6">
+    <AppShell filAriane={[{ libelle: "Conformité" }, { libelle: "Garanties" }]} largeur="large">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-paper-deep"><ShieldCheck className="h-6 w-6 text-ink" /></div>
+            <div className="p-2.5 rounded-none bg-paper-deep"><ShieldCheck className="h-6 w-6 text-ink" /></div>
             <h1 className="text-3xl font-bold text-ink">Gestion des Garanties</h1>
           </div>
           <p className="text-ink-mute ml-14 text-sm">Suivi des garanties équipements · Gestion des réclamations</p>
@@ -143,22 +147,22 @@ export default function WarrantyPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Garanties actives", value: stats?.activeCount ?? 0, icon: ShieldCheck, color: "from-green-500 to-teal-600" },
-          { label: "Expirent ≤ 60j", value: stats?.expiring60d ?? 0, icon: Clock, color: "from-yellow-400 to-orange-500" },
-          { label: "Expirées", value: stats?.expiredCount ?? 0, icon: XCircle, color: "from-red-500 to-rose-600" },
-          { label: "Couverture totale", value: fmtEur(stats?.totalCoverage), icon: DollarSign, color: "from-blue-500 to-indigo-600" },
+          { label: "Garanties actives", value: stats?.activeCount ?? 0, icon: ShieldCheck, color: "" },
+          { label: "Expirent ≤ 60j", value: stats?.expiring60d ?? 0, icon: Clock, color: "" },
+          { label: "Expirées", value: stats?.expiredCount ?? 0, icon: XCircle, color: "" },
+          { label: "Couverture totale", value: fmtEur(stats?.totalCoverage), icon: DollarSign, color: "" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label} className="border-0 shadow-md"><CardContent className="p-4 flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-paper-deep ${color} shadow`}><Icon className="h-5 w-5 text-ink" /></div>
-            <div><p className="text-2xl font-bold text-slate-800">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
+          <Card key={label} className="border-0 shadow-none"><CardContent className="p-4 flex items-center gap-4">
+            <div className={`p-3 ${ETAT[registreDepuisLibelle(label)].fond}`}><Icon className={`h-5 w-5 ${ETAT[registreDepuisLibelle(label)].texte}`} /></div>
+            <div><p className="text-2xl font-bold text-ink">{value}</p><p className="text-xs text-ink-mute">{label}</p></div>
           </CardContent></Card>
         ))}
       </div>
 
       {stats?.expiring && stats.expiring.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Garanties expirant dans les 90 jours</h3>
-          <div className="flex flex-wrap gap-2">{stats.expiring.map((e: any, i: number) => (<div key={i} className="bg-white rounded-lg border border-amber-200 px-3 py-1.5 text-sm"><span className="font-medium">{e.title}</span>{e.equipment_name && <span className="text-ink-mute ml-1">({e.equipment_name})</span>}<span className="text-amber-700 ml-2 text-xs">{new Date(e.extended_warranty_end || e.warranty_end).toLocaleDateString("fr-FR")}</span></div>))}</div>
+        <div className="mb-6 bg-etat-alerte-fond border border-etat-alerte-filet rounded-none p-4">
+          <h3 className="font-semibold text-etat-alerte-texte mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Garanties expirant dans les 90 jours</h3>
+          <div className="flex flex-wrap gap-2">{stats.expiring.map((e: any, i: number) => (<div key={i} className="bg-white rounded-lg border border-etat-alerte-filet px-3 py-1.5 text-sm"><span className="font-medium">{e.title}</span>{e.equipment_name && <span className="text-ink-mute ml-1">({e.equipment_name})</span>}<span className="text-etat-alerte-texte ml-2 text-xs">{new Date(e.extended_warranty_end || e.warranty_end).toLocaleDateString("fr-FR")}</span></div>))}</div>
         </div>
       )}
 
@@ -176,27 +180,27 @@ export default function WarrantyPage() {
             const typeConf = TYPE_CFG[w.warrantyType] || TYPE_CFG.manufacturer;
             const endDate = w.extendedWarrantyEnd || w.warrantyEnd;
             return (
-              <Card key={w.id} className={`border shadow-sm hover:shadow-md transition-all ${w.computedStatus === "expired" ? "border-red-200 bg-red-50/20" : w.computedStatus === "expiring_soon" ? "border-yellow-200" : "border-slate-100"}`}>
+              <Card key={w.id} className={`border shadow-sm hover:shadow-none transition-all ${w.computedStatus === "expired" ? "border-etat-critique-filet bg-etat-critique-fond/20" : w.computedStatus === "expiring_soon" ? "border-etat-alerte-filet" : "border-slate-100"}`}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className={`p-2.5 rounded-xl shrink-0 ${w.computedStatus === "expired" ? "bg-red-100" : w.computedStatus === "expiring_soon" ? "bg-yellow-100" : "bg-green-100"}`}>
-                        <ShieldCheck className={`h-5 w-5 ${w.computedStatus === "expired" ? "text-red-600" : w.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-green-600"}`} />
+                      <div className={`p-2.5 rounded-none shrink-0 ${w.computedStatus === "expired" ? "bg-etat-critique-fond" : w.computedStatus === "expiring_soon" ? "bg-etat-alerte-fond" : "bg-etat-nominal-fond"}`}>
+                        <ShieldCheck className={`h-5 w-5 ${w.computedStatus === "expired" ? "text-etat-critique-texte" : w.computedStatus === "expiring_soon" ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-0.5">
                           <span className="text-xs font-mono text-ink-mute">{w.warrantyNumber}</span>
                           <StatusBadge status={w.computedStatus} />
                           <Badge className={typeConf.color + " text-xs"}>{typeConf.label}</Badge>
-                          {w.openClaims ? <Badge className="bg-orange-100 text-orange-700 text-xs">{w.openClaims} réclamation{w.openClaims > 1 ? "s" : ""} ouverte{w.openClaims > 1 ? "s" : ""}</Badge> : null}
+                          {w.openClaims ? <Badge className="bg-etat-alerte-fond text-etat-alerte-texte text-xs">{w.openClaims} réclamation{w.openClaims > 1 ? "s" : ""} ouverte{w.openClaims > 1 ? "s" : ""}</Badge> : null}
                         </div>
-                        <h3 className="font-semibold text-slate-800">{w.title}</h3>
+                        <h3 className="font-semibold text-ink">{w.title}</h3>
                         <div className="flex items-center gap-4 text-xs text-ink-mute mt-0.5 flex-wrap">
                           {w.equipmentName && <span>{w.equipmentName}</span>}
                           {w.supplierName && <span>{w.supplierName}</span>}
-                          <span>Échéance: <span className={`font-medium ${w.computedStatus === "expired" ? "text-red-600" : w.computedStatus === "expiring_soon" ? "text-yellow-600" : "text-green-700"}`}>{new Date(endDate).toLocaleDateString("fr-FR")}</span></span>
+                          <span>Échéance: <span className={`font-medium ${w.computedStatus === "expired" ? "text-etat-critique-texte" : w.computedStatus === "expiring_soon" ? "text-etat-alerte-texte" : "text-etat-nominal-texte"}`}>{new Date(endDate).toLocaleDateString("fr-FR")}</span></span>
                           {w.daysUntilExpiry != null && <span className="font-medium" style={{ color: w.daysUntilExpiry < 0 ? "#ef4444" : w.daysUntilExpiry <= 60 ? "#f59e0b" : "#16a34a" }}>{w.daysUntilExpiry < 0 ? `${Math.abs(w.daysUntilExpiry)}j expirée` : `dans ${w.daysUntilExpiry}j`}</span>}
-                          {w.maxCoverageAmount && <span className="text-blue-600 font-medium">{fmtEur(w.maxCoverageAmount)}</span>}
+                          {w.maxCoverageAmount && <span className="text-etat-encours-texte font-medium">{fmtEur(w.maxCoverageAmount)}</span>}
                         </div>
                       </div>
                     </div>
@@ -212,7 +216,7 @@ export default function WarrantyPage() {
       {/* CREATE */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-green-600" />Nouvelle garantie</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-etat-nominal-texte" />Nouvelle garantie</DialogTitle></DialogHeader>
           <Form {...form}><form onSubmit={form.handleSubmit(d => createMut.mutate(d))} className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-3">
               <FormField control={form.control} name="title" render={({ field }) => (<FormItem className="col-span-2"><FormLabel>Intitulé *</FormLabel><FormControl><Input placeholder="Ex: Garantie compresseur K1" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -232,7 +236,7 @@ export default function WarrantyPage() {
             </div>
             <FormField control={form.control} name="coverageDescription" render={({ field }) => (<FormItem><FormLabel>Description de la couverture</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
             <FormField control={form.control} name="exclusions" render={({ field }) => (<FormItem><FormLabel>Exclusions</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-green-600 text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button><Button type="submit" disabled={createMut.isPending} className="bg-etat-nominal-vif text-white">{createMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}Créer</Button></DialogFooter>
           </form></Form>
         </DialogContent>
       </Dialog>
@@ -242,8 +246,8 @@ export default function WarrantyPage() {
         <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
           <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-paper-deep border border-green-200">
-                <ShieldCheck className="h-6 w-6 text-green-600" />
+              <div className="flex items-center gap-3 p-4 rounded-none bg-paper-deep border border-etat-nominal-filet">
+                <ShieldCheck className="h-6 w-6 text-etat-nominal-texte" />
                 <div className="flex-1"><DialogTitle>{selected.title}</DialogTitle><p className="text-xs text-ink-mute font-mono">{selected.warrantyNumber}</p></div>
                 <StatusBadge status={selected.computedStatus} />
               </div>
@@ -267,24 +271,24 @@ export default function WarrantyPage() {
                     { l: "Fin garantie étendue", v: selected.extendedWarrantyEnd ? new Date(selected.extendedWarrantyEnd).toLocaleDateString("fr-FR") : null },
                   ].filter(i => i.v).map(({ l, v }) => (<div key={l}><p className="text-xs text-ink-mute">{l}</p><p className="font-medium">{v}</p></div>))}
                 </div>
-                {selected.coverageDescription && <div className="bg-green-50 border border-green-200 rounded-lg p-3"><p className="text-xs text-green-700 font-medium mb-1">Couverture</p><p className="text-sm">{selected.coverageDescription}</p></div>}
-                {selected.exclusions && <div className="bg-red-50 border border-red-200 rounded-lg p-3"><p className="text-xs text-red-700 font-medium mb-1">Exclusions</p><p className="text-sm">{selected.exclusions}</p></div>}
-                {selected.notes && <div className="bg-slate-50 rounded-lg p-3 text-sm">{selected.notes}</div>}
+                {selected.coverageDescription && <div className="bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg p-3"><p className="text-xs text-etat-nominal-texte font-medium mb-1">Couverture</p><p className="text-sm">{selected.coverageDescription}</p></div>}
+                {selected.exclusions && <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-lg p-3"><p className="text-xs text-etat-critique-texte font-medium mb-1">Exclusions</p><p className="text-sm">{selected.exclusions}</p></div>}
+                {selected.notes && <div className="bg-paper rounded-lg p-3 text-sm">{selected.notes}</div>}
               </TabsContent>
               <TabsContent value="claims" className="space-y-3 mt-4">
-                <Button size="sm" onClick={() => setShowClaim(true)} className="bg-green-600 text-white gap-2"><Plus className="h-4 w-4" />Déclarer une réclamation</Button>
+                <Button size="sm" onClick={() => setShowClaim(true)} className="bg-etat-nominal-vif text-white gap-2"><Plus className="h-4 w-4" />Déclarer une réclamation</Button>
                 {(selected.claims || []).length === 0 ? <p className="text-ink-mute text-sm text-center py-8">Aucune réclamation</p>
                 : (
                   <div className="space-y-3">{[...(selected.claims || [])].reverse().map((c, i) => (
-                    <div key={i} className="bg-white border rounded-xl p-3">
+                    <div key={i} className="bg-white border rounded-none p-3">
                       <div className="flex items-center gap-2 mb-1">
                         {c.claimNumber && <span className="text-xs font-mono text-ink-mute">{c.claimNumber}</span>}
                         <Badge className={CLAIM_STATUS[c.status] + " text-xs"}>{CLAIM_LABEL[c.status]}</Badge>
                         <span className="text-xs text-ink-mute ml-auto">{new Date(c.date).toLocaleDateString("fr-FR")}</span>
-                        {c.amount && <span className="text-xs font-bold text-blue-600">{fmtEur(c.amount)}</span>}
+                        {c.amount && <span className="text-xs font-bold text-etat-encours-texte">{fmtEur(c.amount)}</span>}
                       </div>
                       <p className="text-sm">{c.description}</p>
-                      {c.resolution && <p className="text-xs text-green-600 mt-1">{c.resolution}</p>}
+                      {c.resolution && <p className="text-xs text-etat-nominal-texte mt-1">{c.resolution}</p>}
                     </div>
                   ))}</div>
                 )}
@@ -300,7 +304,7 @@ export default function WarrantyPage() {
                           <FormField control={claimForm.control} name="amount" render={({ field }) => (<FormItem><FormLabel>Montant (€)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         </div>
                         <FormField control={claimForm.control} name="description" render={({ field }) => (<FormItem><FormLabel>Description *</FormLabel><FormControl><Textarea rows={2} {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <DialogFooter><Button type="button" variant="outline" onClick={() => setShowClaim(false)}>Annuler</Button><Button type="submit" disabled={addClaimMut.isPending} className="bg-green-600 text-white">{addClaimMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Enregistrer</Button></DialogFooter>
+                        <DialogFooter><Button type="button" variant="outline" onClick={() => setShowClaim(false)}>Annuler</Button><Button type="submit" disabled={addClaimMut.isPending} className="bg-etat-nominal-vif text-white">{addClaimMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Enregistrer</Button></DialogFooter>
                       </form></Form>
                     </DialogContent>
                   </Dialog>
@@ -308,12 +312,13 @@ export default function WarrantyPage() {
               </TabsContent>
             </Tabs>
             <DialogFooter className="gap-2">
-              <Button variant="ghost" size="sm" className="text-red-600 mr-auto" onClick={() => { if (confirm("Supprimer cette garantie ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
+              <Button variant="ghost" size="sm" className="text-etat-critique-texte mr-auto" onClick={() => { if (confirm("Supprimer cette garantie ?")) deleteMut.mutate(selected.id); }}><Trash2 className="h-4 w-4 mr-1" />Supprimer</Button>
               <Button variant="outline" onClick={() => setSelected(null)}>Fermer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
     </div>
+    </AppShell>
   );
 }

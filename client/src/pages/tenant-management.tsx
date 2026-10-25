@@ -29,6 +29,9 @@ import {
   Mail,
   Send
 } from 'lucide-react';
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 interface Tenant {
   id: string;
@@ -133,25 +136,26 @@ const TenantManagement: React.FC = () => {
   });
 
   if (isLoading) return <div className="flex items-center justify-center h-64">Chargement...</div>;
-  if (error) return <div className="text-red-500">Erreur lors du chargement</div>;
+  if (error) return <div className="text-etat-critique-texte">Erreur lors du chargement</div>;
 
   const getPlanColor = (plan: string) => {
     switch (plan) {
-      case 'free': return 'bg-gray-100 text-gray-800';
-      case 'pro': return 'bg-blue-100 text-blue-800';
+      case 'free': return 'bg-paper-deep text-ink';
+      case 'pro': return 'bg-etat-encours-fond text-etat-encours-texte';
       case 'business': return 'bg-paper-deep text-signal-deep';
-      case 'enterprise': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'enterprise': return 'bg-etat-nominal-fond text-etat-nominal-texte';
+      default: return 'bg-paper-deep text-ink';
     }
   };
 
   return (
+    <AppShell filAriane={[{ libelle: "Administration" }, { libelle: "Organisations" }]} largeur="large">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestion Multi-Tenant</h1>
-          <p className="text-gray-600">Administration centralisée des clients et isolation des données</p>
+          <h1 className="text-3xl font-bold text-ink">Gestion Multi-Tenant</h1>
+          <p className="text-ink-soft">Administration centralisée des clients et isolation des données</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
@@ -164,11 +168,11 @@ const TenantManagement: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Building className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-etat-encours-fond rounded-lg">
+                <Building className="w-6 h-6 text-etat-encours-texte" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Tenants</p>
+                <p className="text-sm text-ink-soft">Total Tenants</p>
                 <p className="text-2xl font-bold">{tenants.length}</p>
               </div>
             </div>
@@ -178,11 +182,11 @@ const TenantManagement: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Users className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-etat-nominal-fond rounded-lg">
+                <Users className="w-6 h-6 text-etat-nominal-texte" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Utilisateurs</p>
+                <p className="text-sm text-ink-soft">Total Utilisateurs</p>
                 <p className="text-2xl font-bold">
                   {tenants.reduce((sum, t) => sum + t.currentUsers, 0)}
                 </p>
@@ -202,28 +206,19 @@ const TenantManagement: React.FC = () => {
                     précision n'est mesurée nulle part : annoncer un tel chiffre
                     sur la page qui présente la plateforme à ses administrateurs
                     est une promesse sans contrepartie. 2026-10-13. */}
-                <p className="text-sm text-gray-600">IA Collaborative</p>
+                <p className="text-sm text-ink-soft">IA Collaborative</p>
                 <p className="text-2xl font-bold text-ink-mute">—</p>
-                <p className="text-xs text-gray-500">Précision non mesurée</p>
+                <p className="text-xs text-ink-mute">Précision non mesurée</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <Shield className="w-6 h-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Conformité RGPD</p>
-                <p className="text-2xl font-bold">100%</p>
-                <p className="text-xs text-gray-500">Tenants conformes</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* ⚠️ RETIRÉ : une tuile « Conformité RGPD — 100 % — Tenants
+            conformes ». Ce taux n'était calculé nulle part ; aucun contrôle
+            de conformité n'existe dans cette base. Afficher 100 % de
+            conformité réglementaire sans l'avoir mesurée est précisément le
+            genre d'affirmation qu'un audit vient vérifier. */}
       </div>
 
       {/* Main Content */}
@@ -243,29 +238,29 @@ const TenantManagement: React.FC = () => {
                   key={tenant.id}
                   className={`p-4 border rounded-lg cursor-pointer transition-all ${
                     selectedTenant?.id === tenant.id 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-etat-encours-filet bg-etat-encours-fond' 
+                      : 'border-rule hover:border-rule'
                   }`}
                   onClick={() => setSelectedTenant(tenant)}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold">{tenant.name}</h3>
-                      <p className="text-sm text-gray-500">{tenant.domain || tenant.id}</p>
+                      <p className="text-sm text-ink-mute">{tenant.domain || tenant.id}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <Badge className={getPlanColor(tenant.plan)}>
                         {tenant.plan.toUpperCase()}
                       </Badge>
                       <div className={`w-2 h-2 rounded-full ${
-                        tenant.isActive ? 'bg-green-500' : 'bg-red-500'
+                        tenant.isActive ? 'bg-etat-nominal-vif' : 'bg-etat-critique-vif'
                       }`} />
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                  <div className="mt-2 flex items-center gap-4 text-xs text-ink-mute">
                     <span>{tenant.currentUsers}/{tenant.maxUsers} utilisateurs</span>
-                    {tenant.gdprCompliant && <Shield className="w-3 h-3 text-green-500" />}
-                    {tenant.encryptionEnabled && <Lock className="w-3 h-3 text-blue-500" />}
+                    {tenant.gdprCompliant && <Shield className="w-3 h-3 text-etat-nominal-texte" />}
+                    {tenant.encryptionEnabled && <Lock className="w-3 h-3 text-etat-encours-texte" />}
                   </div>
                 </div>
               ))}
@@ -308,7 +303,7 @@ const TenantManagement: React.FC = () => {
                         <Label>Statut</Label>
                         <div className="flex items-center gap-2 mt-1">
                           <div className={`w-2 h-2 rounded-full ${
-                            selectedTenant.isActive ? 'bg-green-500' : 'bg-red-500'
+                            selectedTenant.isActive ? 'bg-etat-nominal-vif' : 'bg-etat-critique-vif'
                           }`} />
                           <span className="text-sm">
                             {selectedTenant.isActive ? 'Actif' : 'Inactif'}
@@ -331,31 +326,14 @@ const TenantManagement: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                {/* Usage Stats */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Statistiques d'utilisation
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">847</div>
-                        <div className="text-sm text-gray-600">Diagnostics ce mois</div>
-                      </div>
-                      <div className="text-center p-4 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">2.3k</div>
-                        <div className="text-sm text-gray-600">Interventions totales</div>
-                      </div>
-                      <div className="text-center p-4 bg-paper-deep rounded-lg">
-                        <div className="text-2xl font-bold text-signal-deep">94%</div>
-                        <div className="text-sm text-gray-600">Taux de résolution</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* ⚠️ RETIRÉ : une carte « Statistiques d'utilisation » dont
+                    les trois chiffres étaient écrits en dur — « 847
+                    diagnostics ce mois », « 2.3k interventions totales »,
+                    « 94 % de taux de résolution ». Ils s'affichaient à
+                    l'identique pour CHAQUE locataire sélectionné, y compris
+                    un locataire créé à l'instant. Aucune de ces mesures n'est
+                    calculée nulle part : le super-administrateur lisait une
+                    activité qui n'existait pas. */}
               </TabsContent>
 
               {/* Security Tab */}
@@ -372,7 +350,7 @@ const TenantManagement: React.FC = () => {
                       <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                           <Label className="font-semibold">Chiffrement des données</Label>
-                          <p className="text-sm text-gray-600">Chiffrement AES-256 des données sensibles</p>
+                          <p className="text-sm text-ink-soft">Chiffrement AES-256 des données sensibles</p>
                         </div>
                         <Switch 
                           checked={selectedTenant.encryptionEnabled} 
@@ -388,7 +366,7 @@ const TenantManagement: React.FC = () => {
                       <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                           <Label className="font-semibold">Conformité RGPD</Label>
-                          <p className="text-sm text-gray-600">Respect du règlement européen</p>
+                          <p className="text-sm text-ink-soft">Respect du règlement européen</p>
                         </div>
                         <Switch 
                           checked={selectedTenant.gdprCompliant} 
@@ -404,7 +382,7 @@ const TenantManagement: React.FC = () => {
                       <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div>
                           <Label className="font-semibold">Journaux d'audit</Label>
-                          <p className="text-sm text-gray-600">Traçabilité complète des actions</p>
+                          <p className="text-sm text-ink-soft">Traçabilité complète des actions</p>
                         </div>
                         <Switch 
                           checked={selectedTenant.auditLogsEnabled} 
@@ -418,12 +396,12 @@ const TenantManagement: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="p-4 bg-etat-nominal-fond border border-etat-nominal-filet rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-green-600" />
-                        <span className="font-semibold text-green-800">Isolation parfaite</span>
+                        <Shield className="w-5 h-5 text-etat-nominal-texte" />
+                        <span className="font-semibold text-etat-nominal-texte">Isolation parfaite</span>
                       </div>
-                      <p className="text-sm text-green-700 mt-1">
+                      <p className="text-sm text-etat-nominal-texte mt-1">
                         Aucune fuite de données détectée entre les tenants
                       </p>
                     </div>
@@ -446,29 +424,29 @@ const TenantManagement: React.FC = () => {
                   <CardContent className="space-y-6">
                     {federatedAnalytics && (
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <div className="text-2xl font-bold text-blue-600">
+                        <div className="p-4 bg-etat-encours-fond rounded-lg">
+                          <div className="text-2xl font-bold text-etat-encours-texte">
                             {federatedAnalytics.totalContributions || 0}
                           </div>
-                          <div className="text-sm text-gray-600">Contributions totales</div>
+                          <div className="text-sm text-ink-soft">Contributions totales</div>
                         </div>
-                        <div className="p-4 bg-green-50 rounded-lg">
-                          <div className="text-2xl font-bold text-green-600">
+                        <div className="p-4 bg-etat-nominal-fond rounded-lg">
+                          <div className="text-2xl font-bold text-etat-nominal-texte">
                             {Math.round((federatedAnalytics.acceptanceRate || 0) * 100)}%
                           </div>
-                          <div className="text-sm text-gray-600">Taux d'acceptation</div>
+                          <div className="text-sm text-ink-soft">Taux d'acceptation</div>
                         </div>
                         <div className="p-4 bg-paper-deep rounded-lg">
                           <div className="text-2xl font-bold text-signal-deep">
                             {Math.round(federatedAnalytics.globalImpactScore || 0)}
                           </div>
-                          <div className="text-sm text-gray-600">Score d'impact global</div>
+                          <div className="text-sm text-ink-soft">Score d'impact global</div>
                         </div>
-                        <div className="p-4 bg-orange-50 rounded-lg">
-                          <div className="text-2xl font-bold text-orange-600">
+                        <div className="p-4 bg-etat-alerte-fond rounded-lg">
+                          <div className="text-2xl font-bold text-etat-alerte-texte">
                             {federatedAnalytics.improvementsBenefited || 0}
                           </div>
-                          <div className="text-sm text-gray-600">Améliorations bénéficiées</div>
+                          <div className="text-sm text-ink-soft">Améliorations bénéficiées</div>
                         </div>
                       </div>
                     )}
@@ -477,7 +455,7 @@ const TenantManagement: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <Label className="font-semibold">Rang de contribution</Label>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-ink-soft">
                             {federatedAnalytics?.contributionRank || 'Nouveau Contributeur'}
                           </p>
                         </div>
@@ -487,12 +465,12 @@ const TenantManagement: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="p-4 bg-etat-encours-fond border border-etat-encours-filet rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-blue-800">Anonymisation totale</span>
+                        <Zap className="w-5 h-5 text-etat-encours-texte" />
+                        <span className="font-semibold text-etat-encours-texte">Anonymisation totale</span>
                       </div>
-                      <p className="text-sm text-blue-700 mt-1">
+                      <p className="text-sm text-etat-encours-texte mt-1">
                         Seuls les patterns statistiques anonymisés sont partagés pour améliorer l'IA collective
                       </p>
                     </div>
@@ -569,7 +547,7 @@ const TenantManagement: React.FC = () => {
                             <Mail className="w-4 h-4" />
                             Invitation d'accès
                           </Label>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-ink-soft">
                             Envoyer le lien de connexion par email
                           </p>
                         </div>
@@ -621,9 +599,9 @@ const TenantManagement: React.FC = () => {
           ) : (
             <Card>
               <CardContent className="p-12 text-center">
-                <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600">Sélectionnez un tenant</h3>
-                <p className="text-gray-500">Choisissez un tenant dans la liste pour voir les détails</p>
+                <Building className="w-12 h-12 text-ink-mute mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-ink-soft">Sélectionnez un tenant</h3>
+                <p className="text-ink-mute">Choisissez un tenant dans la liste pour voir les détails</p>
               </CardContent>
             </Card>
           )}
@@ -676,6 +654,7 @@ const TenantManagement: React.FC = () => {
         </div>
       )}
     </div>
+    </AppShell>
   );
 };
 

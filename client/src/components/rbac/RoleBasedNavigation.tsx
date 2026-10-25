@@ -53,7 +53,7 @@ function NavigationItem({ item, currentPath }: NavigationItemProps) {
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer",
           isActive
             ? "bg-signal-deep text-white"
-            : "text-gray-700 dark:text-gray-300 hover:bg-paper-deep dark:hover:bg-signal-deep/20"
+            : "text-gray-700 hover:bg-paper-deep"
         )}
       >
         <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-signal-deep")} />
@@ -75,7 +75,7 @@ export function RoleBasedNavigation() {
     return (
       <div className="p-4 space-y-2">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div key={i} className="h-12 bg-gray-200 rounded-lg animate-pulse" />
         ))}
       </div>
     );
@@ -86,15 +86,15 @@ export function RoleBasedNavigation() {
   return (
     <nav className="p-4 space-y-2">
       {/* Info utilisateur */}
-      <div className="mb-6 p-4 bg-paper-deep rounded-lg border border-rule dark:border-rule">
-        <div className="text-sm font-semibold text-signal-deep dark:text-paper-deep">
+      <div className="mb-6 p-4 bg-paper-deep rounded-lg border border-rule">
+        <div className="text-sm font-semibold text-signal-deep">
           {user?.username}
         </div>
-        <div className="text-xs text-signal-deep dark:text-signal-light capitalize">
+        <div className="text-xs text-signal-deep capitalize">
           {user?.role?.replace(/_/g, " ")}
         </div>
         {user?.department && (
-          <div className="text-xs text-signal-deep dark:text-signal-light mt-1">
+          <div className="text-xs text-signal-deep mt-1">
             {user.department}
           </div>
         )}

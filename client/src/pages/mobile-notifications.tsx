@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { ModernNavigation } from "@/components/modern-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +35,9 @@ import {
   Plus,
   WifiOff,
 } from "lucide-react";
+import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
+import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
+import { ETAT, type RegistreEtat } from "@/lib/etats";
 
 // ── Types ───────────────────────────────────────────────────────────────────────
 interface MobileNotification {
@@ -68,19 +70,19 @@ interface DeviceInfo {
 
 // ── Config ──────────────────────────────────────────────────────────────────────
 const TYPE_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string }> = {
-  critical_alert:    { label: "Alerte critique",      icon: AlertTriangle,  color: "text-rose-600",    bg: "bg-rose-50 border-rose-200" },
-  task_assigned:     { label: "Tâche affectée",        icon: ClipboardList,  color: "text-blue-600",    bg: "bg-blue-50 border-blue-200" },
-  maintenance_due:   { label: "Maintenance planifiée", icon: Calendar,       color: "text-amber-600",   bg: "bg-amber-50 border-amber-200" },
+  critical_alert:    { label: "Alerte critique",      icon: AlertTriangle,  color: "text-etat-critique-texte",    bg: "bg-etat-critique-fond border-etat-critique-filet" },
+  task_assigned:     { label: "Tâche affectée",        icon: ClipboardList,  color: "text-etat-encours-texte",    bg: "bg-etat-encours-fond border-etat-encours-filet" },
+  maintenance_due:   { label: "Maintenance planifiée", icon: Calendar,       color: "text-etat-alerte-texte",   bg: "bg-etat-alerte-fond border-etat-alerte-filet" },
   work_order_update: { label: "Mise à jour OT",        icon: Wrench,         color: "text-signal-deep",  bg: "bg-paper-deep border-rule" },
-  system:            { label: "Système",               icon: Info,           color: "text-ink-mute",   bg: "bg-slate-50 border-slate-200" },
+  system:            { label: "Système",               icon: Info,           color: "text-ink-mute",   bg: "bg-paper border-rule" },
 };
 
 const SEV_DOT: Record<string, string> = {
-  emergency: "bg-red-600 animate-pulse",
-  critical:  "bg-rose-500 animate-pulse",
-  high:      "bg-orange-500",
-  medium:    "bg-amber-400",
-  low:       "bg-emerald-400",
+  emergency: "bg-etat-critique-vif animate-pulse",
+  critical:  "bg-etat-critique-vif animate-pulse",
+  high:      "bg-etat-alerte-vif",
+  medium:    "bg-etat-alerte-vif",
+  low:       "bg-etat-nominal-vif",
 };
 
 function timeAgo(d: string) {
@@ -135,15 +137,15 @@ function PushSettingsPanel() {
   return (
     <div className="space-y-5">
       {/* Status Card */}
-      <Card className={`border-2 ${push.isSubscribed ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+      <Card className={`border-2 ${push.isSubscribed ? "border-etat-nominal-filet bg-etat-nominal-fond" : "border-rule bg-white"}`}>
         <CardContent className="p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${push.isSubscribed ? "bg-emerald-100" : "bg-slate-100"}`}>
-                {push.isSubscribed ? <BellRing className="w-5 h-5 text-emerald-600" /> : <BellOff className="w-5 h-5 text-ink-mute" />}
+              <div className={`w-10 h-10 rounded-none flex items-center justify-center ${push.isSubscribed ? "bg-etat-nominal-fond" : "bg-paper-deep"}`}>
+                {push.isSubscribed ? <BellRing className="w-5 h-5 text-etat-nominal-texte" /> : <BellOff className="w-5 h-5 text-ink-mute" />}
               </div>
               <div>
-                <div className="font-semibold text-slate-800">
+                <div className="font-semibold text-ink">
                   {push.isSubscribed ? "Notifications actives" : "Notifications désactivées"}
                 </div>
                 <div className="text-xs text-ink-mute">
@@ -170,11 +172,11 @@ function PushSettingsPanel() {
 
       {/* Permission denied warning */}
       {push.permission === "denied" && (
-        <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
-          <Shield className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+        <div className="bg-etat-critique-fond border border-etat-critique-filet rounded-none p-4 flex items-start gap-3">
+          <Shield className="w-5 h-5 text-etat-critique-texte flex-shrink-0 mt-0.5" />
           <div>
-            <div className="text-sm font-semibold text-rose-700">Permission refusée</div>
-            <div className="text-xs text-rose-600 mt-1">
+            <div className="text-sm font-semibold text-etat-critique-texte">Permission refusée</div>
+            <div className="text-xs text-etat-critique-texte mt-1">
               Autorisez les notifications dans les paramètres de votre navigateur, puis revenez ici pour activer.
             </div>
           </div>
@@ -182,21 +184,21 @@ function PushSettingsPanel() {
       )}
 
       {/* What you'll receive */}
-      <Card className="border border-slate-200">
+      <Card className="border border-rule">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm text-slate-700">Événements notifiés</CardTitle>
+          <CardTitle className="text-sm text-ink-soft">Événements notifiés</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            { icon: AlertTriangle, color: "text-rose-500", label: "Alertes critiques", desc: "Pannes, seuils dépassés, urgences" },
-            { icon: ClipboardList, color: "text-blue-500", label: "Affectation de tâches", desc: "Nouvel OT assigné à votre compte" },
-            { icon: Calendar, color: "text-amber-500", label: "Maintenance imminente", desc: "Rappels de planification préventive" },
+            { icon: AlertTriangle, color: "text-etat-critique-texte", label: "Alertes critiques", desc: "Pannes, seuils dépassés, urgences" },
+            { icon: ClipboardList, color: "text-etat-encours-texte", label: "Affectation de tâches", desc: "Nouvel OT assigné à votre compte" },
+            { icon: Calendar, color: "text-etat-alerte-texte", label: "Maintenance imminente", desc: "Rappels de planification préventive" },
             { icon: Wrench, color: "text-signal-deep", label: "Mises à jour d'OT", desc: "Changements de statut et validations" },
           ].map(({ icon: Icon, color, label, desc }) => (
             <div key={label} className="flex items-start gap-3">
               <Icon className={`w-4 h-4 ${color} flex-shrink-0 mt-0.5`} />
               <div>
-                <div className="text-sm font-medium text-slate-700">{label}</div>
+                <div className="text-sm font-medium text-ink-soft">{label}</div>
                 <div className="text-xs text-ink-mute">{desc}</div>
               </div>
             </div>
@@ -208,7 +210,7 @@ function PushSettingsPanel() {
       {push.isSubscribed && (
         <Button
           variant="outline"
-          className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 rounded-xl"
+          className="w-full border-etat-encours-filet text-etat-encours-texte hover:bg-etat-encours-fond rounded-none"
           onClick={() => testMutation.mutate()}
           disabled={testMutation.isPending}
         >
@@ -219,22 +221,22 @@ function PushSettingsPanel() {
 
       {/* Registered devices */}
       {devices.length > 0 && (
-        <Card className="border border-slate-200">
+        <Card className="border border-rule">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-slate-700 flex items-center gap-2">
+            <CardTitle className="text-sm text-ink-soft flex items-center gap-2">
               <MonitorSmartphone className="w-4 h-4" />
               Appareils enregistrés ({devices.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {devices.map((d) => (
-              <div key={d.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-lg">
+              <div key={d.id} className="flex items-center gap-3 p-2.5 bg-paper rounded-lg">
                 <Smartphone className="w-4 h-4 text-ink-mute flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-slate-700 truncate">{d.deviceName}</div>
+                  <div className="text-xs font-medium text-ink-soft truncate">{d.deviceName}</div>
                   <div className="text-[10px] text-ink-mute">Dernière activité : {timeAgo(d.lastUsedAt)}</div>
                 </div>
-                <div className="w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0" />
+                <div className="w-2 h-2 bg-etat-nominal-vif rounded-full flex-shrink-0" />
               </div>
             ))}
           </CardContent>
@@ -259,18 +261,18 @@ function NotifItem({
   const dot = SEV_DOT[notif.severity] || "bg-slate-300";
 
   return (
-    <div className={`relative border rounded-2xl p-4 transition-all duration-200 ${notif.isRead ? "bg-white border-slate-100 opacity-80" : `${cfg.bg} shadow-sm`}`}>
+    <div className={`relative border rounded-none p-4 transition-all duration-200 ${notif.isRead ? "bg-white border-slate-100 opacity-80" : `${cfg.bg} shadow-sm`}`}>
       {/* Unread dot */}
       {!notif.isRead && (
         <div className={`absolute top-3.5 right-3.5 w-2.5 h-2.5 ${dot} rounded-full`} />
       )}
       <div className="flex items-start gap-3 pr-4">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.isRead ? "bg-slate-100" : cfg.bg.replace("bg-", "bg-").replace("-50", "-100")}`}>
+        <div className={`w-9 h-9 rounded-none flex items-center justify-center flex-shrink-0 ${notif.isRead ? "bg-paper-deep" : cfg.bg.replace("bg-", "bg-").replace("-50", "-100")}`}>
           <Icon className={`w-4.5 h-4.5 ${cfg.color}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <span className="text-sm font-semibold text-slate-800 leading-snug">{notif.title}</span>
+            <span className="text-sm font-semibold text-ink leading-snug">{notif.title}</span>
             <Badge className={`text-[10px] px-1.5 py-0 ${cfg.bg} ${cfg.color} border`}>{cfg.label}</Badge>
           </div>
           <p className="text-xs text-ink-soft leading-relaxed mb-2">{notif.body}</p>
@@ -291,7 +293,7 @@ function NotifItem({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-[11px] px-2 text-ink-mute hover:text-emerald-600"
+                  className="h-6 text-[11px] px-2 text-ink-mute hover:text-etat-nominal-texte"
                   onClick={() => onRead(notif.id)}
                 >
                   <CheckCircle className="w-3 h-3" />
@@ -300,7 +302,7 @@ function NotifItem({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 text-[11px] px-2 text-ink-mute hover:text-rose-500"
+                className="h-6 text-[11px] px-2 text-ink-mute hover:text-etat-critique-texte"
                 onClick={() => onDismiss(notif.id)}
               >
                 <X className="w-3 h-3" />
@@ -364,7 +366,7 @@ export default function MobileNotificationsPage() {
   const renderList = (items: MobileNotification[]) =>
     items.length === 0 ? (
       <div className="text-center py-12">
-        <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+        <CheckCircle className="w-10 h-10 text-etat-nominal-texte mx-auto mb-3" />
         <p className="text-ink-mute text-sm">Aucune notification dans cette catégorie</p>
       </div>
     ) : (
@@ -381,22 +383,22 @@ export default function MobileNotificationsPage() {
     );
 
   return (
-    <div className="min-h-screen bg-paper-deep">
-      <ModernNavigation />
+    <AppShell filAriane={[{ libelle: "Ressources" }, { libelle: "Notifications" }]} largeur="large">
+    <div className="space-y-6">
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         {/* ── Header ─────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-paper-deep rounded-xl flex items-center justify-center shadow-blue-500/20">
+              <div className="w-10 h-10 bg-paper-deep rounded-none flex items-center justify-center shadow-blue-500/20">
                 <Bell className="w-5 h-5 text-ink" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-ink flex items-center gap-2">
                   Notifications mobiles
                   {unreadCount > 0 && (
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-rose-500 text-white text-xs font-bold rounded-full">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-etat-critique-vif text-white text-xs font-bold rounded-full">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
@@ -414,7 +416,7 @@ export default function MobileNotificationsPage() {
                 size="sm"
                 onClick={() => readAllMutation.mutate()}
                 disabled={readAllMutation.isPending}
-                className="border-slate-200 text-ink-soft rounded-xl text-xs"
+                className="border-rule text-ink-soft rounded-none text-xs"
               >
                 <CheckCheck className="w-4 h-4 mr-1.5" />
                 Tout lire
@@ -425,7 +427,7 @@ export default function MobileNotificationsPage() {
               size="sm"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="border-slate-200 text-ink-soft rounded-xl"
+              className="border-rule text-ink-soft rounded-none"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -435,12 +437,12 @@ export default function MobileNotificationsPage() {
         {/* ── Summary row ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
-            { label: "Non lues", val: unreadCount, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
-            { label: "Critiques", val: critical.length, color: "text-rose-600", bg: "bg-rose-50 border-rose-100" },
+            { label: "Non lues", val: unreadCount, color: "text-etat-encours-texte", bg: "bg-etat-encours-fond border-etat-encours-filet" },
+            { label: "Critiques", val: critical.length, color: "text-etat-critique-texte", bg: "bg-etat-critique-fond border-etat-critique-filet" },
             { label: "Tâches",    val: tasks.length,    color: "text-signal-deep", bg: "bg-paper-deep border-paper-deep" },
-            { label: "Total",     val: notifications.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-100" },
+            { label: "Total",     val: notifications.length, color: "text-ink-soft", bg: "bg-paper border-slate-100" },
           ].map(({ label, val, color, bg }) => (
-            <div key={label} className={`${bg} border rounded-2xl p-4 text-center`}>
+            <div key={label} className={`${bg} border rounded-none p-4 text-center`}>
               <div className={`text-2xl font-bold ${color}`}>{val}</div>
               <div className="text-xs text-ink-mute mt-0.5">{label}</div>
             </div>
@@ -449,17 +451,17 @@ export default function MobileNotificationsPage() {
 
         {/* ── Push subscription prompt ─────────────────────────────── */}
         {push.isSupported && !push.isSubscribed && push.permission !== "denied" && (
-          <div className="mb-6 bg-paper-deep border border-blue-200 rounded-2xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-blue-600" />
+          <div className="mb-6 bg-paper-deep border border-etat-encours-filet rounded-none p-4 flex items-center gap-4">
+            <div className="w-10 h-10 bg-etat-encours-fond rounded-none flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-5 h-5 text-etat-encours-texte" />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-semibold text-blue-800">Activez les notifications push</div>
-              <div className="text-xs text-blue-600 mt-0.5">Recevez les alertes critiques même quand vous n'êtes pas sur la page</div>
+              <div className="text-sm font-semibold text-etat-encours-texte">Activez les notifications push</div>
+              <div className="text-xs text-etat-encours-texte mt-0.5">Recevez les alertes critiques même quand vous n'êtes pas sur la page</div>
             </div>
             <Button
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 rounded-xl flex-shrink-0"
+              className="bg-etat-encours-vif hover:bg-etat-encours-vif rounded-none flex-shrink-0"
               onClick={() => push.subscribe()}
               disabled={push.isLoading}
             >
@@ -475,17 +477,17 @@ export default function MobileNotificationsPage() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="h-24 bg-slate-100 rounded-2xl animate-pulse" />
+                  <div key={i} className="h-24 bg-paper-deep rounded-none animate-pulse" />
                 ))}
               </div>
             ) : (
               <Tabs defaultValue="all">
-                <TabsList className="bg-white border border-slate-200 rounded-xl p-1 mb-4 w-full">
+                <TabsList className="bg-white border border-rule rounded-none p-1 mb-4 w-full">
                   <TabsTrigger value="all" className="flex-1 rounded-lg text-xs">
                     Toutes {notifications.length > 0 && `(${notifications.length})`}
                   </TabsTrigger>
                   {critical.length > 0 && (
-                    <TabsTrigger value="critical" className="flex-1 rounded-lg text-xs text-rose-600">
+                    <TabsTrigger value="critical" className="flex-1 rounded-lg text-xs text-etat-critique-texte">
                       Critiques ({critical.length})
                     </TabsTrigger>
                   )}
@@ -511,27 +513,27 @@ export default function MobileNotificationsPage() {
 
           {/* Settings sidebar */}
           <div className="space-y-5">
-            <div className="bg-white border border-slate-200 rounded-2xl p-4">
+            <div className="bg-white border border-rule rounded-none p-4">
               <div className="flex items-center gap-2 mb-4">
                 <Settings className="w-4 h-4 text-ink-soft" />
-                <h3 className="text-sm font-semibold text-slate-700">Paramètres push</h3>
+                <h3 className="text-sm font-semibold text-ink-soft">Paramètres push</h3>
               </div>
               <PushSettingsPanel />
             </div>
 
             {/* Quick links */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+            <div className="bg-paper border border-rule rounded-none p-4 space-y-2">
               <h3 className="text-xs font-semibold text-ink-mute uppercase tracking-wider mb-3">Accès rapides</h3>
               {[
-                { href: "/work-orders", icon: ClipboardList, label: "Mes ordres de travail", color: "text-blue-600" },
-                { href: "/mobile-notifications", icon: AlertTriangle, label: "Alertes actives", color: "text-rose-600" },
-                { href: "/maintenance-recommendations", icon: Calendar, label: "Recommandations", color: "text-amber-600" },
+                { href: "/work-orders", icon: ClipboardList, label: "Mes ordres de travail", color: "text-etat-encours-texte" },
+                { href: "/mobile-notifications", icon: AlertTriangle, label: "Alertes actives", color: "text-etat-critique-texte" },
+                { href: "/maintenance-recommendations", icon: Calendar, label: "Recommandations", color: "text-etat-alerte-texte" },
                 { href: "/gmao", icon: Wrench, label: "GMAO", color: "text-signal-deep" },
               ].map(({ href, icon: Icon, label, color }) => (
                 <Link key={href} href={href}>
-                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-none hover:bg-white transition-colors cursor-pointer">
                     <Icon className={`w-4 h-4 ${color}`} />
-                    <span className="text-sm text-slate-700">{label}</span>
+                    <span className="text-sm text-ink-soft">{label}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-ink-mute ml-auto" />
                   </div>
                 </Link>
@@ -541,5 +543,6 @@ export default function MobileNotificationsPage() {
         </div>
       </main>
     </div>
+    </AppShell>
   );
 }

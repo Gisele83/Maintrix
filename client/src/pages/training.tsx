@@ -368,28 +368,28 @@ export default function Training() {
                 <Progress value={(userProgress.completedModules / userProgress.totalModules) * 100} className="mt-2" />
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-1">
+                <div className="text-3xl font-bold text-etat-nominal-texte mb-1">
                   {userProgress.completedHours}h
                 </div>
                 <div className="text-sm text-muted-foreground">Temps d'apprentissage</div>
                 <Progress value={(userProgress.completedHours / userProgress.totalHours) * 100} className="mt-2" />
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-600 mb-1">
+                <div className="text-3xl font-bold text-etat-alerte-texte mb-1">
                   {userProgress.certificates}
                 </div>
                 <div className="text-sm text-muted-foreground">Certificats obtenus</div>
                 <div className="flex justify-center mt-2">
-                  <Award className="w-6 h-6 text-yellow-600" />
+                  <Award className="w-6 h-6 text-etat-alerte-texte" />
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-1">
+                <div className="text-3xl font-bold text-etat-alerte-texte mb-1">
                   {userProgress.streak}j
                 </div>
                 <div className="text-sm text-muted-foreground">Série d'apprentissage</div>
                 <div className="flex justify-center mt-2">
-                  <Zap className="w-6 h-6 text-orange-600" />
+                  <Zap className="w-6 h-6 text-etat-alerte-texte" />
                 </div>
               </div>
             </div>
@@ -457,7 +457,7 @@ export default function Training() {
           {selectedPath && (
             <Card className="border-0 bg-paper-deep">
               <CardHeader>
-                <CardTitle className="text-blue-800 dark:text-blue-200">
+                <CardTitle className="text-etat-encours-texte">
                   Modules du {learningPaths.find(p => p.id === selectedPath)?.title}
                 </CardTitle>
               </CardHeader>
@@ -466,7 +466,7 @@ export default function Training() {
                   {getModulesByPath(selectedPath).map((module) => {
                     const IconComponent = module.icon;
                     return (
-                      <div key={module.id} className="bg-white dark:bg-blue-900 p-4 rounded-lg">
+                      <div key={module.id} className="bg-white p-4 rounded-lg">
                         <div className="flex items-center space-x-2 mb-2">
                           <IconComponent className="w-5 h-5 text-primary" />
                           <span className="font-medium">{module.title}</span>
@@ -477,7 +477,7 @@ export default function Training() {
                           <Badge variant={module.difficulty === "Débutant" ? "secondary" : module.difficulty === "Intermédiaire" ? "outline" : "destructive"} className="text-xs">
                             {module.difficulty}
                           </Badge>
-                          {module.completed && <CheckCircle className="w-4 h-4 text-green-600" />}
+                          {module.completed && <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />}
                         </div>
                       </div>
                     );
@@ -524,7 +524,7 @@ export default function Training() {
                           </div>
                         </div>
                       </div>
-                      {module.completed && <CheckCircle className="w-5 h-5 text-green-600" />}
+                      {module.completed && <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -602,15 +602,15 @@ export default function Training() {
         {/* Certification Section */}
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200">
+            <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte">
               <Award className="w-6 h-6" />
               <span>Certifications Disponibles</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white dark:bg-yellow-900 rounded-lg">
-                <Award className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+              <div className="text-center p-4 bg-white rounded-lg">
+                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Technicien Certifié</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Maîtrise des fonctionnalités de diagnostic et maintenance
@@ -629,8 +629,8 @@ export default function Training() {
                   Commencer
                 </Button>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-yellow-900 rounded-lg">
-                <Award className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+              <div className="text-center p-4 bg-white rounded-lg">
+                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Expert IA</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Spécialisation en intelligence artificielle et analyse
@@ -649,8 +649,8 @@ export default function Training() {
                   Commencer
                 </Button>
               </div>
-              <div className="text-center p-4 bg-white dark:bg-yellow-900 rounded-lg">
-                <Award className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+              <div className="text-center p-4 bg-white rounded-lg">
+                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
                 <h3 className="font-semibold mb-2">Administrateur</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Administration système et gestion avancée
