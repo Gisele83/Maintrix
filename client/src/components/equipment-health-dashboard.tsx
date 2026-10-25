@@ -36,10 +36,12 @@ interface EquipmentHealth {
   id: number;
   equipmentName: string;
   equipmentCode: string;
-  healthScore: number;
-  status: 'healthy' | 'warning' | 'critical' | 'offline';
-  lastMaintenance: string;
-  nextMaintenance: string;
+  // `null` quand aucun capteur n'est évaluable : à afficher « — », jamais 0,
+  // et surtout jamais la valeur 85 que l'ancien serveur inventait.
+  healthScore: number | null;
+  status: 'healthy' | 'warning' | 'critical' | 'offline' | 'non_evalue';
+  lastMaintenance: string | null;
+  nextMaintenance: string | null;
   sensors: SensorReading[];
   trends: TrendData[];
   predictions: PredictionData[];
@@ -47,20 +49,31 @@ interface EquipmentHealth {
 
 interface SensorReading {
   sensorType: string;
-  value: number;
-  unit: string;
-  threshold: number;
-  status: 'normal' | 'warning' | 'critical';
-  timestamp: string;
+  /** `null` quand le capteur n'existe pas sur cet équipement. */
+  value: number | null;
+  /** Unité telle qu'enregistrée avec le relevé, plus jamais devinée du type. */
+  unit: string | null;
+  status: 'normal' | 'warning' | 'critical' | 'non_evalue';
+  timestamp: string | null;
+  /** Écart au régime habituel du capteur, en écarts-types. Remplace `threshold`. */
+  ecartReduit: number | null;
+  reference: { moyenne: number; ecartType: number; points: number } | null;
+  /** Pourquoi l'état vaut `non_evalue`. */
+  motif: string | null;
 }
 
 interface TrendData {
   timestamp: string;
-  temperature: number;
-  vibration: number;
-  pressure: number;
-  current: number;
-  healthScore: number;
+  // `null` = grandeur non mesurée sur cet intervalle. Le serveur substituait
+  // auparavant des valeurs inventées (65 °C, 3,2 mm/s, 3,5 bar, 8,5 A), si
+  // bien qu'une courbe pleine ne prouvait pas qu'un capteur existait.
+  temperature: number | null;
+  vibration: number | null;
+  pressure: number | null;
+  current: number | null;
+  // `healthScore` a disparu de la tendance : il était calculé par intervalle
+  // à partir des seuils absolus globaux, désormais supprimés. Un point isolé
+  // n'a de toute façon pas d'historique auquel se comparer.
 }
 
 interface PredictionData {
@@ -68,8 +81,17 @@ interface PredictionData {
   currentValue: number;
   predictedValue: number;
   confidence: number;
-  timeToFailure: number; // days
-  riskLevel: 'low' | 'medium' | 'high';
+  /**
+   * Toujours `null` aujourd'hui. Le serveur renvoyait 365 (« un an ») dès que
+   * la grandeur restait sous le seuil global : une durée de vie restante
+   * purement inventée. Le calcul légitime vit dans `server/stochastic-rul.ts`,
+   * qui s'appuie sur un modèle de dégradation ; il n'est pas encore branché
+   * sur cet écran.
+   */
+  timeToFailure: number | null;
+  /** Écart au régime habituel du capteur, en écarts-types. */
+  ecartReduit: number | null;
+  riskLevel: 'low' | 'medium' | 'high' | 'unknown';
 }
 
 
@@ -137,24 +159,32 @@ export function EquipmentHealthDashboard() {
           vibration: [],
           pressure: [],
           current: [],
-          healthScore: []
         };
       }
       acc[trend.timestamp].temperature.push(trend.temperature);
       acc[trend.timestamp].vibration.push(trend.vibration);
       acc[trend.timestamp].pressure.push(trend.pressure);
       acc[trend.timestamp].current.push(trend.current);
-      acc[trend.timestamp].healthScore.push(trend.healthScore);
       return acc;
     }, {} as any);
 
+    // ⚠️ Le serveur renvoie désormais `null` pour une grandeur non mesurée sur
+    // l'intervalle, au lieu d'une valeur inventée (65 °C, 3,2 mm/s, 3,5 bar,
+    // 8,5 A). Moyenner sans écarter ces `null` les compterait pour zéro et
+    // tirerait la courbe vers le bas : un capteur absent ferait chuter la
+    // mesure d'un capteur présent. `null` laisse un trou dans la courbe, ce
+    // que Recharts affiche correctement comme une interruption.
+    const moyenneMesuree = (xs: Array<number | null>): number | null => {
+      const connues = xs.filter((x): x is number => typeof x === 'number' && Number.isFinite(x));
+      return connues.length ? connues.reduce((a, b) => a + b, 0) / connues.length : null;
+    };
+
     return Object.values(groupedTrends).map((group: any) => ({
       timestamp: group.timestamp,
-      temperature: group.temperature.reduce((a: number, b: number) => a + b, 0) / group.temperature.length,
-      vibration: group.vibration.reduce((a: number, b: number) => a + b, 0) / group.vibration.length,
-      pressure: group.pressure.reduce((a: number, b: number) => a + b, 0) / group.pressure.length,
-      current: group.current.reduce((a: number, b: number) => a + b, 0) / group.current.length,
-      healthScore: group.healthScore.reduce((a: number, b: number) => a + b, 0) / group.healthScore.length,
+      temperature: moyenneMesuree(group.temperature),
+      vibration: moyenneMesuree(group.vibration),
+      pressure: moyenneMesuree(group.pressure),
+      current: moyenneMesuree(group.current),
     }));
   };
 
@@ -164,13 +194,26 @@ export function EquipmentHealthDashboard() {
 
   const trendChartData = formatTrendData(filteredEquipment);
 
-  const overallHealthScore = healthData.length > 0 
-    ? Math.round(healthData.reduce((sum, eq) => sum + eq.healthScore, 0) / healthData.length)
-    : 0;
+  // ⚠️ La moyenne portait sur TOUS les équipements, y compris ceux dont le
+  // score est désormais `null` faute de relevés. Les compter pour zéro ferait
+  // chuter la santé du parc à cause de machines simplement non instrumentées ;
+  // les compter pour 85 — ce que faisait l'ancien serveur — reviendrait à
+  // inventer leur bonne santé. On ne moyenne donc que ce qui est mesuré, et on
+  // dit sur combien d'équipements porte la moyenne.
+  const scoresMesures = healthData
+    .map(eq => eq.healthScore)
+    .filter((s): s is number => typeof s === 'number');
+
+  // Moyenne du parc, calculée uniquement sur les équipements RÉELLEMENT
+  // évalués — affichée dans l'en-tête de la répartition ci-dessous.
+  const santeMoyenne = scoresMesures.length > 0
+    ? Math.round(scoresMesures.reduce((a, b) => a + b, 0) / scoresMesures.length)
+    : null;
 
   const criticalEquipmentCount = healthData.filter(eq => eq.status === 'critical').length;
   const warningEquipmentCount = healthData.filter(eq => eq.status === 'warning').length;
   const healthyEquipmentCount = healthData.filter(eq => eq.status === 'healthy').length;
+  const nonEvalueCount = healthData.filter(eq => eq.status === 'non_evalue').length;
 
   if (isLoading) {
     return (
@@ -244,23 +287,35 @@ export function EquipmentHealthDashboard() {
                       {getStatusIcon(eq.status)}
                       <span>{eq.equipmentName}</span>
                     </CardTitle>
-                    <Badge className={getHealthScoreBg(eq.healthScore)}>
-                      <span className={getHealthScoreColor(eq.healthScore)}>
-                        {eq.healthScore}%
-                      </span>
-                    </Badge>
+                    {eq.healthScore === null ? (
+                      <Badge variant="outline" className="text-ink-mute">non évalué</Badge>
+                    ) : (
+                      <Badge className={getHealthScoreBg(eq.healthScore)}>
+                        <span className={getHealthScoreColor(eq.healthScore)}>
+                          {eq.healthScore}%
+                        </span>
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-gray-600">{eq.equipmentCode}</p>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   {/* Health Score Progress */}
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Score de Santé</span>
-                      <span>{eq.healthScore}%</span>
+                      <span>Score de santé</span>
+                      <span>{eq.healthScore === null ? '—' : `${eq.healthScore} %`}</span>
                     </div>
-                    <Progress value={eq.healthScore} className="h-2" />
+                    {eq.healthScore === null ? (
+                      // Pas de barre à zéro : une jauge vide se lit « santé
+                      // nulle », alors qu'on veut dire « pas de mesure ».
+                      <p className="text-xs text-ink-mute">
+                        Aucun capteur ne fournit assez de relevés pour établir une référence.
+                      </p>
+                    ) : (
+                      <Progress value={eq.healthScore} className="h-2" />
+                    )}
                   </div>
 
                   {/* Sensor Readings */}
@@ -286,14 +341,28 @@ export function EquipmentHealthDashboard() {
                   </div>
 
                   {/* Maintenance Info */}
+                  {/* ⚠️ Ces deux dates étaient fausses à la source : le serveur
+                      renvoyait la date de CRÉATION de la fiche équipement pour
+                      « dernière maintenance », et « aujourd'hui + 30 jours »
+                      pour la suivante, identiques sur tout le parc. Elles
+                      viennent maintenant des interventions closes et des plans
+                      préventifs, et valent `null` quand il n'y en a pas. */}
                   <div className="border-t pt-3 text-sm">
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-600">Dernière maintenance:</span>
-                      <span>{new Date(eq.lastMaintenance).toLocaleDateString('fr-FR')}</span>
+                      <span className="text-gray-600">Dernière intervention :</span>
+                      <span>
+                        {eq.lastMaintenance
+                          ? new Date(eq.lastMaintenance).toLocaleDateString('fr-FR')
+                          : <span className="text-ink-mute">aucune close</span>}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Prochaine maintenance:</span>
-                      <span>{new Date(eq.nextMaintenance).toLocaleDateString('fr-FR')}</span>
+                      <span className="text-gray-600">Prochaine échéance :</span>
+                      <span>
+                        {eq.nextMaintenance
+                          ? new Date(eq.nextMaintenance).toLocaleDateString('fr-FR')
+                          : <span className="text-ink-mute">aucun plan actif</span>}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -319,14 +388,13 @@ export function EquipmentHealthDashboard() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="healthScore" 
-                      stroke="#22c55e" 
-                      name="Score Santé (%)"
-                      strokeWidth={2}
-                    />
-                    <Line 
+                    {/* ⚠️ Une courbe « Score Santé (%) » tirait ici sur
+                        `healthScore`, que le serveur calculait par intervalle
+                        à partir des seuils absolus globaux — donc une courbe
+                        qui décrivait l'échelle des unités, pas l'état de la
+                        machine. Le champ a disparu du contrat ; la courbe
+                        aurait été plate à zéro. */}
+                    <Line
                       type="monotone" 
                       dataKey="temperature" 
                       stroke="#ef4444" 
@@ -356,15 +424,29 @@ export function EquipmentHealthDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Distribution des Scores de Santé</CardTitle>
+                <CardTitle>Répartition du parc par état</CardTitle>
+                <p className="text-sm text-ink-soft">
+                  {santeMoyenne === null
+                    ? 'Santé moyenne : — (aucun équipement évalué)'
+                    : `Santé moyenne : ${santeMoyenne} % sur ${scoresMesures.length} équipement${scoresMesures.length > 1 ? 's' : ''} évalué${scoresMesures.length > 1 ? 's' : ''}.`}
+                  {nonEvalueCount > 0
+                    && ` ${nonEvalueCount} sans relevés suffisants.`}
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
+                  {/* ⚠️ Les barres étaient étiquetées « 80-100 % », « 60-79 %,
+                      « 0-59 % » alors qu'elles comptent des ÉTATS, pas des
+                      plages de score. Et la catégorie « non évalué » était
+                      absente : un parc entièrement non instrumenté affichait
+                      trois barres vides, ce qui se lit « aucun problème »
+                      plutôt que « aucune mesure ». */}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[
-                      { range: '80-100%', count: healthyEquipmentCount, fill: '#22c55e' },
-                      { range: '60-79%', count: warningEquipmentCount, fill: '#f59e0b' },
-                      { range: '0-59%', count: criticalEquipmentCount, fill: '#ef4444' }
+                      { range: 'Sain', count: healthyEquipmentCount, fill: '#22c55e' },
+                      { range: 'Sous surveillance', count: warningEquipmentCount, fill: '#f59e0b' },
+                      { range: 'Anomalie', count: criticalEquipmentCount, fill: '#ef4444' },
+                      { range: 'Non évalué', count: nonEvalueCount, fill: '#94a3b8' }
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="range" />
@@ -379,22 +461,33 @@ export function EquipmentHealthDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Évolution du Score Moyen</CardTitle>
+                <CardTitle>Évolution du niveau vibratoire</CardTitle>
+                <p className="text-sm text-ink-soft">
+                  La vibration est le premier signe d'une dégradation mécanique.
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
+                  {/* ⚠️ Cette aire traçait « Évolution du Score Moyen » sur
+                      `healthScore`, calculé par intervalle à partir des seuils
+                      absolus globaux. Ce champ n'existe plus : la courbe
+                      aurait été vide. On trace une grandeur réellement
+                      mesurée, et `connectNulls={false}` laisse visibles les
+                      intervalles sans relevé plutôt que de les combler. */}
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={trendChartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="timestamp" />
                       <YAxis />
                       <Tooltip />
-                      <Area 
-                        type="monotone" 
-                        dataKey="healthScore" 
-                        stroke="#22c55e" 
-                        fill="#22c55e" 
+                      <Area
+                        type="monotone"
+                        dataKey="vibration"
+                        name="Vibration"
+                        stroke="#006B97"
+                        fill="#006B97"
                         fillOpacity={0.3}
+                        connectNulls={false}
                       />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -464,8 +557,15 @@ export function EquipmentHealthDashboard() {
                           <p className="font-medium">{pred.confidence}%</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Temps avant panne:</span>
-                          <p className="font-medium">{pred.timeToFailure} jours</p>
+                          {/* ⚠️ Affichait « 365 jours » dès que la grandeur
+                              restait sous le seuil global — une durée de vie
+                              restante inventée, et rassurante par défaut. */}
+                          <span className="text-gray-600">Écart au régime habituel :</span>
+                          <p className="font-medium">
+                            {pred.ecartReduit === null
+                              ? <span className="text-ink-mute">non évalué</span>
+                              : `${Math.abs(pred.ecartReduit).toFixed(1)} écarts-types`}
+                          </p>
                         </div>
                       </div>
                       
