@@ -6,6 +6,7 @@ import { getKnowledgeGraph } from './cognitive-layers/knowledge-graph';
 import { getRelevantContext } from './knowledge-hub-service';
 import { runTwin } from './digital-twin-service';
 import Anthropic from '@anthropic-ai/sdk';
+import { SOURCES_DIAGNOSTIC, decrireSources } from './diagnostic-sources';
 
 /*
 <important_code_snippet_instructions>
@@ -903,12 +904,12 @@ INSTRUCTIONS:
 
   private getEngineSources(rules: DiagnosticSuggestion[], historical: DiagnosticSuggestion[], memory: DiagnosticSuggestion[], knowledgeGraph: DiagnosticSuggestion[] = [], digitalTwin: DiagnosticSuggestion[] = []): string[] {
     const sources: string[] = [];
-    if (rules.length > 0) sources.push('Moteur de règles expert');
-    if (historical.length > 0) sources.push('Analyse de similarité historique');
-    if (memory.length > 0) sources.push('Mémoire des pannes');
-    if (knowledgeGraph.length > 0) sources.push('Graphe de connaissances causal');
-    if (digitalTwin.length > 0) sources.push('Jumeau numérique (modèle physique)');
-    if (this.anthropic) sources.push('Structuration IA (Claude)');
+    if (rules.length > 0) sources.push(SOURCES_DIAGNOSTIC.regles.libelle);
+    if (historical.length > 0) sources.push(SOURCES_DIAGNOSTIC.historique.libelle);
+    if (memory.length > 0) sources.push(SOURCES_DIAGNOSTIC.memoire.libelle);
+    if (knowledgeGraph.length > 0) sources.push(SOURCES_DIAGNOSTIC.grapheCausal.libelle);
+    if (digitalTwin.length > 0) sources.push(SOURCES_DIAGNOSTIC.jumeauNumerique.libelle);
+    if (this.anthropic) sources.push(SOURCES_DIAGNOSTIC.ia.libelle);
     return sources;
   }
 
@@ -1028,18 +1029,20 @@ INSTRUCTIONS:
     const topConf = top.confidence;
     const confLevel = topConf >= 80 ? 'Haute' : topConf >= 50 ? 'Moyenne' : 'Faible';
 
-    const sourceDescriptions: string[] = [];
-    if (sources.some(s => s.includes('Règles'))) sourceDescriptions.push('des règles de maintenance validées par des experts');
-    if (sources.some(s => s.includes('similarité') || s.includes('historique'))) sourceDescriptions.push(`l'analyse de cas de maintenance passés similaires`);
-    if (sources.some(s => s.includes('Mémoire'))) sourceDescriptions.push('la mémoire des pannes confirmées par des techniciens');
-    if (sources.some(s => s.includes('IA') || s.includes('Claude'))) sourceDescriptions.push(`la structuration par intelligence artificielle`);
+    const sourceDescriptions = decrireSources(sources);
 
     const highImpactFactors = suggestions.flatMap(s => s.explanationFactors).filter(f => f.impact === 'high');
     const factorSummary = highImpactFactors.length > 0
       ? ` Points clés : ${highImpactFactors.map(f => f.detail).slice(0, 2).join(' ; ')}.`
       : '';
 
-    return `Confiance ${confLevel} (${topConf}%) — ${suggestions.length} diagnostic(s) proposé(s) à partir de ${sourceDescriptions.join(', ')}.${factorSummary}`;
+    // Aucune provenance citable : la clause disparaît, au lieu de laisser une
+    // phrase qui s'achève sur « à partir de . ».
+    const provenance = sourceDescriptions.length > 0
+      ? ` à partir de ${sourceDescriptions.join(', ')}`
+      : '';
+
+    return `Confiance ${confLevel} (${topConf}%) — ${suggestions.length} diagnostic(s) proposé(s)${provenance}.${factorSummary}`;
   }
 }
 
