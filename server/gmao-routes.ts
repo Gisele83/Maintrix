@@ -802,52 +802,6 @@ export function registerGMAORoutes(app: Express) {
     }
   });
 
-  /**
-   * Les compteurs d'usage du locataire, éventuellement filtrés sur un plan.
-   *
-   * ═══════════════════════════════════════════════════════════════════
-   * CETTE ROUTE N'EXISTAIT PAS
-   * ═══════════════════════════════════════════════════════════════════
-   * Recensement du 2026-10-26 : AUCUNE route du serveur ne servait
-   * `maintenance_counters`. Les compteurs pouvaient être créés — le formulaire
-   * de maintenance préventive en envoie un avec le plan — mais leur relevé
-   * n'était jamais lisible. Un compteur était donc une donnée qu'on écrit sans
-   * jamais pouvoir la consulter, et `gmaoStorage.getMaintenanceCounters()`,
-   * pourtant cloisonnée et prête, n'avait aucun appelant.
-   *
-   * Elle est ajoutée ici parce que la clôture remet ces compteurs à zéro : sans
-   * lecture possible, l'effet le plus concret du correctif resterait invisible,
-   * et la boîte de clôture annoncerait une remise à zéro que personne ne peut
-   * vérifier. Le client s'en sert pour montrer, AVANT de clôturer, le relevé
-   * que l'opération va effacer.
-   *
-   * Le filtre `planId` est appliqué par le serveur et non par le client : il
-   * évite de servir tout le parc de compteurs pour n'en afficher qu'un ou deux.
-   * Le locataire, lui, vient de la session — jamais de la requête.
-   */
-  app.get("/api/maintenance-counters", async (req, res) => {
-    try {
-      const tenantId = tenantRequis(req as any, res as any);
-      if (!tenantId) return;
-
-      const compteurs = await gmaoStorage.getMaintenanceCounters(tenantId);
-
-      const filtrePlan = req.query.planId;
-      if (filtrePlan !== undefined && filtrePlan !== '') {
-        const planId = parseInt(String(filtrePlan), 10);
-        if (!Number.isInteger(planId)) {
-          return res.status(400).json({ message: "planId invalide" });
-        }
-        return res.json(compteurs.filter((c) => c.planId === planId));
-      }
-
-      res.json(compteurs);
-    } catch (error) {
-      console.error("Error fetching maintenance counters:", error);
-      res.status(500).json({ message: "Failed to fetch maintenance counters" });
-    }
-  });
-
   // Update preventive maintenance plan
   app.put("/api/preventive-maintenance-plans/:id", async (req, res) => {
     try {

@@ -176,6 +176,13 @@
       "when": 1784672267523,
       "tag": "0024_work_order_closure_loops",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1784672327523,
+      "tag": "0025_counter_readings",
+      "breakpoints": true
     }
   ]
 }

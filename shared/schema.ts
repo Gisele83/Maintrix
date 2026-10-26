@@ -730,6 +730,68 @@ export const counterHistory = pgTable("counter_history", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+/**
+ * Relevés d'usage d'un compteur — migration 0025.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE TABLE DE PLUS, ET NON `counter_history`
+ * ═══════════════════════════════════════════════════════════════════
+ * `counter_history` est l'historique des REMISES À ZÉRO : `reset_reason` y est
+ * `NOT NULL` et `previous_value` est un `integer`. L'y détourner pour des
+ * relevés coûterait deux fois : il faudrait inventer un « motif de remise à
+ * zéro » pour un geste qui n'en est pas un, et un relevé de 12,5 h serait
+ * tronqué par le type de colonne. Les deux histoires restent donc séparées,
+ * et l'écran de suivi les présente réunies dans l'ordre chronologique.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI `previousValue` ET `newValue` EN PLUS DE `usage`
+ * ═══════════════════════════════════════════════════════════════════
+ * Même forme que `stock_movements` (`previous_stock` / `new_stock`), et pour la
+ * même raison : une ligne doit se lire seule. Avec le seul incrément, retrouver
+ * l'état du compteur à une date donnée obligerait à rejouer toute la série —
+ * et un relevé perdu rendrait tous les suivants faux sans que rien ne le dise.
+ *
+ * `tenantId` est NOT NULL dès la création : c'est une table neuve, elle n'a
+ * aucune ligne antérieure à rattraper. La convention du dépôt depuis la
+ * migration 0018 est le cloisonnement systématique de toute nouvelle table.
+ */
+export const counterReadings = pgTable("counter_readings", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  counterId: integer("counter_id").references(() => maintenanceCounters.id, { onDelete: "cascade" }).notNull(),
+  /** Valeur du compteur avant ce relevé. */
+  previousValue: real("previous_value").notNull(),
+  /** Usage constaté depuis le relevé précédent — strictement positif. */
+  usage: real("usage").notNull(),
+  /** Valeur du compteur après ce relevé. */
+  newValue: real("new_value").notNull(),
+  recordedBy: integer("recorded_by").references(() => userProfiles.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCounterReadingSchema = createInsertSchema(counterReadings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CounterReading = typeof counterReadings.$inferSelect;
+export type InsertCounterReading = z.infer<typeof insertCounterReadingSchema>;
+
+/**
+ * Charge utile d'un relevé, telle que la route l'accepte.
+ *
+ * `usage` est un `real` en base : les heures de fonctionnement se comptent en
+ * décimales. On refuse en revanche zéro et le négatif — un compteur d'usage ne
+ * recule pas, et un relevé nul n'apprend rien. Le plafond évite qu'une saisie
+ * manifestement erronée (un relevé ABSOLU entré là où l'on attend un écart,
+ * voir l'écran) ne porte le compteur à une valeur absurde.
+ */
+export const releveCompteurPayloadSchema = z.object({
+  usage: z.coerce.number().finite().positive("L'usage relevé doit être strictement positif").max(1_000_000),
+  notes: z.string().max(500).optional(),
+});
+
 // Spare Parts Inventory Management
 export const spareParts = pgTable("spare_parts", {
   id: serial("id").primaryKey(),

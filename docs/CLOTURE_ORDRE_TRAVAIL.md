@@ -414,8 +414,8 @@ valide ; ce dépôt a déjà payé cette confusion sur 159 occurrences.
 
 | Boucle | État | Pourquoi |
 |---|---|---|
-| **Aucun écran de suivi des compteurs** | ouvert | Un compteur se crée (formulaire de plan) et se lit maintenant dans la boîte de clôture et par `GET /api/maintenance-counters`, mais il n'existe aucun écran pour voir l'ensemble du parc de compteurs, saisir un relevé, ou en modifier le seuil. Rien n'incrémente non plus `current_value` automatiquement : `incrementCounter()` existe et n'a aucun appelant |
-| **Compteur → OT préventif** | ouvert | Un compteur qui atteint son seuil crée une **alerte**, jamais un ordre de travail (audit, section 1) |
+| ~~Aucun écran de suivi des compteurs~~ | **fait** le 2026-10-26 | Écran `/compteurs` : relevés saisis (l'incrémentation), seuils réglables, historique réunissant relevés et remises à zéro. Voir [COMPTEURS_USAGE.md](COMPTEURS_USAGE.md) |
+| **Compteur → OT préventif** | ouvert | Un compteur qui atteint son seuil crée une **alerte**, jamais un ordre de travail (audit, section 1). C'est la dernière boucle ouverte de la chaîne du préventif |
 | **Demande d'intervention → OT** | ouvert | Aucune table ne porte la demande d'intervention. Chantier distinct |
 | **Alerte → OT** | ouvert | Création d'OT depuis un événement, non traitée ici |
 | **`POST /api/work-orders` ignore `dueDate`, `requestedBy`, `orderType`** | ouvert, préexistant | Le client compense par un PUT de complément (voir l'en-tête de `work-order-management.tsx`). `planId` et `requiresShutdown`, eux, sont bien lus par POST |

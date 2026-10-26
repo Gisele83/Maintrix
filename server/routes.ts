@@ -63,6 +63,7 @@ import { registerOeeRoutes } from "./oee-routes";
 import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
 import { registerCalibrationRoutes } from "./calibration-routes";
+import { registerCompteurRoutes } from "./compteurs-routes";
 import { registerHabilitationRoutes } from "./habilitation-routes";
 import { registerSystemHealthRoutes } from "./system-health-routes";
 import { registerBudgetRoutes as registerBudgetPlanRoutes } from "./budget-routes";
@@ -317,6 +318,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Calibration routes
   registerCalibrationRoutes(app);
+
+  // Compteurs d'usage : suivi, relevés, seuils.
+  //
+  // Enregistrées APRÈS les routes GMAO, et c'est sans conséquence ici : aucun
+  // chemin n'est partagé. La route `GET /api/maintenance-counters` vivait
+  // brièvement dans gmao-routes.ts ; elle a été déplacée ici pour que tout le
+  // module des compteurs ait une seule adresse.
+  registerCompteurRoutes(app);
 
   // Register System Health routes
   registerSystemHealthRoutes(app);

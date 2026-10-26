@@ -682,6 +682,10 @@ export default function GMAODashboard() {
                   { icon: Timer, label: 'Engagements de service', href: '/sla-management' },
                   { icon: QrCode, label: 'Codes QR', href: '/equipment-qr' },
                   { icon: CalendarCheck, label: 'Maintenance préventive', href: '/preventive-maintenance' },
+                  // Juste après le préventif, parce que c'est ce qui le
+                  // déclenche : un compteur d'usage atteint son seuil, et
+                  // l'intervention devient due.
+                  { icon: Gauge, label: "Compteurs d'usage", href: '/compteurs' },
                 ],
               },
               {

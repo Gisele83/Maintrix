@@ -9,6 +9,36 @@ import { eq, desc, and, or, gte, lte, inArray, sql, count } from "drizzle-orm";
  * par SA transaction, sinon elles survivraient à son annulation.
  */
 type ExecuteurBase = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Le compteur visé n'appartient pas au demandeur, ou n'existe pas.
+ *
+ * Classe dédiée pour que les routes répondent **404** et non 500 — convention
+ * du dépôt (403 = rôle refusé, 404 = rôle accepté mais objet absent). Un
+ * compteur d'autrui est, pour le demandeur, exactement un objet absent, et ne
+ * pas distinguer les deux cas évite de révéler qu'un identifiant existe
+ * ailleurs. Même forme que `PieceIntrouvable` dans stock-management.ts.
+ */
+export class CompteurIntrouvable extends Error {
+  constructor(id: number) {
+    super(`Compteur de maintenance #${id} non trouvé`);
+    this.name = 'CompteurIntrouvable';
+  }
+}
+
+/**
+ * On a voulu relever un compteur désactivé.
+ *
+ * **409** et non 400 : la requête est bien formée, c'est l'état du compteur qui
+ * la contredit — et le geste à faire est de le réactiver, pas de corriger la
+ * saisie.
+ */
+export class CompteurDesactive extends Error {
+  constructor(id: number) {
+    super(`Le compteur #${id} est désactivé : son suivi a été suspendu, aucun relevé ne peut y être enregistré.`);
+    this.name = 'CompteurDesactive';
+  }
+}
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -16,6 +46,7 @@ import {
   preventiveMaintenancePlans,
   maintenanceCounters,
   counterHistory,
+  counterReadings,
   spareParts,
   stockMovements,
   iotSensorData,
@@ -38,6 +69,7 @@ import {
   type InsertMaintenanceCounter,
   type CounterHistory,
   type InsertCounterHistory,
+  type CounterReading,
   type SparePart,
   type InsertSparePart,
   type StockMovement,
@@ -622,10 +654,43 @@ export class GMAOStorage {
   }
 
   // Maintenance Counters Methods - TENANT ISOLATED
+  /**
+   * Les compteurs du locataire, avec le nom de leur équipement RÉSOLU.
+   *
+   * ⚠️ `maintenance_counters.equipment_name` est une copie dénormalisée, et
+   * elle est souvent vide : le seul chemin qui la remplissait
+   * (`POST /api/preventive-maintenance-plans`) la prend du corps de la requête
+   * avant de se rabattre sur l'équipement, et les lignes posées autrement ne
+   * l'ont pas du tout. Mesuré en ouvrant l'écran : deux compteurs rattachés à
+   * l'équipement #9 « Compresseur atelier » s'affichaient tous deux
+   * « Équipement non précisé », alors que le rattachement était bon en base.
+   *
+   * On lit donc le nom là où il est vrai — `equipment_registry` — et la copie
+   * ne sert que de repli, pour les compteurs sans `equipment_id`. Même forme
+   * que `getWorkOrders()`, qui résout déjà `equipmentName` par jointure.
+   *
+   * La jointure porte le locataire, comme ailleurs dans ce fichier : sans
+   * cette condition, elle rapprocherait un compteur d'un équipement d'une
+   * autre organisation et en afficherait le nom.
+   */
   async getMaintenanceCounters(tenantId: string): Promise<MaintenanceCounter[]> {
-    return await db.select().from(maintenanceCounters)
+    const lignes = await db
+      .select({
+        compteur: maintenanceCounters,
+        nomEquipement: equipmentRegistry.equipmentName,
+      })
+      .from(maintenanceCounters)
+      .leftJoin(equipmentRegistry, and(
+        eq(maintenanceCounters.equipmentId, equipmentRegistry.id),
+        eq(equipmentRegistry.tenantId, tenantId),
+      ))
       .where(eq(maintenanceCounters.tenantId, tenantId))
       .orderBy(desc(maintenanceCounters.createdAt));
+
+    return lignes.map(({ compteur, nomEquipement }) => ({
+      ...compteur,
+      equipmentName: nomEquipement ?? compteur.equipmentName,
+    }));
   }
 
   async getMaintenanceCounterById(id: number, tenantId: string): Promise<MaintenanceCounter | undefined> {
@@ -657,19 +722,194 @@ export class GMAOStorage {
   async incrementCounter(id: number, tenantId: string, incrementValue: number): Promise<MaintenanceCounter> {
     const [counter] = await db
       .update(maintenanceCounters)
-      .set({ 
+      .set({
         currentValue: sql`${maintenanceCounters.currentValue} + ${incrementValue}`,
         updatedAt: new Date()
       })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
-    
+
     // Check if alert needs to be generated
     if (counter) {
       await this.checkAndGenerateCounterAlert(counter);
     }
-    
+
     return counter;
+  }
+
+  /**
+   * Enregistre un relevé d'usage : le compteur avance, et le relevé est tracé.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE QUI MANQUAIT
+   * ═══════════════════════════════════════════════════════════════════
+   * `incrementCounter()` ci-dessus existait et n'avait AUCUN appelant. Rien
+   * n'augmentait `current_value` : un compteur restait à la valeur posée à sa
+   * création, n'atteignait donc jamais son seuil, et la remise à zéro à la
+   * clôture (migration 0024) ne servait à rien. Un compteur ne franchissait son
+   * seuil que si quelqu'un éditait la base à la main.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI PAS `incrementCounter()` TEL QUEL
+   * ═══════════════════════════════════════════════════════════════════
+   * Il fait l'avance en SQL (`current_value + $1`), ce qui est juste et
+   * concurrent-sûr, mais il ne sait pas dire ce que valait le compteur avant —
+   * donc il ne peut pas écrire la ligne de relevé qui rend l'avance traçable.
+   * Ici on verrouille la ligne, on lit, on écrit les deux, dans une
+   * transaction : l'avance et sa trace sont vraies ensemble, sinon le compteur
+   * aurait bougé sans que personne ne sache de combien ni par qui.
+   *
+   * `incrementCounter()` reste en place pour un appelant qui n'aurait pas
+   * besoin de trace — par exemple une future alimentation automatique depuis
+   * un signal de marche.
+   */
+  async enregistrerReleveCompteur(
+    id: number,
+    tenantId: string,
+    usage: number,
+    options: { recordedBy?: number | null; notes?: string } = {},
+  ): Promise<{ compteur: MaintenanceCounter; releve: CounterReading }> {
+    if (!Number.isFinite(usage) || usage <= 0) {
+      throw new Error(`Usage relevé invalide : ${usage}`);
+    }
+
+    const resultat = await db.transaction(async (tx) => {
+      // Verrou : deux relevés simultanés sur le même compteur liraient la même
+      // valeur de départ et le second écraserait le premier. Le compteur
+      // n'avancerait alors que d'un seul des deux usages, et les deux lignes
+      // de relevé se contrediraient.
+      const [avant] = await tx
+        .select()
+        .from(maintenanceCounters)
+        .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new CompteurIntrouvable(id);
+
+      // Un compteur désactivé ne se relève pas : le suivi a été suspendu
+      // délibérément (instrument démonté, machine à l'arrêt prolongé), et
+      // l'avancer le ferait rentrer dans le suivi par la petite porte — en
+      // déclenchant éventuellement une alerte de maintenance sur un
+      // équipement qu'on avait sorti du périmètre.
+      if (avant.isActive === false) {
+        throw new CompteurDesactive(id);
+      }
+
+      const previousValue = avant.currentValue ?? 0;
+      const newValue = previousValue + usage;
+
+      const [compteur] = await tx
+        .update(maintenanceCounters)
+        .set({ currentValue: newValue, updatedAt: new Date() })
+        .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+        .returning();
+
+      const [releve] = await tx
+        .insert(counterReadings)
+        .values({
+          tenantId,
+          counterId: id,
+          previousValue,
+          usage,
+          newValue,
+          recordedBy: options.recordedBy ?? undefined,
+          notes: options.notes,
+        })
+        .returning();
+
+      return { compteur, releve };
+    });
+
+    // HORS transaction, et volontairement : la génération d'alerte écrit dans
+    // `alerts_notifications` et peut déclencher une notification. La règle du
+    // dépôt est que rien de lent ni de distant ne vit dans un `BEGIN`
+    // (docs/TRANSACTIONS.md). Son échec ne doit pas annuler un relevé valide —
+    // le relevé est un fait constaté, l'alerte en est une conséquence.
+    await this.checkAndGenerateCounterAlert(resultat.compteur).catch((err) =>
+      console.error("Alerte de compteur non générée (best-effort):", err),
+    );
+
+    return resultat;
+  }
+
+  /**
+   * L'histoire complète d'un compteur : ses relevés ET ses remises à zéro,
+   * dans l'ordre chronologique.
+   *
+   * Les deux vivent dans des tables distinctes (`counter_readings` et
+   * `counter_history`, voir migration 0025) parce qu'ils ne décrivent pas le
+   * même geste. Mais pour lire un compteur, il faut les deux : une suite de
+   * relevés sans les remises à zéro donne une courbe qui semble redescendre
+   * sans raison, et l'inverse donne des remises à zéro sans rien qui les
+   * justifie.
+   */
+  async getHistoriqueCompteur(
+    counterId: number,
+    tenantId: string,
+  ): Promise<Array<{
+    genre: 'releve' | 'remise_a_zero';
+    date: Date | null;
+    valeurAvant: number;
+    valeurApres: number;
+    usage: number | null;
+    motif: string | null;
+    parQui: number | null;
+    ordreTravail: number | null;
+  }>> {
+    // Le compteur doit appartenir au demandeur. La condition porte sur le
+    // compteur plutôt que sur chaque ligne : un compteur étant à un seul
+    // locataire, le vérifier une fois suffit à cloisonner son histoire — et
+    // `counter_history.tenant_id` est nullable, donc des lignes anciennes
+    // pourraient s'y cacher de leur propre propriétaire.
+    const [compteur] = await db
+      .select({ id: maintenanceCounters.id, lastResetValue: maintenanceCounters.lastResetValue })
+      .from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, counterId), eq(maintenanceCounters.tenantId, tenantId)));
+
+    if (!compteur) return [];
+
+    const releves = await db
+      .select()
+      .from(counterReadings)
+      .where(eq(counterReadings.counterId, counterId));
+
+    const remises = await db
+      .select()
+      .from(counterHistory)
+      .where(eq(counterHistory.counterId, counterId));
+
+    const valeurDeDepart = compteur.lastResetValue ?? 0;
+
+    const lignes = [
+      ...releves.map((r) => ({
+        genre: 'releve' as const,
+        date: r.createdAt,
+        valeurAvant: r.previousValue,
+        valeurApres: r.newValue,
+        usage: r.usage,
+        motif: r.notes,
+        parQui: r.recordedBy,
+        ordreTravail: null,
+      })),
+      ...remises.map((h) => ({
+        genre: 'remise_a_zero' as const,
+        date: h.createdAt,
+        valeurAvant: h.previousValue,
+        // `counter_history` ne stocke pas la valeur d'arrivée : la remise à
+        // zéro pose `current_value = last_reset_value`, qu'on relit sur le
+        // compteur. C'est exact tant que `last_reset_value` ne change pas ;
+        // il n'est écrit nulle part aujourd'hui (il vaut son défaut, 0).
+        valeurApres: valeurDeDepart,
+        usage: null,
+        motif: h.resetReason,
+        parQui: h.performedBy,
+        ordreTravail: h.workOrderId,
+      })),
+    ];
+
+    // Tri décroissant, le plus récent d'abord. Une date nulle (ligne ancienne
+    // sans `created_at`) part en fin de liste plutôt que de désordonner le reste.
+    return lignes.sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
   }
 
   /**
@@ -838,13 +1078,56 @@ export class GMAOStorage {
 
     // Generate alert if needed and not already sent
     if (shouldGenerateAlert && !counter.alertEmailSent) {
+      // ⚠️ LE MESSAGE DISAIT « null is due for null ».
+      //
+      // Il était composé de `equipmentName` et `maintenanceType`, deux champs
+      // facultatifs de `maintenance_counters` — et `equipmentName` est une
+      // copie dénormalisée vide sur la plupart des lignes. Relevé en
+      // provoquant l'alerte depuis l'écran : « Maintenance due: null » /
+      // « null is due for null. Current value: 2025.5/2000 hours ».
+      //
+      // Le défaut n'avait jamais pu se voir : rien n'augmentait les compteurs
+      // avant ce lot, donc ce chemin ne s'exécutait pas. Une alerte de
+      // maintenance qui ne nomme pas la machine ne sert à rien — et le reste
+      // de la plateforme est en français.
+      //
+      // Le nom est donc résolu depuis `equipment_registry`, DANS le locataire,
+      // avec la copie en repli ; et chaque morceau absent est remplacé par une
+      // formulation qui reste vraie au lieu d'imprimer « null ».
+      let nomEquipement = counter.equipmentName ?? null;
+      // ⚠️ `maintenance_counters.tenant_id` est NULLABLE dans ce schéma. Sans
+      // locataire, on ne résout PAS : une lecture non cloisonnée irait
+      // chercher le nom d'un équipement de n'importe quelle organisation pour
+      // le mettre dans l'alerte. Mieux vaut une alerte qui dit « un équipement
+      // non identifié » qu'une alerte qui nomme la machine d'autrui.
+      if (!nomEquipement && counter.equipmentId != null && counter.tenantId) {
+        const [equipement] = await db
+          .select({ nom: equipmentRegistry.equipmentName })
+          .from(equipmentRegistry)
+          .where(and(
+            eq(equipmentRegistry.id, counter.equipmentId),
+            eq(equipmentRegistry.tenantId, counter.tenantId),
+          ));
+        nomEquipement = equipement?.nom ?? null;
+      }
+
+      const UNITES_FR: Record<string, string> = {
+        hours: "h", cycles: "cycles", kilometers: "km", units: "unités",
+      };
+      const unite = UNITES_FR[counter.counterType] ?? counter.counterType;
+      const cible = nomEquipement ?? "un équipement non identifié";
+      const gamme = counter.maintenanceType || counter.description || "Maintenance périodique";
+
       await this.createAlert({
         tenantId: counter.tenantId,
         alertType: "maintenance_due",
         equipmentId: counter.equipmentId,
         severity: alertLevel,
-        title: `Maintenance due: ${counter.equipmentName}`,
-        message: `${counter.maintenanceType} is due for ${counter.equipmentName}. Current value: ${counter.currentValue}/${counter.thresholdValue} ${counter.counterType}`,
+        title: `Échéance de maintenance atteinte — ${cible}`,
+        message:
+          `${gamme} est due sur ${cible} : ` +
+          `${counter.currentValue ?? 0} ${unite} relevés pour une périodicité de ` +
+          `${counter.thresholdValue} ${unite}.`,
         triggerValue: counter.currentValue?.toString(),
         thresholdValue: counter.thresholdValue?.toString()
       });
