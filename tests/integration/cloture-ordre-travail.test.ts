@@ -125,6 +125,64 @@ async function insererPlan(
   return rows[0];
 }
 
+/**
+ * Compteur d'usage rattaché à un plan.
+ *
+ * `planId` est posé explicitement : la route de création de plan le renseigne
+ * désormais, mais les fixtures de cette suite n'empruntent pas cette route —
+ * elles doivent donc poser le lien elles-mêmes, sinon la clôture ne trouverait
+ * aucun compteur et le test passerait pour une bonne raison apparente.
+ */
+async function insererCompteur(
+  tenantId: string,
+  planId: number | null,
+  opts: {
+    valeur: number;
+    seuil?: number;
+    type?: string;
+    actif?: boolean;
+    libelle?: string;
+  },
+): Promise<number> {
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO maintenance_counters
+       (tenant_id, plan_id, counter_type, description, current_value, threshold_value,
+        last_reset_value, is_active, alert_level, alert_email_sent)
+     VALUES ($1, $2, $3, $4, $5, $6, 0, $7, 'critical', true)
+     RETURNING id`,
+    [
+      tenantId,
+      planId,
+      opts.type ?? 'hours',
+      opts.libelle ?? `COMPTEUR-${STAMP}`,
+      opts.valeur,
+      opts.seuil ?? 500,
+      opts.actif ?? true,
+    ],
+  );
+  return rows[0].id;
+}
+
+async function compteurEnBase(id: number): Promise<{
+  current_value: number | null; alert_level: string | null; alert_email_sent: boolean | null;
+  last_reset_date: string | null;
+}> {
+  const { rows } = await pool.query(
+    `SELECT current_value, alert_level, alert_email_sent,
+            to_char(last_reset_date, 'YYYY-MM-DD HH24:MI:SS') AS last_reset_date
+       FROM maintenance_counters WHERE id = $1`, [id]);
+  return rows[0];
+}
+
+async function historiqueCompteur(id: number): Promise<Array<{
+  previous_value: number; reset_reason: string; work_order_id: number | null; tenant_id: string | null;
+}>> {
+  const { rows } = await pool.query(
+    `SELECT previous_value, reset_reason, work_order_id, tenant_id
+       FROM counter_history WHERE counter_id = $1 ORDER BY id`, [id]);
+  return rows;
+}
+
 async function insererOrdre(opts: {
   tenantId: string;
   suffixe: string;
@@ -243,6 +301,15 @@ afterAll(async () => {
   await pool.query(
     `DELETE FROM maintenance_reports
       WHERE work_order_id IN (SELECT id FROM work_orders WHERE ${NOTRE_ORDRE})`, MARQUES);
+  // L'historique de compteur référence À LA FOIS le compteur et l'ordre de
+  // travail : il part avant les deux.
+  await pool.query(
+    `DELETE FROM counter_history
+      WHERE counter_id IN (SELECT id FROM maintenance_counters WHERE description LIKE $1)
+         OR work_order_id IN (SELECT id FROM work_orders
+                               WHERE order_number LIKE $2 OR title LIKE $3)`,
+    [`COMPTEUR-${STAMP}%`, `OT-${STAMP}-%`, `ORDRE-${STAMP}-%`]);
+  await pool.query('DELETE FROM maintenance_counters WHERE description LIKE $1', [`COMPTEUR-${STAMP}%`]);
   await pool.query(`DELETE FROM work_orders WHERE ${NOTRE_ORDRE}`, MARQUES);
   await pool.query('DELETE FROM spare_parts WHERE part_number LIKE $1', [`PN-${STAMP}-%`]);
   await pool.query('DELETE FROM preventive_maintenance_plans WHERE plan_name LIKE $1', [`PLAN-${STAMP}-%`]);
@@ -335,6 +402,190 @@ describe('Clôture → replanification du plan préventif', () => {
     const apres = await planBrut(plan.id);
     expect(apres.derniere).not.toBeNull();
     expect(apres.echeance).toBe(plan.echeance); // inchangée, et c'est voulu
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe("Clôture → remise à zéro des compteurs d'usage du plan", () => {
+  it('remet le compteur à sa valeur de départ et journalise le relevé', async () => {
+    // Un compteur à 612 h sur une périodicité de 500 h : l'échéance est
+    // dépassée, et sans remise à zéro il resterait indéfiniment au-delà de son
+    // seuil, à crier une échéance déjà honorée.
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'G1', 'hours_based', 500, '1 day');
+    const compteur = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 612, seuil: 500 });
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G1', planId: plan.id });
+
+    expect((await cloturer(ordre, alpha)).status).toBe(200);
+
+    const apres = await compteurEnBase(compteur);
+    expect(apres.current_value).toBe(0);
+    expect(apres.last_reset_date).not.toBeNull();
+
+    // L'alerte est LEVÉE avec la remise à zéro. Sans cela,
+    // `checkAndGenerateCounterAlert` ne produirait plus rien au cycle suivant
+    // (il ne crée une alerte que si `alert_email_sent` est faux) : le compteur
+    // repartirait de zéro mais resterait muet à la prochaine échéance.
+    expect(apres.alert_level).toBe('info');
+    expect(apres.alert_email_sent).toBe(false);
+
+    // Le relevé d'avant est conservé, rattaché à l'ordre qui l'a remis à zéro :
+    // c'est ce qui permet de reconstituer l'usage entre deux interventions.
+    const histo = await historiqueCompteur(compteur);
+    expect(histo).toHaveLength(1);
+    expect(histo[0]).toMatchObject({ previous_value: 612, work_order_id: ordre });
+    expect(histo[0].reset_reason).toContain('Clôture');
+    expect(histo[0].tenant_id).toBe(SEEDED.tenantAlpha);
+  });
+
+  it("ne touche pas au compteur d'un AUTRE plan — témoin", async () => {
+    // Le rattachement passe par le PLAN, jamais par l'équipement. Plusieurs
+    // plans couvrent le même équipement : remettre à zéro « heures depuis
+    // révision générale » parce qu'une tournée de graissage est clôturée
+    // masquerait une révision due.
+    const planClos = await insererPlan(SEEDED.tenantAlpha, 'G2a', 'monthly', 1, '1 day');
+    const planVoisin = await insererPlan(SEEDED.tenantAlpha, 'G2b', 'hours_based', 2000, '1 day');
+    const compteurVoisin = await insererCompteur(SEEDED.tenantAlpha, planVoisin.id, { valeur: 1800, seuil: 2000 });
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G2', planId: planClos.id });
+
+    expect((await cloturer(ordre, alpha)).status).toBe(200);
+
+    expect((await compteurEnBase(compteurVoisin)).current_value).toBe(1800);
+    expect(await historiqueCompteur(compteurVoisin)).toHaveLength(0);
+  });
+
+  it('ne réveille pas un compteur désactivé', async () => {
+    // Un compteur inactif l'a été délibérément (instrument démonté, suivi
+    // suspendu). Lui écrire une ligne d'historique le ferait rentrer dans le
+    // suivi par la petite porte.
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'G3', 'hours_based', 500, '1 day');
+    const inactif = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 900, actif: false });
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G3', planId: plan.id });
+
+    expect((await cloturer(ordre, alpha)).status).toBe(200);
+
+    expect((await compteurEnBase(inactif)).current_value).toBe(900);
+    expect(await historiqueCompteur(inactif)).toHaveLength(0);
+  });
+
+  it("remet à zéro TOUS les compteurs du plan, pas seulement le premier", async () => {
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'G4', 'hours_based', 500, '1 day');
+    const heures = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 700, type: 'hours' });
+    const cycles = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 12000, type: 'cycles' });
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G4', planId: plan.id });
+
+    expect((await cloturer(ordre, alpha)).status).toBe(200);
+
+    expect((await compteurEnBase(heures)).current_value).toBe(0);
+    expect((await compteurEnBase(cycles)).current_value).toBe(0);
+  });
+
+  it("un stock insuffisant annule AUSSI la remise à zéro du compteur", async () => {
+    // La remise à zéro est dans la même transaction que la consommation. Si le
+    // refus de magasin la laissait passer, le compteur repartirait de zéro pour
+    // une intervention qui n'a pas été clôturée — et l'usage réel serait perdu
+    // sans recours, puisque personne ne connaît plus le relevé d'avant.
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'G5', 'hours_based', 500, '1 day');
+    const compteur = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 640, seuil: 500 });
+    const piece = await insererPiece(SEEDED.tenantAlpha, 'G5', 1);
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G5', planId: plan.id });
+
+    const res = await cloturer(ordre, alpha, { partsUsed: [{ sparePartId: piece, quantity: 9 }] });
+    expect(res.status).toBe(409);
+
+    expect((await compteurEnBase(compteur)).current_value).toBe(640);
+    expect((await compteurEnBase(compteur)).alert_email_sent).toBe(true);
+    expect(await historiqueCompteur(compteur)).toHaveLength(0);
+  });
+
+  it("deux clôtures simultanées ne remettent à zéro qu'une fois", async () => {
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'G6', 'hours_based', 500, '1 day');
+    const compteur = await insererCompteur(SEEDED.tenantAlpha, plan.id, { valeur: 550, seuil: 500 });
+    const ordre = await insererOrdre({ tenantId: SEEDED.tenantAlpha, suffixe: 'G6', planId: plan.id });
+
+    const [r1, r2] = await Promise.all([cloturer(ordre, alpha), cloturer(ordre, alpha)]);
+    expect([r1.status, r2.status].every((s) => s === 200)).toBe(true);
+
+    // Une seule ligne d'historique : deux auraient laissé croire à deux
+    // interventions, et la seconde aurait enregistré un relevé de 0.
+    const histo = await historiqueCompteur(compteur);
+    expect(histo).toHaveLength(1);
+    expect(histo[0].previous_value).toBe(550);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe('GET /api/maintenance-counters', () => {
+  it('ne sert que les compteurs du demandeur', async () => {
+    // Cette route n'existait pas : aucune route du serveur ne servait
+    // `maintenance_counters`. Elle naît donc avec son cloisonnement éprouvé.
+    const planAlpha = await insererPlan(SEEDED.tenantAlpha, 'H1a', 'hours_based', 500, '1 day');
+    const planBeta = await insererPlan(SEEDED.tenantBeta, 'H1b', 'hours_based', 500, '1 day');
+    await insererCompteur(SEEDED.tenantAlpha, planAlpha.id, { valeur: 10, libelle: `COMPTEUR-${STAMP}-ALPHA` });
+    await insererCompteur(SEEDED.tenantBeta, planBeta.id, { valeur: 20, libelle: `COMPTEUR-${STAMP}-BETA` });
+
+    const res = await createAuthenticatedRequest('get', '/api/maintenance-counters', alpha);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(`COMPTEUR-${STAMP}-ALPHA`);
+    expect(res.text).not.toContain(`COMPTEUR-${STAMP}-BETA`);
+  });
+
+  it('filtre sur le plan demandé', async () => {
+    const planA = await insererPlan(SEEDED.tenantAlpha, 'H2a', 'hours_based', 500, '1 day');
+    const planB = await insererPlan(SEEDED.tenantAlpha, 'H2b', 'hours_based', 500, '1 day');
+    await insererCompteur(SEEDED.tenantAlpha, planA.id, { valeur: 1, libelle: `COMPTEUR-${STAMP}-PLANA` });
+    await insererCompteur(SEEDED.tenantAlpha, planB.id, { valeur: 2, libelle: `COMPTEUR-${STAMP}-PLANB` });
+
+    const res = await createAuthenticatedRequest('get', `/api/maintenance-counters?planId=${planA.id}`, alpha);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain(`COMPTEUR-${STAMP}-PLANA`);
+    expect(res.text).not.toContain(`COMPTEUR-${STAMP}-PLANB`);
+  });
+
+  it("Beta ne voit pas les compteurs d'Alpha en passant le plan d'Alpha", async () => {
+    // Le filtre ne doit pas devenir une porte : le locataire est appliqué
+    // AVANT lui, et un identifiant de plan d'autrui ne ramène rien.
+    const planAlpha = await insererPlan(SEEDED.tenantAlpha, 'H3', 'hours_based', 500, '1 day');
+    await insererCompteur(SEEDED.tenantAlpha, planAlpha.id, { valeur: 7, libelle: `COMPTEUR-${STAMP}-SECRET` });
+
+    const res = await createAuthenticatedRequest('get', `/api/maintenance-counters?planId=${planAlpha.id}`, beta);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+    expect(res.text).not.toContain(`COMPTEUR-${STAMP}-SECRET`);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe('Création de plan avec compteur', () => {
+  it("rattache le compteur au plan qui vient de naître", async () => {
+    // `maintenance_counters.plan_id` n'était écrit NULLE PART — y compris ici,
+    // le seul endroit du dépôt où un compteur naît d'un plan. Le compteur était
+    // donc orphelin dès sa création, et la clôture n'avait rien à remettre à
+    // zéro. C'est l'autre moitié de l'obstacle relevé par l'audit.
+    const res = await createAuthenticatedRequest('post', '/api/preventive-maintenance-plans', alpha).send({
+      planName: `PLAN-${STAMP}-I1`,
+      equipmentType: 'pompe',
+      frequency: 'hours_based',
+      frequencyValue: 500,
+      counter: {
+        equipmentId: await insererEquipement(SEEDED.tenantAlpha, 'I1'),
+        counterType: 'hours',
+        currentValue: 120,
+        counterName: `COMPTEUR-${STAMP}-I1`,
+        thresholdWarning: 450,
+        thresholdCritical: 500,
+      },
+    });
+
+    expect(res.status).toBe(201);
+    const planId = res.body.id;
+
+    const { rows } = await pool.query<{ plan_id: number | null }>(
+      'SELECT plan_id FROM maintenance_counters WHERE description = $1', [`COMPTEUR-${STAMP}-I1`]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].plan_id).toBe(planId);
   });
 });
 
@@ -607,6 +858,57 @@ describe("Clôture → état opérationnel de l'équipement", () => {
     expect(res.status).toBe(200);
 
     expect(await etatEquipement(equipement)).toBe('maintenance');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe('GET /api/work-orders — contrat de champs', () => {
+  it('sert bien `planId` et `requiresShutdown`', async () => {
+    // ⚠️ CE TEST EXISTE POUR UN DÉFAUT RÉELLEMENT RENCONTRÉ, et qu'aucune
+    // vérification de code n'avait attrapé.
+    //
+    // `getWorkOrders()` construit une PROJECTION EXPLICITE colonne par
+    // colonne : un champ absent de cette liste est absent de la réponse, sans
+    // la moindre erreur. Les deux colonnes de la migration 0024 n'y étaient
+    // pas. Conséquence mesurée en ouvrant l'écran : la boîte de clôture
+    // n'annonçait ni la replanification du plan ni la remise en service de
+    // l'équipement, et n'affichait aucun compteur — alors que l'ordre portait
+    // bien les deux champs en base. La liste répondait 200, avec 28 champs.
+    //
+    // Un test de statut n'aurait rien vu. Un test du JSX non plus : il était
+    // juste. Seule la lecture des VALEURS servies le montre.
+    const plan = await insererPlan(SEEDED.tenantAlpha, 'J1', 'monthly', 1, '1 day');
+    const ordre = await insererOrdre({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'J1', planId: plan.id, requiresShutdown: true,
+    });
+
+    const res = await createAuthenticatedRequest('get', '/api/work-orders', alpha);
+    expect(res.status).toBe(200);
+
+    const servi = (res.body as Array<Record<string, unknown>>).find((o) => o.id === ordre);
+    expect(servi).toBeDefined();
+    // Les clés doivent EXISTER — `toBe(undefined)` passerait sur une clé
+    // absente comme sur une valeur nulle, et c'est l'absence qu'on traque.
+    expect(Object.keys(servi!)).toContain('planId');
+    expect(Object.keys(servi!)).toContain('requiresShutdown');
+    expect(servi!.planId).toBe(plan.id);
+    expect(servi!.requiresShutdown).toBe(true);
+  });
+
+  it("rend `planId` nul, et non absent, pour un ordre sans plan", async () => {
+    // Le client distingue « aucun plan » de « champ non servi » : le premier
+    // s'affiche (« Aucun — la clôture ne replanifiera rien »), le second
+    // masquerait silencieusement la ligne.
+    const ordre = await insererOrdre({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'J2', orderType: 'corrective',
+    });
+
+    const res = await createAuthenticatedRequest('get', '/api/work-orders', alpha);
+    const servi = (res.body as Array<Record<string, unknown>>).find((o) => o.id === ordre);
+
+    expect(Object.keys(servi!)).toContain('planId');
+    expect(servi!.planId).toBeNull();
+    expect(servi!.requiresShutdown).toBe(false);
   });
 });
 

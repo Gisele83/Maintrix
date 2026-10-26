@@ -28,6 +28,8 @@ en même temps, sur deux bases de la même grappe.
 | `spare_parts.current_stock` | 10 → **10** | 10 → **7** |
 | `stock_movements` | **aucun** | 1 × `OUT` qty 3 (10→7, `WORK_ORDER`, locataire posé) |
 | `equipment_registry.operational_state` | inchangé | `maintenance` → `operational` |
+| `maintenance_counters.current_value` | inchangé | remis à sa valeur de départ, alerte levée |
+| `counter_history` | **aucune ligne** | le relevé d'avant, rattaché à l'ordre |
 | `work_orders.actual_end` | **nul** | renseigné |
 
 Le **200 des deux côtés** est le cœur du problème : la clôture répondait
@@ -260,6 +262,7 @@ plus tard. Dans les deux cas, un seul mouvement et une seule période ajoutée.
 ```bash
 npm test -- --testPathPatterns=cloture-ordre-travail
 npm test -- --testPathPatterns=replanification-preventive
+npm test -- --testPathPatterns=cloture-interface
 ```
 
 - [`tests/unit/replanification-preventive.test.ts`](../tests/unit/replanification-preventive.test.ts)
@@ -268,11 +271,18 @@ npm test -- --testPathPatterns=replanification-preventive
   d'intégration ne peut pas couvrir ces dates, et c'est là que vivent les
   défauts.
 - [`tests/integration/cloture-ordre-travail.test.ts`](../tests/integration/cloture-ordre-travail.test.ts)
-  — 21 cas sur la boucle complète, **tous vérifiés sur la table** et jamais sur
+  — 33 cas sur la boucle complète, **tous vérifiés sur la table** et jamais sur
   le code de retour. Y compris les témoins : un OT sans plan ne replanifie rien,
-  un OT sans arrêt ne touche pas à l'état, une clôture sans pièces reste
-  possible. Sans eux, un correctif qui ferait basculer n'importe quoi passerait
-  aussi.
+  un OT sans arrêt ne touche pas à l'état, le compteur d'un autre plan n'est
+  pas touché, une clôture sans pièces reste possible. Sans eux, un correctif
+  qui ferait basculer n'importe quoi passerait aussi.
+- [`tests/unit/cloture-interface.test.ts`](../tests/unit/cloture-interface.test.ts)
+  — 23 contrôles **statiques** sur l'écran : un seul chemin vers la clôture, le
+  filtre des compteurs dans un seul segment de clé, les écrans rafraîchis. Ils
+  ne prouvent pas que l'écran fonctionne — cela se vérifie en l'ouvrant, et ça
+  a été fait (tableau ci-dessus) — mais ils verrouillent trois défauts qui ne
+  se voient pas à la relecture. Ce dépôt n'a ni `@testing-library/react` ni
+  `jsdom` ; la convention y est déjà celle du contrôle statique.
 
 Fixtures sur `TENANT_ALPHA` / `TENANT_BETA` ([`tests/seed.ts`](../tests/seed.ts)),
 marquées par un horodatage unique et supprimées en `afterAll` — la voie
@@ -282,14 +292,133 @@ agrégats.
 
 ---
 
+## Les compteurs d'usage
+
+*Ajouté le 26 octobre 2026.*
+
+### Deux liens manquaient, pas un
+
+L'audit nommait `work_orders.plan_id`. Le recensement a montré un second trou,
+du même genre et au même endroit : **`maintenance_counters.plan_id` n'était
+écrit nulle part** — y compris dans `POST /api/preventive-maintenance-plans`,
+le seul endroit du dépôt où un compteur naît d'un plan. Mesuré : zéro écriture,
+zéro lecture, colonne morte. Un compteur créé depuis un plan était donc
+orphelin dès sa naissance.
+
+Et `gmaoStorage.resetCounter()` — écrite, correcte, et paramétrée par un
+`workOrderId`, donc manifestement prévue pour la clôture — **n'avait aucun
+appelant**. Même forme de défaut que `StockManager`, dont le moteur complet
+n'était joignable que par des endpoints explicites.
+
+### Ce compteur est un compteur de tronçon, pas un totalisateur
+
+Le point n'est pas anodin : on ne remet pas à zéro le compteur kilométrique
+d'un véhicule à chaque révision. Mais c'est la sémantique que ce schéma
+implémente, et le relevé le confirme des deux côtés :
+
+- `checkAndGenerateCounterAlert` compare `currentValue` à `thresholdValue`
+  **directement**, pas un écart à un jalon — donc `currentValue` signifie
+  « usage depuis la dernière intervention » et `thresholdValue` « périodicité » ;
+- les colonnes qui porteraient la lecture « totalisateur », `last_service_value`
+  et `interval_value`, **ne sont écrites ni lues nulle part** (zéro usage hors
+  du schéma). Elles sont mortes.
+
+On honore donc la sémantique en place plutôt que d'en introduire une seconde :
+deux sens contradictoires pour `currentValue` dans la même table seraient
+exactement le défaut que cette campagne passe son temps à retrouver.
+`counter_type` (`hours`, `cycles`, `kilometers`, `units`) nomme l'**unité**, pas
+la nature absolue ou relative du relevé.
+
+### Ce que la clôture fait, et ce qu'elle ne fait pas
+
+| Règle | Ce qu'elle empêche |
+|---|---|
+| le rattachement passe par le **plan**, jamais par l'équipement | plusieurs plans couvrent le même équipement ; remettre à zéro « heures depuis révision générale » parce qu'une tournée de graissage est clôturée **masquerait une révision due** |
+| `alert_level` → `info` et `alert_email_sent` → `false` | `checkAndGenerateCounterAlert` ne produit une alerte que si `alert_email_sent` est faux ; laissé à `true`, le compteur repartirait de zéro mais resterait **muet à la prochaine échéance** |
+| les compteurs **inactifs** sont ignorés | un compteur désactivé l'a été délibérément (instrument démonté) ; lui écrire une ligne d'historique le ferait rentrer dans le suivi par la petite porte |
+| le relevé d'avant part dans `counter_history`, avec l'ordre | c'est ce qui permet de reconstituer l'usage entre deux interventions |
+| dans la **même transaction** que le reste | un refus de magasin annule aussi la remise à zéro — sinon l'usage réel serait perdu sans recours, personne ne connaissant plus le relevé d'avant |
+
+`counter_history.previous_value` est un `integer` alors que `current_value` est
+un `real` : l'arrondi est fait **explicitement**, pour que la troncature soit
+une décision lisible et non un effet de bord du type de colonne.
+
+---
+
+## Les commandes d'interface
+
+*Ajouté le 26 octobre 2026.* Avant, l'API acceptait `planId`,
+`requiresShutdown` et `partsUsed`, mais aucun utilisateur ne pouvait les
+atteindre : le formulaire n'avait pas les champs et la clôture envoyait
+`{ status: "completed" }` et rien d'autre.
+
+| Commande | Où | Note |
+|---|---|---|
+| **Sélecteur de plan préventif** | formulaire d'OT, visible uniquement si le type est « préventif » | facultatif (un préventif ponctuel hors gamme est légitime). Un plan désactivé reste proposé si l'ordre le porte déjà, sinon un simple enregistrement effacerait le rattachement sans qu'on le demande |
+| **Case « intervention avec arrêt machine »** | formulaire d'OT | avec le texte qui dit ce qu'elle déclenche, et quand ne pas la cocher |
+| **Déclaration des pièces à la clôture** | boîte de dialogue ouverte par « Terminer » | liste les références avec leur stock ; le refus 409 s'affiche **dans la boîte**, sur les lignes concernées, en conservant les quantités saisies |
+| **Relevé des compteurs du plan** | même boîte | montre la valeur actuelle, le seuil, et ce qu'elle deviendra. C'est le **seul endroit du produit** où un compteur d'usage est lisible |
+| **Plan et arrêt machine** | fiche de détail | les cacher ferait dépendre d'un champ invisible l'avancement d'une échéance et la remise en service d'une machine |
+
+Deux points de forme qui ont chacun une raison :
+
+- **`GET /api/maintenance-counters` a dû être créée** : aucune route du serveur
+  ne servait `maintenance_counters`. Les compteurs pouvaient être créés mais
+  jamais lus, et `getMaintenanceCounters()` n'avait aucun appelant. Sans
+  lecture, la remise à zéro serait un effet invisible — donc invérifiable.
+- **Le sélecteur de statut de la fiche de détail détourne « Terminé » vers la
+  boîte de clôture.** C'était un second chemin vers `completed`, et le laisser
+  muter directement donnait deux clôtures aux effets inégaux : par là, aucune
+  pièce ne pouvait être déclarée et un refus de magasin n'avait nulle part où
+  s'afficher. Cet écran a déjà eu cette forme de défaut une fois — deux
+  implémentations d'ordres de travail aux contrats de champs différents.
+
+### Le défaut que seul l'écran ouvert a montré
+
+`getWorkOrders()` construit une **projection explicite** colonne par colonne :
+un champ absent de la liste est absent de la réponse, sans la moindre erreur.
+Les deux colonnes de la migration 0024 n'y étaient pas.
+
+Conséquence, relevée en ouvrant la page : la boîte de clôture n'annonçait ni la
+replanification du plan ni la remise en service de l'équipement, et n'affichait
+aucun compteur — alors que l'ordre portait bien les deux champs en base. La
+liste répondait **200, avec 28 champs**.
+
+Ni le typecheck, ni les tests de statut, ni la relecture du JSX — qui était
+juste — ne pouvaient le voir. C'est le rappel de la règle du dépôt : vérifier
+le **contrat de champs**, pas seulement le code de retour. Deux cas
+d'intégration le verrouillent désormais (`GET /api/work-orders — contrat de
+champs`), et ils vérifient que les clés **existent**, car `toBe(undefined)`
+passerait aussi bien sur une clé absente que sur une valeur nulle.
+
+### Mesuré en pilotant l'interface
+
+Parcours complet au navigateur, sur la grappe jetable, puis relevé en base :
+
+| Acte dans l'interface | Écrit en base |
+|---|---|
+| création d'un OT préventif, plan choisi, case arrêt cochée | `order_type=preventive`, `plan_id=23`, `requires_shutdown=t` |
+| « Démarrer » | équipement `operational` → **`maintenance`** |
+| clôture avec **5** joints pour un stock de 2 | **409** ; liste du manque affichée dans la boîte (« demandé 5, disponible 2, manque 3 ») ; **rien écrit** : OT toujours `in_progress`, `actual_end` nul, compteur à 612, échéance inchangée, 0 mouvement, stocks intacts |
+| quantités corrigées (3 graisse, 2 joints) | OT `completed`, `actual_end` renseigné ; équipement → **`operational`** ; compteur **612 → 0**, alerte `info`/`false` ; échéance **2026-10-27 → 2026-11-27** (une période exacte) ; `last_executed` renseigné ; 2 mouvements `OUT` (12→9 et 2→0), `reason=WORK_ORDER`, `work_order_id=28`, `performed_by=1` **pris de la session** ; `counter_history` : `previous_value=612`, motif nommant l'ordre |
+
+Les trois couleurs du bandeau de refus ont été mesurées par `getComputedStyle`
+et non lues dans le JSX — `rgb(143,32,18)`, `rgb(251,233,231)`,
+`rgb(239,195,188)`, soit exactement `#8F2012`, `#FBE9E7`, `#EFC3BC` de la
+charte. Une classe de couleur muette produit le même `className` qu'une classe
+valide ; ce dépôt a déjà payé cette confusion sur 159 occurrences.
+
+---
+
 ## Ce qui reste ouvert
 
 | Boucle | État | Pourquoi |
 |---|---|---|
-| **Compteurs** (`maintenance_counters`) non remis à jour à la clôture | ouvert | Hors du périmètre demandé pour ce lot. Le lien existe déjà (`maintenance_counters.plan_id`), donc la correction est à portée : il s'agirait d'écrire `last_service_value` depuis `current_value` à la clôture d'un OT porteur du plan |
-| **Aucune commande d'interface** pour `planId`, `requires_shutdown` et la déclaration de pièces | ouvert | L'API les accepte et les valide ; le formulaire d'ordre de travail (`client/src/components/work-order-management.tsx`) n'expose encore ni sélecteur de plan, ni case « intervention avec arrêt machine », ni saisie des pièces à la clôture. Tant que ces commandes manquent, la boucle est joignable par l'API et par l'injecteur de démonstration, mais pas par un utilisateur |
-| **Demande d'intervention → OT** | ouvert | Aucune table ne porte la demande d'intervention (audit, section 1). Chantier distinct |
-| **Alerte → OT**, **compteur → OT préventif** | ouverts | Idem : création d'OT depuis un événement, non traitée ici |
+| **Aucun écran de suivi des compteurs** | ouvert | Un compteur se crée (formulaire de plan) et se lit maintenant dans la boîte de clôture et par `GET /api/maintenance-counters`, mais il n'existe aucun écran pour voir l'ensemble du parc de compteurs, saisir un relevé, ou en modifier le seuil. Rien n'incrémente non plus `current_value` automatiquement : `incrementCounter()` existe et n'a aucun appelant |
+| **Compteur → OT préventif** | ouvert | Un compteur qui atteint son seuil crée une **alerte**, jamais un ordre de travail (audit, section 1) |
+| **Demande d'intervention → OT** | ouvert | Aucune table ne porte la demande d'intervention. Chantier distinct |
+| **Alerte → OT** | ouvert | Création d'OT depuis un événement, non traitée ici |
+| **`POST /api/work-orders` ignore `dueDate`, `requestedBy`, `orderType`** | ouvert, préexistant | Le client compense par un PUT de complément (voir l'en-tête de `work-order-management.tsx`). `planId` et `requiresShutdown`, eux, sont bien lus par POST |
 
 Le jeu de démonstration, lui, rattache ses OT préventifs à leur plan et marque
 l'arrêt machine là où il est réel (presse PRS-002, déjà déclarée `maintenance`

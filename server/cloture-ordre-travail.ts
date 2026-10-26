@@ -7,6 +7,7 @@ import {
 } from "@shared/schema";
 import { prochaineEcheance, type MotifSansEcheance } from "@shared/replanification-preventive";
 import { db } from "./db.js";
+import { gmaoStorage } from "./gmao-storage";
 import { stockManager, StockInsuffisant, type ManquePiece } from "./stock-management.js";
 
 /**
@@ -114,6 +115,8 @@ export interface BilanCloture {
     | { plan: number; nextDue: Date; periodesAjoutees: number }
     | { plan: number; nextDue: null; motif: MotifSansEcheance }
     | null;
+  /** Compteurs d'usage remis à leur valeur de départ, avec le relevé effacé. */
+  compteursReinitialises: Array<{ compteur: number; valeurAvant: number; type: string }>;
   equipementRemisEnService: boolean;
 }
 
@@ -192,7 +195,6 @@ export async function cloturerOrdreTravail(demande: DemandeCloture): Promise<Bil
   // autre magasin. Best-effort, comme avant — son échec ne doit pas invalider
   // une clôture par ailleurs valide.
   if (!bilan.dejaCloture && bilan.ordre.projectedCost != null) {
-    const { gmaoStorage } = await import("./gmao-storage.js");
     gmaoStorage.recordAutomatedProjectionOutcome(bilan.ordre).catch(err =>
       console.error("Apprentissage post-action échoué (best-effort):", err),
     );
@@ -239,6 +241,7 @@ async function executerCloture(demande: DemandeCloture): Promise<BilanCloture> {
         dejaCloture: true,
         piecesConsommees: [],
         replanification: null,
+        compteursReinitialises: [],
         equipementRemisEnService: false,
       };
     }
@@ -272,8 +275,10 @@ async function executerCloture(demande: DemandeCloture): Promise<BilanCloture> {
       .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
 
-    // ── 5. Replanification du plan préventif ────────────────────────
+    // ── 5. Replanification du plan préventif, et remise à zéro de ses
+    //       compteurs d'usage ─────────────────────────────────────────
     let replanification: BilanCloture['replanification'] = null;
+    const compteursReinitialises: BilanCloture['compteursReinitialises'] = [];
     if (ordreAvant.planId != null) {
       // Le plan est relu AVEC son locataire : `plan_id` est posé à la
       // création de l'ordre, et rien ne garantit à la lecture qu'il désigne
@@ -317,6 +322,37 @@ async function executerCloture(demande: DemandeCloture): Promise<BilanCloture> {
               eq(preventiveMaintenancePlans.tenantId, tenantId),
             ));
           replanification = { plan: plan.id, nextDue: null, motif: resultat.motif! };
+        }
+
+        // ── Compteurs d'usage du plan ───────────────────────────────
+        //
+        // La gamme vient d'être exécutée : le relevé « depuis la dernière
+        // intervention » repart de sa valeur de départ, et l'alerte est levée.
+        // Sans cela, un plan réglé sur un compteur restait à son relevé
+        // d'avant l'intervention — donc indéfiniment au-delà de son seuil, à
+        // crier une échéance déjà honorée. C'est le mécanisme même du noyage
+        // d'alarmes que l'ISA-18.2 existe pour empêcher, et que cette campagne
+        // a déjà corrigé une fois sur les seuils de capteurs.
+        //
+        // Le rattachement se fait par le PLAN, jamais par l'équipement :
+        // plusieurs plans couvrent le même équipement, et remettre à zéro le
+        // compteur « heures depuis révision générale » parce qu'une tournée de
+        // graissage a été clôturée masquerait une révision due.
+        for (const compteur of await gmaoStorage.getCompteursActifsDuPlan(plan.id, tenantId, tx)) {
+          const valeurAvant = compteur.currentValue ?? 0;
+          await gmaoStorage.resetCounter(
+            compteur.id,
+            tenantId,
+            `Clôture de l'ordre de travail ${ordreAvant.orderNumber}`,
+            performedBy,
+            id,
+            tx,
+          );
+          compteursReinitialises.push({
+            compteur: compteur.id,
+            valeurAvant,
+            type: compteur.counterType,
+          });
         }
       }
     }
@@ -362,6 +398,7 @@ async function executerCloture(demande: DemandeCloture): Promise<BilanCloture> {
       dejaCloture: false,
       piecesConsommees: mouvements.map(m => ({ sparePartId: m.sparePartId, quantity: m.quantity })),
       replanification,
+      compteursReinitialises,
       equipementRemisEnService,
     };
   });

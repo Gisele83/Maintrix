@@ -1,5 +1,14 @@
 import { db } from "./db";
 import { eq, desc, and, or, gte, lte, inArray, sql, count } from "drizzle-orm";
+
+/**
+ * La base, ou une transaction en cours sur celle-ci.
+ *
+ * Même type et même raison que l'`Executeur` de server/stock-management.ts :
+ * la clôture d'un ordre de travail doit faire porter ses écritures de compteur
+ * par SA transaction, sinon elles survivraient à son annulation.
+ */
+type ExecuteurBase = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -386,6 +395,16 @@ export class GMAOStorage {
         equipmentId: workOrders.equipmentId,
         equipmentName: equipmentRegistry.equipmentName,
         orderType: workOrders.orderType,
+        // ⚠️ CETTE PROJECTION EST EXPLICITE : tout champ absent d'ici est
+        // absent de la réponse, SANS erreur. Mesuré en ouvrant l'écran : la
+        // boîte de clôture n'annonçait ni la replanification du plan ni la
+        // remise en service de l'équipement, et n'affichait aucun compteur —
+        // non pas à cause d'un défaut de la boîte, mais parce que
+        // `/api/work-orders` ne servait ni `planId` ni `requiresShutdown`. Le
+        // JSX était juste, le contrat de champs ne l'était pas, et seul
+        // l'écran ouvert l'a montré : la liste répondait 200 avec 28 champs.
+        planId: workOrders.planId,
+        requiresShutdown: workOrders.requiresShutdown,
         title: workOrders.title,
         description: workOrders.description,
         priority: workOrders.priority,
@@ -653,36 +672,125 @@ export class GMAOStorage {
     return counter;
   }
 
-  async resetCounter(id: number, tenantId: string, resetReason?: string, performedBy?: number, workOrderId?: number): Promise<MaintenanceCounter> {
-    const counter = await this.getMaintenanceCounterById(id, tenantId);
+  /**
+   * Remet un compteur d'usage à sa valeur de départ, et journalise le relevé
+   * qu'il portait juste avant.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CETTE MÉTHODE N'AVAIT AUCUN APPELANT
+   * ═══════════════════════════════════════════════════════════════════
+   * Elle était écrite, correcte, et paramétrée par un `workOrderId` — donc
+   * manifestement prévue pour être appelée à la clôture d'un ordre de travail.
+   * Recensement du 2026-10-26 : **zéro appel**, ni depuis une route, ni depuis
+   * le cycle de vie d'un OT, ni depuis le client. Même forme de défaut que
+   * `StockManager`, dont le moteur complet n'était joignable que par des
+   * endpoints explicites.
+   *
+   * Elle est maintenant appelée par la clôture (server/cloture-ordre-travail.ts),
+   * d'où le paramètre `executeur` : la remise à zéro doit être vraie en même
+   * temps que la clôture qui la provoque. Sans lui, les écritures partiraient
+   * sur `db` et survivraient à l'annulation de la transaction — le piège décrit
+   * dans docs/TRANSACTIONS.md.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE COMPTEUR EST UN COMPTEUR DE TRONÇON, PAS UN TOTALISATEUR
+   * ═══════════════════════════════════════════════════════════════════
+   * Le point n'est pas anodin : on ne remet pas à zéro le compteur
+   * kilométrique d'un véhicule à chaque révision. Mais c'est bien la sémantique
+   * que ce schéma implémente, et le relevé le confirme des deux côtés :
+   *
+   *   • `checkAndGenerateCounterAlert` compare `currentValue` à
+   *     `thresholdValue` DIRECTEMENT, et non un écart à un jalon — donc
+   *     `currentValue` signifie « usage depuis la dernière intervention » et
+   *     `thresholdValue` « périodicité ».
+   *   • les colonnes qui porteraient la lecture « totalisateur » —
+   *     `last_service_value` et `interval_value` — ne sont écrites ni lues
+   *     nulle part (mesuré : zéro usage hors du schéma). Elles sont mortes.
+   *
+   * On honore donc la sémantique en place plutôt que d'en introduire une
+   * seconde : deux sens contradictoires pour `currentValue` dans la même table
+   * seraient exactement le genre de défaut que cette campagne passe son temps
+   * à retrouver. `counter_type` ('hours', 'cycles', 'kilometers', 'units')
+   * nomme l'UNITÉ, pas la nature absolue ou relative du relevé.
+   */
+  async resetCounter(
+    id: number,
+    tenantId: string,
+    resetReason?: string,
+    performedBy?: number | null,
+    workOrderId?: number,
+    executeur: ExecuteurBase = db,
+  ): Promise<MaintenanceCounter> {
+    // Lecture + verrou sur l'exécuteur fourni : dans une transaction, lire par
+    // `db` reviendrait à décider sur un état qui n'est pas celui qu'on écrit.
+    const [counter] = await executeur
+      .select()
+      .from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+      .for('update');
+
     if (!counter) {
       throw new Error("Counter not found");
     }
 
     // Create history record
-    await db.insert(counterHistory).values({
+    await executeur.insert(counterHistory).values({
       tenantId,
       counterId: id,
-      previousValue: counter.currentValue ?? 0,
+      // `counter_history.previous_value` est un `integer` alors que
+      // `current_value` est un `real` : un compteur à 1 234,5 h serait arrondi
+      // par le pilote sans que rien ne le dise. On arrondit donc ici,
+      // explicitement, pour que la troncature soit une décision lisible et non
+      // un effet de bord du type de colonne.
+      previousValue: Math.round(counter.currentValue ?? 0),
       resetReason: resetReason || "Manual reset",
-      performedBy,
+      performedBy: performedBy ?? undefined,
       workOrderId
     });
 
     // Reset counter
-    const [updatedCounter] = await db
+    const [updatedCounter] = await executeur
       .update(maintenanceCounters)
-      .set({ 
+      .set({
         currentValue: counter.lastResetValue,
         lastResetDate: new Date(),
+        // L'alerte est levée AVEC la remise à zéro, et c'est indispensable :
+        // `checkAndGenerateCounterAlert` ne produit une alerte que si
+        // `alertEmailSent` est faux. Laissé à `true`, le compteur repartirait
+        // de zéro mais resterait muet au cycle suivant — une échéance atteinte
+        // sans que personne ne soit averti.
         alertLevel: "info",
         alertEmailSent: false,
         updatedAt: new Date()
       })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
-    
+
     return updatedCounter;
+  }
+
+  /**
+   * Les compteurs actifs rattachés à un plan préventif.
+   *
+   * `isActive` est filtré ici, et non chez l'appelant : un compteur désactivé
+   * l'a été délibérément (instrument démonté, suivi suspendu), et la clôture
+   * d'une gamme ne doit pas le réveiller en lui écrivant une ligne
+   * d'historique.
+   */
+  async getCompteursActifsDuPlan(
+    planId: number,
+    tenantId: string,
+    executeur: ExecuteurBase = db,
+  ): Promise<MaintenanceCounter[]> {
+    return await executeur
+      .select()
+      .from(maintenanceCounters)
+      .where(and(
+        eq(maintenanceCounters.planId, planId),
+        eq(maintenanceCounters.tenantId, tenantId),
+        eq(maintenanceCounters.isActive, true),
+      ))
+      .orderBy(maintenanceCounters.id);
   }
 
   async deleteMaintenanceCounter(id: number, tenantId: string): Promise<void> {
