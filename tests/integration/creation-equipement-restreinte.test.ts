@@ -88,15 +88,28 @@ async function inscrits(suffixe: string): Promise<Array<{ tenant_id: string | nu
   return rows;
 }
 
-/** Un équipement existant, créé hors HTTP pour servir de cible aux ordres. */
-async function equipementExistant(): Promise<{ id: number; nom: string }> {
-  const nom = `PARC-${STAMP}-cible`;
+/** Un équipement existant, créé hors HTTP pour servir de cible. */
+async function equipementExistant(suffixe = 'cible'): Promise<{ id: number; nom: string }> {
+  const nom = `PARC-${STAMP}-${suffixe}`;
   const { rows } = await pool.query<{ id: number }>(
-    `INSERT INTO equipment_registry (tenant_id, equipment_id, equipment_name, equipment_type, location)
-     VALUES ($1, $2, $3, 'pompe', 'Atelier restriction') RETURNING id`,
-    [SEEDED.tenantAlpha, `EQ-${STAMP}-cible`, nom],
+    `INSERT INTO equipment_registry (tenant_id, equipment_id, equipment_name, equipment_type, location, criticality_level)
+     VALUES ($1, $2, $3, 'pompe', 'Atelier restriction', 'medium') RETURNING id`,
+    [SEEDED.tenantAlpha, `EQ-${STAMP}-${suffixe}`, nom],
   );
   return { id: rows[0].id, nom };
+}
+
+/** L'état RÉEL d'une fiche, lu dans la table et non dans la réponse. */
+async function ficheEnBase(id: number) {
+  const { rows } = await pool.query<{
+    equipment_name: string; tenant_id: string | null;
+    criticality_level: string | null; location: string | null;
+  }>(
+    `SELECT equipment_name, tenant_id, criticality_level, location
+     FROM equipment_registry WHERE id = $1`,
+    [id],
+  );
+  return rows[0];
 }
 
 beforeAll(async () => {
@@ -255,5 +268,100 @@ describe('Porte 2 — la création implicite par POST /api/work-orders', () => {
 
     expect([200, 201]).toContain(res.status);
     expect(await inscrits('p2-resp')).toHaveLength(1);
+  });
+});
+
+describe('Porte 3 — PUT /api/equipment/:id (modifier la fiche)', () => {
+  /**
+   * Cette route n'avait aucun contrôle de rôle ET passait `req.body` tel quel
+   * à `updateEquipment`, qui fait `.set({ ...updates })`. Deux défauts donc,
+   * et le second est le plus grave.
+   */
+  it('un technicien ne renomme plus une machine ni ne change sa criticité', async () => {
+    const cible = await equipementExistant('put-tech');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, technicien)
+      .send({ equipmentName: 'RENOMMÉ-PAR-LE-TECHNICIEN', criticalityLevel: 'critical' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.niveauRequis).toBe('maintenance_manager');
+
+    // Mesuré avant la correction : ceci passait en 200, et la criticité
+    // « critical » réordonnait les priorités de maintenance.
+    const fiche = await ficheEnBase(cible.id);
+    expect(fiche.equipment_name).toBe(cible.nom);
+    expect(fiche.criticality_level).toBe('medium');
+  });
+
+  it("un chef d'équipe non plus — le seuil est celui de l'inscription", async () => {
+    const cible = await equipementExistant('put-chef');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, chefEquipe)
+      .send({ criticalityLevel: 'critical' });
+
+    expect(res.status).toBe(403);
+    expect((await ficheEnBase(cible.id)).criticality_level).toBe('medium');
+  });
+
+  it('`tenantId` est REFUSÉ, et la fiche reste chez son locataire', async () => {
+    // ═══════════════════════════════════════════════════════════════════
+    // LE TEST QUI COMPTE
+    // ═══════════════════════════════════════════════════════════════════
+    // Avant la correction, ce même appel renvoyait **403** —
+    // `CROSS_TENANT_DATA_DETECTED`, posé par le filet anti-fuite sur la
+    // RÉPONSE — mais l'écriture était DÉJÀ commise : la fiche avait changé de
+    // locataire. Un test qui n'aurait observé que le code de retour aurait
+    // donc été vert sur une fuite réelle.
+    //
+    // D'où la double assertion : le code attendu est 400 (le champ est
+    // refusé en amont, pas constaté après coup), ET la table est relue.
+    const cible = await equipementExistant('put-tenant');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, responsable)
+      .send({ tenantId: SEEDED.tenantBeta });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('CHAMPS_NON_MODIFIABLES');
+    expect(res.body.champs).toContain('tenantId');
+
+    const fiche = await ficheEnBase(cible.id);
+    expect(fiche.tenant_id).toBe(SEEDED.tenantAlpha);
+    expect(fiche.tenant_id).not.toBe(SEEDED.tenantBeta);
+  });
+
+  it("l'identité technique n'est pas modifiable non plus", async () => {
+    const cible = await equipementExistant('put-id');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, responsable)
+      .send({ id: 999999, createdAt: '2020-01-01' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.champs).toEqual(expect.arrayContaining(['id', 'createdAt']));
+  });
+
+  it("un champ inconnu est refusé, pas ignoré en silence", async () => {
+    // Ignorer laisserait l'appelant croire que son écriture a pris effet.
+    const cible = await equipementExistant('put-inconnu');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, responsable)
+      .send({ champInvente: 'valeur' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.champs).toContain('champInvente');
+  });
+
+  it('témoin : un responsable modifie toujours les champs légitimes', async () => {
+    // Sans lui, une route cassée pour tout le monde passerait pour une
+    // restriction réussie.
+    const cible = await equipementExistant('put-temoin');
+
+    const res = await createAuthenticatedRequest('put', `/api/equipment/${cible.id}`, responsable)
+      .send({ location: 'Atelier B', criticalityLevel: 'high' });
+
+    expect(res.status).toBe(200);
+    const fiche = await ficheEnBase(cible.id);
+    expect(fiche.location).toBe('Atelier B');
+    expect(fiche.criticality_level).toBe('high');
+    expect(fiche.tenant_id).toBe(SEEDED.tenantAlpha);
   });
 });

@@ -7,6 +7,7 @@ import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportD
 import { cctpComplianceService } from "./cctp-compliance-system";
 import {
   insertEquipmentRegistrySchema,
+  miseAJourEquipementSchema,
   insertWorkOrderSchema,
   insertPreventiveMaintenancePlanSchema,
   insertSparePartSchema,
@@ -308,13 +309,74 @@ export function registerGMAORoutes(app: Express) {
   // Update equipment
   app.put("/api/equipment/:id", async (req, res) => {
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // MODIFIER UNE FICHE DU RÉFÉRENTIEL, C'EST LE TENIR
+      // ═══════════════════════════════════════════════════════════════
+      // Cette route n'avait aucun contrôle de rôle. Mesuré : un technicien
+      // renommait une machine et la passait en criticité « critical » — donc
+      // réordonnait les priorités de maintenance — en une requête.
+      //
+      // Le niveau est celui de l'INSCRIPTION (`maintenance_manager`), et non
+      // un cran en dessous : corriger la plaque, le type ou la criticité d'une
+      // fiche engage le référentiel autant que de la créer. Un seuil plus bas
+      // aurait permis de contourner la garde de création en inscrivant une
+      // fiche vide puis en la remplissant.
+      //
+      // Ce que cela NE casse pas, et c'est vérifié : le parcours d'un
+      // technicien (démarrer, clôturer un ordre) ne passe PAS par ici.
+      // L'`operationalState` est basculé côté serveur par la clôture
+      // (server/cloture-ordre-travail.ts), pas par cette route. Le seul
+      // appelant vivant est le formulaire d'administration du parc ; la file
+      // hors-ligne rejoue aussi des `equipment_update`, mais AUCUN producteur
+      // n'en enfile (chemin dormant, donc aucune perte).
+      if (!peutCreerEquipement((req as any).user?.role)) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Modifier une fiche du référentiel du parc demande au moins un " +
+            "responsable maintenance. Pour signaler une correction à apporter, " +
+            "créez une demande d'intervention.",
+          alternative: "/api/demandes-intervention",
+          niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+        });
+      }
+
       const id = parseInt(req.params.id);
-      const updates = req.body;
-      
+
+      // ═══════════════════════════════════════════════════════════════
+      // LISTE BLANCHE : `tenantId` N'EST PAS UN CHAMP MODIFIABLE
+      // ═══════════════════════════════════════════════════════════════
+      // `req.body` partait TEL QUEL dans `updateEquipment`, qui fait
+      // `.set({ ...updates })`. Mesuré : `{ tenantId: <autre locataire> }`
+      // faisait PASSER la fiche chez l'autre entreprise. Le `WHERE` cloisonne
+      // la ligne atteinte, pas la valeur écrite.
+      //
+      // Et le refus qui suivait était un piège : le filet anti-fuite sur la
+      // réponse renvoyait `403 CROSS_TENANT_DATA_DETECTED` APRÈS la validation
+      // de l'écriture. L'appelant lisait un refus sur une fuite consommée.
+      const validation = miseAJourEquipementSchema.safeParse(req.body);
+      if (!validation.success) {
+        const champsRefuses = validation.error.issues
+          .filter((i) => i.code === "unrecognized_keys")
+          .flatMap((i) => (i as any).keys as string[]);
+
+        return res.status(400).json({
+          error: "CHAMPS_NON_MODIFIABLES",
+          message: champsRefuses.length
+            ? `Ces champs ne se modifient pas par cette route : ${champsRefuses.join(", ")}. ` +
+              "L'identité technique et l'appartenance à une entreprise n'en font pas partie."
+            : "Mise à jour invalide.",
+          champs: champsRefuses,
+          details: validation.error.issues.map((i) => ({ chemin: i.path.join("."), motif: i.message })),
+        });
+      }
+
+      const updates = validation.data;
+
       console.log("Updating equipment:", id, "with updates:", updates);
-      
+
       // Convert date strings to Date objects for timestamp fields
-      const processedUpdates = { ...updates };
+      const processedUpdates: Record<string, unknown> = { ...updates };
       if (processedUpdates.installationDate && typeof processedUpdates.installationDate === 'string') {
         processedUpdates.installationDate = new Date(processedUpdates.installationDate);
       }

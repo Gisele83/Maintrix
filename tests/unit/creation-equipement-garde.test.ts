@@ -185,3 +185,99 @@ describe('Aucun écran ne réécrit le seuil de son côté', () => {
     expect(source).toContain('peutCreerEquipement');
   });
 });
+
+describe('La MODIFICATION du référentiel est gardée comme sa création', () => {
+  const code = lignesDeCode(gmaoRoutes);
+
+  it('tout appel à updateEquipment est précédé de la garde de rôle', () => {
+    // Le balayage de la création cherchait `createEquipment(` : il ne disait
+    // rien de la modification, qui engage le référentiel tout autant.
+    const modifications = code
+      .map((ligne, i) => ({ ligne, i }))
+      .filter(({ ligne }) => /updateEquipment\(/.test(ligne));
+
+    expect(modifications.length).toBeGreaterThanOrEqual(1);
+
+    for (const { i } of modifications) {
+      let debutRoute = 0;
+      for (let j = i; j >= 0; j--) {
+        if (/app\.(post|put|patch)\(/.test(code[j])) { debutRoute = j; break; }
+      }
+      expect(code.slice(debutRoute, i).join('\n')).toMatch(/peutCreerEquipement\(/);
+    }
+  });
+
+  it('la route valide par la LISTE BLANCHE, et ne passe plus `req.body` tel quel', () => {
+    // `.set({ ...updates })` écrivait tout champ reçu, `tenantId` compris.
+    const debut = code.findIndex((l) => l.includes('app.put("/api/equipment/:id"'));
+    expect(debut).toBeGreaterThan(-1);
+
+    const fin = code.findIndex((l, i) => i > debut && /app\.(get|post|put|patch|delete)\(/.test(l));
+    const corps = code.slice(debut, fin === -1 ? undefined : fin).join('\n');
+
+    expect(corps).toContain('miseAJourEquipementSchema');
+    // La forme exacte qui laissait tout passer.
+    expect(corps).not.toMatch(/const\s+updates\s*=\s*req\.body\s*;/);
+  });
+});
+
+describe('La liste blanche exclut ce qui ne se modifie jamais', () => {
+  const schema = lire('shared', 'schema.ts');
+  const debut = schema.indexOf('export const miseAJourEquipementSchema');
+  /**
+   * L'extrait est BORNÉ à la déclaration, et non à un nombre de caractères.
+   *
+   * Un `slice(debut, debut + 2000)` débordait sur le schéma suivant, dont le
+   * `.omit({ createdAt: true, updatedAt: true })` faisait croire que ces
+   * champs figuraient dans la liste blanche. Un garde-fou qui lit trop large
+   * accuse le voisin.
+   */
+  const bloc = schema.slice(debut, schema.indexOf('.strict();', debut) + '.strict();'.length);
+
+  /**
+   * `^\s*<champ>\s*:` — construit par CONCATÉNATION, et non dans un gabarit.
+   *
+   * Écrit `` `^\s*${champ}\s*:` ``, ce motif ne fait pas ce qu'il dit : dans un
+   * template literal, `\s` n'est pas une séquence d'échappement reconnue et se
+   * résout en `s`. La source devenait `^s*tenantId s*:`, qui ne correspond à
+   * RIEN — si bien que les assertions NÉGATIVES ci-dessous passaient pour la
+   * mauvaise raison, en laissant croire que `tenantId` était hors du schéma
+   * même s'il y figurait.
+   *
+   * Le témoin qui suit est donc indispensable : il prouve que le motif
+   * distingue un champ présent d'un champ absent. Sans lui, rien ne signale
+   * qu'un garde-fou de ce genre est devenu muet.
+   */
+  const ligneDeChamp = (champ: string) => new RegExp('^\\s*' + champ + '\\s*:', 'm');
+
+  it('TÉMOIN — le motif de recherche discrimine vraiment', () => {
+    expect(ligneDeChamp('equipmentName').test(bloc)).toBe(true);
+    expect(ligneDeChamp('champQuiNexistePas').test(bloc)).toBe(false);
+  });
+
+  it('le schéma existe et refuse les champs inconnus', () => {
+    expect(debut).toBeGreaterThan(-1);
+    // `.strict()` refuse ; sans lui, Zod IGNORE silencieusement, et l'appelant
+    // croirait son écriture prise en compte.
+    expect(bloc).toContain('.strict()');
+  });
+
+  for (const champ of ['tenantId', 'createdAt', 'updatedAt']) {
+    it(`\`${champ}\` n'est pas un champ modifiable`, () => {
+      // Écrire `tenantId` faisait PASSER la fiche chez un autre locataire —
+      // mesuré, pas supposé.
+      expect(ligneDeChamp(champ).test(bloc)).toBe(false);
+    });
+  }
+
+  it('les champs métier attendus y sont, sinon le formulaire du parc casserait', () => {
+    // Relevés sur client/src/components/equipment-management.tsx.
+    for (const champ of [
+      'equipmentName', 'equipmentType', 'equipmentId', 'location', 'zone',
+      'operationalState', 'criticalityLevel', 'manufacturer', 'model',
+      'serialNumber', 'installationDate',
+    ]) {
+      expect(ligneDeChamp(champ).test(bloc)).toBe(true);
+    }
+  });
+});

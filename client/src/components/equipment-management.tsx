@@ -310,18 +310,27 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
                   <Factory className="w-5 h-5 text-etat-encours-texte" />
                   <CardTitle className="text-lg">{eq.equipmentName}</CardTitle>
                 </div>
+                {/* Les deux actions du référentiel suivent le même droit que
+                    l'inscription : corriger une plaque ou une criticité engage
+                    le parc autant que de créer la fiche. Sous le niveau, la
+                    carte reste consultable — c'est la lecture qui compte pour
+                    un technicien. */}
                 <div className="flex space-x-1">
+                  {peutCreerEquipement && (
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(eq)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  )}
+                  {peutCreerEquipement && (
+                  <Button
+                    variant="ghost"
                     size="sm" 
                     onClick={() => handleDelete(eq.id)}
                     className="text-etat-critique-texte hover:text-etat-critique-texte"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
