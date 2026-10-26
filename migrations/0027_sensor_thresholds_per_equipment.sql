@@ -44,18 +44,43 @@
 -- registre d'appareils lui-même vide — et la migration S'ARRÊTE plutôt que de
 -- les détruire en silence ou de leur inventer un propriétaire.
 
+-- ═══════════════════════════════════════════════════════════════════
+-- REJOUABLE EN TOUTE CIRCONSTANCE
+-- ═══════════════════════════════════════════════════════════════════
+-- La première version de ce fichier n'était pas idempotente : un simple
+-- `ADD COLUMN` échouait si `drizzle-kit push` avait déjà appliqué le schéma de
+-- `shared/schema.ts`, ce qui arrive dès qu'un déploiement passe AVANT les
+-- migrations. C'est le défaut déjà constaté sur 0022 et 0023, et il force à
+-- respecter un ordre que rien n'impose côté exploitation.
+--
+-- Tout est donc conditionnel ci-dessous. La migration peut être jouée avant le
+-- déploiement, après, ou deux fois : le résultat est le même.
+
 DO $$
 DECLARE
   restantes bigint;
+  deja_structuree boolean;
 BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sensor_thresholds' AND column_name = 'tenant_id'
+  ) INTO deja_structuree;
+
+  -- Si `tenant_id` existe déjà, les lignes présentes sont attribuées : elles
+  -- n'ont rien d'anormal et il n'y a pas lieu de s'arrêter.
+  IF deja_structuree THEN
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO restantes FROM "sensor_thresholds";
 
   IF restantes > 0 THEN
     RAISE EXCEPTION
-      'sensor_thresholds contient % ligne(s), alors que rien dans le code ne l''écrit. '
-      'Ces lignes ne désignent aucun locataire et ne peuvent donc pas être rattachées '
-      'automatiquement. Examinez-les (SELECT * FROM sensor_thresholds), puis supprimez-les '
-      'explicitement (DELETE FROM sensor_thresholds) avant de rejouer cette migration.',
+      'sensor_thresholds contient % ligne(s) dans son ANCIENNE structure, alors que rien '
+      'dans le code ne l''écrivait. Ces lignes ne désignent aucun locataire et ne peuvent '
+      'donc pas être rattachées automatiquement. Examinez-les '
+      '(SELECT * FROM sensor_thresholds), puis supprimez-les explicitement '
+      '(DELETE FROM sensor_thresholds) avant de rejouer cette migration.',
       restantes;
   END IF;
 END $$;--> statement-breakpoint
@@ -66,23 +91,36 @@ END $$;--> statement-breakpoint
 ALTER TABLE "sensor_thresholds" DROP CONSTRAINT IF EXISTS "sensor_thresholds_device_id_iot_devices_id_fk";--> statement-breakpoint
 ALTER TABLE "sensor_thresholds" DROP COLUMN IF EXISTS "device_id";--> statement-breakpoint
 
-ALTER TABLE "sensor_thresholds" ADD COLUMN "tenant_id" varchar(36) NOT NULL;--> statement-breakpoint
-ALTER TABLE "sensor_thresholds" ADD COLUMN "equipment_id" integer;--> statement-breakpoint
-ALTER TABLE "sensor_thresholds" ADD COLUMN "sens" varchar(12) DEFAULT 'au-dessus' NOT NULL;--> statement-breakpoint
-ALTER TABLE "sensor_thresholds" ADD COLUMN "updated_by" integer;--> statement-breakpoint
-ALTER TABLE "sensor_thresholds" ADD COLUMN "updated_at" timestamp DEFAULT now();--> statement-breakpoint
+-- `tenant_id` en NOT NULL : possible uniquement parce que le bloc ci-dessus a
+-- garanti que la table est vide dans son ancienne structure.
+ALTER TABLE "sensor_thresholds" ADD COLUMN IF NOT EXISTS "tenant_id" varchar(36) NOT NULL;--> statement-breakpoint
+ALTER TABLE "sensor_thresholds" ADD COLUMN IF NOT EXISTS "equipment_id" integer;--> statement-breakpoint
+ALTER TABLE "sensor_thresholds" ADD COLUMN IF NOT EXISTS "sens" varchar(12) DEFAULT 'au-dessus' NOT NULL;--> statement-breakpoint
+ALTER TABLE "sensor_thresholds" ADD COLUMN IF NOT EXISTS "updated_by" integer;--> statement-breakpoint
+ALTER TABLE "sensor_thresholds" ADD COLUMN IF NOT EXISTS "updated_at" timestamp DEFAULT now();--> statement-breakpoint
 
-ALTER TABLE "sensor_thresholds"
-  ADD CONSTRAINT "sensor_thresholds_tenant_id_tenants_id_fk"
-  FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade;--> statement-breakpoint
+-- PostgreSQL n'a pas d'`ADD CONSTRAINT IF NOT EXISTS` : on interroge
+-- `pg_constraint` plutôt que de laisser l'erreur interrompre la transaction.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sensor_thresholds_tenant_id_tenants_id_fk') THEN
+    ALTER TABLE "sensor_thresholds"
+      ADD CONSTRAINT "sensor_thresholds_tenant_id_tenants_id_fk"
+      FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade;
+  END IF;
 
-ALTER TABLE "sensor_thresholds"
-  ADD CONSTRAINT "sensor_thresholds_equipment_id_equipment_registry_id_fk"
-  FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment_registry"("id") ON DELETE cascade;--> statement-breakpoint
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sensor_thresholds_equipment_id_equipment_registry_id_fk') THEN
+    ALTER TABLE "sensor_thresholds"
+      ADD CONSTRAINT "sensor_thresholds_equipment_id_equipment_registry_id_fk"
+      FOREIGN KEY ("equipment_id") REFERENCES "public"."equipment_registry"("id") ON DELETE cascade;
+  END IF;
 
-ALTER TABLE "sensor_thresholds"
-  ADD CONSTRAINT "sensor_thresholds_updated_by_user_profiles_id_fk"
-  FOREIGN KEY ("updated_by") REFERENCES "public"."user_profiles"("id") ON DELETE set null;--> statement-breakpoint
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sensor_thresholds_updated_by_user_profiles_id_fk') THEN
+    ALTER TABLE "sensor_thresholds"
+      ADD CONSTRAINT "sensor_thresholds_updated_by_user_profiles_id_fk"
+      FOREIGN KEY ("updated_by") REFERENCES "public"."user_profiles"("id") ON DELETE set null;
+  END IF;
+END $$;--> statement-breakpoint
 
 -- Un seul réglage par (locataire, équipement, grandeur).
 --
@@ -91,13 +129,13 @@ ALTER TABLE "sensor_thresholds"
 -- autant de « valeurs par défaut de l'organisation » qu'on le souhaite pour la
 -- même grandeur — et la lecture en choisirait une au hasard. L'index partiel
 -- sur `equipment_id IS NULL` ferme cette porte.
-CREATE UNIQUE INDEX "sensor_thresholds_par_equipement"
+CREATE UNIQUE INDEX IF NOT EXISTS "sensor_thresholds_par_equipement"
   ON "sensor_thresholds" ("tenant_id", "equipment_id", "metric_type")
   WHERE "equipment_id" IS NOT NULL;--> statement-breakpoint
 
-CREATE UNIQUE INDEX "sensor_thresholds_defaut_organisation"
+CREATE UNIQUE INDEX IF NOT EXISTS "sensor_thresholds_defaut_organisation"
   ON "sensor_thresholds" ("tenant_id", "metric_type")
   WHERE "equipment_id" IS NULL;--> statement-breakpoint
 
 -- La lecture part toujours du locataire.
-CREATE INDEX "sensor_thresholds_tenant_idx" ON "sensor_thresholds" ("tenant_id");
+CREATE INDEX IF NOT EXISTS "sensor_thresholds_tenant_idx" ON "sensor_thresholds" ("tenant_id");
