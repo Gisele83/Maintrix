@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import InventorySimple from "@/components/inventory-simple";
 import { EquipmentManagement } from "@/components/equipment-management";
 import StockAlertsDashboard from "@/components/stock-alerts-dashboard";
+import { ImportReserve, usePeutImporterEnMasse } from "@/components/import-reserve";
 import { 
   Package,
   Download, 
@@ -58,6 +59,7 @@ export default function Inventaire() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importType, setImportType] = useState<"equipments" | "spare-parts">("spare-parts");
   const [isExporting, setIsExporting] = useState(false);
+  const peutImporter = usePeutImporterEnMasse();
 
   // Mutation pour l'import de données
   const importMutation = useMutation({
@@ -240,7 +242,8 @@ export default function Inventaire() {
             Export CSV
           </Button>
 
-          {/* Bouton d'import */}
+          {/* Bouton d'import — remplacé, et non masqué, sous le niveau requis. */}
+          {peutImporter ? (
           <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -327,6 +330,9 @@ export default function Inventaire() {
               </div>
             </DialogContent>
           </Dialog>
+          ) : (
+            <ImportReserve quoi="l'inventaire" />
+          )}
         </div>
       </div>
 

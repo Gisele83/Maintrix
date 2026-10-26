@@ -3,11 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ImportReserve, usePeutImporterEnMasse } from "@/components/import-reserve";
 import { useMutation } from "@tanstack/react-query";
 import { Upload, Download, FileText, AlertCircle, CheckCircle, FileSpreadsheet } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function DataImport() {
+  const peutImporter = usePeutImporterEnMasse();
   const { toast } = useToast();
   const [dragActive, setDragActive] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
@@ -238,6 +240,9 @@ export function DataImport() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {!peutImporter ? (
+              <ImportReserve quoi="un fichier CSV de cas" />
+            ) : (
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 dragActive
@@ -270,6 +275,7 @@ export function DataImport() {
                 </Button>
               </label>
             </div>
+            )}
 
             {(importMaintenanceCSVMutation.isPending || importReportedCSVMutation.isPending) && (
               <div className="mt-4 text-center">

@@ -77,6 +77,7 @@ import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
+import { exigeNiveauImportMasse } from "./import-en-masse";
 import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-routes";
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
@@ -275,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/enterprise-auth/register', authRateLimit);
   
   // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
-  app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);
+  app.post('/api/diagnostic/upload-excel', exigeNiveauImportMasse, uploadMiddleware, processUserExcelFile);
 
   // Register equipment health routes FIRST to avoid route conflicts
   registerEquipmentHealthRoutes(app);
@@ -1986,7 +1987,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.send(template);
   });
 
-  app.post('/api/import/maintenance-csv', async (req, res) => {
+  app.post('/api/import/maintenance-csv', exigeNiveauImportMasse, async (req, res) => {
     try {
       const { csvContent } = req.body;
       
@@ -1994,8 +1995,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Contenu CSV requis' });
       }
 
-      const { dataImporter } = require('./data-import');
-      const results = await dataImporter.importMaintenanceCasesFromCSV(csvContent);
+      // L'import écrit dans le locataire de la SESSION. Ces deux routes CSV
+      // avaient échappé à la campagne de cloisonnement des autres imports :
+      // elles écrivaient des cas avec `tenant_id` NULL, donc inattribuables —
+      // invisibles pour l'entreprise qui venait justement de les charger.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // `await import` et non `require` : `require` renvoie `any`, donc
+      // l'oubli du locataire passait le typecheck sans un mot. Avec l'import
+      // typé, la signature impose désormais de le fournir.
+      const { dataImporter } = await import('./data-import');
+      const results = await dataImporter.importMaintenanceCasesFromCSV(csvContent, tenantId);
       
       res.json({
         message: `Importation terminée: ${results.success} cas importés`,
@@ -2012,7 +2023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/import/reported-cases-csv', async (req, res) => {
+  app.post('/api/import/reported-cases-csv', exigeNiveauImportMasse, async (req, res) => {
     try {
       const { csvContent } = req.body;
       
@@ -2020,8 +2031,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Contenu CSV requis' });
       }
 
-      const { dataImporter } = require('./data-import');
-      const results = await dataImporter.importReportedCasesFromCSV(csvContent);
+      // Même correction que pour /api/import/maintenance-csv ci-dessus :
+      // locataire de la session, et import typé pour que l'oubli se voie.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const { dataImporter } = await import('./data-import');
+      const results = await dataImporter.importReportedCasesFromCSV(csvContent, tenantId);
       
       res.json({
         message: `Importation terminée: ${results.success} cas signalés importés`,
@@ -2898,7 +2914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import default historical database from Excel file
-  app.post("/api/import/default-historical-data", async (req, res) => {
+  app.post("/api/import/default-historical-data", exigeNiveauImportMasse, async (req, res) => {
     try {
       // L'import écrit dans le locataire de la SESSION : il écrivait
       // auparavant des lignes sans locataire, donc inattribuables.
@@ -2920,7 +2936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import user's custom historical Excel file
-  app.post("/api/import/user-historical-data", async (req, res) => {
+  app.post("/api/import/user-historical-data", exigeNiveauImportMasse, async (req, res) => {
     try {
       const { filePath } = req.body;
       
@@ -3004,7 +3020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Process Excel file with multiple sheets (Equipment, Diagnostic, Procedure cross-references)
-  app.post("/api/diagnostic/process-excel-sheets", async (req, res) => {
+  app.post("/api/diagnostic/process-excel-sheets", exigeNiveauImportMasse, async (req, res) => {
     try {
       // L'import écrit dans le locataire de la SESSION : il écrivait
       // auparavant des lignes sans locataire, donc inattribuables.
@@ -3028,7 +3044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Excel file upload endpoint
-  app.post("/api/diagnostic/upload-excel", uploadMiddleware, processUserExcelFile);
+  app.post("/api/diagnostic/upload-excel", exigeNiveauImportMasse, uploadMiddleware, processUserExcelFile);
 
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {
