@@ -30,7 +30,14 @@ _pgdata_backup/
 # Montages liés de docker-compose (data/postgres, data/uploads, data/logs…).
 # Contient des données réelles et des hash de mots de passe : même motif que
 # .pgdata/ et _pgdata_backup/.
-data/
+#
+# ⚠️ ANCRÉ à la racine, et il doit le rester. Écrite `data/`, sans barre
+# oblique initiale, cette règle vise TOUT dossier nommé `data` à n'importe
+# quelle profondeur — à commencer par `client/src/data/`, qui contient du code
+# source. `git add` d'un nouveau fichier y était refusé en silence, donc
+# absent du dépôt, donc absent du déploiement, sans que rien ne le signale.
+# `trainingContent.ts` n'y a survécu que parce qu'il était suivi avant.
+/data/
 
 # Rapport Jest produit par `npm test` — utile pour relire les échecs, pas à versionner.
 test-report.json
