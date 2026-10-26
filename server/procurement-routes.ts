@@ -62,7 +62,16 @@ router.get("/suppliers/:id", async (req, res) => {
 // Create new supplier
 router.post("/suppliers", async (req, res) => {
   try {
-    const validatedData = insertSupplierSchema.parse(req.body);
+    // ⚠️ `insertSupplierSchema` dérive de `createInsertSchema(suppliers)` et
+    // contient donc `tenantId`. Cette route le laissait venir du CORPS :
+    // mesuré sur banc, un utilisateur d'une entreprise créait un fournisseur
+    // dans le référentiel d'une AUTRE (docs/EXAMEN_LISTES_BLANCHES.md,
+    // anomalie E). Le locataire de la session est posé APRÈS l'épandage, donc
+    // il gagne — l'ordre compte.
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
+    const validatedData = { ...insertSupplierSchema.parse(req.body), tenantId };
     const supplier = await gmaoStorage.createSupplier(validatedData);
     res.status(201).json(supplier);
   } catch (error) {
@@ -234,7 +243,13 @@ router.get("/reorder-rules", async (req, res) => {
 // Create reorder rule for a spare part
 router.post("/reorder-rules", async (req, res) => {
   try {
-    const validatedData = insertReorderRuleSchema.parse(req.body);
+    // Même défaut que la création de fournisseur ci-dessus : le corps pouvait
+    // désigner le locataire. Une règle de réapprovisionnement déclenche des
+    // commandes — la poser chez autrui ferait acheter en son nom.
+    const tenantId = tenantRequis(req as any, res as any);
+    if (!tenantId) return;
+
+    const validatedData = { ...insertReorderRuleSchema.parse(req.body), tenantId };
     const rule = await gmaoStorage.createReorderRule(validatedData);
     res.status(201).json(rule);
   } catch (error) {

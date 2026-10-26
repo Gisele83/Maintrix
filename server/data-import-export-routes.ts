@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { dataImportExportService } from "./data-import-export";
-import { simpleImportService } from "./simple-import-service";
 import { tenantRequis } from "./tenant-requis";
+import { exigeNiveauImportMasse } from "./import-en-masse";
 
 const router = Router();
 
@@ -46,7 +46,10 @@ const upload = multer({
 });
 
 // Route d'import de données
-router.post('/import', upload.single('file'), async (req: Request, res: Response) => {
+// La garde de niveau passe AVANT multer : un appelant non habilité ne fait pas
+// lire, filtrer ni mettre en mémoire son fichier avant d'être refusé.
+// `/validate` juste en dessous reste SANS garde — il n'écrit rien.
+router.post('/import', exigeNiveauImportMasse, upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 

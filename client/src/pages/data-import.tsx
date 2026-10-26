@@ -24,7 +24,10 @@ import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } fr
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import { ETAT, type RegistreEtat } from "@/lib/etats";
 
+import { ImportReserve, usePeutImporterEnMasse } from "@/components/import-reserve";
+
 export default function DataImport() {
+  const peutImporter = usePeutImporterEnMasse();
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [progress, setProgress] = useState(0);
@@ -238,6 +241,12 @@ export default function DataImport() {
           </div>
         </div>
 
+        {!peutImporter && (
+          <div className="flex justify-center mb-6">
+            <ImportReserve quoi="un jeu de données" />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Demo Data Import Section */}
           <Card className="border-0">
@@ -271,7 +280,7 @@ export default function DataImport() {
 
                 <Button 
                   onClick={handleImportIndustrialData}
-                  disabled={isImporting || isUploadingFile}
+                  disabled={!peutImporter || isImporting || isUploadingFile}
                   className="w-full bg-etat-encours-vif hover:bg-etat-encours-vif text-sm py-4"
                 >
                   {isImporting ? (
@@ -346,7 +355,7 @@ export default function DataImport() {
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
                     className="w-full border-rule text-signal-deep hover:bg-paper-deep"
-                    disabled={subscriptionStatus !== 'premium' || isUploadingFile || isImporting}
+                    disabled={!peutImporter || subscriptionStatus !== 'premium' || isUploadingFile || isImporting}
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     {subscriptionStatus === 'premium' ? 'Sélectionner un fichier Excel' : 'Premium Requis'}
@@ -380,7 +389,7 @@ export default function DataImport() {
 
                   <Button 
                     onClick={handleFileUpload}
-                    disabled={subscriptionStatus !== 'premium' || !selectedFile || isUploadingFile || isImporting}
+                    disabled={!peutImporter || subscriptionStatus !== 'premium' || !selectedFile || isUploadingFile || isImporting}
                     className="w-full bg-signal-deep hover:bg-signal-deep text-sm py-4"
                   >
                     {isUploadingFile ? (

@@ -1,0 +1,79 @@
+-- La clôture d'un ordre de travail ne transmettait rien. C'est le défaut le plus structurant
+-- relevé par l'audit fonctionnel du 25 octobre 2026 (docs/AUDIT_FONCTIONNEL.md, section 1) :
+-- dans une GMAO professionnelle, la clôture est l'événement qui irrigue tout le reste, alors
+-- qu'ici `PUT /api/work-orders/:id` avec `status: 'completed'` ne déclenchait qu'une génération
+-- de rapport HTML qui n'était même pas enregistrée.
+--
+-- MESURÉ EN BASE AVANT CORRECTIF (grappe jetable, locataire Alpha, OT préventif avec trois
+-- pièces déclarées) : HTTP 200, `next_due` inchangé, `last_executed` resté nul, `current_stock`
+-- toujours à 10, AUCUN mouvement de stock, `operational_state` inchangé — et `actual_end` resté
+-- nul, donc la clôture n'enregistrait même pas la date de fin du travail.
+--
+-- ═══════════════════════════════════════════════════════════════════
+-- CE QUE CETTE MIGRATION AJOUTE, ET POURQUOI IL FALLAIT DEUX COLONNES
+-- ═══════════════════════════════════════════════════════════════════
+--
+-- 1. work_orders.plan_id — L'OBSTACLE IDENTIFIÉ PAR L'AUDIT
+--
+--    `work_orders` ne portait aucun lien vers le plan préventif qui l'avait engendré. La
+--    colonne `plan_id` existait bien dans shared/schema.ts, mais sur `maintenance_counters`,
+--    pas ici. Sans ce lien, la clôture ne POUVAIT PAS savoir quel plan replanifier :
+--    `preventive_maintenance_plans.next_due` et `last_executed` n'étaient écrits nulle part
+--    ailleurs que par l'édition manuelle d'un plan. Un préventif exécuté restait donc à son
+--    échéance d'origine, basculait en retard et y demeurait — et le taux de respect du
+--    préventif, qui est un indicateur affiché, cessait de vouloir dire quelque chose.
+--
+--    NULLABLE, et ce n'est pas un relâchement du cloisonnement : un correctif, un ordre né
+--    d'une alerte, d'une recommandation ou du jumeau numérique n'a pas de plan. Rendre la
+--    colonne obligatoire forcerait à inventer un plan pour une panne, et un rattachement faux
+--    est pire qu'une absence — l'absence, au moins, se lit comme telle.
+--
+--    AUCUN RATTRAPAGE N'EST TENTÉ sur les lignes existantes, et c'est une décision. On pourrait
+--    être tenté de rapprocher chaque OT préventif du plan qui couvre son équipement et son type.
+--    Ce serait une attribution par ressemblance : plusieurs plans peuvent couvrir le même
+--    équipement, et rien dans les données ne dit lequel a engendré quel ordre. Un faux
+--    rattachement ne serait pas inerte — il ferait avancer l'échéance d'un plan sur la foi d'une
+--    intervention qui relevait d'un autre. Le dépôt a déjà tranché dans ce sens pour les bons de
+--    commande (migration 0023), où le rattrapage REFUSE plutôt que d'attribuer un engagement de
+--    dépense au hasard. Les ordres antérieurs restent donc sans plan : leur clôture ne
+--    replanifiera rien, ce qui est exactement ce qu'elle faisait déjà.
+--
+-- 2. work_orders.requires_shutdown — « INTERVENTION AVEC ARRÊT MACHINE »
+--
+--    `equipment_registry.operational_state` n'était écrit par le serveur qu'à l'import et à la
+--    création : un équipement passé en `maintenance` y restait après la réparation.
+--
+--    Le réflexe serait de faire basculer l'état sur TOUT ordre de travail. Ce serait faux dans
+--    les deux sens. Une tournée de graissage, un relevé vibratoire ou un contrôle d'alignement
+--    se font machine en marche : les traiter comme un arrêt déclarerait indisponible un
+--    équipement qui produit, et la disponibilité calculée deviendrait fausse à la baisse. À
+--    l'inverse, ne rien distinguer du tout laisse « en maintenance » les machines réparées.
+--
+--    Il faut donc dire QUELLES interventions arrêtent la machine, et cette information
+--    n'existait pas. D'où ce drapeau. L'état ne bascule que pour les ordres qui le portent, et
+--    le retour à `operational` à la clôture n'a lieu que s'il ne reste aucun AUTRE ordre ouvert
+--    avec arrêt sur le même équipement — deux interventions avec arrêt peuvent être ouvertes en
+--    même temps, et remettre en service à la première clôture déclarerait disponible une machine
+--    encore consignée pour la seconde.
+--
+--    `false` par défaut et NOT NULL : le cas majoritaire en préventif est l'intervention sans
+--    arrêt, et un défaut qui n'arrête aucune machine est le défaut prudent. Les lignes
+--    existantes prennent donc `false`, ce qui reproduit exactement le comportement d'avant
+--    (aucune bascule) pour l'historique — personne ne verra une machine changer d'état parce
+--    qu'une migration est passée.
+
+ALTER TABLE "work_orders" ADD COLUMN "plan_id" integer;
+--> statement-breakpoint
+ALTER TABLE "work_orders" ADD COLUMN "requires_shutdown" boolean DEFAULT false NOT NULL;
+--> statement-breakpoint
+ALTER TABLE "work_orders" ADD CONSTRAINT "work_orders_plan_id_preventive_maintenance_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."preventive_maintenance_plans"("id") ON DELETE no action ON UPDATE no action;
+
+-- PAS D'INDEX SUR plan_id, bien que la clôture lise le plan par cet identifiant et que le
+-- recensement des ordres ouverts avec arrêt filtre sur (tenant_id, equipment_id,
+-- requires_shutdown, status). La raison est celle déjà posée en 0021 : aucune table de ce schéma
+-- ne déclare d'index dans shared/schema.ts, et aucune migration n'en crée. Un index posé ici
+-- seulement existerait sur une base construite par `drizzle-kit migrate` et pas sur une base
+-- construite par `push` — celle que les tests utilisent. Ce dépôt a déjà payé cet écart
+-- silencieux (voir scripts/verify-migrations.mjs). Les deux lectures portent de toute façon sur
+-- une poignée de lignes par clôture, et non sur un balayage. L'index se posera quand il sera
+-- déclaré des deux côtés.

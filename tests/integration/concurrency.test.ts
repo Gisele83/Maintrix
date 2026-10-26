@@ -38,12 +38,15 @@ const STAMP = Date.now();
 let adminAlpha: AuthenticatedAgent;
 let techAlpha: AuthenticatedAgent;
 let adminBeta: AuthenticatedAgent;
+/** Second écrivain habilité du tenant Alpha — l'inscription au parc exige le niveau 4. */
+let responsableAlpha: AuthenticatedAgent;
 
 beforeAll(async () => {
   // Trois sessions distinctes, ouvertes séparément.
   adminAlpha = await authenticateUser(SEEDED.admin, SEEDED.password);
   techAlpha = await authenticateUser(SEEDED.technician, SEEDED.password);
   adminBeta = await authenticateUser(SEEDED.adminBeta, SEEDED.password);
+  responsableAlpha = await authenticateUser(SEEDED.validateurN2, SEEDED.password);
 });
 
 afterAll(async () => {
@@ -154,9 +157,19 @@ describe('F10 — Écritures concurrentes sur une même ressource', () => {
       operationalState: 'operational',
     };
 
+    // Le second écrivain était `techAlpha`. Depuis que l'inscription au
+    // référentiel du parc exige `maintenance_manager` (voir
+    // shared/creation-equipement.ts), un technicien est refusé en 403 AVANT
+    // d'atteindre la collision : la course ne mesurerait plus rien.
+    //
+    // Il est remplacé par un second utilisateur HABILITÉ du même tenant, ce qui
+    // conserve exactement ce que ce test protège — deux écritures simultanées
+    // du même identifiant, par deux utilisateurs distincts — sans rien relâcher
+    // du contrat. Le droit du technicien n'était pas l'objet du test ; il est
+    // vérifié ailleurs (tests/integration/creation-equipement-restreinte.test.ts).
     const resultats = await Promise.all([
       createAuthenticatedRequest('post', '/api/equipment', adminAlpha).send(charge),
-      createAuthenticatedRequest('post', '/api/equipment', techAlpha).send(charge),
+      createAuthenticatedRequest('post', '/api/equipment', responsableAlpha).send(charge),
       createAuthenticatedRequest('post', '/api/equipment', adminAlpha).send(charge),
     ]);
 

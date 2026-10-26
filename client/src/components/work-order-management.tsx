@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { auMoins } from "@shared/roles";
+import {
+  CreationEquipementReservee,
+  usePeutCreerEquipement,
+} from "@/components/equipement-reserve";
 import { EnTetePage, ActionPrincipale, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import {
@@ -118,9 +122,52 @@ interface OrdreTravail {
   location: string | null;
   notes: string | null;
   createdAt: string;
+  /** Plan préventif qui a engendré cet ordre — migration 0024. */
+  planId: number | null;
+  /** « Intervention avec arrêt machine » — migration 0024. */
+  requiresShutdown: boolean | null;
 }
 interface OptionEquipement { id: number; equipmentName: string; equipmentCode?: string; equipmentId?: string; }
 interface OptionUtilisateur { id: number; firstName: string | null; lastName: string | null; username: string; }
+interface OptionPlan {
+  id: number;
+  planName: string;
+  equipmentType: string;
+  frequency: string;
+  frequencyValue: number | null;
+  nextDue: string | null;
+  isActive: boolean | null;
+}
+interface OptionPiece {
+  id: number;
+  partNumber: string;
+  partName: string;
+  currentStock: number | null;
+}
+interface CompteurUsage {
+  id: number;
+  counterType: string;
+  description: string | null;
+  currentValue: number | null;
+  thresholdValue: number | null;
+  lastResetValue: number | null;
+  isActive: boolean | null;
+}
+
+/** Unités des compteurs d'usage, telles que `counter_type` les nomme. */
+const UNITE_COMPTEUR: Record<string, string> = {
+  hours: "h", cycles: "cycles", kilometers: "km", units: "unités",
+};
+
+/** Une référence manquante, telle que la route de clôture la renvoie en 409. */
+interface ManquePiece {
+  sparePartId: number;
+  partNumber: string;
+  partName: string;
+  demande: number;
+  disponible: number;
+  manque: number;
+}
 
 interface EcartCompetence {
   workOrderId: number;
@@ -191,11 +238,70 @@ interface EtatFormulaire {
   dueDate: string;
   estimatedHours: string;
   notes: string;
+  /** Identifiant du plan préventif, en chaîne — c'est ce que rend un `<select>`. */
+  planId: string;
+  requiresShutdown: boolean;
 }
 const FORMULAIRE_VIDE: EtatFormulaire = {
   title: "", description: "", equipmentId: "", priority: "medium", status: "pending",
   orderType: "corrective", assignedTo: "", requestedBy: "", dueDate: "", estimatedHours: "", notes: "",
+  planId: "", requiresShutdown: false,
 };
+
+/**
+ * Les fréquences de plan, en français.
+ *
+ * ⚠️ DEUX VOCABULAIRES coexistent réellement en base, et ce n'est pas une
+ * précaution : le formulaire de maintenance préventive écrit
+ * `days/weeks/months/years`, tandis que l'injecteur de démonstration et le
+ * générateur de données écrivent `daily/weekly/monthly/quarterly/annually`.
+ * Le serveur reconnaît les deux (shared/replanification-preventive.ts) ; ce
+ * libellé doit donc les reconnaître aussi, sans quoi la moitié des plans
+ * s'afficheraient avec leur clé technique dans le sélecteur.
+ */
+const LIBELLE_FREQUENCE: Record<string, string> = {
+  days: "jour(s)", weeks: "semaine(s)", months: "mois", years: "an(s)",
+  daily: "jour", weekly: "semaine", biweekly: "2 semaines", monthly: "mois",
+  quarterly: "trimestre", semiannually: "semestre", annually: "an", annual: "an", yearly: "an",
+  hours_based: "heures de fonctionnement", usage_based: "cycles d'usage",
+};
+
+/** « Plan graissage — tous les 2 mois ». */
+function libellePlan(plan: OptionPlan): string {
+  const unite = LIBELLE_FREQUENCE[(plan.frequency || "").toLowerCase()] ?? plan.frequency;
+  const valeur = plan.frequencyValue ?? 1;
+  const periode = valeur > 1 ? `tous les ${valeur} ${unite}` : `tous les ${unite}`;
+  return `${plan.planName} — ${periode}`;
+}
+
+/**
+ * Extrait la liste des manques d'un refus de clôture pour stock insuffisant.
+ *
+ * ⚠️ `apiRequest` APLATIT le corps de la réponse dans le message d'erreur :
+ * `throw new Error(\`${res.status}: ${text}\`)` (client/src/lib/queryClient.ts).
+ * Un 409 arrive donc ici sous la forme d'une chaîne
+ * `"409: {\"error\":\"STOCK_INSUFFISANT\",\"manques\":[…]}"`, et il faut la
+ * rouvrir pour retrouver la structure que le serveur a pris soin de rendre.
+ *
+ * On ne touche PAS à `apiRequest` : il sert tout le client, et lui faire porter
+ * le corps des erreurs est un changement de contrat qui dépasse cet écran. La
+ * lecture est donc faite ici, et défensivement — une chaîne qui ne se réanalyse
+ * pas rend `null`, et l'appelant retombe sur l'affichage d'erreur ordinaire
+ * plutôt que de masquer le refus.
+ *
+ * Rend `null` pour tout ce qui n'est pas un refus de stock reconnaissable.
+ */
+function lireRefusStock(e: Error): ManquePiece[] | null {
+  const debut = e.message.indexOf("{");
+  if (debut < 0) return null;
+  try {
+    const corps = JSON.parse(e.message.slice(debut));
+    if (corps?.error !== "STOCK_INSUFFISANT" || !Array.isArray(corps.manques)) return null;
+    return corps.manques as ManquePiece[];
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Erreur du PUT de complément : l'ordre EXISTE, mais une partie de la saisie
@@ -305,6 +411,7 @@ function NouvelEquipement({ onCree }: { onCree: (id: number) => void }) {
   const [emplacement, setEmplacement] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const peutCreerEquipement = usePeutCreerEquipement();
 
   const creer = useMutation({
     mutationFn: () =>
@@ -329,6 +436,17 @@ function NouvelEquipement({ onCree }: { onCree: (id: number) => void }) {
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
+
+  // Un chef d'équipe crée des ordres mais n'inscrit pas au référentiel : le
+  // raccourci disparaît au profit de la règle, car l'ouvrir n'aboutirait qu'à
+  // un 403 après la saisie.
+  if (!peutCreerEquipement) {
+    return (
+      <div className="md:col-span-2 mt-2">
+        <CreationEquipementReservee compact />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -420,6 +538,12 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
   const [formulaire, setFormulaire] = useState<EtatFormulaire>(FORMULAIRE_VIDE);
   const [ordreConsulte, setOrdreConsulte] = useState<OrdreTravail | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
+  /** Ordre en cours de clôture — porte la boîte de déclaration des pièces. */
+  const [ordreACloturer, setOrdreACloturer] = useState<OrdreTravail | null>(null);
+  /** Quantités saisies, par identifiant de pièce. Chaînes : ce sont des champs. */
+  const [quantites, setQuantites] = useState<Record<number, string>>({});
+  /** Manques renvoyés par un refus 409, réaffichés dans la boîte. */
+  const [manques, setManques] = useState<ManquePiece[] | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -438,6 +562,24 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
    */
   const peutSupprimer = auMoins(user?.role, "technical_director");
 
+  /**
+   * Créer un ordre de travail engage la planification et le budget.
+   *
+   * Le serveur l'exige d'un chef d'équipe au moins depuis que la demande
+   * d'intervention existe — même niveau que l'arbitrage d'une demande, parce
+   * que les deux gestes engagent la même chose. Si créer directement était
+   * plus permissif, la séparation DI / OT se contournerait par la porte d'à
+   * côté.
+   *
+   * Reproduit ici par le référentiel de rôles, jamais par une égalité de
+   * chaînes : `owner` est au-dessus d'`admin` et serait refusé par une
+   * comparaison littérale.
+   *
+   * ⚠️ Ce drapeau commande l'AFFICHAGE, pas l'autorisation. Le serveur
+   * revérifie — un bouton caché n'est pas un contrôle d'accès.
+   */
+  const peutCreerOrdre = auMoins(user?.role, "team_leader");
+
   const { data: ordres = [], isLoading, error } = useQuery<OrdreTravail[]>({
     queryKey: ["/api/work-orders"],
     retry: 2,
@@ -445,6 +587,34 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
   });
   const { data: equipements = [] } = useQuery<OptionEquipement[]>({ queryKey: ["/api/equipment"] });
   const { data: utilisateurs = [] } = useQuery<OptionUtilisateur[]>({ queryKey: ["/api/user-profiles"] });
+  const { data: plans = [] } = useQuery<OptionPlan[]>({ queryKey: ["/api/preventive-maintenance-plans"] });
+  const { data: pieces = [] } = useQuery<OptionPiece[]>({ queryKey: ["/api/spare-parts"] });
+
+  /**
+   * Les compteurs du plan de l'ordre en cours de clôture.
+   *
+   * ⚠️ La clé de requête est construite par `queryKey.join('/')` côté
+   * `queryFn` par défaut de ce client : un filtre placé dans la clé comme
+   * segment séparé produirait `/api/maintenance-counters/?planId=3` — un 404
+   * muet. L'URL complète tient donc dans UN seul segment de clé.
+   */
+  const { data: compteursDuPlan = [] } = useQuery<CompteurUsage[]>({
+    queryKey: [`/api/maintenance-counters?planId=${ordreACloturer?.planId ?? 0}`],
+    enabled: Boolean(ordreACloturer?.planId),
+  });
+
+  // Un plan inactif ne doit pas être proposé — mais celui que l'ordre porte
+  // DÉJÀ reste dans la liste, même désactivé depuis : sinon le sélecteur
+  // s'afficherait vide sur une fiche existante et un simple enregistrement
+  // effacerait son rattachement sans que personne ne l'ait demandé.
+  const plansProposables = (planActuel: string) =>
+    plans.filter((p) => p.isActive !== false || String(p.id) === planActuel);
+
+  const nomPlan = (id: number | null) => {
+    if (!id) return null;
+    const p = plans.find((p) => p.id === id);
+    return p ? p.planName : `Plan #${id}`;
+  };
 
   const nomUtilisateur = (id: number | null) => {
     if (!id) return "Non assigné";
@@ -473,6 +643,18 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
       if (f.assignedTo) corps.assignedTo = f.assignedTo;
       if (f.estimatedHours) corps.estimatedHours = parseFloat(f.estimatedHours);
       if (f.notes.trim()) corps.notes = f.notes.trim();
+      /**
+       * `planId` et `requiresShutdown` partent dès le POST — vérifié, le
+       * handler les nomme tous les deux (gmao-routes.ts), contrairement à
+       * `dueDate` / `requestedBy` / `orderType` qu'il faut compléter par PUT.
+       *
+       * Le rattachement au plan ne vaut QUE pour un préventif : un correctif
+       * naît d'une panne, pas d'une échéance, et lui attacher un plan ferait
+       * avancer à sa clôture une gamme qui n'a pas été exécutée. On n'envoie
+       * donc pas la valeur si le type a changé entre-temps.
+       */
+      if (f.orderType === "preventive" && f.planId) corps.planId = parseInt(f.planId, 10);
+      if (f.requiresShutdown) corps.requiresShutdown = true;
 
       const ordre: OrdreTravail = await apiRequest("/api/work-orders", { method: "POST", body: corps });
 
@@ -542,8 +724,70 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
       rafraichir();
       if (ordreConsulte?.id === variables.id) setOrdreConsulte(ordre);
       toast({ title: "Statut mis à jour", description: libelleStatutOT(variables.status) });
+      // L'état de l'équipement change au DÉMARRAGE d'une intervention avec
+      // arrêt machine : l'écran du parc doit cesser de l'annoncer en service.
+      if (variables.status === "in_progress" && ordre.requiresShutdown) {
+        queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
+      }
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  /**
+   * LA CLÔTURE — distincte des autres changements de statut.
+   *
+   * Elle seule transmet quelque chose : consommation des pièces déclarées,
+   * replanification du plan préventif, remise à zéro de ses compteurs, remise
+   * en service de l'équipement. Elle seule, donc, peut être REFUSÉE pour un
+   * motif de magasin (HTTP 409), et elle seule invalide les écrans du stock,
+   * du préventif et du parc.
+   */
+  const cloturer = useMutation({
+    mutationFn: ({ id, piecesUtilisees }: { id: number; piecesUtilisees: Array<{ sparePartId: number; quantity: number }> }) =>
+      apiRequest(`/api/work-orders/${id}`, {
+        method: "PUT",
+        body: {
+          status: "completed",
+          // Le tableau n'est envoyé que s'il porte quelque chose : une clôture
+          // sans pièces est le cas normal (tournée de graissage), et un
+          // tableau vide n'a rien à dire de plus qu'une absence.
+          ...(piecesUtilisees.length > 0 ? { partsUsed: piecesUtilisees } : {}),
+        },
+      }),
+    onSuccess: (ordre: OrdreTravail, variables) => {
+      rafraichir();
+      // Ces quatre écrans lisent ce que la clôture vient d'écrire. Sans ces
+      // invalidations, l'utilisateur voit un stock, une échéance et un état
+      // d'équipement périmés — et conclut que la clôture n'a rien fait, ce qui
+      // était précisément le défaut d'avant.
+      queryClient.invalidateQueries({ queryKey: ["/api/spare-parts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/preventive-maintenance-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
+      // Les compteurs sont lus avec leur filtre DANS la clé
+      // (`?planId=…`) : un `queryKey` exact ne les atteindrait pas. On
+      // invalide donc par préfixe de chaîne.
+      queryClient.invalidateQueries({
+        predicate: (q) => String(q.queryKey[0] ?? "").startsWith("/api/maintenance-counters"),
+      });
+      if (ordreConsulte?.id === variables.id) setOrdreConsulte(ordre);
+      fermerCloture();
+      toast({
+        title: "Ordre de travail clôturé",
+        description: variables.piecesUtilisees.length > 0
+          ? `${variables.piecesUtilisees.length} référence(s) sortie(s) du magasin.`
+          : "Aucune pièce déclarée.",
+      });
+    },
+    onError: (e: Error) => {
+      const refus = lireRefusStock(e);
+      if (refus) {
+        // Le refus reste DANS la boîte de dialogue, avec la liste des manques :
+        // l'utilisateur doit pouvoir corriger ses quantités sans tout ressaisir.
+        setManques(refus);
+        return;
+      }
+      toast({ title: "Clôture refusée", description: e.message, variant: "destructive" });
+    },
   });
 
   const supprimer = useMutation({
@@ -613,6 +857,30 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
     setFormulaireOuvert(true);
   }
 
+  function ouvrirCloture(ordre: OrdreTravail) {
+    setOrdreACloturer(ordre);
+    setQuantites({});
+    setManques(null);
+  }
+
+  function fermerCloture() {
+    setOrdreACloturer(null);
+    setQuantites({});
+    setManques(null);
+  }
+
+  /**
+   * Les quantités saisies, en entiers, sans les lignes laissées vides ou à
+   * zéro. Le serveur refuse une quantité non entière ou nulle ; les écarter
+   * ici évite un 400 pour une ligne que l'utilisateur n'a tout simplement pas
+   * remplie.
+   */
+  function piecesDeclarees(): Array<{ sparePartId: number; quantity: number }> {
+    return Object.entries(quantites)
+      .map(([id, valeur]) => ({ sparePartId: Number(id), quantity: Number(valeur) }))
+      .filter((p) => Number.isInteger(p.quantity) && p.quantity > 0);
+  }
+
   function ouvrirEdition(ordre: OrdreTravail) {
     setFormulaire({
       title: ordre.title || "",
@@ -626,6 +894,8 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
       dueDate: ordre.scheduledStart ? ordre.scheduledStart.slice(0, 10) : "",
       estimatedHours: ordre.estimatedDuration ? String(ordre.estimatedDuration / 60) : "",
       notes: ordre.notes || "",
+      planId: ordre.planId ? String(ordre.planId) : "",
+      requiresShutdown: ordre.requiresShutdown === true,
     });
     setOrdreEdite(ordre.id);
     setOrdreConsulte(null);
@@ -665,6 +935,14 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
           dueDate: formulaire.dueDate || undefined,
           estimatedHours: formulaire.estimatedHours || undefined,
           notes: formulaire.notes.trim(),
+          // `null` explicite et non `undefined` : PUT recopie le corps, donc
+          // `undefined` laisserait l'ancien rattachement en place. Il faut
+          // pouvoir DÉTACHER un ordre de son plan, et passer son type de
+          // préventif à correctif doit le détacher.
+          planId: formulaire.orderType === "preventive" && formulaire.planId
+            ? parseInt(formulaire.planId, 10)
+            : null,
+          requiresShutdown: formulaire.requiresShutdown,
         },
       });
     } else {
@@ -687,11 +965,40 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
         />
       )}
 
+      {/* ─── Créer, ou signaler ───────────────────────────────────────────
+          Créer un ordre engage la planification et le budget : le serveur
+          l'exige désormais d'un chef d'équipe au moins
+          (gmao-routes.ts, même niveau que l'arbitrage d'une demande).
+
+          En dessous, on NE MASQUE PAS en silence : on remplace le bouton par
+          le geste qui revient à l'utilisateur. Cet écran a déjà eu le défaut
+          inverse — la corbeille montrée à tout le monde, et un « Impossible de
+          supprimer » sans raison. Un bouton absent sans explication est la
+          même faute, en plus discret. */}
       <div className="flex justify-end">
-        <ActionPrincipale onClick={ouvrirCreation}>
-          <Plus className="h-4 w-4" />
-          Nouvel ordre de travail
-        </ActionPrincipale>
+        {peutCreerOrdre ? (
+          <ActionPrincipale onClick={ouvrirCreation}>
+            <Plus className="h-4 w-4" />
+            Nouvel ordre de travail
+          </ActionPrincipale>
+        ) : (
+          <div className="border border-rule bg-paper p-3 text-sm max-w-xl">
+            <p className="text-ink">
+              Créer un ordre de travail engage la planification et le budget : cela demande au
+              moins un chef d'équipe.
+            </p>
+            <p className="text-ink-mute mt-1">
+              Pour signaler ce que vous avez constaté,{" "}
+              <Link
+                href="/demandes-intervention"
+                className="text-signal underline underline-offset-2 hover:text-ink"
+              >
+                créez une demande d'intervention
+              </Link>{" "}
+              — la maintenance l'arbitrera.
+            </p>
+          </div>
+        )}
       </div>
 
       <RangeeIndicateurs colonnes={4}>
@@ -806,15 +1113,25 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
           titre={ordres.length === 0 ? "Aucun ordre de travail" : "Aucun ordre ne correspond aux filtres"}
           phrase={
             ordres.length === 0
-              ? "Un ordre de travail porte une demande, une priorité et un responsable. C'est lui qui trace l'intervention, de la demande au retour d'expérience."
+              ? peutCreerOrdre
+                ? "Un ordre de travail porte une demande, une priorité et un responsable. C'est lui qui trace l'intervention, de la demande au retour d'expérience."
+                : "Un ordre de travail porte une demande, une priorité et un responsable. Le créer engage la planification et le budget : cela demande au moins un chef d'équipe. Signalez votre constat par une demande d'intervention, que la maintenance arbitrera."
               : "Élargissez la recherche, ou remettez les filtres de statut et de priorité sur « tous »."
           }
           action={
             ordres.length === 0 ? (
-              <ActionPrincipale onClick={ouvrirCreation}>
-                <Plus className="h-4 w-4" />
-                Créer le premier ordre
-              </ActionPrincipale>
+              peutCreerOrdre ? (
+                <ActionPrincipale onClick={ouvrirCreation}>
+                  <Plus className="h-4 w-4" />
+                  Créer le premier ordre
+                </ActionPrincipale>
+              ) : (
+                // L'écran vide mène au geste possible, et non à une impasse.
+                <ActionPrincipale href="/demandes-intervention">
+                  <Plus className="h-4 w-4" />
+                  Signaler une intervention
+                </ActionPrincipale>
+              )
             ) : undefined
           }
         />
@@ -900,8 +1217,8 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
                     {statut === "in_progress" && (
                       <Button
                         size="sm"
-                        onClick={() => changerStatut.mutate({ id: ordre.id, status: "completed" })}
-                        disabled={changerStatut.isPending}
+                        onClick={() => ouvrirCloture(ordre)}
+                        disabled={cloturer.isPending}
                         className="bg-ink text-paper hover:bg-signal"
                       >
                         <CheckSquare className="h-3 w-3 mr-1" aria-hidden="true" />Terminer
@@ -1084,6 +1401,62 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
                 />
               </div>
 
+              {/* ─── Plan préventif ──────────────────────────────────────
+                  Affiché UNIQUEMENT pour un préventif. C'est ce rattachement
+                  qui permet à la clôture de replanifier l'échéance et de
+                  remettre à zéro les compteurs du plan ; sans lui, exécuter
+                  une gamme ne la fait pas avancer. Le champ reste facultatif :
+                  un préventif ponctuel, hors gamme, est légitime. */}
+              {formulaire.orderType === "preventive" && (
+                <div className="md:col-span-2">
+                  <Label htmlFor="ot-plan">Plan préventif (facultatif)</Label>
+                  <select
+                    id="ot-plan"
+                    value={formulaire.planId}
+                    onChange={(e) => setFormulaire({ ...formulaire, planId: e.target.value })}
+                    className={CLASSE_CHAMP}
+                    aria-describedby="ot-plan-aide"
+                  >
+                    <option value="">Aucun plan — intervention ponctuelle</option>
+                    {plansProposables(formulaire.planId).map((p) => (
+                      <option key={p.id} value={p.id}>{libellePlan(p)}</option>
+                    ))}
+                  </select>
+                  <p id="ot-plan-aide" className="text-xs text-ink-mute mt-1">
+                    {plans.length === 0
+                      ? "Aucun plan de maintenance préventive enregistré."
+                      : "À la clôture de cet ordre, l'échéance du plan avancera d'une période et ses compteurs d'usage repartiront de zéro."}
+                  </p>
+                </div>
+              )}
+
+              {/* ─── Arrêt machine ───────────────────────────────────────
+                  Une case, et non une bascule automatique sur tout ordre :
+                  une tournée de graissage ou un relevé vibratoire se font
+                  machine en marche, et les compter comme un arrêt
+                  déclarerait indisponible un équipement qui produit. */}
+              <div className="md:col-span-2 border border-rule bg-paper p-3">
+                <label htmlFor="ot-arret" className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    id="ot-arret"
+                    type="checkbox"
+                    checked={formulaire.requiresShutdown}
+                    onChange={(e) => setFormulaire({ ...formulaire, requiresShutdown: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-signal"
+                    aria-describedby="ot-arret-aide"
+                  />
+                  <span className="min-w-0">
+                    <span className="text-sm font-medium text-ink">Intervention avec arrêt machine</span>
+                    <span id="ot-arret-aide" className="block text-xs text-ink-mute mt-1">
+                      L'équipement passera « en maintenance » au démarrage de l'intervention,
+                      et ne reviendra « en service » à la clôture que s'il ne reste aucun autre
+                      ordre ouvert avec arrêt sur lui. À ne pas cocher pour une intervention
+                      réalisable machine en marche.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               <div className="md:col-span-2">
                 <Label htmlFor="ot-notes">Notes</Label>
                 <Textarea
@@ -1102,6 +1475,178 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
               <Button onClick={soumettre} disabled={enCoursEnvoi} className="bg-ink text-white hover:bg-signal">
                 {enCoursEnvoi && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
                 {ordreEdite ? "Enregistrer" : "Créer l'ordre"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Clôture : déclaration des pièces consommées ──────────────────
+          Les pièces ne peuvent venir que d'ici. Aucune table ne porte les
+          pièces d'un ordre de travail — ni prévues, ni réservées — et
+          `maintenance_reports.parts_used` est écrite après, donc trop tard
+          pour décrémenter. C'est aussi la pratique du métier : on déclare ce
+          qu'on a monté, pas ce qu'on avait prévu de monter. */}
+      {ordreACloturer && (
+        <div
+          className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titre-cloture-ot"
+        >
+          <div className="bg-white border border-rule w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-start mb-4 gap-4">
+              <div className="min-w-0">
+                <p className="font-mono text-sm text-ink-mute">{ordreACloturer.orderNumber}</p>
+                <h2 id="titre-cloture-ot" className="font-serif text-page text-ink mt-1">
+                  Clôturer l'intervention
+                </h2>
+              </div>
+              <Button variant="ghost" size="sm" onClick={fermerCloture} aria-label="Fermer">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+
+            {/* Ce que la clôture va transmettre, annoncé AVANT de la demander.
+                L'utilisateur doit savoir qu'il ne change pas qu'un statut. */}
+            <div className="border border-rule bg-paper p-3 mb-5 text-sm text-ink">
+              <p className="font-medium">Cette clôture va :</p>
+              <ul className="mt-2 space-y-1 text-ink-mute">
+                <li>• enregistrer la date de fin d'intervention ;</li>
+                {ordreACloturer.planId && (
+                  <li>
+                    • faire avancer l'échéance du plan
+                    {nomPlan(ordreACloturer.planId) ? ` « ${nomPlan(ordreACloturer.planId)} » ` : " "}
+                    d'une période ;
+                  </li>
+                )}
+                {ordreACloturer.requiresShutdown && (
+                  <li>• remettre l'équipement en service, s'il ne reste aucun autre arrêt ouvert ;</li>
+                )}
+                <li>• sortir du magasin les pièces déclarées ci-dessous.</li>
+              </ul>
+            </div>
+
+            {/* ─── Compteurs d'usage du plan ────────────────────────────
+                Le relevé est montré AVANT la clôture, avec la valeur qu'il
+                prendra après. C'est le seul endroit du produit où un compteur
+                d'usage est lisible : aucune route ne les servait avant ce lot,
+                et aucun écran ne les affiche. Sans cet encart, la remise à
+                zéro serait un effet invisible, donc invérifiable — et un
+                effet invisible sur un relevé d'usage, personne ne le découvre
+                avant de s'étonner qu'une échéance soit passée. */}
+            {compteursDuPlan.length > 0 && (
+              <div className="border border-rule p-3 mb-5">
+                <p className="text-sm font-medium text-ink">Compteurs d'usage du plan</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {compteursDuPlan.map((c) => {
+                    const unite = UNITE_COMPTEUR[c.counterType] ?? c.counterType;
+                    const apres = c.lastResetValue ?? 0;
+                    const atteint = c.thresholdValue != null && (c.currentValue ?? 0) >= c.thresholdValue;
+                    return (
+                      <li key={c.id} className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-ink">{c.description || `Compteur ${unite}`} :</span>
+                        <span className={atteint ? "text-etat-critique-texte font-medium" : "text-ink"}>
+                          {(c.currentValue ?? 0).toLocaleString("fr-FR")} {unite}
+                        </span>
+                        {c.thresholdValue != null && (
+                          <span className="text-ink-mute text-xs">
+                            / {c.thresholdValue.toLocaleString("fr-FR")} {unite}
+                            {atteint ? " — échéance atteinte" : ""}
+                          </span>
+                        )}
+                        <span className="text-ink-mute">
+                          → {apres.toLocaleString("fr-FR")} {unite} après clôture
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* Le refus pour stock insuffisant s'affiche ICI, sur les lignes
+                concernées : l'utilisateur corrige ses quantités sans ressaisir
+                le reste. Un toast aurait disparu avant qu'il n'ait fini de
+                lire quelle référence manquait. */}
+            {manques && (
+              <div className="border border-etat-critique-filet bg-etat-critique-fond p-4 mb-5">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-etat-critique-texte shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-etat-critique-texte">
+                      Clôture refusée — le magasin ne peut pas honorer cette déclaration
+                    </p>
+                    <ul className="mt-2 space-y-1 text-sm text-etat-critique-texte">
+                      {manques.map((m) => (
+                        <li key={m.sparePartId}>
+                          <span className="font-mono">{m.partNumber}</span> — {m.partName} :
+                          demandé {m.demande}, disponible {m.disponible}{" "}
+                          (manque {m.manque})
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-sm text-etat-critique-texte mt-2">
+                      Rien n'a été écrit : l'ordre est toujours ouvert et le stock n'a pas bougé.
+                      Corrigez les quantités, ou régularisez l'inventaire depuis le magasin.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p className="text-sm font-medium text-ink mb-2">Pièces consommées</p>
+            {pieces.length === 0 ? (
+              <p className="text-sm text-ink-mute border border-rule p-3">
+                Aucune pièce détachée au magasin. La clôture reste possible sans déclaration.
+              </p>
+            ) : (
+              <div className="border border-rule divide-y divide-rule max-h-72 overflow-y-auto">
+                {pieces.map((piece) => {
+                  const manquePiece = manques?.find((m) => m.sparePartId === piece.id);
+                  return (
+                    <div
+                      key={piece.id}
+                      className={`flex items-center gap-3 p-3 ${manquePiece ? "bg-etat-critique-fond" : ""}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-ink truncate">{piece.partName}</p>
+                        <p className="text-xs text-ink-mute font-mono">
+                          {piece.partNumber} · stock {piece.currentStock ?? 0}
+                        </p>
+                      </div>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        // `max` borne la saisie sur le stock connu, mais ne
+                        // remplace PAS le contrôle du serveur : la valeur
+                        // affichée peut être périmée, et c'est la transaction
+                        // qui tranche sous verrou.
+                        max={piece.currentStock ?? undefined}
+                        value={quantites[piece.id] ?? ""}
+                        onChange={(e) => setQuantites({ ...quantites, [piece.id]: e.target.value })}
+                        placeholder="0"
+                        aria-label={`Quantité consommée de ${piece.partName}`}
+                        className="w-24 border-rule shrink-0"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={fermerCloture}>Annuler</Button>
+              <Button
+                onClick={() => cloturer.mutate({ id: ordreACloturer.id, piecesUtilisees: piecesDeclarees() })}
+                disabled={cloturer.isPending}
+                className="bg-ink text-white hover:bg-signal"
+              >
+                {cloturer.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />}
+                {piecesDeclarees().length > 0
+                  ? `Clôturer et sortir ${piecesDeclarees().length} référence(s)`
+                  : "Clôturer sans pièces"}
               </Button>
             </div>
           </div>
@@ -1136,6 +1681,26 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
                   <Label className="text-sm text-ink-soft">Type</Label>
                   <p className="text-ink">
                     {TYPES_ORDRE.find((t) => t.id === ordreConsulte.orderType)?.libelle || ordreConsulte.orderType || "—"}
+                  </p>
+                </div>
+                {/* Le plan et l'arrêt machine décident de ce que la clôture va
+                    transmettre. Les cacher reviendrait à faire dépendre d'un
+                    champ invisible l'avancement d'une échéance et la remise en
+                    service d'une machine. */}
+                <div>
+                  <Label className="text-sm text-ink-soft">Plan préventif</Label>
+                  <p className="text-ink">
+                    {ordreConsulte.planId
+                      ? nomPlan(ordreConsulte.planId)
+                      : "Aucun — la clôture ne replanifiera rien"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm text-ink-soft">Arrêt machine</Label>
+                  <p className="text-ink">
+                    {ordreConsulte.requiresShutdown
+                      ? "Oui — l'équipement est immobilisé pendant l'intervention"
+                      : "Non — réalisable machine en marche"}
                   </p>
                 </div>
                 {ordreConsulte.notes && (
@@ -1180,8 +1745,25 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
                   <select
                     id="ot-statut-detail"
                     value={statutCanoniqueOT(ordreConsulte.status) ?? ""}
-                    onChange={(e) => changerStatut.mutate({ id: ordreConsulte.id, status: e.target.value })}
-                    disabled={changerStatut.isPending}
+                    /**
+                     * « Terminé » passe par la BOÎTE DE CLÔTURE, comme le
+                     * bouton « Terminer » de la vignette. C'était le second
+                     * chemin vers `completed`, et le laisser muter directement
+                     * donnait deux clôtures aux effets différents : par ici,
+                     * aucune pièce ne pouvait être déclarée et un refus de
+                     * magasin n'aurait eu nulle part où s'afficher. Deux
+                     * chemins pour un même acte, aux conséquences inégales,
+                     * c'est exactement la forme de défaut que cet écran a déjà
+                     * eue une fois (deux implémentations d'ordres de travail).
+                     */
+                    onChange={(e) => {
+                      if (e.target.value === "completed") {
+                        ouvrirCloture(ordreConsulte);
+                        return;
+                      }
+                      changerStatut.mutate({ id: ordreConsulte.id, status: e.target.value });
+                    }}
+                    disabled={changerStatut.isPending || cloturer.isPending}
                     className={CLASSE_CHAMP + " mt-1"}
                   >
                     {STATUTS_OT.map((s) => (

@@ -63,6 +63,8 @@ import { registerOeeRoutes } from "./oee-routes";
 import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
 import { registerCalibrationRoutes } from "./calibration-routes";
+import { registerCompteurRoutes } from "./compteurs-routes";
+import { registerDemandeInterventionRoutes } from "./demandes-intervention-routes";
 import { registerHabilitationRoutes } from "./habilitation-routes";
 import { registerSystemHealthRoutes } from "./system-health-routes";
 import { registerBudgetRoutes as registerBudgetPlanRoutes } from "./budget-routes";
@@ -75,6 +77,7 @@ import { registerIoTGamificationRoutes } from "./iot-gamification-routes";
 import { dataImportExportRoutes } from "./data-import-export-routes";
 import { cctpRoutes } from "./cctp-routes";
 import { uploadMiddleware, processUserExcelFile } from "./user-excel-upload";
+import { exigeNiveauImportMasse } from "./import-en-masse";
 import { registerAdvancedIntegrationRoutes } from "./advanced-integrations-routes";
 
 import { registerEnhancedDiagnosticRoutes } from "./enhanced-diagnostic-routes";
@@ -273,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/enterprise-auth/register', authRateLimit);
   
   // Excel Upload Route - User data import (CRITICAL: Missing route causing frontend errors)
-  app.post('/api/diagnostic/upload-excel', uploadMiddleware, processUserExcelFile);
+  app.post('/api/diagnostic/upload-excel', exigeNiveauImportMasse, uploadMiddleware, processUserExcelFile);
 
   // Register equipment health routes FIRST to avoid route conflicts
   registerEquipmentHealthRoutes(app);
@@ -317,6 +320,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Calibration routes
   registerCalibrationRoutes(app);
+
+  // Compteurs d'usage : suivi, relevés, seuils.
+  //
+  // Enregistrées APRÈS les routes GMAO, et c'est sans conséquence ici : aucun
+  // chemin n'est partagé. La route `GET /api/maintenance-counters` vivait
+  // brièvement dans gmao-routes.ts ; elle a été déplacée ici pour que tout le
+  // module des compteurs ait une seule adresse.
+  registerCompteurRoutes(app);
+
+  // Demandes d intervention : signaler, arbitrer, convertir ou refuser.
+  // Enregistrees APRES les routes GMAO : la route
+  // POST /api/alerts/:id/demande-intervention vit ici, et aucun chemin
+  // d alerte existant ne la recouvre (gmao-routes ne declare que
+  // GET/POST /api/alerts et PUT /api/alerts/:id).
+  registerDemandeInterventionRoutes(app);
 
   // Register System Health routes
   registerSystemHealthRoutes(app);
@@ -1638,7 +1656,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Report new case
   app.post("/api/report", async (req, res) => {
     try {
-      const data = insertReportedCaseSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire un cas signalé dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertReportedCaseSchema.parse(req.body), tenantId };
       const reportedCase = await storage.createReportedCase(data);
       
       res.status(201).json(reportedCase);
@@ -1923,32 +1948,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET /api/maintenance-plans, GET /:id et POST sont gérés par maintenance-plan-routes.ts
   // (registerMaintenancePlanRoutes, enregistré plus tôt — table maintenance_plans, plans
-  // annuels par exercice fiscal). Les plans préventifs par type d'équipement (table
-  // preventive_maintenance_plans) sont exposés séparément sur /api/preventive-maintenance-plans
-  // (gmao-routes.ts, avec isolation par tenant). PUT ci-dessous reste le seul point d'accès
-  // pour la mise à jour via cette table — maintenance-plan-routes.ts n'a qu'un PATCH.
-  app.put("/api/maintenance-plans/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      
-      // Remove fields that shouldn't be updated directly
-      delete updates.id;
-      delete updates.createdAt;
-      
-      const plan = await storage.updatePreventiveMaintenancePlan(id, updates);
-      res.json(plan);
-    } catch (error: any) {
-      console.error("Error updating maintenance plan:", error);
-      if (error.message.includes("not found")) {
-        res.status(404).json({ error: "Maintenance plan not found" });
-      } else {
-        res.status(500).json({ error: "Failed to update maintenance plan" });
-      }
-    }
-  });
-
-  // DELETE /api/maintenance-plans/:id est géré par maintenance-plan-routes.ts (registered earlier).
+  // annuels par exercice fiscal).
+  //
+  // ═══════════════════════════════════════════════════════════════════
+  // `PUT /api/maintenance-plans/:id` A ÉTÉ SUPPRIMÉE — ET NON RÉPARÉE
+  // ═══════════════════════════════════════════════════════════════════
+  // Elle écrivait le plan préventif D'UNE AUTRE ENTREPRISE. Trois défauts
+  // cumulés, mesurés sur banc (docs/EXAMEN_LISTES_BLANCHES.md, anomalie A) :
+  //
+  //   1. aucun appel à `tenantRequis` ;
+  //   2. `storage.updatePreventiveMaintenancePlan(id, updates)` ne recevait
+  //      aucun locataire, et filtrait sur l'`id` SEUL ;
+  //   3. le corps passait par une liste NOIRE (`delete updates.id`,
+  //      `delete updates.createdAt`) qui laissait `tenantId` modifiable.
+  //
+  // Un technicien du locataire Alpha a ainsi renommé le plan de Beta ET s'en
+  // est attribué la propriété, en HTTP 200.
+  //
+  // POURQUOI SUPPRIMER PLUTÔT QUE GARDER :
+  //   • elle était REDONDANTE. `PUT /api/preventive-maintenance-plans/:id`
+  //     (gmao-routes.ts) écrit la MÊME table, en validant par
+  //     `insertPreventiveMaintenancePlanSchema.partial()` et en cloisonnant
+  //     par locataire. La capacité n'est donc pas perdue ;
+  //   • elle n'avait AUCUN appelant. Le client n'emploie que
+  //     `/api/preventive-maintenance-plans/*`, et un garde-fou l'y oblige
+  //     (tests/unit/refonte-ui.test.ts : « aucun écran ne lit plus la table
+  //     orpheline ») ;
+  //   • son URL mentait. Sous le préfixe `/api/maintenance-plans`, tous les
+  //     autres verbes servent la table `maintenance_plans` ; ce PUT écrivait
+  //     `preventive_maintenance_plans`. Deux tables pour une même famille
+  //     d'URL selon le verbe : c'est ce qui l'a rendue invisible à toutes les
+  //     campagnes de cloisonnement.
+  //
+  // Même raisonnement que pour le préfixe `/pdf` retiré plus haut : réparer
+  // une porte redondante la maintient en vie, donc maintient le piège.
+  //
+  // DELETE /api/maintenance-plans/:id est géré par maintenance-plan-routes.ts.
 
   // Data Import/Export routes
   app.get('/api/templates/maintenance-csv', (req, res) => {
@@ -1969,7 +2004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.send(template);
   });
 
-  app.post('/api/import/maintenance-csv', async (req, res) => {
+  app.post('/api/import/maintenance-csv', exigeNiveauImportMasse, async (req, res) => {
     try {
       const { csvContent } = req.body;
       
@@ -1977,8 +2012,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Contenu CSV requis' });
       }
 
-      const { dataImporter } = require('./data-import');
-      const results = await dataImporter.importMaintenanceCasesFromCSV(csvContent);
+      // L'import écrit dans le locataire de la SESSION. Ces deux routes CSV
+      // avaient échappé à la campagne de cloisonnement des autres imports :
+      // elles écrivaient des cas avec `tenant_id` NULL, donc inattribuables —
+      // invisibles pour l'entreprise qui venait justement de les charger.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      // `await import` et non `require` : `require` renvoie `any`, donc
+      // l'oubli du locataire passait le typecheck sans un mot. Avec l'import
+      // typé, la signature impose désormais de le fournir.
+      const { dataImporter } = await import('./data-import');
+      const results = await dataImporter.importMaintenanceCasesFromCSV(csvContent, tenantId);
       
       res.json({
         message: `Importation terminée: ${results.success} cas importés`,
@@ -1995,7 +2040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/import/reported-cases-csv', async (req, res) => {
+  app.post('/api/import/reported-cases-csv', exigeNiveauImportMasse, async (req, res) => {
     try {
       const { csvContent } = req.body;
       
@@ -2003,8 +2048,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Contenu CSV requis' });
       }
 
-      const { dataImporter } = require('./data-import');
-      const results = await dataImporter.importReportedCasesFromCSV(csvContent);
+      // Même correction que pour /api/import/maintenance-csv ci-dessus :
+      // locataire de la session, et import typé pour que l'oubli se voie.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const { dataImporter } = await import('./data-import');
+      const results = await dataImporter.importReportedCasesFromCSV(csvContent, tenantId);
       
       res.json({
         message: `Importation terminée: ${results.success} cas signalés importés`,
@@ -2881,7 +2931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import default historical database from Excel file
-  app.post("/api/import/default-historical-data", async (req, res) => {
+  app.post("/api/import/default-historical-data", exigeNiveauImportMasse, async (req, res) => {
     try {
       // L'import écrit dans le locataire de la SESSION : il écrivait
       // auparavant des lignes sans locataire, donc inattribuables.
@@ -2903,7 +2953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import user's custom historical Excel file
-  app.post("/api/import/user-historical-data", async (req, res) => {
+  app.post("/api/import/user-historical-data", exigeNiveauImportMasse, async (req, res) => {
     try {
       const { filePath } = req.body;
       
@@ -2987,7 +3037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Process Excel file with multiple sheets (Equipment, Diagnostic, Procedure cross-references)
-  app.post("/api/diagnostic/process-excel-sheets", async (req, res) => {
+  app.post("/api/diagnostic/process-excel-sheets", exigeNiveauImportMasse, async (req, res) => {
     try {
       // L'import écrit dans le locataire de la SESSION : il écrivait
       // auparavant des lignes sans locataire, donc inattribuables.
@@ -3011,7 +3061,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Excel file upload endpoint
-  app.post("/api/diagnostic/upload-excel", uploadMiddleware, processUserExcelFile);
+  // `/api/diagnostic/upload-excel` est enregistrée PLUS HAUT (voir la route
+  // avec `exigeNiveauImportMasse`, juste après le montage de
+  // `requireAuthentication`). Un second enregistrement identique vivait ici :
+  // Express ne retient que le premier, donc il ne servait jamais — mais il
+  // fallait penser à garder les deux en cohérence, et une garde ajoutée à
+  // l'un seulement aurait donné une fausse impression de protection.
 
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {

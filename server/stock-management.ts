@@ -1,6 +1,6 @@
 import { stockMovements, spareParts, type StockMovement, type InsertStockMovement } from "@shared/schema";
 import { db } from "./db.js";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, inArray, sql } from "drizzle-orm";
 
 /**
  * Gestion des stocks de pièces détachées — CLOISONNÉE PAR LOCATAIRE.
@@ -75,6 +75,66 @@ export class PieceIntrouvable extends Error {
     this.name = 'PieceIntrouvable';
   }
 }
+
+/**
+ * La base, ou une transaction en cours sur celle-ci.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI CE TYPE EXISTE
+ * ═══════════════════════════════════════════════════════════════════
+ * Les méthodes de ce module écrivaient toutes sur le `db` du module. Tant
+ * qu'elles n'étaient appelées que par des routes `/api/stock/*` — un
+ * mouvement, une réponse — cela suffisait. La clôture d'un ordre de travail
+ * change la donne : elle doit consommer les pièces, replanifier le plan
+ * préventif et mettre à jour l'ordre lui-même, et ces écritures doivent être
+ * vraies ENSEMBLE. Une consommation validée pendant que la clôture échoue
+ * retire du stock des pièces pour une intervention qui n'a pas été clôturée ;
+ * l'inverse clôture sans décrémenter, ce qui est exactement le défaut qu'on
+ * corrige.
+ *
+ * `docs/TRANSACTIONS.md` pose la règle du dépôt et son piège : « Toutes les
+ * écritures doivent passer par `tx`. Un `db.` oublié à l'intérieur du bloc
+ * s'exécute HORS transaction et ne sera pas annulé. » Le type ci-dessous est
+ * la parade : l'exécuteur traverse les signatures, donc le `tx` de l'appelant
+ * atteint réellement l'`INSERT` et l'`UPDATE`.
+ *
+ * Il est en DERNIÈRE position et facultatif, contrairement au `tenantId` qui
+ * est premier et obligatoire. La différence est voulue : oublier le locataire
+ * ouvre un cloisonnement, oublier l'exécuteur rend seulement le comportement
+ * historique — celui des huit routes `/api/stock/*`, qui n'ont pas de
+ * transaction à propager.
+ */
+type TransactionBase = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Executeur = typeof db | TransactionBase;
+
+/** Une pièce manquante au moment où on voulait la sortir du magasin. */
+export interface ManquePiece {
+  sparePartId: number;
+  partNumber: string;
+  partName: string;
+  demande: number;
+  disponible: number;
+  manque: number;
+}
+
+/**
+ * Le magasin ne peut pas honorer la déclaration de pièces.
+ *
+ * Classe d'erreur dédiée, et non un `Error` nu : la route doit répondre **409
+ * Conflict** (l'état du magasin contredit la demande) et rendre la LISTE des
+ * manques, pour que le magasinier sache quoi régulariser. Un message en texte
+ * libre obligerait l'interface à l'analyser.
+ */
+export class StockInsuffisant extends Error {
+  constructor(public readonly manques: ManquePiece[]) {
+    super(
+      `Stock insuffisant pour ${manques.length} référence(s) : ` +
+      manques.map(m => `${m.partNumber} (demandé ${m.demande}, disponible ${m.disponible})`).join(', '),
+    );
+    this.name = 'StockInsuffisant';
+  }
+}
+
 export class StockManager {
 
   /**
@@ -87,9 +147,10 @@ export class StockManager {
   async recordStockMovement(
     tenantId: string,
     movement: Omit<InsertStockMovement, 'previousStock' | 'newStock'>,
+    executeur: Executeur = db,
   ): Promise<StockMovement> {
     // Récupérer le stock actuel — de SA pièce.
-    const [sparePart] = await db
+    const [sparePart] = await executeur
       .select()
       .from(spareParts)
       .where(and(
@@ -131,7 +192,7 @@ export class StockManager {
 
     // Enregistrer le mouvement de stock, en le rattachant à son locataire :
     // rien ne le posait, donc toutes les lignes existantes l'ont à `null`.
-    const [stockMovement] = await db
+    const [stockMovement] = await executeur
       .insert(stockMovements)
       .values({
         ...movement,
@@ -147,7 +208,7 @@ export class StockManager {
     // REDONDANTE avec la lecture ci-dessus, et c'est voulu : c'est cette
     // instruction-là qui écrivait chez autrui, et une écriture ne doit pas
     // dépendre d'un contrôle fait quelques lignes plus haut.
-    await db
+    await executeur
       .update(spareParts)
       .set({
         currentStock: newStock,
@@ -159,6 +220,122 @@ export class StockManager {
       ));
 
     return stockMovement;
+  }
+
+  /**
+   * Consomme les pièces déclarées à la clôture d'un ordre de travail —
+   * TOUT OU RIEN, et à l'abri des clôtures concurrentes.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI UNE MÉTHODE DE PLUS
+   * ═══════════════════════════════════════════════════════════════════
+   * `autoStockDeductionForWorkOrder()` existait déjà, mais sa sémantique est
+   * l'inverse de celle d'une clôture : elle parcourt les pièces, SAUTE celles
+   * qui manquent (`continue`) et rend la liste des manques — donc elle
+   * consomme partiellement. C'est tenable pour un appel explicite depuis
+   * `/api/stock/auto-deduction`, où l'opérateur lit le compte rendu. Dans une
+   * transaction, c'est inutilisable à deux titres : une consommation partielle
+   * laisserait le magasin dans un état que personne n'a décidé, et surtout
+   * PostgreSQL abandonne toute la transaction dès la première instruction en
+   * erreur — un `catch` qui « continue » ne continue sur rien.
+   *
+   * Ici : on vérifie TOUT, puis on écrit TOUT, ou on ne touche à rien.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * LE VERROU, ET POURQUOI IL EST INDISPENSABLE
+   * ═══════════════════════════════════════════════════════════════════
+   * `recordStockMovement` LIT le stock puis ÉCRIT une valeur absolue
+   * (`currentStock: newStock`). Deux clôtures simultanées qui lisent 10
+   * écriraient toutes deux 7 : six pièces sorties, trois décomptées. Ce n'est
+   * pas une hypothèse d'école — c'est le scénario que le test de concurrence
+   * éprouve.
+   *
+   * On verrouille donc les lignes de `spare_parts` concernées
+   * (`SELECT … FOR UPDATE`) avant toute lecture servant à décider. Les pièces
+   * sont verrouillées DANS L'ORDRE DE LEUR IDENTIFIANT : deux clôtures qui
+   * partagent deux références et les prendraient en ordre inverse
+   * s'interbloqueraient, et PostgreSQL en tuerait une au hasard.
+   */
+  async consommerPourCloture(
+    tenantId: string,
+    workOrderId: number,
+    pieces: Array<{ sparePartId: number; quantity: number }>,
+    options: { performedBy?: number | null; equipmentId?: number | null; reference?: string } = {},
+    executeur: Executeur = db,
+  ): Promise<StockMovement[]> {
+    if (pieces.length === 0) return [];
+
+    // Une même référence peut être déclarée deux fois (deux lignes de la même
+    // pièce). On agrège AVANT de vérifier : contrôler chaque ligne séparément
+    // laisserait passer 2 × 6 sur un stock de 10.
+    const parPiece = new Map<number, number>();
+    for (const p of pieces) {
+      const quantite = Number(p.quantity);
+      if (!Number.isInteger(quantite) || quantite <= 0) {
+        throw new Error(`Quantité invalide pour la pièce ${p.sparePartId} : ${p.quantity}`);
+      }
+      parPiece.set(p.sparePartId, (parPiece.get(p.sparePartId) ?? 0) + quantite);
+    }
+
+    const identifiants = [...parPiece.keys()].sort((a, b) => a - b);
+
+    // Verrou + lecture dans la même instruction. `inArray` + `FOR UPDATE` :
+    // l'ordre du `ORDER BY` est ce qui fixe l'ordre de prise des verrous.
+    const lignes = await executeur
+      .select()
+      .from(spareParts)
+      .where(and(inArray(spareParts.id, identifiants), eq(spareParts.tenantId, tenantId)))
+      .orderBy(spareParts.id)
+      .for('update');
+
+    const connues = new Map(lignes.map(l => [l.id, l]));
+
+    // Une pièce absente de la réponse appartient à un autre locataire ou
+    // n'existe pas : dans les deux cas, hors de portée du demandeur.
+    for (const id of identifiants) {
+      if (!connues.has(id)) throw new PieceIntrouvable(id);
+    }
+
+    // Vérification EXHAUSTIVE avant la moindre écriture : on veut la liste
+    // complète des manques, pas le premier rencontré. Un magasinier à qui l'on
+    // annonce une rupture à la fois régularise en autant d'allers-retours.
+    const manques: ManquePiece[] = [];
+    for (const id of identifiants) {
+      const ligne = connues.get(id)!;
+      const demande = parPiece.get(id)!;
+      const disponible = ligne.currentStock ?? 0;
+      if (disponible < demande) {
+        manques.push({
+          sparePartId: id,
+          partNumber: ligne.partNumber,
+          partName: ligne.partName,
+          demande,
+          disponible,
+          manque: demande - disponible,
+        });
+      }
+    }
+    if (manques.length > 0) throw new StockInsuffisant(manques);
+
+    // Écritures. Le mouvement porte l'ordre de travail et l'équipement :
+    // c'est ce rattachement qui permet de remonter d'une pièce consommée à
+    // l'intervention qui l'a consommée, et donc d'imputer un coût matière.
+    const mouvements: StockMovement[] = [];
+    for (const id of identifiants) {
+      mouvements.push(await this.recordStockMovement(tenantId, {
+        sparePartId: id,
+        movementType: 'OUT',
+        quantity: parPiece.get(id)!,
+        reason: 'WORK_ORDER',
+        workOrderId,
+        equipmentId: options.equipmentId ?? undefined,
+        performedBy: options.performedBy ?? undefined,
+        reference: options.reference ?? `OT-${workOrderId}-CLOTURE`,
+        notes: `Consommation déclarée à la clôture de l'ordre de travail ${workOrderId}`,
+      }, executeur));
+    }
+
+    return mouvements;
   }
 
   /**

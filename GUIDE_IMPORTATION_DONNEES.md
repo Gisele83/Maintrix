@@ -1,5 +1,20 @@
 # Guide d'Importation des Données Historiques - Maintrix
 
+## Qui peut importer
+
+Le **chargement** d'un fichier demande au moins le rôle **responsable
+maintenance**. La raison est l'irréversibilité : un import crée des centaines de
+lignes d'un coup, et Maintrix n'offre aucune suppression en masse — il faudrait
+les retirer une par une.
+
+**Ce qui reste ouvert à tous :** préparer le fichier et le faire **vérifier**
+(contrôle du format et comptage des lignes, sans aucune écriture). Le travail de
+préparation appartient à qui connaît le parc ; seul le chargement final demande
+le niveau. Si vous obtenez un refus, votre fichier n'est pas en cause : faites-le
+charger par un responsable.
+
+Détail de la règle et des routes concernées : `docs/IMPORT_EN_MASSE.md`.
+
 ## Vue d'ensemble
 
 Ce guide vous explique comment enrichir votre système Maintrix avec l'historique réel de maintenance de votre entreprise. L'importation de données historiques améliore considérablement la précision des diagnostics IA et personnalise le système selon votre contexte industriel spécifique.
