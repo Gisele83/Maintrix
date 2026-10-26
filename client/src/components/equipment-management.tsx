@@ -14,6 +14,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  CreationEquipementReservee,
+  usePeutCreerEquipement,
+} from "@/components/equipement-reserve";
 
 const equipmentSchema = z.object({
   equipmentName: z.string().min(1, "Nom de l'équipement requis"),
@@ -69,6 +73,7 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const peutCreerEquipement = usePeutCreerEquipement();
 
   // Fetch equipment list
   const { data: equipment = [], isLoading } = useQuery<Equipment[]>({
@@ -250,7 +255,12 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
           l'onglet n'en met pas. */}
       {enTete}
 
+      {/* Remplacé, et non masqué, sous le niveau requis : un bouton retiré
+          laisse croire à une panne plutôt qu'à une règle. */}
       <div className="flex justify-end">
+        {!peutCreerEquipement ? (
+          <CreationEquipementReservee />
+        ) : (
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => form.reset()} className="bg-ink text-paper hover:bg-signal">
@@ -272,6 +282,7 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
             />
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Recherche */}
@@ -358,16 +369,28 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
           <Factory className="w-12 h-12 text-ink-mute mx-auto mb-4" />
           <h3 className="text-lg font-medium text-ink mb-2">Aucun équipement trouvé</h3>
           <p className="text-ink-soft mb-6">
-            {searchTerm ? "Aucun équipement ne correspond à votre recherche." : "Commencez par ajouter votre premier équipement."}
+            {searchTerm
+              ? "Aucun équipement ne correspond à votre recherche."
+              : peutCreerEquipement
+                // La phrase n'invite à inscrire une machine que celui qui peut
+                // le faire : l'annoncer puis refuser serait pire que se taire.
+                ? "Commencez par ajouter votre premier équipement."
+                : "Le parc est encore vide. Son référentiel est tenu par la maintenance."}
           </p>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un Équipement
-              </Button>
-            </DialogTrigger>
-          </Dialog>
+          {peutCreerEquipement ? (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter un Équipement
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          ) : (
+            <div className="flex justify-center">
+              <CreationEquipementReservee />
+            </div>
+          )}
         </div>
       )}
 

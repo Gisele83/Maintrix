@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { auMoins } from "@shared/roles";
+import { peutCreerEquipement, NIVEAU_CREATION_EQUIPEMENT } from "@shared/creation-equipement";
 import { notifyTaskAssigned } from "./push-notification-service";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
@@ -209,6 +210,24 @@ export function registerGMAORoutes(app: Express) {
   // Create new equipment
   app.post("/api/equipment", async (req, res) => {
     try {
+      // Inscrire une machine au référentiel demande un responsable maintenance.
+      // Le motif est vérifié et non supposé : AUCUNE route ne supprime un
+      // équipement (ni `DELETE /api/equipment/:id`, ni `deleteEquipment`), donc
+      // une inscription erronée est définitive — et aussitôt référencée par les
+      // ordres, les plans, les compteurs et les relevés de capteurs.
+      if (!peutCreerEquipement((req as any).user?.role)) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Inscrire un équipement au référentiel du parc demande au moins un " +
+            "responsable maintenance : aucune suppression d'équipement n'existe, " +
+            "une inscription erronée est donc définitive. Pour signaler un besoin, " +
+            "créez une demande d'intervention.",
+          alternative: "/api/demandes-intervention",
+          niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+        });
+      }
+
       console.log("Creating equipment with data:", req.body);
       
       // Add tenantId BEFORE validation
@@ -409,6 +428,34 @@ export function registerGMAORoutes(app: Express) {
         if (existingEquipment && existingEquipment.length > 0) {
           equipmentId = existingEquipment[0].id;
         } else {
+          // ═══════════════════════════════════════════════════════════════
+          // LA SECONDE PORTE VERS LE RÉFÉRENTIEL
+          // ═══════════════════════════════════════════════════════════════
+          // Un `equipmentName` inconnu faisait ici une inscription SILENCIEUSE
+          // au référentiel — et dégradée : `equipmentType: 'Generic'`, lieu
+          // « Non spécifié », aucun numéro de série. Un chef d'équipe (2)
+          // peuplait donc le parc par la route des ordres de travail, ce qui
+          // aurait rendu la garde de `POST /api/equipment` contournable d'une
+          // faute de frappe.
+          //
+          // On refuse l'INSCRIPTION, pas l'ordre de travail : le niveau de
+          // création d'ordre reste `team_leader`. Le message dit donc quoi
+          // faire — choisir un équipement existant — au lieu d'opposer un
+          // « droits insuffisants » que l'appelant ne saurait pas interpréter,
+          // puisqu'il a bien le droit de créer l'ordre.
+          if (!peutCreerEquipement((req as any).user?.role)) {
+            return res.status(403).json({
+              error: "FORBIDDEN",
+              message:
+                `Aucun équipement nommé « ${req.body.equipmentName} » n'existe dans le ` +
+                "référentiel, et l'y inscrire demande au moins un responsable " +
+                "maintenance. Choisissez un équipement existant dans la liste, ou " +
+                "faites-le inscrire au parc.",
+              champ: "equipmentName",
+              niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+            });
+          }
+
           // Create new equipment entry
           const newEquipment = await gmaoStorage.createEquipment({
             tenantId,

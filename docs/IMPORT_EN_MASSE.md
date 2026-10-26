@@ -138,11 +138,15 @@ Aucun écran ne contient de rôle en dur ; un test le vérifie sur les cinq.
 
 ## Ce qui n'est PAS fermé par ce lot
 
-- **`POST /api/equipment` n'a aucune garde de rôle.** Un technicien peut
-  toujours créer un équipement — *un par un*. La restriction porte sur le
-  **volume** et son irréversibilité, pas sur le geste. Cet écart est assumé :
-  le refermer demanderait une décision de politique sur la création unitaire,
-  qui n'a pas été prise.
+- ~~`POST /api/equipment` n'a aucune garde de rôle~~ : **fermé** le même jour,
+  sur décision de l'utilisateur — voir `CREATION_EQUIPEMENT.md`. L'argument
+  avancé ici (« la restriction porte sur le volume, pas sur le geste ») jouait
+  en réalité **en sens inverse** : il n'existe aucune route de suppression
+  d'équipement, donc la création unitaire n'a *aucune* annulation là où
+  l'import n'a pas d'annulation *en masse*. Même seuil, `maintenance_manager`.
+  Le relevé a aussi trouvé une **seconde porte invisible depuis l'URL** :
+  `POST /api/work-orders` avec un `equipmentName` inconnu inscrivait un
+  équipement dégradé.
 - **`/api/diagnostic/upload-excel` est enregistrée deux fois** (`server/routes.ts`,
   lignes 278 et ~3040). Express ne retient que la première ; la seconde est du
   code mort. **Les deux** portent la garde, pour que retirer celle qui

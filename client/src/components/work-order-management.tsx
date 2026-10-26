@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { auMoins } from "@shared/roles";
+import {
+  CreationEquipementReservee,
+  usePeutCreerEquipement,
+} from "@/components/equipement-reserve";
 import { EnTetePage, ActionPrincipale, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import {
@@ -407,6 +411,7 @@ function NouvelEquipement({ onCree }: { onCree: (id: number) => void }) {
   const [emplacement, setEmplacement] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const peutCreerEquipement = usePeutCreerEquipement();
 
   const creer = useMutation({
     mutationFn: () =>
@@ -431,6 +436,17 @@ function NouvelEquipement({ onCree }: { onCree: (id: number) => void }) {
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
+
+  // Un chef d'équipe crée des ordres mais n'inscrit pas au référentiel : le
+  // raccourci disparaît au profit de la règle, car l'ouvrir n'aboutirait qu'à
+  // un 403 après la saisie.
+  if (!peutCreerEquipement) {
+    return (
+      <div className="md:col-span-2 mt-2">
+        <CreationEquipementReservee compact />
+      </div>
+    );
+  }
 
   return (
     <>
