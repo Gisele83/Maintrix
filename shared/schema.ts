@@ -608,6 +608,33 @@ export const workOrders = pgTable("work_orders", {
   orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   orderType: varchar("order_type", { length: 30 }).notNull(), // preventive, corrective, predictive, emergency
+  // ── Lien vers le plan préventif qui a engendré cet ordre (migration 0024).
+  //
+  // Son absence était l'obstacle qui rendait la clôture d'un OT stérile :
+  // `plan_id` existait bien dans ce schéma, mais sur `maintenance_counters`,
+  // pas ici. La clôture ne pouvait donc PAS savoir quel plan replanifier, et
+  // `preventive_maintenance_plans.nextDue` / `lastExecuted` n'étaient jamais
+  // écrits ailleurs que par l'édition manuelle d'un plan. Un préventif exécuté
+  // restait à son échéance d'origine, basculait en retard et y demeurait.
+  //
+  // NULLABLE, et ce n'est pas un relâchement : un correctif, un OT né d'une
+  // alerte, d'une recommandation ou du jumeau numérique n'a pas de plan. Rendre
+  // la colonne obligatoire forcerait à inventer un plan pour une panne — un
+  // rattachement faux est pire qu'une absence, qui au moins se lit comme telle.
+  planId: integer("plan_id").references(() => preventiveMaintenancePlans.id),
+  // ── « Intervention avec arrêt machine » (migration 0024).
+  //
+  // Ce drapeau existe pour que la clôture puisse remettre un équipement en
+  // service SANS se tromper de cas. Basculer `operationalState` sur tout OT
+  // serait faux dans les deux sens : une tournée de graissage ou un relevé
+  // vibratoire se font machine en marche et ne doivent rien arrêter, tandis
+  // qu'un remplacement de joints consigne la machine. Sans distinction, soit
+  // on arrête des machines qui tournent, soit on laisse « en maintenance »
+  // celles qu'on a réparées — c'est le second défaut qu'a relevé l'audit.
+  //
+  // `false` par défaut : le cas majoritaire en préventif est l'intervention
+  // sans arrêt, et un défaut qui n'arrête rien est le défaut prudent.
+  requiresShutdown: boolean("requires_shutdown").default(false).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   priority: varchar("priority", { length: 20 }).default("medium"), // low, medium, high, urgent
@@ -919,6 +946,19 @@ export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
   externalCost: z.number().optional(),
   notes: z.string().optional(),
   completionNotes: z.string().optional(),
+  // Déclarés explicitement plutôt que laissés à l'inférence de
+  // `createInsertSchema` : le rattachement au plan est le lien dont dépend
+  // toute la replanification, et un `planId` qui arriverait en chaîne depuis un
+  // formulaire doit être refusé ici, pas découvert par la contrainte de clé
+  // étrangère. L'appartenance du plan au locataire, elle, se vérifie côté
+  // route — un schéma ne peut pas interroger la base.
+  planId: z.coerce.number().int().positive().nullable().optional(),
+  // `z.boolean()` STRICT, et surtout pas `z.coerce.boolean()` : `Boolean("false")`
+  // vaut `true`, donc une case de formulaire envoyée en `"false"` (chaîne)
+  // consignerait une machine qu'on venait de déclarer non consignée. La
+  // normalisation des chaînes est faite par la route, AVANT la validation, où
+  // l'on sait ce que `"false"` veut dire.
+  requiresShutdown: z.boolean().optional(),
 });
 
 export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventiveMaintenancePlans).omit({

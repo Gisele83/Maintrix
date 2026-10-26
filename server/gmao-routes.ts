@@ -26,6 +26,14 @@ import { db } from "./db";
 import { purchaseOrders } from "@shared/schema";
 import { estViolationUnicite } from "./db-errors";
 import { tenantRequis } from "./tenant-requis";
+import {
+  arreterEquipementPourIntervention,
+  cloturerOrdreTravail,
+  lirePiecesDeclarees,
+  planIdValide,
+  StockInsuffisant,
+} from "./cloture-ordre-travail";
+import { PieceIntrouvable } from "./stock-management";
 
 /**
  * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
@@ -391,11 +399,23 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.dueDate) cleanedData.scheduledStart = req.body.dueDate; // Keep as string for validation
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
+      if (req.body.requiresShutdown !== undefined) {
+        cleanedData.requiresShutdown = req.body.requiresShutdown === true || req.body.requiresShutdown === 'true';
+      }
 
       // Add tenantId BEFORE validation
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
       cleanedData.tenantId = tenantId;
+
+      // Rattachement au plan préventif : vérifié CONTRE LE LOCATAIRE avant
+      // d'être écrit. C'est ce lien, absent jusqu'ici, qui permet à la clôture
+      // de savoir quel plan replanifier — et c'est aussi par lui qu'un plan
+      // d'une autre organisation pourrait se faire replanifier, si on se
+      // contentait de la clé étrangère.
+      if (req.body.planId !== undefined && req.body.planId !== null && req.body.planId !== '') {
+        cleanedData.planId = await planIdValide(req.body.planId, tenantId);
+      }
 
       // First validate with Zod (expects strings for date fields)
       const validatedData = insertWorkOrderSchema.parse(cleanedData);
@@ -410,7 +430,15 @@ export function registerGMAORoutes(app: Express) {
       }
       
       const workOrder = await gmaoStorage.createWorkOrder(processedData);
-      
+
+      // Un ordre créé DÉJÀ en cours et avec arrêt machine consigne tout de
+      // suite l'équipement : sans cela, le cas « je saisis l'intervention que
+      // je suis en train de faire » laisserait la machine déclarée en service
+      // pendant qu'elle est consignée, et la clôture n'aurait rien à remettre.
+      if (workOrder.status === 'in_progress' && workOrder.requiresShutdown && workOrder.equipmentId != null) {
+        await arreterEquipementPourIntervention(workOrder.equipmentId, tenantId);
+      }
+
       console.log(`Work order created: ${workOrder.orderNumber} - ${workOrder.title}`);
       res.status(201).json(workOrder);
     } catch (error) {
@@ -456,6 +484,13 @@ export function registerGMAORoutes(app: Express) {
           ? null
           : parseInt(processedUpdates.assignedTo, 10);
       }
+      // `requires_shutdown` est NOT NULL : une case de formulaire envoyée en
+      // `"false"` (chaîne) serait vraie pour Drizzle, et consignerait une
+      // machine qu'on venait de déclarer non consignée.
+      if (processedUpdates.requiresShutdown !== undefined) {
+        processedUpdates.requiresShutdown =
+          processedUpdates.requiresShutdown === true || processedUpdates.requiresShutdown === 'true';
+      }
 
       // Convert date strings to Date objects for timestamp fields
       if (processedUpdates.scheduledStart && typeof processedUpdates.scheduledStart === 'string') {
@@ -476,8 +511,75 @@ export function registerGMAORoutes(app: Express) {
       
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
+
+      // Un `planId` qui arrive par la requête est vérifié ici, et pas au
+      // moment de l'écriture : la clé étrangère garantit que le plan existe,
+      // pas qu'il appartient au demandeur. Rattacher un ordre au plan d'une
+      // autre organisation ferait avancer l'échéance de ce plan-là à la
+      // clôture (voir planIdValide).
+      if (processedUpdates.planId !== undefined) {
+        processedUpdates.planId = await planIdValide(processedUpdates.planId, tenantId);
+      }
+
+      // Les pièces consommées ne sont PAS une colonne de `work_orders` : on les
+      // retire des champs à écrire avant toute mise à jour, sans quoi Drizzle
+      // recevrait une clé inconnue.
+      const piecesDeclarees = lirePiecesDeclarees(req.body);
+      delete processedUpdates.partsUsed;
+
       const prevWorkOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
-      const workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
+
+      // ── LA CLÔTURE EST UN CHEMIN À PART, ET TRANSACTIONNEL ──────────
+      //
+      // Elle écrit dans cinq tables (`work_orders`, `stock_movements`,
+      // `spare_parts`, `preventive_maintenance_plans`, `equipment_registry`)
+      // et ces écritures doivent être vraies ensemble. Avant ce correctif, la
+      // clôture ne déclenchait qu'une génération de rapport non enregistrée :
+      // mesuré en base, HTTP 200 et absolument rien d'écrit.
+      //
+      // La condition porte sur la TRANSITION, pas sur le statut demandé : une
+      // requête qui repasse `completed` sur un ordre déjà clôturé ne doit pas
+      // reconsommer les pièces ni réavancer le plan. `cloturerOrdreTravail`
+      // s'en protège aussi de son côté, sous verrou, pour le cas concurrent.
+      let workOrder: Awaited<ReturnType<typeof gmaoStorage.updateWorkOrder>>;
+      if (processedUpdates.status === 'completed' && prevWorkOrder && prevWorkOrder.status !== 'completed') {
+        const bilan = await cloturerOrdreTravail({
+          id,
+          tenantId,
+          modifications: processedUpdates,
+          pieces: piecesDeclarees,
+          // L'auteur vient de la SESSION, jamais du corps de requête : un
+          // mouvement de stock signé d'un identifiant fourni par le client
+          // imputerait la sortie à n'importe qui.
+          performedBy: (req as any).user?.id ?? null,
+        });
+        workOrder = bilan.ordre;
+        console.log(
+          `OT ${workOrder.orderNumber} clôturé — ${bilan.piecesConsommees.length} référence(s) consommée(s)` +
+          (bilan.replanification
+            ? bilan.replanification.nextDue
+              ? `, plan #${bilan.replanification.plan} replanifié au ${bilan.replanification.nextDue.toISOString().slice(0, 10)}`
+              : `, plan #${bilan.replanification.plan} non replanifié (${bilan.replanification.motif})`
+            : '') +
+          (bilan.equipementRemisEnService ? ', équipement remis en service' : ''),
+        );
+      } else {
+        workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
+
+        // Symétrique de la remise en service : une intervention AVEC ARRÊT qui
+        // démarre consigne la machine. Sans cette bascule, la remise en
+        // service de la clôture n'aurait jamais rien à remettre — et
+        // `operationalState` resterait ce qu'il était : une colonne que le
+        // serveur n'écrivait qu'à l'import.
+        if (
+          processedUpdates.status === 'in_progress' &&
+          prevWorkOrder?.status !== 'in_progress' &&
+          workOrder.requiresShutdown &&
+          workOrder.equipmentId != null
+        ) {
+          await arreterEquipementPourIntervention(workOrder.equipmentId, tenantId);
+        }
+      }
 
       // 📱 PUSH: Notify technician when task is newly assigned
       if (
@@ -517,8 +619,32 @@ export function registerGMAORoutes(app: Express) {
       
       res.json(workOrder);
     } catch (error) {
+      // ── STOCK INSUFFISANT : 409, ET LA LISTE DES MANQUES ───────────
+      //
+      // 409 Conflict et non 400 : la requête est bien formée, c'est l'ÉTAT du
+      // magasin qui la contredit. La distinction compte pour l'interface — un
+      // 400 se lit « vous avez mal saisi », un 409 « régularisez le magasin
+      // puis recommencez ». Les manques sont rendus en structure, référence
+      // par référence, pour que le magasinier sache quoi ajuster sans avoir à
+      // relire un message.
+      //
+      // La transaction a été annulée : l'ordre de travail est TOUJOURS
+      // ouvert, aucun mouvement n'a été écrit, le plan n'a pas bougé.
+      if (error instanceof StockInsuffisant) {
+        return res.status(409).json({
+          error: "STOCK_INSUFFISANT",
+          message: "Clôture refusée : le stock déclaré n'est pas disponible. " +
+            "Régularisez l'inventaire (entrée ou ajustement de stock) puis clôturez à nouveau.",
+          manques: error.manques,
+        });
+      }
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 — convention du dépôt, voir PieceIntrouvable.
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ error: "PIECE_INTROUVABLE", message: error.message });
+      }
       console.error("Error updating work order:", error);
-      res.status(400).json({ 
+      res.status(400).json({
         message: "Failed to update work order",
         error: error instanceof Error ? error.message : "Unknown error"
       });

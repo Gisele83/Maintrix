@@ -519,6 +519,11 @@ export function registerRecommendationRoutes(app: Express) {
           orderNumber,
           equipmentId,
           orderType: "preventive",
+          // `planId` reste nul, et c'est exact : cet ordre naît d'une
+          // RECOMMANDATION issue de l'état de l'équipement, pas de l'échéance
+          // d'un plan. Lui rattacher un plan parce qu'il est de type
+          // « préventif » ferait avancer, à sa clôture, l'échéance d'une gamme
+          // qui n'a pas été exécutée (voir migration 0024).
           title,
           description: description || `Créé depuis la recommandation ${recommendationId}`,
           priority: priority || "medium",

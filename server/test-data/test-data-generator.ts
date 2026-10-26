@@ -47,6 +47,14 @@ export class TestDataGenerator {
     const equipmentIds = await this.createTestEquipments(opts.equipmentCount, tenantId);
     const sparePartIds = await this.createTestSpareParts(opts.sparePartsCount, tenantId);
     await this.createTestWorkOrders(opts.workOrderCount, userIds, equipmentIds, tenantId);
+    // PAS de rattachement au plan préventif ici, contrairement à
+    // scripts/jeu-de-demonstration.ts (migration 0024) : ce générateur
+    // n'écrit AUCUN ordre de type `preventive`. Son vocabulaire d'`orderType`
+    // est `maintenance | repair | inspection | upgrade` — aucune de ces
+    // valeurs n'appartient à celui du schéma (`preventive, corrective,
+    // predictive, emergency`), et c'est un écart qui lui préexiste. Il n'y a
+    // donc rien à rattacher : poser un `planId` reviendrait à inventer un lien
+    // entre un plan et un ordre qu'aucune échéance n'a engendré.
     await this.createTestPreventiveMaintenance(equipmentIds, userIds, tenantId);
     // await this.createTestCounters(equipmentIds, tenantId); // Temporairement désactivé en attendant la synchronisation DB
     await this.createTestAlerts(equipmentIds, tenantId);

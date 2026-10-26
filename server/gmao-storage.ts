@@ -501,8 +501,21 @@ export class GMAOStorage {
    * projection (coût, durée, impact IMCA) et ajuste λ_k/ω_j en conséquence
    * (apprentissage post-action, Brevet 2 rev. 1g/3/10). Best-effort — ne
    * doit jamais faire échouer la clôture de l'OT appelante.
+   *
+   * ⚠️ N'EST PLUS `private`, et le changement est délibéré. La clôture d'un
+   * ordre de travail ne passe plus par `updateWorkOrder` : elle a son propre
+   * chemin transactionnel (`server/cloture-ordre-travail.ts`), parce qu'elle
+   * écrit dans cinq tables qui doivent être vraies ensemble. Or c'est
+   * EXACTEMENT sur la transition vers `completed` que cet apprentissage se
+   * déclenche. Laissé privé, il aurait cessé de s'exécuter sans que rien ne le
+   * signale — une capacité perdue en silence, du genre que seul un audit
+   * retrouve. La clôture l'appelle donc explicitement, après son commit.
+   *
+   * Il reste hors transaction, et c'est la règle du dépôt : il calcule un IMCA
+   * et écrit dans un autre magasin (docs/TRANSACTIONS.md, « rien de lent ni de
+   * distant dans une transaction »).
    */
-  private async recordAutomatedProjectionOutcome(workOrder: WorkOrder): Promise<void> {
+  async recordAutomatedProjectionOutcome(workOrder: WorkOrder): Promise<void> {
     const { recordProjectionOutcome } = await import("./arbitration-learning");
     const { computeIMCA } = await import("./imca-engine");
 

@@ -21,6 +21,28 @@ nombre d'écritures mais sur la **gravité d'un échec partiel**.
 | `POST /api/interventions` | exécution + première étape | **Exécution sans étape** : le workflow n'a aucun point d'entrée, l'ordre de travail est bloqué |
 | `POST /api/interventions/:id/steps/:stepId/complete` | étape + exécution + non-conformité | Workflow figé sur l'étape précédente ; contrôle qualité rejeté **sans non-conformité enregistrée** (perte de traçabilité) |
 | `initializeModuleCatalog()` | purge complète + réinsertion | **Catalogue vide ou partiel** — et il s'exécute à chaque démarrage. Le contrôle d'accès aux modules de toute la plateforme en dépend |
+| `PUT /api/work-orders/:id` → `completed` | ordre + mouvements de stock + pièces + plan préventif + équipement | **OT clôturé dont les pièces n'ont pas bougé**, ou **plan replanifié pour une intervention non clôturée** — voir ci-dessous |
+
+### La clôture d'un ordre de travail (ajoutée le 2026-10-26)
+
+C'est la plus large des six : elle écrit dans **cinq tables** (`work_orders`,
+`stock_movements`, `spare_parts`, `preventive_maintenance_plans`,
+`equipment_registry`). Avant ce correctif elle n'écrivait dans aucune — mesuré
+en base : HTTP 200, `next_due` inchangé, `current_stock` inchangé, zéro
+mouvement, `actual_end` nul. Voir [CLOTURE_ORDRE_TRAVAIL.md](CLOTURE_ORDRE_TRAVAIL.md).
+
+Deux particularités par rapport aux cinq autres opérations :
+
+- **Un verrou sur la ligne de l'ordre de travail** (`SELECT … FOR UPDATE`), puis
+  une relecture de son statut *sous ce verrou*. C'est ce qui rend la clôture
+  idempotente : `recordStockMovement` lit le stock puis écrit une valeur
+  absolue, donc deux clôtures simultanées qui lisent 10 écriraient toutes deux
+  7 — six pièces sorties, trois décomptées.
+- **L'exécuteur traverse `StockManager`.** Ses méthodes prennent un dernier
+  paramètre facultatif (`Executeur`, voir `server/stock-management.ts`) qui vaut
+  `db` par défaut et reçoit le `tx` de l'appelant quand il y en a un. Sans cela,
+  la consommation de pièces se serait exécutée **hors** transaction — le piège
+  que la mise en garde ci-dessous décrit.
 
 ## Deux styles, deux mécanismes
 
@@ -96,6 +118,14 @@ Deux questions avant de s'en dispenser :
 
 ```bash
 npm test -- --testPathPatterns=transaction-integrity
+```
+
+Pour la clôture d'ordre de travail, l'annulation complète est éprouvée par un
+chemin différent — un stock insuffisant, qui est un refus *métier* et non une
+panne injectée — et vérifiée sur chacune des cinq tables :
+
+```bash
+npm test -- --testPathPatterns=cloture-ordre-travail
 ```
 
 [tests/integration/transaction-integrity.test.ts](../tests/integration/transaction-integrity.test.ts)

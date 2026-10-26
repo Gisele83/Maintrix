@@ -1047,6 +1047,47 @@ async function main(): Promise<void> {
     }
     console.log(`── Parc ──\n   ${idsParCode.size} équipements`);
 
+    // ── Plans de maintenance ──────────────────────────────────────
+    //
+    // POSÉS AVANT LES ORDRES DE TRAVAIL, alors qu'ils venaient après.
+    // L'inversion est nécessaire : depuis la migration 0024, un ordre
+    // préventif porte le plan qui l'a engendré (`planId`), et c'est ce lien
+    // qui permet à la clôture de replanifier l'échéance. Créer les plans
+    // ensuite laisserait tous les préventifs du jeu sans plan — la boucle
+    // « OT préventif clôturé → replanification » resterait donc muette sur un
+    // jeu de démonstration, c'est-à-dire précisément là où on la montre.
+    const FREQUENCES = [
+      { f: 'monthly', v: 1 }, { f: 'quarterly', v: 1 },
+      { f: 'weekly', v: 2 }, { f: 'annually', v: 1 },
+    ];
+    const idPlanParEquipement = new Map<string, number>();
+    let plans = 0;
+    for (const e of PARC) {
+      const idEq = idsParCode.get(e.code);
+      if (!idEq) continue;
+      const gammes = PREVENTIFS[e.type] ?? PREVENTIFS.pompe;
+      const freq = parmi(FREQUENCES);
+
+      const [lignePlan] = await db.insert(preventiveMaintenancePlans).values({
+        tenantId: TENANT_DEMO,
+        planName: `Plan ${e.type} — ${e.code}`,
+        equipmentType: e.type,
+        equipmentIds: [idEq],
+        frequency: freq.f,
+        frequencyValue: freq.v,
+        tasks: gammes.map(g => ({ libelle: g.titre, duree: g.duree })),
+        estimatedDuration: gammes.reduce((s, g) => s + g.duree, 0),
+        requiredSkills: ['mécanique', 'électrotechnique'],
+        isActive: true,
+        lastExecuted: ilYA(entre(5, 70)),
+        // Échéances échelonnées : certaines dépassées, d'autres à venir.
+        nextDue: new Date(maintenant + entre(-20, 45) * JOUR),
+      }).returning({ id: preventiveMaintenancePlans.id });
+      if (lignePlan) idPlanParEquipement.set(e.code, lignePlan.id);
+      plans += 1;
+    }
+    console.log(`── Préventif ──\n   ${plans} plans`);
+
     // ── Ordres de travail sur 14 mois ─────────────────────────────
     //
     // Les dates de début ET de fin sont renseignées : sans elles, MTBF, MTTR
@@ -1113,6 +1154,10 @@ async function main(): Promise<void> {
           orderNumber: `OT-${SITE}-2026-${String(numero++).padStart(4, '0')}`,
           equipmentId: idEq,
           orderType: 'preventive',
+          // Le plan qui a engendré cette gamme. C'est ce lien que l'audit du
+          // 2026-10-25 avait identifié comme manquant, et sans lequel la
+          // clôture ne sait pas quelle échéance avancer.
+          planId: idPlanParEquipement.get(e.code) ?? null,
           title: modele.titre,
           description: `Maintenance préventive planifiée — ${e.nom} (${repere(e.code)}).`,
           priority: 'medium',
@@ -1134,11 +1179,23 @@ async function main(): Promise<void> {
     // Quelques interventions en cours et en attente : un tableau de bord
     // entièrement « terminé » ne ressemble à aucun service réel.
     const enCours = [
-      { code: 'PRS-002', titre: 'Remplacement kit joints vérin principal', type: 'corrective', statut: 'in_progress', priorite: 'high' },
-      { code: 'MOT-203', titre: 'Analyse vibratoire approfondie palier avant', type: 'predictive', statut: 'in_progress', priorite: 'high' },
-      { code: 'CVY-101', titre: 'Contrôle alignement et tension bande', type: 'preventive', statut: 'pending', priorite: 'medium' },
-      { code: 'GRP-001', titre: 'Recherche de fuite circuit frigorifique', type: 'corrective', statut: 'pending', priorite: 'high' },
-      { code: 'GEN-001', titre: 'Remise en service après révision', type: 'corrective', statut: 'pending', priorite: 'urgent' },
+      // `arret` = intervention AVEC ARRÊT MACHINE (migration 0024). Il n'est
+      // posé que là où l'intervention immobilise réellement l'équipement, et
+      // le jeu est cohérent avec lui-même : la presse PRS-002 est déjà déclarée
+      // `maintenance` dans le parc et porte une alerte « Presse à l'arrêt »,
+      // donc clôturer sa réfection de vérin la remet en service — la boucle se
+      // montre sur un cas vrai. À l'inverse, l'analyse vibratoire de MOT-203 et
+      // le contrôle d'alignement de CVY-101 se font machine en marche : les
+      // marquer arrêterait des équipements qui produisent.
+      { code: 'PRS-002', titre: 'Remplacement kit joints vérin principal', type: 'corrective', statut: 'in_progress', priorite: 'high', arret: true },
+      { code: 'MOT-203', titre: 'Analyse vibratoire approfondie palier avant', type: 'predictive', statut: 'in_progress', priorite: 'high', arret: false },
+      { code: 'CVY-101', titre: 'Contrôle alignement et tension bande', type: 'preventive', statut: 'pending', priorite: 'medium', arret: false },
+      { code: 'GRP-001', titre: 'Recherche de fuite circuit frigorifique', type: 'corrective', statut: 'pending', priorite: 'high', arret: false },
+      // GEN-001 est `offline` dans le parc : son ordre porte bien l'arrêt, mais
+      // la clôture ne le remettra PAS en service — on ne rebascule que depuis
+      // `maintenance`, pour ne pas écraser une mise hors ligne décidée par
+      // l'exploitation. Le cas est volontairement présent dans le jeu.
+      { code: 'GEN-001', titre: 'Remise en service après révision', type: 'corrective', statut: 'pending', priorite: 'urgent', arret: true },
     ];
     for (const o of enCours) {
       const idEq = idsParCode.get(o.code);
@@ -1149,6 +1206,10 @@ async function main(): Promise<void> {
         orderNumber: `OT-${SITE}-2026-${String(numero++).padStart(4, '0')}`,
         equipmentId: idEq,
         orderType: o.type,
+        // Seuls les préventifs portent un plan : un correctif ou un prédictif
+        // naît d'une panne ou d'une dérive, pas d'une échéance.
+        planId: o.type === 'preventive' ? (idPlanParEquipement.get(o.code) ?? null) : null,
+        requiresShutdown: o.arret,
         title: o.titre,
         description: `${o.titre}.`,
         priority: o.priorite,
@@ -1258,37 +1319,6 @@ async function main(): Promise<void> {
       }
     }
     console.log(`── Magasin ──\n   ${PIECES.length} références, ${mouvements} mouvements`);
-
-    // ── Plans de maintenance ──────────────────────────────────────
-    const FREQUENCES = [
-      { f: 'monthly', v: 1 }, { f: 'quarterly', v: 1 },
-      { f: 'weekly', v: 2 }, { f: 'annually', v: 1 },
-    ];
-    let plans = 0;
-    for (const e of PARC) {
-      const idEq = idsParCode.get(e.code);
-      if (!idEq) continue;
-      const gammes = PREVENTIFS[e.type] ?? PREVENTIFS.pompe;
-      const freq = parmi(FREQUENCES);
-
-      await db.insert(preventiveMaintenancePlans).values({
-        tenantId: TENANT_DEMO,
-        planName: `Plan ${e.type} — ${e.code}`,
-        equipmentType: e.type,
-        equipmentIds: [idEq],
-        frequency: freq.f,
-        frequencyValue: freq.v,
-        tasks: gammes.map(g => ({ libelle: g.titre, duree: g.duree })),
-        estimatedDuration: gammes.reduce((s, g) => s + g.duree, 0),
-        requiredSkills: ['mécanique', 'électrotechnique'],
-        isActive: true,
-        lastExecuted: ilYA(entre(5, 70)),
-        // Échéances échelonnées : certaines dépassées, d'autres à venir.
-        nextDue: new Date(maintenant + entre(-20, 45) * JOUR),
-      });
-      plans += 1;
-    }
-    console.log(`── Préventif ──\n   ${plans} plans`);
 
     // ── Alertes ───────────────────────────────────────────────────
     const ALERTES = [
@@ -1835,7 +1865,6 @@ async function effacer(db: any, t: any): Promise<void> {
     // ce qui référence est supprimé avant ce qui est référencé.
     for (const table of [
       t.alertsNotifications, t.stockMovements, t.spareParts,
-      t.preventiveMaintenancePlans,
       // ── Lot 2 ── Retirées AVANT les ordres de travail et les équipements :
       // plusieurs portent une clé étrangère vers eux (rca.work_order_id,
       // permis.equipment_id, oee.equipment_id…). L'ordre n'est pas cosmétique,
@@ -1843,7 +1872,21 @@ async function effacer(db: any, t: any): Promise<void> {
       t.rcaAnalyses, t.fmeaAnalyses, t.permitToWork, t.oeeRecords,
       t.calibrationRecords, t.assetLifecycle, t.kpiMetrics,
       t.budgetPlans, t.suppliers, t.smmDocuments, t.knowledgeHubDocuments,
-      t.workOrders, t.equipmentRegistry, t.userProfiles,
+      t.workOrders,
+      // ⚠️ APRÈS `work_orders`, et c'est la migration 0024 qui l'impose.
+      // `preventive_maintenance_plans` était supprimée ICI, juste après
+      // `spare_parts` — donc AVANT les ordres de travail. Depuis que
+      // `work_orders.plan_id` référence cette table, cet ordre viole la clé
+      // étrangère et le retrait échoue en entier :
+      //   « update or delete on table "preventive_maintenance_plans" violates
+      //     foreign key constraint
+      //     work_orders_plan_id_preventive_maintenance_plans_id_fk »
+      // Mesuré sur un RECHARGEMENT (le second `demo:charger`, qui retire
+      // d'abord le jeu existant) : exit 1, et le jeu précédent reste en base.
+      // Le premier chargement, lui, ne passe pas par ce chemin — d'où un
+      // défaut invisible au premier essai.
+      t.preventiveMaintenancePlans,
+      t.equipmentRegistry, t.userProfiles,
     ]) {
       await tx.delete(table).where(eq(table.tenantId, TENANT_DEMO));
     }
