@@ -8,7 +8,8 @@
 import type { Express } from "express";
 import { db } from "./db";
 import { eq, desc, and, or } from "drizzle-orm";
-import { permitToWork, insertPermitToWorkSchema, userProfiles, equipmentRegistry, workOrders } from "@shared/schema";
+import { permitToWork, insertPermitToWorkSchema, miseAJourPermisSchema, userProfiles, equipmentRegistry, workOrders } from "@shared/schema";
+import { tenantRequis } from "./tenant-requis";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
@@ -38,6 +39,67 @@ async function journal(
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * La clause qui désigne UN permis — toujours par son identifiant ET son
+ * locataire.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE FONCTION POUR DEUX ÉGALITÉS
+ * ═══════════════════════════════════════════════════════════════════
+ * Les NEUF routes d'écriture de ce module désignaient leur permis par
+ * `eq(permitToWork.id, id)` — l'identifiant seul. Mesuré sur banc : un
+ * technicien d'une entreprise pouvait soumettre, **approuver**, **activer**,
+ * clôturer, annuler ou rejeter le permis d'une autre
+ * (docs/EXAMEN_LISTES_BLANCHES.md).
+ *
+ * La gravité n'est pas celle d'une fuite de données : `approve` et `activate`
+ * AUTORISENT DES TRAVAUX — points chauds, consignation, espace confiné. Un
+ * permis de travail est le document qu'on affiche au poste et qui engage la
+ * sécurité des intervenants.
+ *
+ * Cette fonction existe pour que la clause ne PUISSE PLUS s'écrire sans
+ * locataire : il n'y a plus de forme courte à portée de main. Une liste de
+ * sept corrections protège du passé ; une forme unique protège de la
+ * huitième route.
+ */
+function cePermis(id: number, tenantId: string) {
+  return and(eq(permitToWork.id, id), eq(permitToWork.tenantId, tenantId));
+}
+
+/**
+ * Le permis de l'appelant, ou `null` si la réponse a déjà été envoyée.
+ *
+ * Regroupe les trois gestes que chaque route refaisait à la main : exiger le
+ * locataire, lire le permis DANS son périmètre, et répondre 404 s'il n'y est
+ * pas.
+ *
+ * `tenantRequis` et non `req.user?.tenantId` : la forme `if (tenantId)` encore
+ * employée par les routes de LECTURE de ce fichier ne filtre pas quand le
+ * locataire est absent — elle se rabat silencieusement sur « tout voir ».
+ * `tenantRequis` refuse (voir server/tenant-requis.ts).
+ *
+ * Le 404 est volontaire là où un 403 serait tentant : hors de son périmètre,
+ * un permis est pour l'appelant ABSENT. Répondre « interdit » renseignerait
+ * sur l'existence du document d'une autre entreprise.
+ */
+async function permisDuLocataire(
+  req: any,
+  res: any,
+  id: number,
+): Promise<{ permit: typeof permitToWork.$inferSelect; tenantId: string } | null> {
+  const tenantId = tenantRequis(req, res);
+  if (!tenantId) return null; // 401 déjà envoyé
+
+  const [permit] = await db.select().from(permitToWork)
+    .where(cePermis(id, tenantId)).limit(1);
+
+  if (!permit) {
+    res.status(404).json({ message: "Permis introuvable" });
+    return null;
+  }
+  return { permit, tenantId };
+}
 
 function generatePermitNumber(): string {
   const now = new Date();
@@ -116,10 +178,17 @@ export function registerPermitToWorkRoutes(app: Express) {
   app.get("/api/permits", auth, generalRateLimit, async (req: any, res) => {
     try {
       const { status, type, riskLevel } = req.query;
-      const tenantId = req.user?.tenantId;
 
-      let conditions: any[] = [];
-      if (tenantId) conditions.push(eq(permitToWork.tenantId, tenantId));
+      // ⚠️ Cette route faisait `if (tenantId) conditions.push(...)` : quand le
+      // locataire était absent de la session, AUCUN filtre n'était posé et la
+      // liste rendait les permis de TOUTES les entreprises. Un repli sur « tout
+      // voir » est exactement la forme que `tenantRequis` a été écrite pour
+      // supprimer (voir server/tenant-requis.ts) : en l'absence de locataire on
+      // REFUSE, on ne devine pas.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      let conditions: any[] = [eq(permitToWork.tenantId, tenantId)];
       if (status) conditions.push(eq(permitToWork.status, status as string));
       if (type) conditions.push(eq(permitToWork.type, type as string));
       if (riskLevel) conditions.push(eq(permitToWork.riskLevel, riskLevel as string));
@@ -141,7 +210,11 @@ export function registerPermitToWorkRoutes(app: Express) {
         equipmentId: permitToWork.equipmentId,
         workOrderId: permitToWork.workOrderId,
       }).from(permitToWork)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        // Sans ternaire : `conditions` contient toujours au moins le locataire.
+        // La forme `conditions.length > 0 ? … : undefined` laissait entendre
+        // qu'une clause vide était un cas légitime — c'est ce qui a permis au
+        // repli « tout voir » de passer pour un choix.
+        .where(and(...conditions))
         .orderBy(desc(permitToWork.createdAt));
 
       // Enrich with requester name
@@ -169,10 +242,14 @@ export function registerPermitToWorkRoutes(app: Express) {
   // ── GET /api/permits/stats ── Dashboard stats
   app.get("/api/permits/stats", auth, async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId;
-      const conditions = tenantId ? [eq(permitToWork.tenantId, tenantId)] : [];
+      // Même repli que la liste : sans locataire, les statistiques portaient
+      // sur TOUTES les entreprises. Des compteurs globaux sont plus sournois
+      // qu'une liste — ils ne montrent aucun nom, mais révèlent l'activité.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const all = await db.select({ status: permitToWork.status, riskLevel: permitToWork.riskLevel, type: permitToWork.type })
-        .from(permitToWork).where(conditions.length > 0 ? and(...conditions) : undefined);
+        .from(permitToWork).where(eq(permitToWork.tenantId, tenantId));
 
       const stats = {
         total: all.length,
@@ -200,8 +277,14 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "ID invalide" });
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      // ⚠️ Cette lecture n'avait AUCUN filtre de locataire : n'importe quel
+      // utilisateur authentifié lisait le permis COMPLET d'une autre
+      // entreprise — conditions d'exécution, et les noms des intervenants
+      // ajoutés juste en dessous. Les écritures ont été fermées d'abord ; la
+      // lecture restait, donc la confidentialité du document aussi.
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit } = trouve;
 
       // Enrich with related data
       const enriched: any = { ...permit };
@@ -277,18 +360,58 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "ID invalide" });
 
-      const [existing] = await db.select({ status: permitToWork.status, requestedById: permitToWork.requestedById })
-        .from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!existing) return res.status(404).json({ message: "Permis introuvable" });
+      // ═══════════════════════════════════════════════════════════════
+      // LE PERMIS D'UNE AUTRE ENTREPRISE ÉTAIT MODIFIABLE
+      // ═══════════════════════════════════════════════════════════════
+      // La lecture ET l'écriture filtraient sur l'`id` SEUL. Mesuré sur banc
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie B) : un technicien du
+      // locataire Alpha a remplacé le titre du permis de Beta et s'en est
+      // attribué la propriété, en HTTP 200. Un permis de travail est un
+      // document de sécurité — travaux par points chauds, consignation,
+      // espace confiné.
+      //
+      // Même aide commune que les sept routes de transition : elle exige le
+      // locataire, lit le permis DANS son périmètre, et répond 404 s'il n'y est
+      // pas. Une forme différente ici inviterait à recopier la mauvaise.
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit: existing, tenantId } = trouve;
 
       if (!['draft', 'rejected'].includes(existing.status)) {
         return res.status(409).json({ message: "Un permis ne peut être modifié qu'à l'état Brouillon ou Rejeté" });
       }
 
-      const { status, permitNumber, createdAt, ...updateData } = req.body;
+      // ═══════════════════════════════════════════════════════════════
+      // LISTE BLANCHE, ET NON LISTE NOIRE
+      // ═══════════════════════════════════════════════════════════════
+      // Le corps passait par `const { status, permitNumber, createdAt,
+      // ...updateData } = req.body` : trois champs écartés, TOUT LE RESTE
+      // écrit — `tenantId` compris. Une liste noire ne protège que de ce
+      // qu'on a pensé à nommer, et une colonne ajoutée demain serait
+      // acceptée par oubli.
+      //
+      // `.strict()` REFUSE un champ inconnu au lieu de l'ignorer : une
+      // tentative d'écrire `tenantId` doit s'entendre dire non, pas croire
+      // qu'elle a réussi.
+      const validation = miseAJourPermisSchema.safeParse(req.body);
+      if (!validation.success) {
+        const champsRefuses = validation.error.issues
+          .filter((i) => i.code === "unrecognized_keys")
+          .flatMap((i) => (i as any).keys as string[]);
+
+        return res.status(400).json({
+          message: champsRefuses.length
+            ? `Ces champs ne se modifient pas par cette route : ${champsRefuses.join(", ")}. ` +
+              "Le numéro de permis, son statut et l'entreprise propriétaire n'en font pas partie."
+            : "Mise à jour invalide.",
+          champs: champsRefuses,
+          details: validation.error.issues.map((i) => ({ chemin: i.path.join("."), motif: i.message })),
+        });
+      }
+
       const [updated] = await db.update(permitToWork)
-        .set({ ...updateData, status: 'draft', updatedAt: new Date() })
-        .where(eq(permitToWork.id, id))
+        .set({ ...validation.data, status: 'draft', updatedAt: new Date() })
+        .where(cePermis(id, tenantId))
         .returning();
       journal(PTW_ACTIONS.UPDATE, updated as any, req);
       res.json(updated);
@@ -302,13 +425,14 @@ export function registerPermitToWorkRoutes(app: Express) {
   app.post("/api/permits/:id/submit", auth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (permit.status !== 'draft') return res.status(409).json({ message: "Seul un brouillon peut être soumis" });
 
       const [updated] = await db.update(permitToWork)
         .set({ status: 'submitted', updatedAt: new Date() })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.SUBMIT, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -330,8 +454,12 @@ export function registerPermitToWorkRoutes(app: Express) {
         return res.status(403).json({ message: "Seul un chef d'équipe ou un responsable peut approuver un permis" });
       }
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      // Le contrôle de rôle ci-dessus dit QUI peut approuver ; celui-ci dit
+      // DANS QUELLE ENTREPRISE. Les deux sont nécessaires : un chef d'équipe
+      // en règle pouvait approuver les travaux d'une autre société.
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (permit.status !== 'submitted') return res.status(409).json({ message: "Seul un permis soumis peut être approuvé" });
 
       const { conditions } = req.body;
@@ -343,7 +471,7 @@ export function registerPermitToWorkRoutes(app: Express) {
           permitConditions: conditions || permit.permitConditions,
           updatedAt: new Date(),
         })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.APPROVE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -361,8 +489,9 @@ export function registerPermitToWorkRoutes(app: Express) {
         return res.status(403).json({ message: "Seul un superviseur ou administrateur peut rejeter un permis" });
       }
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (!['submitted', 'approved'].includes(permit.status)) {
         return res.status(409).json({ message: "Le permis doit être soumis ou approuvé pour être rejeté" });
       }
@@ -372,7 +501,7 @@ export function registerPermitToWorkRoutes(app: Express) {
 
       const [updated] = await db.update(permitToWork)
         .set({ status: 'rejected', rejectionReason: reason, updatedAt: new Date() })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.REJECT, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -386,13 +515,14 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       const userId = req.user?.id;
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (permit.status !== 'approved') return res.status(409).json({ message: "Le permis doit être approuvé avant activation" });
 
       const [updated] = await db.update(permitToWork)
         .set({ status: 'active', issuedById: userId, actualStart: new Date(), updatedAt: new Date() })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.ACTIVATE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -406,8 +536,9 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       const userId = req.user?.id;
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (permit.status !== 'active') return res.status(409).json({ message: "Seul un permis actif peut être clôturé" });
 
       const { notes, checklistItems } = req.body;
@@ -420,7 +551,7 @@ export function registerPermitToWorkRoutes(app: Express) {
           checklistItems: checklistItems || permit.checklistItems,
           updatedAt: new Date(),
         })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.COMPLETE, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -432,15 +563,16 @@ export function registerPermitToWorkRoutes(app: Express) {
   app.post("/api/permits/:id/cancel", auth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit, tenantId } = trouve;
       if (['completed', 'cancelled', 'expired'].includes(permit.status)) {
         return res.status(409).json({ message: "Ce permis ne peut pas être annulé" });
       }
 
       const [updated] = await db.update(permitToWork)
         .set({ status: 'cancelled', updatedAt: new Date() })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.CANCEL, updated as any, req);
       res.json(updated);
     } catch (error: any) {
@@ -455,9 +587,18 @@ export function registerPermitToWorkRoutes(app: Express) {
       const { checklistItems } = req.body;
       if (!Array.isArray(checklistItems)) return res.status(400).json({ message: "checklistItems doit être un tableau" });
 
+      // Cette route n'avait AUCUNE lecture préalable : elle écrivait à
+      // l'aveugle sur un identifiant, et répondait donc 200 même quand aucune
+      // ligne n'existait — un coup dans le vide annoncé comme un succès. Passer
+      // par l'aide commune corrige les deux défauts d'un coup : le
+      // cloisonnement, et le 404 sur un permis absent.
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { tenantId } = trouve;
+
       const [updated] = await db.update(permitToWork)
         .set({ checklistItems, updatedAt: new Date() })
-        .where(eq(permitToWork.id, id)).returning();
+        .where(cePermis(id, tenantId)).returning();
       journal(PTW_ACTIONS.CHECKLIST, updated as any, req);
       res.json(updated);
     } catch (error: any) {

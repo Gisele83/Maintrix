@@ -1,5 +1,76 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, inArray, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, inArray, notInArray, sql, count } from "drizzle-orm";
+
+/**
+ * La base, ou une transaction en cours sur celle-ci.
+ *
+ * Même type et même raison que l'`Executeur` de server/stock-management.ts :
+ * la clôture d'un ordre de travail doit faire porter ses écritures de compteur
+ * par SA transaction, sinon elles survivraient à son annulation.
+ */
+type ExecuteurBase = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Le compteur visé n'appartient pas au demandeur, ou n'existe pas.
+ *
+ * Classe dédiée pour que les routes répondent **404** et non 500 — convention
+ * du dépôt (403 = rôle refusé, 404 = rôle accepté mais objet absent). Un
+ * compteur d'autrui est, pour le demandeur, exactement un objet absent, et ne
+ * pas distinguer les deux cas évite de révéler qu'un identifiant existe
+ * ailleurs. Même forme que `PieceIntrouvable` dans stock-management.ts.
+ */
+export class CompteurIntrouvable extends Error {
+  constructor(id: number) {
+    super(`Compteur de maintenance #${id} non trouvé`);
+    this.name = 'CompteurIntrouvable';
+  }
+}
+
+/**
+ * On a voulu relever un compteur désactivé.
+ *
+ * **409** et non 400 : la requête est bien formée, c'est l'état du compteur qui
+ * la contredit — et le geste à faire est de le réactiver, pas de corriger la
+ * saisie.
+ */
+export class CompteurDesactive extends Error {
+  constructor(id: number) {
+    super(`Le compteur #${id} est désactivé : son suivi a été suspendu, aucun relevé ne peut y être enregistré.`);
+    this.name = 'CompteurDesactive';
+  }
+}
+
+/** La demande visée n'appartient pas au demandeur, ou n'existe pas. → 404 */
+export class DemandeIntrouvable extends Error {
+  constructor(id: number) {
+    super(`Demande d'intervention #${id} non trouvée`);
+    this.name = 'DemandeIntrouvable';
+  }
+}
+
+/**
+ * La demande a déjà été arbitrée.
+ *
+ * **409** et non 400 : la requête est bien formée, c'est l'état de la demande
+ * qui la contredit. Et le message DIT l'état trouvé — un « conflit » sans
+ * préciser ce qui a déjà eu lieu oblige l'utilisateur à recharger pour
+ * comprendre.
+ *
+ * Ce refus est ce qui empêche un second arbitrage d'écraser le premier : sans
+ * lui, un refus pourrait annuler une acceptation et laisser un ordre de
+ * travail orphelin de sa demande.
+ */
+export class DemandeDejaArbitree extends Error {
+  constructor(id: number, public readonly etat: string) {
+    const libelles: Record<string, string> = {
+      accepted: 'déjà acceptée et convertie en ordre de travail',
+      rejected: 'déjà refusée',
+      cancelled: 'annulée par son demandeur',
+    };
+    super(`La demande d'intervention #${id} est ${libelles[etat] ?? `dans l'état « ${etat} »`} : elle ne peut plus être arbitrée.`);
+    this.name = 'DemandeDejaArbitree';
+  }
+}
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -7,6 +78,8 @@ import {
   preventiveMaintenancePlans,
   maintenanceCounters,
   counterHistory,
+  counterReadings,
+  interventionRequests,
   spareParts,
   stockMovements,
   iotSensorData,
@@ -29,6 +102,9 @@ import {
   type InsertMaintenanceCounter,
   type CounterHistory,
   type InsertCounterHistory,
+  type CounterReading,
+  type InterventionRequest,
+  type InsertInterventionRequest,
   type SparePart,
   type InsertSparePart,
   type StockMovement,
@@ -342,10 +418,15 @@ export class GMAOStorage {
   }
 
   async updateEquipment(id: number, tenantId: string, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...updatesCloisonne } = updates;
     try {
       const [equipment] = await db
         .update(equipmentRegistry)
-        .set({ ...updates, updatedAt: new Date() })
+        .set({ ...updatesCloisonne, updatedAt: new Date() })
         .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)))
         .returning();
       if (!equipment) throw new Error(`Équipement #${id} non trouvé ou accès refusé`);
@@ -386,6 +467,16 @@ export class GMAOStorage {
         equipmentId: workOrders.equipmentId,
         equipmentName: equipmentRegistry.equipmentName,
         orderType: workOrders.orderType,
+        // ⚠️ CETTE PROJECTION EST EXPLICITE : tout champ absent d'ici est
+        // absent de la réponse, SANS erreur. Mesuré en ouvrant l'écran : la
+        // boîte de clôture n'annonçait ni la replanification du plan ni la
+        // remise en service de l'équipement, et n'affichait aucun compteur —
+        // non pas à cause d'un défaut de la boîte, mais parce que
+        // `/api/work-orders` ne servait ni `planId` ni `requiresShutdown`. Le
+        // JSX était juste, le contrat de champs ne l'était pas, et seul
+        // l'écran ouvert l'a montré : la liste répondait 200 avec 28 champs.
+        planId: workOrders.planId,
+        requiresShutdown: workOrders.requiresShutdown,
         title: workOrders.title,
         description: workOrders.description,
         priority: workOrders.priority,
@@ -466,7 +557,17 @@ export class GMAOStorage {
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
     try {
-      const safeUpdates = { ...updates };
+      // `tenantId` est retiré des champs écrits. La clause `WHERE` ci-dessous
+      // cloisonne la ligne qu'on ATTEINT, pas la valeur qu'on y écrit : mesuré
+      // sur banc, `PUT /api/work-orders/:id` avec `{ tenantId: <autre> }`
+      // faisait PASSER l'ordre chez l'autre entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie C). L'appelant lisait un 403,
+      // posé par le filet anti-fuite sur la réponse, APRÈS l'écriture.
+      //
+      // Un ordre de travail ne change pas d'entreprise par une mise à jour.
+      // Même protection que `updateAlert`.
+      const { tenantId: _jamaisModifiable, ...sansLocataire } = updates;
+      const safeUpdates = { ...sansLocataire };
       if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
       if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
 
@@ -501,8 +602,21 @@ export class GMAOStorage {
    * projection (coût, durée, impact IMCA) et ajuste λ_k/ω_j en conséquence
    * (apprentissage post-action, Brevet 2 rev. 1g/3/10). Best-effort — ne
    * doit jamais faire échouer la clôture de l'OT appelante.
+   *
+   * ⚠️ N'EST PLUS `private`, et le changement est délibéré. La clôture d'un
+   * ordre de travail ne passe plus par `updateWorkOrder` : elle a son propre
+   * chemin transactionnel (`server/cloture-ordre-travail.ts`), parce qu'elle
+   * écrit dans cinq tables qui doivent être vraies ensemble. Or c'est
+   * EXACTEMENT sur la transition vers `completed` que cet apprentissage se
+   * déclenche. Laissé privé, il aurait cessé de s'exécuter sans que rien ne le
+   * signale — une capacité perdue en silence, du genre que seul un audit
+   * retrouve. La clôture l'appelle donc explicitement, après son commit.
+   *
+   * Il reste hors transaction, et c'est la règle du dépôt : il calcule un IMCA
+   * et écrit dans un autre magasin (docs/TRANSACTIONS.md, « rien de lent ni de
+   * distant dans une transaction »).
    */
-  private async recordAutomatedProjectionOutcome(workOrder: WorkOrder): Promise<void> {
+  async recordAutomatedProjectionOutcome(workOrder: WorkOrder): Promise<void> {
     const { recordProjectionOutcome } = await import("./arbitration-learning");
     const { computeIMCA } = await import("./imca-engine");
 
@@ -590,10 +704,43 @@ export class GMAOStorage {
   }
 
   // Maintenance Counters Methods - TENANT ISOLATED
+  /**
+   * Les compteurs du locataire, avec le nom de leur équipement RÉSOLU.
+   *
+   * ⚠️ `maintenance_counters.equipment_name` est une copie dénormalisée, et
+   * elle est souvent vide : le seul chemin qui la remplissait
+   * (`POST /api/preventive-maintenance-plans`) la prend du corps de la requête
+   * avant de se rabattre sur l'équipement, et les lignes posées autrement ne
+   * l'ont pas du tout. Mesuré en ouvrant l'écran : deux compteurs rattachés à
+   * l'équipement #9 « Compresseur atelier » s'affichaient tous deux
+   * « Équipement non précisé », alors que le rattachement était bon en base.
+   *
+   * On lit donc le nom là où il est vrai — `equipment_registry` — et la copie
+   * ne sert que de repli, pour les compteurs sans `equipment_id`. Même forme
+   * que `getWorkOrders()`, qui résout déjà `equipmentName` par jointure.
+   *
+   * La jointure porte le locataire, comme ailleurs dans ce fichier : sans
+   * cette condition, elle rapprocherait un compteur d'un équipement d'une
+   * autre organisation et en afficherait le nom.
+   */
   async getMaintenanceCounters(tenantId: string): Promise<MaintenanceCounter[]> {
-    return await db.select().from(maintenanceCounters)
+    const lignes = await db
+      .select({
+        compteur: maintenanceCounters,
+        nomEquipement: equipmentRegistry.equipmentName,
+      })
+      .from(maintenanceCounters)
+      .leftJoin(equipmentRegistry, and(
+        eq(maintenanceCounters.equipmentId, equipmentRegistry.id),
+        eq(equipmentRegistry.tenantId, tenantId),
+      ))
       .where(eq(maintenanceCounters.tenantId, tenantId))
       .orderBy(desc(maintenanceCounters.createdAt));
+
+    return lignes.map(({ compteur, nomEquipement }) => ({
+      ...compteur,
+      equipmentName: nomEquipement ?? compteur.equipmentName,
+    }));
   }
 
   async getMaintenanceCounterById(id: number, tenantId: string): Promise<MaintenanceCounter | undefined> {
@@ -614,9 +761,14 @@ export class GMAOStorage {
   }
 
   async updateMaintenanceCounter(id: number, tenantId: string, updates: Partial<MaintenanceCounter>): Promise<MaintenanceCounter> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...updatesCloisonne } = updates;
     const [counter] = await db
       .update(maintenanceCounters)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updatesCloisonne, updatedAt: new Date() })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
     return counter;
@@ -625,51 +777,319 @@ export class GMAOStorage {
   async incrementCounter(id: number, tenantId: string, incrementValue: number): Promise<MaintenanceCounter> {
     const [counter] = await db
       .update(maintenanceCounters)
-      .set({ 
+      .set({
         currentValue: sql`${maintenanceCounters.currentValue} + ${incrementValue}`,
         updatedAt: new Date()
       })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
-    
-    // Check if alert needs to be generated
+
+    // Le compteur a bougé : alerte ET ordre de travail préventif si l'échéance
+    // est atteinte. Cette méthode n'a aucun appelant aujourd'hui — elle est
+    // prévue pour une future alimentation automatique depuis un signal de
+    // marche — mais elle doit tirer les mêmes conséquences qu'un relevé saisi,
+    // sans quoi l'alimentation automatique, le jour où elle arrivera, ferait
+    // monter les compteurs sans jamais créer de travail.
     if (counter) {
-      await this.checkAndGenerateCounterAlert(counter);
+      await this.traiterEcheanceCompteur(counter);
     }
-    
+
     return counter;
   }
 
-  async resetCounter(id: number, tenantId: string, resetReason?: string, performedBy?: number, workOrderId?: number): Promise<MaintenanceCounter> {
-    const counter = await this.getMaintenanceCounterById(id, tenantId);
+  /**
+   * Enregistre un relevé d'usage : le compteur avance, et le relevé est tracé.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE QUI MANQUAIT
+   * ═══════════════════════════════════════════════════════════════════
+   * `incrementCounter()` ci-dessus existait et n'avait AUCUN appelant. Rien
+   * n'augmentait `current_value` : un compteur restait à la valeur posée à sa
+   * création, n'atteignait donc jamais son seuil, et la remise à zéro à la
+   * clôture (migration 0024) ne servait à rien. Un compteur ne franchissait son
+   * seuil que si quelqu'un éditait la base à la main.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI PAS `incrementCounter()` TEL QUEL
+   * ═══════════════════════════════════════════════════════════════════
+   * Il fait l'avance en SQL (`current_value + $1`), ce qui est juste et
+   * concurrent-sûr, mais il ne sait pas dire ce que valait le compteur avant —
+   * donc il ne peut pas écrire la ligne de relevé qui rend l'avance traçable.
+   * Ici on verrouille la ligne, on lit, on écrit les deux, dans une
+   * transaction : l'avance et sa trace sont vraies ensemble, sinon le compteur
+   * aurait bougé sans que personne ne sache de combien ni par qui.
+   *
+   * `incrementCounter()` reste en place pour un appelant qui n'aurait pas
+   * besoin de trace — par exemple une future alimentation automatique depuis
+   * un signal de marche.
+   */
+  async enregistrerReleveCompteur(
+    id: number,
+    tenantId: string,
+    usage: number,
+    options: { recordedBy?: number | null; notes?: string } = {},
+  ): Promise<{ compteur: MaintenanceCounter; releve: CounterReading }> {
+    if (!Number.isFinite(usage) || usage <= 0) {
+      throw new Error(`Usage relevé invalide : ${usage}`);
+    }
+
+    const resultat = await db.transaction(async (tx) => {
+      // Verrou : deux relevés simultanés sur le même compteur liraient la même
+      // valeur de départ et le second écraserait le premier. Le compteur
+      // n'avancerait alors que d'un seul des deux usages, et les deux lignes
+      // de relevé se contrediraient.
+      const [avant] = await tx
+        .select()
+        .from(maintenanceCounters)
+        .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new CompteurIntrouvable(id);
+
+      // Un compteur désactivé ne se relève pas : le suivi a été suspendu
+      // délibérément (instrument démonté, machine à l'arrêt prolongé), et
+      // l'avancer le ferait rentrer dans le suivi par la petite porte — en
+      // déclenchant éventuellement une alerte de maintenance sur un
+      // équipement qu'on avait sorti du périmètre.
+      if (avant.isActive === false) {
+        throw new CompteurDesactive(id);
+      }
+
+      const previousValue = avant.currentValue ?? 0;
+      const newValue = previousValue + usage;
+
+      const [compteur] = await tx
+        .update(maintenanceCounters)
+        .set({ currentValue: newValue, updatedAt: new Date() })
+        .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+        .returning();
+
+      const [releve] = await tx
+        .insert(counterReadings)
+        .values({
+          tenantId,
+          counterId: id,
+          previousValue,
+          usage,
+          newValue,
+          recordedBy: options.recordedBy ?? undefined,
+          notes: options.notes,
+        })
+        .returning();
+
+      return { compteur, releve };
+    });
+
+    // HORS transaction, et volontairement : les conséquences écrivent dans
+    // `alerts_notifications` et `work_orders`, et peuvent déclencher une
+    // notification. La règle du dépôt est que rien de lent ni de distant ne
+    // vit dans un `BEGIN` (docs/TRANSACTIONS.md). Leur échec ne doit pas
+    // annuler un relevé valide — le relevé est un fait CONSTATÉ, l'alerte et
+    // l'ordre de travail en sont des conséquences.
+    await this.traiterEcheanceCompteur(resultat.compteur);
+
+    return resultat;
+  }
+
+  /**
+   * L'histoire complète d'un compteur : ses relevés ET ses remises à zéro,
+   * dans l'ordre chronologique.
+   *
+   * Les deux vivent dans des tables distinctes (`counter_readings` et
+   * `counter_history`, voir migration 0025) parce qu'ils ne décrivent pas le
+   * même geste. Mais pour lire un compteur, il faut les deux : une suite de
+   * relevés sans les remises à zéro donne une courbe qui semble redescendre
+   * sans raison, et l'inverse donne des remises à zéro sans rien qui les
+   * justifie.
+   */
+  async getHistoriqueCompteur(
+    counterId: number,
+    tenantId: string,
+  ): Promise<Array<{
+    genre: 'releve' | 'remise_a_zero';
+    date: Date | null;
+    valeurAvant: number;
+    valeurApres: number;
+    usage: number | null;
+    motif: string | null;
+    parQui: number | null;
+    ordreTravail: number | null;
+  }>> {
+    // Le compteur doit appartenir au demandeur. La condition porte sur le
+    // compteur plutôt que sur chaque ligne : un compteur étant à un seul
+    // locataire, le vérifier une fois suffit à cloisonner son histoire — et
+    // `counter_history.tenant_id` est nullable, donc des lignes anciennes
+    // pourraient s'y cacher de leur propre propriétaire.
+    const [compteur] = await db
+      .select({ id: maintenanceCounters.id, lastResetValue: maintenanceCounters.lastResetValue })
+      .from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, counterId), eq(maintenanceCounters.tenantId, tenantId)));
+
+    if (!compteur) return [];
+
+    const releves = await db
+      .select()
+      .from(counterReadings)
+      .where(eq(counterReadings.counterId, counterId));
+
+    const remises = await db
+      .select()
+      .from(counterHistory)
+      .where(eq(counterHistory.counterId, counterId));
+
+    const valeurDeDepart = compteur.lastResetValue ?? 0;
+
+    const lignes = [
+      ...releves.map((r) => ({
+        genre: 'releve' as const,
+        date: r.createdAt,
+        valeurAvant: r.previousValue,
+        valeurApres: r.newValue,
+        usage: r.usage,
+        motif: r.notes,
+        parQui: r.recordedBy,
+        ordreTravail: null,
+      })),
+      ...remises.map((h) => ({
+        genre: 'remise_a_zero' as const,
+        date: h.createdAt,
+        valeurAvant: h.previousValue,
+        // `counter_history` ne stocke pas la valeur d'arrivée : la remise à
+        // zéro pose `current_value = last_reset_value`, qu'on relit sur le
+        // compteur. C'est exact tant que `last_reset_value` ne change pas ;
+        // il n'est écrit nulle part aujourd'hui (il vaut son défaut, 0).
+        valeurApres: valeurDeDepart,
+        usage: null,
+        motif: h.resetReason,
+        parQui: h.performedBy,
+        ordreTravail: h.workOrderId,
+      })),
+    ];
+
+    // Tri décroissant, le plus récent d'abord. Une date nulle (ligne ancienne
+    // sans `created_at`) part en fin de liste plutôt que de désordonner le reste.
+    return lignes.sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0));
+  }
+
+  /**
+   * Remet un compteur d'usage à sa valeur de départ, et journalise le relevé
+   * qu'il portait juste avant.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CETTE MÉTHODE N'AVAIT AUCUN APPELANT
+   * ═══════════════════════════════════════════════════════════════════
+   * Elle était écrite, correcte, et paramétrée par un `workOrderId` — donc
+   * manifestement prévue pour être appelée à la clôture d'un ordre de travail.
+   * Recensement du 2026-10-26 : **zéro appel**, ni depuis une route, ni depuis
+   * le cycle de vie d'un OT, ni depuis le client. Même forme de défaut que
+   * `StockManager`, dont le moteur complet n'était joignable que par des
+   * endpoints explicites.
+   *
+   * Elle est maintenant appelée par la clôture (server/cloture-ordre-travail.ts),
+   * d'où le paramètre `executeur` : la remise à zéro doit être vraie en même
+   * temps que la clôture qui la provoque. Sans lui, les écritures partiraient
+   * sur `db` et survivraient à l'annulation de la transaction — le piège décrit
+   * dans docs/TRANSACTIONS.md.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * CE COMPTEUR EST UN COMPTEUR DE TRONÇON, PAS UN TOTALISATEUR
+   * ═══════════════════════════════════════════════════════════════════
+   * Le point n'est pas anodin : on ne remet pas à zéro le compteur
+   * kilométrique d'un véhicule à chaque révision. Mais c'est bien la sémantique
+   * que ce schéma implémente, et le relevé le confirme des deux côtés :
+   *
+   *   • `checkAndGenerateCounterAlert` compare `currentValue` à
+   *     `thresholdValue` DIRECTEMENT, et non un écart à un jalon — donc
+   *     `currentValue` signifie « usage depuis la dernière intervention » et
+   *     `thresholdValue` « périodicité ».
+   *   • les colonnes qui porteraient la lecture « totalisateur » —
+   *     `last_service_value` et `interval_value` — ne sont écrites ni lues
+   *     nulle part (mesuré : zéro usage hors du schéma). Elles sont mortes.
+   *
+   * On honore donc la sémantique en place plutôt que d'en introduire une
+   * seconde : deux sens contradictoires pour `currentValue` dans la même table
+   * seraient exactement le genre de défaut que cette campagne passe son temps
+   * à retrouver. `counter_type` ('hours', 'cycles', 'kilometers', 'units')
+   * nomme l'UNITÉ, pas la nature absolue ou relative du relevé.
+   */
+  async resetCounter(
+    id: number,
+    tenantId: string,
+    resetReason?: string,
+    performedBy?: number | null,
+    workOrderId?: number,
+    executeur: ExecuteurBase = db,
+  ): Promise<MaintenanceCounter> {
+    // Lecture + verrou sur l'exécuteur fourni : dans une transaction, lire par
+    // `db` reviendrait à décider sur un état qui n'est pas celui qu'on écrit.
+    const [counter] = await executeur
+      .select()
+      .from(maintenanceCounters)
+      .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
+      .for('update');
+
     if (!counter) {
       throw new Error("Counter not found");
     }
 
     // Create history record
-    await db.insert(counterHistory).values({
+    await executeur.insert(counterHistory).values({
       tenantId,
       counterId: id,
-      previousValue: counter.currentValue ?? 0,
+      // `counter_history.previous_value` est un `integer` alors que
+      // `current_value` est un `real` : un compteur à 1 234,5 h serait arrondi
+      // par le pilote sans que rien ne le dise. On arrondit donc ici,
+      // explicitement, pour que la troncature soit une décision lisible et non
+      // un effet de bord du type de colonne.
+      previousValue: Math.round(counter.currentValue ?? 0),
       resetReason: resetReason || "Manual reset",
-      performedBy,
+      performedBy: performedBy ?? undefined,
       workOrderId
     });
 
     // Reset counter
-    const [updatedCounter] = await db
+    const [updatedCounter] = await executeur
       .update(maintenanceCounters)
-      .set({ 
+      .set({
         currentValue: counter.lastResetValue,
         lastResetDate: new Date(),
+        // L'alerte est levée AVEC la remise à zéro, et c'est indispensable :
+        // `checkAndGenerateCounterAlert` ne produit une alerte que si
+        // `alertEmailSent` est faux. Laissé à `true`, le compteur repartirait
+        // de zéro mais resterait muet au cycle suivant — une échéance atteinte
+        // sans que personne ne soit averti.
         alertLevel: "info",
         alertEmailSent: false,
         updatedAt: new Date()
       })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
-    
+
     return updatedCounter;
+  }
+
+  /**
+   * Les compteurs actifs rattachés à un plan préventif.
+   *
+   * `isActive` est filtré ici, et non chez l'appelant : un compteur désactivé
+   * l'a été délibérément (instrument démonté, suivi suspendu), et la clôture
+   * d'une gamme ne doit pas le réveiller en lui écrivant une ligne
+   * d'historique.
+   */
+  async getCompteursActifsDuPlan(
+    planId: number,
+    tenantId: string,
+    executeur: ExecuteurBase = db,
+  ): Promise<MaintenanceCounter[]> {
+    return await executeur
+      .select()
+      .from(maintenanceCounters)
+      .where(and(
+        eq(maintenanceCounters.planId, planId),
+        eq(maintenanceCounters.tenantId, tenantId),
+        eq(maintenanceCounters.isActive, true),
+      ))
+      .orderBy(maintenanceCounters.id);
   }
 
   async deleteMaintenanceCounter(id: number, tenantId: string): Promise<void> {
@@ -717,13 +1137,56 @@ export class GMAOStorage {
 
     // Generate alert if needed and not already sent
     if (shouldGenerateAlert && !counter.alertEmailSent) {
+      // ⚠️ LE MESSAGE DISAIT « null is due for null ».
+      //
+      // Il était composé de `equipmentName` et `maintenanceType`, deux champs
+      // facultatifs de `maintenance_counters` — et `equipmentName` est une
+      // copie dénormalisée vide sur la plupart des lignes. Relevé en
+      // provoquant l'alerte depuis l'écran : « Maintenance due: null » /
+      // « null is due for null. Current value: 2025.5/2000 hours ».
+      //
+      // Le défaut n'avait jamais pu se voir : rien n'augmentait les compteurs
+      // avant ce lot, donc ce chemin ne s'exécutait pas. Une alerte de
+      // maintenance qui ne nomme pas la machine ne sert à rien — et le reste
+      // de la plateforme est en français.
+      //
+      // Le nom est donc résolu depuis `equipment_registry`, DANS le locataire,
+      // avec la copie en repli ; et chaque morceau absent est remplacé par une
+      // formulation qui reste vraie au lieu d'imprimer « null ».
+      let nomEquipement = counter.equipmentName ?? null;
+      // ⚠️ `maintenance_counters.tenant_id` est NULLABLE dans ce schéma. Sans
+      // locataire, on ne résout PAS : une lecture non cloisonnée irait
+      // chercher le nom d'un équipement de n'importe quelle organisation pour
+      // le mettre dans l'alerte. Mieux vaut une alerte qui dit « un équipement
+      // non identifié » qu'une alerte qui nomme la machine d'autrui.
+      if (!nomEquipement && counter.equipmentId != null && counter.tenantId) {
+        const [equipement] = await db
+          .select({ nom: equipmentRegistry.equipmentName })
+          .from(equipmentRegistry)
+          .where(and(
+            eq(equipmentRegistry.id, counter.equipmentId),
+            eq(equipmentRegistry.tenantId, counter.tenantId),
+          ));
+        nomEquipement = equipement?.nom ?? null;
+      }
+
+      const UNITES_FR: Record<string, string> = {
+        hours: "h", cycles: "cycles", kilometers: "km", units: "unités",
+      };
+      const unite = UNITES_FR[counter.counterType] ?? counter.counterType;
+      const cible = nomEquipement ?? "un équipement non identifié";
+      const gamme = counter.maintenanceType || counter.description || "Maintenance périodique";
+
       await this.createAlert({
         tenantId: counter.tenantId,
         alertType: "maintenance_due",
         equipmentId: counter.equipmentId,
         severity: alertLevel,
-        title: `Maintenance due: ${counter.equipmentName}`,
-        message: `${counter.maintenanceType} is due for ${counter.equipmentName}. Current value: ${counter.currentValue}/${counter.thresholdValue} ${counter.counterType}`,
+        title: `Échéance de maintenance atteinte — ${cible}`,
+        message:
+          `${gamme} est due sur ${cible} : ` +
+          `${counter.currentValue ?? 0} ${unite} relevés pour une périodicité de ` +
+          `${counter.thresholdValue} ${unite}.`,
         triggerValue: counter.currentValue?.toString(),
         thresholdValue: counter.thresholdValue?.toString()
       });
@@ -733,6 +1196,483 @@ export class GMAOStorage {
         .set({ alertEmailSent: true, updatedAt: new Date() })
         .where(eq(maintenanceCounters.id, counter.id));
     }
+  }
+
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * COMPTEUR → ORDRE DE TRAVAIL PRÉVENTIF
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * CE QUI ÉTAIT
+   * ───────────────────────────────────────────────────────────────────
+   * Un compteur qui atteignait son seuil produisait une ALERTE, et rien
+   * d'autre (audit fonctionnel du 2026-10-25, section 1 : « Compteur → OT
+   * préventif : ouverte — le compteur crée une alerte, jamais un OT »).
+   *
+   * Une alerte se lit, s'acquitte, et disparaît. Elle ne porte ni affectation,
+   * ni durée estimée, ni pièces, ni traçabilité d'exécution — et surtout elle
+   * ne se CLÔTURE pas, donc elle ne remet pas le compteur à zéro. L'échéance
+   * restait donc indéfiniment atteinte, à crier la même chose à chaque relevé.
+   *
+   * CE QUI SE PASSE MAINTENANT
+   * ───────────────────────────────────────────────────────────────────
+   * Le franchissement du seuil crée un ordre de travail préventif rattaché au
+   * plan. Sa clôture replanifie le plan et REMET LE COMPTEUR À ZÉRO
+   * (migration 0024) : le cycle se referme sur lui-même, et c'est ce qui
+   * distingue cette boucle d'une alerte de plus.
+   *
+   * POURQUOI AU SEUIL D'ALERTE, ET NON À 100 %
+   * ───────────────────────────────────────────────────────────────────
+   * `warningThresholdPct` est exactement le champ que l'exploitant règle pour
+   * « prévenir assez tôt pour laisser le temps de programmer » — c'est le
+   * libellé de l'écran. Créer l'ordre à 100 % le ferait naître déjà en retard,
+   * ce qui est le défaut qu'on vient de corriger ailleurs sur les plans
+   * calendaires.
+   *
+   * CE QUI N'EST PAS INVENTÉ
+   * ───────────────────────────────────────────────────────────────────
+   *   • pas d'échéance (`scheduledStart`) : un plan réglé sur un compteur n'a
+   *     pas de date, et en déduire une demanderait une cadence d'usage —
+   *     c'est-à-dire une prévision. Le planificateur la pose ;
+   *   • `requiresShutdown` reste à `false`, le défaut prudent posé en 0024 :
+   *     le plan ne dit pas si la gamme immobilise la machine ;
+   *   • la priorité vient de la MESURE (la part du seuil consommée), pas d'un
+   *     tirage ni d'une constante. Jamais « urgent » : un préventif dû n'est
+   *     pas une urgence, et le dire le mettrait au même rang qu'une panne ;
+   *   • la durée estimée vient du plan quand il la porte, et reste absente
+   *     sinon.
+   *
+   * @returns l'ordre créé, ou `null` avec le motif journalisé.
+   */
+  async creerOrdreTravailSiEcheanceCompteurAtteinte(
+    counter: MaintenanceCounter,
+  ): Promise<WorkOrder | null> {
+    // ── Un compteur SANS PLAN ne crée pas d'ordre, et c'est la condition la
+    //    plus importante de cette fonction.
+    //
+    //    La remise à zéro à la clôture se fait PAR LE PLAN
+    //    (`getCompteursActifsDuPlan`). Un ordre créé pour un compteur sans
+    //    plan ne pourrait donc jamais remettre ce compteur à zéro : le
+    //    compteur resterait au-dessus de son seuil, et le relevé suivant
+    //    créerait un nouvel ordre, indéfiniment. On refuserait de fermer la
+    //    boucle tout en fabriquant du travail — pire que de ne rien faire.
+    //
+    //    L'écran des compteurs affiche « aucune gamme rattachée » : le cas est
+    //    visible, et se corrige en rattachant le compteur à une gamme.
+    if (counter.planId == null) return null;
+    if (counter.equipmentId == null) return null;
+    if (!counter.tenantId) return null;
+    if (counter.isActive === false) return null;
+    if (!counter.thresholdValue || counter.thresholdValue <= 0) return null;
+
+    const part = ((counter.currentValue ?? 0) / counter.thresholdValue) * 100;
+    const seuilAlerte = counter.warningThresholdPct ?? 90;
+    if (part < seuilAlerte) return null;
+
+    const tenantId = counter.tenantId;
+
+    // Le plan doit exister, appartenir au demandeur et être actif. Un plan
+    // désactivé décrit une gamme qu'on a cessé d'appliquer : lui créer du
+    // travail irait contre une décision d'exploitation.
+    const [plan] = await db
+      .select()
+      .from(preventiveMaintenancePlans)
+      .where(and(
+        eq(preventiveMaintenancePlans.id, counter.planId),
+        eq(preventiveMaintenancePlans.tenantId, tenantId),
+      ));
+    if (!plan || plan.isActive === false) return null;
+
+    // ── GARDE D'IDEMPOTENCE ─────────────────────────────────────────
+    //
+    // Le compteur est relu régulièrement, et chaque relevé repasse ici. Sans
+    // cette garde, un ordre naîtrait à CHAQUE relevé au-dessus du seuil.
+    //
+    // La garde porte sur (locataire, plan, équipement) et non sur le compteur :
+    // un plan peut porter plusieurs compteurs (heures ET cycles), et la gamme
+    // ne s'exécute qu'une fois. Deux ordres pour la même gamme feraient
+    // exécuter deux fois le même travail, et la seconde clôture avancerait
+    // l'échéance d'une période de trop.
+    //
+    // Le filtre est posé EN SQL et sans limite de lignes. Le motif existant
+    // ailleurs dans ce dépôt (`predictive-maintenance-engine.ts`) relit les
+    // cinq derniers ordres de l'équipement et cherche parmi eux : un ordre
+    // ouvert plus ancien que ces cinq lui échappe, et il en crée un doublon.
+    const [dejaOuvert] = await db
+      .select({ id: workOrders.id, orderNumber: workOrders.orderNumber })
+      .from(workOrders)
+      .where(and(
+        eq(workOrders.tenantId, tenantId),
+        eq(workOrders.planId, counter.planId),
+        eq(workOrders.equipmentId, counter.equipmentId),
+        notInArray(workOrders.status, ['completed', 'cancelled']),
+      ))
+      .limit(1);
+
+    if (dejaOuvert) {
+      console.log(
+        `Compteur #${counter.id} au-delà de son seuil — ordre ${dejaOuvert.orderNumber} déjà ouvert pour le plan #${counter.planId}`,
+      );
+      return null;
+    }
+
+    // ── Création ────────────────────────────────────────────────────
+    const UNITES_FR: Record<string, string> = {
+      hours: "h", cycles: "cycles", kilometers: "km", units: "unités",
+    };
+    const unite = UNITES_FR[counter.counterType] ?? counter.counterType;
+    const libelleCompteur = counter.description || `compteur ${unite}`;
+
+    // La priorité est DÉDUITE DE LA MESURE. Le seuil critique est celui que
+    // `checkAndGenerateCounterAlert` emploie déjà, pour que la priorité de
+    // l'ordre et la sévérité de l'alerte ne puissent pas se contredire.
+    const seuilCritique = Math.min(100, seuilAlerte + 8);
+    const priorite = part >= seuilCritique ? 'high' : 'medium';
+
+    const ordre = await this.createWorkOrder({
+      tenantId,
+      equipmentId: counter.equipmentId,
+      planId: counter.planId,
+      orderType: 'preventive',
+      title: `${plan.planName} — échéance compteur atteinte`,
+      description:
+        `Créé automatiquement : le compteur « ${libelleCompteur} » a atteint son échéance. ` +
+        `Relevé ${counter.currentValue ?? 0} ${unite} pour une périodicité de ${counter.thresholdValue} ${unite} ` +
+        `(${part.toFixed(0)} %). La clôture de cet ordre replanifiera le plan « ${plan.planName} » ` +
+        `et remettra ce compteur à zéro.`,
+      priority: priorite,
+      status: 'pending',
+      // `false` : le plan ne dit pas si la gamme immobilise la machine, et
+      // déclarer un arrêt qui n'a pas lieu rendrait indisponible un équipement
+      // qui produit.
+      requiresShutdown: false,
+      ...(plan.estimatedDuration != null ? { estimatedDuration: plan.estimatedDuration } : {}),
+    } as InsertWorkOrder);
+
+    console.log(
+      `Compteur #${counter.id} → ordre de travail ${ordre.orderNumber} créé ` +
+      `(plan #${plan.id}, ${part.toFixed(0)} % du seuil)`,
+    );
+    return ordre;
+  }
+
+  /**
+   * Le compteur vient de changer d'état : on en tire TOUTES les conséquences.
+   *
+   * Deux conséquences, et il fallait un seul point d'entrée pour qu'aucun
+   * appelant n'en oublie une :
+   *
+   *   1. l'alerte, qui prévient ;
+   *   2. l'ordre de travail préventif, qui fait exécuter — et dont la clôture
+   *      remet le compteur à zéro, refermant la boucle.
+   *
+   * `checkAndGenerateCounterAlert` reste la primitive d'alerte, et garde son
+   * nom : une fonction qui s'appelle « generate alert » et qui créerait aussi
+   * des ordres de travail mentirait sur ce qu'elle fait.
+   *
+   * Chaque conséquence est indépendante : l'échec de l'une ne doit pas priver
+   * de l'autre. Un ordre de travail créé sans alerte reste utile, et
+   * l'inverse aussi.
+   */
+  async traiterEcheanceCompteur(counter: MaintenanceCounter): Promise<void> {
+    await this.checkAndGenerateCounterAlert(counter).catch((err) =>
+      console.error("Alerte de compteur non générée (best-effort):", err),
+    );
+    await this.creerOrdreTravailSiEcheanceCompteurAtteinte(counter).catch((err) =>
+      console.error("Ordre de travail de compteur non créé (best-effort):", err),
+    );
+  }
+
+  /**
+   * Les ordres de travail préventifs OUVERTS, indexés par « plan:équipement ».
+   *
+   * Sert à l'écran des compteurs : sans cette information, un compteur affiche
+   * « échéance atteinte » sans dire qu'un ordre a déjà été créé pour elle — et
+   * l'exploitant en saisit un second à la main. La clé composée est celle de
+   * la garde d'idempotence ci-dessus, pour que l'écran montre exactement ce
+   * que le serveur considère comme déjà pris en charge.
+   */
+  async getOrdresPreventifsOuvertsParPlan(tenantId: string): Promise<Map<string, { id: number; orderNumber: string }>> {
+    const ouverts = await db
+      .select({
+        id: workOrders.id,
+        orderNumber: workOrders.orderNumber,
+        planId: workOrders.planId,
+        equipmentId: workOrders.equipmentId,
+      })
+      .from(workOrders)
+      .where(and(
+        eq(workOrders.tenantId, tenantId),
+        notInArray(workOrders.status, ['completed', 'cancelled']),
+        eq(workOrders.orderType, 'preventive'),
+      ))
+      .orderBy(desc(workOrders.createdAt));
+
+    const index = new Map<string, { id: number; orderNumber: string }>();
+    for (const o of ouverts) {
+      if (o.planId == null || o.equipmentId == null) continue;
+      const cle = `${o.planId}:${o.equipmentId}`;
+      // Le plus récent gagne : `orderBy` descendant, et on ne remplace pas une
+      // entrée déjà posée.
+      if (!index.has(cle)) index.set(cle, { id: o.id, orderNumber: o.orderNumber });
+    }
+    return index;
+  }
+
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * DEMANDES D'INTERVENTION — signaler, arbitrer, convertir ou refuser
+   * ═══════════════════════════════════════════════════════════════════
+   * Voir l'en-tête de `intervention_requests` dans shared/schema.ts et la
+   * migration 0026 pour le pourquoi.
+   */
+  async getDemandesIntervention(
+    tenantId: string,
+    filtres: { status?: string } = {},
+  ): Promise<Array<InterventionRequest & {
+    equipmentName: string | null;
+    workOrderNumber: string | null;
+  }>> {
+    const conditions = [eq(interventionRequests.tenantId, tenantId)];
+    if (filtres.status) conditions.push(eq(interventionRequests.status, filtres.status));
+
+    const lignes = await db
+      .select({
+        demande: interventionRequests,
+        // Le nom vient du registre, DANS le locataire — jamais d'une copie
+        // dénormalisée. Le lot des compteurs a montré ce que coûte l'inverse :
+        // un écran qui affiche « non précisé » pour un équipement connu.
+        equipmentName: equipmentRegistry.equipmentName,
+        workOrderNumber: workOrders.orderNumber,
+      })
+      .from(interventionRequests)
+      .leftJoin(equipmentRegistry, and(
+        eq(interventionRequests.equipmentId, equipmentRegistry.id),
+        eq(equipmentRegistry.tenantId, tenantId),
+      ))
+      .leftJoin(workOrders, and(
+        eq(interventionRequests.workOrderId, workOrders.id),
+        eq(workOrders.tenantId, tenantId),
+      ))
+      .where(and(...conditions))
+      .orderBy(desc(interventionRequests.createdAt));
+
+    return lignes.map(({ demande, equipmentName, workOrderNumber }) => ({
+      ...demande,
+      equipmentName: equipmentName ?? null,
+      workOrderNumber: workOrderNumber ?? null,
+    }));
+  }
+
+  async getDemandeInterventionById(id: number, tenantId: string): Promise<InterventionRequest | undefined> {
+    const [demande] = await db
+      .select()
+      .from(interventionRequests)
+      .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)));
+    return demande;
+  }
+
+  /** La demande née d'une alerte donnée, s'il en existe une encore vivante. */
+  async getDemandePourAlerte(alertId: number, tenantId: string): Promise<InterventionRequest | undefined> {
+    // « Vivante » = ni refusée ni annulée : une alerte dont la demande a été
+    // refusée peut être re-signalée (les circonstances ont pu changer), mais
+    // une alerte dont la demande est en attente ou déjà convertie ne doit pas
+    // produire un doublon.
+    const [demande] = await db
+      .select()
+      .from(interventionRequests)
+      .where(and(
+        eq(interventionRequests.alertId, alertId),
+        eq(interventionRequests.tenantId, tenantId),
+        inArray(interventionRequests.status, ['pending', 'accepted']),
+      ))
+      .orderBy(desc(interventionRequests.createdAt));
+    return demande;
+  }
+
+  async createDemandeIntervention(data: Omit<InsertInterventionRequest, 'requestNumber'>): Promise<InterventionRequest> {
+    const requestNumber = `DI-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    const [demande] = await db
+      .insert(interventionRequests)
+      .values({ ...data, requestNumber })
+      .returning();
+    return demande;
+  }
+
+  /**
+   * ACCEPTER une demande : elle devient un ordre de travail.
+   *
+   * TRANSACTIONNEL, et la raison est la règle du dépôt
+   * (docs/TRANSACTIONS.md) : deux écritures qui doivent être vraies ensemble.
+   * Un ordre créé sans que la demande soit marquée acceptée se ferait
+   * re-convertir au clic suivant — deux ordres pour un signalement. Une
+   * demande marquée acceptée sans ordre créé serait un signalement classé
+   * « pris en charge » dont le travail n'existe nulle part : le pire des deux,
+   * parce qu'il est invisible.
+   *
+   * Le VERROU sur la demande est ce qui rend l'arbitrage sûr face à deux
+   * arbitres simultanés. Sans lui, les deux liraient `pending` et créeraient
+   * chacun un ordre.
+   *
+   * La priorité et le type viennent de l'ARBITRE, pas de la demande :
+   * l'urgence perçue par le demandeur reste une information, elle n'engage pas
+   * la planification. C'est toute la raison d'être de la séparation DI / OT.
+   */
+  async accepterDemandeIntervention(
+    id: number,
+    tenantId: string,
+    decision: {
+      orderType: string;
+      priority: string;
+      requiresShutdown: boolean;
+      assignedTo?: number | null;
+      estimatedHours?: number;
+      reviewNotes?: string;
+      reviewedBy?: number | null;
+    },
+  ): Promise<{ demande: InterventionRequest; ordre: WorkOrder }> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      const [ordre] = await tx
+        .insert(workOrders)
+        .values({
+          tenantId,
+          orderNumber,
+          equipmentId: avant.equipmentId,
+          orderType: decision.orderType,
+          title: avant.title,
+          // La demande d'origine est citée dans la description : c'est le seul
+          // endroit où un technicien qui ouvre l'ordre voit ce qui a été
+          // signalé, et par qui le signalement a été fait.
+          description:
+            `${avant.description}\n\n` +
+            `— Né de la demande d'intervention ${avant.requestNumber}` +
+            (avant.reportedLocation ? ` (lieu signalé : ${avant.reportedLocation})` : '') +
+            `, urgence perçue par le demandeur : ${avant.urgency}.`,
+          priority: decision.priority,
+          status: 'pending',
+          requiresShutdown: decision.requiresShutdown,
+          // `requestedBy` porte le DEMANDEUR, pas l'arbitre : c'est lui qui a
+          // signalé, et c'est à lui qu'on rendra compte.
+          requestedBy: avant.requestedBy,
+          assignedTo: decision.assignedTo ?? undefined,
+          ...(decision.estimatedHours != null
+            ? { estimatedDuration: Math.round(decision.estimatedHours * 60) }
+            : {}),
+        })
+        .returning();
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({
+          status: 'accepted',
+          workOrderId: ordre.id,
+          reviewedBy: decision.reviewedBy ?? undefined,
+          reviewedAt: new Date(),
+          reviewNotes: decision.reviewNotes,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return { demande, ordre };
+    });
+  }
+
+  /**
+   * REFUSER une demande, avec un motif.
+   *
+   * Le motif est ce qui rend la charge écartée MESURABLE — défaut n° 2 de
+   * l'audit. Sans lui, un refus est indistinguable d'un oubli, et personne ne
+   * peut dire combien de signalements ont été écartés ni pourquoi.
+   *
+   * Même verrou que l'acceptation : une demande déjà arbitrée ne se réarbitre
+   * pas, sinon un refus pourrait écraser une acceptation et laisser un ordre
+   * de travail orphelin de sa demande.
+   */
+  async refuserDemandeIntervention(
+    id: number,
+    tenantId: string,
+    rejectionReason: string,
+    reviewedBy?: number | null,
+  ): Promise<InterventionRequest> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({
+          status: 'rejected',
+          rejectionReason,
+          reviewedBy: reviewedBy ?? undefined,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return demande;
+    });
+  }
+
+  /** Le demandeur retire sa propre demande, tant qu'elle n'est pas arbitrée. */
+  async annulerDemandeIntervention(
+    id: number,
+    tenantId: string,
+  ): Promise<InterventionRequest> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({ status: 'cancelled', updatedAt: new Date() })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return demande;
+    });
+  }
+
+  /**
+   * Le compte des demandes par état — la CHARGE, y compris celle qu'on a
+   * écartée.
+   *
+   * C'est la mesure que l'absence de table rendait impossible : « le refus
+   * motivé n'existe pas, donc la charge non traitée n'est pas mesurable ».
+   */
+  async getChargeDemandes(tenantId: string): Promise<Record<string, number>> {
+    const lignes = await db
+      .select({ status: interventionRequests.status, n: count() })
+      .from(interventionRequests)
+      .where(eq(interventionRequests.tenantId, tenantId))
+      .groupBy(interventionRequests.status);
+
+    const parEtat: Record<string, number> = { pending: 0, accepted: 0, rejected: 0, cancelled: 0 };
+    for (const l of lignes) parEtat[l.status] = Number(l.n);
+    return parEtat;
   }
 
   // Spare Parts Methods
@@ -772,9 +1712,16 @@ export class GMAOStorage {
   }
 
   async updateSparePart(id: number, tenantId: string, updates: Partial<SparePart>): Promise<SparePart> {
+    // `tenantId` retiré des champs écrits : mesuré sur banc,
+    // `PUT /api/spare-parts/:id` avec `{ tenantId: <autre> }` faisait sortir la
+    // pièce de son entreprise — et le stock avec elle
+    // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie D). Le `WHERE` cloisonne la
+    // ligne atteinte, pas la valeur écrite.
+    const { tenantId: _jamaisModifiable, ...modifications } = updates;
+
     const [part] = await db
       .update(spareParts)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...modifications, updatedAt: new Date() })
       .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)))
       .returning();
     return part;
@@ -1369,6 +2316,40 @@ export class GMAOStorage {
       .limit(maxLimit);
   }
 
+  /**
+   * Une alerte, DANS le locataire.
+   *
+   * Il n'existait aucune lecture unitaire cloisonnée de cette table : seules
+   * la liste et la lecture par équipement. Le signalement d'une alerte à la
+   * maintenance en a besoin — et une alerte d'autrui doit s'y lire comme un
+   * objet absent, sinon son titre et son message passeraient dans la demande
+   * créée.
+   */
+  async getAlertById(id: number, tenantId: string): Promise<AlertsNotifications | undefined> {
+    const [alerte] = await db
+      .select()
+      .from(alertsNotifications)
+      .where(and(eq(alertsNotifications.id, id), eq(alertsNotifications.tenantId, tenantId)));
+    return alerte;
+  }
+
+  /**
+   * Les identifiants des profils du locataire — pour vérifier qu'une
+   * affectation désigne quelqu'un de l'organisation.
+   *
+   * Ne rend QUE les identifiants et le nom : cette méthode sert à valider une
+   * affectation, pas à servir des profils. Rendre les lignes entières ferait
+   * passer des secrets d'authentification par un chemin qui n'a aucune raison
+   * de les connaître — `/api/user-profiles` les retire explicitement, et un
+   * second chemin qui l'oublierait annulerait cette précaution.
+   */
+  async getIdentifiantsProfils(tenantId: string): Promise<Array<{ id: number; username: string }>> {
+    return await db
+      .select({ id: userProfiles.id, username: userProfiles.username })
+      .from(userProfiles)
+      .where(eq(userProfiles.tenantId, tenantId));
+  }
+
   async getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]> {
     // Le locataire est OBLIGATOIRE et positionnel : la route
     // `/api/equipment/:id/alerts` lisait les alertes d'un équipement sur son
@@ -1516,9 +2497,14 @@ export class GMAOStorage {
   }
 
   async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...dataCloisonne } = data;
     const [supplier] = await db
       .update(suppliers)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...dataCloisonne, updatedAt: new Date() })
       .where(eq(suppliers.id, id))
       .returning();
     return supplier;
@@ -1580,6 +2566,10 @@ export class GMAOStorage {
     tenantId: string,
     data: Partial<Omit<InsertPurchaseOrder, 'tenantId'>>,
   ): Promise<PurchaseOrder | undefined> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [order] = await this.db
       .update(purchaseOrders)
       .set({ ...data, updatedAt: new Date() })
@@ -1672,6 +2662,10 @@ export class GMAOStorage {
   }
 
   async updateReorderRule(id: number, data: Partial<InsertReorderRule>): Promise<ReorderRule> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [rule] = await this.db
       .update(reorderRules)
       .set({ ...data, updatedAt: new Date() })
@@ -2437,6 +3431,10 @@ export class GMAOStorage {
     tenantId: string,
     configData: Partial<Omit<InsertCompanyConfig, "tenantId">>,
   ): Promise<CompanyConfig | undefined> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [updatedConfig] = await db
       .update(companyConfig)
       .set({ ...configData, updatedAt: new Date() })

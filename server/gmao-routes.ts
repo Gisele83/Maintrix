@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { auMoins } from "@shared/roles";
+import { peutCreerEquipement, NIVEAU_CREATION_EQUIPEMENT } from "@shared/creation-equipement";
 import { notifyTaskAssigned } from "./push-notification-service";
 import { gmaoStorage } from "./gmao-storage";
 import { PDFGeneratorFunctional, type MaintenanceReportData, type MonthlyReportData } from "./pdf-generator-functional";
 import { cctpComplianceService } from "./cctp-compliance-system";
 import {
   insertEquipmentRegistrySchema,
+  miseAJourEquipementSchema,
   insertWorkOrderSchema,
   insertPreventiveMaintenancePlanSchema,
   insertSparePartSchema,
@@ -26,6 +28,14 @@ import { db } from "./db";
 import { purchaseOrders } from "@shared/schema";
 import { estViolationUnicite } from "./db-errors";
 import { tenantRequis } from "./tenant-requis";
+import {
+  arreterEquipementPourIntervention,
+  cloturerOrdreTravail,
+  lirePiecesDeclarees,
+  planIdValide,
+  StockInsuffisant,
+} from "./cloture-ordre-travail";
+import { PieceIntrouvable } from "./stock-management";
 
 /**
  * Une grandeur stockée en texte, relue comme nombre — ou `undefined`.
@@ -201,6 +211,24 @@ export function registerGMAORoutes(app: Express) {
   // Create new equipment
   app.post("/api/equipment", async (req, res) => {
     try {
+      // Inscrire une machine au référentiel demande un responsable maintenance.
+      // Le motif est vérifié et non supposé : AUCUNE route ne supprime un
+      // équipement (ni `DELETE /api/equipment/:id`, ni `deleteEquipment`), donc
+      // une inscription erronée est définitive — et aussitôt référencée par les
+      // ordres, les plans, les compteurs et les relevés de capteurs.
+      if (!peutCreerEquipement((req as any).user?.role)) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Inscrire un équipement au référentiel du parc demande au moins un " +
+            "responsable maintenance : aucune suppression d'équipement n'existe, " +
+            "une inscription erronée est donc définitive. Pour signaler un besoin, " +
+            "créez une demande d'intervention.",
+          alternative: "/api/demandes-intervention",
+          niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+        });
+      }
+
       console.log("Creating equipment with data:", req.body);
       
       // Add tenantId BEFORE validation
@@ -281,13 +309,74 @@ export function registerGMAORoutes(app: Express) {
   // Update equipment
   app.put("/api/equipment/:id", async (req, res) => {
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // MODIFIER UNE FICHE DU RÉFÉRENTIEL, C'EST LE TENIR
+      // ═══════════════════════════════════════════════════════════════
+      // Cette route n'avait aucun contrôle de rôle. Mesuré : un technicien
+      // renommait une machine et la passait en criticité « critical » — donc
+      // réordonnait les priorités de maintenance — en une requête.
+      //
+      // Le niveau est celui de l'INSCRIPTION (`maintenance_manager`), et non
+      // un cran en dessous : corriger la plaque, le type ou la criticité d'une
+      // fiche engage le référentiel autant que de la créer. Un seuil plus bas
+      // aurait permis de contourner la garde de création en inscrivant une
+      // fiche vide puis en la remplissant.
+      //
+      // Ce que cela NE casse pas, et c'est vérifié : le parcours d'un
+      // technicien (démarrer, clôturer un ordre) ne passe PAS par ici.
+      // L'`operationalState` est basculé côté serveur par la clôture
+      // (server/cloture-ordre-travail.ts), pas par cette route. Le seul
+      // appelant vivant est le formulaire d'administration du parc ; la file
+      // hors-ligne rejoue aussi des `equipment_update`, mais AUCUN producteur
+      // n'en enfile (chemin dormant, donc aucune perte).
+      if (!peutCreerEquipement((req as any).user?.role)) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Modifier une fiche du référentiel du parc demande au moins un " +
+            "responsable maintenance. Pour signaler une correction à apporter, " +
+            "créez une demande d'intervention.",
+          alternative: "/api/demandes-intervention",
+          niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+        });
+      }
+
       const id = parseInt(req.params.id);
-      const updates = req.body;
-      
+
+      // ═══════════════════════════════════════════════════════════════
+      // LISTE BLANCHE : `tenantId` N'EST PAS UN CHAMP MODIFIABLE
+      // ═══════════════════════════════════════════════════════════════
+      // `req.body` partait TEL QUEL dans `updateEquipment`, qui fait
+      // `.set({ ...updates })`. Mesuré : `{ tenantId: <autre locataire> }`
+      // faisait PASSER la fiche chez l'autre entreprise. Le `WHERE` cloisonne
+      // la ligne atteinte, pas la valeur écrite.
+      //
+      // Et le refus qui suivait était un piège : le filet anti-fuite sur la
+      // réponse renvoyait `403 CROSS_TENANT_DATA_DETECTED` APRÈS la validation
+      // de l'écriture. L'appelant lisait un refus sur une fuite consommée.
+      const validation = miseAJourEquipementSchema.safeParse(req.body);
+      if (!validation.success) {
+        const champsRefuses = validation.error.issues
+          .filter((i) => i.code === "unrecognized_keys")
+          .flatMap((i) => (i as any).keys as string[]);
+
+        return res.status(400).json({
+          error: "CHAMPS_NON_MODIFIABLES",
+          message: champsRefuses.length
+            ? `Ces champs ne se modifient pas par cette route : ${champsRefuses.join(", ")}. ` +
+              "L'identité technique et l'appartenance à une entreprise n'en font pas partie."
+            : "Mise à jour invalide.",
+          champs: champsRefuses,
+          details: validation.error.issues.map((i) => ({ chemin: i.path.join("."), motif: i.message })),
+        });
+      }
+
+      const updates = validation.data;
+
       console.log("Updating equipment:", id, "with updates:", updates);
-      
+
       // Convert date strings to Date objects for timestamp fields
-      const processedUpdates = { ...updates };
+      const processedUpdates: Record<string, unknown> = { ...updates };
       if (processedUpdates.installationDate && typeof processedUpdates.installationDate === 'string') {
         processedUpdates.installationDate = new Date(processedUpdates.installationDate);
       }
@@ -343,6 +432,42 @@ export function registerGMAORoutes(app: Express) {
   // Create new work order
   app.post("/api/work-orders", async (req, res) => {
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // CRÉER UN ORDRE DE TRAVAIL ENGAGE LA PLANIFICATION ET LE BUDGET
+      // ═══════════════════════════════════════════════════════════════
+      //
+      // L'audit du 2026-10-25 (section 1) relevait, comme première conséquence
+      // de l'absence de demande d'intervention : « n'importe qui doit créer
+      // directement un OT, c'est-à-dire engager la planification et le
+      // budget ». Cette route n'avait AUCUN contrôle de rôle.
+      //
+      // Le niveau est celui de l'ARBITRAGE d'une demande (`team_leader`), et
+      // ce n'est pas un choix de confort : si créer un ordre directement était
+      // plus permissif qu'arbitrer une demande, la séparation DI / OT serait
+      // contournable par la porte d'à côté — il suffirait de créer l'ordre au
+      // lieu de faire arbitrer le signalement. Les deux gestes engagent la
+      // même chose, ils exigent donc le même niveau.
+      //
+      // CE QUI RESTE OUVERT À TOUS, et c'est le point : SIGNALER. Un opérateur
+      // qui constate une fuite n'est pas bloqué, il est redirigé vers le geste
+      // qui lui revient. Le message le dit, parce qu'un refus qui ne nomme pas
+      // l'alternative ne fait qu'empêcher le travail.
+      //
+      // Les créations AUTOMATIQUES ne passent pas par ici et ne sont donc pas
+      // concernées : l'acceptation d'une demande, le franchissement d'un seuil
+      // de compteur, le moteur prédictif et le jumeau numérique écrivent par
+      // la couche de stockage.
+      if (!auMoinsNiveau(req, 'team_leader')) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Créer un ordre de travail engage la planification et le budget, et demande au moins " +
+            "un chef d'équipe. Pour signaler un constat, créez une demande d'intervention : " +
+            "la maintenance l'arbitrera.",
+          alternative: "/api/demandes-intervention",
+        });
+      }
+
       // Handle case where body might be malformed
       if (!req.body || typeof req.body !== 'object') {
         console.error("Invalid request body format:", req.body);
@@ -365,6 +490,34 @@ export function registerGMAORoutes(app: Express) {
         if (existingEquipment && existingEquipment.length > 0) {
           equipmentId = existingEquipment[0].id;
         } else {
+          // ═══════════════════════════════════════════════════════════════
+          // LA SECONDE PORTE VERS LE RÉFÉRENTIEL
+          // ═══════════════════════════════════════════════════════════════
+          // Un `equipmentName` inconnu faisait ici une inscription SILENCIEUSE
+          // au référentiel — et dégradée : `equipmentType: 'Generic'`, lieu
+          // « Non spécifié », aucun numéro de série. Un chef d'équipe (2)
+          // peuplait donc le parc par la route des ordres de travail, ce qui
+          // aurait rendu la garde de `POST /api/equipment` contournable d'une
+          // faute de frappe.
+          //
+          // On refuse l'INSCRIPTION, pas l'ordre de travail : le niveau de
+          // création d'ordre reste `team_leader`. Le message dit donc quoi
+          // faire — choisir un équipement existant — au lieu d'opposer un
+          // « droits insuffisants » que l'appelant ne saurait pas interpréter,
+          // puisqu'il a bien le droit de créer l'ordre.
+          if (!peutCreerEquipement((req as any).user?.role)) {
+            return res.status(403).json({
+              error: "FORBIDDEN",
+              message:
+                `Aucun équipement nommé « ${req.body.equipmentName} » n'existe dans le ` +
+                "référentiel, et l'y inscrire demande au moins un responsable " +
+                "maintenance. Choisissez un équipement existant dans la liste, ou " +
+                "faites-le inscrire au parc.",
+              champ: "equipmentName",
+              niveauRequis: NIVEAU_CREATION_EQUIPEMENT,
+            });
+          }
+
           // Create new equipment entry
           const newEquipment = await gmaoStorage.createEquipment({
             tenantId,
@@ -391,11 +544,23 @@ export function registerGMAORoutes(app: Express) {
       if (req.body.dueDate) cleanedData.scheduledStart = req.body.dueDate; // Keep as string for validation
       if (req.body.cost) cleanedData.cost = parseFloat(req.body.cost);
       if (req.body.notes) cleanedData.notes = req.body.notes;
+      if (req.body.requiresShutdown !== undefined) {
+        cleanedData.requiresShutdown = req.body.requiresShutdown === true || req.body.requiresShutdown === 'true';
+      }
 
       // Add tenantId BEFORE validation
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
       cleanedData.tenantId = tenantId;
+
+      // Rattachement au plan préventif : vérifié CONTRE LE LOCATAIRE avant
+      // d'être écrit. C'est ce lien, absent jusqu'ici, qui permet à la clôture
+      // de savoir quel plan replanifier — et c'est aussi par lui qu'un plan
+      // d'une autre organisation pourrait se faire replanifier, si on se
+      // contentait de la clé étrangère.
+      if (req.body.planId !== undefined && req.body.planId !== null && req.body.planId !== '') {
+        cleanedData.planId = await planIdValide(req.body.planId, tenantId);
+      }
 
       // First validate with Zod (expects strings for date fields)
       const validatedData = insertWorkOrderSchema.parse(cleanedData);
@@ -410,7 +575,15 @@ export function registerGMAORoutes(app: Express) {
       }
       
       const workOrder = await gmaoStorage.createWorkOrder(processedData);
-      
+
+      // Un ordre créé DÉJÀ en cours et avec arrêt machine consigne tout de
+      // suite l'équipement : sans cela, le cas « je saisis l'intervention que
+      // je suis en train de faire » laisserait la machine déclarée en service
+      // pendant qu'elle est consignée, et la clôture n'aurait rien à remettre.
+      if (workOrder.status === 'in_progress' && workOrder.requiresShutdown && workOrder.equipmentId != null) {
+        await arreterEquipementPourIntervention(workOrder.equipmentId, tenantId);
+      }
+
       console.log(`Work order created: ${workOrder.orderNumber} - ${workOrder.title}`);
       res.status(201).json(workOrder);
     } catch (error) {
@@ -456,6 +629,13 @@ export function registerGMAORoutes(app: Express) {
           ? null
           : parseInt(processedUpdates.assignedTo, 10);
       }
+      // `requires_shutdown` est NOT NULL : une case de formulaire envoyée en
+      // `"false"` (chaîne) serait vraie pour Drizzle, et consignerait une
+      // machine qu'on venait de déclarer non consignée.
+      if (processedUpdates.requiresShutdown !== undefined) {
+        processedUpdates.requiresShutdown =
+          processedUpdates.requiresShutdown === true || processedUpdates.requiresShutdown === 'true';
+      }
 
       // Convert date strings to Date objects for timestamp fields
       if (processedUpdates.scheduledStart && typeof processedUpdates.scheduledStart === 'string') {
@@ -476,8 +656,78 @@ export function registerGMAORoutes(app: Express) {
       
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
+
+      // Un `planId` qui arrive par la requête est vérifié ici, et pas au
+      // moment de l'écriture : la clé étrangère garantit que le plan existe,
+      // pas qu'il appartient au demandeur. Rattacher un ordre au plan d'une
+      // autre organisation ferait avancer l'échéance de ce plan-là à la
+      // clôture (voir planIdValide).
+      if (processedUpdates.planId !== undefined) {
+        processedUpdates.planId = await planIdValide(processedUpdates.planId, tenantId);
+      }
+
+      // Les pièces consommées ne sont PAS une colonne de `work_orders` : on les
+      // retire des champs à écrire avant toute mise à jour, sans quoi Drizzle
+      // recevrait une clé inconnue.
+      const piecesDeclarees = lirePiecesDeclarees(req.body);
+      delete processedUpdates.partsUsed;
+
       const prevWorkOrder = await gmaoStorage.getWorkOrderById(id, tenantId);
-      const workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
+
+      // ── LA CLÔTURE EST UN CHEMIN À PART, ET TRANSACTIONNEL ──────────
+      //
+      // Elle écrit dans cinq tables (`work_orders`, `stock_movements`,
+      // `spare_parts`, `preventive_maintenance_plans`, `equipment_registry`)
+      // et ces écritures doivent être vraies ensemble. Avant ce correctif, la
+      // clôture ne déclenchait qu'une génération de rapport non enregistrée :
+      // mesuré en base, HTTP 200 et absolument rien d'écrit.
+      //
+      // La condition porte sur la TRANSITION, pas sur le statut demandé : une
+      // requête qui repasse `completed` sur un ordre déjà clôturé ne doit pas
+      // reconsommer les pièces ni réavancer le plan. `cloturerOrdreTravail`
+      // s'en protège aussi de son côté, sous verrou, pour le cas concurrent.
+      let workOrder: Awaited<ReturnType<typeof gmaoStorage.updateWorkOrder>>;
+      if (processedUpdates.status === 'completed' && prevWorkOrder && prevWorkOrder.status !== 'completed') {
+        const bilan = await cloturerOrdreTravail({
+          id,
+          tenantId,
+          modifications: processedUpdates,
+          pieces: piecesDeclarees,
+          // L'auteur vient de la SESSION, jamais du corps de requête : un
+          // mouvement de stock signé d'un identifiant fourni par le client
+          // imputerait la sortie à n'importe qui.
+          performedBy: (req as any).user?.id ?? null,
+        });
+        workOrder = bilan.ordre;
+        console.log(
+          `OT ${workOrder.orderNumber} clôturé — ${bilan.piecesConsommees.length} référence(s) consommée(s)` +
+          (bilan.replanification
+            ? bilan.replanification.nextDue
+              ? `, plan #${bilan.replanification.plan} replanifié au ${bilan.replanification.nextDue.toISOString().slice(0, 10)}`
+              : `, plan #${bilan.replanification.plan} non replanifié (${bilan.replanification.motif})`
+            : '') +
+          (bilan.compteursReinitialises.length > 0
+            ? `, ${bilan.compteursReinitialises.length} compteur(s) remis à zéro`
+            : '') +
+          (bilan.equipementRemisEnService ? ', équipement remis en service' : ''),
+        );
+      } else {
+        workOrder = await gmaoStorage.updateWorkOrder(id, tenantId, processedUpdates);
+
+        // Symétrique de la remise en service : une intervention AVEC ARRÊT qui
+        // démarre consigne la machine. Sans cette bascule, la remise en
+        // service de la clôture n'aurait jamais rien à remettre — et
+        // `operationalState` resterait ce qu'il était : une colonne que le
+        // serveur n'écrivait qu'à l'import.
+        if (
+          processedUpdates.status === 'in_progress' &&
+          prevWorkOrder?.status !== 'in_progress' &&
+          workOrder.requiresShutdown &&
+          workOrder.equipmentId != null
+        ) {
+          await arreterEquipementPourIntervention(workOrder.equipmentId, tenantId);
+        }
+      }
 
       // 📱 PUSH: Notify technician when task is newly assigned
       if (
@@ -517,8 +767,32 @@ export function registerGMAORoutes(app: Express) {
       
       res.json(workOrder);
     } catch (error) {
+      // ── STOCK INSUFFISANT : 409, ET LA LISTE DES MANQUES ───────────
+      //
+      // 409 Conflict et non 400 : la requête est bien formée, c'est l'ÉTAT du
+      // magasin qui la contredit. La distinction compte pour l'interface — un
+      // 400 se lit « vous avez mal saisi », un 409 « régularisez le magasin
+      // puis recommencez ». Les manques sont rendus en structure, référence
+      // par référence, pour que le magasinier sache quoi ajuster sans avoir à
+      // relire un message.
+      //
+      // La transaction a été annulée : l'ordre de travail est TOUJOURS
+      // ouvert, aucun mouvement n'a été écrit, le plan n'a pas bougé.
+      if (error instanceof StockInsuffisant) {
+        return res.status(409).json({
+          error: "STOCK_INSUFFISANT",
+          message: "Clôture refusée : le stock déclaré n'est pas disponible. " +
+            "Régularisez l'inventaire (entrée ou ajustement de stock) puis clôturez à nouveau.",
+          manques: error.manques,
+        });
+      }
+      // Une pièce hors du périmètre du demandeur est, pour lui, un objet
+      // absent : 404, pas 500 — convention du dépôt, voir PieceIntrouvable.
+      if (error instanceof PieceIntrouvable) {
+        return res.status(404).json({ error: "PIECE_INTROUVABLE", message: error.message });
+      }
       console.error("Error updating work order:", error);
-      res.status(400).json({ 
+      res.status(400).json({
         message: "Failed to update work order",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -634,16 +908,32 @@ export function registerGMAORoutes(app: Express) {
             warningThresholdPct: validatedCounter.thresholdCritical > 0
               ? (validatedCounter.thresholdWarning / validatedCounter.thresholdCritical) * 100
               : 90,
+            // ⚠️ LE RATTACHEMENT AU PLAN MANQUAIT, et c'était l'autre moitié de
+            // l'obstacle relevé par l'audit du 2026-10-25.
+            //
+            // `maintenance_counters.plan_id` existait dans le schéma mais
+            // n'était écrit NULLE PART — y compris ici, le seul endroit du
+            // dépôt où un compteur naît d'un plan. Mesuré : zéro écriture,
+            // zéro lecture, colonne morte. Un compteur créé depuis un plan
+            // était donc orphelin dès sa naissance, et la clôture de l'ordre
+            // qui exécute ce plan n'avait aucun moyen de savoir quel compteur
+            // remettre à zéro.
+            //
+            // C'est ce lien qui ferme la boucle « OT préventif clôturé →
+            // compteur remis à zéro » (voir server/cloture-ordre-travail.ts).
+            planId: plan.id,
             isActive: true
           };
 
           console.log("Creating validated counter:", counterData);
           const newCounter = await gmaoStorage.createMaintenanceCounter(counterData);
 
-          // Générer une alerte immédiate si la valeur actuelle dépasse déjà les seuils
+          // Générer une alerte immédiate si la valeur actuelle dépasse déjà les
+          // seuils — et l'ordre de travail préventif qui va avec, puisque le
+          // compteur vient d'être rattaché au plan qu'on est en train de créer.
           if (validatedCounter.currentValue >= validatedCounter.thresholdCritical ||
               validatedCounter.currentValue >= validatedCounter.thresholdWarning) {
-            await gmaoStorage.checkAndGenerateCounterAlert(newCounter);
+            await gmaoStorage.traiterEcheanceCompteur(newCounter);
           }
           
         } catch (counterError) {
@@ -675,6 +965,19 @@ export function registerGMAORoutes(app: Express) {
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
       const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, tenantId, validatedData);
+      // Le cloisonnement tient (la clause porte sur l'id ET le locataire), mais
+      // quand aucune ligne ne correspond, `plan` est `undefined` et cette route
+      // répondait **200 avec un corps vide** : un coup dans le vide annoncé
+      // comme un succès. Mesuré en visant le plan d'un autre locataire.
+      //
+      // C'est le défaut déjà corrigé pour `deletePreventiveMaintenancePlan`
+      // (voir son commentaire dans gmao-storage.ts) ; la mise à jour l'avait
+      // conservé. Cette route est devenue la SEULE voie vers cette table
+      // depuis le retrait de `PUT /api/maintenance-plans/:id` : elle doit donc
+      // dire la vérité. Hors périmètre, un plan est pour l'appelant ABSENT.
+      if (!plan) {
+        return res.status(404).json({ message: "Plan de maintenance introuvable" });
+      }
       res.json(plan);
     } catch (error) {
       console.error("Error updating maintenance plan:", error);
@@ -1007,7 +1310,14 @@ export function registerGMAORoutes(app: Express) {
   // Create predictive analytics
   app.post("/api/predictive-analytics", async (req, res) => {
     try {
-      const data = insertPredictiveAnalyticsSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire une projection dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertPredictiveAnalyticsSchema.parse(req.body), tenantId };
       const analytics = await gmaoStorage.createPredictiveAnalytics(data);
       res.status(201).json(analytics);
     } catch (error) {
@@ -1048,7 +1358,14 @@ export function registerGMAORoutes(app: Express) {
   // Create KPI metrics
   app.post("/api/kpi-metrics", async (req, res) => {
     try {
-      const data = insertKpiMetricsSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire un indicateur dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertKpiMetricsSchema.parse(req.body), tenantId };
       const metrics = await gmaoStorage.createKpiMetrics(data);
       res.status(201).json(metrics);
     } catch (error) {
@@ -1173,7 +1490,14 @@ export function registerGMAORoutes(app: Express) {
   // Create integration log
   app.post("/api/integration-logs", async (req, res) => {
     try {
-      const data = insertIntegrationLogSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire une trace d'intégration dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertIntegrationLogSchema.parse(req.body), tenantId };
       const log = await gmaoStorage.createIntegrationLog(data);
       res.status(201).json(log);
     } catch (error) {

@@ -40,7 +40,7 @@ export class DataImporter {
   /**
    * Importe des cas de maintenance depuis un fichier CSV
    */
-  async importMaintenanceCasesFromCSV(csvContent: string): Promise<{
+  async importMaintenanceCasesFromCSV(csvContent: string, tenantId: string): Promise<{
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
@@ -81,6 +81,7 @@ export class DataImporter {
 
           // Création du cas de maintenance
           await storage.createMaintenanceCase({
+            tenantId,
             equipmentType: validatedData.equipmentType,
             equipmentId: validatedData.equipmentId || `EQ-${Date.now()}-${i}`,
             zone: validatedData.zone || "unknown",
@@ -115,7 +116,7 @@ export class DataImporter {
   /**
    * Importe des cas de maintenance depuis un fichier Excel
    */
-  async importMaintenanceCasesFromExcel(excelBuffer: Buffer): Promise<{
+  async importMaintenanceCasesFromExcel(excelBuffer: Buffer, tenantId: string): Promise<{
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
@@ -154,6 +155,7 @@ export class DataImporter {
           const validatedData = ImportMaintenanceCaseSchema.parse(transformedData);
 
           await storage.createMaintenanceCase({
+            tenantId,
             equipmentType: validatedData.equipmentType,
             equipmentId: validatedData.equipmentId || `EQ-${Date.now()}-${i}`,
             zone: validatedData.zone || "unknown",
@@ -188,7 +190,7 @@ export class DataImporter {
   /**
    * Importe des cas signalés depuis un fichier CSV
    */
-  async importReportedCasesFromCSV(csvContent: string): Promise<{
+  async importReportedCasesFromCSV(csvContent: string, tenantId: string): Promise<{
     success: number;
     errors: Array<{ line: number; error: string; data: any }>;
   }> {
@@ -220,6 +222,7 @@ export class DataImporter {
           const validatedData = ImportReportedCaseSchema.parse(transformedData);
 
           await storage.createReportedCase({
+            tenantId,
             equipmentType: validatedData.equipmentType,
             equipmentId: validatedData.equipmentId || `EQ-${Date.now()}-${i}`,
             zone: validatedData.zone || "unknown",

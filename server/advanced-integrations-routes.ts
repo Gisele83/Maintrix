@@ -487,7 +487,14 @@ export function registerAdvancedIntegrationRoutes(app: Express) {
   // Create Power BI report
   app.post("/api/power-bi/reports", async (req, res) => {
     try {
-      const validatedData = insertPowerBiReportSchema.parse(req.body);
+      // ⚠️ Les quatre autres créations de ce fichier font déjà
+      // `parse({ ...req.body, tenantId })` ; celle-ci avait été oubliée et
+      // laissait donc le CORPS désigner le locataire
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G).
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
+      const validatedData = insertPowerBiReportSchema.parse({ ...req.body, tenantId });
 
       const [report] = await db
         .insert(powerBiReports)

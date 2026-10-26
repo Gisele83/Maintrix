@@ -26,6 +26,8 @@ import AIAssistantPage from "@/pages/ai-assistant";
 import DataImportExport from "@/pages/data-import-export";
 import AdvancedReporting from "@/pages/advanced-reporting";
 import WorkOrders from "@/pages/work-orders";
+import CompteursPage from "@/pages/compteurs";
+import DemandesInterventionPage from "@/pages/demandes-intervention";
 import MaintenanceExecutionPage from "@/pages/maintenance-execution";
 import KnowledgeGraphPage from "@/pages/knowledge-graph";
 import MaintenanceEngineeringPlatformPage from "@/pages/maintenance-engineering-platform";
@@ -250,6 +252,12 @@ function Router() {
       </Route>
       <Route path="/equipment-management">
         {(params) => <ProtectedRoute component={EquipmentPage} {...params} />}
+      </Route>
+      <Route path="/demandes-intervention">
+        {(params) => <ProtectedRoute component={DemandesInterventionPage} {...params} />}
+      </Route>
+      <Route path="/compteurs">
+        {(params) => <ProtectedRoute component={CompteursPage} {...params} />}
       </Route>
       <Route path="/work-orders">
         {(params) => <ProtectedRoute component={WorkOrders} {...params} />}

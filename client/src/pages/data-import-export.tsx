@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFile, apiRequest } from "@/lib/queryClient";
+import { ImportReserve, usePeutImporterEnMasse } from "@/components/import-reserve";
 import { 
   Upload, 
   Download, 
@@ -80,6 +81,7 @@ export default function DataImportExport() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const peutImporter = usePeutImporterEnMasse();
 
   // Récupération de l'historique des imports/exports
   const { data: importHistory, isLoading: historyLoading } = useQuery<ImportHistory[]>({
@@ -349,6 +351,9 @@ export default function DataImportExport() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {!peutImporter ? (
+                    <ImportReserve quoi="un fichier de données" />
+                  ) : (
                   <div 
                     className="border-2 border-dashed border-rule rounded-lg p-6 text-center hover:border-etat-encours-filet transition-colors cursor-pointer"
                     onClick={triggerFileInput}
@@ -368,6 +373,7 @@ export default function DataImportExport() {
                       className="hidden"
                     />
                   </div>
+                  )}
 
                   {isUploading && (
                     <div className="mt-4">

@@ -608,6 +608,33 @@ export const workOrders = pgTable("work_orders", {
   orderNumber: varchar("order_number", { length: 50 }).notNull().unique(),
   equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
   orderType: varchar("order_type", { length: 30 }).notNull(), // preventive, corrective, predictive, emergency
+  // ── Lien vers le plan préventif qui a engendré cet ordre (migration 0024).
+  //
+  // Son absence était l'obstacle qui rendait la clôture d'un OT stérile :
+  // `plan_id` existait bien dans ce schéma, mais sur `maintenance_counters`,
+  // pas ici. La clôture ne pouvait donc PAS savoir quel plan replanifier, et
+  // `preventive_maintenance_plans.nextDue` / `lastExecuted` n'étaient jamais
+  // écrits ailleurs que par l'édition manuelle d'un plan. Un préventif exécuté
+  // restait à son échéance d'origine, basculait en retard et y demeurait.
+  //
+  // NULLABLE, et ce n'est pas un relâchement : un correctif, un OT né d'une
+  // alerte, d'une recommandation ou du jumeau numérique n'a pas de plan. Rendre
+  // la colonne obligatoire forcerait à inventer un plan pour une panne — un
+  // rattachement faux est pire qu'une absence, qui au moins se lit comme telle.
+  planId: integer("plan_id").references(() => preventiveMaintenancePlans.id),
+  // ── « Intervention avec arrêt machine » (migration 0024).
+  //
+  // Ce drapeau existe pour que la clôture puisse remettre un équipement en
+  // service SANS se tromper de cas. Basculer `operationalState` sur tout OT
+  // serait faux dans les deux sens : une tournée de graissage ou un relevé
+  // vibratoire se font machine en marche et ne doivent rien arrêter, tandis
+  // qu'un remplacement de joints consigne la machine. Sans distinction, soit
+  // on arrête des machines qui tournent, soit on laisse « en maintenance »
+  // celles qu'on a réparées — c'est le second défaut qu'a relevé l'audit.
+  //
+  // `false` par défaut : le cas majoritaire en préventif est l'intervention
+  // sans arrêt, et un défaut qui n'arrête rien est le défaut prudent.
+  requiresShutdown: boolean("requires_shutdown").default(false).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   priority: varchar("priority", { length: 20 }).default("medium"), // low, medium, high, urgent
@@ -701,6 +728,68 @@ export const counterHistory = pgTable("counter_history", {
   performedBy: integer("performed_by").references(() => userProfiles.id),
   workOrderId: integer("work_order_id").references(() => workOrders.id),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+/**
+ * Relevés d'usage d'un compteur — migration 0025.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE TABLE DE PLUS, ET NON `counter_history`
+ * ═══════════════════════════════════════════════════════════════════
+ * `counter_history` est l'historique des REMISES À ZÉRO : `reset_reason` y est
+ * `NOT NULL` et `previous_value` est un `integer`. L'y détourner pour des
+ * relevés coûterait deux fois : il faudrait inventer un « motif de remise à
+ * zéro » pour un geste qui n'en est pas un, et un relevé de 12,5 h serait
+ * tronqué par le type de colonne. Les deux histoires restent donc séparées,
+ * et l'écran de suivi les présente réunies dans l'ordre chronologique.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI `previousValue` ET `newValue` EN PLUS DE `usage`
+ * ═══════════════════════════════════════════════════════════════════
+ * Même forme que `stock_movements` (`previous_stock` / `new_stock`), et pour la
+ * même raison : une ligne doit se lire seule. Avec le seul incrément, retrouver
+ * l'état du compteur à une date donnée obligerait à rejouer toute la série —
+ * et un relevé perdu rendrait tous les suivants faux sans que rien ne le dise.
+ *
+ * `tenantId` est NOT NULL dès la création : c'est une table neuve, elle n'a
+ * aucune ligne antérieure à rattraper. La convention du dépôt depuis la
+ * migration 0018 est le cloisonnement systématique de toute nouvelle table.
+ */
+export const counterReadings = pgTable("counter_readings", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  counterId: integer("counter_id").references(() => maintenanceCounters.id, { onDelete: "cascade" }).notNull(),
+  /** Valeur du compteur avant ce relevé. */
+  previousValue: real("previous_value").notNull(),
+  /** Usage constaté depuis le relevé précédent — strictement positif. */
+  usage: real("usage").notNull(),
+  /** Valeur du compteur après ce relevé. */
+  newValue: real("new_value").notNull(),
+  recordedBy: integer("recorded_by").references(() => userProfiles.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCounterReadingSchema = createInsertSchema(counterReadings).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CounterReading = typeof counterReadings.$inferSelect;
+export type InsertCounterReading = z.infer<typeof insertCounterReadingSchema>;
+
+/**
+ * Charge utile d'un relevé, telle que la route l'accepte.
+ *
+ * `usage` est un `real` en base : les heures de fonctionnement se comptent en
+ * décimales. On refuse en revanche zéro et le négatif — un compteur d'usage ne
+ * recule pas, et un relevé nul n'apprend rien. Le plafond évite qu'une saisie
+ * manifestement erronée (un relevé ABSOLU entré là où l'on attend un écart,
+ * voir l'écran) ne porte le compteur à une valeur absurde.
+ */
+export const releveCompteurPayloadSchema = z.object({
+  usage: z.coerce.number().finite().positive("L'usage relevé doit être strictement positif").max(1_000_000),
+  notes: z.string().max(500).optional(),
 });
 
 // Spare Parts Inventory Management
@@ -857,6 +946,129 @@ export const alertsNotifications = pgTable("alerts_notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * DEMANDES D'INTERVENTION — migration 0026
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * CE QUI MANQUAIT
+ * ───────────────────────────────────────────────────────────────────
+ * Aucune table ne portait la demande d'intervention (audit du 2026-10-25,
+ * section 1). Or la séparation DI / OT est structurante en GMAO : l'exploitant
+ * SIGNALE, la maintenance ARBITRE et convertit — ou refuse en motivant.
+ *
+ * Tout confondre avait trois effets, tous constatés :
+ *
+ *   1. n'importe qui devait créer directement un ordre de travail, c'est-à-dire
+ *      engager la planification et le budget ;
+ *   2. le refus motivé n'existait pas, donc la charge non traitée n'était pas
+ *      mesurable — un signalement écarté ne laissait aucune trace ;
+ *   3. le dispositif de validation a dû être greffé APRÈS COUP sur l'ordre de
+ *      travail, ce qui explique sa forme bancale.
+ *
+ * LES DEUX ÉCHELLES QU'IL FALLAIT SÉPARER
+ * ───────────────────────────────────────────────────────────────────
+ * `urgency` est l'urgence PERÇUE PAR LE DEMANDEUR. La priorité de l'ordre de
+ * travail, elle, est DÉCIDÉE PAR LA MAINTENANCE à l'arbitrage. C'est toute la
+ * raison d'être de cette table : sans elle, l'exploitant qui signale fixe
+ * lui-même la priorité d'un travail qu'il ne planifie pas.
+ *
+ * Le vocabulaire est celui des priorités d'ordre de travail (`low`, `medium`,
+ * `high`, `urgent`) et non une seconde échelle : deux échelles à traduire l'une
+ * dans l'autre produiraient des correspondances arbitraires, et ce dépôt a
+ * déjà payé la coexistence de deux vocabulaires pour une même notion (les
+ * fréquences de plan préventif).
+ *
+ * `alertId` : une demande peut naître d'une ALERTE plutôt que d'un humain. Ce
+ * lien est ce qui ferme la boucle « alerte → OT » de l'audit, en la faisant
+ * passer par l'arbitrage au lieu de créer un ordre dans le dos de la
+ * maintenance. Il sert aussi de garde : une alerte déjà signalée se reconnaît.
+ */
+export const interventionRequests = pgTable("intervention_requests", {
+  id: serial("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 36 }).references(() => tenants.id, { onDelete: "cascade" }).notNull(),
+  requestNumber: varchar("request_number", { length: 50 }).notNull().unique(),
+  /**
+   * NULLABLE : un exploitant signale parfois un lieu ou un symptôme avant
+   * d'avoir identifié la machine au référentiel. Exiger l'équipement
+   * transformerait la demande en formulaire d'expert, et c'est précisément ce
+   * qu'on veut éviter — la DI doit être le geste le plus simple du produit.
+   */
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id),
+  /** Renseigné si la demande naît d'une alerte, et non d'un humain. */
+  alertId: integer("alert_id").references(() => alertsNotifications.id),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  /** Urgence PERÇUE par le demandeur — jamais la priorité de l'ordre. */
+  urgency: varchar("urgency", { length: 20 }).notNull().default("medium"),
+  /** pending | accepted | rejected | cancelled */
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  requestedBy: integer("requested_by").references(() => userProfiles.id),
+  /** Localisation libre, quand l'équipement n'est pas identifié. */
+  reportedLocation: text("reported_location"),
+  reviewedBy: integer("reviewed_by").references(() => userProfiles.id),
+  reviewedAt: timestamp("reviewed_at"),
+  /**
+   * Obligatoire au REFUS, et c'est le défaut n° 2 de l'audit qu'on referme :
+   * sans motif, la charge écartée n'est pas analysable. La contrainte est
+   * portée par la route plutôt que par une contrainte `CHECK` — aucune table
+   * de ce schéma n'en déclare, et en introduire une ici seulement créerait un
+   * écart entre la base construite par `migrate` et celle construite par
+   * `push`.
+   */
+  rejectionReason: text("rejection_reason"),
+  reviewNotes: text("review_notes"),
+  /** L'ordre de travail né de l'acceptation. C'est la traçabilité de la chaîne. */
+  workOrderId: integer("work_order_id").references(() => workOrders.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertInterventionRequestSchema = createInsertSchema(interventionRequests).omit({
+  id: true,
+  requestNumber: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InterventionRequest = typeof interventionRequests.$inferSelect;
+export type InsertInterventionRequest = z.infer<typeof insertInterventionRequestSchema>;
+
+/** Les quatre urgences, même vocabulaire que les priorités d'ordre de travail. */
+export const URGENCES_DI = ["low", "medium", "high", "urgent"] as const;
+
+/** Ce qu'un demandeur envoie. Volontairement court : c'est un signalement. */
+export const demandeInterventionPayloadSchema = z.object({
+  title: z.string().min(3, "Un titre est requis").max(200),
+  description: z.string().min(3, "Décrivez ce que vous avez constaté").max(2000),
+  urgency: z.enum(URGENCES_DI).default("medium"),
+  equipmentId: z.coerce.number().int().positive().nullable().optional(),
+  reportedLocation: z.string().max(200).optional(),
+  /** Pour une demande née d'une alerte. */
+  alertId: z.coerce.number().int().positive().nullable().optional(),
+});
+
+/** Ce que l'arbitre envoie pour convertir une demande en ordre de travail. */
+export const arbitrageAcceptationSchema = z.object({
+  /**
+   * Décidés par la MAINTENANCE, pas reprises de la demande : c'est l'arbitrage.
+   * À défaut, le type est `corrective` (une demande signale un problème) et la
+   * priorité est celle que la maintenance retient, l'urgence perçue n'étant
+   * qu'une information.
+   */
+  orderType: z.enum(["corrective", "preventive", "predictive", "emergency", "inspection", "calibration", "modification", "installation"]).default("corrective"),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  requiresShutdown: z.boolean().default(false),
+  assignedTo: z.coerce.number().int().positive().nullable().optional(),
+  estimatedHours: z.coerce.number().finite().positive().max(10_000).optional(),
+  reviewNotes: z.string().max(1000).optional(),
+});
+
+/** Ce que l'arbitre envoie pour refuser. Le motif est OBLIGATOIRE. */
+export const arbitrageRefusSchema = z.object({
+  rejectionReason: z.string().min(5, "Un motif de refus est requis — sans lui, la charge écartée n'est pas analysable").max(1000),
+});
+
 // Validation Logs table - Track all validation steps for audit
 export const validationLogs = pgTable("validation_logs", {
   id: serial("id").primaryKey(),
@@ -885,6 +1097,57 @@ export const insertEquipmentRegistrySchema = createInsertSchema(equipmentRegistr
   installationDate: z.string().optional().transform((str) => str ? new Date(str) : undefined),
   warrantyExpiry: z.string().optional().transform((str) => str ? new Date(str) : undefined),
 });
+
+/**
+ * Les champs qu'une MISE À JOUR d'équipement peut écrire — et aucun autre.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE LISTE BLANCHE, ET PAS `Partial<EquipmentRegistry>`
+ * ═══════════════════════════════════════════════════════════════════
+ * `PUT /api/equipment/:id` passait `req.body` TEL QUEL à
+ * `updateEquipment`, qui fait `.set({ ...updates })`. N'importe quel champ de
+ * la table était donc écrivable, **`tenantId` compris**.
+ *
+ * Mesuré, et non déduit : un technicien envoyant `{ tenantId: <autre
+ * locataire> }` faisait bel et bien PASSER la fiche chez l'autre entreprise.
+ * La clause `WHERE` d'`updateEquipment` cloisonne la ligne qu'on atteint, pas
+ * la valeur qu'on y écrit.
+ *
+ * Le plus trompeur est ce qui se passait ensuite : le filet anti-fuite sur la
+ * RÉPONSE voyait une donnée appartenant à un autre locataire et renvoyait
+ * `403 CROSS_TENANT_DATA_DETECTED`. L'appelant lisait donc un refus **alors
+ * que l'écriture était déjà commise** — et un test qui n'observe que le code
+ * de retour serait resté vert sur une fuite réelle.
+ *
+ * `.strict()` REFUSE un champ inconnu au lieu de l'ignorer : une tentative
+ * d'écrire `tenantId` doit s'entendre dire non, pas croire qu'elle a réussi.
+ * Les 14 champs ci-dessous sont exactement ceux que le formulaire du parc
+ * envoie (client/src/components/equipment-management.tsx) — relevés, pas
+ * supposés.
+ *
+ * `equipmentId` est la clé métier et reste modifiable (une plaque se corrige),
+ * mais `id`, `tenantId`, `createdAt` et `updatedAt` ne le sont jamais :
+ * l'identité technique et l'appartenance ne se changent pas par un formulaire.
+ */
+export const miseAJourEquipementSchema = z
+  .object({
+    equipmentName: z.string().min(1).optional(),
+    equipmentType: z.string().min(1).optional(),
+    equipmentId: z.string().min(1).optional(),
+    location: z.string().optional(),
+    zone: z.string().optional(),
+    sector: z.string().optional(),
+    operationalState: z.string().min(1).optional(),
+    criticalityLevel: z.string().min(1).optional(),
+    manufacturer: z.string().optional(),
+    model: z.string().optional(),
+    serialNumber: z.string().optional(),
+    installationDate: z.string().optional(),
+    warrantyExpiry: z.string().optional(),
+    technicalSpecs: z.string().optional(),
+    maintenanceNotes: z.string().optional(),
+  })
+  .strict();
 
 export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
   id: true,
@@ -919,6 +1182,19 @@ export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({
   externalCost: z.number().optional(),
   notes: z.string().optional(),
   completionNotes: z.string().optional(),
+  // Déclarés explicitement plutôt que laissés à l'inférence de
+  // `createInsertSchema` : le rattachement au plan est le lien dont dépend
+  // toute la replanification, et un `planId` qui arriverait en chaîne depuis un
+  // formulaire doit être refusé ici, pas découvert par la contrainte de clé
+  // étrangère. L'appartenance du plan au locataire, elle, se vérifie côté
+  // route — un schéma ne peut pas interroger la base.
+  planId: z.coerce.number().int().positive().nullable().optional(),
+  // `z.boolean()` STRICT, et surtout pas `z.coerce.boolean()` : `Boolean("false")`
+  // vaut `true`, donc une case de formulaire envoyée en `"false"` (chaîne)
+  // consignerait une machine qu'on venait de déclarer non consignée. La
+  // normalisation des chaînes est faite par la route, AVANT la validation, où
+  // l'on sait ce que `"false"` veut dire.
+  requiresShutdown: z.boolean().optional(),
 });
 
 export const insertPreventiveMaintenancePlanSchema = createInsertSchema(preventiveMaintenancePlans).omit({
@@ -2325,6 +2601,38 @@ export const insertPermitToWorkSchema = createInsertSchema(permitToWork).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+/**
+ * Les champs qu'une MISE À JOUR de permis peut écrire — et aucun autre.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE LISTE BLANCHE
+ * ═══════════════════════════════════════════════════════════════════
+ * `PATCH /api/permits/:id` écartait trois champs (`status`, `permitNumber`,
+ * `createdAt`) et écrivait TOUT LE RESTE, `tenantId` compris. Mesuré sur
+ * banc : un technicien d'une entreprise a remplacé le titre du permis d'une
+ * autre et s'en est attribué la propriété
+ * (docs/EXAMEN_LISTES_BLANCHES.md, anomalie B).
+ *
+ * Une liste noire ne protège que de ce qu'on a pensé à nommer : une colonne
+ * ajoutée demain serait acceptée par oubli. On inverse donc la logique.
+ *
+ * Trois exclusions, pour trois raisons distinctes :
+ *   • `tenantId` — un permis ne change pas d'entreprise par une mise à jour ;
+ *   • `permitNumber` — c'est l'identifiant du document de sécurité, celui
+ *     qu'on retrouve sur le papier affiché au poste de travail ;
+ *   • `status` — le cycle de vie (brouillon → soumis → approuvé → actif) passe
+ *     par les routes dédiées, qui tracent chaque transition. La route de
+ *     modification le repose elle-même à `draft`, ce qui est son rôle : une
+ *     retouche renvoie le permis en relecture.
+ *
+ * `.strict()` refuse un champ inconnu au lieu de l'ignorer — ignorer laisse
+ * croire que l'écriture a pris effet.
+ */
+export const miseAJourPermisSchema = insertPermitToWorkSchema
+  .omit({ tenantId: true, permitNumber: true, status: true })
+  .partial()
+  .strict();
 
 export type PermitToWork = typeof permitToWork.$inferSelect;
 export type InsertPermitToWork = z.infer<typeof insertPermitToWorkSchema>;

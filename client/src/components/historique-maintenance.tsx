@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import { type RegistreEtat } from "@/lib/etats";
+import { ImportReserve, usePeutImporterEnMasse } from "@/components/import-reserve";
 import {
   History, Download, Upload, FileText, Search, AlertCircle, X,
   CheckCircle, Clock, Wrench, Loader2,
@@ -153,6 +154,7 @@ interface ProprietesHistorique {
 }
 
 export function HistoriqueMaintenance({ enTete }: ProprietesHistorique) {
+  const peutImporter = usePeutImporterEnMasse();
   const [recherche, setRecherche] = useState("");
   const [typeFiltre, setTypeFiltre] = useState("all");
   const [statutFiltre, setStatutFiltre] = useState("all");
@@ -318,11 +320,17 @@ export function HistoriqueMaintenance({ enTete }: ProprietesHistorique) {
           <Download className="h-4 w-4" />
           Export Excel
         </ActionSecondaire>
-        <ActionPrincipale onClick={() => setImportOuvert(true)}>
-          <Upload className="h-4 w-4" />
-          Importer
-        </ActionPrincipale>
+        {peutImporter && (
+          <ActionPrincipale onClick={() => setImportOuvert(true)}>
+            <Upload className="h-4 w-4" />
+            Importer
+          </ActionPrincipale>
+        )}
       </div>
+
+      {/* Sous la barre, et non dans la barre : un paragraphe aligné avec des
+          boutons casserait la rangée. Le refus reste visible, pas deviné. */}
+      {!peutImporter && <ImportReserve quoi="un historique de maintenance" />}
 
       <RangeeIndicateurs colonnes={4}>
         <Indicateur
@@ -445,11 +453,16 @@ export function HistoriqueMaintenance({ enTete }: ProprietesHistorique) {
           titre={lignes.length === 0 ? "Aucune intervention enregistrée" : "Aucune intervention ne correspond aux filtres"}
           phrase={
             lignes.length === 0
-              ? "L'historique se remplit à mesure que les ordres de travail sont traités. Vous pouvez aussi reprendre un historique existant depuis un fichier Excel ou CSV."
+              // La phrase ne propose la reprise d'un fichier qu'à qui peut
+              // réellement l'effectuer : l'annoncer puis refuser serait pire
+              // que se taire.
+              ? peutImporter
+                ? "L'historique se remplit à mesure que les ordres de travail sont traités. Vous pouvez aussi reprendre un historique existant depuis un fichier Excel ou CSV."
+                : "L'historique se remplit à mesure que les ordres de travail sont traités."
               : "Élargissez la recherche, ou remettez les filtres sur « tous »."
           }
           action={
-            lignes.length === 0 ? (
+            lignes.length === 0 && peutImporter ? (
               <ActionPrincipale onClick={() => setImportOuvert(true)}>
                 <Upload className="h-4 w-4" />
                 Importer un historique

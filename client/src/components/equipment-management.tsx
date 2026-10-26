@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit, Trash2, Eye, Factory } from "lucide-react";
+import { Plus, Search, Edit, Eye, Factory } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  CreationEquipementReservee,
+  usePeutCreerEquipement,
+} from "@/components/equipement-reserve";
 
 const equipmentSchema = z.object({
   equipmentName: z.string().min(1, "Nom de l'équipement requis"),
@@ -69,6 +73,7 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const peutCreerEquipement = usePeutCreerEquipement();
 
   // Fetch equipment list
   const { data: equipment = [], isLoading } = useQuery<Equipment[]>({
@@ -128,25 +133,6 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
   });
 
   // Delete equipment mutation
-  const deleteEquipmentMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/equipment/${id}`, {
-      method: "DELETE"
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
-      toast({
-        title: "Équipement supprimé",
-        description: "L'équipement a été supprimé avec succès",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer l'équipement",
-        variant: "destructive",
-      });
-    }
-  });
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -206,11 +192,6 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet équipement ?")) {
-      deleteEquipmentMutation.mutate(id);
-    }
-  };
 
   const getStatusColor = (operationalState: string) => {
     switch (operationalState) {
@@ -250,7 +231,12 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
           l'onglet n'en met pas. */}
       {enTete}
 
+      {/* Remplacé, et non masqué, sous le niveau requis : un bouton retiré
+          laisse croire à une panne plutôt qu'à une règle. */}
       <div className="flex justify-end">
+        {!peutCreerEquipement ? (
+          <CreationEquipementReservee />
+        ) : (
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => form.reset()} className="bg-ink text-paper hover:bg-signal">
@@ -272,6 +258,7 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
             />
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Recherche */}
@@ -299,18 +286,29 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
                   <Factory className="w-5 h-5 text-etat-encours-texte" />
                   <CardTitle className="text-lg">{eq.equipmentName}</CardTitle>
                 </div>
+                {/* Les deux actions du référentiel suivent le même droit que
+                    l'inscription : corriger une plaque ou une criticité engage
+                    le parc autant que de créer la fiche. Sous le niveau, la
+                    carte reste consultable — c'est la lecture qui compte pour
+                    un technicien. */}
                 <div className="flex space-x-1">
+                  {peutCreerEquipement && (
                   <Button variant="ghost" size="sm" onClick={() => handleEdit(eq)}>
                     <Edit className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleDelete(eq.id)}
-                    className="text-etat-critique-texte hover:text-etat-critique-texte"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  )}
+                  {/* ⚠️ LE BOUTON « SUPPRIMER » A ÉTÉ RETIRÉ.
+                      Il appelait `DELETE /api/equipment/:id`, route qui
+                      N'EXISTE PAS côté serveur — ni `deleteEquipment` dans le
+                      stockage, ni suppression dans `equipment_registry`. Il
+                      échouait donc systématiquement, en affichant « Impossible
+                      de supprimer l'équipement » sans que rien n'explique
+                      pourquoi (mesuré, docs/CREATION_EQUIPEMENT.md).
+                      Offrir une action qui ne peut pas aboutir est pire que de
+                      ne pas l'offrir : l'utilisateur croit à une panne.
+                      Ajouter la route est une décision à part — une
+                      suppression d'équipement casserait les ordres, plans,
+                      compteurs et relevés qui le référencent. */}
                 </div>
               </div>
             </CardHeader>
@@ -358,16 +356,28 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
           <Factory className="w-12 h-12 text-ink-mute mx-auto mb-4" />
           <h3 className="text-lg font-medium text-ink mb-2">Aucun équipement trouvé</h3>
           <p className="text-ink-soft mb-6">
-            {searchTerm ? "Aucun équipement ne correspond à votre recherche." : "Commencez par ajouter votre premier équipement."}
+            {searchTerm
+              ? "Aucun équipement ne correspond à votre recherche."
+              : peutCreerEquipement
+                // La phrase n'invite à inscrire une machine que celui qui peut
+                // le faire : l'annoncer puis refuser serait pire que se taire.
+                ? "Commencez par ajouter votre premier équipement."
+                : "Le parc est encore vide. Son référentiel est tenu par la maintenance."}
           </p>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un Équipement
-              </Button>
-            </DialogTrigger>
-          </Dialog>
+          {peutCreerEquipement ? (
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter un Équipement
+                </Button>
+              </DialogTrigger>
+            </Dialog>
+          ) : (
+            <div className="flex justify-center">
+              <CreationEquipementReservee />
+            </div>
+          )}
         </div>
       )}
 
