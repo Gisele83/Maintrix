@@ -1,7 +1,6 @@
 import { Router, Request, Response } from "express";
 import multer from "multer";
 import { dataImportExportService } from "./data-import-export";
-import { simpleImportService } from "./simple-import-service";
 import { tenantRequis } from "./tenant-requis";
 import { exigeNiveauImportMasse } from "./import-en-masse";
 

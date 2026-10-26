@@ -147,12 +147,12 @@ Aucun écran ne contient de rôle en dur ; un test le vérifie sur les cinq.
   Le relevé a aussi trouvé une **seconde porte invisible depuis l'URL** :
   `POST /api/work-orders` avec un `equipmentName` inconnu inscrivait un
   équipement dégradé.
-- **`/api/diagnostic/upload-excel` est enregistrée deux fois** (`server/routes.ts`,
+- ~~`/api/diagnostic/upload-excel` est enregistrée deux fois~~ (doublon retiré le 2026-10-26) (`server/routes.ts`,
   lignes 278 et ~3040). Express ne retient que la première ; la seconde est du
   code mort. **Les deux** portent la garde, pour que retirer celle qui
   s'exécute ne rouvre pas la porte par surprise. Le doublon lui-même n'a pas
   été supprimé : c'est un nettoyage sans rapport avec la restriction.
-- **`simpleImportService` est importé sans être appelé** dans
+- ~~`simpleImportService` est importé sans être appelé~~ (import mort retiré le 2026-10-26) dans
   `server/data-import-export-routes.ts` — import mort, signalé, pas touché.
 - **`GUIDE_IMPORTATION_DONNEES.md` ne nomme aucun rôle ni public.** C'est un
   mode d'emploi de formats de fichier. La crainte d'un coût sur le parcours

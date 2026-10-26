@@ -305,3 +305,39 @@ s'en serve pas un jour comme d'une garde.
 | ~~L'IMPORT en masse crée des ordres sans aucun niveau~~ | **restreint le 2026-10-26**, sur décision de l'utilisateur — voir `IMPORT_EN_MASSE.md`. Le relevé fait alors était **incomplet sur deux points** : il y avait **sept** routes d'import et non trois, et **deux d'entre elles** (`/api/import/maintenance-csv`, `/api/import/reported-cases-csv`) n'appelaient même pas `tenantRequis` — elles écrivaient des lignes avec `tenant_id` NULL, inattribuables. Seuil retenu : `maintenance_manager` (4), au-dessus du seuil de l'arbitrage parce qu'un import n'a **aucune annulation en masse**. La crainte d'un coût sur le parcours d'accueil ne s'appuyait sur rien : `GUIDE_IMPORTATION_DONNEES.md` ne nomme aucun rôle ni public |
 | **`PUT /api/work-orders/:id` n'a aucun contrôle de rôle** | Il ne peut pas CRÉER (il exige un identifiant existant), donc il n'ouvre pas de porte à la création. Mais il modifie coût, priorité et affectation. Le restreindre casserait le démarrage et la clôture par un technicien — son travail quotidien. Un découpage par champ serait nécessaire, et c'est un chantier à part |
 | **La file hors-ligne abandonne ses actions en silence** | `offline-storage.ts` rejoue des `POST /api/work-orders` et **supprime** l'action après trois échecs avec un simple `console.warn`. Aucun producteur n'enfile d'action `work_order` aujourd'hui — le chemin est dormant, donc la restriction ne provoque aucune perte — mais le jour où il sera utilisé, un 403 ferait disparaître la saisie sans rien dire |
+
+---
+
+## Mise à jour du 26 octobre 2026 — la file hors ligne ne perd plus de saisie
+
+Le dernier point ouvert de cette liste portait sur `offline-storage.ts`, qui
+rejouait les actions mises en file pendant une coupure et **supprimait** une
+action après trois échecs avec un simple `console.warn`.
+
+Il était noté « chemin dormant » parce qu'aucun producteur n'enfile d'action
+`work_order`. C'était vrai pour les ordres de travail, et **faux pour l'ensemble
+de la file** : son producteur vivant est le diagnostic hors ligne
+(`components/OfflineDiagnostic.tsx`, qui enfile `type: 'diagnostic'`). Ce qui se
+perdait était donc un **relevé d'intervention saisi sur le terrain**.
+
+L'action est désormais **mise de côté** et non détruite : charge utile, motif du
+dernier échec et date d'abandon sont conservés (`getAbandonedActions()`), et
+`rejouerActionAbandonnee()` la remet en file avec son compteur à zéro. La liste
+est bornée à 50 entrées, le stockage du navigateur étant petit. Si la mise de
+côté elle-même échoue (quota plein), le journal le dit fort plutôt que de
+laisser croire à une synchronisation réussie.
+
+`tests/unit/file-hors-ligne.test.ts` — 4 tests, dont un **témoin** vérifiant
+qu'une action réussie est bien retirée et ne s'accumule pas : sans lui, un code
+qui ne supprimerait jamais rien passerait les autres.
+
+> **Piège d'outillage rencontré** : ce module pose un `setInterval` dès son
+> chargement. Avec les vrais minuteurs et l'environnement `node`, la boucle
+> d'événements ne se vide jamais et Jest attend indéfiniment — la suite ne rend
+> aucun résultat. `jest.useFakeTimers()` avant l'import le règle. Il faut aussi
+> doubler `window`, `navigator` et `localStorage`, auxquels le module touche à
+> l'import.
+
+**Aucun écran ne montre encore ces actions mises de côté** : la récupération est
+possible, mais passe par la console. Un encart « saisies non synchronisées »
+dans l'interface reste à faire — signalé, pas fait.

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Edit, Trash2, Eye, Factory } from "lucide-react";
+import { Plus, Search, Edit, Eye, Factory } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -133,25 +133,6 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
   });
 
   // Delete equipment mutation
-  const deleteEquipmentMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/equipment/${id}`, {
-      method: "DELETE"
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/equipment"] });
-      toast({
-        title: "Équipement supprimé",
-        description: "L'équipement a été supprimé avec succès",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer l'équipement",
-        variant: "destructive",
-      });
-    }
-  });
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(equipmentSchema),
@@ -211,11 +192,6 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet équipement ?")) {
-      deleteEquipmentMutation.mutate(id);
-    }
-  };
 
   const getStatusColor = (operationalState: string) => {
     switch (operationalState) {
@@ -321,16 +297,18 @@ export function EquipmentManagement({ enTete }: EquipmentManagementProps = {}) {
                     <Edit className="w-4 h-4" />
                   </Button>
                   )}
-                  {peutCreerEquipement && (
-                  <Button
-                    variant="ghost"
-                    size="sm" 
-                    onClick={() => handleDelete(eq.id)}
-                    className="text-etat-critique-texte hover:text-etat-critique-texte"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                  )}
+                  {/* ⚠️ LE BOUTON « SUPPRIMER » A ÉTÉ RETIRÉ.
+                      Il appelait `DELETE /api/equipment/:id`, route qui
+                      N'EXISTE PAS côté serveur — ni `deleteEquipment` dans le
+                      stockage, ni suppression dans `equipment_registry`. Il
+                      échouait donc systématiquement, en affichant « Impossible
+                      de supprimer l'équipement » sans que rien n'explique
+                      pourquoi (mesuré, docs/CREATION_EQUIPEMENT.md).
+                      Offrir une action qui ne peut pas aboutir est pire que de
+                      ne pas l'offrir : l'utilisateur croit à une panne.
+                      Ajouter la route est une décision à part — une
+                      suppression d'équipement casserait les ordres, plans,
+                      compteurs et relevés qui le référencent. */}
                 </div>
               </div>
             </CardHeader>

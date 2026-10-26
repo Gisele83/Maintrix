@@ -227,9 +227,12 @@ fiche **reste consultable** : pour un technicien, 25 fiches affichées, 0 crayon
   responsable qui saisit un nom inconnu dans un ordre de travail crée encore une
   fiche `equipmentType: 'Generic'`, lieu « Non spécifié ». Mesuré. La supprimer
   ou la compléter est un choix de conception distinct de la question des droits.
-- **Aucune suppression d'équipement n'existe**, et le bouton « Supprimer » de
-  l'écran du parc appelle une route absente — il échoue donc toujours, pour
-  tout le monde.
+- **Aucune suppression d'équipement n'existe.** Le bouton « Supprimer » de
+  l'écran du parc, qui appelait cette route absente et échouait donc
+  systématiquement, **a été retiré** le 2026-10-26 : offrir une action qui ne
+  peut pas aboutir est pire que de ne pas l'offrir — l'utilisateur croit à une
+  panne. Ajouter la route reste une décision à part : supprimer un équipement
+  casserait les ordres, plans, compteurs et relevés qui le référencent.
 - **La file hors-ligne reste à reprendre avant usage** : elle rejoue des
   `equipment_update` et supprime l'action après trois échecs avec un simple
   `console.warn`. Dormante aujourd'hui, elle perdrait des saisies le jour où un

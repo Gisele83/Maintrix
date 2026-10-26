@@ -405,3 +405,92 @@ d'autrui, mais on peut encore le *lire* en entier. Pour un document de sécurit�
 nominatif, c'est une fuite de confidentialité distincte — et `GET /:id` se
 corrige en une ligne avec `cePermis()`, désormais disponible. Non corrigé : la
 lecture sortait du périmètre de cet examen comme de cette correction.
+
+---
+
+## Clôture de l'examen : C à G, la lecture des permis, et le garde-fou
+
+*Fait le 26 octobre 2026, sur décision de l'utilisateur, en vue d'un
+déploiement. **Toutes les anomalies de cet examen sont fermées.***
+
+| | Anomalie | État |
+|---|---|---|
+| A | `PUT /api/maintenance-plans/:id` | **corrigée** (route supprimée) |
+| B | `PATCH /api/permits/:id` | **corrigée** |
+| C | `PUT /api/work-orders/:id` | **corrigée** (+ la branche de clôture, voir plus bas) |
+| D | `PUT /api/spare-parts/:id` | **corrigée** |
+| E | `POST /api/procurement/suppliers` | **corrigée** |
+| F | `POST /api/report` | **corrigée** |
+| G | les 5 créations non éprouvées | **corrigées** |
+| — | les 7 transitions de permis | **corrigées** |
+| — | la LECTURE des permis | **corrigée** |
+
+### La lecture des permis
+
+- `GET /api/permits/:id` n'avait **aucun** filtre : on lisait le permis complet
+  d'une autre entreprise, avec les noms des intervenants ajoutés juste après.
+  Passe par `permisDuLocataire` → 404 hors périmètre ;
+- `GET /api/permits` et `/stats` faisaient `if (tenantId) …` : **sans
+  locataire, aucun filtre**, donc toutes les entreprises. Remplacé par
+  `tenantRequis`, qui refuse. Le ternaire
+  `conditions.length > 0 ? … : undefined` est retiré : il laissait entendre
+  qu'une clause vide était un cas légitime.
+
+### Le durcissement local, et ce qu'il a appris
+
+Huit méthodes de stockage épandaient leur entrée. La propriété « le locataire
+n'est pas écrit » était vraie *parce que l'appelant valide* ; elle est
+désormais vraie **sur place**.
+
+Quatre n'avaient rien à retirer : leur **type** exclut déjà `tenantId`
+(`Partial<Omit<…, "tenantId">>`, ou table sans colonne locataire). Le typecheck
+a refusé l'extraction — et c'est une protection **plus forte**, puisqu'il
+refuse l'appelant et non seulement la valeur.
+
+### Le garde-fou a trouvé ce que l'examen avait manqué
+
+`tests/unit/cloisonnement-ecritures.test.ts` balaye la source et accepte trois
+formes, chacune motivée : le type l'interdit, l'extraction explicite, ou un
+schéma Zod (qui retire l'inconnu — avec un bloc final vérifiant que ces schémas
+ne *déclarent* pas `tenantId`, sans quoi ce serait une échappatoire).
+
+Dès sa première exécution, il a signalé un chemin que l'examen route par route
+ne pouvait pas voir : **la clôture d'un ordre de travail écrit directement dans
+`work_orders`**, hors de la couche de stockage. Le durcissement
+d'`updateWorkOrder` ne la couvrait donc pas, et un `tenantId` glissé dans le
+corps d'une requête de clôture faisait sortir l'ordre par cette branche.
+Corrigé dans `executerCloture`.
+
+C'est l'argument pour ce genre de garde-fou : il part des **écritures**, pas
+des routes.
+
+> **Témoin exécuté** : une violation volontaire (`.set({ ...req.body })`
+> introduite dans `rcm-routes.ts`) fait échouer deux assertions, et le vert
+> revient au rétablissement. Sans ce contrôle, un garde-fou muet passerait pour
+> une protection.
+
+Calibrage : trois faux positifs écartés après vérification (le locataire était
+posé en amont de l'objet analysé), et deux heuristiques corrigées — `if (` pris
+pour une déclaration de méthode, et `tenantId: true` dans une liste `.omit()`
+pris pour une déclaration de champ alors qu'il la **retire**.
+
+### Rejeu complet, lu dans la table
+
+| Scénario | HTTP | Locataire en base |
+|---|---|---|
+| C — `PUT /work-orders/:id` avec `tenantId` | 200 | Alpha (inchangé) |
+| C bis — la même par la **clôture** | 200 | Alpha (inchangé) |
+| D — `PUT /spare-parts/:id` | 200 | Alpha (inchangé) |
+| E — `POST /procurement/suppliers` | 201 | Alpha (session) |
+| F — `POST /report` | 201 | Alpha (session) |
+| lecture — `GET /permits/:id` d'autrui | **404** | — |
+| lecture — la liste contient-elle le permis d'autrui ? | — | **non** |
+
+Les réponses passent de **403 à 200/201** : la ligne ne sortant plus de son
+entreprise, le filet anti-fuite sur la réponse n'a plus rien à signaler. C'est
+le signe que la correction agit à la bonne place — avant l'écriture, et non
+après.
+
+- lanes complètes : **447 tests unitaires** (38 suites) et **465
+  d'intégration** (30 suites) verts ;
+- `npm run check`, `check:tests`, `check:scripts` : verts.

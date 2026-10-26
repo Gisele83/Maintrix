@@ -3061,7 +3061,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Excel file upload endpoint
-  app.post("/api/diagnostic/upload-excel", exigeNiveauImportMasse, uploadMiddleware, processUserExcelFile);
+  // `/api/diagnostic/upload-excel` est enregistrée PLUS HAUT (voir la route
+  // avec `exigeNiveauImportMasse`, juste après le montage de
+  // `requireAuthentication`). Un second enregistrement identique vivait ici :
+  // Express ne retient que le premier, donc il ne servait jamais — mais il
+  // fallait penser à garder les deux en cohérence, et une garde ajoutée à
+  // l'un seulement aurait donné une fausse impression de protection.
 
   // Enhanced diagnostic endpoint using historical cases
   app.post("/api/diagnostic/analyze", async (req, res) => {

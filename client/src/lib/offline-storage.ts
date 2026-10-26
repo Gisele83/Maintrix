@@ -23,7 +23,11 @@ interface PendingAction {
 class OfflineStorageManager {
   private readonly STORAGE_KEY = 'gmao_offline_data';
   private readonly PENDING_ACTIONS_KEY = 'gmao_pending_actions';
+  // Les actions qui ont épuisé leurs tentatives : mises de côté, jamais
+  // détruites (voir `mettreDeCote`).
+  private readonly ABANDONED_ACTIONS_KEY = 'gmao_abandoned_actions';
   private readonly MAX_RETRY_COUNT = 3;
+  private readonly MAX_ABANDONED = 50;
 
   /**
    * Vérifie si l'application est en mode offline
@@ -121,6 +125,68 @@ class OfflineStorageManager {
   }
 
   /**
+   * Met une action de côté au lieu de la détruire.
+   *
+   * Conserve la charge utile, le motif du dernier échec et la date d'abandon.
+   * Une saisie faite sur le terrain doit rester récupérable : c'est du travail
+   * humain, pas un paquet réseau.
+   */
+  private mettreDeCote(action: PendingAction, erreur: unknown): void {
+    try {
+      const motif = erreur instanceof Error ? erreur.message : String(erreur);
+      const abandonnees: Array<PendingAction & { motif: string; abandonneeLe: number }> =
+        JSON.parse(localStorage.getItem(this.ABANDONED_ACTIONS_KEY) || '[]');
+
+      abandonnees.push({ ...action, motif, abandonneeLe: Date.now() });
+
+      // On borne la liste : le stockage du navigateur est petit, et les plus
+      // récentes sont les plus utiles à récupérer.
+      const bornees = abandonnees.slice(-this.MAX_ABANDONED);
+      localStorage.setItem(this.ABANDONED_ACTIONS_KEY, JSON.stringify(bornees));
+
+      console.error(
+        `⚠️ Action mise de côté après ${this.MAX_RETRY_COUNT} tentatives (${action.type}). ` +
+        `Elle n'est PAS perdue : voir offlineStorage.getAbandonedActions(). Motif : ${motif}`,
+      );
+    } catch (error) {
+      // Si même la mise de côté échoue (quota plein), on le dit fort plutôt
+      // que de laisser croire à une synchronisation réussie.
+      console.error('❌ Impossible de mettre l\'action de côté — saisie à risque:', action, error);
+    }
+  }
+
+  /** Les actions abandonnées, pour qu'un écran puisse les montrer et les rejouer. */
+  getAbandonedActions(): Array<PendingAction & { motif: string; abandonneeLe: number }> {
+    try {
+      return JSON.parse(localStorage.getItem(this.ABANDONED_ACTIONS_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  /** Remet une action mise de côté dans la file, compteur remis à zéro. */
+  rejouerActionAbandonnee(actionId: string): boolean {
+    const abandonnees = this.getAbandonedActions();
+    const cible = abandonnees.find((a) => a.id === actionId);
+    if (!cible) return false;
+
+    const { motif: _motif, abandonneeLe: _date, ...action } = cible;
+    try {
+      const enAttente = this.getPendingActions();
+      enAttente.push({ ...action, retryCount: 0 });
+      localStorage.setItem(this.PENDING_ACTIONS_KEY, JSON.stringify(enAttente));
+      localStorage.setItem(
+        this.ABANDONED_ACTIONS_KEY,
+        JSON.stringify(abandonnees.filter((a) => a.id !== actionId)),
+      );
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur remise en file:', error);
+      return false;
+    }
+  }
+
+  /**
    * Synchronise les actions en attente quand la connexion revient
    */
   async syncPendingActions(): Promise<void> {
@@ -139,15 +205,28 @@ class OfflineStorageManager {
         console.log(`✅ Action synchronisée: ${action.type}`);
       } catch (error) {
         console.error(`❌ Erreur synchronisation action ${action.id}:`, error);
-        
-        // Incrémenter le compteur de retry
+
         action.retryCount++;
+
+        // ═══════════════════════════════════════════════════════════════
+        // UNE SAISIE HORS LIGNE NE DISPARAÎT PLUS EN SILENCE
+        // ═══════════════════════════════════════════════════════════════
+        // Après trois échecs, cette file faisait `removePendingAction` avec un
+        // simple `console.warn` : la saisie était DÉTRUITE, et l'utilisateur
+        // qui l'avait faite sur le terrain n'en savait rien. Le producteur
+        // vivant de cette file est le diagnostic hors ligne
+        // (components/OfflineDiagnostic.tsx) — ce n'est donc pas un chemin
+        // théorique : c'est un relevé d'intervention perdu.
+        //
+        // L'action est désormais MISE DE CÔTÉ au lieu d'être supprimée. On
+        // garde la charge utile, le motif et la date, pour que ce qui a été
+        // saisi reste récupérable et qu'un écran puisse le signaler.
         if (action.retryCount >= this.MAX_RETRY_COUNT) {
-          console.warn(`⚠️ Action abandonnée après ${this.MAX_RETRY_COUNT} tentatives:`, action.id);
+          this.mettreDeCote(action, error);
           this.removePendingAction(action.id);
         } else {
           // Sauvegarder avec le nouveau compteur
-          const updatedActions = this.getPendingActions().map(a => 
+          const updatedActions = this.getPendingActions().map(a =>
             a.id === action.id ? action : a
           );
           localStorage.setItem(this.PENDING_ACTIONS_KEY, JSON.stringify(updatedActions));
