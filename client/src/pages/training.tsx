@@ -26,14 +26,31 @@ import { ModernNavigation } from "@/components/modern-navigation";
 import { ModuleViewer } from "@/components/training/ModuleViewer";
 import { getModuleContent } from "@/data/trainingContent";
 
+/**
+ * ⚠️ `progress: number` et `completed: boolean` ont été RETIRÉS de ce type.
+ *
+ * Les douze modules portaient une progression écrite en dur — 100 %, 85 %,
+ * 60 %, 20 %… — identique pour tout le monde. Chaque utilisateur se voyait
+ * annoncer qu'il avait terminé « Introduction Maintrix » sans avoir rien
+ * ouvert, et qu'il lui restait 40 % du module GMAO qu'il n'avait jamais
+ * commencé.
+ *
+ * Rien ne persiste cette progression : `handleModuleComplete` se contentait
+ * d'un `console.log` et d'un message de félicitations, et les tables
+ * `user_skill_progress` et `user_challenge_progress` ne sont ni lues ni
+ * écrites. Il n'y avait donc aucune progression à afficher, seulement des
+ * nombres choisis pour faire joli.
+ *
+ * La progression RÉELLE existe à l'intérieur d'un module — `ModuleViewer` la
+ * calcule sur les leçons effectivement parcourues — mais elle ne survit pas à
+ * un rechargement. Tant que ce n'est pas persisté, la liste n'en montre pas.
+ */
 interface TrainingModule {
   id: string;
   title: string;
   description: string;
   duration: string;
   difficulty: "Débutant" | "Intermédiaire" | "Avancé";
-  progress: number;
-  completed: boolean;
   lessons: number;
   category: string;
   icon: any;
@@ -53,41 +70,27 @@ interface LearningPath {
 export default function Training() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
-  const [userProgress, setUserProgress] = useState({
-    totalModules: 12,
-    completedModules: 4,
-    totalHours: 40,
-    completedHours: 15,
-    certificates: 2,
-    streak: 7
-  });
+  // ⚠️ `userProgress` a été RETIRÉ : six chiffres inventés dans un `useState`
+  // (« 4/12 modules terminés », « 15h », « 2 certificats », « 7j de série »),
+  // identiques pour tous et remis à ces valeurs à chaque rechargement.
+  //
+  // `handleContinueModule` et `handleStartCertification` ont disparu avec eux :
+  // le premier distinguait « reprendre » de « commencer » sur la foi d'une
+  // progression fictive, le second n'exécutait qu'un `console.log` sous le
+  // titre « Certification commencée ».
   const { toast } = useToast();
 
-  // Gestionnaires d'événements pour les modules de formation
   const handleStartModule = (moduleId: string, title: string) => {
-    console.log(`Starting training module: ${moduleId}`);
     setSelectedModule(moduleId);
-    toast({
-      title: "Module démarré",
-      description: `Début du module: ${title}`,
-    });
-  };
-
-  const handleContinueModule = (moduleId: string, title: string) => {
-    console.log(`Continuing training module: ${moduleId}`);
-    setSelectedModule(moduleId);
-    toast({
-      title: "Module repris",
-      description: `Reprise du module: ${title}`,
-    });
   };
 
   const handleModuleComplete = (moduleId: string) => {
-    console.log(`Module completed: ${moduleId}`);
     setSelectedModule(null);
+    // Pas de « Félicitations pour avoir terminé ce module » : rien n'est
+    // enregistré, et le module sera de nouveau vierge au prochain passage.
     toast({
-      title: "Module terminé !",
-      description: "Félicitations pour avoir terminé ce module de formation",
+      title: "Module parcouru",
+      description: "Votre avancement n'est pas conservé d'une session à l'autre.",
     });
   };
 
@@ -95,211 +98,140 @@ export default function Training() {
     setSelectedModule(null);
   };
 
-  const handleStartCertification = (certType: string) => {
-    console.log(`Starting certification: ${certType}`);
-    toast({
-      title: "Certification commencée",
-      description: `Début du parcours de certification: ${certType}`,
-    });
-  };
-
+  /**
+   * ⚠️ Cette liste comptait DOUZE modules. Seuls six avaient un contenu dans
+   * `trainingContent.ts` : les six autres — « Fondamentaux de Smart
+   * Diagnostic », « IA et Machine Learning », « Procédures de Maintenance »,
+   * « Gestion des Données »… — ouvraient sur « Module non trouvé ».
+   *
+   * Un septième, « Gamification et Compétences », décrivait un système de
+   * points, de récompenses et de classement dont les six tables
+   * (`maintenance_skills`, `user_skill_progress`, `maintenance_achievements`,
+   * `user_achievements`, `skill_challenges`, `user_challenge_progress`) ne
+   * sont ni lues ni écrites par le serveur. Il enseignait une fonctionnalité
+   * qui n'existe pas.
+   *
+   * Restent cinq modules, qui correspondent aux modules RÉELS de la
+   * plateforme et dont le contenu a été réécrit en conséquence.
+   */
   const trainingModules: TrainingModule[] = [
     {
       id: "intro-basics",
-      title: "Introduction Maintrix",
-      description: "Découvrez la plateforme intégrée Smart Diagnostic + Smart GMAO avec IoT et sécurité avancée",
-      duration: "50 min",
+      title: "Prise en main",
+      description: "Se connecter, comprendre son rôle, et lire ce que la plateforme affiche — y compris quand elle affiche « — ».",
+      duration: "25 min",
       difficulty: "Débutant",
-      progress: 100,
-      completed: true,
-      lessons: 6,
+      lessons: 2,
       category: "Introduction",
       icon: Play,
-      skills: ["Interface unifiée Maintrix", "Smart Diagnostic IA", "Maintrix maintenance", "IoT temps réel", "Sécurité avancée", "Chatbot support"]
-    },
-    {
-      id: "diagnostic-ai-advanced",
-      title: "Smart Diagnostic IA Avancé",
-      description: "Maîtrisez l'assistant IA de diagnostic avec ML avancé, ensemble et chatbot technique",
-      duration: "60 min", 
-      difficulty: "Intermédiaire",
-      progress: 85,
-      completed: false,
-      lessons: 8,
-      category: "IA Diagnostic",
-      icon: Brain,
-      skills: ["Mode ML Standard", "Mode ML Avancé", "Ensemble ML", "Chatbot technique", "Feedback système", "Analytics prédictives"]
+      skills: ["Connexion et rôles", "Lecture des indicateurs", "Cloisonnement des données"]
     },
     {
       id: "gmao-complete",
-      title: "Smart GMAO Complet",
-      description: "Formation complète sur le système de gestion de maintenance avec équipements, OT, et IoT",
-      duration: "90 min",
-      difficulty: "Intermédiaire", 
-      progress: 60,
-      completed: false,
-      lessons: 12,
+      title: "GMAO au quotidien",
+      description: "Parc, ordres de travail, préventif et pièces détachées : le cycle complet, de la demande à la clôture.",
+      duration: "40 min",
+      difficulty: "Débutant",
+      lessons: 3,
       category: "GMAO",
       icon: Factory,
-      skills: ["Gestion équipements", "Ordres de travail", "Maintenance préventive", "Gestion stocks", "IoT intégration", "KPI et rapports"]
+      skills: ["Registre du parc", "Ordres de travail", "Plans préventifs", "Stock et point de commande"]
+    },
+    {
+      id: "diagnostic-ai-advanced",
+      title: "Diagnostic assisté",
+      description: "Obtenir des causes probables, et savoir d'où vient chacune — règle, cas passé ou modèle de langage.",
+      duration: "25 min",
+      difficulty: "Intermédiaire",
+      lessons: 2,
+      category: "Diagnostic",
+      icon: Brain,
+      skills: ["Description d'un symptôme", "Lecture des sources", "Conversion en ordre de travail"]
     },
     {
       id: "iot-monitoring",
-      title: "Monitoring IoT Temps Réel",
-      description: "Surveillance avancée avec capteurs IoT, alertes automatiques et maintenance prédictive",
-      duration: "45 min",
-      difficulty: "Avancé",
-      progress: 40,
-      completed: false,
-      lessons: 6,
-      category: "IoT",
+      title: "Supervision et santé des équipements",
+      description: "Lire l'état d'une machine à partir de ses capteurs, et régler les seuils que la statistique ne peut pas deviner.",
+      duration: "35 min",
+      difficulty: "Intermédiaire",
+      lessons: 3,
+      category: "Supervision",
       icon: Zap,
-      skills: ["Capteurs temps réel", "Alertes automatiques", "Seuils configurables", "Analytics prédictives", "Dashboard monitoring"]
+      skills: ["Écart au régime habituel", "Seuils réglés par machine", "Sens du franchissement", "État « non évalué »"]
     },
     {
       id: "security-advanced",
-      title: "Sécurité Avancée",
-      description: "Système de sécurité multi-niveaux avec rate limiting, détection anomalies et monitoring",
-      duration: "35 min",
-      difficulty: "Avancé",
-      progress: 20,
-      completed: false,
-      lessons: 5,
-      category: "Sécurité",
-      icon: Settings,
-      skills: ["Rate limiting", "Détection anomalies", "Logs sécurité", "Mode urgence", "Protection CSRF"]
-    },
-    {
-      id: "gamification-skills",
-      title: "Gamification et Compétences",
-      description: "Système gamifié de progression des compétences maintenance avec achievements",
+      title: "Administration et sécurité",
+      description: "Comptes, rôles, habilitations de validation et traçabilité des approbations.",
       duration: "30 min",
-      difficulty: "Intermédiaire",
-      progress: 0,
-      completed: false,
-      lessons: 4,
-      category: "Gamification",
-      icon: Award,
-      skills: ["Compétences techniques", "Points XP", "Achievements", "Classement utilisateurs", "Progression skills"]
-    },
-    {
-      id: "diagnostic-fundamentals",
-      title: "Fondamentaux de Smart Diagnostic",
-      description: "Maîtrisez Smart Diagnostic avec IA intégrée à Smart GMAO",
-      duration: "2h 30min",
-      difficulty: "Débutant",
-      progress: 100,
-      completed: true,
-      lessons: 8,
-      category: "Diagnostic",
-      icon: Target,
-      skills: ["Analyse symptômes IA", "Identification problèmes automatisée", "Intégration Smart GMAO", "Workflow unifié"]
-    },
-    {
-      id: "gmao-integration",
-      title: "Intégration Smart GMAO Complète",
-      description: "Du diagnostic à l'intervention : gestion complète de maintenance",
-      duration: "3h 00min",
-      difficulty: "Intermédiaire",
-      progress: 80,
-      completed: false,
-      lessons: 10,
-      category: "GMAO",
-      icon: Factory,
-      skills: ["Ordres de travail", "Planification maintenance", "Suivi interventions", "Workflow validation"]
-    },
-    {
-      id: "advanced-ai",
-      title: "IA et Machine Learning",
-      description: "Exploitez la puissance de l'intelligence artificielle",
-      duration: "3h 15min",
-      difficulty: "Intermédiaire",
-      progress: 60,
-      completed: false,
-      lessons: 10,
-      category: "IA/ML",
-      icon: Brain,
-      skills: ["Modèles ML", "Interprétation résultats", "Optimisation précision"]
-    },
-    {
-      id: "maintenance-procedures",
-      title: "Procédures de Maintenance",
-      description: "Planification et exécution des interventions",
-      duration: "2h 45min",
-      difficulty: "Intermédiaire",
-      progress: 75,
-      completed: false,
-      lessons: 9,
-      category: "Maintenance",
-      icon: Wrench,
-      skills: ["Planification", "Sécurité", "Documentation", "Suivi qualité"]
-    },
-    {
-      id: "data-management",
-      title: "Gestion des Données",
-      description: "Import, export et analyse de vos données",
-      duration: "2h 00min",
-      difficulty: "Intermédiaire",
-      progress: 30,
-      completed: false,
-      lessons: 7,
-      category: "Données",
-      icon: BarChart,
-      skills: ["Import CSV", "Validation données", "Nettoyage", "Analyse trends"]
-    },
-    {
-      id: "system-administration",
-      title: "Administration Système",
-      description: "Configuration avancée et gestion utilisateurs",
-      duration: "3h 30min",
       difficulty: "Avancé",
-      progress: 0,
-      completed: false,
-      lessons: 12,
+      lessons: 2,
       category: "Administration",
       icon: Settings,
-      skills: ["Gestion utilisateurs", "Paramétrage", "Sécurité", "Maintenance système"]
-    }
+      skills: ["Rôles et niveaux", "Droits de validation", "Journal d'audit", "Permis de travail"]
+    },
   ];
 
-  const learningPaths: LearningPath[] = [
+  /**
+   * ⚠️ Les quatre parcours désignaient des modules par des identifiants qui
+   * n'existent pas — `diagnostic-fundamentals`, `gmao-integration`,
+   * `maintenance-procedures`, `advanced-ai`, `data-management`,
+   * `system-administration`. `getModulesByPath` renvoyait donc des listes
+   * vides ou amputées, et les durées annoncées (« 6h 00min », « 14h 45min »)
+   * ne correspondaient à aucune somme réelle.
+   *
+   * Les durées sont désormais CALCULÉES à partir des modules du parcours :
+   * elles ne peuvent plus diverger de leur contenu.
+   */
+  const dureeParcours = (ids: string[]): string => {
+    const minutes = ids
+      .map((id) => trainingModules.find((m) => m.id === id))
+      .filter((m): m is TrainingModule => m !== undefined)
+      .reduce((somme, m) => somme + (parseInt(m.duration, 10) || 0), 0);
+    const h = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    return h > 0 ? `${h} h ${String(min).padStart(2, "0")}` : `${min} min`;
+  };
+
+  const parcours: Array<Omit<LearningPath, "totalDuration">> = [
     {
       id: "technician-path",
-      title: "Parcours Technicien Smart GMAO",
-      description: "Formation complète technicien : Smart Diagnostic + Smart GMAO intégré",
-      modules: ["intro-basics", "diagnostic-fundamentals", "gmao-integration", "maintenance-procedures"],
-      totalDuration: "6h 00min",
+      title: "Parcours technicien",
+      description: "Recevoir une intervention, la réaliser, la clôturer proprement.",
+      modules: ["intro-basics", "gmao-complete", "diagnostic-ai-advanced"],
       targetAudience: "Techniciens de maintenance, opérateurs",
       icon: Wrench
     },
     {
-      id: "analyst-path",
-      title: "Parcours Analyste",
-      description: "Spécialisation en analyse de données et IA",
-      modules: ["intro-basics", "advanced-ai", "data-management"],
-      totalDuration: "6h 30min",
-      targetAudience: "Ingénieurs, analystes de données",
+      id: "manager-path",
+      title: "Parcours responsable maintenance",
+      description: "Piloter le préventif, lire les indicateurs, régler les seuils d'alarme.",
+      modules: ["intro-basics", "gmao-complete", "iot-monitoring"],
+      targetAudience: "Responsables maintenance, planificateurs",
       icon: Brain
     },
     {
       id: "administrator-path",
-      title: "Parcours Administrateur",
-      description: "Formation complète pour la gestion système",
-      modules: ["intro-basics", "data-management", "system-administration"],
-      totalDuration: "6h 15min",
-      targetAudience: "Administrateurs système, responsables IT",
+      title: "Parcours administrateur",
+      description: "Comptes, rôles, habilitations de validation et traçabilité.",
+      modules: ["intro-basics", "security-advanced"],
+      targetAudience: "Administrateurs, responsables informatiques",
       icon: Settings
     },
     {
       id: "complete-path",
-      title: "Parcours Complet",
-      description: "Maîtrise complète de tous les aspects de Maintrix",
-      modules: ["intro-basics", "diagnostic-fundamentals", "advanced-ai", "maintenance-procedures", "data-management", "system-administration"],
-      totalDuration: "14h 45min",
-      targetAudience: "Responsables maintenance, formateurs",
+      title: "Parcours complet",
+      description: "Les cinq modules, dans l'ordre.",
+      modules: trainingModules.map((m) => m.id),
+      targetAudience: "Responsables, formateurs",
       icon: Award
     }
   ];
+
+  const learningPaths: LearningPath[] = parcours.map((p) => ({
+    ...p,
+    totalDuration: dureeParcours(p.modules),
+  }));
 
   const getModulesByPath = (pathId: string) => {
     const path = learningPaths.find(p => p.id === pathId);
@@ -356,40 +288,38 @@ export default function Training() {
       </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Progress Dashboard */}
-        <Card className="border-0 bg-paper-deep from-primary/5 to-primary/10">
+        {/* ⚠️ Ce bandeau affichait quatre chiffres entièrement inventés, posés
+            dans un `useState` : « 4/12 modules terminés », « 15h
+            d'apprentissage », « 2 certificats obtenus », « 7j de série ». Les
+            mêmes pour tout le monde, dès la première visite, et remis à ces
+            valeurs à chaque rechargement.
+
+            Rien ne les mesure : aucune table ne suit la progression, et
+            `handleModuleComplete` ne faisait qu'un `console.log`. Annoncer à
+            un technicien qu'il détient deux certificats qu'il n'a jamais
+            passés est la pire chose qu'un outil de formation puisse faire —
+            c'est précisément ce qu'on lui demandera de prouver.
+
+            Ce que l'on peut dire sans rien mesurer, c'est ce que la formation
+            CONTIENT. */}
+        <Card className="border-0 bg-paper-deep">
           <CardContent className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-1">
-                  {userProgress.completedModules}/{userProgress.totalModules}
-                </div>
-                <div className="text-sm text-muted-foreground">Modules terminés</div>
-                <Progress value={(userProgress.completedModules / userProgress.totalModules) * 100} className="mt-2" />
+                <div className="text-3xl font-bold text-ink mb-1">{trainingModules.length}</div>
+                <div className="text-sm text-ink-soft">Modules disponibles</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-etat-nominal-texte mb-1">
-                  {userProgress.completedHours}h
+                <div className="text-3xl font-bold text-ink mb-1">
+                  {trainingModules.reduce((s, m) => s + m.lessons, 0)}
                 </div>
-                <div className="text-sm text-muted-foreground">Temps d'apprentissage</div>
-                <Progress value={(userProgress.completedHours / userProgress.totalHours) * 100} className="mt-2" />
+                <div className="text-sm text-ink-soft">Leçons au total</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-etat-alerte-texte mb-1">
-                  {userProgress.certificates}
-                </div>
-                <div className="text-sm text-muted-foreground">Certificats obtenus</div>
-                <div className="flex justify-center mt-2">
-                  <Award className="w-6 h-6 text-etat-alerte-texte" />
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-etat-alerte-texte mb-1">
-                  {userProgress.streak}j
-                </div>
-                <div className="text-sm text-muted-foreground">Série d'apprentissage</div>
-                <div className="flex justify-center mt-2">
-                  <Zap className="w-6 h-6 text-etat-alerte-texte" />
+                <div className="text-3xl font-bold text-ink-mute mb-1">—</div>
+                <div className="text-sm text-ink-soft">Votre progression</div>
+                <div className="text-xs text-ink-mute mt-1">
+                  pas encore conservée d'une session à l'autre
                 </div>
               </div>
             </div>
@@ -412,8 +342,6 @@ export default function Training() {
             {learningPaths.map((path) => {
               const IconComponent = path.icon;
               const pathModules = getModulesByPath(path.id);
-              const completedInPath = pathModules.filter(m => m.completed).length;
-              const progressPercent = pathModules.length > 0 ? (completedInPath / pathModules.length) * 100 : 0;
 
               return (
                 <Card 
@@ -437,12 +365,12 @@ export default function Training() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-4">{path.description}</p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>{completedInPath}/{pathModules.length} modules terminés</span>
-                        <span>{Math.round(progressPercent)}%</span>
-                      </div>
-                      <Progress value={progressPercent} />
+                    {/* La barre affichait une progression dérivée de drapeaux
+                        `completed` écrits en dur. Reste le décompte réel des
+                        modules de ce parcours, qui ne prétend rien sur ce que
+                        l'utilisateur a fait. */}
+                    <div className="text-sm text-ink-soft">
+                      {pathModules.length} module{pathModules.length > 1 ? "s" : ""}
                     </div>
                     <Button className="w-full mt-4" variant={selectedPath === path.id ? "default" : "outline"}>
                       {selectedPath === path.id ? "Masquer les détails" : "Voir les détails"}
@@ -472,12 +400,11 @@ export default function Training() {
                           <span className="font-medium">{module.title}</span>
                         </div>
                         <div className="text-sm text-muted-foreground mb-2">{module.duration}</div>
-                        <Progress value={module.progress} className="mb-2" />
                         <div className="flex items-center justify-between">
                           <Badge variant={module.difficulty === "Débutant" ? "secondary" : module.difficulty === "Intermédiaire" ? "outline" : "destructive"} className="text-xs">
                             {module.difficulty}
                           </Badge>
-                          {module.completed && <CheckCircle className="w-4 h-4 text-etat-nominal-texte" />}
+                          <span className="text-xs text-ink-mute">{module.lessons} leçons</span>
                         </div>
                       </div>
                     );
@@ -524,21 +451,16 @@ export default function Training() {
                           </div>
                         </div>
                       </div>
-                      {module.completed && <CheckCircle className="w-5 h-5 text-etat-nominal-texte" />}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-muted-foreground mb-4">{module.description}</p>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span>Progression</span>
-                          <span>{module.progress}%</span>
-                        </div>
-                        <Progress value={module.progress} />
-                      </div>
 
+                    {/* La barre « Progression » affichait une valeur écrite en
+                        dur, identique pour tous. Rien ne persiste l'avancement
+                        d'un module d'une session à l'autre : il n'y a donc
+                        aucune progression à montrer ici. */}
+                    <div className="space-y-3">
                       <div className="text-sm">
                         <div className="font-medium mb-1">Compétences acquises :</div>
                         <div className="flex flex-wrap gap-1">
@@ -561,34 +483,18 @@ export default function Training() {
                       </div>
                     </div>
 
-                    <Button 
-                      className="w-full mt-4" 
-                      variant={module.completed ? "outline" : "default"}
+                    <Button
+                      className="w-full mt-4"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Button clicked for module:', module.id, module.title);
-                        if (module.completed || module.progress > 0) {
-                          handleContinueModule(module.id, module.title);
-                        } else {
-                          handleStartModule(module.id, module.title);
-                        }
+                        handleStartModule(module.id, module.title);
                       }}
                     >
-                      {module.completed ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Revoir
-                        </>
-                      ) : module.progress > 0 ? (
+                      {(
                         <>
                           <Play className="w-4 h-4 mr-2" />
-                          Continuer
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 mr-2" />
-                          Commencer
+                          Ouvrir
                         </>
                       )}
                     </Button>
@@ -599,77 +505,41 @@ export default function Training() {
           </div>
         </div>
 
-        {/* Certification Section */}
+        {/* ⚠️ CETTE SECTION PROPOSAIT TROIS CERTIFICATIONS QUI N'EXISTENT PAS.
+            « Technicien Certifié » (6h), « Expert IA » (8h), « Administrateur »
+            (10h), chacune avec un bouton « Commencer » qui n'exécutait qu'un
+            `console.log` suivi d'un message « Certification commencée ».
+            Aucune épreuve, aucun jury, aucune attestation, rien en base.
+
+            Le bandeau de la page annonçait en outre « 2 certificats obtenus »
+            à tout nouvel arrivant.
+
+            C'est le mensonge le plus coûteux de toute la plateforme, parce
+            qu'une certification se présente à un employeur ou à un donneur
+            d'ordre. Un technicien qui s'en prévaut sur la foi de cet écran se
+            retrouve à en répondre.
+
+            La section dit désormais ce qui existe réellement : des modules de
+            formation, et une évaluation de fin de module interne au lecteur. */}
         <Card className="border-0 bg-paper-deep">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-etat-alerte-texte">
-              <Award className="w-6 h-6" />
-              <span>Certifications Disponibles</span>
+            <CardTitle className="flex items-center space-x-2 text-ink">
+              <Award className="w-6 h-6 text-ink-mute" />
+              <span>Attestations</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-white rounded-lg">
-                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Technicien Certifié</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Maîtrise des fonctionnalités de diagnostic et maintenance
-                </p>
-                <Badge variant="secondary" className="mb-3">6h de formation</Badge>
-                <Button 
-                  className="w-full mt-2" 
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Certification button clicked: Technicien Certifié');
-                    handleStartCertification("Technicien Certifié");
-                  }}
-                >
-                  Commencer
-                </Button>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg">
-                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Expert IA</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Spécialisation en intelligence artificielle et analyse
-                </p>
-                <Badge variant="secondary" className="mb-3">8h de formation</Badge>
-                <Button 
-                  className="w-full mt-2" 
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Certification button clicked: Expert IA');
-                    handleStartCertification("Expert IA");
-                  }}
-                >
-                  Commencer
-                </Button>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg">
-                <Award className="w-12 h-12 text-etat-alerte-texte mx-auto mb-3" />
-                <h3 className="font-semibold mb-2">Administrateur</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Administration système et gestion avancée
-                </p>
-                <Badge variant="secondary" className="mb-3">10h de formation</Badge>
-                <Button 
-                  className="w-full mt-2" 
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Certification button clicked: Administrateur');
-                    handleStartCertification("Administrateur");
-                  }}
-                >
-                  Commencer
-                </Button>
-              </div>
-            </div>
+          <CardContent className="space-y-3 text-sm text-ink-soft">
+            <p>
+              Maintrix ne délivre aucune certification. Chaque module se termine par
+              une évaluation dont le résultat s'affiche immédiatement, et qui sert à
+              vous situer — elle n'est ni conservée ni opposable à un tiers.
+            </p>
+            <p className="text-ink-mute">
+              Si un parcours certifiant vous est nécessaire, c'est un sujet à aborder
+              avec votre interlocuteur Techlearn : il suppose un référentiel de
+              compétences, une épreuve et un jury, aucun des trois n'existant à ce jour
+              dans la plateforme.
+            </p>
           </CardContent>
         </Card>
       </main>

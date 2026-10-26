@@ -51,7 +51,7 @@ export const trainingModulesContent: ModuleContent[] = [
   {
     id: "intro-basics",
     title: "Introduction Maintrix",
-    description: "Découvrez la plateforme intégrée Smart Diagnostic + Smart GMAO avec IoT et sécurité avancée",
+    description: "Découvrez la plateforme intégrée Diagnostic et GMAO avec IoT et sécurité avancée",
     totalDuration: "50 min",
     prerequisites: ["Aucun prérequis"],
     outcomes: [
@@ -66,17 +66,21 @@ export const trainingModulesContent: ModuleContent[] = [
         title: "Vue d'ensemble de Maintrix",
         duration: "10 min",
         content: {
-          introduction: "Maintrix est une plateforme révolutionnaire qui unifie l'intelligence artificielle de diagnostic avec un système complet de gestion de maintenance assistée par ordinateur (GMAO). Cette leçon vous présente l'interface moderne avec glassmorphisme, la page dédiée Smart Diagnostic et l'architecture globale unifiée.",
+          // ⚠️ « plateforme révolutionnaire », « interface moderne avec
+          // glassmorphisme » : du vocabulaire de plaquette, et une référence à
+          // un parti pris visuel abandonné depuis. Un outil industriel se juge
+          // sur ce qu'il permet de faire, pas sur son adjectif.
+          introduction: "Maintrix tient le parc d'équipements, les ordres de travail, la maintenance préventive et le stock de pièces, et exploite les relevés de capteurs pour signaler les dérives. Une aide au diagnostic propose des causes probables en affichant la source de chacune. Cette leçon vous montre comment ces modules s'articulent, et comment lire ce que la plateforme affiche — y compris lorsqu'elle affiche « — » parce qu'elle ne sait pas.",
           objectives: [
-            "Comprendre la vision unifiée Smart Diagnostic + Smart GMAO",
-            "Naviguer vers la page dédiée Smart Diagnostic IA",
+            "Comprendre la vision unifiée Diagnostic et GMAO",
+            "Naviguer vers la page dédiée Diagnostic",
             "Identifier les modules principaux et les onglets intégrés",
             "Reconnaître les avantages par rapport aux solutions traditionnelles"
           ],
           steps: [
             {
               title: "Architecture unifiée",
-              description: "Maintrix combine deux systèmes puissants : Smart Diagnostic (assistant IA) et Smart GMAO (gestion maintenance) dans une interface unique.",
+              description: "Maintrix combine deux systèmes puissants : Diagnostic (assistant IA) et GMAO (gestion maintenance) dans une interface unique.",
               animation: "🔄 Animation : Fusion des modules Diagnostic IA ↔ GMAO",
               tips: [
                 "Un seul tableau de bord pour toutes les opérations",
@@ -85,7 +89,7 @@ export const trainingModulesContent: ModuleContent[] = [
               ]
             },
             {
-              title: "Modules Smart Diagnostic",
+              title: "Modules Diagnostic",
               description: "L'assistant IA analyse les symptômes, propose des diagnostics avec score de confiance et génère automatiquement des procédures de réparation.",
               animation: "🧠 Animation : Processus de diagnostic IA en temps réel",
               interactive: true,
@@ -96,7 +100,7 @@ export const trainingModulesContent: ModuleContent[] = [
               ]
             },
             {
-              title: "Modules Smart GMAO",
+              title: "Modules GMAO",
               description: "Système complet de gestion : équipements, ordres de travail, maintenance préventive, stocks, IoT temps réel et KPIs avancés.",
               animation: "⚙️ Animation : Cycle complet GMAO",
               tips: [
@@ -115,7 +119,7 @@ export const trainingModulesContent: ModuleContent[] = [
                 {
                   question: "Quels sont les deux systèmes principaux unifiés dans Maintrix ?",
                   answers: [
-                    "Smart Diagnostic + Smart GMAO",
+                    "Diagnostic et GMAO",
                     "IoT + Machine Learning",
                     "ERP + CRM",
                     "Dashboard + Reporting"
@@ -156,7 +160,7 @@ export const trainingModulesContent: ModuleContent[] = [
           steps: [
             {
               title: "Dashboard principal",
-              description: "Le tableau de bord unifie Smart Diagnostic et Smart GMAO avec des widgets personnalisables, KPIs temps réel et accès rapide aux fonctions critiques.",
+              description: "Le tableau de bord unifie Diagnostic et GMAO avec des widgets personnalisables, KPIs temps réel et accès rapide aux fonctions critiques.",
               animation: "📊 Animation : Navigation dashboard avec widgets interactifs",
               interactive: true,
               tips: [
@@ -194,7 +198,7 @@ export const trainingModulesContent: ModuleContent[] = [
               type: "simulation",
               questions: [
                 {
-                  question: "Naviguez vers le module Smart Diagnostic et lancez une analyse",
+                  question: "Naviguez vers le module Diagnostic et lancez une analyse",
                   answers: ["Diagnostic lancé avec succès"],
                   correct: 0
                 }
@@ -216,7 +220,7 @@ export const trainingModulesContent: ModuleContent[] = [
         {
           question: "Maintrix unifie quels systèmes principaux ?",
           answers: [
-            "Smart Diagnostic (IA) + Smart GMAO (maintenance)",
+            "Diagnostic (aide au raisonnement) et GMAO (gestion des interventions)",
             "ERP + CRM",
             "IoT + Analytics",
             "Dashboard + Reporting"
@@ -240,7 +244,7 @@ export const trainingModulesContent: ModuleContent[] = [
   },
   {
     id: "diagnostic-ai-advanced",
-    title: "Smart Diagnostic IA Avancé",
+    title: "Diagnostic assisté",
     description: "Maîtrisez l'assistant IA de diagnostic avec ML avancé, ensemble et chatbot technique",
     totalDuration: "60 min",
     prerequisites: ["Module Introduction terminé"],
@@ -256,7 +260,7 @@ export const trainingModulesContent: ModuleContent[] = [
         title: "Modes ML et algorithmes avancés",
         duration: "20 min",
         content: {
-          introduction: "Smart Diagnostic utilise trois modes d'intelligence artificielle distincts selon la complexité du diagnostic. Chaque mode emploie des algorithmes spécialisés pour optimiser la précision et la rapidité d'analyse.",
+          introduction: "Diagnostic utilise trois modes d'intelligence artificielle distincts selon la complexité du diagnostic. Chaque mode emploie des algorithmes spécialisés pour optimiser la précision et la rapidité d'analyse.",
           objectives: [
             "Comprendre les 3 modes ML disponibles",
             "Choisir le mode optimal selon le contexte",
@@ -334,7 +338,7 @@ const advancedDiag = await analyzeSymptoms({
       }
     ],
     finalAssessment: {
-      title: "Certification Smart Diagnostic IA",
+      title: "Certification Diagnostic",
       description: "Évaluation avancée des compétences en diagnostic IA",
       questions: [
         {
@@ -348,7 +352,7 @@ const advancedDiag = await analyzeSymptoms({
   },
   {
     id: "gmao-complete",
-    title: "Smart GMAO Complet",
+    title: "GMAO Complet",
     description: "Formation complète sur le système de gestion de maintenance avec équipements, OT, et IoT",
     totalDuration: "90 min",
     prerequisites: ["Module Introduction terminé"],
@@ -364,7 +368,7 @@ const advancedDiag = await analyzeSymptoms({
         title: "Gestion avancée des équipements",
         duration: "30 min",
         content: {
-          introduction: "Le module Smart GMAO transforme la gestion d'équipements avec un registre intelligent, historique complet et intégration IoT temps réel pour optimiser la maintenance et maximiser la disponibilité.",
+          introduction: "Le module GMAO transforme la gestion d'équipements avec un registre intelligent, historique complet et intégration IoT temps réel pour optimiser la maintenance et maximiser la disponibilité.",
           objectives: [
             "Créer et organiser le registre d'équipements",
             "Configurer la hiérarchie et criticité",
@@ -423,11 +427,11 @@ const equipment = await createEquipment({
       }
     ],
     finalAssessment: {
-      title: "Certification Smart GMAO Expert",
+      title: "Certification GMAO Expert",
       description: "Évaluation complète des compétences GMAO",
       questions: [
         {
-          question: "Comment Smart GMAO calcule-t-il automatiquement la criticité d'un équipement ?",
+          question: "Comment GMAO calcule-t-il automatiquement la criticité d'un équipement ?",
           answers: [
             "Impact production + coût arrêt + historique pannes",
             "Âge de l'équipement uniquement",
@@ -578,75 +582,20 @@ const equipment = await createEquipment({
       ]
     }
   },
-  {
-    id: "gamification-skills",
-    title: "Gamification et Développement des Compétences",
-    description: "Système de gamification pour motivation et développement des compétences techniques",
-    totalDuration: "35 min",
-    prerequisites: ["Module Introduction terminé"],
-    outcomes: [
-      "Comprendre le système de compétences",
-      "Utiliser la gamification pour la motivation",
-      "Suivre les progrès et achievements",
-      "Optimiser l'apprentissage continu"
-    ],
-    lessons: [
-      {
-        id: "lesson-1",
-        title: "Système de compétences et achievements",
-        duration: "15 min",
-        content: {
-          introduction: "Maintrix intègre un système de gamification pour motiver les équipes et développer les compétences techniques.",
-          objectives: [
-            "Comprendre les niveaux de compétences",
-            "Débloquer les achievements",
-            "Suivre les progrès individuels et d'équipe"
-          ],
-          steps: [
-            {
-              title: "Système de niveaux de compétences",
-              description: "6 compétences principales avec progression mesurable et rewards motivants.",
-              animation: "🎯 Animation : Progression compétences et achievements",
-              tips: [
-                "Diagnostics précis, Maintenance préventive, Analyse IoT",
-                "Gestion équipements, Efficacité énergétique, Leadership technique",
-                "Points d'expérience et badges de reconnaissance"
-              ]
-            }
-          ],
-          exercises: [
-            {
-              title: "Challenge : Premier diagnostic",
-              description: "Complétez votre premier diagnostic pour débloquer l'achievement",
-              type: "simulation"
-            }
-          ],
-          resources: [
-            "Guide système de compétences",
-            "Liste complète des achievements",
-            "Stratégies de motivation d'équipe"
-          ]
-        }
-      }
-    ],
-    finalAssessment: {
-      title: "Évaluation Gamification",
-      description: "Testez votre compréhension du système de compétences",
-      questions: [
-        {
-          question: "Combien de compétences principales sont trackées dans Maintrix ?",
-          answers: [
-            "6 compétences principales",
-            "3 compétences",
-            "10 compétences",
-            "Aucun système de compétences"
-          ],
-          correct: 0,
-          explanation: "Le système track 6 compétences clés pour un développement professionnel complet."
-        }
-      ]
-    }
-  }
+  // ⚠️ LE MODULE « Gamification et Développement des Compétences » A ÉTÉ RETIRÉ
+  // D'ICI (2026-10-27).
+  //
+  // Il enseignait un système de points, de récompenses et de classement
+  // s'appuyant sur six tables — `maintenance_skills`, `user_skill_progress`,
+  // `maintenance_achievements`, `user_achievements`, `skill_challenges`,
+  // `user_challenge_progress` — dont AUCUNE n'est lue ni écrite par le
+  // serveur. Il formait donc des utilisateurs à une fonctionnalité qui
+  // n'existe pas, et son quiz affirmait même que « le système track 6
+  // compétences clés ».
+  //
+  // Former quelqu'un à une fonction absente est la forme la plus coûteuse de
+  // documentation fausse : la personne cherche, ne trouve pas, et conclut
+  // qu'elle s'y prend mal.
 ];
 
 // Fonction pour obtenir le contenu d'un module
