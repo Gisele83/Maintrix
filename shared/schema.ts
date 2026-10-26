@@ -1379,15 +1379,53 @@ export const iotDevices = pgTable("iot_devices", {
   metadata: jsonb("metadata"), // Device-specific configuration
 });
 
+/**
+ * Seuils d'alarme, réglés par machine et par grandeur.
+ *
+ * ⚠️ CETTE TABLE ÉTAIT MORTE, et sa structure expliquait pourquoi : elle était
+ * rattachée à `iot_devices` — une table que rien n'écrit — et ne portait ni
+ * locataire ni équipement, alors que les relevés (`iot_sensor_data`) sont
+ * rattachés à l'ÉQUIPEMENT. Les deux moitiés du modèle de supervision ne se
+ * raccordaient pas, et aucune requête ne pouvait aller de l'une à l'autre.
+ *
+ * Faute de seuils exploitables, `equipment-health-routes.ts` en avait codé
+ * quatre en dur — température 75, vibration 4,5, pression 4,0, courant 10 —
+ * valables pour aucune installation réelle : une chaudière à 9 bar et un
+ * moteur à 38 A étaient « critiques » en permanence.
+ *
+ * La clé est désormais (locataire, équipement, grandeur). `equipmentId` NUL
+ * signifie « valeur par défaut de l'organisation pour cette grandeur » : le
+ * réglage le plus précis l'emporte, et l'on n'a pas à répéter le même seuil
+ * sur cent machines identiques.
+ *
+ * La restructuration est sans risque pour les données : aucun seed, aucun
+ * script et aucune route n'ont jamais écrit dans cette table — vérifié.
+ */
 export const sensorThresholds = pgTable("sensor_thresholds", {
   id: serial("id").primaryKey(),
-  deviceId: integer("device_id").references(() => iotDevices.id),
-  metricType: text("metric_type").notNull(), // temperature, vibration, pressure, current
+  tenantId: varchar("tenant_id", { length: 36 })
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .notNull(),
+  /** NUL = seuil par défaut de l'organisation pour cette grandeur. */
+  equipmentId: integer("equipment_id").references(() => equipmentRegistry.id, { onDelete: "cascade" }),
+  metricType: text("metric_type").notNull(), // temperature, vibration, pressure, current…
   warningLevel: real("warning_level").notNull(),
   criticalLevel: real("critical_level").notNull(),
+  /**
+   * De quel côté le seuil est franchi : `au-dessus` ou `au-dessous`.
+   *
+   * Sans ce champ, les grandeurs dont la panne est la CHUTE — pression,
+   * débit, niveau — sont évaluées à l'envers. C'est déjà arrivé : des seuils
+   * de pression déclarant une chute (alerte 5,5 bar, critique 4,0) comparés
+   * vers le haut déclenchaient une alerte critique à chaque relevé.
+   */
+  sens: varchar("sens", { length: 12 }).notNull().default("au-dessus"),
   unit: text("unit").notNull(),
   isActive: boolean("is_active").default(true),
+  /** Qui a réglé ce seuil — un seuil d'exploitation engage son auteur. */
+  updatedBy: integer("updated_by").references(() => userProfiles.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const automatedSymptomDetection = pgTable("automated_symptom_detection", {

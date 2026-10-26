@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { gmaoStorage } from "./gmao-storage";
 import { tenantRequis } from "./tenant-requis";
 import { evaluerCapteur, scoreDeSante, etatEquipement, type EvaluationCapteur } from "@shared/supervision";
+import { chargerSeuils, seuilApplicable, type SeuilsDuLocataire } from "./sensor-thresholds-routes";
 
 /** Grandeurs présentées par le tableau de bord de santé. */
 const TYPES_CAPTEUR = ['temperature', 'vibration', 'pressure', 'current'] as const;
@@ -47,6 +48,12 @@ function presenterCapteur(evaluation: EvaluationCapteur, sensorData: any[]) {
     ecartReduit: evaluation.ecartReduit ?? null,
     reference: evaluation.reference ?? null,
     motif: evaluation.motif ?? null,
+    // Laquelle des deux méthodes a décidé. À AFFICHER : un dépassement de
+    // seuil réglé est une limite d'exploitation, un écart statistique un signe
+    // de dérive. Les deux n'appellent pas la même action, et l'exploitant doit
+    // pouvoir les distinguer d'un coup d'œil.
+    methode: evaluation.methode,
+    seuil: evaluation.seuil ?? null,
   };
 }
 
@@ -67,9 +74,13 @@ export function registerEquipmentHealthRoutes(app: Express) {
       // la dernière intervention close d'une part, l'échéance des plans
       // préventifs d'autre part. Chargés une fois ici, pas par équipement,
       // pour ne pas multiplier les requêtes.
-      const [ordres, plans] = await Promise.all([
+      // Les seuils réglés sont chargés ici, en UNE requête pour tout le parc.
+      // Un chargement par équipement produirait autant d'allers-retours que de
+      // machines, pour lire au total quelques dizaines de lignes.
+      const [ordres, plans, seuils] = await Promise.all([
         gmaoStorage.getWorkOrders(tenantId),
         gmaoStorage.getPreventiveMaintenancePlans(tenantId),
+        chargerSeuils(tenantId),
       ]);
 
       const derniereIntervention = new Map<number, Date>();
@@ -99,7 +110,7 @@ export function registerEquipmentHealthRoutes(app: Express) {
 
         // Chaque capteur est jugé par rapport à son PROPRE historique : voir
         // `shared/supervision.ts` pour la raison détaillée.
-        const evaluations = evaluerCapteurs(sensorData);
+        const evaluations = evaluerCapteurs(sensorData, { seuils, equipmentId: eq.id });
         const healthScore = scoreDeSante(evaluations) ?? null;
         const status = ETAT_API[etatEquipement(evaluations)];
         const sensors = evaluations.map((e) => presenterCapteur(e, sensorData));
@@ -207,15 +218,24 @@ export function registerEquipmentHealthRoutes(app: Express) {
  * Elle ne retourne plus que ce qui est mesuré, et dit explicitement ce qui ne
  * l'est pas.
  */
-function evaluerCapteurs(sensorData: any[]): EvaluationCapteur[] {
+function evaluerCapteurs(
+  sensorData: any[],
+  /** Seuils réglés du locataire, et machine concernée. Absents = détection statistique seule. */
+  contexte?: { seuils: SeuilsDuLocataire; equipmentId: number },
+): EvaluationCapteur[] {
   return TYPES_CAPTEUR.map((type) => {
     const releves = sensorData.filter((d) => d.sensorType === type);
     // L'unité vient du relevé, pas d'une table de correspondance.
     const unite = releves[0]?.unit ?? undefined;
+    // Un seuil réglé prime sur la détection statistique : c'est une limite
+    // d'exploitation posée par quelqu'un qui connaît la machine, là où la
+    // statistique n'infère qu'une habitude. Voir `shared/supervision.ts`.
+    const seuil = contexte ? seuilApplicable(contexte.seuils, contexte.equipmentId, type) : undefined;
     return evaluerCapteur(
       type,
       releves.map((d) => ({ valeur: Number(d.value), horodatage: d.timestamp })),
       unite,
+      seuil,
     );
   });
 }

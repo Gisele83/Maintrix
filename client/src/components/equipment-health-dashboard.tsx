@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReglageSeuils } from "@/components/reglage-seuils";
+import { Button } from "@/components/ui/button";
 import {
   LineChart,
   Line,
@@ -60,6 +62,22 @@ interface SensorReading {
   reference: { moyenne: number; ecartType: number; points: number } | null;
   /** Pourquoi l'état vaut `non_evalue`. */
   motif: string | null;
+  /**
+   * Laquelle des deux méthodes a décidé.
+   *
+   * À montrer : un dépassement de seuil réglé est une limite d'exploitation,
+   * un écart statistique un signe de dérive. Les deux n'appellent pas la même
+   * action, et les confondre ferait traiter une alarme de process comme une
+   * suspicion de panne.
+   */
+  methode: 'seuil' | 'statistique' | 'aucune';
+  seuil: {
+    typeCapteur: string;
+    niveauAlerte: number;
+    niveauCritique: number;
+    sens: 'au-dessus' | 'au-dessous';
+    unite?: string;
+  } | null;
 }
 
 interface TrendData {
@@ -99,6 +117,8 @@ export function EquipmentHealthDashboard() {
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<string>("24h");
   const [activeTab, setActiveTab] = useState("overview");
+  /** Équipement dont on règle les seuils, `null` si la fenêtre est fermée. */
+  const [equipementEnReglage, setEquipementEnReglage] = useState<EquipmentHealth | null>(null);
 
   // ⚠️ Cette clé était `["/api/equipment/health", selectedEquipment, timeRange]`,
   // soit trois éléments. Or la `queryFn` par défaut du projet construit l'URL
@@ -342,20 +362,59 @@ export function EquipmentHealthDashboard() {
 
                   {/* Sensor Readings */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-ink">Capteurs</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-ink">Capteurs</h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto py-1 text-xs text-signal hover:text-signal-deep"
+                        onClick={() => setEquipementEnReglage(eq)}
+                      >
+                        Régler les seuils
+                      </Button>
+                    </div>
+                    {/* ⚠️ Cette ligne affichait `{sensor.value} {sensor.unit}`
+                        sans garde : un capteur absent produisait « null null ».
+                        Elle ne disait pas non plus COMMENT l'état avait été
+                        décidé, alors que c'est l'information qui détermine
+                        l'action à mener. */}
                     {eq.sensors.slice(0, 4).map((sensor, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-2">
                           {getSensorIcon(sensor.sensorType)}
                           <span className="capitalize">{sensor.sensorType}</span>
+                          {sensor.methode === 'seuil' && (
+                            <span
+                              className="text-[10px] uppercase tracking-wide text-ink-mute border border-rule px-1 rounded"
+                              title={
+                                `Seuil réglé : alerte à ${sensor.seuil?.niveauAlerte}, `
+                                + `critique à ${sensor.seuil?.niveauCritique} `
+                                + `(franchissement ${sensor.seuil?.sens})`
+                              }
+                            >
+                              seuil
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span>{sensor.value} {sensor.unit}</span>
-                          <Badge 
-                            variant={sensor.status === 'normal' ? 'default' : sensor.status === 'warning' ? 'secondary' : 'destructive'}
+                          {sensor.value === null ? (
+                            <span className="text-ink-mute" title={sensor.motif ?? undefined}>
+                              non mesuré
+                            </span>
+                          ) : (
+                            <span>{sensor.value} {sensor.unit ?? ''}</span>
+                          )}
+                          <Badge
+                            variant={
+                              sensor.status === 'normal' ? 'default'
+                                : sensor.status === 'warning' ? 'secondary'
+                                : sensor.status === 'critical' ? 'destructive'
+                                : 'outline'
+                            }
                             className="text-xs"
+                            title={sensor.motif ?? undefined}
                           >
-                            {sensor.status}
+                            {sensor.status === 'non_evalue' ? 'non évalué' : sensor.status}
                           </Badge>
                         </div>
                       </div>
@@ -607,6 +666,13 @@ export function EquipmentHealthDashboard() {
         </TabsContent>
 
       </Tabs>
+
+      <ReglageSeuils
+        equipementId={equipementEnReglage?.id ?? null}
+        equipementNom={equipementEnReglage?.equipmentName ?? ""}
+        ouvert={equipementEnReglage !== null}
+        onFermer={() => setEquipementEnReglage(null)}
+      />
     </div>
   );
 }

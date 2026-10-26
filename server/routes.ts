@@ -47,6 +47,7 @@ import { hybridDiagnosticPipeline, type HybridDiagnosticRequest } from "./hybrid
 import { registerGMAORoutes } from "./gmao-routes";
 import { registerSimpleValidationRoutes } from "./simple-validation-routes";
 import { registerEquipmentHealthRoutes } from "./equipment-health-routes";
+import { registerSensorThresholdRoutes } from "./sensor-thresholds-routes";
 import { registerPermitToWorkRoutes } from "./permit-to-work-routes";
 import { registerRcaRoutes } from "./rca-routes";
 import { registerInterventionExecutionRoutes } from "./intervention-execution-routes";
@@ -280,6 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register equipment health routes FIRST to avoid route conflicts
   registerEquipmentHealthRoutes(app);
+  // Seuils d'alarme réglables par machine — voir sensor-thresholds-routes.ts.
+  registerSensorThresholdRoutes(app);
   
   // Register Permit-to-Work routes
   registerPermitToWorkRoutes(app);

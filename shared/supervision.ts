@@ -64,6 +64,54 @@ export interface ReleveCapteur {
 }
 
 /**
+ * De quel côté un seuil est-il franchi ?
+ *
+ * `au-dessus` pour la température, le courant, la vibration : c'est la montée
+ * qui inquiète. `au-dessous` pour les grandeurs dont la panne est la CHUTE —
+ * pression d'un circuit hydraulique, débit d'une pompe, niveau d'un bac. Le
+ * seuil critique y est alors plus BAS que le seuil d'alerte, ce qui se lit mal
+ * sans avoir le sens sous les yeux.
+ *
+ * Ce champ existe parce que son absence a déjà coûté cher : les seuils de
+ * pression déclaraient une chute — alerte à 5,5 bar, critique à 4,0 — pendant
+ * que la comparaison ne savait tester qu'un dépassement vers le haut. Toute
+ * pression normale franchissait 4,0, et l'alerte critique se déclenchait à
+ * chaque relevé, en continu.
+ */
+export type SensFranchissement = 'au-dessus' | 'au-dessous';
+
+/**
+ * Seuil d'alarme réglé par un ingénieur, pour UNE grandeur d'UNE machine.
+ *
+ * C'est ce qui manquait à la plateforme et que la détection statistique ne
+ * peut pas remplacer : celle-ci repère un CHANGEMENT, un seuil repère un
+ * DÉPASSEMENT. Une machine dégradée depuis toujours n'est vue que par le
+ * second.
+ */
+export interface SeuilConfigure {
+  typeCapteur: string;
+  niveauAlerte: number;
+  niveauCritique: number;
+  sens: SensFranchissement;
+  unite?: string;
+}
+
+/**
+ * Gravité d'une valeur face à un seuil réglé.
+ *
+ * Le critique est testé AVANT l'alerte : dans le sens `au-dessous`, une valeur
+ * qui franchit le critique franchit aussi l'alerte, et l'ordre inverse
+ * classerait une urgence en simple avertissement.
+ */
+export function evaluerContreSeuil(valeur: number, seuil: SeuilConfigure): EtatCapteur {
+  const auDessous = seuil.sens === 'au-dessous';
+  const franchi = (limite: number) => (auDessous ? valeur <= limite : valeur >= limite);
+  if (franchi(seuil.niveauCritique)) return 'anomalie';
+  if (franchi(seuil.niveauAlerte)) return 'surveillance';
+  return 'normal';
+}
+
+/**
  * Nombre de relevés en dessous duquel aucune référence n'est calculable.
  *
  * Il faut assez de points pour que l'écart-type ait un sens : en dessous, la
@@ -83,8 +131,19 @@ export type EtatCapteur = 'normal' | 'surveillance' | 'anomalie' | 'non_evalue';
 
 export interface EvaluationCapteur {
   typeCapteur: string;
+  /**
+   * Comment l'état a été décidé.
+   *
+   * À AFFICHER. Un dépassement de seuil réglé par un ingénieur et un écart
+   * statistique au régime habituel n'engagent pas la même action : le premier
+   * est une limite d'exploitation, le second un signe de dérive. Les confondre
+   * ferait traiter une alarme de process comme une suspicion de panne.
+   */
+  methode: 'seuil' | 'statistique' | 'aucune';
   /** Unité telle qu'ENREGISTRÉE avec le relevé, jamais devinée d'après le type. */
   unite?: string;
+  /** Seuil réglé qui a servi à décider, quand `methode` vaut `seuil`. */
+  seuil?: SeuilConfigure;
   /** Dernière valeur mesurée. `undefined` si aucun relevé. */
   valeurCourante?: number;
   /** Référence établie sur la partie ancienne de l'historique. */
@@ -121,6 +180,16 @@ export function evaluerCapteur(
   typeCapteur: string,
   releves: ReleveCapteur[],
   unite?: string,
+  /**
+   * Seuil réglé pour cette machine et cette grandeur, s'il en existe un.
+   *
+   * Quand il est fourni, il PRIME sur la détection statistique : c'est une
+   * limite d'exploitation posée par quelqu'un qui connaît la machine, et elle
+   * doit l'emporter sur une inférence tirée de l'historique. La détection
+   * statistique reste le filet pour tout ce qui n'est pas réglé — c'est-à-dire,
+   * sur une installation réelle, la grande majorité des grandeurs.
+   */
+  seuil?: SeuilConfigure,
 ): EvaluationCapteur {
   const points = releves
     .map((r) => ({
@@ -134,18 +203,38 @@ export function evaluerCapteur(
     .sort((a, b) => a.t - b.t);
 
   if (points.length === 0) {
-    return { typeCapteur, unite, etat: 'non_evalue', motif: 'aucun relevé' };
+    return { typeCapteur, unite, methode: 'aucune', etat: 'non_evalue', motif: 'aucun relevé' };
   }
 
   const valeurCourante = points[points.length - 1].valeur;
+
+  // ── Un seuil réglé décide immédiatement ──
+  //
+  // Et il décide dès le PREMIER relevé : un seuil d'exploitation ne demande
+  // aucun historique, contrairement à la détection statistique. C'est
+  // précisément son intérêt sur une machine qu'on vient d'instrumenter, où la
+  // méthode statistique reste muette pendant douze relevés.
+  if (seuil) {
+    return {
+      typeCapteur,
+      unite: unite ?? seuil.unite,
+      methode: 'seuil',
+      seuil,
+      valeurCourante,
+      etat: evaluerContreSeuil(valeurCourante, seuil),
+    };
+  }
 
   if (points.length < POINTS_MINIMUM) {
     return {
       typeCapteur,
       unite,
+      methode: 'aucune',
       valeurCourante,
       etat: 'non_evalue',
-      motif: `${points.length} relevé${points.length > 1 ? 's' : ''} sur les ${POINTS_MINIMUM} nécessaires`,
+      motif:
+        `${points.length} relevé${points.length > 1 ? 's' : ''} sur les ${POINTS_MINIMUM} `
+        + `nécessaires, et aucun seuil réglé pour cette grandeur`,
     };
   }
 
@@ -178,6 +267,7 @@ export function evaluerCapteur(
   return {
     typeCapteur,
     unite,
+    methode: 'statistique',
     valeurCourante,
     reference: { moyenne: mRef, ecartType: sRef, points: reference.length },
     moyenneRecente: mRec,
@@ -195,15 +285,27 @@ export function evaluerCapteur(
  * exactement l'inverse de ce qu'il faut dire à un exploitant.
  */
 export function scoreDeSante(evaluations: EvaluationCapteur[]): number | undefined {
-  const evaluables = evaluations.filter((e) => e.etat !== 'non_evalue' && e.ecartReduit !== undefined);
+  const evaluables = evaluations.filter((e) => e.etat !== 'non_evalue');
   if (evaluables.length === 0) return undefined;
 
-  // Pénalité par capteur : nulle tant qu'on reste sous le seuil de
-  // surveillance, puis croissante, plafonnée pour qu'un seul capteur affolé
-  // n'écrase pas à lui seul le diagnostic de toute la machine.
-  const penalite = (z: number) => Math.min(40, Math.max(0, Math.abs(z) - Z_SURVEILLANCE) * 20);
+  // Pénalité par capteur, plafonnée pour qu'un seul capteur affolé n'écrase pas
+  // à lui seul le diagnostic de toute la machine.
+  //
+  // Deux barèmes, parce qu'il y a deux méthodes. Un écart statistique est
+  // CONTINU : la pénalité croît avec l'amplitude, nulle tant qu'on reste sous
+  // le seuil de surveillance. Un franchissement de seuil réglé est BINAIRE :
+  // la valeur est au-delà de la limite, ou elle ne l'est pas — il n'y a pas
+  // d'amplitude à mesurer, et prétendre en déduire une graduation reviendrait
+  // à inventer une précision que le réglage ne contient pas.
+  const penalite = (e: EvaluationCapteur): number => {
+    if (e.methode === 'seuil') {
+      return e.etat === 'anomalie' ? 40 : e.etat === 'surveillance' ? 20 : 0;
+    }
+    if (e.ecartReduit === undefined) return 0;
+    return Math.min(40, Math.max(0, Math.abs(e.ecartReduit) - Z_SURVEILLANCE) * 20);
+  };
 
-  const total = evaluables.reduce((s, e) => s + penalite(e.ecartReduit!), 0);
+  const total = evaluables.reduce((s, e) => s + penalite(e), 0);
   return Math.max(0, Math.min(100, Math.round(100 - total)));
 }
 

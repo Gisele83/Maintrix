@@ -142,9 +142,11 @@ export default function Documentation() {
         "Suivre un ordre de travail de l'attente à la clôture, en renseignant les dates réelles de début et de fin",
         "Pourquoi ces deux dates comptent : ce sont elles, et elles seules, qui permettent de calculer le MTBF, le MTTR et la durée moyenne d'intervention. Un ordre clos sans dates ne produit aucun indicateur",
         "Créer un plan de maintenance préventive, lui associer des équipements et une périodicité",
-        "⚠️ À savoir : la clôture d'un ordre préventif ne fait pas encore avancer automatiquement l'échéance du plan. Reportez-la à la main en attendant",
+        "Clôturer un ordre préventif fait avancer l'échéance du plan d'une période, calculée depuis l'échéance PRÉVUE et non depuis la date de réalisation : un retard ne décale donc pas tout le calendrier à chaque cycle",
         "Gérer les pièces détachées : référence, stock courant, stock minimum et délai d'approvisionnement",
-        "⚠️ À savoir : la consommation de pièces ne se déduit pas encore automatiquement à la clôture d'un ordre. Enregistrez la sortie de stock depuis le module Inventaire"
+        "Les pièces déclarées sur un ordre de travail sont déduites du stock à sa clôture, avec le mouvement de sortie correspondant — le point de commande se déclenche donc tout seul",
+        "Une clôture est rejouable sans dommage : un ordre déjà clos ne consomme pas une seconde fois, et une sortie qui rendrait le stock négatif est refusée plutôt que forcée",
+        "L'équipement revient en service à la clôture du dernier ordre qui l'immobilisait"
       ]
     },
     {
@@ -177,7 +179,10 @@ export default function Documentation() {
         "Reconnaître l'état « non évalué » : il signifie qu'il n'y a pas assez de relevés pour établir une référence. Ce n'est PAS un équipement sain, c'est un équipement sur lequel la plateforme ne se prononce pas",
         "Ce que cette méthode détecte : un CHANGEMENT par rapport au régime habituel",
         "Ce qu'elle ne détecte pas : une machine dégradée depuis toujours, dont le mauvais état constitue sa propre référence. Seuls des seuils réglés par un ingénieur répondent à cette question",
-        "⚠️ À savoir : les seuils d'alarme par machine ne sont pas encore paramétrables. Une anomalie signalée ici appelle une vérification sur le terrain, pas une conclusion"
+        "Régler un seuil d'alarme par machine et par grandeur, depuis « Régler les seuils » sur la fiche de santé — c'est ce qui comble la limite ci-dessus : un seuil voit une valeur dangereuse même stable",
+        "Indiquer le SENS du franchissement : pour une pression, un débit ou un niveau, c'est la CHUTE qui alarme, et le niveau critique est donc plus bas que le niveau d'alerte",
+        "Lire l'étiquette « seuil » à côté d'un capteur : elle signale que l'état vient d'une limite réglée, et non de la comparaison à l'historique",
+        "Une grandeur sans seuil réglé reste surveillée statistiquement : retirer un seuil ne rétablit aucune constante, cela repasse simplement à l'autre méthode"
       ]
     },
     {
