@@ -211,6 +211,39 @@ describe('Compteurs du plan dans la boîte de clôture', () => {
   });
 });
 
+describe("La création d'un ordre est restreinte, et l'alternative est nommée", () => {
+  it('le droit passe par le référentiel de rôles, au niveau de l\'arbitrage', () => {
+    // Le serveur exige `team_leader`, le même niveau que l'arbitrage d'une
+    // demande : si créer directement était plus permissif, la séparation
+    // DI / OT se contournerait par la porte d'à côté.
+    expect(codeJoint).toMatch(/const peutCreerOrdre = auMoins\(user\?\.role, "team_leader"\)/);
+  });
+
+  it("le bouton de création est conditionné à ce droit", () => {
+    expect(codeJoint).toMatch(/\{peutCreerOrdre \?/);
+  });
+
+  it("l'écran NE MASQUE PAS en silence : il nomme le geste possible", () => {
+    // Cet écran a déjà eu le défaut inverse — la corbeille montrée à tout le
+    // monde, et un « Impossible de supprimer » sans raison. Un bouton absent
+    // sans explication est la même faute, en plus discret.
+    expect(codeJoint).toMatch(/engage la planification et le budget/);
+    expect(codeJoint).toMatch(/href="\/demandes-intervention"/);
+  });
+
+  it("l'écran vide mène au geste possible, et non à une impasse", () => {
+    // Sans cela, un utilisateur sans ordre et sans droit de création se
+    // retrouve devant un écran vide sans aucune action.
+    expect(codeJoint).toMatch(/Signaler une intervention/);
+  });
+
+  it("le droit d'affichage n'est pas présenté comme un contrôle d'accès", () => {
+    // Un bouton caché n'autorise rien : le serveur revérifie. Le dire dans le
+    // code évite qu'on s'en serve un jour comme d'une garde.
+    expect(source).toMatch(/commande l'AFFICHAGE, pas l'autorisation/);
+  });
+});
+
 describe('Les écrans que la clôture modifie sont rafraîchis', () => {
   // Chacun lit quelque chose que la clôture vient d'écrire. Un écran périmé
   // donnerait à l'utilisateur la même impression que le défaut d'origine :

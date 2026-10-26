@@ -351,6 +351,42 @@ export function registerGMAORoutes(app: Express) {
   // Create new work order
   app.post("/api/work-orders", async (req, res) => {
     try {
+      // ═══════════════════════════════════════════════════════════════
+      // CRÉER UN ORDRE DE TRAVAIL ENGAGE LA PLANIFICATION ET LE BUDGET
+      // ═══════════════════════════════════════════════════════════════
+      //
+      // L'audit du 2026-10-25 (section 1) relevait, comme première conséquence
+      // de l'absence de demande d'intervention : « n'importe qui doit créer
+      // directement un OT, c'est-à-dire engager la planification et le
+      // budget ». Cette route n'avait AUCUN contrôle de rôle.
+      //
+      // Le niveau est celui de l'ARBITRAGE d'une demande (`team_leader`), et
+      // ce n'est pas un choix de confort : si créer un ordre directement était
+      // plus permissif qu'arbitrer une demande, la séparation DI / OT serait
+      // contournable par la porte d'à côté — il suffirait de créer l'ordre au
+      // lieu de faire arbitrer le signalement. Les deux gestes engagent la
+      // même chose, ils exigent donc le même niveau.
+      //
+      // CE QUI RESTE OUVERT À TOUS, et c'est le point : SIGNALER. Un opérateur
+      // qui constate une fuite n'est pas bloqué, il est redirigé vers le geste
+      // qui lui revient. Le message le dit, parce qu'un refus qui ne nomme pas
+      // l'alternative ne fait qu'empêcher le travail.
+      //
+      // Les créations AUTOMATIQUES ne passent pas par ici et ne sont donc pas
+      // concernées : l'acceptation d'une demande, le franchissement d'un seuil
+      // de compteur, le moteur prédictif et le jumeau numérique écrivent par
+      // la couche de stockage.
+      if (!auMoinsNiveau(req, 'team_leader')) {
+        return res.status(403).json({
+          error: "FORBIDDEN",
+          message:
+            "Créer un ordre de travail engage la planification et le budget, et demande au moins " +
+            "un chef d'équipe. Pour signaler un constat, créez une demande d'intervention : " +
+            "la maintenance l'arbitrera.",
+          alternative: "/api/demandes-intervention",
+        });
+      }
+
       // Handle case where body might be malformed
       if (!req.body || typeof req.body !== 'object') {
         console.error("Invalid request body format:", req.body);

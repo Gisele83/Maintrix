@@ -546,6 +546,24 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
    */
   const peutSupprimer = auMoins(user?.role, "technical_director");
 
+  /**
+   * Créer un ordre de travail engage la planification et le budget.
+   *
+   * Le serveur l'exige d'un chef d'équipe au moins depuis que la demande
+   * d'intervention existe — même niveau que l'arbitrage d'une demande, parce
+   * que les deux gestes engagent la même chose. Si créer directement était
+   * plus permissif, la séparation DI / OT se contournerait par la porte d'à
+   * côté.
+   *
+   * Reproduit ici par le référentiel de rôles, jamais par une égalité de
+   * chaînes : `owner` est au-dessus d'`admin` et serait refusé par une
+   * comparaison littérale.
+   *
+   * ⚠️ Ce drapeau commande l'AFFICHAGE, pas l'autorisation. Le serveur
+   * revérifie — un bouton caché n'est pas un contrôle d'accès.
+   */
+  const peutCreerOrdre = auMoins(user?.role, "team_leader");
+
   const { data: ordres = [], isLoading, error } = useQuery<OrdreTravail[]>({
     queryKey: ["/api/work-orders"],
     retry: 2,
@@ -931,11 +949,40 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
         />
       )}
 
+      {/* ─── Créer, ou signaler ───────────────────────────────────────────
+          Créer un ordre engage la planification et le budget : le serveur
+          l'exige désormais d'un chef d'équipe au moins
+          (gmao-routes.ts, même niveau que l'arbitrage d'une demande).
+
+          En dessous, on NE MASQUE PAS en silence : on remplace le bouton par
+          le geste qui revient à l'utilisateur. Cet écran a déjà eu le défaut
+          inverse — la corbeille montrée à tout le monde, et un « Impossible de
+          supprimer » sans raison. Un bouton absent sans explication est la
+          même faute, en plus discret. */}
       <div className="flex justify-end">
-        <ActionPrincipale onClick={ouvrirCreation}>
-          <Plus className="h-4 w-4" />
-          Nouvel ordre de travail
-        </ActionPrincipale>
+        {peutCreerOrdre ? (
+          <ActionPrincipale onClick={ouvrirCreation}>
+            <Plus className="h-4 w-4" />
+            Nouvel ordre de travail
+          </ActionPrincipale>
+        ) : (
+          <div className="border border-rule bg-paper p-3 text-sm max-w-xl">
+            <p className="text-ink">
+              Créer un ordre de travail engage la planification et le budget : cela demande au
+              moins un chef d'équipe.
+            </p>
+            <p className="text-ink-mute mt-1">
+              Pour signaler ce que vous avez constaté,{" "}
+              <Link
+                href="/demandes-intervention"
+                className="text-signal underline underline-offset-2 hover:text-ink"
+              >
+                créez une demande d'intervention
+              </Link>{" "}
+              — la maintenance l'arbitrera.
+            </p>
+          </div>
+        )}
       </div>
 
       <RangeeIndicateurs colonnes={4}>
@@ -1050,15 +1097,25 @@ export function WorkOrderManagement({ enTete }: ProprietesOT) {
           titre={ordres.length === 0 ? "Aucun ordre de travail" : "Aucun ordre ne correspond aux filtres"}
           phrase={
             ordres.length === 0
-              ? "Un ordre de travail porte une demande, une priorité et un responsable. C'est lui qui trace l'intervention, de la demande au retour d'expérience."
+              ? peutCreerOrdre
+                ? "Un ordre de travail porte une demande, une priorité et un responsable. C'est lui qui trace l'intervention, de la demande au retour d'expérience."
+                : "Un ordre de travail porte une demande, une priorité et un responsable. Le créer engage la planification et le budget : cela demande au moins un chef d'équipe. Signalez votre constat par une demande d'intervention, que la maintenance arbitrera."
               : "Élargissez la recherche, ou remettez les filtres de statut et de priorité sur « tous »."
           }
           action={
             ordres.length === 0 ? (
-              <ActionPrincipale onClick={ouvrirCreation}>
-                <Plus className="h-4 w-4" />
-                Créer le premier ordre
-              </ActionPrincipale>
+              peutCreerOrdre ? (
+                <ActionPrincipale onClick={ouvrirCreation}>
+                  <Plus className="h-4 w-4" />
+                  Créer le premier ordre
+                </ActionPrincipale>
+              ) : (
+                // L'écran vide mène au geste possible, et non à une impasse.
+                <ActionPrincipale href="/demandes-intervention">
+                  <Plus className="h-4 w-4" />
+                  Signaler une intervention
+                </ActionPrincipale>
+              )
             ) : undefined
           }
         />

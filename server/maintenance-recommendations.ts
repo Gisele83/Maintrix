@@ -9,6 +9,10 @@ import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { storage } from "./storage";
 import { tenantRequis } from "./tenant-requis";
 import { mtbfHeures, enJours, arrondir } from "@shared/fiabilite";
+// `auMoins` raisonne par NIVEAU et non par énumération : `owner` et `admin`
+// sont au-dessus de `team_leader` et passent sans être nommés, là où une
+// comparaison littérale les refuserait.
+import { auMoins } from "@shared/roles";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -502,6 +506,29 @@ export function registerRecommendationRoutes(app: Express) {
     EnterpriseAuthMiddleware.requireAuthentication,
     async (req: any, res) => {
       try {
+        // ═══════════════════════════════════════════════════════════════
+        // LA SECONDE PORTE, FERMÉE AU MÊME NIVEAU
+        // ═══════════════════════════════════════════════════════════════
+        //
+        // Cette route crée un ordre de travail. Elle n'exigeait que
+        // l'authentification. Restreindre `POST /api/work-orders` sans la
+        // restreindre elle aurait rendu la restriction COSMÉTIQUE : il
+        // suffisait d'appliquer une recommandation pour obtenir le même
+        // résultat, avec le même engagement de planification et de budget.
+        //
+        // Même niveau que la création directe et que l'arbitrage d'une demande
+        // (`team_leader`) : trois portes vers le même acte, un seul seuil.
+        if (!auMoins(req.user?.role, 'team_leader')) {
+          return res.status(403).json({
+            error: "FORBIDDEN",
+            message:
+              "Convertir une recommandation en ordre de travail engage la planification et le " +
+              "budget, et demande au moins un chef d'équipe. Pour signaler un constat, créez une " +
+              "demande d'intervention.",
+            alternative: "/api/demandes-intervention",
+          });
+        }
+
         const { recommendationId, equipmentId, title, description, scheduledDate, estimatedDuration, priority } = req.body;
         if (!equipmentId || !title) {
           return res.status(400).json({ error: "equipmentId and title are required" });
