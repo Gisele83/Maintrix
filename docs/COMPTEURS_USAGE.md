@@ -211,7 +211,8 @@ npm test -- --testPathPatterns=compteurs-interface
 ```
 
 - [`tests/integration/compteurs-usage.test.ts`](../tests/integration/compteurs-usage.test.ts)
-  — 32 cas, **tous vérifiés sur la table**. Y compris les témoins : on n'alerte
+  — 46 cas, **tous vérifiés sur la table**, dont la boucle complète
+  « relevé → ordre → clôture → compteur à zéro ». Y compris les témoins : on n'alerte
   pas sous le seuil, un compteur sans seuil n'alerte pas et ne bloque pas le
   relevé, un technicien peut relever. Et les deux défauts ci-dessus ont chacun
   leur cas.
@@ -226,11 +227,111 @@ départ et le second écraserait le premier.
 
 ---
 
+## Compteur → ordre de travail préventif
+
+*Ajouté le 26 octobre 2026. C'était la dernière boucle ouverte de la chaîne du
+préventif (audit du 2026-10-25, section 1 : « Compteur → OT préventif :
+ouverte — le compteur crée une alerte, jamais un OT »).*
+
+### Pourquoi une alerte ne suffisait pas
+
+Une alerte se lit, s'acquitte, et disparaît. Elle ne porte ni affectation, ni
+durée estimée, ni pièces, ni traçabilité d'exécution — et surtout **elle ne se
+clôture pas**, donc elle ne remet pas le compteur à zéro. L'échéance restait
+indéfiniment atteinte, à répéter la même chose à chaque relevé.
+
+L'ordre de travail, lui, se clôture : et sa clôture replanifie le plan et remet
+le compteur à zéro (migration 0024). **C'est la fermeture du cycle qui
+distingue cette boucle d'une alerte de plus.**
+
+```
+relevé saisi → seuil franchi → OT préventif créé → exécuté → clôturé
+                     ↑                                           │
+                     └──────── compteur remis à zéro ────────────┘
+```
+
+### Au seuil d'alerte, pas à 100 %
+
+`warningThresholdPct` est exactement le champ que l'exploitant règle pour
+« prévenir assez tôt pour laisser le temps de programmer ». Créer l'ordre à
+100 % le ferait naître **déjà en retard** — le défaut corrigé par ailleurs sur
+les plans calendaires.
+
+### Ce qui n'est pas inventé
+
+| Champ | Valeur, et sa source |
+|---|---|
+| `priority` | **déduite de la mesure** : `high` au-delà du seuil critique (`alerte + 8`, le même que celui de l'alerte, pour qu'ils ne se contredisent pas), `medium` sinon. **Jamais `urgent`** : un préventif dû n'est pas une panne, et le dire noierait les vraies urgences |
+| `estimatedDuration` | celle du **plan**, quand il la porte ; absente sinon |
+| `scheduledStart` | **laissée nulle**. Un plan réglé sur un compteur n'a pas de date, et en déduire une demanderait une cadence d'usage — donc une prévision. Le planificateur la pose |
+| `requiresShutdown` | `false`, le défaut prudent de 0024 : le plan ne dit pas si la gamme immobilise la machine |
+| `description` | porte le relevé, la périodicité et le pourcentage **mesurés** |
+
+### La garde d'idempotence
+
+Le compteur est relu régulièrement et chaque relevé repasse par le même chemin.
+Sans garde, un ordre naîtrait **à chaque relevé** au-delà du seuil.
+
+La garde porte sur **(locataire, plan, équipement)**, pas sur le compteur : un
+plan peut porter plusieurs compteurs (heures *et* cycles) et la gamme ne
+s'exécute qu'une fois. Deux ordres feraient faire deux fois le même travail, et
+la seconde clôture avancerait l'échéance d'une période de trop.
+
+Le filtre est posé **en SQL et sans limite de lignes**. Le motif existant
+ailleurs dans ce dépôt (`predictive-maintenance-engine.ts`) relit les cinq
+derniers ordres de l'équipement et cherche parmi eux : un ordre ouvert plus
+ancien que ces cinq lui échappe, et il en crée un doublon.
+
+### Un compteur sans gamme ne crée aucun ordre — et c'est délibéré
+
+La remise à zéro à la clôture se fait **par le plan**. Un ordre créé pour un
+compteur sans plan ne pourrait jamais remettre ce compteur à zéro : le compteur
+resterait au-dessus de son seuil, et le relevé suivant créerait un nouvel
+ordre, indéfiniment. **On fabriquerait du travail sans jamais fermer la
+boucle** — pire que de ne rien faire.
+
+L'alerte, elle, est bien émise. Et l'écran le dit explicitement : « Échéance
+atteinte, mais aucun ordre de travail ne sera créé : ce compteur n'est rattaché
+à aucune gamme préventive. »
+
+### Un seul point d'entrée
+
+`traiterEcheanceCompteur()` tire **les deux** conséquences — l'alerte qui
+prévient, l'ordre qui fait exécuter — et les cinq endroits où un compteur
+change d'état l'appellent. `checkAndGenerateCounterAlert` reste la primitive
+d'alerte et garde son nom : une fonction nommée « generate alert » qui créerait
+aussi des ordres de travail mentirait sur ce qu'elle fait.
+
+Chaque conséquence est indépendante : l'échec de l'une ne prive pas de l'autre.
+Et les deux restent **hors** de la transaction du relevé — le relevé est un
+fait constaté, elles en sont des conséquences (règle de
+[TRANSACTIONS.md](TRANSACTIONS.md)).
+
+### L'ordre ouvert est signalé sur le compteur
+
+Sans cela, un compteur annonce « échéance atteinte » sans dire qu'un ordre
+existe déjà, et l'exploitant en saisit un second à la main. L'écran affiche
+« Ordre de travail WO-… ouvert — sa clôture remettra ce compteur à zéro », avec
+un lien. La clé employée est celle de la garde d'idempotence, pour que l'écran
+montre exactement ce que le serveur considère comme pris en charge.
+
+### Mesuré en pilotant l'interface
+
+| Acte | Relevé en base |
+|---|---|
+| compteur à 1 750 / 2 000 (88 %), seuil d'alerte 90 % | « Dans les limites », **aucun ordre** |
+| relevé de 68 h → 1 818 h (91 %) | ordre `WO-…-286` créé : `preventive`, `pending`, `medium`, plan #43, durée **240** (celle du plan), `requires_shutdown` **false**, `scheduled_start` **nul** ; description « Relevé 1818 h pour une périodicité de 2000 h (91 %) » |
+| l'écran | pastille « Bientôt due » + lien « Ordre de travail WO-…-286 ouvert », en `rgb(0,107,151)` = `#006B97` (`signal`), **mesuré par `getComputedStyle`** |
+| « Démarrer » puis « Terminer » sur cet ordre | la boîte de clôture annonce « Heures depuis vidange : 1 818 h / 2 000 h → 0 h après clôture » |
+| clôture | compteur **1 818 → 0**, `alert_level` → `info`, `alert_email_sent` → `f` ; historique : relevé (1 750 → +68 → 1 818) **puis** remise à zéro de 1 818 portant le n° de l'ordre ; plan `last_executed` renseigné, `next_due` **nul** (plan sur compteur : pas d'échéance de date) ; plus aucun ordre ouvert signalé |
+
+---
+
 ## Ce qui reste ouvert
 
 | Sujet | Pourquoi ce n'est pas fait |
 |---|---|
 | **Saisie d'un relevé ABSOLU** (la valeur affichée par la machine) | Demanderait de stocker la valeur du compteur machine au début du tronçon. `last_service_value` porterait cela, mais la colonne est morte et son nom désigne autre chose. L'écart est demandé à la place, avec trois parades contre la confusion |
-| **Compteur → OT préventif** | Un seuil atteint crée une **alerte**, jamais un ordre de travail (audit du 2026-10-25, section 1). C'est la dernière boucle ouverte de la chaîne du préventif |
-| **Alimentation automatique depuis un signal de marche** | Aucun signal de ce genre n'existe dans la plateforme. Quand il existera, il écrira dans `counter_readings` par le même chemin |
+| **Alimentation automatique depuis un signal de marche** | Aucun signal de ce genre n'existe dans la plateforme. Quand il existera, il écrira dans `counter_readings` par le même chemin, et `incrementCounter()` — qui appelle déjà `traiterEcheanceCompteur` — créera les ordres |
+| **Un ordre annulé fait repartir la boucle** | Si l'ordre est *annulé* (et non clôturé), le compteur reste au-dessus de son seuil et le relevé suivant en crée un nouveau. C'est correct — la maintenance est toujours due — mais cela veut dire qu'annuler ne suffit pas à « renoncer » à une échéance : il faut remettre le compteur à zéro avec un motif, ou désactiver son suivi |
 | **`increment_rate`, `last_service_value`, `interval_value`** | Colonnes mortes, laissées en place. Les supprimer est une migration qui ne corrige rien ; elles sont signalées ici pour qu'on ne les croie pas actives |

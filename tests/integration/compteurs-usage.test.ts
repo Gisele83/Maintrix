@@ -140,6 +140,23 @@ afterAll(async () => {
       WHERE counter_id IN (SELECT id FROM maintenance_counters WHERE description LIKE $1)`,
     [`COMPTEUR-${STAMP}-%`]);
   await pool.query('DELETE FROM maintenance_counters WHERE description LIKE $1', [`COMPTEUR-${STAMP}-%`]);
+
+  // Les ordres de travail CRÉÉS PAR LE SERVEUR à partir des compteurs. Leur
+  // numéro est auto-généré (`WO-<horodatage>-<aléa>`) : seul leur rattachement
+  // au plan les désigne. Sans ce nettoyage, la suppression des plans échoue
+  // sur `work_orders_plan_id_...` — la même dépendance qui avait cassé le
+  // retrait du jeu de démonstration à l'ajout de cette clé étrangère.
+  const plansDeLaSuite = `(SELECT id FROM preventive_maintenance_plans WHERE plan_name LIKE $1)`;
+  await pool.query(
+    `DELETE FROM maintenance_reports WHERE work_order_id IN
+       (SELECT id FROM work_orders WHERE plan_id IN ${plansDeLaSuite})`, [`PLAN-${STAMP}-%`]);
+  await pool.query(
+    `DELETE FROM counter_history WHERE work_order_id IN
+       (SELECT id FROM work_orders WHERE plan_id IN ${plansDeLaSuite})`, [`PLAN-${STAMP}-%`]);
+  await pool.query(
+    `DELETE FROM stock_movements WHERE work_order_id IN
+       (SELECT id FROM work_orders WHERE plan_id IN ${plansDeLaSuite})`, [`PLAN-${STAMP}-%`]);
+  await pool.query(`DELETE FROM work_orders WHERE plan_id IN ${plansDeLaSuite}`, [`PLAN-${STAMP}-%`]);
   await pool.query('DELETE FROM preventive_maintenance_plans WHERE plan_name LIKE $1', [`PLAN-${STAMP}-%`]);
 
   // Les référents de `equipment_registry` sont recensés au catalogue : la
@@ -335,6 +352,346 @@ describe("Franchir le seuil émet une alerte", () => {
 
     expect((await compteurEnBase(compteur)).current_value).toBe(9999);
     expect(await alertesPourEquipement(equipement)).toBe(avant);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+describe('Compteur → ordre de travail préventif', () => {
+  /** Le plan qui porte la gamme, et dont la clôture remettra le compteur à zéro. */
+  async function insererPlanCompteur(suffixe: string, tenantId: string = SEEDED.tenantAlpha): Promise<number> {
+    const { rows } = await pool.query<{ id: number }>(
+      `INSERT INTO preventive_maintenance_plans
+         (tenant_id, plan_name, equipment_type, frequency, frequency_value, is_active, estimated_duration)
+       VALUES ($1, $2, 'pompe', 'hours_based', 500, true, 180) RETURNING id`,
+      [tenantId, `PLAN-${STAMP}-${suffixe}`]);
+    return rows[0].id;
+  }
+
+  async function ordresDuPlan(planId: number): Promise<Array<{
+    id: number; order_number: string; order_type: string; status: string;
+    priority: string | null; equipment_id: number | null; estimated_duration: number | null;
+    requires_shutdown: boolean; scheduled_start: string | null; title: string; description: string;
+  }>> {
+    const { rows } = await pool.query(
+      `SELECT id, order_number, order_type, status, priority, equipment_id, estimated_duration,
+              requires_shutdown, to_char(scheduled_start,'YYYY-MM-DD') AS scheduled_start,
+              title, description
+         FROM work_orders WHERE plan_id = $1 ORDER BY id`, [planId]);
+    return rows;
+  }
+
+  it("crée un OT préventif rattaché au plan quand le seuil d'alerte est franchi", async () => {
+    // C'ÉTAIT LA DERNIÈRE BOUCLE OUVERTE de la chaîne du préventif : un
+    // compteur qui atteignait son seuil produisait une ALERTE, et rien
+    // d'autre. Une alerte se lit et s'acquitte ; elle ne se clôture pas, donc
+    // elle ne remet pas le compteur à zéro — l'échéance restait indéfiniment
+    // atteinte.
+    const plan = await insererPlanCompteur('K1');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K1');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K1', valeur: 440, seuil: 500,
+      alertePct: 90, planId: plan, equipmentId: equipement,
+    });
+    expect(await ordresDuPlan(plan)).toHaveLength(0);
+
+    // 440 + 20 = 460 = 92 % du seuil, au-delà des 90 % configurés.
+    expect((await relever(compteur, alpha, { usage: 20 })).status).toBe(201);
+
+    const ordres = await ordresDuPlan(plan);
+    expect(ordres).toHaveLength(1);
+    expect(ordres[0]).toMatchObject({
+      order_type: 'preventive',
+      status: 'pending',
+      equipment_id: equipement,
+      // La durée vient du PLAN, pas d'une estimation inventée.
+      estimated_duration: 180,
+      // Le plan ne dit pas si la gamme immobilise la machine : défaut prudent.
+      requires_shutdown: false,
+    });
+    // Pas d'échéance inventée : un plan réglé sur un compteur n'a pas de date,
+    // et en déduire une demanderait une cadence d'usage, donc une prévision.
+    expect(ordres[0].scheduled_start).toBeNull();
+    // La description porte la MESURE qui l'a déclenché.
+    expect(ordres[0].description).toContain('460');
+    expect(ordres[0].description).toContain('500');
+    expect(ordres[0].title).toContain(`PLAN-${STAMP}-K1`);
+  });
+
+  it("crée AU SEUIL D'ALERTE, pas seulement à 100 %", async () => {
+    // `warningThresholdPct` est le champ que l'exploitant règle pour
+    // « prévenir assez tôt pour laisser le temps de programmer ». Créer l'ordre
+    // à 100 % le ferait naître déjà en retard.
+    const plan = await insererPlanCompteur('K2');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K2');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K2', valeur: 700, seuil: 1000,
+      alertePct: 75, planId: plan, equipmentId: equipement,
+    });
+
+    // 760 / 1000 = 76 % : au-delà des 75 % configurés, loin de 100 %.
+    expect((await relever(compteur, alpha, { usage: 60 })).status).toBe(201);
+
+    const ordres = await ordresDuPlan(plan);
+    expect(ordres).toHaveLength(1);
+    // 76 % est sous le seuil critique (75 + 8 = 83) : priorité moyenne, et non
+    // haute. La priorité est DÉDUITE DE LA MESURE.
+    expect(ordres[0].priority).toBe('medium');
+  });
+
+  it('monte la priorité au-delà du seuil critique', async () => {
+    const plan = await insererPlanCompteur('K3');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K3');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K3', valeur: 980, seuil: 1000,
+      alertePct: 90, planId: plan, equipmentId: equipement,
+    });
+
+    expect((await relever(compteur, alpha, { usage: 30 })).status).toBe(201);
+
+    const ordres = await ordresDuPlan(plan);
+    expect(ordres[0].priority).toBe('high');
+    // Jamais « urgent » : un préventif dû n'est pas une panne, et le mettre au
+    // même rang noierait les vraies urgences.
+    expect(ordres[0].priority).not.toBe('urgent');
+  });
+
+  it("n'en crée pas un second aux relevés suivants — idempotence", async () => {
+    // Le compteur est relu régulièrement, et chaque relevé repasse par le
+    // même chemin. Sans garde, un ordre naîtrait à CHAQUE relevé au-delà du
+    // seuil.
+    const plan = await insererPlanCompteur('K4');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K4');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K4', valeur: 460, seuil: 500,
+      alertePct: 90, planId: plan, equipmentId: equipement,
+    });
+
+    for (const usage of [10, 10, 10, 10]) {
+      expect((await relever(compteur, alpha, { usage })).status).toBe(201);
+    }
+
+    expect(await ordresDuPlan(plan)).toHaveLength(1);
+  });
+
+  it("n'en crée pas un second pour un AUTRE compteur de la même gamme", async () => {
+    // Un plan peut porter plusieurs compteurs (heures ET cycles) et la gamme
+    // ne s'exécute qu'une fois. Deux ordres feraient faire deux fois le même
+    // travail, et la seconde clôture avancerait l'échéance d'une période de
+    // trop.
+    const plan = await insererPlanCompteur('K5');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K5');
+    const heures = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K5h', valeur: 490, seuil: 500,
+      planId: plan, equipmentId: equipement,
+    });
+    const cycles = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K5c', valeur: 9900, seuil: 10000,
+      planId: plan, equipmentId: equipement,
+    });
+
+    expect((await relever(heures, alpha, { usage: 20 })).status).toBe(201);
+    expect((await relever(cycles, alpha, { usage: 200 })).status).toBe(201);
+
+    expect(await ordresDuPlan(plan)).toHaveLength(1);
+  });
+
+  it("ne crée AUCUN ordre pour un compteur sans gamme — et le refus est délibéré", async () => {
+    // La remise à zéro à la clôture se fait PAR LE PLAN. Un ordre créé pour un
+    // compteur sans plan ne pourrait jamais remettre ce compteur à zéro : le
+    // compteur resterait au-dessus de son seuil et le relevé suivant créerait
+    // un nouvel ordre, indéfiniment. On fabriquerait du travail sans jamais
+    // fermer la boucle.
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K6');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K6', valeur: 490, seuil: 500,
+      planId: null, equipmentId: equipement,
+    });
+
+    expect((await relever(compteur, alpha, { usage: 50 })).status).toBe(201);
+
+    const { rows } = await pool.query<{ n: string }>(
+      `SELECT count(*) AS n FROM work_orders WHERE equipment_id = $1`, [equipement]);
+    expect(Number(rows[0].n)).toBe(0);
+
+    // L'alerte, elle, est bien émise : l'échéance est signalée même si aucun
+    // ordre ne peut être créé.
+    expect(await alertesPourEquipement(equipement)).toBeGreaterThan(0);
+  });
+
+  it("ne crée aucun ordre sous le seuil d'alerte — témoin", async () => {
+    // Sans ce témoin, un correctif qui créerait un ordre à chaque relevé
+    // passerait tous les tests précédents.
+    const plan = await insererPlanCompteur('K7');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K7');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K7', valeur: 10, seuil: 1000,
+      alertePct: 90, planId: plan, equipmentId: equipement,
+    });
+
+    expect((await relever(compteur, alpha, { usage: 30 })).status).toBe(201);
+
+    expect(await ordresDuPlan(plan)).toHaveLength(0);
+  });
+
+  it('ne crée aucun ordre pour un plan DÉSACTIVÉ', async () => {
+    // Un plan désactivé décrit une gamme qu'on a cessé d'appliquer : lui créer
+    // du travail irait contre une décision d'exploitation.
+    const plan = await insererPlanCompteur('K8');
+    await pool.query('UPDATE preventive_maintenance_plans SET is_active = false WHERE id = $1', [plan]);
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K8');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K8', valeur: 490, seuil: 500,
+      planId: plan, equipmentId: equipement,
+    });
+
+    expect((await relever(compteur, alpha, { usage: 50 })).status).toBe(201);
+
+    expect(await ordresDuPlan(plan)).toHaveLength(0);
+  });
+
+  it("ne crée aucun ordre pour un compteur désactivé", async () => {
+    // Le relevé est déjà refusé en 409 ; on vérifie qu'aucun ordre n'apparaît
+    // par un autre chemin (modification de seuil, par exemple).
+    const plan = await insererPlanCompteur('K9');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K9');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K9', valeur: 900, seuil: 1000,
+      actif: false, planId: plan, equipmentId: equipement,
+    });
+
+    const res = await createAuthenticatedRequest('put', `/api/maintenance-counters/${compteur}`, chefEquipe)
+      .send({ thresholdValue: 500 });
+    expect(res.status).toBe(200);
+
+    expect(await ordresDuPlan(plan)).toHaveLength(0);
+  });
+
+  it("abaisser le seuil crée l'ordre, sans attendre le relevé suivant", async () => {
+    // Un seuil abaissé par l'ingénierie rend l'échéance due immédiatement. Ne
+    // créer l'ordre qu'au relevé suivant le repousserait de semaines.
+    const plan = await insererPlanCompteur('K10');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K10');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K10', valeur: 600, seuil: 2000,
+      planId: plan, equipmentId: equipement,
+    });
+    expect(await ordresDuPlan(plan)).toHaveLength(0);
+
+    const res = await createAuthenticatedRequest('put', `/api/maintenance-counters/${compteur}`, chefEquipe)
+      .send({ thresholdValue: 500 });
+    expect(res.status).toBe(200);
+
+    expect(await ordresDuPlan(plan)).toHaveLength(1);
+  });
+
+  it("LA BOUCLE COMPLÈTE : relevé → ordre → clôture → compteur à zéro", async () => {
+    // C'est le test qui compte. Il éprouve la chaîne entière, et c'est la
+    // fermeture du cycle qui distingue cette boucle d'une alerte de plus :
+    // l'ordre créé par le compteur, en se clôturant, remet ce compteur à zéro.
+    const plan = await insererPlanCompteur('K11');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K11');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K11', valeur: 450, seuil: 500,
+      alertePct: 90, planId: plan, equipmentId: equipement,
+    });
+
+    // 1. le relevé franchit le seuil
+    expect((await relever(compteur, alpha, { usage: 40 })).status).toBe(201);
+    expect((await compteurEnBase(compteur)).current_value).toBe(490);
+
+    // 2. un ordre de travail préventif existe, rattaché au plan
+    const [ordre] = await ordresDuPlan(plan);
+    expect(ordre).toBeDefined();
+    expect(ordre.status).toBe('pending');
+
+    // 3. on l'exécute et on le clôture
+    expect((await createAuthenticatedRequest('put', `/api/work-orders/${ordre.id}`, alpha)
+      .send({ status: 'in_progress' })).status).toBe(200);
+    expect((await createAuthenticatedRequest('put', `/api/work-orders/${ordre.id}`, alpha)
+      .send({ status: 'completed' })).status).toBe(200);
+
+    // 4. LE COMPTEUR EST REMIS À ZÉRO par cette clôture, et son alerte levée
+    const apres = await compteurEnBase(compteur);
+    expect(apres.current_value).toBe(0);
+    expect(apres.alert_level).toBe('info');
+    expect(apres.alert_email_sent).toBe(false);
+
+    // 5. le relevé qui l'a fait franchir le seuil est conservé, et la remise à
+    //    zéro porte le numéro de l'ordre : l'usage entre deux interventions
+    //    reste reconstituable.
+    const histo = await createAuthenticatedRequest('get', `/api/maintenance-counters/${compteur}/history`, alpha);
+    const lignes = histo.body as Array<{ genre: string; ordreTravail: number | null; valeurAvant: number }>;
+    expect(lignes.map((l) => l.genre)).toEqual(['remise_a_zero', 'releve']);
+    expect(lignes[0].ordreTravail).toBe(ordre.id);
+    expect(lignes[0].valeurAvant).toBe(490);
+
+    // 6. et la boucle peut repartir : le compteur étant à zéro, un nouveau
+    //    relevé sous le seuil ne crée pas d'ordre.
+    expect((await relever(compteur, alpha, { usage: 10 })).status).toBe(201);
+    expect(await ordresDuPlan(plan)).toHaveLength(1);
+  });
+
+  it("l'ordre ouvert est signalé dans la liste des compteurs", async () => {
+    // Sans cette information, un compteur annonce « échéance atteinte » sans
+    // dire qu'un ordre a déjà été créé — et l'exploitant en saisit un second à
+    // la main, pour un travail déjà programmé.
+    const plan = await insererPlanCompteur('K12');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K12');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K12', valeur: 490, seuil: 500,
+      planId: plan, equipmentId: equipement,
+    });
+    expect((await relever(compteur, alpha, { usage: 20 })).status).toBe(201);
+    const [ordre] = await ordresDuPlan(plan);
+
+    const res = await createAuthenticatedRequest('get', '/api/maintenance-counters', alpha);
+    const servi = (res.body as Array<{ id: number; ordreTravailOuvert: { id: number; orderNumber: string } | null }>)
+      .find((c) => c.id === compteur);
+
+    expect(servi!.ordreTravailOuvert).toMatchObject({ id: ordre.id, orderNumber: ordre.order_number });
+  });
+
+  it("ne signale plus d'ordre ouvert une fois celui-ci clôturé", async () => {
+    // Témoin du précédent : un champ toujours rempli ne prouverait rien.
+    const plan = await insererPlanCompteur('K13');
+    const equipement = await insererEquipement(SEEDED.tenantAlpha, 'K13');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantAlpha, suffixe: 'K13', valeur: 490, seuil: 500,
+      planId: plan, equipmentId: equipement,
+    });
+    expect((await relever(compteur, alpha, { usage: 20 })).status).toBe(201);
+    const [ordre] = await ordresDuPlan(plan);
+    expect((await createAuthenticatedRequest('put', `/api/work-orders/${ordre.id}`, alpha)
+      .send({ status: 'completed' })).status).toBe(200);
+
+    const res = await createAuthenticatedRequest('get', '/api/maintenance-counters', alpha);
+    const servi = (res.body as Array<{ id: number; ordreTravailOuvert: unknown }>)
+      .find((c) => c.id === compteur);
+
+    expect(servi!.ordreTravailOuvert).toBeNull();
+  });
+
+  it("l'ordre créé appartient au locataire du compteur", async () => {
+    // L'ordre naît d'une décision du serveur, pas d'une requête : son
+    // locataire vient du compteur. S'il partait ailleurs, une organisation
+    // verrait du travail apparaître sur une machine qui n'est pas la sienne.
+    const plan = await insererPlanCompteur('K14', SEEDED.tenantBeta);
+    const equipement = await insererEquipement(SEEDED.tenantBeta, 'K14');
+    const compteur = await insererCompteur({
+      tenantId: SEEDED.tenantBeta, suffixe: 'K14', valeur: 490, seuil: 500,
+      planId: plan, equipmentId: equipement,
+    });
+
+    expect((await relever(compteur, beta, { usage: 20 })).status).toBe(201);
+
+    const { rows } = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM work_orders WHERE plan_id = $1`, [plan]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tenant_id).toBe(SEEDED.tenantBeta);
+
+    // Et Alpha ne le voit pas.
+    const vuParAlpha = await createAuthenticatedRequest('get', '/api/work-orders', alpha);
+    expect(vuParAlpha.text).not.toContain(`PLAN-${STAMP}-K14`);
   });
 });
 

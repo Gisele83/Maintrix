@@ -783,10 +783,12 @@ export function registerGMAORoutes(app: Express) {
           console.log("Creating validated counter:", counterData);
           const newCounter = await gmaoStorage.createMaintenanceCounter(counterData);
 
-          // Générer une alerte immédiate si la valeur actuelle dépasse déjà les seuils
+          // Générer une alerte immédiate si la valeur actuelle dépasse déjà les
+          // seuils — et l'ordre de travail préventif qui va avec, puisque le
+          // compteur vient d'être rattaché au plan qu'on est en train de créer.
           if (validatedCounter.currentValue >= validatedCounter.thresholdCritical ||
               validatedCounter.currentValue >= validatedCounter.thresholdWarning) {
-            await gmaoStorage.checkAndGenerateCounterAlert(newCounter);
+            await gmaoStorage.traiterEcheanceCompteur(newCounter);
           }
           
         } catch (counterError) {

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, or, gte, lte, inArray, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, inArray, notInArray, sql, count } from "drizzle-orm";
 
 /**
  * La base, ou une transaction en cours sur celle-ci.
@@ -729,9 +729,14 @@ export class GMAOStorage {
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
 
-    // Check if alert needs to be generated
+    // Le compteur a bougé : alerte ET ordre de travail préventif si l'échéance
+    // est atteinte. Cette méthode n'a aucun appelant aujourd'hui — elle est
+    // prévue pour une future alimentation automatique depuis un signal de
+    // marche — mais elle doit tirer les mêmes conséquences qu'un relevé saisi,
+    // sans quoi l'alimentation automatique, le jour où elle arrivera, ferait
+    // monter les compteurs sans jamais créer de travail.
     if (counter) {
-      await this.checkAndGenerateCounterAlert(counter);
+      await this.traiterEcheanceCompteur(counter);
     }
 
     return counter;
@@ -820,14 +825,13 @@ export class GMAOStorage {
       return { compteur, releve };
     });
 
-    // HORS transaction, et volontairement : la génération d'alerte écrit dans
-    // `alerts_notifications` et peut déclencher une notification. La règle du
-    // dépôt est que rien de lent ni de distant ne vit dans un `BEGIN`
-    // (docs/TRANSACTIONS.md). Son échec ne doit pas annuler un relevé valide —
-    // le relevé est un fait constaté, l'alerte en est une conséquence.
-    await this.checkAndGenerateCounterAlert(resultat.compteur).catch((err) =>
-      console.error("Alerte de compteur non générée (best-effort):", err),
-    );
+    // HORS transaction, et volontairement : les conséquences écrivent dans
+    // `alerts_notifications` et `work_orders`, et peuvent déclencher une
+    // notification. La règle du dépôt est que rien de lent ni de distant ne
+    // vit dans un `BEGIN` (docs/TRANSACTIONS.md). Leur échec ne doit pas
+    // annuler un relevé valide — le relevé est un fait CONSTATÉ, l'alerte et
+    // l'ordre de travail en sont des conséquences.
+    await this.traiterEcheanceCompteur(resultat.compteur);
 
     return resultat;
   }
@@ -1137,6 +1141,227 @@ export class GMAOStorage {
         .set({ alertEmailSent: true, updatedAt: new Date() })
         .where(eq(maintenanceCounters.id, counter.id));
     }
+  }
+
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * COMPTEUR → ORDRE DE TRAVAIL PRÉVENTIF
+   * ═══════════════════════════════════════════════════════════════════
+   *
+   * CE QUI ÉTAIT
+   * ───────────────────────────────────────────────────────────────────
+   * Un compteur qui atteignait son seuil produisait une ALERTE, et rien
+   * d'autre (audit fonctionnel du 2026-10-25, section 1 : « Compteur → OT
+   * préventif : ouverte — le compteur crée une alerte, jamais un OT »).
+   *
+   * Une alerte se lit, s'acquitte, et disparaît. Elle ne porte ni affectation,
+   * ni durée estimée, ni pièces, ni traçabilité d'exécution — et surtout elle
+   * ne se CLÔTURE pas, donc elle ne remet pas le compteur à zéro. L'échéance
+   * restait donc indéfiniment atteinte, à crier la même chose à chaque relevé.
+   *
+   * CE QUI SE PASSE MAINTENANT
+   * ───────────────────────────────────────────────────────────────────
+   * Le franchissement du seuil crée un ordre de travail préventif rattaché au
+   * plan. Sa clôture replanifie le plan et REMET LE COMPTEUR À ZÉRO
+   * (migration 0024) : le cycle se referme sur lui-même, et c'est ce qui
+   * distingue cette boucle d'une alerte de plus.
+   *
+   * POURQUOI AU SEUIL D'ALERTE, ET NON À 100 %
+   * ───────────────────────────────────────────────────────────────────
+   * `warningThresholdPct` est exactement le champ que l'exploitant règle pour
+   * « prévenir assez tôt pour laisser le temps de programmer » — c'est le
+   * libellé de l'écran. Créer l'ordre à 100 % le ferait naître déjà en retard,
+   * ce qui est le défaut qu'on vient de corriger ailleurs sur les plans
+   * calendaires.
+   *
+   * CE QUI N'EST PAS INVENTÉ
+   * ───────────────────────────────────────────────────────────────────
+   *   • pas d'échéance (`scheduledStart`) : un plan réglé sur un compteur n'a
+   *     pas de date, et en déduire une demanderait une cadence d'usage —
+   *     c'est-à-dire une prévision. Le planificateur la pose ;
+   *   • `requiresShutdown` reste à `false`, le défaut prudent posé en 0024 :
+   *     le plan ne dit pas si la gamme immobilise la machine ;
+   *   • la priorité vient de la MESURE (la part du seuil consommée), pas d'un
+   *     tirage ni d'une constante. Jamais « urgent » : un préventif dû n'est
+   *     pas une urgence, et le dire le mettrait au même rang qu'une panne ;
+   *   • la durée estimée vient du plan quand il la porte, et reste absente
+   *     sinon.
+   *
+   * @returns l'ordre créé, ou `null` avec le motif journalisé.
+   */
+  async creerOrdreTravailSiEcheanceCompteurAtteinte(
+    counter: MaintenanceCounter,
+  ): Promise<WorkOrder | null> {
+    // ── Un compteur SANS PLAN ne crée pas d'ordre, et c'est la condition la
+    //    plus importante de cette fonction.
+    //
+    //    La remise à zéro à la clôture se fait PAR LE PLAN
+    //    (`getCompteursActifsDuPlan`). Un ordre créé pour un compteur sans
+    //    plan ne pourrait donc jamais remettre ce compteur à zéro : le
+    //    compteur resterait au-dessus de son seuil, et le relevé suivant
+    //    créerait un nouvel ordre, indéfiniment. On refuserait de fermer la
+    //    boucle tout en fabriquant du travail — pire que de ne rien faire.
+    //
+    //    L'écran des compteurs affiche « aucune gamme rattachée » : le cas est
+    //    visible, et se corrige en rattachant le compteur à une gamme.
+    if (counter.planId == null) return null;
+    if (counter.equipmentId == null) return null;
+    if (!counter.tenantId) return null;
+    if (counter.isActive === false) return null;
+    if (!counter.thresholdValue || counter.thresholdValue <= 0) return null;
+
+    const part = ((counter.currentValue ?? 0) / counter.thresholdValue) * 100;
+    const seuilAlerte = counter.warningThresholdPct ?? 90;
+    if (part < seuilAlerte) return null;
+
+    const tenantId = counter.tenantId;
+
+    // Le plan doit exister, appartenir au demandeur et être actif. Un plan
+    // désactivé décrit une gamme qu'on a cessé d'appliquer : lui créer du
+    // travail irait contre une décision d'exploitation.
+    const [plan] = await db
+      .select()
+      .from(preventiveMaintenancePlans)
+      .where(and(
+        eq(preventiveMaintenancePlans.id, counter.planId),
+        eq(preventiveMaintenancePlans.tenantId, tenantId),
+      ));
+    if (!plan || plan.isActive === false) return null;
+
+    // ── GARDE D'IDEMPOTENCE ─────────────────────────────────────────
+    //
+    // Le compteur est relu régulièrement, et chaque relevé repasse ici. Sans
+    // cette garde, un ordre naîtrait à CHAQUE relevé au-dessus du seuil.
+    //
+    // La garde porte sur (locataire, plan, équipement) et non sur le compteur :
+    // un plan peut porter plusieurs compteurs (heures ET cycles), et la gamme
+    // ne s'exécute qu'une fois. Deux ordres pour la même gamme feraient
+    // exécuter deux fois le même travail, et la seconde clôture avancerait
+    // l'échéance d'une période de trop.
+    //
+    // Le filtre est posé EN SQL et sans limite de lignes. Le motif existant
+    // ailleurs dans ce dépôt (`predictive-maintenance-engine.ts`) relit les
+    // cinq derniers ordres de l'équipement et cherche parmi eux : un ordre
+    // ouvert plus ancien que ces cinq lui échappe, et il en crée un doublon.
+    const [dejaOuvert] = await db
+      .select({ id: workOrders.id, orderNumber: workOrders.orderNumber })
+      .from(workOrders)
+      .where(and(
+        eq(workOrders.tenantId, tenantId),
+        eq(workOrders.planId, counter.planId),
+        eq(workOrders.equipmentId, counter.equipmentId),
+        notInArray(workOrders.status, ['completed', 'cancelled']),
+      ))
+      .limit(1);
+
+    if (dejaOuvert) {
+      console.log(
+        `Compteur #${counter.id} au-delà de son seuil — ordre ${dejaOuvert.orderNumber} déjà ouvert pour le plan #${counter.planId}`,
+      );
+      return null;
+    }
+
+    // ── Création ────────────────────────────────────────────────────
+    const UNITES_FR: Record<string, string> = {
+      hours: "h", cycles: "cycles", kilometers: "km", units: "unités",
+    };
+    const unite = UNITES_FR[counter.counterType] ?? counter.counterType;
+    const libelleCompteur = counter.description || `compteur ${unite}`;
+
+    // La priorité est DÉDUITE DE LA MESURE. Le seuil critique est celui que
+    // `checkAndGenerateCounterAlert` emploie déjà, pour que la priorité de
+    // l'ordre et la sévérité de l'alerte ne puissent pas se contredire.
+    const seuilCritique = Math.min(100, seuilAlerte + 8);
+    const priorite = part >= seuilCritique ? 'high' : 'medium';
+
+    const ordre = await this.createWorkOrder({
+      tenantId,
+      equipmentId: counter.equipmentId,
+      planId: counter.planId,
+      orderType: 'preventive',
+      title: `${plan.planName} — échéance compteur atteinte`,
+      description:
+        `Créé automatiquement : le compteur « ${libelleCompteur} » a atteint son échéance. ` +
+        `Relevé ${counter.currentValue ?? 0} ${unite} pour une périodicité de ${counter.thresholdValue} ${unite} ` +
+        `(${part.toFixed(0)} %). La clôture de cet ordre replanifiera le plan « ${plan.planName} » ` +
+        `et remettra ce compteur à zéro.`,
+      priority: priorite,
+      status: 'pending',
+      // `false` : le plan ne dit pas si la gamme immobilise la machine, et
+      // déclarer un arrêt qui n'a pas lieu rendrait indisponible un équipement
+      // qui produit.
+      requiresShutdown: false,
+      ...(plan.estimatedDuration != null ? { estimatedDuration: plan.estimatedDuration } : {}),
+    } as InsertWorkOrder);
+
+    console.log(
+      `Compteur #${counter.id} → ordre de travail ${ordre.orderNumber} créé ` +
+      `(plan #${plan.id}, ${part.toFixed(0)} % du seuil)`,
+    );
+    return ordre;
+  }
+
+  /**
+   * Le compteur vient de changer d'état : on en tire TOUTES les conséquences.
+   *
+   * Deux conséquences, et il fallait un seul point d'entrée pour qu'aucun
+   * appelant n'en oublie une :
+   *
+   *   1. l'alerte, qui prévient ;
+   *   2. l'ordre de travail préventif, qui fait exécuter — et dont la clôture
+   *      remet le compteur à zéro, refermant la boucle.
+   *
+   * `checkAndGenerateCounterAlert` reste la primitive d'alerte, et garde son
+   * nom : une fonction qui s'appelle « generate alert » et qui créerait aussi
+   * des ordres de travail mentirait sur ce qu'elle fait.
+   *
+   * Chaque conséquence est indépendante : l'échec de l'une ne doit pas priver
+   * de l'autre. Un ordre de travail créé sans alerte reste utile, et
+   * l'inverse aussi.
+   */
+  async traiterEcheanceCompteur(counter: MaintenanceCounter): Promise<void> {
+    await this.checkAndGenerateCounterAlert(counter).catch((err) =>
+      console.error("Alerte de compteur non générée (best-effort):", err),
+    );
+    await this.creerOrdreTravailSiEcheanceCompteurAtteinte(counter).catch((err) =>
+      console.error("Ordre de travail de compteur non créé (best-effort):", err),
+    );
+  }
+
+  /**
+   * Les ordres de travail préventifs OUVERTS, indexés par « plan:équipement ».
+   *
+   * Sert à l'écran des compteurs : sans cette information, un compteur affiche
+   * « échéance atteinte » sans dire qu'un ordre a déjà été créé pour elle — et
+   * l'exploitant en saisit un second à la main. La clé composée est celle de
+   * la garde d'idempotence ci-dessus, pour que l'écran montre exactement ce
+   * que le serveur considère comme déjà pris en charge.
+   */
+  async getOrdresPreventifsOuvertsParPlan(tenantId: string): Promise<Map<string, { id: number; orderNumber: string }>> {
+    const ouverts = await db
+      .select({
+        id: workOrders.id,
+        orderNumber: workOrders.orderNumber,
+        planId: workOrders.planId,
+        equipmentId: workOrders.equipmentId,
+      })
+      .from(workOrders)
+      .where(and(
+        eq(workOrders.tenantId, tenantId),
+        notInArray(workOrders.status, ['completed', 'cancelled']),
+        eq(workOrders.orderType, 'preventive'),
+      ))
+      .orderBy(desc(workOrders.createdAt));
+
+    const index = new Map<string, { id: number; orderNumber: string }>();
+    for (const o of ouverts) {
+      if (o.planId == null || o.equipmentId == null) continue;
+      const cle = `${o.planId}:${o.equipmentId}`;
+      // Le plus récent gagne : `orderBy` descendant, et on ne remplace pas une
+      // entrée déjà posée.
+      if (!index.has(cle)) index.set(cle, { id: o.id, orderNumber: o.orderNumber });
+    }
+    return index;
   }
 
   // Spare Parts Methods

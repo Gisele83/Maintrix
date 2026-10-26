@@ -415,7 +415,7 @@ valide ; ce dépôt a déjà payé cette confusion sur 159 occurrences.
 | Boucle | État | Pourquoi |
 |---|---|---|
 | ~~Aucun écran de suivi des compteurs~~ | **fait** le 2026-10-26 | Écran `/compteurs` : relevés saisis (l'incrémentation), seuils réglables, historique réunissant relevés et remises à zéro. Voir [COMPTEURS_USAGE.md](COMPTEURS_USAGE.md) |
-| **Compteur → OT préventif** | ouvert | Un compteur qui atteint son seuil crée une **alerte**, jamais un ordre de travail (audit, section 1). C'est la dernière boucle ouverte de la chaîne du préventif |
+| ~~Compteur → OT préventif~~ | **fait** le 2026-10-26 | Le franchissement du seuil crée un OT préventif rattaché au plan, dont la clôture remet le compteur à zéro : le cycle se referme. Voir [COMPTEURS_USAGE.md](COMPTEURS_USAGE.md) |
 | **Demande d'intervention → OT** | ouvert | Aucune table ne porte la demande d'intervention. Chantier distinct |
 | **Alerte → OT** | ouvert | Création d'OT depuis un événement, non traitée ici |
 | **`POST /api/work-orders` ignore `dueDate`, `requestedBy`, `orderType`** | ouvert, préexistant | Le client compense par un PUT de complément (voir l'en-tête de `work-order-management.tsx`). `planId` et `requiresShutdown`, eux, sont bien lus par POST |

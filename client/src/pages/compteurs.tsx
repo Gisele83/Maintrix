@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +75,14 @@ interface Compteur {
   planId: number | null;
   isActive: boolean | null;
   updatedAt: string | null;
+  /**
+   * L'ordre de travail préventif déjà ouvert pour la gamme de ce compteur.
+   *
+   * Sans lui, un compteur annonce « échéance atteinte » sans dire qu'un ordre
+   * a déjà été créé pour elle — et l'exploitant en saisit un second à la main,
+   * pour un travail déjà programmé.
+   */
+  ordreTravailOuvert: { id: number; orderNumber: string } | null;
 }
 interface LigneHistorique {
   genre: "releve" | "remise_a_zero";
@@ -198,8 +207,12 @@ export default function CompteursPage() {
     queryClient.invalidateQueries({
       predicate: (q) => String(q.queryKey[0] ?? "").startsWith("/api/maintenance-counters/"),
     });
-    // Un relevé peut faire franchir un seuil, donc produire une alerte.
+    // Un relevé peut faire franchir un seuil, donc produire une alerte ET un
+    // ordre de travail préventif. Sans cette seconde invalidation, l'écran des
+    // ordres de travail resterait périmé et l'ordre qui vient de naître
+    // paraîtrait absent.
     queryClient.invalidateQueries({ queryKey: ["/api/alerts"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
   };
 
   const releverMutation = useMutation({
@@ -212,10 +225,18 @@ export default function CompteursPage() {
       rafraichir();
       const c = reponse.compteur;
       const part = partConsommee(c);
+      const seuilAlerte = c.warningThresholdPct ?? 90;
+      // Le message dit ce qui VIENT DE SE PASSER, pas seulement que la saisie
+      // est prise : si le relevé a déclenché un ordre de travail, c'est la
+      // seule information qui compte pour la suite du travail.
+      const aFranchi = part != null && part >= seuilAlerte;
       toast({
         title: "Relevé enregistré",
         description: `${c.description || "Compteur"} : ${nombre(c.currentValue)} ${unite(c.counterType)}`
-          + (part != null && part >= 100 ? " — échéance atteinte." : ""),
+          + (part != null && part >= 100 ? " — échéance atteinte." : "")
+          + (aFranchi && c.planId
+            ? " Un ordre de travail préventif a été créé, ou existait déjà pour cette gamme."
+            : ""),
       });
       fermerReleve();
     },
@@ -507,6 +528,34 @@ export default function CompteursPage() {
                       Dernière remise à zéro : {jour(c.lastResetDate)}
                       {c.planId ? " · rattaché à une gamme préventive" : " · aucune gamme rattachée"}
                     </p>
+
+                    {/* L'ordre de travail né de ce compteur. C'est le bout de la
+                        boucle : le franchissement du seuil l'a créé, et sa
+                        clôture remettra ce compteur à zéro. Le montrer évite
+                        qu'on en saisisse un second à la main. */}
+                    {c.ordreTravailOuvert && (
+                      <p className="text-sm mt-2">
+                        <Link
+                          href="/work-orders"
+                          className="text-signal underline underline-offset-2 hover:text-ink"
+                        >
+                          Ordre de travail {c.ordreTravailOuvert.orderNumber} ouvert
+                        </Link>
+                        <span className="text-ink-mute"> — sa clôture remettra ce compteur à zéro.</span>
+                      </p>
+                    )}
+
+                    {/* Le cas qui empêche la boucle de se fermer, dit
+                        explicitement : sans gamme, aucun ordre ne peut être
+                        créé, car sa clôture n'aurait pas de quoi remettre ce
+                        compteur à zéro. */}
+                    {!c.planId && reg !== "neutre" && part != null && part >= (c.warningThresholdPct ?? 90) && (
+                      <p className="text-sm text-etat-alerte-texte mt-2">
+                        Échéance atteinte, mais aucun ordre de travail ne sera créé : ce compteur
+                        n'est rattaché à aucune gamme préventive. Rattachez-le pour que la boucle
+                        se ferme.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 shrink-0">

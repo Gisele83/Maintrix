@@ -134,16 +134,32 @@ export function registerCompteurRoutes(app: Express) {
 
       const compteurs = await gmaoStorage.getMaintenanceCounters(tenantId);
 
+      // L'ordre de travail déjà ouvert pour la gamme du compteur, s'il existe.
+      //
+      // Sans cette information, un compteur affiche « échéance atteinte » sans
+      // dire qu'un ordre a DÉJÀ été créé pour elle — et l'exploitant en saisit
+      // un second à la main, pour un travail déjà programmé. La clé composée
+      // est celle de la garde d'idempotence du serveur, pour que l'écran
+      // montre exactement ce qui est considéré comme pris en charge.
+      const ordresOuverts = await gmaoStorage.getOrdresPreventifsOuvertsParPlan(tenantId);
+      const avecOrdre = compteurs.map((c) => ({
+        ...c,
+        ordreTravailOuvert:
+          c.planId != null && c.equipmentId != null
+            ? ordresOuverts.get(`${c.planId}:${c.equipmentId}`) ?? null
+            : null,
+      }));
+
       const filtrePlan = req.query.planId;
       if (filtrePlan !== undefined && filtrePlan !== '') {
         const planId = parseInt(String(filtrePlan), 10);
         if (!Number.isInteger(planId)) {
           return res.status(400).json({ error: "SAISIE_INVALIDE", message: "planId invalide" });
         }
-        return res.json(compteurs.filter((c) => c.planId === planId));
+        return res.json(avecOrdre.filter((c) => c.planId === planId));
       }
 
-      res.json(compteurs);
+      res.json(avecOrdre);
     } catch (error) {
       repondreErreur(res, error, "Lecture des compteurs");
     }
@@ -313,9 +329,10 @@ export function registerCompteurRoutes(app: Express) {
 
       // Un compteur créé déjà au-delà de son seuil doit le dire tout de suite :
       // c'est le cas d'une machine reprise en main avec un retard d'entretien.
-      await gmaoStorage.checkAndGenerateCounterAlert(compteur).catch((err) =>
-        console.error("Alerte de compteur non générée (best-effort):", err),
-      );
+      // Et si le compteur porte une gamme, l'ordre de travail est créé dès
+      // maintenant — le retard d'entretien est du travail à faire, pas
+      // seulement une information.
+      await gmaoStorage.traiterEcheanceCompteur(compteur);
 
       res.status(201).json(compteur);
     } catch (error) {
@@ -354,9 +371,7 @@ export function registerCompteurRoutes(app: Express) {
       // suivant, c'est-à-dire potentiellement des semaines après que
       // l'ingénierie a décidé que la périodicité était trop longue.
       if (modifications.thresholdValue !== undefined || modifications.warningThresholdPct !== undefined) {
-        await gmaoStorage.checkAndGenerateCounterAlert(compteur).catch((err) =>
-          console.error("Alerte de compteur non générée (best-effort):", err),
-        );
+        await gmaoStorage.traiterEcheanceCompteur(compteur);
       }
 
       res.json(compteur);
