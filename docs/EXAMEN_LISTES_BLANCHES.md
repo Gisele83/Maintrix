@@ -323,5 +323,85 @@ B est donc nécessaire mais **pas suffisante** : la porte d'à côté reste ouve
 
 Ces sept routes ne lisent pas le corps de la requête sans liste blanche (elles
 prennent des champs nommés), donc elles sortaient du périmètre de cet examen.
-Elles relèvent du **cloisonnement**, et sont signalées ici pour ne pas être
-perdues. Non corrigées.
+Elles relèvent du **cloisonnement**.
+
+> **CORRIGÉES** le 26 octobre 2026 — voir « Correction des sept transitions ».
+
+---
+
+## Correction des sept transitions de permis
+
+*Faite le 26 octobre 2026, sur décision de l'utilisateur, juste après A et B.*
+
+### Une forme unique, et non sept corrections
+
+Les neuf routes d'écriture du module désignaient leur permis par
+`eq(permitToWork.id, id)` — l'identifiant seul. Plutôt que d'ajouter sept fois
+la même paire d'égalités, deux aides locales ont été introduites dans
+`server/permit-to-work-routes.ts` :
+
+- **`cePermis(id, tenantId)`** — la clause qui désigne un permis, toujours par
+  identifiant **et** locataire. Elle existe pour qu'il n'y ait plus de forme
+  courte à portée de main : la clause ne *peut* plus s'écrire sans locataire ;
+- **`permisDuLocataire(req, res, id)`** — regroupe les trois gestes que chaque
+  route refaisait à la main : exiger le locataire (`tenantRequis`, et non la
+  forme `if (tenantId)` qui ne filtre pas quand il est absent), lire le permis
+  dans son périmètre, répondre **404** s'il n'y est pas.
+
+Sept appelants justifient l'abstraction ; une liste de sept corrections
+protégerait du passé, une forme unique protège de la huitième route.
+`PATCH /api/permits/:id` (anomalie B, corrigée plus tôt dans la journée) a été
+ramenée à la même forme : une divergence inviterait à recopier la mauvaise.
+
+### Deux défauts corrigés au passage
+
+- **`PATCH /:id/checklist` n'avait aucune lecture préalable.** Elle écrivait à
+  l'aveugle sur un identifiant et répondait **200 même quand aucune ligne
+  n'existait** — un coup dans le vide annoncé comme un succès. Passer par
+  l'aide commune lui donne le contrôle d'existence en plus du cloisonnement.
+- **`approve` et `reject` avaient un contrôle de rôle, pas de périmètre.** Le
+  rôle dit *qui* peut approuver ; le locataire dit *dans quelle entreprise*. Un
+  chef d'équipe parfaitement en règle pouvait approuver les travaux d'une autre
+  société. Les deux contrôles sont nécessaires, et le commentaire le dit sur
+  place.
+
+### Mesuré sur le scénario le plus grave
+
+Un responsable maintenance d'Alpha — qui **a** le droit d'approuver, mais chez
+lui — sur un permis « travaux par points chauds » de Beta, à l'état soumis :
+
+| Action tentée | HTTP | Statut en base | Locataire |
+|---|---|---|---|
+| `approve` | **404** | `submitted` (inchangé) | Beta |
+| `activate` | **404** | `submitted` (inchangé) | Beta |
+
+Avant correction, ces deux appels auraient renvoyé 200 et **autorisé les
+travaux** au nom de Beta.
+
+- `tests/integration/plans-et-permis-cloisonnes.test.ts` — **17 tests** au
+  total (A, B et les sept transitions). Chaque attaque part de l'état où
+  l'action **réussirait** si le locataire n'était pas vérifié : attaquer depuis
+  le mauvais état ferait masquer le constat par un 409. L'attaquant est un
+  niveau 4, pour qu'un 403 de rôle ne le masque pas non plus. Deux témoins
+  suivent le cycle complet d'un propriétaire (soumettre → approuver → activer →
+  checklist → clôturer, puis rejeter et annuler) ;
+- lanes complètes : **424 tests unitaires** (36 suites) et **465
+  d'intégration** (30 suites) verts ;
+- `npm run check`, `check:tests`, `check:scripts` : verts.
+
+### Ce qui reste ouvert sur ce module : la LECTURE
+
+Le cloisonnement des écritures est acquis. Celui des lectures ne l'est pas :
+
+| Route | Filtre |
+|---|---|
+| `GET /api/permits/:id` | **aucun** — n'importe quel utilisateur authentifié lit le permis complet d'une autre entreprise, noms des intervenants compris |
+| `GET /api/permits` | filtre **si** le locataire est présent — se rabat sur « tout voir » sinon |
+| `GET /api/permits/stats` | idem |
+| `GET /api/permits/defaults/:type` | sans objet (données statiques) |
+
+**La conséquence pratique à retenir** : on ne peut plus *modifier* le permis
+d'autrui, mais on peut encore le *lire* en entier. Pour un document de sécurité
+nominatif, c'est une fuite de confidentialité distincte — et `GET /:id` se
+corrige en une ligne avec `cePermis()`, désormais disponible. Non corrigé : la
+lecture sortait du périmètre de cet examen comme de cette correction.

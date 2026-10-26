@@ -207,3 +207,131 @@ describe('B — le permis de travail d\'autrui est hors de portée', () => {
     expect(apres.status).toBe('draft');
   });
 });
+
+describe("Les sept transitions d'un permis sont cloisonnées", () => {
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI CHAQUE ATTAQUE PART DU BON ÉTAT
+   * ═══════════════════════════════════════════════════════════════════
+   * Chaque transition a une précondition (`submit` exige un brouillon,
+   * `approve` un permis soumis…). Si l'on attaquait depuis le mauvais état, le
+   * 409 masquerait l'absence de cloisonnement : le test passerait sans rien
+   * prouver. Chaque permis de Beta est donc placé dans l'état où l'action
+   * RÉUSSIRAIT si le locataire n'était pas vérifié.
+   *
+   * L'attaquant est un responsable maintenance (niveau 4) et non un
+   * technicien : `approve` et `reject` exigent au moins un chef d'équipe, et
+   * un 403 de rôle masquerait lui aussi le constat.
+   *
+   * Ce que ces routes permettaient, mesuré avant correction : soumettre,
+   * APPROUVER, ACTIVER, clôturer, rejeter ou annuler le permis d'une autre
+   * entreprise. `approve` et `activate` autorisent des travaux — points
+   * chauds, consignation, espace confiné.
+   */
+  const TRANSITIONS = [
+    { nom: 'submit', chemin: 'submit', etat: 'draft', corps: {} },
+    { nom: 'approve', chemin: 'approve', etat: 'submitted', corps: {} },
+    { nom: 'reject', chemin: 'reject', etat: 'submitted', corps: { reason: 'Motif de rejet' } },
+    { nom: 'activate', chemin: 'activate', etat: 'approved', corps: {} },
+    { nom: 'complete', chemin: 'complete', etat: 'active', corps: { notes: 'Travaux finis' } },
+    { nom: 'cancel', chemin: 'cancel', etat: 'draft', corps: {} },
+  ] as const;
+
+  /** Un permis de Beta dans l'état voulu. */
+  async function permisBetaDansEtat(etat: string, suffixe: string): Promise<number> {
+    const { rows } = await pool.query<{ id: number }>(
+      `INSERT INTO permit_to_work
+         (tenant_id, permit_number, type, title, status, risk_level)
+       VALUES ($1, $2, 'hot_work', $3, $4, 'medium') RETURNING id`,
+      [SEEDED.tenantBeta, `PTW-${STAMP}-${suffixe}`, `PERMIS-${STAMP}-${suffixe}`, etat],
+    );
+    return rows[0].id;
+  }
+
+  for (const { nom, chemin, etat, corps } of TRANSITIONS) {
+    it(`POST /:id/${chemin} refuse le permis d'autrui, et son état ne bouge pas`, async () => {
+      const permis = await permisBetaDansEtat(etat, `t-${nom}`);
+
+      const res = await createAuthenticatedRequest(
+        'post', `/api/permits/${permis}/${chemin}`, respAlpha,
+      ).send(corps);
+
+      expect(res.status).toBe(404);
+
+      // La preuve est l'état en base : un 404 rendu APRÈS la transition
+      // laisserait le permis d'autrui modifié.
+      const apres = await litPermis(permis);
+      expect(apres.status).toBe(etat);
+      expect(apres.tenant_id).toBe(SEEDED.tenantBeta);
+    });
+  }
+
+  it("PATCH /:id/checklist refuse le permis d'autrui", async () => {
+    const permis = await permisBetaDansEtat('draft', 't-checklist');
+
+    const res = await createAuthenticatedRequest(
+      'patch', `/api/permits/${permis}/checklist`, respAlpha,
+    ).send({ checklistItems: [{ label: 'Injecté', checked: true }] });
+
+    expect(res.status).toBe(404);
+
+    // La colonne vaut `[]` par défaut, pas `null` : on vérifie donc que
+    // l'élément injecté n'y est pas, plutôt que la forme de la valeur initiale.
+    const { rows } = await pool.query<{ checklist_items: unknown }>(
+      `SELECT checklist_items FROM permit_to_work WHERE id = $1`, [permis]);
+    expect(JSON.stringify(rows[0].checklist_items ?? [])).not.toContain('Injecté');
+  });
+
+  it('un identifiant inexistant rend 404, et non 200 sur une checklist fantôme', async () => {
+    // Cette route n'avait aucune lecture préalable : elle écrivait à l'aveugle
+    // et répondait 200 même quand aucune ligne n'existait.
+    const res = await createAuthenticatedRequest(
+      'patch', '/api/permits/99999999/checklist', respBeta,
+    ).send({ checklistItems: [] });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("TÉMOIN — le propriétaire parcourt toute la chaîne de son permis", async () => {
+    // Sans ce témoin, un module cassé pour tout le monde passerait pour un
+    // cloisonnement réussi. On suit le cycle complet dans l'ordre réel.
+    const permis = await permisBetaDansEtat('draft', 't-temoin');
+    const etape = (chemin: string, corps: Record<string, unknown> = {}) =>
+      createAuthenticatedRequest('post', `/api/permits/${permis}/${chemin}`, respBeta).send(corps);
+
+    expect((await etape('submit')).status).toBe(200);
+    expect((await litPermis(permis)).status).toBe('submitted');
+
+    expect((await etape('approve')).status).toBe(200);
+    expect((await litPermis(permis)).status).toBe('approved');
+
+    expect((await etape('activate')).status).toBe(200);
+    expect((await litPermis(permis)).status).toBe('active');
+
+    const checklist = await createAuthenticatedRequest(
+      'patch', `/api/permits/${permis}/checklist`, respBeta,
+    ).send({ checklistItems: [{ label: 'Consignation vérifiée', checked: true }] });
+    expect(checklist.status).toBe(200);
+
+    expect((await etape('complete', { notes: 'Travaux terminés' })).status).toBe(200);
+    const fin = await litPermis(permis);
+    expect(fin.status).toBe('completed');
+    expect(fin.tenant_id).toBe(SEEDED.tenantBeta);
+  });
+
+  it('TÉMOIN — le propriétaire rejette et annule ses propres permis', async () => {
+    const aRejeter = await permisBetaDansEtat('submitted', 't-rejet');
+    const rejet = await createAuthenticatedRequest(
+      'post', `/api/permits/${aRejeter}/reject`, respBeta,
+    ).send({ reason: 'Conditions non réunies' });
+    expect(rejet.status).toBe(200);
+    expect((await litPermis(aRejeter)).status).toBe('rejected');
+
+    const aAnnuler = await permisBetaDansEtat('draft', 't-annul');
+    const annul = await createAuthenticatedRequest(
+      'post', `/api/permits/${aAnnuler}/cancel`, respBeta,
+    ).send({});
+    expect(annul.status).toBe(200);
+    expect((await litPermis(aAnnuler)).status).toBe('cancelled');
+  });
+});
