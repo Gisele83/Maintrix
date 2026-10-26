@@ -2602,6 +2602,38 @@ export const insertPermitToWorkSchema = createInsertSchema(permitToWork).omit({
   updatedAt: true,
 });
 
+/**
+ * Les champs qu'une MISE À JOUR de permis peut écrire — et aucun autre.
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ * POURQUOI UNE LISTE BLANCHE
+ * ═══════════════════════════════════════════════════════════════════
+ * `PATCH /api/permits/:id` écartait trois champs (`status`, `permitNumber`,
+ * `createdAt`) et écrivait TOUT LE RESTE, `tenantId` compris. Mesuré sur
+ * banc : un technicien d'une entreprise a remplacé le titre du permis d'une
+ * autre et s'en est attribué la propriété
+ * (docs/EXAMEN_LISTES_BLANCHES.md, anomalie B).
+ *
+ * Une liste noire ne protège que de ce qu'on a pensé à nommer : une colonne
+ * ajoutée demain serait acceptée par oubli. On inverse donc la logique.
+ *
+ * Trois exclusions, pour trois raisons distinctes :
+ *   • `tenantId` — un permis ne change pas d'entreprise par une mise à jour ;
+ *   • `permitNumber` — c'est l'identifiant du document de sécurité, celui
+ *     qu'on retrouve sur le papier affiché au poste de travail ;
+ *   • `status` — le cycle de vie (brouillon → soumis → approuvé → actif) passe
+ *     par les routes dédiées, qui tracent chaque transition. La route de
+ *     modification le repose elle-même à `draft`, ce qui est son rôle : une
+ *     retouche renvoie le permis en relecture.
+ *
+ * `.strict()` refuse un champ inconnu au lieu de l'ignorer — ignorer laisse
+ * croire que l'écriture a pris effet.
+ */
+export const miseAJourPermisSchema = insertPermitToWorkSchema
+  .omit({ tenantId: true, permitNumber: true, status: true })
+  .partial()
+  .strict();
+
 export type PermitToWork = typeof permitToWork.$inferSelect;
 export type InsertPermitToWork = z.infer<typeof insertPermitToWorkSchema>;
 

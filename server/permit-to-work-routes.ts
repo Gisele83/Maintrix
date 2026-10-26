@@ -8,7 +8,8 @@
 import type { Express } from "express";
 import { db } from "./db";
 import { eq, desc, and, or } from "drizzle-orm";
-import { permitToWork, insertPermitToWorkSchema, userProfiles, equipmentRegistry, workOrders } from "@shared/schema";
+import { permitToWork, insertPermitToWorkSchema, miseAJourPermisSchema, userProfiles, equipmentRegistry, workOrders } from "@shared/schema";
+import { tenantRequis } from "./tenant-requis";
 import { EnterpriseAuthMiddleware } from "./enterprise-auth-middleware";
 import { generalRateLimit } from "./security-middleware";
 import { z } from "zod";
@@ -277,18 +278,67 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "ID invalide" });
 
+      // ═══════════════════════════════════════════════════════════════
+      // LE PERMIS D'UNE AUTRE ENTREPRISE ÉTAIT MODIFIABLE
+      // ═══════════════════════════════════════════════════════════════
+      // La lecture ET l'écriture filtraient sur l'`id` SEUL. Mesuré sur banc
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie B) : un technicien du
+      // locataire Alpha a remplacé le titre du permis de Beta et s'en est
+      // attribué la propriété, en HTTP 200. Un permis de travail est un
+      // document de sécurité — travaux par points chauds, consignation,
+      // espace confiné.
+      //
+      // On emploie `tenantRequis` et non la forme `if (tenantId)` utilisée
+      // ailleurs dans ce fichier : cette forme NE FILTRE PAS quand le
+      // locataire est absent, c'est-à-dire qu'elle se rabat silencieusement
+      // sur « tout voir ». `tenantRequis` REFUSE (voir server/tenant-requis.ts).
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+
       const [existing] = await db.select({ status: permitToWork.status, requestedById: permitToWork.requestedById })
-        .from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
+        .from(permitToWork)
+        .where(and(eq(permitToWork.id, id), eq(permitToWork.tenantId, tenantId)))
+        .limit(1);
+      // Hors du périmètre de l'appelant, un permis est pour lui ABSENT : 404 et
+      // non 403, sinon la réponse renseignerait sur l'existence du document
+      // d'une autre entreprise.
       if (!existing) return res.status(404).json({ message: "Permis introuvable" });
 
       if (!['draft', 'rejected'].includes(existing.status)) {
         return res.status(409).json({ message: "Un permis ne peut être modifié qu'à l'état Brouillon ou Rejeté" });
       }
 
-      const { status, permitNumber, createdAt, ...updateData } = req.body;
+      // ═══════════════════════════════════════════════════════════════
+      // LISTE BLANCHE, ET NON LISTE NOIRE
+      // ═══════════════════════════════════════════════════════════════
+      // Le corps passait par `const { status, permitNumber, createdAt,
+      // ...updateData } = req.body` : trois champs écartés, TOUT LE RESTE
+      // écrit — `tenantId` compris. Une liste noire ne protège que de ce
+      // qu'on a pensé à nommer, et une colonne ajoutée demain serait
+      // acceptée par oubli.
+      //
+      // `.strict()` REFUSE un champ inconnu au lieu de l'ignorer : une
+      // tentative d'écrire `tenantId` doit s'entendre dire non, pas croire
+      // qu'elle a réussi.
+      const validation = miseAJourPermisSchema.safeParse(req.body);
+      if (!validation.success) {
+        const champsRefuses = validation.error.issues
+          .filter((i) => i.code === "unrecognized_keys")
+          .flatMap((i) => (i as any).keys as string[]);
+
+        return res.status(400).json({
+          message: champsRefuses.length
+            ? `Ces champs ne se modifient pas par cette route : ${champsRefuses.join(", ")}. ` +
+              "Le numéro de permis, son statut et l'entreprise propriétaire n'en font pas partie."
+            : "Mise à jour invalide.",
+          champs: champsRefuses,
+          details: validation.error.issues.map((i) => ({ chemin: i.path.join("."), motif: i.message })),
+        });
+      }
+
       const [updated] = await db.update(permitToWork)
-        .set({ ...updateData, status: 'draft', updatedAt: new Date() })
-        .where(eq(permitToWork.id, id))
+        .set({ ...validation.data, status: 'draft', updatedAt: new Date() })
+        .where(and(eq(permitToWork.id, id), eq(permitToWork.tenantId, tenantId)))
         .returning();
       journal(PTW_ACTIONS.UPDATE, updated as any, req);
       res.json(updated);

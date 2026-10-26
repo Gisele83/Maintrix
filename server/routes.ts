@@ -1941,32 +1941,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GET /api/maintenance-plans, GET /:id et POST sont gérés par maintenance-plan-routes.ts
   // (registerMaintenancePlanRoutes, enregistré plus tôt — table maintenance_plans, plans
-  // annuels par exercice fiscal). Les plans préventifs par type d'équipement (table
-  // preventive_maintenance_plans) sont exposés séparément sur /api/preventive-maintenance-plans
-  // (gmao-routes.ts, avec isolation par tenant). PUT ci-dessous reste le seul point d'accès
-  // pour la mise à jour via cette table — maintenance-plan-routes.ts n'a qu'un PATCH.
-  app.put("/api/maintenance-plans/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      
-      // Remove fields that shouldn't be updated directly
-      delete updates.id;
-      delete updates.createdAt;
-      
-      const plan = await storage.updatePreventiveMaintenancePlan(id, updates);
-      res.json(plan);
-    } catch (error: any) {
-      console.error("Error updating maintenance plan:", error);
-      if (error.message.includes("not found")) {
-        res.status(404).json({ error: "Maintenance plan not found" });
-      } else {
-        res.status(500).json({ error: "Failed to update maintenance plan" });
-      }
-    }
-  });
-
-  // DELETE /api/maintenance-plans/:id est géré par maintenance-plan-routes.ts (registered earlier).
+  // annuels par exercice fiscal).
+  //
+  // ═══════════════════════════════════════════════════════════════════
+  // `PUT /api/maintenance-plans/:id` A ÉTÉ SUPPRIMÉE — ET NON RÉPARÉE
+  // ═══════════════════════════════════════════════════════════════════
+  // Elle écrivait le plan préventif D'UNE AUTRE ENTREPRISE. Trois défauts
+  // cumulés, mesurés sur banc (docs/EXAMEN_LISTES_BLANCHES.md, anomalie A) :
+  //
+  //   1. aucun appel à `tenantRequis` ;
+  //   2. `storage.updatePreventiveMaintenancePlan(id, updates)` ne recevait
+  //      aucun locataire, et filtrait sur l'`id` SEUL ;
+  //   3. le corps passait par une liste NOIRE (`delete updates.id`,
+  //      `delete updates.createdAt`) qui laissait `tenantId` modifiable.
+  //
+  // Un technicien du locataire Alpha a ainsi renommé le plan de Beta ET s'en
+  // est attribué la propriété, en HTTP 200.
+  //
+  // POURQUOI SUPPRIMER PLUTÔT QUE GARDER :
+  //   • elle était REDONDANTE. `PUT /api/preventive-maintenance-plans/:id`
+  //     (gmao-routes.ts) écrit la MÊME table, en validant par
+  //     `insertPreventiveMaintenancePlanSchema.partial()` et en cloisonnant
+  //     par locataire. La capacité n'est donc pas perdue ;
+  //   • elle n'avait AUCUN appelant. Le client n'emploie que
+  //     `/api/preventive-maintenance-plans/*`, et un garde-fou l'y oblige
+  //     (tests/unit/refonte-ui.test.ts : « aucun écran ne lit plus la table
+  //     orpheline ») ;
+  //   • son URL mentait. Sous le préfixe `/api/maintenance-plans`, tous les
+  //     autres verbes servent la table `maintenance_plans` ; ce PUT écrivait
+  //     `preventive_maintenance_plans`. Deux tables pour une même famille
+  //     d'URL selon le verbe : c'est ce qui l'a rendue invisible à toutes les
+  //     campagnes de cloisonnement.
+  //
+  // Même raisonnement que pour le préfixe `/pdf` retiré plus haut : réparer
+  // une porte redondante la maintient en vie, donc maintient le piège.
+  //
+  // DELETE /api/maintenance-plans/:id est géré par maintenance-plan-routes.ts.
 
   // Data Import/Export routes
   app.get('/api/templates/maintenance-csv', (req, res) => {

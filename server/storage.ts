@@ -151,7 +151,8 @@ export interface IStorage {
   getPreventiveMaintenancePlanById(id: number): Promise<PreventiveMaintenancePlan | undefined>;
   getPreventiveMaintenancePlansByEquipmentType(equipmentType: string): Promise<PreventiveMaintenancePlan[]>;
   createPreventiveMaintenancePlan(data: InsertPreventiveMaintenancePlan): Promise<PreventiveMaintenancePlan>;
-  updatePreventiveMaintenancePlan(id: number, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan>;
+  // Locataire exigé : voir l'implémentation pour le défaut qui l'a imposé.
+  updatePreventiveMaintenancePlan(id: number, tenantId: string, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan>;
 
   // GMAO - Spare Parts Inventory
   getSpareParts(): Promise<SparePart[]>;
@@ -490,14 +491,51 @@ export class DatabaseStorage implements IStorage {
     return plan;
   }
 
-  async updatePreventiveMaintenancePlan(id: number, updates: Partial<PreventiveMaintenancePlan>): Promise<PreventiveMaintenancePlan> {
+  /**
+   * Met à jour un plan préventif — locataire OBLIGATOIRE et positionnel.
+   *
+   * ═══════════════════════════════════════════════════════════════════
+   * POURQUOI LE LOCATAIRE EST DEVENU UN PARAMÈTRE EXIGÉ
+   * ═══════════════════════════════════════════════════════════════════
+   * Cette méthode filtrait sur l'`id` SEUL, et son unique appelant HTTP
+   * (`PUT /api/maintenance-plans/:id`, supprimé — voir server/routes.ts) ne
+   * lui passait aucun locataire. Résultat mesuré : un technicien d'une
+   * entreprise modifiait le plan préventif d'une autre, et pouvait s'en
+   * attribuer la propriété en écrivant `tenantId` dans le corps de la requête
+   * (docs/EXAMEN_LISTES_BLANCHES.md, anomalie A).
+   *
+   * Le locataire n'est pas devenu optionnel « par prudence » : il est exigé
+   * pour que le typecheck REFUSE tout futur appelant qui l'oublierait. Un
+   * paramètre optionnel aurait laissé le défaut se reproduire en silence.
+   *
+   * `tenantId` est aussi retiré des champs écrits : un plan ne change pas
+   * d'entreprise par une mise à jour. Même protection que `updateAlert`
+   * (gmao-storage.ts), qui avait déjà reçu ce traitement.
+   *
+   * Cette méthode n'a plus aucun appelant HTTP ; la voie vivante est
+   * `gmaoStorage.updatePreventiveMaintenancePlan(id, tenantId, updates)`,
+   * exposée par `PUT /api/preventive-maintenance-plans/:id`.
+   */
+  async updatePreventiveMaintenancePlan(
+    id: number,
+    tenantId: string,
+    updates: Partial<PreventiveMaintenancePlan>,
+  ): Promise<PreventiveMaintenancePlan> {
+    const { tenantId: _jamaisModifiable, ...modifications } = updates;
+
     const [plan] = await db
       .update(preventiveMaintenancePlans)
-      .set(updates)
-      .where(eq(preventiveMaintenancePlans.id, id))
+      .set(modifications)
+      .where(and(
+        eq(preventiveMaintenancePlans.id, id),
+        eq(preventiveMaintenancePlans.tenantId, tenantId),
+      ))
       .returning();
-    
+
     if (!plan) {
+      // Hors du périmètre de l'appelant, un plan est pour lui ABSENT : on ne
+      // distingue pas « inexistant » de « chez quelqu'un d'autre », sous peine
+      // de renseigner sur le contenu des autres locataires.
       throw new Error(`Preventive maintenance plan with id ${id} not found`);
     }
     return plan;

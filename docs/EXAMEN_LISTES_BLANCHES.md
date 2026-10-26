@@ -4,18 +4,23 @@
 `PUT /api/equipment/:id` (voir `CREATION_EQUIPEMENT.md`), où le corps de la
 requête pouvait écrire `tenantId` et faire changer une fiche d'entreprise.*
 
-**Ce document est un constat, pas un correctif.** Aucune des anomalies décrites
-ci-dessous n'est corrigée. Chacune a été **vérifiée sur banc** et relue dans la
-base, jamais déduite d'une lecture de code.
+Chaque anomalie a été **vérifiée sur banc** et relue dans la base, jamais
+déduite d'une lecture de code.
+
+> **État au 26 octobre 2026, fin de journée** : **A et B sont corrigées** (voir
+> « Correction de A et B » en fin de document). **C, D, E, F et G restent
+> ouvertes.** Et le travail sur B a mis au jour **sept routes de permis
+> supplémentaires** qui partagent le même défaut de cloisonnement — voir
+> « Découvert en corrigeant B ».
 
 ---
 
 ## Résumé
 
-| | Anomalie | Vérifiée | Gravité |
-|---|---|---|---|
-| **A** | `PUT /api/maintenance-plans/:id` — écrit le plan préventif **d'une autre entreprise** | oui | **critique** |
-| **B** | `PATCH /api/permits/:id` — écrit le permis de travail **d'une autre entreprise** | oui | **critique** |
+| | Anomalie | Vérifiée | Gravité | État |
+|---|---|---|---|---|
+| **A** | `PUT /api/maintenance-plans/:id` — écrit le plan préventif **d'une autre entreprise** | oui | **critique** | **CORRIGÉE** (route supprimée) |
+| **B** | `PATCH /api/permits/:id` — écrit le permis de travail **d'une autre entreprise** | oui | **critique** | **CORRIGÉE** |
 | **C** | `PUT /api/work-orders/:id` — le corps impose `tenantId` : l'ordre **quitte** son entreprise | oui | élevée |
 | **D** | `PUT /api/spare-parts/:id` — idem pour une pièce | oui | élevée |
 | **E** | `POST /api/procurement/suppliers` — le corps choisit l'entreprise **à la création** | oui | élevée |
@@ -220,3 +225,103 @@ d'insertion associés ; la couche de stockage pour les épandages.
 `data_directory` confirmé après démarrage), schéma par `drizzle-kit push`,
 `tests/seed.ts`, serveur bâti par `npm run build`. Chaque constat est lu dans la
 table, et non dans la réponse HTTP.
+
+---
+
+## Correction de A et B
+
+*Faite le 26 octobre 2026, sur décision de l'utilisateur. Les anomalies C à G
+restent ouvertes.*
+
+### A — la route a été **supprimée**, et non réparée
+
+`PUT /api/maintenance-plans/:id` n'existe plus. Trois raisons, dans cet ordre :
+
+1. **elle était redondante.** `PUT /api/preventive-maintenance-plans/:id`
+   (gmao-routes.ts) écrit la MÊME table, en validant par
+   `insertPreventiveMaintenancePlanSchema.partial()` et en cloisonnant par
+   locataire. La capacité n'est donc pas perdue — un test le prouve ;
+2. **elle n'avait aucun appelant.** Le client n'emploie que
+   `/api/preventive-maintenance-plans/*`, et un garde-fou l'y oblige déjà
+   (`tests/unit/refonte-ui.test.ts` : « aucun écran ne lit plus la table
+   orpheline ») ;
+3. **son URL mentait.** Sous le préfixe `/api/maintenance-plans`, tous les
+   autres verbes servent la table `maintenance_plans` ; ce PUT écrivait
+   `preventive_maintenance_plans`. Deux tables pour une même famille d'URL
+   selon le verbe — c'est ce qui l'a rendue invisible à toutes les campagnes de
+   cloisonnement précédentes.
+
+Même raisonnement que pour le préfixe `/pdf`, retiré plutôt que redirigé :
+réparer une porte redondante la maintient en vie, donc maintient le piège.
+
+`storage.updatePreventiveMaintenancePlan` reste dans le dépôt mais exige
+désormais le locataire **en paramètre positionnel obligatoire**, et le retire
+des champs écrits. Elle n'a plus d'appelant HTTP ; l'exigence est là pour que
+le typecheck refuse tout futur appelant qui l'oublierait.
+
+**Effet de bord mesuré, et corrigé aussi** : la route sanctionnée cloisonnait
+bien (rien n'était écrit quand on visait le plan d'autrui), mais répondait
+**200 avec un corps vide** — un coup dans le vide annoncé comme un succès.
+C'est le défaut déjà corrigé pour `deletePreventiveMaintenancePlan`, que la
+mise à jour avait conservé. Devenue la seule voie vers cette table, elle rend
+désormais **404**.
+
+### B — cloisonnement de la lecture et de l'écriture, et liste blanche
+
+Trois changements sur `PATCH /api/permits/:id` :
+
+- **`tenantRequis`**, et non la forme `if (tenantId)` employée ailleurs dans ce
+  fichier : cette forme **ne filtre pas** quand le locataire est absent, c'est
+  à dire qu'elle se rabat silencieusement sur « tout voir » ;
+- le `SELECT` **et** l'`UPDATE` portent sur `id` **et** locataire. Hors
+  périmètre, le permis est **404** et non 403 : répondre « interdit »
+  renseignerait sur l'existence du document d'une autre entreprise ;
+- **liste blanche** `miseAJourPermisSchema` (`shared/schema.ts`) en
+  `.strict()`, qui remplace la liste noire. Trois exclusions, pour trois
+  raisons : `tenantId` (un permis ne change pas d'entreprise), `permitNumber`
+  (l'identifiant du document affiché au poste de travail), `status` (le cycle
+  de vie passe par les routes de transition, qui tracent).
+
+Aucun écran n'appelait cette route : `.strict()` ne casse donc rien.
+
+### Avant / après, le scénario d'origine rejoué
+
+| | A — plan de Beta | B — permis de Beta |
+|---|---|---|
+| **avant** | HTTP 200, renommé, `tenant_id` → Alpha | HTTP 200, titre remplacé, `tenant_id` → Alpha |
+| **après** | HTTP **404**, nom intact, `tenant_id` **Beta** | HTTP **404**, titre intact, `tenant_id` **Beta** |
+
+- `tests/integration/plans-et-permis-cloisonnes.test.ts` — **7 tests**, chacun
+  relisant la table parce que sur ces routes le code de retour mentait ;
+- lanes complètes : **424 tests unitaires** (36 suites) et **455
+  d'intégration** (30 suites) verts ;
+- `npm run check`, `check:tests`, `check:scripts` : verts (`--incremental
+  false`, codes de sortie relevés).
+
+---
+
+## Découvert en corrigeant B : sept routes de permis au même défaut
+
+Le module des permis compte **neuf routes d'écriture**. En corrigeant celle que
+l'examen avait relevée, j'ai vérifié les autres : **sept filtrent sur l'`id`
+seul**, sans locataire.
+
+| Route | Effet d'un appel depuis une autre entreprise |
+|---|---|
+| `POST /api/permits/:id/submit` | soumet le permis d'autrui |
+| `POST /api/permits/:id/approve` | **approuve** le permis d'autrui |
+| `POST /api/permits/:id/reject` | rejette le permis d'autrui |
+| `POST /api/permits/:id/activate` | **active** le permis d'autrui |
+| `POST /api/permits/:id/complete` | clôt le permis d'autrui |
+| `POST /api/permits/:id/cancel` | annule le permis d'autrui |
+| `PATCH /api/permits/:id/checklist` | écrit la checklist d'autrui |
+
+**Ce n'est pas la même gravité que B.** B permettait de modifier le texte d'un
+permis ; `approve` et `activate` **autorisent des travaux** — points chauds,
+consignation, espace confiné — au nom d'une autre entreprise. La correction de
+B est donc nécessaire mais **pas suffisante** : la porte d'à côté reste ouverte.
+
+Ces sept routes ne lisent pas le corps de la requête sans liste blanche (elles
+prennent des champs nommés), donc elles sortaient du périmètre de cet examen.
+Elles relèvent du **cloisonnement**, et sont signalées ici pour ne pas être
+perdues. Non corrigées.

@@ -965,6 +965,19 @@ export function registerGMAORoutes(app: Express) {
       const tenantId = tenantRequis(req as any, res as any);
       if (!tenantId) return;
       const plan = await gmaoStorage.updatePreventiveMaintenancePlan(id, tenantId, validatedData);
+      // Le cloisonnement tient (la clause porte sur l'id ET le locataire), mais
+      // quand aucune ligne ne correspond, `plan` est `undefined` et cette route
+      // répondait **200 avec un corps vide** : un coup dans le vide annoncé
+      // comme un succès. Mesuré en visant le plan d'un autre locataire.
+      //
+      // C'est le défaut déjà corrigé pour `deletePreventiveMaintenancePlan`
+      // (voir son commentaire dans gmao-storage.ts) ; la mise à jour l'avait
+      // conservé. Cette route est devenue la SEULE voie vers cette table
+      // depuis le retrait de `PUT /api/maintenance-plans/:id` : elle doit donc
+      // dire la vérité. Hors périmètre, un plan est pour l'appelant ABSENT.
+      if (!plan) {
+        return res.status(404).json({ message: "Plan de maintenance introuvable" });
+      }
       res.json(plan);
     } catch (error) {
       console.error("Error updating maintenance plan:", error);
