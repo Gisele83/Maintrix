@@ -6,7 +6,7 @@ import {
   AlertTriangle, TrendingUp, Activity, Cog, Smartphone, Brain, Zap, Plus,
   ShoppingCart, DollarSign, Gauge, ClipboardCheck, FileText, ArrowUpRight,
   Heart, Timer, Radio, QrCode, ExternalLink, Shield, Fish,
-  FlaskConical, UserCheck, Building2, ShieldCheck
+  FlaskConical, UserCheck, Building2, ShieldCheck, ClipboardList
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -681,6 +681,10 @@ export default function GMAODashboard() {
                   { icon: Bell, label: 'Alertes', href: '/smart-alerts' },
                   { icon: Timer, label: 'Engagements de service', href: '/sla-management' },
                   { icon: QrCode, label: 'Codes QR', href: '/equipment-qr' },
+                  // En TÊTE du groupe : c'est le point d'entrée de
+                  // l'exploitation dans la GMAO. Signaler précède tout le
+                  // reste, et n'engage ni planification ni budget.
+                  { icon: ClipboardList, label: "Demandes d'intervention", href: '/demandes-intervention' },
                   { icon: CalendarCheck, label: 'Maintenance préventive', href: '/preventive-maintenance' },
                   // Juste après le préventif, parce que c'est ce qui le
                   // déclenche : un compteur d'usage atteint son seuil, et

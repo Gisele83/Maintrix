@@ -183,6 +183,13 @@
       "when": 1784672327523,
       "tag": "0025_counter_readings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1784672387523,
+      "tag": "0026_intervention_requests",
+      "breakpoints": true
     }
   ]
 }

@@ -416,8 +416,8 @@ valide ; ce dépôt a déjà payé cette confusion sur 159 occurrences.
 |---|---|---|
 | ~~Aucun écran de suivi des compteurs~~ | **fait** le 2026-10-26 | Écran `/compteurs` : relevés saisis (l'incrémentation), seuils réglables, historique réunissant relevés et remises à zéro. Voir [COMPTEURS_USAGE.md](COMPTEURS_USAGE.md) |
 | ~~Compteur → OT préventif~~ | **fait** le 2026-10-26 | Le franchissement du seuil crée un OT préventif rattaché au plan, dont la clôture remet le compteur à zéro : le cycle se referme. Voir [COMPTEURS_USAGE.md](COMPTEURS_USAGE.md) |
-| **Demande d'intervention → OT** | ouvert | Aucune table ne porte la demande d'intervention. Chantier distinct |
-| **Alerte → OT** | ouvert | Création d'OT depuis un événement, non traitée ici |
+| ~~Demande d'intervention → OT~~ | **fait** le 2026-10-26 | Table `intervention_requests` (migration 0026) : l'exploitation signale, la maintenance arbitre, le refus porte un motif. Voir [DEMANDES_INTERVENTION.md](DEMANDES_INTERVENTION.md) |
+| ~~Alerte → OT~~ | **fait** le 2026-10-26 | Par l'ARBITRAGE : une alerte devient une demande, qui devient un ordre si la maintenance l'accepte. Une alerte est un symptôme, pas une décision |
 | **`POST /api/work-orders` ignore `dueDate`, `requestedBy`, `orderType`** | ouvert, préexistant | Le client compense par un PUT de complément (voir l'en-tête de `work-order-management.tsx`). `planId` et `requiresShutdown`, eux, sont bien lus par POST |
 
 Le jeu de démonstration, lui, rattache ses OT préventifs à leur plan et marque

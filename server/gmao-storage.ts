@@ -39,6 +39,38 @@ export class CompteurDesactive extends Error {
     this.name = 'CompteurDesactive';
   }
 }
+
+/** La demande visée n'appartient pas au demandeur, ou n'existe pas. → 404 */
+export class DemandeIntrouvable extends Error {
+  constructor(id: number) {
+    super(`Demande d'intervention #${id} non trouvée`);
+    this.name = 'DemandeIntrouvable';
+  }
+}
+
+/**
+ * La demande a déjà été arbitrée.
+ *
+ * **409** et non 400 : la requête est bien formée, c'est l'état de la demande
+ * qui la contredit. Et le message DIT l'état trouvé — un « conflit » sans
+ * préciser ce qui a déjà eu lieu oblige l'utilisateur à recharger pour
+ * comprendre.
+ *
+ * Ce refus est ce qui empêche un second arbitrage d'écraser le premier : sans
+ * lui, un refus pourrait annuler une acceptation et laisser un ordre de
+ * travail orphelin de sa demande.
+ */
+export class DemandeDejaArbitree extends Error {
+  constructor(id: number, public readonly etat: string) {
+    const libelles: Record<string, string> = {
+      accepted: 'déjà acceptée et convertie en ordre de travail',
+      rejected: 'déjà refusée',
+      cancelled: 'annulée par son demandeur',
+    };
+    super(`La demande d'intervention #${id} est ${libelles[etat] ?? `dans l'état « ${etat} »`} : elle ne peut plus être arbitrée.`);
+    this.name = 'DemandeDejaArbitree';
+  }
+}
 import { mtbfHeures, mttrHeures, arrondir } from "@shared/fiabilite";
 import {
   equipmentRegistry,
@@ -47,6 +79,7 @@ import {
   maintenanceCounters,
   counterHistory,
   counterReadings,
+  interventionRequests,
   spareParts,
   stockMovements,
   iotSensorData,
@@ -70,6 +103,8 @@ import {
   type CounterHistory,
   type InsertCounterHistory,
   type CounterReading,
+  type InterventionRequest,
+  type InsertInterventionRequest,
   type SparePart,
   type InsertSparePart,
   type StockMovement,
@@ -1364,6 +1399,262 @@ export class GMAOStorage {
     return index;
   }
 
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * DEMANDES D'INTERVENTION — signaler, arbitrer, convertir ou refuser
+   * ═══════════════════════════════════════════════════════════════════
+   * Voir l'en-tête de `intervention_requests` dans shared/schema.ts et la
+   * migration 0026 pour le pourquoi.
+   */
+  async getDemandesIntervention(
+    tenantId: string,
+    filtres: { status?: string } = {},
+  ): Promise<Array<InterventionRequest & {
+    equipmentName: string | null;
+    workOrderNumber: string | null;
+  }>> {
+    const conditions = [eq(interventionRequests.tenantId, tenantId)];
+    if (filtres.status) conditions.push(eq(interventionRequests.status, filtres.status));
+
+    const lignes = await db
+      .select({
+        demande: interventionRequests,
+        // Le nom vient du registre, DANS le locataire — jamais d'une copie
+        // dénormalisée. Le lot des compteurs a montré ce que coûte l'inverse :
+        // un écran qui affiche « non précisé » pour un équipement connu.
+        equipmentName: equipmentRegistry.equipmentName,
+        workOrderNumber: workOrders.orderNumber,
+      })
+      .from(interventionRequests)
+      .leftJoin(equipmentRegistry, and(
+        eq(interventionRequests.equipmentId, equipmentRegistry.id),
+        eq(equipmentRegistry.tenantId, tenantId),
+      ))
+      .leftJoin(workOrders, and(
+        eq(interventionRequests.workOrderId, workOrders.id),
+        eq(workOrders.tenantId, tenantId),
+      ))
+      .where(and(...conditions))
+      .orderBy(desc(interventionRequests.createdAt));
+
+    return lignes.map(({ demande, equipmentName, workOrderNumber }) => ({
+      ...demande,
+      equipmentName: equipmentName ?? null,
+      workOrderNumber: workOrderNumber ?? null,
+    }));
+  }
+
+  async getDemandeInterventionById(id: number, tenantId: string): Promise<InterventionRequest | undefined> {
+    const [demande] = await db
+      .select()
+      .from(interventionRequests)
+      .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)));
+    return demande;
+  }
+
+  /** La demande née d'une alerte donnée, s'il en existe une encore vivante. */
+  async getDemandePourAlerte(alertId: number, tenantId: string): Promise<InterventionRequest | undefined> {
+    // « Vivante » = ni refusée ni annulée : une alerte dont la demande a été
+    // refusée peut être re-signalée (les circonstances ont pu changer), mais
+    // une alerte dont la demande est en attente ou déjà convertie ne doit pas
+    // produire un doublon.
+    const [demande] = await db
+      .select()
+      .from(interventionRequests)
+      .where(and(
+        eq(interventionRequests.alertId, alertId),
+        eq(interventionRequests.tenantId, tenantId),
+        inArray(interventionRequests.status, ['pending', 'accepted']),
+      ))
+      .orderBy(desc(interventionRequests.createdAt));
+    return demande;
+  }
+
+  async createDemandeIntervention(data: Omit<InsertInterventionRequest, 'requestNumber'>): Promise<InterventionRequest> {
+    const requestNumber = `DI-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    const [demande] = await db
+      .insert(interventionRequests)
+      .values({ ...data, requestNumber })
+      .returning();
+    return demande;
+  }
+
+  /**
+   * ACCEPTER une demande : elle devient un ordre de travail.
+   *
+   * TRANSACTIONNEL, et la raison est la règle du dépôt
+   * (docs/TRANSACTIONS.md) : deux écritures qui doivent être vraies ensemble.
+   * Un ordre créé sans que la demande soit marquée acceptée se ferait
+   * re-convertir au clic suivant — deux ordres pour un signalement. Une
+   * demande marquée acceptée sans ordre créé serait un signalement classé
+   * « pris en charge » dont le travail n'existe nulle part : le pire des deux,
+   * parce qu'il est invisible.
+   *
+   * Le VERROU sur la demande est ce qui rend l'arbitrage sûr face à deux
+   * arbitres simultanés. Sans lui, les deux liraient `pending` et créeraient
+   * chacun un ordre.
+   *
+   * La priorité et le type viennent de l'ARBITRE, pas de la demande :
+   * l'urgence perçue par le demandeur reste une information, elle n'engage pas
+   * la planification. C'est toute la raison d'être de la séparation DI / OT.
+   */
+  async accepterDemandeIntervention(
+    id: number,
+    tenantId: string,
+    decision: {
+      orderType: string;
+      priority: string;
+      requiresShutdown: boolean;
+      assignedTo?: number | null;
+      estimatedHours?: number;
+      reviewNotes?: string;
+      reviewedBy?: number | null;
+    },
+  ): Promise<{ demande: InterventionRequest; ordre: WorkOrder }> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const orderNumber = `WO-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      const [ordre] = await tx
+        .insert(workOrders)
+        .values({
+          tenantId,
+          orderNumber,
+          equipmentId: avant.equipmentId,
+          orderType: decision.orderType,
+          title: avant.title,
+          // La demande d'origine est citée dans la description : c'est le seul
+          // endroit où un technicien qui ouvre l'ordre voit ce qui a été
+          // signalé, et par qui le signalement a été fait.
+          description:
+            `${avant.description}\n\n` +
+            `— Né de la demande d'intervention ${avant.requestNumber}` +
+            (avant.reportedLocation ? ` (lieu signalé : ${avant.reportedLocation})` : '') +
+            `, urgence perçue par le demandeur : ${avant.urgency}.`,
+          priority: decision.priority,
+          status: 'pending',
+          requiresShutdown: decision.requiresShutdown,
+          // `requestedBy` porte le DEMANDEUR, pas l'arbitre : c'est lui qui a
+          // signalé, et c'est à lui qu'on rendra compte.
+          requestedBy: avant.requestedBy,
+          assignedTo: decision.assignedTo ?? undefined,
+          ...(decision.estimatedHours != null
+            ? { estimatedDuration: Math.round(decision.estimatedHours * 60) }
+            : {}),
+        })
+        .returning();
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({
+          status: 'accepted',
+          workOrderId: ordre.id,
+          reviewedBy: decision.reviewedBy ?? undefined,
+          reviewedAt: new Date(),
+          reviewNotes: decision.reviewNotes,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return { demande, ordre };
+    });
+  }
+
+  /**
+   * REFUSER une demande, avec un motif.
+   *
+   * Le motif est ce qui rend la charge écartée MESURABLE — défaut n° 2 de
+   * l'audit. Sans lui, un refus est indistinguable d'un oubli, et personne ne
+   * peut dire combien de signalements ont été écartés ni pourquoi.
+   *
+   * Même verrou que l'acceptation : une demande déjà arbitrée ne se réarbitre
+   * pas, sinon un refus pourrait écraser une acceptation et laisser un ordre
+   * de travail orphelin de sa demande.
+   */
+  async refuserDemandeIntervention(
+    id: number,
+    tenantId: string,
+    rejectionReason: string,
+    reviewedBy?: number | null,
+  ): Promise<InterventionRequest> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({
+          status: 'rejected',
+          rejectionReason,
+          reviewedBy: reviewedBy ?? undefined,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return demande;
+    });
+  }
+
+  /** Le demandeur retire sa propre demande, tant qu'elle n'est pas arbitrée. */
+  async annulerDemandeIntervention(
+    id: number,
+    tenantId: string,
+  ): Promise<InterventionRequest> {
+    return db.transaction(async (tx) => {
+      const [avant] = await tx
+        .select()
+        .from(interventionRequests)
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .for('update');
+
+      if (!avant) throw new DemandeIntrouvable(id);
+      if (avant.status !== 'pending') throw new DemandeDejaArbitree(id, avant.status);
+
+      const [demande] = await tx
+        .update(interventionRequests)
+        .set({ status: 'cancelled', updatedAt: new Date() })
+        .where(and(eq(interventionRequests.id, id), eq(interventionRequests.tenantId, tenantId)))
+        .returning();
+
+      return demande;
+    });
+  }
+
+  /**
+   * Le compte des demandes par état — la CHARGE, y compris celle qu'on a
+   * écartée.
+   *
+   * C'est la mesure que l'absence de table rendait impossible : « le refus
+   * motivé n'existe pas, donc la charge non traitée n'est pas mesurable ».
+   */
+  async getChargeDemandes(tenantId: string): Promise<Record<string, number>> {
+    const lignes = await db
+      .select({ status: interventionRequests.status, n: count() })
+      .from(interventionRequests)
+      .where(eq(interventionRequests.tenantId, tenantId))
+      .groupBy(interventionRequests.status);
+
+    const parEtat: Record<string, number> = { pending: 0, accepted: 0, rejected: 0, cancelled: 0 };
+    for (const l of lignes) parEtat[l.status] = Number(l.n);
+    return parEtat;
+  }
+
   // Spare Parts Methods
   async getSpareParts(tenantId: string): Promise<SparePart[]> {
     return await db.select().from(spareParts)
@@ -1996,6 +2287,40 @@ export class GMAOStorage {
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(alertsNotifications.createdAt))
       .limit(maxLimit);
+  }
+
+  /**
+   * Une alerte, DANS le locataire.
+   *
+   * Il n'existait aucune lecture unitaire cloisonnée de cette table : seules
+   * la liste et la lecture par équipement. Le signalement d'une alerte à la
+   * maintenance en a besoin — et une alerte d'autrui doit s'y lire comme un
+   * objet absent, sinon son titre et son message passeraient dans la demande
+   * créée.
+   */
+  async getAlertById(id: number, tenantId: string): Promise<AlertsNotifications | undefined> {
+    const [alerte] = await db
+      .select()
+      .from(alertsNotifications)
+      .where(and(eq(alertsNotifications.id, id), eq(alertsNotifications.tenantId, tenantId)));
+    return alerte;
+  }
+
+  /**
+   * Les identifiants des profils du locataire — pour vérifier qu'une
+   * affectation désigne quelqu'un de l'organisation.
+   *
+   * Ne rend QUE les identifiants et le nom : cette méthode sert à valider une
+   * affectation, pas à servir des profils. Rendre les lignes entières ferait
+   * passer des secrets d'authentification par un chemin qui n'a aucune raison
+   * de les connaître — `/api/user-profiles` les retire explicitement, et un
+   * second chemin qui l'oublierait annulerait cette précaution.
+   */
+  async getIdentifiantsProfils(tenantId: string): Promise<Array<{ id: number; username: string }>> {
+    return await db
+      .select({ id: userProfiles.id, username: userProfiles.username })
+      .from(userProfiles)
+      .where(eq(userProfiles.tenantId, tenantId));
   }
 
   async getAlertsByEquipment(equipmentId: number, tenantId: string): Promise<AlertsNotifications[]> {

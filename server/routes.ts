@@ -64,6 +64,7 @@ import { registerFmeaRoutes } from "./fmea-routes";
 import { registerAssetLifecycleRoutes } from "./asset-lifecycle-routes";
 import { registerCalibrationRoutes } from "./calibration-routes";
 import { registerCompteurRoutes } from "./compteurs-routes";
+import { registerDemandeInterventionRoutes } from "./demandes-intervention-routes";
 import { registerHabilitationRoutes } from "./habilitation-routes";
 import { registerSystemHealthRoutes } from "./system-health-routes";
 import { registerBudgetRoutes as registerBudgetPlanRoutes } from "./budget-routes";
@@ -326,6 +327,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // brièvement dans gmao-routes.ts ; elle a été déplacée ici pour que tout le
   // module des compteurs ait une seule adresse.
   registerCompteurRoutes(app);
+
+  // Demandes d intervention : signaler, arbitrer, convertir ou refuser.
+  // Enregistrees APRES les routes GMAO : la route
+  // POST /api/alerts/:id/demande-intervention vit ici, et aucun chemin
+  // d alerte existant ne la recouvre (gmao-routes ne declare que
+  // GET/POST /api/alerts et PUT /api/alerts/:id).
+  registerDemandeInterventionRoutes(app);
 
   // Register System Health routes
   registerSystemHealthRoutes(app);
