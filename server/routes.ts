@@ -1656,7 +1656,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Report new case
   app.post("/api/report", async (req, res) => {
     try {
-      const data = insertReportedCaseSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire un cas signalé dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertReportedCaseSchema.parse(req.body), tenantId };
       const reportedCase = await storage.createReportedCase(data);
       
       res.status(201).json(reportedCase);

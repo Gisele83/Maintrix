@@ -418,10 +418,15 @@ export class GMAOStorage {
   }
 
   async updateEquipment(id: number, tenantId: string, updates: Partial<EquipmentRegistry>): Promise<EquipmentRegistry> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...updatesCloisonne } = updates;
     try {
       const [equipment] = await db
         .update(equipmentRegistry)
-        .set({ ...updates, updatedAt: new Date() })
+        .set({ ...updatesCloisonne, updatedAt: new Date() })
         .where(and(eq(equipmentRegistry.id, id), eq(equipmentRegistry.tenantId, tenantId)))
         .returning();
       if (!equipment) throw new Error(`Équipement #${id} non trouvé ou accès refusé`);
@@ -552,7 +557,17 @@ export class GMAOStorage {
 
   async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
     try {
-      const safeUpdates = { ...updates };
+      // `tenantId` est retiré des champs écrits. La clause `WHERE` ci-dessous
+      // cloisonne la ligne qu'on ATTEINT, pas la valeur qu'on y écrit : mesuré
+      // sur banc, `PUT /api/work-orders/:id` avec `{ tenantId: <autre> }`
+      // faisait PASSER l'ordre chez l'autre entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie C). L'appelant lisait un 403,
+      // posé par le filet anti-fuite sur la réponse, APRÈS l'écriture.
+      //
+      // Un ordre de travail ne change pas d'entreprise par une mise à jour.
+      // Même protection que `updateAlert`.
+      const { tenantId: _jamaisModifiable, ...sansLocataire } = updates;
+      const safeUpdates = { ...sansLocataire };
       if (safeUpdates.level1ValidatedBy === undefined) delete safeUpdates.level1ValidatedBy;
       if (safeUpdates.level2ValidatedBy === undefined) delete safeUpdates.level2ValidatedBy;
 
@@ -746,9 +761,14 @@ export class GMAOStorage {
   }
 
   async updateMaintenanceCounter(id: number, tenantId: string, updates: Partial<MaintenanceCounter>): Promise<MaintenanceCounter> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...updatesCloisonne } = updates;
     const [counter] = await db
       .update(maintenanceCounters)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updatesCloisonne, updatedAt: new Date() })
       .where(and(eq(maintenanceCounters.id, id), eq(maintenanceCounters.tenantId, tenantId)))
       .returning();
     return counter;
@@ -1692,9 +1712,16 @@ export class GMAOStorage {
   }
 
   async updateSparePart(id: number, tenantId: string, updates: Partial<SparePart>): Promise<SparePart> {
+    // `tenantId` retiré des champs écrits : mesuré sur banc,
+    // `PUT /api/spare-parts/:id` avec `{ tenantId: <autre> }` faisait sortir la
+    // pièce de son entreprise — et le stock avec elle
+    // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie D). Le `WHERE` cloisonne la
+    // ligne atteinte, pas la valeur écrite.
+    const { tenantId: _jamaisModifiable, ...modifications } = updates;
+
     const [part] = await db
       .update(spareParts)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...modifications, updatedAt: new Date() })
       .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)))
       .returning();
     return part;
@@ -2470,9 +2497,14 @@ export class GMAOStorage {
   }
 
   async updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...dataCloisonne } = data;
     const [supplier] = await db
       .update(suppliers)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...dataCloisonne, updatedAt: new Date() })
       .where(eq(suppliers.id, id))
       .returning();
     return supplier;
@@ -2534,6 +2566,10 @@ export class GMAOStorage {
     tenantId: string,
     data: Partial<Omit<InsertPurchaseOrder, 'tenantId'>>,
   ): Promise<PurchaseOrder | undefined> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [order] = await this.db
       .update(purchaseOrders)
       .set({ ...data, updatedAt: new Date() })
@@ -2626,6 +2662,10 @@ export class GMAOStorage {
   }
 
   async updateReorderRule(id: number, data: Partial<InsertReorderRule>): Promise<ReorderRule> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [rule] = await this.db
       .update(reorderRules)
       .set({ ...data, updatedAt: new Date() })
@@ -3391,6 +3431,10 @@ export class GMAOStorage {
     tenantId: string,
     configData: Partial<Omit<InsertCompanyConfig, "tenantId">>,
   ): Promise<CompanyConfig | undefined> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [updatedConfig] = await db
       .update(companyConfig)
       .set({ ...configData, updatedAt: new Date() })

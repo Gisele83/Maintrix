@@ -178,10 +178,17 @@ export function registerPermitToWorkRoutes(app: Express) {
   app.get("/api/permits", auth, generalRateLimit, async (req: any, res) => {
     try {
       const { status, type, riskLevel } = req.query;
-      const tenantId = req.user?.tenantId;
 
-      let conditions: any[] = [];
-      if (tenantId) conditions.push(eq(permitToWork.tenantId, tenantId));
+      // ⚠️ Cette route faisait `if (tenantId) conditions.push(...)` : quand le
+      // locataire était absent de la session, AUCUN filtre n'était posé et la
+      // liste rendait les permis de TOUTES les entreprises. Un repli sur « tout
+      // voir » est exactement la forme que `tenantRequis` a été écrite pour
+      // supprimer (voir server/tenant-requis.ts) : en l'absence de locataire on
+      // REFUSE, on ne devine pas.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
+      let conditions: any[] = [eq(permitToWork.tenantId, tenantId)];
       if (status) conditions.push(eq(permitToWork.status, status as string));
       if (type) conditions.push(eq(permitToWork.type, type as string));
       if (riskLevel) conditions.push(eq(permitToWork.riskLevel, riskLevel as string));
@@ -203,7 +210,11 @@ export function registerPermitToWorkRoutes(app: Express) {
         equipmentId: permitToWork.equipmentId,
         workOrderId: permitToWork.workOrderId,
       }).from(permitToWork)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        // Sans ternaire : `conditions` contient toujours au moins le locataire.
+        // La forme `conditions.length > 0 ? … : undefined` laissait entendre
+        // qu'une clause vide était un cas légitime — c'est ce qui a permis au
+        // repli « tout voir » de passer pour un choix.
+        .where(and(...conditions))
         .orderBy(desc(permitToWork.createdAt));
 
       // Enrich with requester name
@@ -231,10 +242,14 @@ export function registerPermitToWorkRoutes(app: Express) {
   // ── GET /api/permits/stats ── Dashboard stats
   app.get("/api/permits/stats", auth, async (req: any, res) => {
     try {
-      const tenantId = req.user?.tenantId;
-      const conditions = tenantId ? [eq(permitToWork.tenantId, tenantId)] : [];
+      // Même repli que la liste : sans locataire, les statistiques portaient
+      // sur TOUTES les entreprises. Des compteurs globaux sont plus sournois
+      // qu'une liste — ils ne montrent aucun nom, mais révèlent l'activité.
+      const tenantId = tenantRequis(req, res);
+      if (!tenantId) return;
+
       const all = await db.select({ status: permitToWork.status, riskLevel: permitToWork.riskLevel, type: permitToWork.type })
-        .from(permitToWork).where(conditions.length > 0 ? and(...conditions) : undefined);
+        .from(permitToWork).where(eq(permitToWork.tenantId, tenantId));
 
       const stats = {
         total: all.length,
@@ -262,8 +277,14 @@ export function registerPermitToWorkRoutes(app: Express) {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "ID invalide" });
 
-      const [permit] = await db.select().from(permitToWork).where(eq(permitToWork.id, id)).limit(1);
-      if (!permit) return res.status(404).json({ message: "Permis introuvable" });
+      // ⚠️ Cette lecture n'avait AUCUN filtre de locataire : n'importe quel
+      // utilisateur authentifié lisait le permis COMPLET d'une autre
+      // entreprise — conditions d'exécution, et les noms des intervenants
+      // ajoutés juste en dessous. Les écritures ont été fermées d'abord ; la
+      // lecture restait, donc la confidentialité du document aussi.
+      const trouve = await permisDuLocataire(req, res, id);
+      if (!trouve) return;
+      const { permit } = trouve;
 
       // Enrich with related data
       const enriched: any = { ...permit };
@@ -390,7 +411,7 @@ export function registerPermitToWorkRoutes(app: Express) {
 
       const [updated] = await db.update(permitToWork)
         .set({ ...validation.data, status: 'draft', updatedAt: new Date() })
-        .where(and(eq(permitToWork.id, id), eq(permitToWork.tenantId, tenantId)))
+        .where(cePermis(id, tenantId))
         .returning();
       journal(PTW_ACTIONS.UPDATE, updated as any, req);
       res.json(updated);

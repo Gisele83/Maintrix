@@ -204,7 +204,26 @@ export async function cloturerOrdreTravail(demande: DemandeCloture): Promise<Bil
 }
 
 async function executerCloture(demande: DemandeCloture): Promise<BilanCloture> {
-  const { id, tenantId, modifications, pieces, performedBy } = demande;
+  const { id, tenantId, modifications: modificationsRecues, pieces, performedBy } = demande;
+
+  // ═══════════════════════════════════════════════════════════════════
+  // LA CLÔTURE ÉCRIT SANS PASSER PAR LA COUCHE DE STOCKAGE
+  // ═══════════════════════════════════════════════════════════════════
+  // `modifications` est un `Record<string, unknown>` qui vient du corps de
+  // `PUT /api/work-orders/:id` (`processedUpdates`). Les deux `.set()` de cette
+  // fonction écrivent DIRECTEMENT dans `work_orders` : le durcissement de
+  // `gmaoStorage.updateWorkOrder`, qui retire le locataire, ne les couvre donc
+  // pas. Un `tenantId` glissé dans le corps d'une requête de clôture aurait
+  // fait sortir l'ordre de son entreprise, par cette branche-là.
+  //
+  // Défaut trouvé par le garde-fou statique `tests/unit/cloisonnement-ecritures`,
+  // et non à la relecture : c'est exactement le genre de chemin que l'examen
+  // des routes manque, puisqu'il ne part pas d'une route.
+  //
+  // `id` est retiré pour la même raison : l'ordre à écrire est désigné par la
+  // clause `WHERE`, jamais par la charge utile.
+  const { tenantId: _jamaisModifiable, id: _niLIdentifiant, ...modifications } =
+    modificationsRecues as Record<string, unknown>;
 
   return db.transaction(async (tx) => {
     // ── 1. Verrou sur l'ordre de travail ────────────────────────────

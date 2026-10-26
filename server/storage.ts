@@ -144,7 +144,8 @@ export interface IStorage {
   getWorkOrdersByStatus(status: string): Promise<WorkOrder[]>;
   getWorkOrdersByAssignee(userId: number): Promise<WorkOrder[]>;
   createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
-  updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder>;
+  // Locataire exigé : voir l'implémentation pour le défaut qui l'a imposé.
+  updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder>;
 
   // GMAO - Preventive Maintenance
   getPreventiveMaintenancePlans(): Promise<PreventiveMaintenancePlan[]>;
@@ -161,7 +162,8 @@ export interface IStorage {
   getSparePartsByCategory(category: string): Promise<SparePart[]>;
   getLowStockParts(): Promise<SparePart[]>;
   createSparePart(data: InsertSparePart): Promise<SparePart>;
-  updateSparePart(id: number, updates: Partial<SparePart>): Promise<SparePart>;
+  // Locataire exigé : voir l'implémentation pour le défaut qui l'a imposé.
+  updateSparePart(id: number, tenantId: string, updates: Partial<SparePart>): Promise<SparePart>;
 
   // GMAO - Stock Movements
   getStockMovements(): Promise<StockMovement[]>;
@@ -275,6 +277,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAdaptiveLearning(equipmentType: string, learningData: Partial<AdaptiveLearning>): Promise<void> {
+      // Rien a retirer ici : le TYPE de cet argument exclut deja `tenantId`
+      // (Partial<Omit<…, "tenantId">>, ou table sans colonne locataire). Une
+      // protection par le type vaut mieux qu'une extraction a l'ecriture : le
+      // typecheck refuse l'APPELANT, pas seulement la valeur.
     const [existing] = await db.select().from(adaptiveLearning).where(eq(adaptiveLearning.equipmentType, equipmentType));
     if (existing) {
       await db.update(adaptiveLearning).set({ ...learningData, lastUpdate: new Date() })
@@ -440,10 +446,23 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async updateWorkOrder(id: number, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+  /**
+   * ⚠️ Locataire OBLIGATOIRE — même motif que
+   * `updatePreventiveMaintenancePlan` ci-dessus.
+   *
+   * Cette méthode filtrait sur l'`id` SEUL et épandait les champs reçus : elle
+   * écrivait donc l'ordre de n'importe quelle entreprise, `tenantId` compris.
+   * Elle n'a aujourd'hui AUCUN appelant — la voie vivante est
+   * `gmaoStorage.updateWorkOrder(id, tenantId, updates)`. Le paramètre est
+   * exigé pour que le typecheck refuse le prochain appelant qui l'oublierait,
+   * plutôt que de lui faire hériter du défaut en silence.
+   */
+  async updateWorkOrder(id: number, tenantId: string, updates: Partial<WorkOrder>): Promise<WorkOrder> {
+    const { tenantId: _jamaisModifiable, ...modifications } = updates;
+
     const [order] = await db.update(workOrders)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(workOrders.id, id))
+      .set({ ...modifications, updatedAt: new Date() })
+      .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
       .returning();
     if (!order) {
       throw new Error(`Work order with id ${id} not found`);
@@ -579,10 +598,14 @@ export class DatabaseStorage implements IStorage {
     return part;
   }
 
-  async updateSparePart(id: number, updates: Partial<SparePart>): Promise<SparePart> {
+  /** ⚠️ Locataire OBLIGATOIRE — même motif que `updateWorkOrder` ci-dessus :
+   *  filtrait sur l'`id` seul, épandait le corps, aucun appelant aujourd'hui. */
+  async updateSparePart(id: number, tenantId: string, updates: Partial<SparePart>): Promise<SparePart> {
+    const { tenantId: _jamaisModifiable, ...modifications } = updates;
+
     const [part] = await db.update(spareParts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(spareParts.id, id))
+      .set({ ...modifications, updatedAt: new Date() })
+      .where(and(eq(spareParts.id, id), eq(spareParts.tenantId, tenantId)))
       .returning();
     if (!part) {
       throw new Error(`Spare part with id ${id} not found`);
@@ -915,9 +938,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserProfile(id: number, updates: Partial<UserProfile>): Promise<UserProfile> {
+      // Le locataire est retiré des champs ecrits : la propriete doit etre
+      // vraie ICI, sans dependre de la validation faite par l'appelant. Une
+      // ligne ne change pas d'entreprise par une mise a jour (cf. updateAlert
+      // et docs/EXAMEN_LISTES_BLANCHES.md).
+      const { tenantId: _jamaisModifiable, ...updatesCloisonne } = updates;
     const [profile] = await db
       .update(userProfiles)
-      .set({ ...updates, updatedAt: new Date() })
+      .set({ ...updatesCloisonne, updatedAt: new Date() })
       .where(eq(userProfiles.id, id))
       .returning();
     

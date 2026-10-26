@@ -1310,7 +1310,14 @@ export function registerGMAORoutes(app: Express) {
   // Create predictive analytics
   app.post("/api/predictive-analytics", async (req, res) => {
     try {
-      const data = insertPredictiveAnalyticsSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire une projection dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertPredictiveAnalyticsSchema.parse(req.body), tenantId };
       const analytics = await gmaoStorage.createPredictiveAnalytics(data);
       res.status(201).json(analytics);
     } catch (error) {
@@ -1351,7 +1358,14 @@ export function registerGMAORoutes(app: Express) {
   // Create KPI metrics
   app.post("/api/kpi-metrics", async (req, res) => {
     try {
-      const data = insertKpiMetricsSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire un indicateur dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertKpiMetricsSchema.parse(req.body), tenantId };
       const metrics = await gmaoStorage.createKpiMetrics(data);
       res.status(201).json(metrics);
     } catch (error) {
@@ -1476,7 +1490,14 @@ export function registerGMAORoutes(app: Express) {
   // Create integration log
   app.post("/api/integration-logs", async (req, res) => {
     try {
-      const data = insertIntegrationLogSchema.parse(req.body);
+      // ⚠️ Le schéma dérive de `createInsertSchema` et contient donc
+      // `tenantId` : cette route le laissait venir du CORPS, si bien qu'on
+      // pouvait écrire une trace d'intégration dans le référentiel d'une AUTRE entreprise
+      // (docs/EXAMEN_LISTES_BLANCHES.md, anomalie G). Le locataire de la
+      // session est posé APRÈS l'épandage — l'ordre compte.
+      const tenantId = tenantRequis(req as any, res as any);
+      if (!tenantId) return;
+      const data = { ...insertIntegrationLogSchema.parse(req.body), tenantId };
       const log = await gmaoStorage.createIntegrationLog(data);
       res.status(201).json(log);
     } catch (error) {
