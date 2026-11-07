@@ -565,3 +565,101 @@ export async function getPersonalizedModelForSite(
     profile,
   };
 }
+
+// ─── Cloisonnement de la vue de flotte ────────────────────────────────────────
+//
+// ═══════════════════════════════════════════════════════════════════
+// CE QUI ÉTAIT DIVULGUÉ, ET POURQUOI CE N'ÉTAIT PAS UN OUBLI DE FILTRE
+// ═══════════════════════════════════════════════════════════════════
+// `runDifferentialAggregation()` part de TOUS les locataires actifs — c'est sa
+// raison d'être : un modèle fédéré se calcule sur la flotte. Le défaut n'était
+// donc pas dans la requête, mais dans ce qui en SORTAIT vers un locataire :
+// `/api/federated-adapt/sites` et `/specialization` servaient le profil complet
+// de chaque pair, nom en clair compris.
+//
+// Mesuré le 2026-11-07 sur un serveur réel (3 locataires seedés, données
+// distinctes par site) : l'administrateur d'Alpha, SON TECHNICIEN et même son
+// compte `viewer` — niveau 0, « consulte sans rien modifier » — lisaient le nom
+// « Tenant Beta (tests) », son score de maturité, son nombre de cas, son taux
+// de succès (0,40 contre 0,90 pour Alpha), ses spécialisations et son vecteur
+// de modèle local à 12 dimensions. Un taux de succès de maintenance est une
+// donnée commerciale : c'est la fuite, pas le fait d'agréger.
+//
+// ═══════════════════════════════════════════════════════════════════
+// POURQUOI RETIRER LES LIGNES DES PAIRS, ET NON LES RENOMMER
+// ═══════════════════════════════════════════════════════════════════
+// L'anonymisation par pseudonyme — « Site 2 », « Site 3 » — était l'option la
+// plus douce, et elle ne tient pas la mesure : une instance de ce produit
+// compte quelques locataires. Avec trois sites, un administrateur qui se
+// reconnaît dans la liste identifie les deux autres par élimination, et il
+// connaît déjà la composition de sa flotte. Un pseudonyme aurait donc PROMIS
+// une anonymisation en ne livrant qu'une pseudonymisation — exactement la
+// surpromesse que ce dépôt vient de retirer du filet anti-fuite (lot A4).
+//
+// La vue de flotte est conservée, mais sous la seule forme qui ne désigne
+// personne : la MOYENNE. C'est aussi ce que l'apprentissage fédéré garantit en
+// propre — on partage des paramètres agrégés, pas le dossier du voisin.
+//
+// ═══════════════════════════════════════════════════════════════════
+// POURQUOI PAS « RÉSERVER AU SUPER-ADMIN »
+// ═══════════════════════════════════════════════════════════════════
+// Écartée sur mesure, pas par préférence. L'identité super-admin vit hors des
+// locataires : `authenticateSuperAdmin` (server/super-admin-routes.ts) valide
+// un jeton opaque en mémoire et pose `req.superAdmin`, sans jamais produire
+// `req.user` ni `req.tenantId`. Or `/api/federated-adapt/*` est derrière
+// `requireAuthentication`, qui n'accepte qu'un cookie de session de locataire.
+// Mesuré : jeton porteur, cookie `superAdminToken`, puis les deux ensemble —
+// 401 les trois fois, alors que `/api/super-admin/tenants` répond 200. Déplacer
+// ces routes derrière un garde super-admin aurait donc produit une capacité que
+// PERSONNE ne peut lire : la panne que ce dépôt a déjà documentée dans
+// server/tenant-integration.ts (« la capacité était morte »). Et c'est inutile :
+// l'exploitant de la plateforme dispose déjà de `/api/super-admin/tenants` pour
+// la liste nominative.
+
+/**
+ * Nombre minimal de sites actifs pour qu'un agrégat de flotte puisse être servi
+ * à un locataire sans lui livrer la valeur d'un pair.
+ *
+ * C'est de l'arithmétique, pas une convention de prudence. Le demandeur
+ * connaît SA propre valeur ; une moyenne sur N sites lui donne donc la somme
+ * des N−1 autres :
+ *
+ *   • N = 2 (un seul pair) — l'inversion est EXACTE. La moyenne révèle la
+ *     valeur du pair au chiffre près.
+ *   • N = 3 (deux pairs)   — il reste une somme de deux valeurs. Dès que l'une
+ *     est devinable (un site neuf est proche de 0), l'autre tombe.
+ *   • N = 4 (trois pairs)  — première taille où la somme ne désigne plus
+ *     personne.
+ *
+ * Le seuil porte sur tout ce qui se calcule SUR LES AUTRES : moyennes,
+ * compteurs par classe, maxima — et sur le modèle global lui-même.
+ *
+ * Le modèle global mérite sa propre démonstration, parce qu'il n'a pas l'air
+ * d'une moyenne de données : θ_global = Σ w_s·θ_s / Σ w_s. Avec un seul pair B,
+ * le demandeur A connaît θ_A et w_A ; il lui reste 12 équations pour
+ * 13 inconnues (θ_B et w_B), et `normalizeVector` impose que θ_B somme à 1 —
+ * ce qui ferme le système. Servir θ_global révèle donc θ_B EXACTEMENT. Servir
+ * le vecteur personnalisé θ̂ = (1−λ)·θ_global + λ·θ_local revient au même, car
+ * θ_global s'en déduit par θ_global = (θ̂ − λ·θ_local) / (1 − λ).
+ *
+ * À l'inverse, le SPI de son PROPRE site reste servi en dessous du seuil : il
+ * ne livre qu'un scalaire, cos(θ_global, θ_local), soit une équation pour
+ * treize inconnues. Il contraint θ_global à un cône, il ne le désigne pas.
+ * C'est ce qui permet à l'écran de rester utile sur une petite flotte.
+ */
+export const SITES_MIN_POUR_AGREGAT = 4;
+
+/** Les agrégats de flotte sont-ils servables à un locataire ? */
+export function agregatsServables(nSitesActifs: number): boolean {
+  return nSitesActifs >= SITES_MIN_POUR_AGREGAT;
+}
+
+/**
+ * Dit à l'écran POURQUOI les comparaisons de flotte sont absentes, au lieu de
+ * le laisser afficher des tirets sans explication. Une absence non motivée
+ * passe pour une panne, et c'est ce qui fait rouvrir un défaut déjà traité.
+ */
+export const MOTIF_AGREGATS_MASQUES =
+  `Comparaison de flotte indisponible : il faut au moins ${SITES_MIN_POUR_AGREGAT} ` +
+  `sites actifs. En dessous, soustraire sa propre valeur de la moyenne révèle ` +
+  `celle des autres sites.`;

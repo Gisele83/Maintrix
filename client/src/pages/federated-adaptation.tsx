@@ -40,6 +40,8 @@ import {
 import { AppShell, EnTetePage, ActionPrincipale, ActionSecondaire, EtatVide } from "@/components/app-shell";
 import { Indicateur, RangeeIndicateurs, PuceEtat } from "@/components/indicateurs";
 import { ETAT, type RegistreEtat } from "@/lib/etats";
+import { useAuth } from "@/hooks/useAuth";
+import { auMoins } from "@shared/roles";
 
 // ─── Types mirroring server ────────────────────────────────────────────────────
 
@@ -82,16 +84,25 @@ interface AggregationResult {
   dimLabels: string[];
 }
 
+/**
+ * Les champs calculés SUR LA FLOTTE arrivent à `null` quand elle est trop
+ * petite pour qu'une moyenne ne désigne personne — le serveur dit alors
+ * pourquoi dans `agregatsMasques` (voir `SITES_MIN_POUR_AGREGAT`,
+ * server/federated-adaptation.ts). Ces `| null` ne sont donc pas de la
+ * prudence de typage : ils sont le cas NORMAL sur une instance de quelques
+ * locataires, et tout ce qui les lit doit savoir les afficher.
+ */
 interface SitesResult {
   sites: SiteProfile[];
   fleetStats: {
     nSites: number;
-    fleetMaturityAvg: number;
-    fleetLambdaAvg: number;
-    fleetSPIAvg: number;
-    nSitesMature: number;
-    nSitesSpecialized: number;
+    fleetMaturityAvg: number | null;
+    fleetLambdaAvg: number | null;
+    fleetSPIAvg: number | null;
+    nSitesMature: number | null;
+    nSitesSpecialized: number | null;
   };
+  agregatsMasques: string | null;
   aggregatedAt: string;
 }
 
@@ -107,15 +118,17 @@ interface SpecializationReport {
     dominantSpecialization: string;
     riskLevel: "generic" | "emerging" | "specialized" | "artefact";
   }[];
-  globalModel: number[];
+  globalModel: number[] | null;
   dimLabels: string[];
+  agregatsMasques: string | null;
   summary: {
-    nGeneric: number;
-    nEmerging: number;
-    nSpecialized: number;
-    nArtefact: number;
-    maxSPI: number;
-    avgSPI: number;
+    nSites: number;
+    nGeneric: number | null;
+    nEmerging: number | null;
+    nSpecialized: number | null;
+    nArtefact: number | null;
+    maxSPI: number | null;
+    avgSPI: number | null;
     driftAlerts: any[];
   };
 }
@@ -152,12 +165,19 @@ function riskBadge(level: string) {
 
 // ─── Mini radar chart (SVG, 12 dimensions) ────────────────────────────────────
 
+/**
+ * `global` et `personalized` peuvent être absents : sur une flotte trop petite,
+ * le serveur ne sert pas θ_global, parce qu'un seul pair permettrait de le
+ * retourner pour retrouver SON vecteur. Le radar ne trace alors que la série
+ * locale — plutôt que de tracer un polygone à zéro, qui se lirait comme un
+ * modèle global nul au lieu d'un modèle global non communiqué.
+ */
 function RadarChart({
   global, local, personalized, labels,
 }: {
-  global: number[];
+  global: number[] | null;
   local: number[];
-  personalized: number[];
+  personalized: number[] | null;
   labels: string[];
 }) {
   const cx = 120, cy = 120, r = 100;
@@ -205,15 +225,19 @@ function RadarChart({
             stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
         );
       })}
-      {/* Global (bleu) */}
-      <polygon points={polyPoints(global)}
-        fill="rgba(59,130,246,0.15)" stroke="#3b82f6" strokeWidth="1.5" />
-      {/* Local (violet) */}
+      {/* Global (bleu) — absent si la flotte est trop petite */}
+      {global && global.length > 0 && (
+        <polygon points={polyPoints(global)}
+          fill="rgba(59,130,246,0.15)" stroke="#3b82f6" strokeWidth="1.5" />
+      )}
+      {/* Local (violet) — toujours servi : c'est le vecteur du demandeur */}
       <polygon points={polyPoints(local)}
         fill="rgba(168,85,247,0.15)" stroke="#a855f7" strokeWidth="1.5" />
-      {/* Personnalisé (vert) */}
-      <polygon points={polyPoints(personalized)}
-        fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="2" strokeDasharray="4,2" />
+      {/* Personnalisé (vert) — se déduit du global, donc absent avec lui */}
+      {personalized && personalized.length > 0 && (
+        <polygon points={polyPoints(personalized)}
+          fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="2" strokeDasharray="4,2" />
+      )}
       {/* Labels */}
       {labels.slice(0, n).map((lbl, i) => {
         const { x, y } = toXY(1.22, i);
@@ -272,19 +296,30 @@ function LambdaCurve({ current }: { current: number }) {
 
 function SiteCard({
   profile,
-  aggregationWeight,
   globalModel,
   dimLabels,
 }: {
   profile: SiteProfile;
-  aggregationWeight: number;
-  globalModel: number[];
+  globalModel: number[] | null;
   dimLabels: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
-  const personalizedVec = profile.localModelVector.map((v, i) =>
-    (1 - profile.mixingCoefficient) * (globalModel[i] ?? 0) + profile.mixingCoefficient * v
-  );
+
+  /**
+   * θ̂(s) = (1−λ)·θ_global + λ·θ_local — donc indéfini sans θ_global.
+   *
+   * Le calcul retombait sur `globalModel[i] ?? 0`, ce qui n'est pas une
+   * absence mais un modèle global NUL : la courbe affichée valait λ·θ_local et
+   * se lisait comme un vrai vecteur personnalisé. On préfère ne rien tracer.
+   */
+  const personalizedVec =
+    globalModel && globalModel.length > 0
+      ? profile.localModelVector.map(
+          (v, i) =>
+            (1 - profile.mixingCoefficient) * (globalModel[i] ?? 0) +
+            profile.mixingCoefficient * v,
+        )
+      : null;
 
   return (
     <div className="rounded-none border border-rule bg-white/5 overflow-hidden">
@@ -346,16 +381,25 @@ function SiteCard({
           </div>
         </div>
 
-        {/* Contribution globale */}
+        {/* Taux de succès du site
+            ──────────────────────────────────────────────────────────────────
+            Cette colonne affichait « Contribution », avec une valeur que
+            l'écran FABRIQUAIT lui-même : `1 / nombre de sites affichés`. Elle
+            n'avait jamais rien à voir avec le poids d'agrégation du serveur, et
+            depuis que chacun ne voit que son propre site, elle afficherait
+            invariablement 100 %. Le taux de succès, lui, est une donnée du
+            site demandeur, mesurée, et toujours servie. */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
-            <span className="text-ink/50">Contribution</span>
-            <span className="text-ink font-mono text-xs">{(aggregationWeight * 100).toFixed(1)}%</span>
+            <span className="text-ink/50">Taux de succès</span>
+            <span className="text-ink font-mono text-xs">
+              {(profile.avgSuccessRate * 100).toFixed(0)}%
+            </span>
           </div>
           <div className="h-1.5 rounded-full bg-white overflow-hidden">
             <div
               className="h-full rounded-full bg-paper-deep transition-all"
-              style={{ width: `${Math.min(100, aggregationWeight * 100 * 5)}%` }}
+              style={{ width: `${Math.min(100, profile.avgSuccessRate * 100)}%` }}
             />
           </div>
         </div>
@@ -372,9 +416,16 @@ function SiteCard({
           </div>
           <div>
             <div className="text-xs text-ink/50 mb-2">
-              Modèle · <span className="text-etat-encours-texte">■ global</span> &nbsp;
-              <span className="text-signal">■ local</span> &nbsp;
-              <span className="text-etat-nominal-texte">▪ personnalisé θ̂(s)</span>
+              Modèle ·{" "}
+              {personalizedVec ? (
+                <>
+                  <span className="text-etat-encours-texte">■ global</span> &nbsp;
+                  <span className="text-signal">■ local</span> &nbsp;
+                  <span className="text-etat-nominal-texte">▪ personnalisé θ̂(s)</span>
+                </>
+              ) : (
+                <span className="text-signal">■ local de ce site</span>
+              )}
             </div>
             <RadarChart
               global={globalModel}
@@ -407,7 +458,19 @@ function SiteCard({
 
 export default function FederatedAdaptationPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("sites");
+
+  /**
+   * Qui peut relancer l'agrégation ?
+   *
+   * `POST /api/federated-adapt/aggregate` exige au moins
+   * `maintenance_manager` : le traitement parcourt TOUS les locataires actifs
+   * et écrit dans `federated_sync_state` pour chacun. Mesuré avant correction :
+   * un `viewer` le déclenchait. On masque le bouton pour les rôles que le
+   * serveur refuse — plutôt que de leur présenter une action qui échoue en 403.
+   */
+  const peutAgreger = auMoins(user?.role, "maintenance_manager");
 
   const { data: sitesData, isLoading: sitesLoading } = useQuery<SitesResult>({
     queryKey: ["/api/federated-adapt/sites"],
@@ -432,7 +495,14 @@ export default function FederatedAdaptationPage() {
   const stats = sitesData?.fleetStats;
   const sites = sitesData?.sites ?? [];
   const dimLabels: string[] = configData?.dimLabels ?? [];
-  const globalModel: number[] = specData?.globalModel ?? [];
+  // `null` = non communiqué (flotte trop petite), et non « vecteur vide ».
+  const globalModel: number[] | null = specData?.globalModel ?? null;
+  // Les deux routes portent le même motif ; l'une suffit à l'afficher.
+  const agregatsMasques = sitesData?.agregatsMasques ?? specData?.agregatsMasques ?? null;
+
+  /** « 42 % » ou « — », selon que la flotte permet de servir la moyenne. */
+  const ouTiret = (valeur: number | null | undefined, rendu: (v: number) => string) =>
+    valeur === null || valeur === undefined ? "—" : rendu(valeur);
 
   return (
     <TooltipProvider>
@@ -467,20 +537,32 @@ export default function FederatedAdaptationPage() {
                 </Badge>
               </div>
             </div>
-            <Button
-              onClick={() => aggregateMutation.mutate()}
-              disabled={aggregateMutation.isPending}
-              className="bg-ink text-white border-0 shadow-indigo-500/20"
-            >
-              {aggregateMutation.isPending ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
-              )}
-              Agréger maintenant
-            </Button>
+            {peutAgreger && (
+              <Button
+                onClick={() => aggregateMutation.mutate()}
+                disabled={aggregateMutation.isPending}
+                className="bg-ink text-white border-0 shadow-indigo-500/20"
+              >
+                {aggregateMutation.isPending ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Agréger maintenant
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Pourquoi les comparaisons de flotte sont absentes. Une case vide sans
+            motif passe pour une panne, et c'est ce qui fait rouvrir un défaut
+            déjà traité. */}
+        {agregatsMasques && (
+          <div className="mb-6 rounded-none border border-rule bg-white/5 p-3 flex items-start gap-2">
+            <Info className="w-4 h-4 text-ink/40 mt-0.5 shrink-0" />
+            <div className="text-xs text-ink/60">{agregatsMasques}</div>
+          </div>
+        )}
 
         {/* Fleet KPI cards */}
         {stats && (
@@ -495,35 +577,35 @@ export default function FederatedAdaptationPage() {
               },
               {
                 label: "Maturité moy. M̄",
-                value: (stats.fleetMaturityAvg * 100).toFixed(0),
+                value: ouTiret(stats.fleetMaturityAvg, v => `${(v * 100).toFixed(0)}%`),
                 icon: Activity,
                 color: "",
-                suffix: "%",
+                suffix: "",
               },
               {
                 label: "Mélange moy. λ̄",
-                value: stats.fleetLambdaAvg.toFixed(3),
+                value: ouTiret(stats.fleetLambdaAvg, v => v.toFixed(3)),
                 icon: Layers,
                 color: "",
                 suffix: "",
               },
               {
                 label: "SPI moyen",
-                value: stats.fleetSPIAvg.toFixed(3),
+                value: ouTiret(stats.fleetSPIAvg, v => v.toFixed(3)),
                 icon: BarChart3,
                 color: " ",
                 suffix: "",
               },
               {
                 label: "Sites matures",
-                value: stats.nSitesMature,
+                value: ouTiret(stats.nSitesMature, v => String(v)),
                 icon: CheckCircle2,
                 color: "",
                 suffix: "",
               },
               {
                 label: "Spécialisés",
-                value: stats.nSitesSpecialized,
+                value: ouTiret(stats.nSitesSpecialized, v => String(v)),
                 icon: Cpu,
                 color: " ",
                 suffix: "",
@@ -548,7 +630,7 @@ export default function FederatedAdaptationPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/5 border border-rule mb-6">
             <TabsTrigger value="sites" className="data-[state=active]:bg-white/15 data-[state=active]:text-ink text-ink/60">
-              <Network className="w-4 h-4 mr-2" />Profils des sites
+              <Network className="w-4 h-4 mr-2" />Profil de mon site
             </TabsTrigger>
             <TabsTrigger value="specialization" className="data-[state=active]:bg-white/15 data-[state=active]:text-ink text-ink/60">
               <BarChart3 className="w-4 h-4 mr-2" />Rapport SPI
@@ -567,25 +649,23 @@ export default function FederatedAdaptationPage() {
               <div className="rounded-none border border-rule bg-white/5 p-12 text-center">
                 <Brain className="w-12 h-12 text-ink/20 mx-auto mb-3" />
                 <div className="text-ink/40 text-sm">
-                  Aucun site actif — créez des tenants et des sessions diagnostiques pour alimenter l'apprentissage fédéré.
+                  Votre site n'a pas encore de profil — les sessions diagnostiques et les
+                  retours d'intervention alimentent son modèle local.
                 </div>
               </div>
             ) : (
+              /* Une seule carte : celle du site demandeur. La grille à deux
+                 colonnes est conservée pour que la carte garde sa largeur
+                 habituelle sur grand écran. */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sites.map(profile => {
-                  const specEntry = specData?.spiReport.find(s => s.tenantId === profile.tenantId);
-                  const aggData = sitesData;
-                  const agg = sitesData?.aggregatedAt ? profile.mixingCoefficient : 0;
-                  return (
-                    <SiteCard
-                      key={profile.tenantId}
-                      profile={profile}
-                      aggregationWeight={1 / Math.max(1, sites.length)}
-                      globalModel={globalModel}
-                      dimLabels={dimLabels}
-                    />
-                  );
-                })}
+                {sites.map(profile => (
+                  <SiteCard
+                    key={profile.tenantId}
+                    profile={profile}
+                    globalModel={globalModel}
+                    dimLabels={dimLabels}
+                  />
+                ))}
               </div>
             )}
 
@@ -614,6 +694,10 @@ export default function FederatedAdaptationPage() {
                 {/* Summary pills */}
                 {specData?.summary && (
                   <div className="flex flex-wrap gap-3">
+                    {/* Ces compteurs portent sur la FLOTTE : un histogramme à
+                        quatre classes sur deux pairs désigne lequel est
+                        spécialisé, donc ils suivent le même seuil que les
+                        moyennes et arrivent à `null` en dessous. */}
                     {[
                       { label: "Génériques", count: specData.summary.nGeneric, color: "bg-slate-500/20 text-ink-soft border-rule" },
                       { label: "Émergents", count: specData.summary.nEmerging, color: "bg-etat-alerte-fond text-etat-alerte-texte border-etat-alerte-filet" },
@@ -621,11 +705,11 @@ export default function FederatedAdaptationPage() {
                       { label: "Artefacts", count: specData.summary.nArtefact, color: "bg-etat-critique-fond text-etat-critique-texte border-etat-critique-filet" },
                     ].map(({ label, count, color }) => (
                       <div key={label} className={`rounded-full border px-3 py-1 text-xs font-medium ${color}`}>
-                        {count} {label}
+                        {ouTiret(count, v => String(v))} {label}
                       </div>
                     ))}
                     <div className="rounded-full border px-3 py-1 text-xs font-medium bg-etat-encours-fond text-etat-encours-texte border-etat-encours-filet">
-                      SPI max = {specData.summary.maxSPI.toFixed(3)}
+                      SPI max = {ouTiret(specData.summary.maxSPI, v => v.toFixed(3))}
                     </div>
                   </div>
                 )}
@@ -636,7 +720,7 @@ export default function FederatedAdaptationPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-rule bg-white/5">
-                          <th className="text-left p-3 text-ink/50 font-medium text-xs">Site</th>
+                          <th className="text-left p-3 text-ink/50 font-medium text-xs">Mon site</th>
                           <th className="text-center p-3 text-ink/50 font-medium text-xs">M(s)</th>
                           <th className="text-center p-3 text-ink/50 font-medium text-xs">λ(s)</th>
                           <th className="text-center p-3 text-ink/50 font-medium text-xs">SPI</th>
@@ -690,7 +774,7 @@ export default function FederatedAdaptationPage() {
                         {(specData?.spiReport ?? []).length === 0 && (
                           <tr>
                             <td colSpan={7} className="p-8 text-center text-ink/30 text-sm">
-                              Aucune donnée — déclenchez une agrégation pour alimenter le rapport SPI.
+                              Aucune donnée pour votre site — son modèle local se construit à partir de ses sessions diagnostiques.
                             </td>
                           </tr>
                         )}
